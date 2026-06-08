@@ -3397,7 +3397,10 @@ pub fn get_extra_m() -> (GoPtr<crate::runtime2::m>, bool) {
     mp = lockextra(Arc::new(Mutex::new(Some(false))));
     (*extraMInUse.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i32))));
     unlockextra(crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.schedlink.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some(-1 as i32))));
-    (mp.clone(), crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.schedlink.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())).is_nil())
+    (
+        mp.clone(),
+        crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.schedlink.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())).is_nil()
+    )
 }
 
 /// Returns an extra M back to the list. mp must be from getExtraM. Newly
@@ -4684,7 +4687,10 @@ pub fn check_idle_g_c_no_p() -> (GoPtr<crate::runtime2::p>, GoPtr<crate::runtime
 
     unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
 
-    (pp.clone(), crate::runtime2::guintptr::ptr(&(*{ let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.gp.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())))
+    (
+        pp.clone(),
+        crate::runtime2::guintptr::ptr(&(*{ let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.gp.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()))
+    )
 }
 
 /// wakeNetPoller wakes up the thread sleeping in the network poller if it isn't
@@ -7502,7 +7508,10 @@ pub fn runqget(pp: GoPtr<crate::runtime2::p>) -> (GoPtr<crate::runtime2::g>, boo
         // because other Ps can race to set runnext to 0, but only the current P can set it to non-0.
         // Hence, there's no need to retry this CAS if it fails.
     if { let __tmp_x = (*next.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } && (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runnext.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cas(Arc::new(Mutex::new(Some({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))))))) {
-        return (crate::runtime2::guintptr::ptr(&(*next.lock().unwrap().as_ref().unwrap())), true);
+        return (
+            crate::runtime2::guintptr::ptr(&(*next.lock().unwrap().as_ref().unwrap())),
+            true
+        );
     }
 
     loop {

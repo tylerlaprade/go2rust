@@ -90,7 +90,12 @@ impl crate::types::File {
     }
         let (mut dir, mut call, mut errno) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).open_dir();
         if { let __nil_result = (*errno.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some({ let __arg_holder = call.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: errno.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some({ let __arg_holder = call.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: errno.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         d = GoPtr::local(Arc::new(Mutex::new(Some(dirInfo { dir: Arc::new(Mutex::new(Some(dir))), ..Default::default() }))));
         if (*(*self.file.lock().unwrap().as_ref().unwrap()).dirinfo.lock().unwrap().as_mut().unwrap()).compare_and_swap(sync_atomic::GoPtr::nil(), { let __go_ptr = d.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }) {
@@ -119,7 +124,12 @@ impl crate::types::File {
             } {
         continue
     };
-            return (names.clone(), dirents.clone(), infos.clone(), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("readdir".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: Arc::new(Mutex::new(Some(Box::new((*errno.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));;
+            return (
+                names.clone(),
+                dirents.clone(),
+                infos.clone(),
+                Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("readdir".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: Arc::new(Mutex::new(Some(Box::new((*errno.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+            );;
         }
     }
         if { let __nil_result = (*entptr.lock().unwrap()).is_none(); __nil_result } {

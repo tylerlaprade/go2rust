@@ -17,7 +17,10 @@ pub fn cut_prefix(s: Arc<Mutex<Option<String>>>, prefix: Arc<Mutex<Option<String
     if !has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return ({ let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, false);
     }
-    (Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ((*prefix.lock().unwrap().as_ref().unwrap()).len()) as usize; __s[__low..].to_string() }))), true)
+    (
+        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ((*prefix.lock().unwrap().as_ref().unwrap()).len()) as usize; __s[__low..].to_string() }))),
+        true
+    )
 }
 
 pub fn clone(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {

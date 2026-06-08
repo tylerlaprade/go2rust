@@ -267,7 +267,10 @@ impl stkframe {
         };
         throw(Arc::new(Mutex::new(Some("reflect mismatch".to_string()))));
     }
-        return (Arc::new(Mutex::new(Some(crate::stack::bitvector { ..Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(crate::stack::bitvector { ..Default::default() }))),
+            false
+        );
     }
                         // The function hasn't started yet.
                         // This only happens if f was the

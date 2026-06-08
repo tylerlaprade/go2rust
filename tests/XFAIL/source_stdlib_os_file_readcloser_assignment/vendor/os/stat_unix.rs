@@ -31,7 +31,10 @@ impl crate::types::File {
         let mut fs: Arc<Mutex<Option<fileStat>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut err = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).fstat((*fs.lock().unwrap().as_ref().unwrap()).sys.clone());
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), self.wrap_err(Arc::new(Mutex::new(Some("stat".to_string()))), err.clone()));
+        return (
+            Arc::new(Mutex::new(None)),
+            self.wrap_err(Arc::new(Mutex::new(Some("stat".to_string()))), err.clone())
+        );
     }
         fill_file_stat_from_sys(fs.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         return (Arc::new(Mutex::new(Some(Box::new((*fs.clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io_fs::r#mod::FileInfo + Send + Sync>))), Arc::new(Mutex::new(None)));
@@ -45,7 +48,10 @@ pub fn stat_nolog(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn
         return syscall::stat(Arc::new(Mutex::new(Some({ let __arg_holder = name_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*fs_closure_clone.lock().unwrap().as_ref().unwrap()).sys.clone());
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))));
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("stat".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: err.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("stat".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: err.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     fill_file_stat_from_sys(fs.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     return (Arc::new(Mutex::new(Some(Box::new((*fs.clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io_fs::r#mod::FileInfo + Send + Sync>))), Arc::new(Mutex::new(None)));
@@ -58,7 +64,10 @@ pub fn lstat_nolog(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dy
         return syscall::lstat(Arc::new(Mutex::new(Some({ let __arg_holder = name_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*fs_closure_clone.lock().unwrap().as_ref().unwrap()).sys.clone());
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))));
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("lstat".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: err.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("lstat".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: err.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     fill_file_stat_from_sys(fs.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     return (Arc::new(Mutex::new(Some(Box::new((*fs.clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io_fs::r#mod::FileInfo + Send + Sync>))), Arc::new(Mutex::new(None)));

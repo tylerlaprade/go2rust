@@ -1442,7 +1442,10 @@ impl profBuf {
         { let new_val = (*self.overflow_time.lock().unwrap().as_mut().unwrap()).load(); *time.lock().unwrap() = Some(new_val); };
     }
                 // Increment generation, clear overflow count in low bits.
-        ((*Arc::new(Mutex::new(Some(overflow as u32))).lock().unwrap().as_ref().unwrap()), { let __v = (*time.lock().unwrap().as_ref().unwrap()).clone(); __v })
+        (
+            (*Arc::new(Mutex::new(Some(overflow as u32))).lock().unwrap().as_ref().unwrap()),
+            { let __v = (*time.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        )
     }
 
     /// incrementOverflow records a single overflow at time now.
@@ -1796,7 +1799,11 @@ impl profBuf {
         (*dst.lock().unwrap().as_mut().unwrap())[(1) as usize] = time;
         { let __clear_start = (2) as usize; let __clear_end = ({ let __tmp_x = 2 as usize; let __tmp_y = (*self.hdrsize.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as usize; let __clear_holder = dst.clone(); let mut __clear_guard = __clear_holder.lock().unwrap(); if let Some(__clear_seq) = __clear_guard.as_mut() { assert!(__clear_start <= __clear_end && __clear_end <= __clear_seq.len()); for __clear_i in __clear_start..__clear_end { __clear_seq[__clear_i] = 0; } } };
         (*dst.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = 2 as usize; let __tmp_y = (*self.hdrsize.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as usize] = (*Arc::new(Mutex::new(Some(count as u64))).lock().unwrap().as_ref().unwrap()).clone();
-        return (Arc::new(Mutex::new(Some({ let __seq_holder = dst.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*self.hdrsize.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __seq_holder = overflowTag.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (1) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), false);
+        return (
+            Arc::new(Mutex::new(Some({ let __seq_holder = dst.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*self.hdrsize.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(Some({ let __seq_holder = overflowTag.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (1) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            false
+        );
     }
                 // No data to read, but there is overflow to report.
                 // Racing with writer flushing b.overflow into a real record.
@@ -1929,7 +1936,11 @@ impl profBuf {
                         // goroutine and uses atomics to write the updated queue indices,
                         // and then the read-out from the signal handler buffer uses
                         // atomics to read those queue indices.
-            return (Arc::new(Mutex::new(Some({ let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __seq_holder = tags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), false);
+            return (
+                Arc::new(Mutex::new(Some({ let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+                Arc::new(Mutex::new(Some({ let __seq_holder = tags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+                false
+            );
         };
         unreachable!()
     }

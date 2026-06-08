@@ -763,7 +763,10 @@ pub fn is_async_safe_point(gp: GoPtr<crate::runtime2::g>, pc: Arc<Mutex<Option<u
             return (true, startpc);
         } else if _switch_val == (internal_abi::UNSAFE_POINT_RESTART_AT_ENTRY as i32) {
                         // Restart from the function entry at resumption.
-            return (true, (*f.lock().unwrap().as_ref().unwrap()).entry());
+            return (
+                true,
+                (*f.lock().unwrap().as_ref().unwrap()).entry()
+            );
         }
     }
         // Restartable instruction sequence. Back off PC to

@@ -9,10 +9,16 @@ pub const MAX_UINTPTR: usize = !(0 as usize);
 /// On supported platforms this is an intrinsic lowered by the compiler.
 pub fn mul_uintptr(a: Arc<Mutex<Option<usize>>>, b: Arc<Mutex<Option<usize>>>) -> (usize, bool) {
     if { let __tmp_x = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }; let __tmp_y = ((1 as usize) << ((4 as usize) * (internal_goarch::PTR_SIZE as usize))) as usize; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
-        return ({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }, false);
+        return (
+            { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y },
+            false
+        );
     }
     let mut overflow = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = MAX_UINTPTR as usize; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }; __tmp_x > __tmp_y })));
-    return ({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }, { let __v = (*overflow.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    return (
+        { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y },
+        { let __v = (*overflow.lock().unwrap().as_ref().unwrap()).clone(); __v }
+    );
 }
 
 /// Mul64 returns the 128-bit product of x and y: (hi, lo) = x * y

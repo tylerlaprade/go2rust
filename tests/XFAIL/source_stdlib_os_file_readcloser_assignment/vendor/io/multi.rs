@@ -366,7 +366,10 @@ impl multiWriter {
         return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
     } }
-        ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, Arc::new(Mutex::new(None)))
+        (
+            (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            Arc::new(Mutex::new(None))
+        )
     }
 
     pub fn write_string(&self, s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
@@ -408,7 +411,10 @@ impl multiWriter {
         return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
     } }
-        ((*s.lock().unwrap().as_ref().unwrap()).len() as i32, Arc::new(Mutex::new(None)))
+        (
+            (*s.lock().unwrap().as_ref().unwrap()).len() as i32,
+            Arc::new(Mutex::new(None))
+        )
     }
 }
 

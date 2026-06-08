@@ -261,7 +261,10 @@ impl inlineUnwinder {
     let mut line: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
         let (__tmp_0, mut line32) = funcline1(Arc::new(Mutex::new(Some({ let __selector_holder = self.f.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*uf.lock().unwrap().as_ref().unwrap()).pc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0;;
-        return ({ let __owned = file.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, (*Arc::new(Mutex::new(Some(line32 as i32))).lock().unwrap().as_ref().unwrap()));
+        return (
+            { let __owned = file.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            (*Arc::new(Mutex::new(Some(line32 as i32))).lock().unwrap().as_ref().unwrap())
+        );
     }
 }
 
@@ -290,11 +293,17 @@ impl inlineFrame {
 pub fn new_inline_unwinder(f: Arc<Mutex<Option<funcInfo>>>, pc: Arc<Mutex<Option<usize>>>) -> (Arc<Mutex<Option<inlineUnwinder>>>, Arc<Mutex<Option<inlineFrame>>>) {
     let mut inldata = funcdata(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(internal_abi::F_U_N_C_D_A_T_A__INL_TREE as u8))));
     if { let __nil_result = (*inldata.lock().unwrap()).is_none(); __nil_result } {
-        return (Arc::new(Mutex::new(Some(inlineUnwinder { f: Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), Arc::new(Mutex::new(Some(inlineFrame { pc: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: Arc::new(Mutex::new(Some(-1 as i32))), ..Default::default() }))));
+        return (
+            Arc::new(Mutex::new(Some(inlineUnwinder { f: Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))),
+            Arc::new(Mutex::new(Some(inlineFrame { pc: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: Arc::new(Mutex::new(Some(-1 as i32))), ..Default::default() })))
+        );
     }
     let mut inlTree: GoPtr<[inlinedCall; 1048576]> = GoPtr::raw({ let __ptr = inldata.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     let mut u = Arc::new(Mutex::new(Some(inlineUnwinder { f: Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), inl_tree: inlTree.clone(), ..Default::default() })));
-    return ({ let __owned = u.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, (*u.lock().unwrap().as_ref().unwrap()).resolve_internal(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))));
+    return (
+        { let __owned = u.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+        (*u.lock().unwrap().as_ref().unwrap()).resolve_internal(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+    );
 }
 
 impl GoValueClone for inlinedCall {

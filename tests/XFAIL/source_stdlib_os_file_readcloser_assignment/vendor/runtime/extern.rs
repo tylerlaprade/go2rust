@@ -71,7 +71,12 @@ pub fn caller(skip: Arc<Mutex<Option<i32>>>) -> (usize, Arc<Mutex<Option<String>
         return ((*pc.lock().unwrap().as_ref().unwrap()), file.clone(), (*line.lock().unwrap().as_ref().unwrap()), (*ok.lock().unwrap().as_ref().unwrap()));
     }
     let (mut frame, _) = { let __recv = callers_frames(rpc.clone()); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).next(); __result };
-    return ((*(*frame.lock().unwrap().as_ref().unwrap()).p_c.lock().unwrap().as_ref().unwrap()), { let __return_value_1 = Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).file.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_1 }, (*(*frame.lock().unwrap().as_ref().unwrap()).line.lock().unwrap().as_ref().unwrap()), { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).p_c.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y });
+    return (
+        (*(*frame.lock().unwrap().as_ref().unwrap()).p_c.lock().unwrap().as_ref().unwrap()),
+        { let __return_value_1 = Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).file.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_1 },
+        (*(*frame.lock().unwrap().as_ref().unwrap()).line.lock().unwrap().as_ref().unwrap()),
+        { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).p_c.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y }
+    );
 }
 
 /// Callers fills the slice pc with the return program counters of function invocations

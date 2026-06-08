@@ -4831,6 +4831,26 @@ func writeAll(fd int, p []byte, nn int, max int) int {
 	}
 }
 
+func TestConcurrentMultiReturnBreaksComplexResultsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func read(data []uint64, tags []uintptr, di int, ti int) ([]uint64, []uintptr, bool) {
+	go func() {}()
+	return data[:di], tags[:ti], false
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "__seq_holder = data.clone()") &&
+			strings.Contains(line, "__seq_holder = tags.clone()") {
+			t.Fatalf("complex multi-result return values should not stay on one tuple line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "(\n") {
+		t.Fatalf("complex multi-result return should use multiline tuple syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentFixedArrayCallArgumentBreaksComplexElementsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

@@ -1444,7 +1444,10 @@ impl Func {
         let mut r#fn: GoPtr<crate::runtime2::_func> = self.raw();
         if { let __recv_value = r#fn.borrow(); let __result = (*__recv_value.as_ref().unwrap()).is_inlined(); __result } {
         let mut fi: GoPtr<crate::runtime2::funcinl> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(r#fn.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        return ({ let __return_value_0 = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = fi.with_mut(|__ptr_value| __ptr_value.file.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = fi.with_mut(|__ptr_value| __ptr_value.line.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()));
+        return (
+            { let __return_value_0 = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = fi.with_mut(|__ptr_value| __ptr_value.file.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 },
+            (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = fi.with_mut(|__ptr_value| __ptr_value.line.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap())
+        );
     }
                 // Pass strict=false here, because anyone can call this function,
                 // and they might just be wrong about targetpc belonging to f.
@@ -1453,7 +1456,10 @@ impl Func {
             Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(false)))
         ); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0;;
-        return ({ let __owned = file.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, (*Arc::new(Mutex::new(Some(line32 as i32))).lock().unwrap().as_ref().unwrap()));
+        return (
+            { let __owned = file.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            (*Arc::new(Mutex::new(Some(line32 as i32))).lock().unwrap().as_ref().unwrap())
+        );
     }
 
     /// startLine returns the starting line number of the function. i.e., the line

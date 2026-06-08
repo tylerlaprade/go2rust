@@ -140,7 +140,10 @@ pub fn rawstring(size: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<String>>>, 
         GoPtr::nil(),
         Arc::new(Mutex::new(Some(false)))
     );
-    return ({ let __go_unsafe_result: Arc<Mutex<Option<String>>> = unimplemented!("unsafe.String requires unsafe intrinsic support"); __go_unsafe_result }, { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result });
+    return (
+        { let __go_unsafe_result: Arc<Mutex<Option<String>>> = unimplemented!("unsafe.String requires unsafe intrinsic support"); __go_unsafe_result },
+        { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result }
+    );
 }
 
 /// This is exported via linkname to assembly in syscall (for Plan9) and cgo.

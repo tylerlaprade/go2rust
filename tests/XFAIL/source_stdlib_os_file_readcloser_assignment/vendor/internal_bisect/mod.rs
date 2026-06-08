@@ -1012,7 +1012,10 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
         { let new_val = true; *(*m.lock().unwrap().as_ref().unwrap()).quiet.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     }
 
@@ -1022,7 +1025,10 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
         { let new_val = false; *(*m.lock().unwrap().as_ref().unwrap()).quiet.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     }
 
@@ -1033,7 +1039,10 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
         { let new_val = !(*{ let __field = (*m.lock().unwrap().as_ref().unwrap()).enable.clone(); __field }.lock().unwrap().as_ref().unwrap()); *(*m.lock().unwrap().as_ref().unwrap()).enable.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     }
 
@@ -1068,13 +1077,19 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+            return (
+                Arc::new(Mutex::new(None)),
+                Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+            );
         }
         if !_matched && (_switch_val == ('2' as i32) as u8 || _switch_val == ('3' as i32) as u8 || _switch_val == ('4' as i32) as u8 || _switch_val == ('5' as i32) as u8 || _switch_val == ('6' as i32) as u8 || _switch_val == ('7' as i32) as u8 || _switch_val == ('8' as i32) as u8 || _switch_val == ('9' as i32) as u8) || _fallthrough {
             _matched = true;
             _fallthrough = false;
             if { let __tmp_x = { let __v = (*wid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
             _fallthrough = true;
         }
@@ -1088,7 +1103,10 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
             _matched = true;
             _fallthrough = false;
             if { let __tmp_x = { let __v = (*wid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
             { let __rhs = 4 as u64; let mut guard = bits.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() << __rhs); };
             { let __rhs = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x20 as u8; __tmp_x & ! __tmp_y }; let __tmp_y = ('A' as i32) as u8; __tmp_x - __tmp_y }; let __tmp_y = 10 as u8; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = bits.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
@@ -1097,7 +1115,10 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
             _matched = true;
             _fallthrough = false;
             if { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && ({ let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('1' as i32) as u8; __tmp_x == __tmp_y }) {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
             { let new_val = 0 as u64; *bits.lock().unwrap() = Some(new_val); };
         }
@@ -1106,16 +1127,25 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
             _fallthrough = false;
             if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('+' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*result.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = false; __tmp_x == __tmp_y } {
                 // Have already seen a -. Should be - from here on.
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax (+ after -): ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax (+ after -): ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
                         // Have already seen a -. Should be - from here on.
             if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = { let __v = (*wid.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y })));
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64; __tmp_x > __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "pattern bits too long: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "pattern bits too long: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x <= __tmp_y } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         if { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('y' as i32) as u8; __tmp_x == __tmp_y } {
         { let new_val = 0; *n.lock().unwrap() = Some(new_val); };

@@ -264,7 +264,10 @@ pub fn nanotime_trampoline() {
 pub fn walltime() -> (i64, i32) {
     let mut t: Arc<Mutex<Option<timespec>>> = Arc::new(Mutex::new(Some(Default::default())));
     libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(walltime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
-    return ((*(*t.lock().unwrap().as_ref().unwrap()).tv_sec.lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tv_nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()));
+    return (
+        (*(*t.lock().unwrap().as_ref().unwrap()).tv_sec.lock().unwrap().as_ref().unwrap()),
+        (*Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tv_nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap())
+    );
 }
 
 pub fn walltime_trampoline() {

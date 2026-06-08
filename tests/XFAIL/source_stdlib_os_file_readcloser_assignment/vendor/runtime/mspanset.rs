@@ -1120,7 +1120,10 @@ impl headTailIndex {
     let mut head: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
     let mut tail: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
 
-        (headTailIndex::head(self), headTailIndex::tail(self))
+        (
+            headTailIndex::head(self),
+            headTailIndex::tail(self)
+        )
     }
 }
 

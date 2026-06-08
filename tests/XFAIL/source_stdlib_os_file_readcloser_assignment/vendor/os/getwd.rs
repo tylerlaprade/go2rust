@@ -55,7 +55,10 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
                 //   - windows: syscall implementation is sufficient,
                 //     and we should not rely on $PWD.
         { let (__tmp_0, __tmp_1) = syscall::getwd(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *dir.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
-        return ({ let __owned = dir.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), err.clone()));
+        return (
+            { let __owned = dir.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), err.clone())
+        );
     }
 
         // Use syscall.Getwd directly for
@@ -88,7 +91,10 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
                 // FreeBSD systems appear to use ENOMEM
                 // Solaris appears to use ERANGE.
         if { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_A_M_E_T_O_O_L_O_N_G as usize)).unwrap_or(false); !__matched } && { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_I_N_V_A_L as usize)).unwrap_or(false); !__matched } && { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (ERR_E_R_A_N_G_E as usize)).unwrap_or(false); !__matched } && { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (ERR_E_N_O_M_E_M as usize)).unwrap_or(false); !__matched } {
-        return ({ let __owned = dir.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), err.clone()));
+        return (
+            { let __owned = dir.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), err.clone())
+        );
     }
     }
 
@@ -134,7 +140,10 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
     let mut parent = Arc::new(Mutex::new(Some("..".to_string())));
     loop {
         if { let __tmp_x = ((*parent.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1024; __tmp_x >= __tmp_y } {
-        return (Arc::new(Mutex::new(Some("".to_string()))), new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_N_A_M_E_T_O_O_L_O_N_G as usize))))) as Box<dyn StdError + Send + Sync>)))));
+        return (
+            Arc::new(Mutex::new(Some("".to_string()))),
+            new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_N_A_M_E_T_O_O_L_O_N_G as usize))))) as Box<dyn StdError + Send + Sync>))))
+        );
     }
         let (mut fd, mut err) = open_dir_nolog(Arc::new(Mutex::new(Some({ let __arg_holder = parent.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
@@ -150,9 +159,15 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
                 // is not implemented or failed with ENAMETOOLONG,
                 // so return the most sensible error.
         if syscall::IMPLEMENTS_GETWD {
-        return (Arc::new(Mutex::new(Some("".to_string()))), new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_N_A_M_E_T_O_O_L_O_N_G as usize))))) as Box<dyn StdError + Send + Sync>)))));
+        return (
+            Arc::new(Mutex::new(Some("".to_string()))),
+            new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_N_A_M_E_T_O_O_L_O_N_G as usize))))) as Box<dyn StdError + Send + Sync>))))
+        );
     }
-        return (Arc::new(Mutex::new(Some("".to_string()))), new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(ERR_E_N_O_S_Y_S as usize))))) as Box<dyn StdError + Send + Sync>)))));
+        return (
+            Arc::new(Mutex::new(Some("".to_string()))),
+            new_syscall_error(Arc::new(Mutex::new(Some("getwd".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(ERR_E_N_O_S_Y_S as usize))))) as Box<dyn StdError + Send + Sync>))))
+        );
     }
                 // Readdirnames can return io.EOF or other error.
                 // In any case, we're here because syscall.Getwd

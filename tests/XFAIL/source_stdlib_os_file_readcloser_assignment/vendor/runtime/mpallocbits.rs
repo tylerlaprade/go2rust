@@ -446,13 +446,19 @@ impl pallocBits {
                 // 1s we file, so count trailing 1s.
         let mut start = Arc::new(Mutex::new(Some(internal_runtime_sys::trailing_zeros64(Arc::new(Mutex::new(Some({ let __arg_holder = bi.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as u64)));
         if { let __tmp_x = { let __tmp_x = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
-        return ({ let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }, { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        return (
+            { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y },
+            { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
     }
 
                 // Next, check the interior of the 64-bit chunk.
         let mut j = find_bit_range64(Arc::new(Mutex::new(Some(!(*bi.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))));
         if { let __tmp_x = j; let __tmp_y = 64 as u64; __tmp_x < __tmp_y } {
-        return ({ let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = j; __tmp_x + __tmp_y }, { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        return (
+            { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = j; __tmp_x + __tmp_y },
+            { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
     }
         { let new_val = Arc::new(Mutex::new(Some(internal_runtime_sys::leading_zeros64(Arc::new(Mutex::new(Some({ let __arg_holder = bi.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as u64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *end.lock().unwrap() = __moved_val; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -462,7 +468,10 @@ impl pallocBits {
                 // The new searchIdx is going to be at these 64 bits after any
                 // 1s we file, so count trailing 1s.
                 // Next, check the interior of the 64-bit chunk.
-        return (!0 as u64, { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        return (
+            !0 as u64,
+            { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
     }
 
     /// findLargeN is a helper for find which searches for npages contiguous free pages
@@ -511,7 +520,10 @@ impl pallocBits {
                 // The new searchIdx is going to be at these 64 bits after any
                 // 1s we file, so count trailing 1s.
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        return (!0 as u64, { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        return (
+            !0 as u64,
+            { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
     }
         return ({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*newSearchIdx.lock().unwrap().as_ref().unwrap()).clone(); __v });
     }

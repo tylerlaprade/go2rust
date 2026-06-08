@@ -4704,7 +4704,10 @@ impl Time {
         let mut days = absSeconds::days(&(*self.abs_sec().lock().unwrap().as_ref().unwrap()));
         let mut thu = Arc::new(Mutex::new(Some(absDays(Arc::new(Mutex::new(Some(((*{ let __v = (*days.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + (THURSDAY as i32 - (((*(*({ let __tmp_x = (*days.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absDays(Arc::new(Mutex::new(Some(1 as u64)))); __tmp_x - __tmp_y }).weekday().lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))) as u64))))))));
         let (__tmp_0, mut yday) = absDays::year_yday(&(*thu.lock().unwrap().as_ref().unwrap())); *year.lock().unwrap() = Some(__tmp_0);;
-        return ({ let __v = (*year.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __tmp_x = ({ let __tmp_x = yday; let __tmp_y = 1; __tmp_x - __tmp_y }); let __tmp_y = 7; __tmp_x / __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y });
+        return (
+            { let __v = (*year.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            { let __tmp_x = { let __tmp_x = ({ let __tmp_x = yday; let __tmp_y = 1; __tmp_x - __tmp_y }); let __tmp_y = 7; __tmp_x / __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }
+        );
     }
 
     /// Clock returns the hour, minute, and second within the day specified by t.
@@ -4971,7 +4974,10 @@ impl Time {
     }
         { let __rhs = 60; offset = offset / __rhs; };
         if { let __tmp_x = offset; let __tmp_y = -32768; __tmp_x < __tmp_y } || { let __tmp_x = offset; let __tmp_y = -1; __tmp_x == __tmp_y } || { let __tmp_x = offset; let __tmp_y = 32767; __tmp_x > __tmp_y } {
-        return (b.clone(), errors::new(Arc::new(Mutex::new(Some("Time.MarshalBinary: unexpected zone offset".to_string())))));
+        return (
+            b.clone(),
+            errors::new(Arc::new(Mutex::new(Some("Time.MarshalBinary: unexpected zone offset".to_string()))))
+        );
     }
         { let new_val = Arc::new(Mutex::new(Some(offset as i16))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *offsetMin.lock().unwrap() = __moved_val; };
     }
@@ -5125,7 +5131,10 @@ let mut nsec = Arc::new(Mutex::new(Some(__go_binary_12)));
         let (__tmp_0, mut err) = self.append_strict_r_f_c3339(b.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *b.lock().unwrap() = __moved_tmp_0;;
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('"' as i32) as u8); __append_target.clone() }; b = new_val; };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "Time.MarshalJSON: ".to_string(), (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())))))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "Time.MarshalJSON: ".to_string(), (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap()))))))
+        );
     }
         return (b.clone(), Arc::new(Mutex::new(None)));
     }
@@ -5149,7 +5158,10 @@ let mut nsec = Arc::new(Mutex::new(Some(__go_binary_12)));
     pub fn append_to(&self, mut b: Arc<Mutex<Option<Vec<u8>>>>, errPrefix: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let (__tmp_0, mut err) = self.append_strict_r_f_c3339(b.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *b.lock().unwrap() = __moved_tmp_0;;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*errPrefix.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())))))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*errPrefix.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap()))))))
+        );
     }
         return (b.clone(), Arc::new(Mutex::new(None)));
     }
@@ -5375,7 +5387,10 @@ impl absYday {
                 // so do that instead, saving a few cycles.
                 // See Neri and Schneider, section 8.3.
         let mut d = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2141 as u32; let __tmp_y = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = 197913 as u32; __tmp_x + __tmp_y })));
-        return (Arc::new(Mutex::new(Some(absMonth(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x >> __tmp_y } as i32))))))), { let __tmp_x = 1; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0xFFFF as u32; __tmp_x & __tmp_y }); let __tmp_y = 2141 as u32; __tmp_x / __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y });
+        return (
+            Arc::new(Mutex::new(Some(absMonth(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x >> __tmp_y } as i32))))))),
+            { let __tmp_x = 1; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0xFFFF as u32; __tmp_x & __tmp_y }); let __tmp_y = 2141 as u32; __tmp_x / __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }
+        );
     }
 
     /// janFeb returns 1 if the March 1-based ayday is in January or February, 0 otherwise.

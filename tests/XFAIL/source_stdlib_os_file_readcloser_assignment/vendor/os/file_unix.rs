@@ -910,7 +910,10 @@ pub fn open_file_nolog(name: Arc<Mutex<Option<String>>>, flag: Arc<Mutex<Option<
         return e_closure_clone.clone();
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))));
     if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("open".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: e.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("open".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: e.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
 
         // open(2) itself won't handle the sticky bit on *BSD and Solaris
@@ -945,7 +948,10 @@ pub fn open_dir_nolog(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<cra
         return e_closure_clone.clone();
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))));
     if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("open".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: e.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("open".to_string()))), path: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), err: e.clone(), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
 
     if !SUPPORTS_CLOSE_ON_EXEC {

@@ -18,7 +18,13 @@ pub fn fcntl(fd: Arc<Mutex<Option<i32>>>, cmd: Arc<Mutex<Option<i32>>>, arg: Arc
         Arc::new(Mutex::new(Some((*arg.lock().unwrap().as_ref().unwrap()) as i32)))
     );
     if { let __tmp_x = val; let __tmp_y = -1 as i32; __tmp_x == __tmp_y } {
-        return ((*Arc::new(Mutex::new(Some(val as i32))).lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(errno as usize))))) as Box<dyn StdError + Send + Sync>))));
+        return (
+            (*Arc::new(Mutex::new(Some(val as i32))).lock().unwrap().as_ref().unwrap()),
+            Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(errno as usize))))) as Box<dyn StdError + Send + Sync>)))
+        );
     }
-    ((*Arc::new(Mutex::new(Some(val as i32))).lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(None)))
+    (
+        (*Arc::new(Mutex::new(Some(val as i32))).lock().unwrap().as_ref().unwrap()),
+        Arc::new(Mutex::new(None))
+    )
 }

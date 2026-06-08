@@ -795,7 +795,10 @@ pub fn sys_reserve_aligned(v: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<
         if { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
             return (Arc::new(Mutex::new(None)), 0);
         } else if { let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*align.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
-            return (Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*align.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y });
+            return (
+                Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))),
+                { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*align.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }
+            );
         } else if { let __tmp_x = "darwin".to_string(); let __tmp_y = "windows".to_string(); __tmp_x == __tmp_y } {
                         // On Windows we can't release pieces of a
                         // reservation, so we release the whole thing and
@@ -827,7 +830,10 @@ pub fn sys_reserve_aligned(v: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<
             if { let __tmp_x = { let __v = (*endLen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x > __tmp_y } {
         sys_free_o_s(Arc::new(Mutex::new(Some((*end.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = endLen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
-            return (Arc::new(Mutex::new(Some(pAligned))), { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            return (
+                Arc::new(Mutex::new(Some(pAligned))),
+                { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }
+            );
         }
     };
     unreachable!()

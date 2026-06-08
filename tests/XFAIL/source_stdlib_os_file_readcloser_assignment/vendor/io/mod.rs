@@ -460,11 +460,17 @@ impl Reader for LimitedReaderPtr {
 
 impl discard {
     pub fn write(&self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, Arc::new(Mutex::new(None)))
+        (
+            (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            Arc::new(Mutex::new(None))
+        )
     }
 
     pub fn write_string(&self, s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        ((*s.lock().unwrap().as_ref().unwrap()).len() as i32, Arc::new(Mutex::new(None)))
+        (
+            (*s.lock().unwrap().as_ref().unwrap()).len() as i32,
+            Arc::new(Mutex::new(None))
+        )
     }
 
     pub fn read_from(&self, r: Arc<Mutex<Option<Box<dyn Reader + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {

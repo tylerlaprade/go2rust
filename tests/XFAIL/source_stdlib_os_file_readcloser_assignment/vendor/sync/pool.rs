@@ -385,7 +385,10 @@ impl Pool {
         let mut s = runtime__load_acquintptr(self.local_size.clone());
         let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = s; __tmp_x < __tmp_y } {
-        return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
+        return (
+            index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))),
+            pid
+        );
     }
         self.pin_slow()
     }
@@ -413,7 +416,10 @@ impl Pool {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
+        return (
+            index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))),
+            pid
+        );
     }
     }
             if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {

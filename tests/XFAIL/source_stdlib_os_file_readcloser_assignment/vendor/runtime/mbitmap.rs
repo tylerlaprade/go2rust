@@ -718,7 +718,10 @@ impl typePointers {
                 // BTCQ
         { let __target = __self.mask.clone(); let __rhs = { let __tmp_x = (1 as usize); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 63; __tmp_x & __tmp_y }); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() ^ __rhs); };
                 // LEAQ (XX)(XX*8)
-        return (Arc::new(Mutex::new(Some(__self.clone()))), { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y });
+        return (
+            Arc::new(Mutex::new(Some(__self.clone()))),
+            { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }
+        );
     }
 
     /// next advances the pointers iterator, returning the updated iterator and
@@ -738,7 +741,10 @@ impl typePointers {
 
                 // Stop if we don't actually have type information.
         if { let __ptr_field = __self.typ.clone(); __ptr_field.is_nil() } {
-        return (Arc::new(Mutex::new(Some(typePointers { ..Default::default() }))), 0);
+        return (
+            Arc::new(Mutex::new(Some(typePointers { ..Default::default() }))),
+            0
+        );
     }
 
                 // Advance to the next element if necessary.
@@ -759,7 +765,10 @@ impl typePointers {
 
                 // Check if we've exceeded the limit with the last update.
         if { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
-        return (Arc::new(Mutex::new(Some(typePointers { ..Default::default() }))), 0);
+        return (
+            Arc::new(Mutex::new(Some(typePointers { ..Default::default() }))),
+            0
+        );
     }
 
                 // Grab more bits and try again.

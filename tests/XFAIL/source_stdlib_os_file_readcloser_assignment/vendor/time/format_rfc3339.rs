@@ -102,7 +102,10 @@ impl crate::r#mod::Time {
         };
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>)));
         if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __v = (*n0.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 4; __tmp_x + __tmp_y }) as usize].clone() }; let __tmp_y = ('-' as i32) as u8; __tmp_x != __tmp_y } {
-            return (b.clone(), errors::new(Arc::new(Mutex::new(Some("year outside of range [0,9999]".to_string())))));
+            return (
+                b.clone(),
+                errors::new(Arc::new(Mutex::new(Some("year outside of range [0,9999]".to_string()))))
+            );
         } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = ('Z' as i32) as u8; __tmp_x != __tmp_y } {
             let mut c = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 6; __tmp_x - __tmp_y }) as usize].clone() })));
             if {
@@ -126,7 +129,10 @@ impl crate::r#mod::Time {
                     __go_cond_3
                 }
             } {
-        return (b.clone(), errors::new(Arc::new(Mutex::new(Some("timezone hour outside of range [0,23]".to_string())))));
+        return (
+            b.clone(),
+            errors::new(Arc::new(Mutex::new(Some("timezone hour outside of range [0,23]".to_string()))))
+        );
     }
         }
                 // year must be exactly 4 digits wide
@@ -159,7 +165,10 @@ pub fn parse_r_f_c3339<bytes: GoByteSequence + Clone + Send + Sync + 'static>(mu
 
         // Parse the date and time.
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).go_len() as i32); let __tmp_y = 19; __tmp_x < __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            false
+        );
     }
     let mut year = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
         Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((0) as usize, Some((4) as usize))))),
@@ -192,7 +201,10 @@ pub fn parse_r_f_c3339<bytes: GoByteSequence + Clone + Send + Sync + 'static>(mu
         Arc::new(Mutex::new(Some(59)))
     ) };
     if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } || !({ let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((4) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((7) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((10) as usize); let __tmp_y = ('T' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((13) as usize); let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((16) as usize); let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y }) {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            false
+        );
     }
     { let new_val = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((19) as usize, None)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
 
@@ -220,7 +232,10 @@ pub fn parse_r_f_c3339<bytes: GoByteSequence + Clone + Send + Sync + 'static>(mu
     );
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).go_len() as i32); let __tmp_y = 1; __tmp_x != __tmp_y } || { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('Z' as i32) as u8; __tmp_x != __tmp_y } {
         if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).go_len() as i32); let __tmp_y = 6; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            false
+        );
     }
         let mut hr = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
             Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((1) as usize, Some((3) as usize))))),
@@ -233,7 +248,10 @@ pub fn parse_r_f_c3339<bytes: GoByteSequence + Clone + Send + Sync + 'static>(mu
             Arc::new(Mutex::new(Some(59)))
         ) };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } || !(({ let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('+' as i32) as u8; __tmp_x == __tmp_y }) && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((3) as usize); let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y }) {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            false
+        );
     }
         let mut zoneOffset = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = hr; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = mm; __tmp_x + __tmp_y }); let __tmp_y = 60; __tmp_x * __tmp_y })));
         if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } {
@@ -261,7 +279,10 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
     if !ok {
         let (mut t, mut err) = parse(Arc::new(Mutex::new(Some(R_F_C3339.to_string()))), Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))));
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), err.clone());
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            err.clone()
+        );
     }
                 // The parse template syntax cannot correctly validate RFC 3339.
                 // Explicitly check for cases that Parse is unable to validate for.
@@ -283,60 +304,75 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
         if true {
             return ({ let __owned = t.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, Arc::new(Mutex::new(None)));
         } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 11; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y } {
-            return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new(ParseError {
-                layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
-                value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                layout_elem: Arc::new(Mutex::new(Some("15".to_string()))),
-                value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ("2006-01-02T".len()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (1) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                message: Arc::new(Mutex::new(Some("".to_string()))),
-                ..Default::default()
-            }) as Box<dyn StdError + Send + Sync>))));
+            return (
+                Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+                Arc::new(Mutex::new(Some(Box::new(ParseError {
+                    layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
+                    value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    layout_elem: Arc::new(Mutex::new(Some("15".to_string()))),
+                    value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ("2006-01-02T".len()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (1) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    message: Arc::new(Mutex::new(Some("".to_string()))),
+                    ..Default::default()
+                }) as Box<dyn StdError + Send + Sync>)))
+            );
         } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[("2006-01-02T15:04:05".len()) as usize].clone() }; let __tmp_y = (',' as i32) as u8; __tmp_x == __tmp_y } {
-            return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new(ParseError {
-                layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
-                value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                layout_elem: Arc::new(Mutex::new(Some(".".to_string()))),
-                value_elem: Arc::new(Mutex::new(Some(",".to_string()))),
-                message: Arc::new(Mutex::new(Some("".to_string()))),
-                ..Default::default()
-            }) as Box<dyn StdError + Send + Sync>))));
+            return (
+                Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+                Arc::new(Mutex::new(Some(Box::new(ParseError {
+                    layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
+                    value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    layout_elem: Arc::new(Mutex::new(Some(".".to_string()))),
+                    value_elem: Arc::new(Mutex::new(Some(",".to_string()))),
+                    message: Arc::new(Mutex::new(Some("".to_string()))),
+                    ..Default::default()
+                }) as Box<dyn StdError + Send + Sync>)))
+            );
         } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = ('Z' as i32) as u8; __tmp_x != __tmp_y } {
             if {
                 let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = { let mut __f_guard = num2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 5; __tmp_x - __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))) };
                 let __tmp_y = 24 as u8;
                 __tmp_x >= __tmp_y
             } {
-            return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new(ParseError {
-                layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
-                value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                layout_elem: Arc::new(Mutex::new(Some("Z07:00".to_string()))),
-                value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 6; __tmp_x - __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                message: Arc::new(Mutex::new(Some(": timezone hour out of range".to_string()))),
-                ..Default::default()
-            }) as Box<dyn StdError + Send + Sync>))));
+            return (
+                Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+                Arc::new(Mutex::new(Some(Box::new(ParseError {
+                    layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
+                    value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    layout_elem: Arc::new(Mutex::new(Some("Z07:00".to_string()))),
+                    value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 6; __tmp_x - __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    message: Arc::new(Mutex::new(Some(": timezone hour out of range".to_string()))),
+                    ..Default::default()
+                }) as Box<dyn StdError + Send + Sync>)))
+            );
         } else if {
             let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = { let mut __f_guard = num2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x - __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))) };
             let __tmp_y = 60 as u8;
             __tmp_x >= __tmp_y
         } {
-            return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new(ParseError {
-                layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
-                value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                layout_elem: Arc::new(Mutex::new(Some("Z07:00".to_string()))),
-                value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 6; __tmp_x - __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                message: Arc::new(Mutex::new(Some(": timezone minute out of range".to_string()))),
-                ..Default::default()
-            }) as Box<dyn StdError + Send + Sync>))));
+            return (
+                Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+                Arc::new(Mutex::new(Some(Box::new(ParseError {
+                    layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
+                    value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    layout_elem: Arc::new(Mutex::new(Some("Z07:00".to_string()))),
+                    value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 6; __tmp_x - __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    message: Arc::new(Mutex::new(Some(": timezone minute out of range".to_string()))),
+                    ..Default::default()
+                }) as Box<dyn StdError + Send + Sync>)))
+            );
         }
         } else {
-            return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new(ParseError {
-                layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
-                value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                layout_elem: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
-                value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-                message: Arc::new(Mutex::new(Some("".to_string()))),
-                ..Default::default()
-            }) as Box<dyn StdError + Send + Sync>))));
+            return (
+                Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+                Arc::new(Mutex::new(Some(Box::new(ParseError {
+                    layout: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
+                    value: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    layout_elem: Arc::new(Mutex::new(Some("2006-01-02T15:04:05Z07:00".to_string()))),
+                    value_elem: Arc::new(Mutex::new(Some(String::from_utf8((*b.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+                    message: Arc::new(Mutex::new(Some("".to_string()))),
+                    ..Default::default()
+                }) as Box<dyn StdError + Send + Sync>)))
+            );
         }
     }
         // The parse template syntax cannot correctly validate RFC 3339.

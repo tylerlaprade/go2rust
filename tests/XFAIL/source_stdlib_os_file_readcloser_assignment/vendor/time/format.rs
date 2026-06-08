@@ -907,100 +907,216 @@ pub fn next_std_chunk(layout: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<S
     if _switch_val == (('J' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Jan".to_string(); __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "January".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 257, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            257,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         if !starts_with_lower_case(Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))) {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 258, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            258,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
     }
         } else if _switch_val == (('M' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } {
         if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Mon".to_string(); __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Monday".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 261, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            261,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         if !starts_with_lower_case(Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))) {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 262, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            262,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
     }
         if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "MST".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 23, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            23,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
     }
         } else if _switch_val == (('0' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = ('1' as i32) as u8; let __tmp_y = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('6' as i32) as u8; __tmp_x <= __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), { let __seq = { let __seq_holder = std0x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('1' as i32) as u8; __tmp_x - __tmp_y }) as usize].clone() }, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            { let __seq = { let __seq_holder = std0x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('1' as i32) as u8; __tmp_x - __tmp_y }) as usize].clone() },
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('2' as i32) as u8; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 523, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            523,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         } else if _switch_val == (('1' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('5' as i32) as u8; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 1036, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            1036,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
-            return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 259, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+            return (
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+                259,
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+            );
         } else if _switch_val == (('2' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "2006".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 275, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            275,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
-            return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 263, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+            return (
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+                263,
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+            );
         } else if _switch_val == (('_' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('2' as i32) as u8; __tmp_x == __tmp_y } {
                 // _2006 is really a literal _, followed by stdLongYear
         if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "2006".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))), 275, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))),
+            275,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 264, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            264,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
                         // _2006 is really a literal _, followed by stdLongYear
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('_' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('2' as i32) as u8; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 522, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            522,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         } else if _switch_val == (('3' as i32)) {
-            return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 1037, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+            return (
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+                1037,
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+            );
         } else if _switch_val == (('4' as i32)) {
-            return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 1039, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+            return (
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+                1039,
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+            );
         } else if _switch_val == (('5' as i32)) {
-            return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 1041, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+            return (
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+                1041,
+                Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+            );
         } else if _switch_val == (('P' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('M' as i32) as u8; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 1045, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            1045,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         } else if _switch_val == (('p' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('m' as i32) as u8; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 1046, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            1046,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         } else if _switch_val == (('-' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "-070000".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 30, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            30,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "-07:00:00".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 33, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            33,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "-0700".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 29, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            29,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "-07:00".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 32, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            32,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "-07".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 31, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            31,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         } else if _switch_val == (('Z' as i32)) {
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Z070000".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 25, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            25,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Z07:00:00".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 28, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            28,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Z0700".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 24, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            24,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Z07:00".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 27, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            27,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
             if { let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y } as i32); __tmp_x >= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Z07".to_string(); __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), 26, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            26,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+        );
     }
         } else if _switch_val == (('.' as i32)) || _switch_val == ((',' as i32)) {
             if { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && ({ let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('9' as i32) as u8; __tmp_x == __tmp_y }) {
@@ -1020,7 +1136,11 @@ pub fn next_std_chunk(layout: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<S
             Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x - __tmp_y }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
         );
-        return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), std, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() }))));
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))),
+            std,
+            Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() })))
+        );
     }
     }
         }
@@ -1067,7 +1187,11 @@ pub fn r#match(s1: Arc<Mutex<Option<String>>>, s2: Arc<Mutex<Option<String>>>) -
 pub fn lookup(tab: Arc<Mutex<Option<Vec<String>>>>, val: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     { let __range_holder = tab.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, v) in __range_values.iter().enumerate() {
         if { let __tmp_x = ((*val.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (v.len() as i32); __tmp_x >= __tmp_y } && r#match(Arc::new(Mutex::new(Some({ let __s = &((*val.lock().unwrap().as_ref().unwrap()).clone()); let __high = (v.len()) as usize; __s[..__high].to_string() }))), Arc::new(Mutex::new(Some((*v).clone())))) {
-        return (i as i32, Arc::new(Mutex::new(Some({ let __s = &((*val.lock().unwrap().as_ref().unwrap()).clone()); let __low = (v.len()) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
+        return (
+            i as i32,
+            Arc::new(Mutex::new(Some({ let __s = &((*val.lock().unwrap().as_ref().unwrap()).clone()); let __low = (v.len()) as usize; __s[__low..].to_string() }))),
+            Arc::new(Mutex::new(None))
+        );
     }
     } }
     (-(1), { let __owned = val.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, errBad.clone())
@@ -1288,13 +1412,21 @@ pub fn getnum(s: Arc<Mutex<Option<String>>>, fixed: Arc<Mutex<Option<bool>>>) ->
         if { let __v = (*fixed.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return (0, { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, errBad.clone());
     }
-        return ((*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
+        return (
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()),
+            Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))),
+            Arc::new(Mutex::new(None))
+        );
     }
-    return ({
-        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x * __tmp_y };
-        let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap());
-        __tmp_x + __tmp_y
-    }, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
+    return (
+        {
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x * __tmp_y };
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        },
+        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 /// getnum3 parses s[0:1], s[0:2], or s[0:3] (fixed forces s[0:3])
@@ -1310,7 +1442,11 @@ pub fn getnum3(s: Arc<Mutex<Option<String>>>, fixed: Arc<Mutex<Option<bool>>>) -
     if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } || { let __v = (*fixed.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x != __tmp_y } {
         return (0, { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, errBad.clone());
     }
-    return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
+    return (
+        { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v },
+        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() }))),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 pub fn cutspace(mut s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
@@ -1412,17 +1548,23 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         let mut stdstr = Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ((*prefix.lock().unwrap().as_ref().unwrap()).len()) as usize; let __high = ({ let __tmp_x = ((*layout.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ((*suffix.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() })));
         { let (__tmp_0, __tmp_1) = skip(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *value.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         if { let __tmp_x = std; let __tmp_y = 0; __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(
-            Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some("".to_string()))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some(format!("{}{}", ": extra text: ".to_string(), (*quote(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())))))
-        ).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(
+                Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some("".to_string()))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some(format!("{}{}", ": extra text: ".to_string(), (*quote(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())))))
+            ).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         break
     }
@@ -1836,22 +1978,28 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
                 // Take any number of digits, even more than asked for,
                 // because it is what the stdSecond case would do.
         if { let __tmp_x = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(
-            Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({
-                let mut __s = String::new();
-                __s.push_str(&format!("{}", ": ".to_string()));
-                __s.push_str(&format!("{}", { let __v = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-                __s.push_str(&format!("{}", " out of range".to_string()));
-                __s
-            })))
-        ).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(
+                Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({
+                    let mut __s = String::new();
+                    __s.push_str(&format!("{}", ": ".to_string()));
+                    __s.push_str(&format!("{}", { let __v = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+                    __s.push_str(&format!("{}", " out of range".to_string()));
+                    __s
+                })))
+            ).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hold.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hold.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     }
         // Unix time starts Dec 31 1969 in some time zones
@@ -1893,7 +2041,10 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
     }
     }
         if { let __tmp_x = { let __v = (*yday.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*yday.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 365; __tmp_x > __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day-of-year out of range".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day-of-year out of range".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         if { let __tmp_x = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let new_val = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __v = (*yday.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }); let __tmp_y = 31; __tmp_x / __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }; *m.lock().unwrap() = Some(new_val); };
@@ -1905,11 +2056,17 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
                 // If month, day already seen, yday's m, d must match.
                 // Otherwise, set them from m, d.
         if { let __tmp_x = { let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day-of-year does not match month".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day-of-year does not match month".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         { let new_val = m.lock().unwrap().as_ref().unwrap().clone(); *month.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*day.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*day.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day-of-year does not match day".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day-of-year does not match day".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         { let new_val = d.lock().unwrap().as_ref().unwrap().clone(); *day.lock().unwrap() = Some(new_val); };
     } else {
@@ -1925,20 +2082,26 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         // Otherwise, set them from m, d.
         // Validate the day of the month.
     if { let __tmp_x = { let __v = (*day.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*day.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = days_in(Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __tmp_x > __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day out of range".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
+            Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(": day out of range".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))
+        );
     }
 
     if { let __nil_result = (*z.lock().unwrap()).is_some(); __nil_result } {
-        return (date(
-            Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            z.clone()
-        ), Arc::new(Mutex::new(None)));
+        return (
+            date(
+                Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                z.clone()
+            ),
+            Arc::new(Mutex::new(None))
+        );
     }
 
     if { let __tmp_x = { let __v = (*zoneOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = -1; __tmp_x != __tmp_y } {
@@ -2006,16 +2169,19 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         // Guaranteed OK by parseGMT.
         // avoid leaking the input value
         // Otherwise, fall back to default.
-    return (date(
-        Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
-        Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        defaultLocation.clone()
-    ), Arc::new(Mutex::new(None)));
+    return (
+        date(
+            Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            defaultLocation.clone()
+        ),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 /// parseTimeZone parses a time zone string and returns its length. Time zones
@@ -2188,7 +2354,11 @@ pub fn leading_int<bytes: GoByteSequence + Clone + Send + Sync + 'static>(s: Arc
     }
         // overflow
         // overflow
-    return ({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string(({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize, None)))), Arc::new(Mutex::new(None)));
+    return (
+        { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v },
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string(({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize, None)))),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 pub(crate) fn __go_init_functions() {

@@ -162,7 +162,8 @@ impl dataIO {
         { let new_val = true; *self.error.lock().unwrap() = Some(new_val); };
         return (0, false);
     }
-        return ({
+        return (
+            {
             let __go_binary_0 = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = p.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() } as u32))).lock().unwrap().as_ref().unwrap());
             let __go_binary_1 = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = p.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() } as u32))).lock().unwrap().as_ref().unwrap());
             let __go_binary_2 = 8;
@@ -177,7 +178,9 @@ impl dataIO {
             let __go_binary_11 = __go_binary_9 << __go_binary_10;
             let __go_binary_12 = __go_binary_8 | __go_binary_11;
             __go_binary_12
-        }, true);
+        },
+            true
+        );
     }
 
     pub fn big8(&mut self) -> (u64, bool) {
@@ -190,7 +193,10 @@ impl dataIO {
         { let new_val = true; *self.error.lock().unwrap() = Some(new_val); };
         return (0, false);
     }
-        return ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some(n1 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(n2 as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y }, true);
+        return (
+            { let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some(n1 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(n2 as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y },
+            true
+        );
     }
 
     pub fn byte(&mut self) -> (u8, bool) {
@@ -616,7 +622,10 @@ const zheader: i32 = 0x04034b50;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v })))))
+        );
     };
         }
     }
@@ -633,7 +642,10 @@ const zheader: i32 = 0x04034b50;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v })))))
+        );
     };
         }
     }
@@ -683,14 +695,17 @@ const zheader: i32 = 0x04034b50;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some({
-            let mut __s = String::new();
-            __s.push_str(&format!("{}", "unsupported compression for ".to_string()));
-            __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-            __s.push_str(&format!("{}", " in ".to_string()));
-            __s.push_str(&format!("{}", { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-            __s
-        })))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some({
+                let mut __s = String::new();
+                __s.push_str(&format!("{}", "unsupported compression for ".to_string()));
+                __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+                __s.push_str(&format!("{}", " in ".to_string()));
+                __s.push_str(&format!("{}", { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+                __s
+            }))))
+        );
     }
     }
 
@@ -751,7 +766,10 @@ const zheader: i32 = 0x04034b50;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v })))))
+        );
     };
         }
     }
@@ -770,7 +788,10 @@ const zheader: i32 = 0x04034b50;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
+        return (
+            Arc::new(Mutex::new(None)),
+            errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "corrupt zip file ".to_string(), { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v })))))
+        );
     };
         }
     }
@@ -913,7 +934,10 @@ pub fn load_location_1(name: Arc<Mutex<Option<String>>>, sources: Arc<Mutex<Opti
     if { let __nil_result = (*firstErr.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), firstErr.clone());
     }
-    return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "unknown time zone ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
+    return (
+        Arc::new(Mutex::new(None)),
+        errors::new(Arc::new(Mutex::new(Some(format!("{}{}", "unknown time zone ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })))))
+    );
 }
 
 /// readFile reads and returns the content of the named file.
@@ -954,7 +978,10 @@ pub fn read_file(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Vec<u8>>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(fileSizeError(Arc::new(Mutex::new(Some((*name.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn StdError + Send + Sync>))));
+        return (
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Box::new(fileSizeError(Arc::new(Mutex::new(Some((*name.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn StdError + Send + Sync>)))
+        );
     }
     }
     }

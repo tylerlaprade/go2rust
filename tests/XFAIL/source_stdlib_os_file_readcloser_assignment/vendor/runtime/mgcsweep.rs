@@ -675,11 +675,14 @@ impl sweepClass {
     let mut spc: Arc<Mutex<Option<spanClass>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut full: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        (Arc::new(Mutex::new(Some(crate::mheap::spanClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) >> 1i32) as u8))))))), {
-            let __tmp_x = sweepClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & 1)))));
-            let __tmp_y = sweepClass(Arc::new(Mutex::new(Some(0 as u32))));
-            __tmp_x == __tmp_y
-        })
+        (
+            Arc::new(Mutex::new(Some(crate::mheap::spanClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) >> 1i32) as u8))))))),
+            {
+                let __tmp_x = sweepClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & 1)))));
+                let __tmp_y = sweepClass(Arc::new(Mutex::new(Some(0 as u32))));
+                __tmp_x == __tmp_y
+            }
+        )
     }
 }
 
@@ -825,13 +828,22 @@ impl sweepLocker {
             let __tmp_y = { let __tmp_x = (*self.sweep_gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as u32; __tmp_x - __tmp_y };
             __tmp_x != __tmp_y
         } {
-        return (Arc::new(Mutex::new(Some(sweepLocked { ..Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(sweepLocked { ..Default::default() }))),
+            false
+        );
     }
                 // Attempt to acquire sweep ownership of s.
         if !internal_runtime_atomic::cas(internal_runtime_atomic::GoPtr::local({ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.sweepgen.clone()); __ptr_value }.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = (*self.sweep_gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as u32; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*self.sweep_gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x - __tmp_y })))) {
-        return (Arc::new(Mutex::new(Some(sweepLocked { ..Default::default() }))), false);
+        return (
+            Arc::new(Mutex::new(Some(sweepLocked { ..Default::default() }))),
+            false
+        );
     }
-        (Arc::new(Mutex::new(Some(sweepLocked { mspan: s.clone(), ..Default::default() }))), true)
+        (
+            Arc::new(Mutex::new(Some(sweepLocked { mspan: s.clone(), ..Default::default() }))),
+            true
+        )
     }
 }
 

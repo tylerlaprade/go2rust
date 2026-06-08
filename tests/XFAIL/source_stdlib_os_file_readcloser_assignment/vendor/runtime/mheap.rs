@@ -4664,7 +4664,10 @@ impl gcBits {
     let mut bytep: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(None));
     let mut mask: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(0)));
 
-        (self.bytep(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))), { let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x << __tmp_y })
+        (
+            self.bytep(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))),
+            { let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x << __tmp_y }
+        )
     }
 }
 

@@ -656,7 +656,10 @@ impl crate::runtime2::_panic {
         { let __rhs = { let __tmp_x = (1 as u8); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let mut guard = bits.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
         { let new_val = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __ptr_target = self.defer_bits_ptr.clone(); __ptr_target.assign(Some(new_val)); };
 
-        return (Arc::new(Mutex::new(Some(unimplemented!("unsafe.Pointer conversion to function value")))), true);
+        return (
+            Arc::new(Mutex::new(Some(unimplemented!("unsafe.Pointer conversion to function value")))),
+            true
+        );
     }
 
                 // Check whether any open-coded defers are still pending.
@@ -943,7 +946,10 @@ pub fn readvarint_unsafe(mut fd: Arc<Mutex<Option<usize>>>) -> (u32, Arc<Mutex<O
         let mut b = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = fd.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
         { let new_val = add(Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(std::mem::size_of::<u8>())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *fd.lock().unwrap() = __moved_val; };
         if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 128 as u8; __tmp_x < __tmp_y } {
-        return ({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*b.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*shift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; __tmp_x + __tmp_y }, { let __owned = fd.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) });
+        return (
+            { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*b.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*shift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; __tmp_x + __tmp_y },
+            { let __owned = fd.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }
+        );
     }
         { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x7F as u8; __tmp_x & __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = { let __v = (*shift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 31; __tmp_x & __tmp_y }); __tmp_x << __tmp_y }; let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = 7; let mut guard = shift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

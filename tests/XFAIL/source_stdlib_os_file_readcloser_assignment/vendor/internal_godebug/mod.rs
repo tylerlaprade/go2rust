@@ -837,7 +837,10 @@ impl runtimeStderr {
             Arc::new(Mutex::new(Some((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))
         );
     }
-        ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, Arc::new(Mutex::new(None)))
+        (
+            (*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            Arc::new(Mutex::new(None))
+        )
     }
 }
 

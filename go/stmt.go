@@ -5795,6 +5795,18 @@ func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected 
 	WriteWrapperSuffix(out)
 }
 
+func returnResultsShouldUseMultiline(results []ast.Expr) bool {
+	if !NeedsConcurrentWrapper() || len(results) < 2 {
+		return false
+	}
+	for _, result := range results {
+		if compositeLiteralElementIsComplex(result) {
+			return true
+		}
+	}
+	return false
+}
+
 func writeNamedReturnAssignmentFromTemp(out *strings.Builder, name *ast.Ident, resultType ast.Expr, tempName string) {
 	if name == nil || name.Name == "_" {
 		return
@@ -10184,8 +10196,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			// Check if we need a tuple for multiple return values
 			needsTuple := len(s.Results) > 1
+			multilineReturnTuple := needsTuple && returnResultsShouldUseMultiline(s.Results)
+			returnTupleIndent := ""
 			if needsTuple {
 				out.WriteString("(")
+				if multilineReturnTuple {
+					returnTupleIndent = currentLineIndent(out)
+					out.WriteString("\n")
+				}
 			}
 
 			// `return multiResultCall(...)` keeps a single Result expression.
@@ -10206,7 +10224,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			for i, result := range s.Results {
-				if i > 0 {
+				if multilineReturnTuple {
+					if i > 0 {
+						out.WriteString(",\n")
+					}
+					out.WriteString(returnTupleIndent)
+					out.WriteString("    ")
+				} else if i > 0 {
 					out.WriteString(", ")
 				}
 
@@ -10673,6 +10697,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 
 			if needsTuple {
+				if multilineReturnTuple {
+					out.WriteString("\n")
+					out.WriteString(returnTupleIndent)
+				}
 				out.WriteString(")")
 			}
 		} else if tailReturn {

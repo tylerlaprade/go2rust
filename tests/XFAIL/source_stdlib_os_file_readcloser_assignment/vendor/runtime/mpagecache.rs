@@ -123,7 +123,10 @@ impl pageCache {
         let mut scav = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = (*self.scav.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = 1 as u64; __tmp_x & __tmp_y })));
         { let __target = self.cache.clone(); let __rhs = { let __tmp_x = (1 as u64); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
         { let __target = self.scav.clone(); let __rhs = { let __tmp_x = (1 as u64); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
-        return ({ let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }, { let __tmp_x = (*Arc::new(Mutex::new(Some((*scav.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y });
+        return (
+            { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y },
+            { let __tmp_x = (*Arc::new(Mutex::new(Some((*scav.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }
+        );
     }
                 // set bit to mark in-use
                 // clear bit to mark unscavenged
@@ -145,7 +148,10 @@ impl pageCache {
         let mut scav = internal_runtime_sys::ones_count64(Arc::new(Mutex::new(Some({ let __tmp_x = (*self.scav.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }))));
         { let __target = self.cache.clone(); let __rhs = (*mask.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
         { let __target = self.scav.clone(); let __rhs = (*mask.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
-        return ({ let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = i; let __tmp_y = PAGE_SIZE as u64; __tmp_x * __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }, { let __tmp_x = (*Arc::new(Mutex::new(Some(scav as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y });
+        return (
+            { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = i; let __tmp_y = PAGE_SIZE as u64; __tmp_x * __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y },
+            { let __tmp_x = (*Arc::new(Mutex::new(Some(scav as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }
+        );
     }
 
     /// flush empties out unallocated free pages in the given cache

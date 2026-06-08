@@ -1590,13 +1590,19 @@ impl pageAlloc {
             );
             __result
         }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).addr(); __result };
-        return (addr, self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
+        return (
+            addr,
+            self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
+        );
     }
                 // We found a sufficiently large run of free pages straddling
                 // some boundary, so compute the address and return it.
         if { let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // We're at level zero, so that means we've exhausted our search.
-        return (0, max_search_addr());
+        return (
+            0,
+            max_search_addr()
+        );
     }
 
                 // We're at level zero, so that means we've exhausted our search.
@@ -1748,7 +1754,10 @@ impl pageAlloc {
                 // found an even narrower free window.
         let mut searchAddr = Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(searchIdx as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = { let mut __f_guard = foundFree.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = searchAddr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(((*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1))))))))); let __tmp_y = { let __v = (*searchAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))) };
-        return ({ let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }, self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
+        return (
+            { let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
+        );
     }
 
     /// alloc allocates npages worth of memory from the page heap, returning the base
@@ -1960,7 +1969,11 @@ impl pallocSum {
         if { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(((1 as u64) << (63 as u64)) as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         return (MAX_PACKED_VALUE as u64, MAX_PACKED_VALUE as u64, MAX_PACKED_VALUE as u64);
     }
-        ((*Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x >> __tmp_y }); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 2; let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x * __tmp_y }); __tmp_x >> __tmp_y }); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()))
+        (
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x >> __tmp_y }); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 2; let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x * __tmp_y }); __tmp_x >> __tmp_y }); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap())
+        )
     }
 }
 
@@ -2033,7 +2046,10 @@ pub fn addrs_to_summary_range(level: Arc<Mutex<Option<i32>>>, base: Arc<Mutex<Op
 /// and hi is exclusive, and so aligns them down and up respectively.
 pub fn block_align_summary_range(level: Arc<Mutex<Option<i32>>>, lo: Arc<Mutex<Option<i32>>>, hi: Arc<Mutex<Option<i32>>>) -> (i32, i32) {
     let mut e = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as usize); let __tmp_y = { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x << __tmp_y })));
-    return ((*Arc::new(Mutex::new(Some(align_down(Arc::new(Mutex::new(Some((*lo.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as i32))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some(align_up(Arc::new(Mutex::new(Some((*hi.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as i32))).lock().unwrap().as_ref().unwrap()));
+    return (
+        (*Arc::new(Mutex::new(Some(align_down(Arc::new(Mutex::new(Some((*lo.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as i32))).lock().unwrap().as_ref().unwrap()),
+        (*Arc::new(Mutex::new(Some(align_up(Arc::new(Mutex::new(Some((*hi.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as i32))).lock().unwrap().as_ref().unwrap())
+    );
 }
 
 /// packPallocSum takes a start, max, and end value and produces a pallocSum.

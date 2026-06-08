@@ -909,7 +909,10 @@ impl scavengerState {
         return (r, 0);
     }
         (*(*scavenge.lock().unwrap().as_ref().unwrap()).background_time.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = end; let __tmp_y = start; __tmp_x - __tmp_y }))));
-        (r, { let __tmp_x = end; let __tmp_y = start; __tmp_x - __tmp_y })
+        (
+            r,
+            { let __tmp_x = end; let __tmp_y = start; __tmp_x - __tmp_y }
+        )
     }) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> (usize, i64) + Send + Sync>; *self.scavenge.lock().unwrap() = Some(new_val); };
     }
         if { let __nil_target = self.should_stop.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
@@ -1598,7 +1601,10 @@ impl scavengeIndex {
 
                 // We're still scavenging this chunk.
         if { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*start.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
-        return ({ let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, chunk_page_index(Arc::new(Mutex::new(Some(searchAddr)))));
+        return (
+            { let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            chunk_page_index(Arc::new(Mutex::new(Some(searchAddr))))
+        );
     }
 
                 // Try to reduce searchAddr to newSearchAddr.
@@ -1622,7 +1628,10 @@ impl scavengeIndex {
                 // incorrect search address, but it's far more important that
                 // we don't miss updates.
                 // Decrease searchAddr.
-        return ({ let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ((PALLOC_CHUNK_PAGES as u64) - (1 as u64)) as u64);
+        return (
+            { let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            ((PALLOC_CHUNK_PAGES as u64) - (1 as u64)) as u64
+        );
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() - 1 as u64); }
     }
                 // Skip over chunks.

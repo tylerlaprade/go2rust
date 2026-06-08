@@ -343,7 +343,10 @@ impl RouteMessage {
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        return (Arc::new(Mutex::new(Some({ let __seq_holder = sas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(None)));
+        return (
+            Arc::new(Mutex::new(Some({ let __seq_holder = sas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(None))
+        );
     }
 }
 
@@ -412,7 +415,10 @@ impl InterfaceMessage {
         return (Arc::new(Mutex::new(None)), err.clone());
     }
         (*sas.lock().unwrap().as_mut().unwrap())[(R_T_A_X__I_F_P) as usize] = Arc::new(Mutex::new(Some(Box::new(crate::syscall_darwin::SockaddrDatalinkPtr(sa.clone())) as Box<dyn Sockaddr + Send + Sync>)));
-        return (Arc::new(Mutex::new(Some({ let __seq_holder = sas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(None)));
+        return (
+            Arc::new(Mutex::new(Some({ let __seq_holder = sas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(None))
+        );
     }
 }
 
@@ -512,7 +518,10 @@ impl InterfaceAddrMessage {
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        return (Arc::new(Mutex::new(Some({ let __seq_holder = sas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(None)));
+        return (
+            Arc::new(Mutex::new(Some({ let __seq_holder = sas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(None))
+        );
     }
 }
 
@@ -656,7 +665,11 @@ pub fn parse_link_layer_addr(mut b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<O
         (*(*sa.lock().unwrap().as_ref().unwrap()).data.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as i8))).lock().unwrap().as_ref().unwrap()).clone();
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return (sa.clone(), rsa_align_of(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), Arc::new(Mutex::new(None)));
+    return (
+        sa.clone(),
+        rsa_align_of(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 /// parseSockaddrInet parses b as an internet socket address.

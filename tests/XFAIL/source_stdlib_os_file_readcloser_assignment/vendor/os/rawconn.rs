@@ -128,7 +128,10 @@ impl syscall::net::RawConn for rawConnPtr {
 }
 
 pub fn new_raw_conn(file: Arc<Mutex<Option<File>>>) -> (Arc<Mutex<Option<rawConn>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-    (Arc::new(Mutex::new(Some(rawConn { file: file.clone(), ..Default::default() }))), Arc::new(Mutex::new(None)))
+    (
+        Arc::new(Mutex::new(Some(rawConn { file: file.clone(), ..Default::default() }))),
+        Arc::new(Mutex::new(None))
+    )
 }
 
 impl GoValueClone for rawConn {

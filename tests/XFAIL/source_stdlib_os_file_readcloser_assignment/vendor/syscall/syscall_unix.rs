@@ -1651,7 +1651,10 @@ pub fn getsockopt_int(fd: Arc<Mutex<Option<i32>>>, level: Arc<Mutex<Option<i32>>
         Arc::new(Mutex::new(Some(Arc::as_ptr(&n.clone()) as usize))),
         vallen.clone()
     ).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
-    return ((*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()), err.clone());
+    return (
+        (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()),
+        err.clone()
+    );
 }
 
 pub fn recvfrom(fd: Arc<Mutex<Option<i32>>>, p: Arc<Mutex<Option<Vec<u8>>>>, flags: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Box<dyn Sockaddr + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {

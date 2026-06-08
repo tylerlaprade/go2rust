@@ -47,5 +47,9 @@ pub fn time_now() -> (i64, i32, i64) {
     let mut mono: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
     { let (__tmp_0, __tmp_1) = walltime(); *sec.lock().unwrap() = Some(__tmp_0); *nsec.lock().unwrap() = Some(__tmp_1); };
-    return ({ let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*nsec.lock().unwrap().as_ref().unwrap()).clone(); __v }, nanotime());
+    return (
+        { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v },
+        { let __v = (*nsec.lock().unwrap().as_ref().unwrap()).clone(); __v },
+        nanotime()
+    );
 }

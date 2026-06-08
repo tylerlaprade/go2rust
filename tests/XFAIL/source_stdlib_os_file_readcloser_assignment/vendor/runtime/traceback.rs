@@ -1723,7 +1723,11 @@ pub fn func_name_pieces_for_print(name: Arc<Mutex<Option<String>>>) -> (Arc<Mute
     if { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = i; __tmp_x <= __tmp_y } {
         return ({ let __owned = name.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some("".to_string()))));
     }
-    return (Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))), Arc::new(Mutex::new(Some("[...]".to_string()))), Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));
+    return (
+        Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))),
+        Arc::new(Mutex::new(Some("[...]".to_string()))),
+        Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))
+    );
 }
 
 /// funcNameForPrint returns the function name for printing to the user.

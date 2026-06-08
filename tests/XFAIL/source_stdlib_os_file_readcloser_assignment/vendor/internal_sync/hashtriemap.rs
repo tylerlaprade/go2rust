@@ -378,7 +378,10 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
         let mut n: GoPtr<node<K, V>> = { let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
         if n.is_nil() {
-        return (Arc::new(StdMutex::new(None)), false);
+        return (
+            Arc::new(StdMutex::new(None)),
+            false
+        );
     }
         if (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap()) {
         return { let __recv = { let __result = n.with_mut(|__recv_value| __recv_value.entry()); __result }; let __result = __recv.with_mut(|__recv_value| __recv_value.lookup(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))))); __result };
@@ -817,14 +820,20 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         if !i.is_nil() {
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
     }
-        return (Arc::new(StdMutex::new(None)), false);
+        return (
+            Arc::new(StdMutex::new(None)),
+            false
+        );
     }
                 // Try to delete the entry.
         let (mut v, mut e, __tmp_2) = { let __recv = { let __result = n.with_mut(|__recv_value| __recv_value.entry()); __result }; let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load_and_delete(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() })))); __result }; *loaded.lock().unwrap() = Some(__tmp_2);;
         if !{ let __v = (*loaded.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // Nothing was actually deleted, which means the node is no longer there.
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
-        return (Arc::new(StdMutex::new(None)), false);
+        return (
+            Arc::new(StdMutex::new(None)),
+            false
+        );
     }
                 // Nothing was actually deleted, which means the node is no longer there.
         if !e.is_nil() {
@@ -1094,7 +1103,10 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     }
         { let new_val = { let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; __self = new_val; };
     }
-        (Arc::new(StdMutex::new(None)), false)
+        (
+            Arc::new(StdMutex::new(None)),
+            false
+        )
     }
 
     pub fn lookup_with_value(&mut self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<V>>>, bool) {
@@ -1121,7 +1133,10 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     }
         { let new_val = { let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; __self = new_val; };
     }
-        (Arc::new(StdMutex::new(None)), false)
+        (
+            Arc::new(StdMutex::new(None)),
+            false
+        )
     }
 
     /// swap replaces an entry in the overflow chain if keys compare equal. Returns the new entry chain,
@@ -1212,7 +1227,11 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     pub fn load_and_delete(&self, key: Arc<StdMutex<Option<K>>>) -> (Arc<StdMutex<Option<V>>>, GoPtr<entry<K, V>>, bool) {
         if { let __left = self.key.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } {
                 // Drop the head of the list.
-        return ({ let __return_value_0 = self.value.clone(); __return_value_0 }, { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, true);
+        return (
+            { let __return_value_0 = self.value.clone(); __return_value_0 },
+            { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+            true
+        );
     }
                 // Drop the head of the list.
         let mut i = self.overflow.clone();
@@ -1225,7 +1244,11 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         { let new_val = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.clone().clone(); i = new_val; };
         e = { let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
     }
-        (Arc::new(StdMutex::new(None)), GoPtr::local(Arc::new(StdMutex::new(Some(self.clone())))), false)
+        (
+            Arc::new(StdMutex::new(None)),
+            GoPtr::local(Arc::new(StdMutex::new(Some(self.clone())))),
+            false
+        )
     }
 
     /// compareAndDelete deletes an entry in the overflow chain if both the key and value compare
@@ -1243,7 +1266,10 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
             }
         } {
                 // Drop the head of the list.
-        return ({ let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, true);
+        return (
+            { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+            true
+        );
     }
                 // Drop the head of the list.
         let mut i = self.overflow.clone();

@@ -364,7 +364,10 @@ impl crate::types::File {
         }
     }
         let (__tmp_0, mut e) = self.read_1(b.clone()); *n.lock().unwrap() = Some(__tmp_0);;
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, self.wrap_err(Arc::new(Mutex::new(Some("read".to_string()))), e.clone()));
+        return (
+            { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            self.wrap_err(Arc::new(Mutex::new(Some("read".to_string()))), e.clone())
+        );
     }
 
     /// ReadAt reads len(b) bytes from the File starting at byte offset off.
@@ -382,7 +385,10 @@ impl crate::types::File {
         }
     }
         if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
-        return (0, Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("readat".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: errors::new(Arc::new(Mutex::new(Some("negative offset".to_string())))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            0,
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("readat".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: errors::new(Arc::new(Mutex::new(Some("negative offset".to_string())))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         while { let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         let (mut m, mut e) = self.pread(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -413,7 +419,10 @@ impl crate::types::File {
         return generic_read_from(Arc::new(Mutex::new(Some(self.clone()))), r.clone());
     }
                 // without wrapping
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, self.wrap_err(Arc::new(Mutex::new(Some("write".to_string()))), e.clone()));
+        return (
+            { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            self.wrap_err(Arc::new(Mutex::new(Some("write".to_string()))), e.clone())
+        );
     }
 
     /// Write writes len(b) bytes from b to the File.
@@ -462,7 +471,10 @@ impl crate::types::File {
         return (0, errWriteAtInAppendMode.clone());
     }
         if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
-        return (0, Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("writeat".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: errors::new(Arc::new(Mutex::new(Some("negative offset".to_string())))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));
+        return (
+            0,
+            Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("writeat".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: errors::new(Arc::new(Mutex::new(Some("negative offset".to_string())))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
+        );
     }
         while { let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         let (mut m, mut e) = self.pwrite(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -490,7 +502,10 @@ impl crate::types::File {
     }
         let (__tmp_0, mut handled, mut e) = self.write_to_1(w.clone()); *n.lock().unwrap() = Some(__tmp_0);;
         if handled {
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, self.wrap_err(Arc::new(Mutex::new(Some("read".to_string()))), e.clone()));
+        return (
+            { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            self.wrap_err(Arc::new(Mutex::new(Some("read".to_string()))), e.clone())
+        );
     }
         generic_write_to(Arc::new(Mutex::new(Some(self.clone()))), w.clone())
     }
@@ -515,7 +530,10 @@ impl crate::types::File {
         { let new_val = Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_I_S_D_I_R as usize))))) as Box<dyn StdError + Send + Sync>; *e.lock().unwrap() = Some(new_val); };
     }
         if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
-        return (0, self.wrap_err(Arc::new(Mutex::new(Some("seek".to_string()))), e.clone()));
+        return (
+            0,
+            self.wrap_err(Arc::new(Mutex::new(Some("seek".to_string()))), e.clone())
+        );
     }
         (r, Arc::new(Mutex::new(None)))
     }

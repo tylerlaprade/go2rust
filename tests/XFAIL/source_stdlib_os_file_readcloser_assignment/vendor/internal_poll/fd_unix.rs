@@ -1095,7 +1095,10 @@ impl FD {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, Arc::new(Mutex::new(None)));
+        return (
+            (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            Arc::new(Mutex::new(None))
+        );
     }
     }
         }));
@@ -1174,7 +1177,10 @@ impl FD {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, Arc::new(Mutex::new(None)));
+        return (
+            (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            Arc::new(Mutex::new(None))
+        );
     }
     }
         }));
@@ -1253,7 +1259,10 @@ impl FD {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, Arc::new(Mutex::new(None)));
+        return (
+            (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            Arc::new(Mutex::new(None))
+        );
     }
     }
         }));
@@ -1332,7 +1341,11 @@ impl FD {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (n, (*oob.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, err.clone());
+        return (
+            n,
+            (*oob.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            err.clone()
+        );
     }
     }
         }));
@@ -1411,7 +1424,11 @@ impl FD {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (n, (*oob.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, err.clone());
+        return (
+            n,
+            (*oob.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            err.clone()
+        );
     }
     }
         }));
@@ -1490,7 +1507,11 @@ impl FD {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (n, (*oob.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32, err.clone());
+        return (
+            n,
+            (*oob.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32,
+            err.clone()
+        );
     }
     }
         }));

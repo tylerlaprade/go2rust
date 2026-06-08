@@ -42,7 +42,10 @@ impl crate::ztypes_darwin_arm64::Timespec {
     let mut sec: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut nsec: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
-        ((*Arc::new(Mutex::new(Some({ let __selector_holder = self.sec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()))
+        (
+            (*Arc::new(Mutex::new(Some({ let __selector_holder = self.sec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()),
+            (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap())
+        )
     }
 
     /// Nano returns the time stored in ts as nanoseconds.

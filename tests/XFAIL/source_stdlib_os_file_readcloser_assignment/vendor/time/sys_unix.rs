@@ -27,7 +27,10 @@ pub fn open(name: Arc<Mutex<Option<String>>>) -> (usize, Arc<Mutex<Option<Box<dy
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (0, err.clone());
     }
-    ((*Arc::new(Mutex::new(Some(fd as usize))).lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(None)))
+    (
+        (*Arc::new(Mutex::new(Some(fd as usize))).lock().unwrap().as_ref().unwrap()),
+        Arc::new(Mutex::new(None))
+    )
 }
 
 pub fn read(fd: Arc<Mutex<Option<usize>>>, buf: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {

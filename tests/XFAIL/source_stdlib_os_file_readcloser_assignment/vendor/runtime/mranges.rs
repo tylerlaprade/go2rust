@@ -350,7 +350,10 @@ impl addrRange {
         return (0, false);
     }
         { let new_val = offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }; *self.base.lock().unwrap() = Some(new_val); };
-        return ({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }, true);
+        return (
+            { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y },
+            true
+        );
     }
 
     /// takeFromBack takes len bytes from the end of the address range, aligning
@@ -481,7 +484,10 @@ impl atomicOffAddr {
         { let new_val = true; *wasMarked.lock().unwrap() = Some(new_val); };
         { let new_val = -(v); v = new_val; };
     }
-        return ({ let __tmp_x = (*Arc::new(Mutex::new(Some(v as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x + __tmp_y }, { let __v = (*wasMarked.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        return (
+            { let __tmp_x = (*Arc::new(Mutex::new(Some(v as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x + __tmp_y },
+            { let __v = (*wasMarked.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
     }
 }
 
@@ -567,13 +573,19 @@ impl addrRanges {
     pub fn find_addr_greater_equal(&self, addr: Arc<Mutex<Option<usize>>>) -> (usize, bool) {
         let mut i = self.find_succ(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        return ((*{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.base.lock().unwrap().as_ref().unwrap()).addr(), true);
+        return (
+            (*{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.base.lock().unwrap().as_ref().unwrap()).addr(),
+            true
+        );
     }
         if { let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.contains(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return ({ let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);
     }
         if { let __tmp_x = (i as i32); let __tmp_y = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y } {
-        return ((*{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.base.lock().unwrap().as_ref().unwrap()).addr(), true);
+        return (
+            (*{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.base.lock().unwrap().as_ref().unwrap()).addr(),
+            true
+        );
     }
         (0, false)
     }

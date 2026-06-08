@@ -1110,11 +1110,32 @@ pub fn tzset(mut s: Arc<Mutex<Option<String>>>, lastTxSec: Arc<Mutex<Option<i64>
         // just the start and end of the year. That suffices for
         // the only caller that cares, which is Date.
     if { let __tmp_x = { let __v = (*ysec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        return ({ let __owned = stdName.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __v = (*stdOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }, { let __v = (*stdIsDST.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);
+        return (
+            { let __owned = stdName.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            { let __v = (*stdOffset.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            { let __tmp_x = { let __v = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y },
+            { let __v = (*stdIsDST.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            true
+        );
     } else if { let __tmp_x = { let __v = (*ysec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
-        return ({ let __owned = stdName.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __v = (*stdOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }, { let __tmp_x = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((365 as i64) * (SECONDS_PER_DAY as i64)) as i64; __tmp_x + __tmp_y }, { let __v = (*stdIsDST.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);
+        return (
+            { let __owned = stdName.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            { let __v = (*stdOffset.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            { let __tmp_x = { let __v = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y },
+            { let __tmp_x = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((365 as i64) * (SECONDS_PER_DAY as i64)) as i64; __tmp_x + __tmp_y },
+            { let __v = (*stdIsDST.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            true
+        );
     } else {
-        return ({ let __owned = dstName.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __v = (*dstOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }, { let __tmp_x = { let __v = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }, { let __v = (*dstIsDST.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);
+        return (
+            { let __owned = dstName.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) },
+            { let __v = (*dstOffset.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            { let __tmp_x = { let __v = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y },
+            { let __tmp_x = { let __v = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ystart.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y },
+            { let __v = (*dstIsDST.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            true
+        );
     }
 }
 
@@ -1131,7 +1152,11 @@ pub fn tzset_name(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>,
             if { let __tmp_x = i as i32; let __tmp_y = 3; __tmp_x < __tmp_y } {
         return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some("".to_string()))), false);
     }
-            return (Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (i) as usize; __s[__low..].to_string() }))), true);
+            return (
+                Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))),
+                Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (i) as usize; __s[__low..].to_string() }))),
+                true
+            );
         }
     }
     }
@@ -1142,7 +1167,11 @@ pub fn tzset_name(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>,
     } else {
         for (i, r) in (*s.lock().unwrap().as_ref().unwrap()).char_indices() {
         if { let __tmp_x = r; let __tmp_y = '>'; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (i) as usize; __s[__low..__high].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))), true);
+        return (
+            Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (i) as usize; __s[__low..__high].to_string() }))),
+            Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))),
+            true
+        );
     }
     }
         return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some("".to_string()))), false);
@@ -1226,7 +1255,11 @@ pub fn tzset_offset(mut s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option
 pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>>, Arc<Mutex<Option<String>>>, bool) {
     let mut r: Arc<Mutex<Option<rule>>> = Arc::new(Mutex::new(Some(Default::default())));
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
     let mut ok = Arc::new(Mutex::new(Some(false)));
     if { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('J' as i32) as u8; __tmp_x == __tmp_y } {
@@ -1237,7 +1270,11 @@ pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>
             Arc::new(Mutex::new(Some(365)))
         ); *jday.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_1; *ok.lock().unwrap() = Some(__tmp_2); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
         { let new_val = ruleKind(Arc::new(Mutex::new(Some(RULE_JULIAN as i32)))); *(*r.lock().unwrap().as_ref().unwrap()).kind.lock().unwrap() = Some(new_val); };
         { let new_val = jday.lock().unwrap().as_ref().unwrap().clone(); *(*r.lock().unwrap().as_ref().unwrap()).day.lock().unwrap() = Some(new_val); };
@@ -1249,7 +1286,11 @@ pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>
             Arc::new(Mutex::new(Some(12)))
         ); *mon.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_1; *ok.lock().unwrap() = Some(__tmp_2); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('.' as i32) as u8; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
         let mut week: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2) = tzset_num(
@@ -1258,7 +1299,11 @@ pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>
             Arc::new(Mutex::new(Some(5)))
         ); *week.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_1; *ok.lock().unwrap() = Some(__tmp_2); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('.' as i32) as u8; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
         let mut day: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2) = tzset_num(
@@ -1267,7 +1312,11 @@ pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>
             Arc::new(Mutex::new(Some(6)))
         ); *day.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_1; *ok.lock().unwrap() = Some(__tmp_2); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
         { let new_val = ruleKind(Arc::new(Mutex::new(Some(RULE_MONTH_WEEK_DAY as i32)))); *(*r.lock().unwrap().as_ref().unwrap()).kind.lock().unwrap() = Some(new_val); };
         { let new_val = day.lock().unwrap().as_ref().unwrap().clone(); *(*r.lock().unwrap().as_ref().unwrap()).day.lock().unwrap() = Some(new_val); };
@@ -1277,7 +1326,11 @@ pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>
         let mut day: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2) = tzset_num(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(365)))); *day.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_1; *ok.lock().unwrap() = Some(__tmp_2); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
         { let new_val = ruleKind(Arc::new(Mutex::new(Some(RULE_D_O_Y as i32)))); *(*r.lock().unwrap().as_ref().unwrap()).kind.lock().unwrap() = Some(new_val); };
         { let new_val = day.lock().unwrap().as_ref().unwrap().clone(); *(*r.lock().unwrap().as_ref().unwrap()).day.lock().unwrap() = Some(new_val); };
@@ -1291,7 +1344,11 @@ pub fn tzset_rule(mut s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<rule>>
         // 2am is the default
     let (mut offset, __tmp_1, __tmp_2) = tzset_offset(Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_1; *ok.lock().unwrap() = Some(__tmp_2);;
     if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        return (Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))), Arc::new(Mutex::new(Some("".to_string()))), false);
+        return (
+            Arc::new(Mutex::new(Some(rule { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            false
+        );
     }
     { let new_val = offset; *(*r.lock().unwrap().as_ref().unwrap()).time.lock().unwrap() = Some(new_val); };
 
@@ -1315,7 +1372,11 @@ pub fn tzset_num(s: Arc<Mutex<Option<String>>>, min: Arc<Mutex<Option<i32>>>, ma
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*min.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         return (0, Arc::new(Mutex::new(Some("".to_string()))), false);
     }
-        return ({ let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (i) as usize; __s[__low..].to_string() }))), true);
+        return (
+            { let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (i) as usize; __s[__low..].to_string() }))),
+            true
+        );
     }
         { let __rhs = 10; let mut guard = num.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
         { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some((r as i32) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ('0' as i32); __tmp_x - __tmp_y }; let mut guard = num.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

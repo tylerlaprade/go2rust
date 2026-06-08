@@ -83,7 +83,11 @@ impl crate::syscall_unix::SockaddrInet4 {
         { let new_val = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.port.lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(); p.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
         { let new_val = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.port.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u8))).lock().unwrap().as_ref().unwrap()).clone(); p.with_mut(|__seq| { __seq[(1) as usize] = new_val; }); };
         { let new_val = { let __selector_holder = self.addr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.raw.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap() = Some(new_val); };
-        (Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))), Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.raw.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))))))), Arc::new(Mutex::new(None)))
+        (
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))),
+            Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.raw.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))))))),
+            Arc::new(Mutex::new(None))
+        )
     }
 }
 
@@ -99,7 +103,11 @@ impl crate::syscall_unix::SockaddrInet6 {
         { let new_val = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.port.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u8))).lock().unwrap().as_ref().unwrap()).clone(); p.with_mut(|__seq| { __seq[(1) as usize] = new_val; }); };
         { let new_val = { let __selector_holder = self.zone_id.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.raw.lock().unwrap().as_ref().unwrap()).scope_id.lock().unwrap() = Some(new_val); };
         { let new_val = { let __selector_holder = self.addr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.raw.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap() = Some(new_val); };
-        (Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))), Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.raw.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))))))), Arc::new(Mutex::new(None)))
+        (
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))),
+            Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.raw.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))))))),
+            Arc::new(Mutex::new(None))
+        )
     }
 }
 
@@ -129,7 +137,11 @@ impl crate::syscall_unix::SockaddrUnix {
         (*(*self.raw.lock().unwrap().as_ref().unwrap()).path.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] } as i8))).lock().unwrap().as_ref().unwrap()).clone();
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        (Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))), Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.raw.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))))))), Arc::new(Mutex::new(None)))
+        (
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))),
+            Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.raw.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))))))),
+            Arc::new(Mutex::new(None))
+        )
     }
 }
 
@@ -146,7 +158,11 @@ impl crate::syscall_darwin::SockaddrDatalink {
         { let new_val = { let __selector_holder = self.alen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.raw.lock().unwrap().as_ref().unwrap()).alen.lock().unwrap() = Some(new_val); };
         { let new_val = { let __selector_holder = self.slen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.raw.lock().unwrap().as_ref().unwrap()).slen.lock().unwrap() = Some(new_val); };
         { let new_val = { let __selector_holder = self.data.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.raw.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = Some(new_val); };
-        (Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))), Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some(SIZEOF_SOCKADDR_DATALINK as u32))))))), Arc::new(Mutex::new(None)))
+        (
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.raw.clone()) as usize))),
+            Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some(SIZEOF_SOCKADDR_DATALINK as u32))))))),
+            Arc::new(Mutex::new(None))
+        )
     }
 }
 
@@ -160,7 +176,10 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
     if { let __tmp_x = n; let __tmp_y = 1; __tmp_x < __tmp_y } {
         return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::Errno(Arc::new(Mutex::new(Some(E_I_N_V_A_L as usize))))) as Box<dyn StdError + Send + Sync>))));
     }
-    return (Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (n) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(None)));
+    return (
+        Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (n) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 pub fn read_dirent(fd: Arc<Mutex<Option<i32>>>, buf: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
@@ -377,7 +396,10 @@ pub fn sysctl_uint32(name: Arc<Mutex<Option<String>>>) -> (u32, Arc<Mutex<Option
     if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4 as usize; __tmp_x != __tmp_y } {
         return (0, Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::Errno(Arc::new(Mutex::new(Some(E_I_O as usize))))) as Box<dyn StdError + Send + Sync>))));
     }
-    return ({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u32>(unimplemented!("unsafe.Pointer conversion to u32")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(None)));
+    return (
+        { let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u32>(unimplemented!("unsafe.Pointer conversion to u32")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v },
+        Arc::new(Mutex::new(None))
+    );
 }
 
 pub(crate) fn __go_init_functions() {

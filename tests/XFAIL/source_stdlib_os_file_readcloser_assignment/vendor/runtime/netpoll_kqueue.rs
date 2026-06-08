@@ -95,7 +95,10 @@ pub fn netpoll_break() {
 /// delay > 0: block for up to that many nanoseconds
 pub fn netpoll(delay: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<crate::proc::gList>>>, i32) {
     if { let __tmp_x = (*kq.lock().unwrap().as_ref().unwrap()); let __tmp_y = -1 as i32; __tmp_x == __tmp_y } {
-        return (Arc::new(Mutex::new(Some(gList { head: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))) }))), 0);
+        return (
+            Arc::new(Mutex::new(Some(gList { head: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))) }))),
+            0
+        );
     }
     let mut tp: Arc<Mutex<Option<timespec>>> = Arc::new(Mutex::new(None));
     let mut ts: Arc<Mutex<Option<timespec>>> = Arc::new(Mutex::new(Some(Default::default())));
@@ -138,7 +141,10 @@ pub fn netpoll(delay: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<crate::proc:
                 // If a timed sleep was interrupted, just return to
                 // recalculate how long we should sleep now.
         if { let __tmp_x = { let __v = (*delay.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
-        return (Arc::new(Mutex::new(Some(gList { head: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))) }))), 0);
+        return (
+            Arc::new(Mutex::new(Some(gList { head: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))) }))),
+            0
+        );
     }
         continue 'retry;
     }
