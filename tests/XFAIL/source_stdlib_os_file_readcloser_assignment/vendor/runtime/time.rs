@@ -722,7 +722,13 @@ impl timer {
     /// If used for an inactive timer, the timer will become active.
     /// Reports whether the timer was active and was stopped.
     pub fn reset(&mut self, when: Arc<Mutex<Option<i64>>>, period: Arc<Mutex<Option<i64>>>) -> bool {
-        self.modify(Arc::new(Mutex::new(Some({ let __arg_holder = when.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = period.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(0 as usize))))
+        self.modify(
+            Arc::new(Mutex::new(Some({ let __arg_holder = when.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = period.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(0 as usize))),
+        )
     }
 
     /// unlockAndRun unlocks and runs the timer t (which must be locked).

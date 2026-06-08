@@ -512,7 +512,13 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 //
                 // Publish the node last, which will make both oldEntry and newEntry visible. We
                 // don't want readers to be able to observe that oldEntry isn't in the tree.
-        (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())));
+        (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local(self.expand(
+            oldEntry.clone(),
+            newEntry.clone(),
+            Arc::new(StdMutex::new(Some(hash))),
+            Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            i.clone(),
+        )));
     }
                         // Easy case: create a new entry and store it.
                         // We possibly need to expand the entry already there into one or more new nodes.
@@ -683,7 +689,13 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 //
                 // Publish the node last, which will make both oldEntry and newEntry visible. We
                 // don't want readers to be able to observe that oldEntry isn't in the tree.
-        (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())));
+        (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local(self.expand(
+            oldEntry.clone(),
+            newEntry.clone(),
+            Arc::new(StdMutex::new(Some(hash))),
+            Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            i.clone(),
+        )));
     }
                         // Easy case: create a new entry and store it.
                         // We possibly need to expand the entry already there into one or more new nodes.

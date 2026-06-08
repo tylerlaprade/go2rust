@@ -9874,7 +9874,10 @@ func methodReceiverTempBlockShouldUseMultiline(call *ast.CallExpr) bool {
 }
 
 func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
-	if call == nil || !callArgumentsShouldUseMultiline(call.Args) {
+	if call == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	if len(call.Args) < 5 && !callArgumentsShouldUseMultiline(call.Args) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)

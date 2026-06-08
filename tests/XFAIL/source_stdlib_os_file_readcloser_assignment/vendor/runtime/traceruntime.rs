@@ -1576,7 +1576,13 @@ impl traceLocker {
                 // TODO(go.dev/issue/65634): Although it would be nice to add a stack trace here of gp,
                 // we cannot safely do so. gp is in _Gwaiting and so we don't have ownership of its stack.
                 // We can fix this by acquiring the goroutine's scan bit.
-        { let __recv = { let __recv = __self.writer(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_go_status(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(-1 as i64))), Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_WAITING as u8))))))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.in_mark_assist.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as u64)))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+        { let __recv = { let __recv = __self.writer(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_go_status(
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(-1 as i64))),
+            Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_WAITING as u8))))))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.in_mark_assist.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(0 as u64))),
+        ); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
     }
     }
 

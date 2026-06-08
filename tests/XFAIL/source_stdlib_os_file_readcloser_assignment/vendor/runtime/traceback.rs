@@ -1973,7 +1973,13 @@ pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<us
     let flags_closure_clone = flags.clone(); let gp_closure_clone = gp.clone(); let lr_closure_clone = lr.clone(); let pc_closure_clone = pc.clone(); let sp_closure_clone = sp.clone(); let u_closure_clone = u.clone(); let mut tracebackWithRuntime = Arc::new(Mutex::new(Some(Box::new(move |showRuntime: Arc<Mutex<Option<bool>>>| -> i32 {
         const maxInt: i32 = 0x7fffffff;
 
-        (*u_closure_clone.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __arg_holder = pc_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = lr_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gp_closure_clone.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = flags_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        (*u_closure_clone.lock().unwrap().as_mut().unwrap()).init_at(
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sp_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = lr_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            gp_closure_clone.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = flags_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
         let (mut n, mut lastN) = traceback2(u_closure_clone.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(50))));
         if { let __tmp_x = n; let __tmp_y = 50; __tmp_x < __tmp_y } {
         return n;
@@ -2323,7 +2329,13 @@ pub fn callers_1(skip: Arc<Mutex<Option<i32>>>, pcbuf: Arc<Mutex<Option<Vec<usiz
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let gp_closure_clone = gp.clone(); let mut n_closure_clone = n.clone(); let pc_closure_clone = pc.clone(); let pcbuf_closure_clone = pcbuf.clone(); let skip_closure_clone = skip.clone(); let sp_closure_clone = sp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         let mut u: Arc<Mutex<Option<unwinder>>> = Arc::new(Mutex::new(Some(Default::default())));
-        (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some(pc_closure_clone))), Arc::new(Mutex::new(Some(sp_closure_clone))), Arc::new(Mutex::new(Some(0 as usize))), GoPtr::local(gp_closure_clone.clone()), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))));
+        (*u.lock().unwrap().as_mut().unwrap()).init_at(
+            Arc::new(Mutex::new(Some(pc_closure_clone))),
+            Arc::new(Mutex::new(Some(sp_closure_clone))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            GoPtr::local(gp_closure_clone.clone()),
+            Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))),
+        );
         { let new_val = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = skip_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pcbuf_closure_clone.clone()); *n_closure_clone.lock().unwrap() = Some(new_val); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };

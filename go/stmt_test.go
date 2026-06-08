@@ -4769,6 +4769,40 @@ func (p *profiler) addExtra(i int) {
 	}
 }
 
+func TestConcurrentMethodCallBreaksManyArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type writer struct{}
+
+func (w writer) write(a int, b int, c int, d int, e int) writer {
+	return w
+}
+
+type sample struct {
+	a int
+	b int
+	c int
+	d int
+	e int
+}
+
+func update(w writer, s *sample) writer {
+	go func() {}()
+	w = w.write(s.a, s.b, s.c, s.d, s.e)
+	return w
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, ".write(") && strings.Contains(line, "s.lock()") {
+			t.Fatalf("many method-call arguments should not stay on the opening call line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, ".write(\n") {
+		t.Fatalf("many method-call arguments should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentFunctionCallBreaksComplexArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

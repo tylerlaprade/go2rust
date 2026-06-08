@@ -2470,7 +2470,13 @@ pub fn saveg(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, gp: G
     }
 
     let mut u: Arc<Mutex<Option<unwinder>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as usize))), gp.clone(), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))));
+    (*u.lock().unwrap().as_mut().unwrap()).init_at(
+        Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(0 as usize))),
+        gp.clone(),
+        Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))),
+    );
     let mut n = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some(0))), pcbuf.clone());
     { let new_val = Arc::new(Mutex::new(Some(vec![0; (n) as usize]))); r.with_mut(|__ptr_value| { __ptr_value.stack = new_val; }); };
     {

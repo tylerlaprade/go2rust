@@ -589,7 +589,13 @@ impl crate::mheap::mheap {
         );
                 // Model the user arena as a heap span for a large object.
         let mut spc = make_span_class(Arc::new(Mutex::new(Some(0 as u8))), Arc::new(Mutex::new(Some(false))));
-        self.init_span(s.clone(), Arc::new(Mutex::new(Some(crate::mheap::spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_HEAP as u8))))))), Arc::new(Mutex::new(Some({ let __arg_holder = spc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_PAGES as usize))));
+        self.init_span(
+            s.clone(),
+            Arc::new(Mutex::new(Some(crate::mheap::spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_HEAP as u8))))))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = spc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_PAGES as usize))),
+        );
         { let new_val = true; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.is_user_arena_chunk.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let __target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __rhs = user_arena_chunk_reserve_bytes(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         { let new_val = 1 as u16; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.freeindex.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
