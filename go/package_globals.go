@@ -1168,6 +1168,7 @@ func underlyingMapType(typ types.Type) *types.Map {
 }
 
 const packageGlobalMapLiteralChunkSize = 16
+const packageGlobalNestedSliceLiteralStatementThreshold = 8
 
 func rustHelperIdentPart(name string) string {
 	name = strings.TrimPrefix(name, "r#")
@@ -1308,6 +1309,55 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, 
 	return true
 }
 
+func writePackageGlobalNestedSliceLiteralElement(out *strings.Builder, indent string, outerName string, elemName string, elemType types.Type, expr ast.Expr) bool {
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	if _, _, ok := namedSliceTypeFromType(elemType); ok {
+		return false
+	}
+	sliceType := underlyingSliceType(elemType)
+	if sliceType == nil {
+		return false
+	}
+	values := orderedArrayLiteralValues(lit.Elts)
+	if len(values) <= packageGlobalNestedSliceLiteralStatementThreshold {
+		return false
+	}
+	out.WriteString(indent)
+	out.WriteString("let mut ")
+	out.WriteString(elemName)
+	out.WriteString(" = Vec::<")
+	out.WriteString(goTypesCollectionElemTypeToRust(sliceType.Elem()))
+	out.WriteString(">::with_capacity(")
+	out.WriteString(fmt.Sprintf("%d", len(values)))
+	out.WriteString(");\n")
+	for _, elt := range values {
+		out.WriteString(indent)
+		out.WriteString(elemName)
+		out.WriteString(".push(")
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		out.WriteString(");\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(elemName)
+	out.WriteString(" = ")
+	out.WriteString(elemName)
+	out.WriteString(".into_boxed_slice().into_vec();\n")
+	out.WriteString(indent)
+	out.WriteString(outerName)
+	out.WriteString(".push(")
+	out.WriteString(elemName)
+	out.WriteString(");\n")
+	return true
+}
+
 func underlyingSliceType(typ types.Type) *types.Slice {
 	if typ == nil {
 		return nil
@@ -1350,7 +1400,10 @@ func writePackageGlobalSliceLiteralInit(out *strings.Builder, name string, globa
 	out.WriteString(">::with_capacity(")
 	out.WriteString(fmt.Sprintf("%d", len(values)))
 	out.WriteString(");\n")
-	for _, elt := range values {
+	for i, elt := range values {
+		if writePackageGlobalNestedSliceLiteralElement(out, "        ", "__go_slice", fmt.Sprintf("__go_slice_elem_%d", i), sliceType.Elem(), elt) {
+			continue
+		}
 		out.WriteString("        __go_slice.push(")
 		if elt == nil {
 			out.WriteString(zeroValueForTypesType(sliceType.Elem()))

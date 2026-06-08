@@ -86,6 +86,37 @@ func main() {
 	}
 }
 
+func TestPackageGlobalNestedSliceLiteralBuildsLargeInnerSliceWithStatements(t *testing.T) {
+	var src strings.Builder
+	src.WriteString("package main\n\n")
+	src.WriteString("type rank int\n\n")
+	src.WriteString("var order = [][]rank{\n\t{")
+	for i := 0; i < 9; i++ {
+		if i > 0 {
+			src.WriteString(", ")
+		}
+		fmt.Fprintf(&src, "%d", i+1)
+	}
+	src.WriteString("},\n}\n\n")
+	src.WriteString("func main() {\n\tgo func() {}()\n}\n")
+
+	rust := transpileTypedConcurrentRegression(t, src.String())
+
+	if strings.Contains(rust, "__go_slice.push(vec![rank(") {
+		t.Fatalf("large package-global inner slice literal should not stay in one vec expression:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __go_slice_elem_0 = Vec::<rank>::with_capacity(9);",
+		"__go_slice_elem_0.push(rank(",
+		"let __go_slice_elem_0 = __go_slice_elem_0.into_boxed_slice().into_vec();",
+		"__go_slice.push(__go_slice_elem_0);",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("large package-global inner slice literal should build with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestPackageGlobalArrayLiteralBuildsArrayWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
