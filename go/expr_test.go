@@ -3035,6 +3035,58 @@ func asNode(node any) (ast.Node, bool) {
 	}
 }
 
+func TestSourceMappedInterfaceAssertionTargetUsesConcreteCandidates(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/ast"
+
+func asDecl(node ast.Node) (ast.Decl, bool) {
+	d, ok := node.(ast.Decl)
+	return d, ok
+}
+
+func mustDecl(node ast.Node) ast.Decl {
+	return node.(ast.Decl)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, "downcast_ref::<Box<dyn go_ast::r#mod::Decl") ||
+		strings.Contains(rust, "downcast_ref::<Box<dyn go_ast::Decl") ||
+		strings.Contains(rust, "downcast_ref::<go_ast::r#mod::Decl>()") ||
+		strings.Contains(rust, "downcast_ref::<go_ast::Decl>()") {
+		t.Fatalf("source-mapped interface assertion target should not downcast to the target interface itself:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDeclPtr>()") &&
+		!strings.Contains(rust, "downcast_ref::<go_ast::GenDeclPtr>()") {
+		t.Fatalf("source-mapped interface assertion target should test concrete implementors:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<Box<dyn go_ast::r#mod::Decl + Send + Sync>>") &&
+		!strings.Contains(rust, "None::<Box<dyn go_ast::Decl + Send + Sync>>") &&
+		!strings.Contains(rust, "None::<Box<dyn go_ast::r#mod::Decl>>") &&
+		!strings.Contains(rust, "None::<Box<dyn go_ast::Decl>>") {
+		t.Fatalf("comma-ok source-mapped interface assertion should type the nil false branch:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn go_ast::r#mod::Decl + Send + Sync>") &&
+		!strings.Contains(rust, "as Box<dyn go_ast::Decl + Send + Sync>") &&
+		!strings.Contains(rust, "as Box<dyn go_ast::r#mod::Decl>") &&
+		!strings.Contains(rust, "as Box<dyn go_ast::Decl>") {
+		t.Fatalf("source-mapped interface assertion should rebox the matched candidate as the target interface:\n%s", rust)
+	}
+	if strings.Contains(rust, "impl go_ast::r#mod::Decl for go_ast::r#mod::GenDeclPtr") ||
+		strings.Contains(rust, "impl go_ast::Decl for go_ast::GenDeclPtr") {
+		t.Fatalf("source-mapped interface assertion should not emit orphan impls for imported traits:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceWrappedIdentArgumentPassesHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

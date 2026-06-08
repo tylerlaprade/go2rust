@@ -707,6 +707,9 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 		if ifaceName == "" || ifaceType == nil || concrete == nil {
 			return
 		}
+		if _, ok := interfaces[ifaceName]; !ok {
+			return
+		}
 		if !types.Implements(concrete, ifaceType) {
 			return
 		}
@@ -1542,8 +1545,15 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 	if typeInfo == nil {
 		return "", nil, nil, nil, false
 	}
-	targetType := typeInfo.GetType(e.Type)
+	targetType, targetOK := typeInfoTypeForTypeExpr(e.Type)
+	if !targetOK {
+		targetType = typeInfo.GetType(e.Type)
+	}
+	sourceType := typeInfo.GetType(e.X)
 	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(targetType)
+	if !ok && isNonEmptyInterfaceType(sourceType) {
+		ifaceName, ok = transpiledNamedInterfaceTypeNameFromTypes(targetType)
+	}
 	if !ok {
 		if ident, identOK := e.Type.(*ast.Ident); identOK && IsInterfaceType(ident.Name) {
 			ifaceName = ident.Name
@@ -1561,7 +1571,6 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 	if !ok || ifaceType.NumMethods() == 0 {
 		return "", nil, nil, nil, false
 	}
-	sourceType := typeInfo.GetType(e.X)
 	candidates := localInterfaceAssertionCandidates(ifaceType, sourceType)
 	return ifaceName, ifaceType, sourceType, candidates, true
 }
