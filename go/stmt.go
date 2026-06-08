@@ -9652,6 +9652,7 @@ const minStatementBuiltLogicalConditionNodes = 3
 const minStatementBuiltNegatedLogicalConditionNodes = 2
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const minStatementBuiltLogicalConditionFieldComparisons = 4
+const minStatementBuiltLogicalConditionFieldBitmaskComparisons = 2
 const minStatementBuiltLogicalConditionCallOperands = 4
 const concurrentFieldSelectorLogicalConditionComplexity = 4
 const concurrentFieldSelectorConversionLogicalConditionComplexity = 4
@@ -9679,6 +9680,10 @@ func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
 		return true
 	}
 	if countLogicalConditionFieldComparisons(expr) >= minStatementBuiltLogicalConditionFieldComparisons {
+		return true
+	}
+	if countLogicalConditionFieldComparisons(expr) >= minStatementBuiltLogicalConditionNodes &&
+		countLogicalConditionFieldBitmaskComparisons(expr) >= minStatementBuiltLogicalConditionFieldBitmaskComparisons {
 		return true
 	}
 	if countLogicalConditionCallOperands(expr) >= minStatementBuiltLogicalConditionCallOperands {
@@ -9730,6 +9735,64 @@ func countLogicalConditionFieldComparisons(expr ast.Expr) int {
 		return 1
 	}
 	return 0
+}
+
+func countLogicalConditionFieldBitmaskComparisons(expr ast.Expr) int {
+	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
+	if !ok {
+		return 0
+	}
+	if binary.Op == token.LAND || binary.Op == token.LOR {
+		return countLogicalConditionFieldBitmaskComparisons(binary.X) + countLogicalConditionFieldBitmaskComparisons(binary.Y)
+	}
+	if logicalConditionBinaryIsComparison(binary) && exprContainsTypedFieldSelector(binary) && exprContainsBitwiseAnd(binary) {
+		return 1
+	}
+	return 0
+}
+
+func exprContainsBitwiseAnd(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.BinaryExpr:
+		return e.Op == token.AND || exprContainsBitwiseAnd(e.X) || exprContainsBitwiseAnd(e.Y)
+	case *ast.CallExpr:
+		if exprContainsBitwiseAnd(e.Fun) {
+			return true
+		}
+		for _, arg := range e.Args {
+			if exprContainsBitwiseAnd(arg) {
+				return true
+			}
+		}
+	case *ast.IndexExpr:
+		return exprContainsBitwiseAnd(e.X) || exprContainsBitwiseAnd(e.Index)
+	case *ast.SliceExpr:
+		if exprContainsBitwiseAnd(e.X) {
+			return true
+		}
+		for _, bound := range []ast.Expr{e.Low, e.High, e.Max} {
+			if bound != nil && exprContainsBitwiseAnd(bound) {
+				return true
+			}
+		}
+	case *ast.SelectorExpr:
+		return exprContainsBitwiseAnd(e.X)
+	case *ast.UnaryExpr:
+		return exprContainsBitwiseAnd(e.X)
+	case *ast.StarExpr:
+		return exprContainsBitwiseAnd(e.X)
+	case *ast.TypeAssertExpr:
+		return exprContainsBitwiseAnd(e.X)
+	case *ast.CompositeLit:
+		for _, elt := range e.Elts {
+			if exprContainsBitwiseAnd(elt) {
+				return true
+			}
+		}
+	case *ast.KeyValueExpr:
+		return exprContainsBitwiseAnd(e.Key) || exprContainsBitwiseAnd(e.Value)
+	}
+	return false
 }
 
 func countLogicalConditionCallOperands(expr ast.Expr) int {

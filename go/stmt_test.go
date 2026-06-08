@@ -4883,6 +4883,36 @@ func visible(i uintptr, off uintptr) bool {
 	}
 }
 
+func TestConcurrentIfBuildsThreeFieldBitmaskConditionsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timer struct {
+	blocked uint32
+	state uint8
+}
+
+const (
+	timerHeaped uint8 = 1
+	timerZombie uint8 = 2
+)
+
+func unblock(t *timer) bool {
+	go func() {}()
+	if t.blocked == 0 && t.state&timerHeaped != 0 && t.state&timerZombie == 0 {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "} && {") {
+		t.Fatalf("three field bitmask conditions should not chain inline statement blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("three field bitmask conditions should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsGoErrorComparisonChainWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

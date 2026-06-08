@@ -1830,7 +1830,23 @@ pub fn block_timer_chan(c: Arc<Mutex<Option<hchan>>>) {
         // If this is the first enqueue after a recent dequeue,
         // the timer may still be in the heap but marked as a zombie.
         // Unmark it in this case, if the timer is still pending.
-    if { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAPED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } && { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).when.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAPED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y };
+            if __go_cond_1 {
+                let __go_cond_2 = { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).when.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
         { let __target = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); let __rhs = TIMER_ZOMBIE as u8; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
         (*(*(*t.lock().unwrap().as_ref().unwrap()).ts.lock().unwrap().as_ref().unwrap()).zombies.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(-1 as i32))));
     }
@@ -1865,7 +1881,23 @@ pub fn unblock_timer_chan(c: Arc<Mutex<Option<hchan>>>) {
         bad_timer();
     }
     { let __target = (*t.lock().unwrap().as_ref().unwrap()).blocked.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-    if { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).blocked.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAPED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } && { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).blocked.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y };
+            if __go_cond_1 {
+                let __go_cond_2 = { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAPED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = { let __tmp_x = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).state.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
                 // Last goroutine that was blocked on this timer.
                 // Mark for removal from heap but do not clear t.when,
                 // so that we know what time it is still meant to trigger.
