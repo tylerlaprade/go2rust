@@ -28,6 +28,7 @@ func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-bats-gocache",
 		"go2rust-go-cache",
 		"go2rust-go-cache.*",
+		"go2rust-go-vet-cache.*",
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh stale-temp sweep should include %q", want)
@@ -76,6 +77,7 @@ func TestCleanupScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
 		`maybe_remove_temp_dir "$dir"`,
 		`self_transpile_check.pid`,
 		`go2rust-test.pid`,
+		`go2rust-vet.pid`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh stale-temp sweep should respect owner pid markers; missing %q", want)
@@ -174,6 +176,58 @@ func TestTestScriptHelpExitsBeforeGeneratedFiles(t *testing.T) {
 	}
 	if parseIndex > lockIndex || helpExitIndex > lockIndex || helpExitIndex > generateIndex {
 		t.Fatalf("test.sh --help should exit before acquiring the test lock or rewriting tests.bats")
+	}
+}
+
+func TestGoVetScriptUsesGuardedTempGoCache(t *testing.T) {
+	data, err := os.ReadFile("../go_vet.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(go_vet.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO_VET_GOCACHE_DIR=""`,
+		`"$repo_root/cleanup.sh" --age-minutes "${GO2RUST_GO_VET_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts`,
+		`GO2RUST_GO_VET_MIN_AVAILABLE_MEM_MB Minimum available memory before go vet (default: 512; 0 disables).`,
+		`GO2RUST_GO_VET_SKIP_PRESSURE_GUARD=1`,
+		`enforce_available_memory_floor()`,
+		`"$repo_root/pressure_guard.sh"`,
+		`--min-env GO2RUST_GO_VET_MIN_AVAILABLE_MEM_MB`,
+		`--default-min-mb 512`,
+		`--skip-env GO2RUST_GO_VET_SKIP_PRESSURE_GUARD`,
+		`--label "go vet"`,
+		`./cleanup.sh --pressure --quick`,
+		`GO_VET_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-vet-cache.XXXXXX")`,
+		`echo "$$" > "$GO_VET_GOCACHE_DIR/go2rust-vet.pid"`,
+		`export GOCACHE="$GO_VET_GOCACHE_DIR"`,
+		`go vet ./go "$@"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("go_vet.sh should run guarded vet with an owned temp GOCACHE; missing %q", want)
+		}
+	}
+
+	guardIndex := strings.LastIndex(script, "\nenforce_available_memory_floor\n")
+	goVetIndex := strings.Index(script, `go vet ./go "$@"`)
+	if guardIndex < 0 || goVetIndex < 0 {
+		t.Fatalf("go_vet.sh should call the memory guard before the go vet invocation")
+	}
+	if guardIndex > goVetIndex {
+		t.Fatalf("go_vet.sh should run the memory-pressure guard before go vet")
+	}
+}
+
+func TestHkGoVetUsesGuardedWrapper(t *testing.T) {
+	data, err := os.ReadFile("../hk.pkl")
+	if err != nil {
+		t.Fatalf("ReadFile(hk.pkl) error = %v", err)
+	}
+	script := string(data)
+	if !strings.Contains(script, `check = "./go_vet.sh"`) {
+		t.Fatalf("hk go-vet step should use the guarded go_vet.sh wrapper")
+	}
+	if strings.Contains(script, `check = "go vet ./go"`) {
+		t.Fatalf("hk go-vet step should not bypass the memory guard")
 	}
 }
 

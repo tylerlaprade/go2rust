@@ -637,7 +637,7 @@ report_active_path() {
 maybe_remove_temp_dir() {
     local dir="$1"
 
-    for pid_name in self_transpile_check.pid go2rust-test.pid pid; do
+    for pid_name in self_transpile_check.pid go2rust-test.pid go2rust-vet.pid pid; do
         local active_pid
         active_pid=$(active_pid_from_file "$dir/$pid_name" || true)
         if [ -n "$active_pid" ]; then
@@ -680,6 +680,7 @@ cleanup_temp_root() {
         -name 'go2rust-bats-gocache' -o \
         -name 'go2rust-go-cache' -o \
         -name 'go2rust-go-cache.*' -o \
+        -name 'go2rust-go-vet-cache.*' -o \
         -name 'go2rust-go-cache-current' -o \
         -name 'go2rust-gen.*' -o \
         -name 'go2rust-token-probe.*' -o \
