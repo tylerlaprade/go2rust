@@ -7501,6 +7501,14 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 }
 
 func fixedArrayLiteralShouldUseMultiline(values []ast.Expr) bool {
+	return compositeLiteralValuesShouldUseMultiline(values)
+}
+
+func sliceLiteralShouldUseMultiline(values []ast.Expr) bool {
+	return compositeLiteralValuesShouldUseMultiline(values)
+}
+
+func compositeLiteralValuesShouldUseMultiline(values []ast.Expr) bool {
 	if !NeedsConcurrentWrapper() || len(values) < 4 {
 		return false
 	}
@@ -7522,7 +7530,7 @@ func compositeLiteralElementIsComplex(expr ast.Expr) bool {
 			return false
 		}
 		switch node.(type) {
-		case *ast.CallExpr, *ast.SliceExpr, *ast.CompositeLit:
+		case *ast.BinaryExpr, *ast.CallExpr, *ast.SliceExpr, *ast.CompositeLit:
 			found = true
 			return false
 		}
@@ -7551,28 +7559,52 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 		out.WriteString(">::new()")
 		return true
 	}
-	if sliceLiteralNeedsExplicitElemType(elemType) {
+	explicitVecElemType := sliceLiteralNeedsExplicitElemType(elemType)
+	multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
+	sliceLiteralIndent := ""
+	if explicitVecElemType {
 		out.WriteString("Vec::<")
 		out.WriteString(goTypesCollectionElemTypeToRust(elemType))
-		out.WriteString(">::from([")
+		out.WriteString(">::from(")
+		if multilineSliceLiteral {
+			sliceLiteralIndent = currentLineIndent(out)
+			out.WriteString("[\n")
+		} else {
+			out.WriteString("[")
+		}
 	} else {
-		out.WriteString("vec![")
+		if multilineSliceLiteral {
+			sliceLiteralIndent = currentLineIndent(out)
+			out.WriteString("vec![\n")
+		} else {
+			out.WriteString("vec![")
+		}
 	}
 	for i, elt := range values {
-		if i > 0 {
+		if multilineSliceLiteral {
+			out.WriteString(sliceLiteralIndent)
+			out.WriteString("    ")
+		} else if i > 0 {
 			out.WriteString(", ")
 		}
 		if elt == nil {
 			out.WriteString(zeroValueForTypesType(elemType))
-			continue
-		}
-		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+		} else if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 			TranspileExpression(out, elt)
 		}
+		if multilineSliceLiteral {
+			out.WriteString(",\n")
+		}
 	}
-	if sliceLiteralNeedsExplicitElemType(elemType) {
+	if explicitVecElemType {
+		if multilineSliceLiteral {
+			out.WriteString(sliceLiteralIndent)
+		}
 		out.WriteString("])")
 	} else {
+		if multilineSliceLiteral {
+			out.WriteString(sliceLiteralIndent)
+		}
 		out.WriteString("]")
 	}
 	return true
@@ -7599,6 +7631,23 @@ func writeBareArraySliceCompositeLiteralWithSyntaxType(out *strings.Builder, exp
 		out.WriteString(">::new()")
 		return true
 	} else {
+		if sliceLiteralShouldUseMultiline(values) {
+			indent := currentLineIndent(out)
+			out.WriteString("vec![\n")
+			for _, elt := range values {
+				out.WriteString(indent)
+				out.WriteString("    ")
+				if elt == nil {
+					out.WriteString(zeroValueForGoType(arrayType.Elt))
+				} else if !writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
+					TranspileExpression(out, elt)
+				}
+				out.WriteString(",\n")
+			}
+			out.WriteString(indent)
+			out.WriteString("]")
+			return true
+		}
 		out.WriteString("vec![")
 	}
 	for i, elt := range values {
@@ -13020,11 +13069,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			explicitVecElemType := false
 			multilineArrayLiteral := arrayType.Len != nil && fixedArrayLiteralShouldUseMultiline(values)
-			arrayLiteralIndent := ""
+			multilineSliceLiteral := arrayType.Len == nil && len(values) > 0 && sliceLiteralShouldUseMultiline(values)
+			multilineCollectionLiteral := multilineArrayLiteral || multilineSliceLiteral
+			collectionLiteralIndent := ""
 			if arrayType.Len != nil {
 				// Fixed-size array
-				if multilineArrayLiteral {
-					arrayLiteralIndent = currentLineIndent(out)
+				if multilineCollectionLiteral {
+					collectionLiteralIndent = currentLineIndent(out)
 					out.WriteString("[\n")
 				} else {
 					out.WriteString("[")
@@ -13044,14 +13095,25 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					explicitVecElemType = true
 					out.WriteString("Vec::<")
 					out.WriteString(goTypesCollectionElemTypeToRust(elemType))
-					out.WriteString(">::from([")
+					out.WriteString(">::from(")
+					if multilineCollectionLiteral {
+						collectionLiteralIndent = currentLineIndent(out)
+						out.WriteString("[\n")
+					} else {
+						out.WriteString("[")
+					}
 				} else {
-					out.WriteString("vec![")
+					if multilineCollectionLiteral {
+						collectionLiteralIndent = currentLineIndent(out)
+						out.WriteString("vec![\n")
+					} else {
+						out.WriteString("vec![")
+					}
 				}
 			}
 			for i, elt := range values {
-				if multilineArrayLiteral {
-					out.WriteString(arrayLiteralIndent)
+				if multilineCollectionLiteral {
+					out.WriteString(collectionLiteralIndent)
 					out.WriteString("    ")
 				} else if i > 0 {
 					out.WriteString(", ")
@@ -13104,20 +13166,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						TranspileExpression(out, elt)
 					}
 				}
-				if multilineArrayLiteral {
+				if multilineCollectionLiteral {
 					out.WriteString(",\n")
 				}
 			}
 			if arrayType.Len != nil {
-				if multilineArrayLiteral {
-					out.WriteString(arrayLiteralIndent)
+				if multilineCollectionLiteral {
+					out.WriteString(collectionLiteralIndent)
 				}
 				out.WriteString("]")
 			} else if len(e.Elts) == 0 {
 				out.WriteString(")")
 			} else if explicitVecElemType {
+				if multilineCollectionLiteral {
+					out.WriteString(collectionLiteralIndent)
+				}
 				out.WriteString("])")
 			} else {
+				if multilineCollectionLiteral {
+					out.WriteString(collectionLiteralIndent)
+				}
 				out.WriteString("]")
 			}
 			WriteWrapperSuffix(out)
@@ -13188,19 +13256,33 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString("(")
 						}
 						WriteWrapperPrefix(out)
-						out.WriteString("vec![")
 						values := orderedArrayLiteralValues(e.Elts)
+						multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
+						sliceLiteralIndent := ""
+						if multilineSliceLiteral {
+							sliceLiteralIndent = currentLineIndent(out)
+							out.WriteString("vec![\n")
+						} else {
+							out.WriteString("vec![")
+						}
 						for i, elt := range values {
-							if i > 0 {
+							if multilineSliceLiteral {
+								out.WriteString(sliceLiteralIndent)
+								out.WriteString("    ")
+							} else if i > 0 {
 								out.WriteString(", ")
 							}
 							if elt == nil {
 								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
-								continue
-							}
-							if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+							} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 								TranspileExpression(out, elt)
 							}
+							if multilineSliceLiteral {
+								out.WriteString(",\n")
+							}
+						}
+						if multilineSliceLiteral {
+							out.WriteString(sliceLiteralIndent)
 						}
 						out.WriteString("]")
 						WriteWrapperSuffix(out)

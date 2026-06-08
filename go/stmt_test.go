@@ -6918,6 +6918,35 @@ func sum(n int) int {
 	}
 }
 
+func TestConcurrentRangeOverComplexSliceLiteralBreaksVecAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func trace(workProcs, mark, sweep, end, assist, dedicated, fractional, idle, term int64) int64 {
+	go func() {}()
+	total := int64(0)
+	for i, ns := range []int64{
+		workProcs * (mark - sweep),
+		assist,
+		dedicated + fractional,
+		idle,
+		workProcs * (end - term),
+	} {
+		total += int64(i) + ns
+	}
+	return total
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "for (i, ns) in vec![") && strings.Contains(line, ".iter().copied().enumerate()") {
+			t.Fatalf("complex range slice literal should not emit the whole vec on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "for (i, ns) in vec![\n") {
+		t.Fatalf("complex range slice literal should break vec elements across lines:\n%s", rust)
+	}
+}
+
 func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

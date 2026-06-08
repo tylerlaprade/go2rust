@@ -1663,8 +1663,13 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	if needsStrip {
 		// Inline slice literal or slice expression - capture output and strip wrapper if present
 		var buf strings.Builder
+		indent := currentLineIndent(out)
+		buf.WriteString(indent)
 		TranspileExpressionContext(&buf, expr, RValue)
 		s := buf.String()
+		if indent != "" && strings.HasPrefix(s, indent) {
+			s = s[len(indent):]
+		}
 		// Strip Rc::new(RefCell::new(Some(...))) wrapper
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()
