@@ -3271,9 +3271,7 @@ func typeSwitchCaseTranspiledInterface(typeInfo *TypeInfo, typeExpr ast.Expr, su
 // set when the case denotes an interface with at least one method. It covers
 // named local interfaces (`case namer:`), source-mapped imported interfaces
 // used in switches over non-empty interface subjects (`case ast.Decl:`), and
-// anonymous interface literals (`case interface{ Name() string }:`). All lower
-// to the same structural candidate downcast against the concrete implementors
-// in scope.
+// anonymous interface literals (`case interface{ Name() string }:`).
 func typeSwitchCaseInterface(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (*types.Interface, bool) {
 	if iface, ok := typeSwitchCaseLocalInterface(typeInfo, typeExpr); ok {
 		return iface, true
@@ -3284,10 +3282,21 @@ func typeSwitchCaseInterface(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType 
 	return anonInterfaceMethodSet(typeExpr)
 }
 
-func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) bool {
+func typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (string, bool) {
+	targetType := typeSwitchCaseResolvedType(typeInfo, typeExpr)
+	return staticallyKnownInterfaceRewrapTargetForTypes(subjectType, targetType)
+}
+
+func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) bool {
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
+	}
+	if canRewrapInterfaceSubject {
+		if _, ok := typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo, typeExpr, subjectType); ok {
+			out.WriteString("_ts_val.is_some()")
+			return true
+		}
 	}
 	candidates := localInterfaceAssertionCandidates(iface, subjectType)
 	if len(candidates) == 0 {
@@ -3341,12 +3350,9 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 }
 
 // writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
-// case (named or anonymous). The condition has already matched a structural
-// candidate, so the bound value is the matched concrete implementor downcast
-// out of the subject and then boxed back into the case interface type. Go gives
-// the case variable the case type, even when only one concrete implementor is
-// visible to the transpiler.
-func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool) bool {
+// case (named or anonymous). Go gives the case variable the case type, even when
+// the matched value is rewrapped from a statically known interface subject.
+func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool, canRewrapInterfaceSubject bool) bool {
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
@@ -3357,6 +3363,16 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 		out.WriteString("mut ")
 	}
 	out.WriteString(varName)
+	if canRewrapInterfaceSubject {
+		if ifaceName, ok := typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo, typeExpr, subjectType); ok {
+			out.WriteString(": ")
+			out.WriteString(goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName)))
+			out.WriteString(" = ")
+			writeStaticallyKnownInterfaceAssertionWrappedSome(out, "_ts_owned.as_ref().unwrap()", ifaceName)
+			out.WriteString(";\n")
+			return true
+		}
+	}
 	if len(candidates) > 0 {
 		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, subjectType, iface, candidates); ok {
 			out.WriteString(": ")
@@ -3401,7 +3417,7 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 	return true
 }
 
-func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) {
+func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) {
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
 		out.WriteString("_ts_is_nil")
@@ -3413,7 +3429,7 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 		out.WriteString(">()).is_some()")
 		return
 	}
-	if writeTypeSwitchLocalInterfaceCaseCondition(out, typeInfo, typeExpr, subjectType) {
+	if writeTypeSwitchLocalInterfaceCaseCondition(out, typeInfo, typeExpr, subjectType, canRewrapInterfaceSubject) {
 		return
 	}
 	if rustType == "" {
@@ -15099,6 +15115,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		subjectUsesAny := isEmptyInterfaceValueExpr(expr)
 		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr) || isBareLocalInterfaceValue(expr)
 		subjectIsTranspiledInterface := !subjectIsLocalInterfaceRef && isTranspiledInterfaceExpr(expr)
+		typeSwitchCanRewrapInterfaceSubject := false
 		typeSwitchSubjectHasGuard := false
 		originalBindingSubject := ""
 		if subjectUsesAny {
@@ -15179,6 +15196,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_is_nil = false;\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());\n")
 		} else if subjectIsTranspiledInterface {
+			typeSwitchCanRewrapInterfaceSubject = true
 			originalBindingSubject = "_ts_subject"
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
@@ -15264,14 +15282,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if len(caseClause.List) == 1 {
 					rustType, isNil := typeSwitchCaseRustType(typeInfo, caseClause.List[0])
 					out.WriteString("if ")
-					writeTypeSwitchCaseCondition(out, typeInfo, caseClause.List[0], typeSwitchSubjectType)
+					writeTypeSwitchCaseCondition(out, typeInfo, caseClause.List[0], typeSwitchSubjectType, typeSwitchCanRewrapInterfaceSubject)
 					out.WriteString(" {\n")
 
 					// Create typed variable if needed
 					if varName != "" && isNil {
 						writeTypeSwitchOriginalBinding(out, varName, expr, originalBindingSubject, isRangeVar, isStdlibRangeRef, caseVarAssigned)
-					} else if varName != "" && writeTypeSwitchInterfaceCaseBinding(out, typeInfo, varName, caseClause.List[0], typeSwitchSubjectType, caseVarAssigned) {
-						// interface case (named or anonymous): bound to matched concrete implementor
+					} else if varName != "" && writeTypeSwitchInterfaceCaseBinding(out, typeInfo, varName, caseClause.List[0], typeSwitchSubjectType, caseVarAssigned, typeSwitchCanRewrapInterfaceSubject) {
+						// interface case (named or anonymous): binding handled by the interface case path
 					} else if varName != "" && rustType == "" {
 						out.WriteString("        let ")
 						if caseVarAssigned {
@@ -15306,7 +15324,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if j > 0 {
 							out.WriteString(" || ")
 						}
-						writeTypeSwitchCaseCondition(out, typeInfo, typeExpr, typeSwitchSubjectType)
+						writeTypeSwitchCaseCondition(out, typeInfo, typeExpr, typeSwitchSubjectType, typeSwitchCanRewrapInterfaceSubject)
 					}
 					out.WriteString(" {\n")
 					if varName != "" {

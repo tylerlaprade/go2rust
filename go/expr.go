@@ -19042,6 +19042,10 @@ func staticallyKnownInterfaceAssertionRewrapTarget(e *ast.TypeAssertExpr) (strin
 	if !ok {
 		return "", false
 	}
+	return staticallyKnownInterfaceRewrapTargetForTypes(sourceType, targetType)
+}
+
+func staticallyKnownInterfaceRewrapTargetForTypes(sourceType types.Type, targetType types.Type) (string, bool) {
 	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(targetType)
 	if !ok {
 		return "", false

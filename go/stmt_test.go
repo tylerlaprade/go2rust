@@ -344,7 +344,7 @@ func classify(d ast.Decl) bool {
 	}
 }
 
-func TestSourceMappedImportedInterfaceTypeSwitchInterfaceCaseUsesConcreteCandidates(t *testing.T) {
+func TestSourceMappedImportedInterfaceTypeSwitchSameInterfaceCaseRewrapsSubject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -368,21 +368,69 @@ func classify(d ast.Decl) bool {
 	}
 
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
-	if strings.Contains(rust, "_ts_val.and_then(|__v| __v.downcast_ref::<Box<dyn go_ast::r#mod::Decl") ||
-		strings.Contains(rust, "_ts_val.and_then(|__v| __v.downcast_ref::<Box<dyn go_ast::Decl") {
-		t.Fatalf("type switch on source-mapped imported interface case should not test the case as a boxed concrete type:\n%s", rust)
+	if !strings.Contains(rust, "if _ts_val.is_some()") {
+		t.Fatalf("type switch on same source-mapped interface case should match any non-nil subject:\n%s", rust)
 	}
-	if !strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDeclPtr>()") &&
-		!strings.Contains(rust, "downcast_ref::<go_ast::GenDeclPtr>()") {
-		t.Fatalf("type switch on source-mapped imported interface case should test concrete implementors:\n%s", rust)
+	if strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDeclPtr>()") ||
+		strings.Contains(rust, "downcast_ref::<go_ast::GenDeclPtr>()") {
+		t.Fatalf("type switch on same source-mapped interface case should not search concrete implementors:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>") &&
-		!strings.Contains(rust, "let d: Arc<Mutex<Option<Box<dyn go_ast::Decl + Send + Sync>>>>") {
+		!strings.Contains(rust, "let d: Arc<Mutex<Option<Box<dyn go_ast::Decl + Send + Sync>>>>") &&
+		!strings.Contains(rust, "let d: Rc<RefCell<Option<Box<dyn go_ast::r#mod::Decl>>>>") &&
+		!strings.Contains(rust, "let d: Rc<RefCell<Option<Box<dyn go_ast::Decl>>>>") {
 		t.Fatalf("type switch case variable should keep the imported interface case type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "as Box<dyn go_ast::r#mod::Decl + Send + Sync>") &&
-		!strings.Contains(rust, "as Box<dyn go_ast::Decl + Send + Sync>") {
-		t.Fatalf("type switch interface case binding should rebox the matched candidate as the imported interface:\n%s", rust)
+	if !strings.Contains(rust, "let __inner: Box<dyn go_ast::r#mod::Decl + Send + Sync>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::Decl + Send + Sync>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::r#mod::Decl>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::Decl>") {
+		t.Fatalf("type switch same-interface case binding should rewrap the subject interface:\n%s", rust)
+	}
+}
+
+func TestSourceMappedImportedInterfaceTypeSwitchEmbeddedInterfaceCaseRewrapsSubject(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/ast"
+
+func classify(d ast.Decl) bool {
+	switch n := d.(type) {
+	case ast.Node:
+		return n != nil
+	default:
+		return false
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if !strings.Contains(rust, "if _ts_val.is_some()") {
+		t.Fatalf("type switch on embedded source-mapped interface case should match any non-nil subject:\n%s", rust)
+	}
+	if strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDeclPtr>()") ||
+		strings.Contains(rust, "downcast_ref::<go_ast::GenDeclPtr>()") {
+		t.Fatalf("type switch on embedded source-mapped interface case should not search concrete implementors:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let n: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Node + Send + Sync>>>>") &&
+		!strings.Contains(rust, "let n: Arc<Mutex<Option<Box<dyn go_ast::Node + Send + Sync>>>>") &&
+		!strings.Contains(rust, "let n: Rc<RefCell<Option<Box<dyn go_ast::r#mod::Node>>>>") &&
+		!strings.Contains(rust, "let n: Rc<RefCell<Option<Box<dyn go_ast::Node>>>>") {
+		t.Fatalf("type switch embedded-interface case variable should keep the case type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __inner: Box<dyn go_ast::r#mod::Node + Send + Sync>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::Node + Send + Sync>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::r#mod::Node>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::Node>") {
+		t.Fatalf("type switch embedded-interface case binding should rewrap the subject interface:\n%s", rust)
 	}
 }
 
