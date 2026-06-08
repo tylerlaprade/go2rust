@@ -1775,6 +1775,24 @@ func encode(b []byte, version byte, sec int64, nsec int32, offsetMin int16) []by
 	}
 }
 
+func TestConcurrentAppendFunctionCallElementsBreaksExtendVecAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func encode(b []byte, u uint) []byte {
+	go func() {}()
+	utod := func(u uint) byte { return '0' + byte(u) }
+	return append(b, utod(u/10), utod(u%10))
+}
+`)
+
+	if strings.Contains(rust, ".extend(vec![{ let __f_ptr") {
+		t.Fatalf("append with function-call elements should not inline every element in one vec expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".extend(vec![\n") {
+		t.Fatalf("append with function-call elements should break extend vec elements across lines:\n%s", rust)
+	}
+}
+
 func TestStringRangeRuneComparisonWithRuneVariableCastsToGoRune(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

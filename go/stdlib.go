@@ -4462,7 +4462,13 @@ func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, e
 }
 
 func appendExtendShouldUseMultiline(args []ast.Expr) bool {
-	if !NeedsConcurrentWrapper() || len(args) < 4 {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	if callArgumentsShouldUseMultiline(args) {
+		return true
+	}
+	if len(args) < 4 {
 		return false
 	}
 	for _, arg := range args {
