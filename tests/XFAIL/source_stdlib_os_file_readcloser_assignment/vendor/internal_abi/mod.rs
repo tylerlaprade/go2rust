@@ -188,7 +188,15 @@ impl IntArgRegBitmap {
     ///
     ///go:nosplit
     pub fn get(&self, i: Arc<Mutex<Option<i32>>>) -> bool {
-        return { let __tmp_x = { let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x / __tmp_y }) as usize].clone() }; let __tmp_y = ({ let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x % __tmp_y }); __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = {
+                let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x / __tmp_y }) as usize].clone() };
+                let __tmp_y = ({ let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x % __tmp_y }); __tmp_x << __tmp_y });
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        };
     }
 }
 

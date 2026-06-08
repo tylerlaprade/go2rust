@@ -1589,7 +1589,11 @@ impl timers {
     }
         while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut p = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAP_N as u64; __tmp_x / __tmp_y }) as i32)));
-        if { let __tmp_x = { let __v = (*when.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = { let __v = (*when.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*{ let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap());
+            __tmp_x >= __tmp_y
+        } {
         break
     }
         (*heap.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };

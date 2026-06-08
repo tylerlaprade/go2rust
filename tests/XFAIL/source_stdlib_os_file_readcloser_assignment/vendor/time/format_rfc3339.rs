@@ -101,12 +101,20 @@ impl crate::r#mod::Time {
             __go_binary_8
         };
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>)));
-        if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __v = (*n0.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 4; __tmp_x + __tmp_y }) as usize].clone() }; let __tmp_y = ('-' as i32) as u8; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __v = (*n0.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 4; __tmp_x + __tmp_y }) as usize].clone() };
+            let __tmp_y = ('-' as i32) as u8;
+            __tmp_x != __tmp_y
+        } {
             return (
                 b.clone(),
                 errors::new(Arc::new(Mutex::new(Some("year outside of range [0,9999]".to_string()))))
             );
-        } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = ('Z' as i32) as u8; __tmp_x != __tmp_y } {
+        } else if {
+            let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+            let __tmp_y = ('Z' as i32) as u8;
+            __tmp_x != __tmp_y
+        } {
             let mut c = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 6; __tmp_x - __tmp_y }) as usize].clone() })));
             if {
                 let __go_cond_0 = {
@@ -323,7 +331,11 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>)));
         if true {
             return ({ let __owned = t.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, Arc::new(Mutex::new(None)));
-        } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 11; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y } {
+        } else if {
+            let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 11; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() };
+            let __tmp_y = (':' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
             return (
                 Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
                 Arc::new(Mutex::new(Some(Box::new(ParseError {
@@ -363,7 +375,11 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
                     ..Default::default()
                 }) as Box<dyn StdError + Send + Sync>)))
             );
-        } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[("2006-01-02T15:04:05".len()) as usize].clone() }; let __tmp_y = (',' as i32) as u8; __tmp_x == __tmp_y } {
+        } else if {
+            let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[("2006-01-02T15:04:05".len()) as usize].clone() };
+            let __tmp_y = (',' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
             return (
                 Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))),
                 Arc::new(Mutex::new(Some(Box::new(ParseError {
@@ -375,7 +391,11 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
                     ..Default::default()
                 }) as Box<dyn StdError + Send + Sync>)))
             );
-        } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = ('Z' as i32) as u8; __tmp_x != __tmp_y } {
+        } else if {
+            let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+            let __tmp_y = ('Z' as i32) as u8;
+            __tmp_x != __tmp_y
+        } {
             if {
                 let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = { let mut __f_guard = num2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
                     let __seq_holder = b.clone();

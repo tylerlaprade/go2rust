@@ -392,19 +392,31 @@ let mut skip = Arc::new(Mutex::new(Some(__go_binary_18)));
     }
 
         // Transition times.
-    let mut txtimes = Arc::new(Mutex::new(Some(dataIO { p: (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y })))), error: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
+    let mut txtimes = Arc::new(Mutex::new(Some(dataIO { p: (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({
+        let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() };
+        let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        __tmp_x * __tmp_y
+    })))), error: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
 
         // Time zone indices for transition times.
     let mut txzones = (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() }))));
 
         // Zone info structures
-    let mut zonedata = Arc::new(Mutex::new(Some(dataIO { p: (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NZone) as usize].clone() }; let __tmp_y = 6; __tmp_x * __tmp_y })))), error: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
+    let mut zonedata = Arc::new(Mutex::new(Some(dataIO { p: (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({
+        let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NZone) as usize].clone() };
+        let __tmp_y = 6;
+        __tmp_x * __tmp_y
+    })))), error: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
 
         // Time zone abbreviations.
     let mut abbrev = (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NChar) as usize].clone() }))));
 
         // Leap-second time pairs
-    (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NLeap) as usize].clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y }); __tmp_x * __tmp_y }))));
+    (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({
+        let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NLeap) as usize].clone() };
+        let __tmp_y = ({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y });
+        __tmp_x * __tmp_y
+    }))));
 
         // Whether tx times associated with local time types
         // are specified as standard time or wall time.
@@ -420,7 +432,31 @@ let mut skip = Arc::new(Mutex::new(Some(__go_binary_18)));
 
     let mut extend: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     let mut rest = (*d.lock().unwrap().as_mut().unwrap()).rest();
-    if { let __tmp_x = ((*rest.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x > __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = rest.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = ('\n' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = rest.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*rest.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = ('\n' as i32) as u8; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __tmp_x = ((*rest.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x > __tmp_y };
+            if __go_cond_1 {
+                let __go_cond_2 = {
+                    let __tmp_x = { let __seq = { let __seq_holder = rest.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                    let __tmp_y = ('\n' as i32) as u8;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = {
+                let __tmp_x = { let __seq = { let __seq_holder = rest.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*rest.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+                let __tmp_y = ('\n' as i32) as u8;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
         { let new_val = Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({
             let __seq_holder = rest.clone();
             let __seq_guard = __seq_holder.lock().unwrap();
@@ -529,15 +565,27 @@ let mut skip = Arc::new(Mutex::new(Some(__go_binary_18)));
     }
     }
         { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.when.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = ((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = txzones.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = ((*zones.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = ((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = txzones.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()) as i32);
+            let __tmp_y = ((*zones.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
+            __tmp_x >= __tmp_y
+        } {
         return (Arc::new(Mutex::new(None)), errBadData.clone());
     }
         { let new_val = { let __seq = { let __seq_holder = txzones.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; *{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.index.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (i as i32); let __tmp_y = ((*isstd.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
-        { let new_val = { let __tmp_x = { let __seq = { let __seq_holder = isstd.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }; *{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.isstd.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __seq = { let __seq_holder = isstd.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        }; *{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.isstd.lock().unwrap() = Some(new_val); };
     }
         if { let __tmp_x = (i as i32); let __tmp_y = ((*isutc.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
-        { let new_val = { let __tmp_x = { let __seq = { let __seq_holder = isutc.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }; *{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.isutc.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __seq = { let __seq_holder = isutc.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        }; *{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.isutc.lock().unwrap() = Some(new_val); };
     }
     }
 
@@ -556,7 +604,31 @@ let mut skip = Arc::new(Mutex::new(Some(__go_binary_18)));
         // since that will be the most common lookup.
     let (mut sec, _, _) = runtime_now();
     for i in 0..(({ let __range_holder = tx.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        if { let __tmp_x = (*{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = sec; __tmp_x <= __tmp_y } && ({ let __tmp_x = ({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*tx.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x == __tmp_y } || { let __tmp_x = sec; let __tmp_y = (*{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y }) {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = (*{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.when.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = sec;
+                __tmp_x <= __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = ({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*tx.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = {
+                            let __tmp_x = sec;
+                            let __tmp_y = (*{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap());
+                            __tmp_x < __tmp_y
+                        };
+                        __go_cond_3
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let new_val = { let __selector_holder = { let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.when.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*l.lock().unwrap().as_ref().unwrap()).cache_start.lock().unwrap() = Some(new_val); };
         { let new_val = OMEGA as i64; *(*l.lock().unwrap().as_ref().unwrap()).cache_end.lock().unwrap() = Some(new_val); };
         { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new((*l.lock().unwrap().as_ref().unwrap()).zone.clone(), ((*{ let __seq = { let __seq_holder = tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.index.lock().unwrap().as_ref().unwrap())) as usize)); (*l.lock().unwrap().as_mut().unwrap()).cache_zone = new_val; };
@@ -649,7 +721,11 @@ pub fn get2(b: Arc<Mutex<Option<Vec<u8>>>>) -> i32 {
     }
     return {
         let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
-        let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y };
+        let __tmp_y = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = 8;
+            __tmp_x << __tmp_y
+        };
         __tmp_x | __tmp_y
     };
 }

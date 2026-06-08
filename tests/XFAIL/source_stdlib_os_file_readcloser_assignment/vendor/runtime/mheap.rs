@@ -3656,7 +3656,11 @@ impl mheap {
                 // Scan this bitmap chunk for spans that are in-use
                 // but have no marked objects on them.
         for i in 0..(({ let __range_holder = inUse.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        let mut inUseUnmarked = Arc::new(Mutex::new(Some({ let __tmp_x = internal_runtime_atomic::load8(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(inUse.clone(), (i) as usize))); let __tmp_y = { let __seq = { let __seq_holder = marked.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; __tmp_x & ! __tmp_y })));
+        let mut inUseUnmarked = Arc::new(Mutex::new(Some({
+            let __tmp_x = internal_runtime_atomic::load8(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(inUse.clone(), (i) as usize)));
+            let __tmp_y = { let __seq = { let __seq_holder = marked.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+            __tmp_x & ! __tmp_y
+        })));
         if { let __tmp_x = { let __v = (*inUseUnmarked.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
         continue
     }
@@ -3673,7 +3677,11 @@ impl mheap {
         { let __rhs = (*npages.lock().unwrap().as_ref().unwrap()); let mut guard = nFreed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     };
             lock(GoPtr::local(self.lock.clone()));;
-            { let new_val = { let __tmp_x = internal_runtime_atomic::load8(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(inUse.clone(), (i) as usize))); let __tmp_y = { let __seq = { let __seq_holder = marked.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; __tmp_x & ! __tmp_y }; *inUseUnmarked.lock().unwrap() = Some(new_val); };;
+            { let new_val = {
+                let __tmp_x = internal_runtime_atomic::load8(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(inUse.clone(), (i) as usize)));
+                let __tmp_y = { let __seq = { let __seq_holder = marked.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+                __tmp_x & ! __tmp_y
+            }; *inUseUnmarked.lock().unwrap() = Some(new_val); };;
         }
     }
     }

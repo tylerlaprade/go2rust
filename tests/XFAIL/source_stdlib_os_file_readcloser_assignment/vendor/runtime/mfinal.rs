@@ -310,7 +310,11 @@ pub fn queuefinalizer(p: Arc<Mutex<Option<usize>>>, r#fn: Arc<Mutex<Option<funcv
         { let new_val = Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some(__FIN_BLOCK_SIZE as usize))), Arc::new(Mutex::new(Some(0 as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<finblock>(unimplemented!("unsafe.Pointer conversion to finblock")) } })).clone(); *finc.lock().unwrap() = Some(new_val); };
         { let new_val = (*allfin.lock().unwrap().as_ref().unwrap()).clone(); (*(*finc.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_mut().unwrap()).alllink = new_val; };
         { let new_val = (*finc.lock().unwrap().as_ref().unwrap()).clone(); *allfin.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __seq = { let __seq_holder = finptrmask.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = finptrmask.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __tmp_y = 0 as u8;
+            __tmp_x == __tmp_y
+        } {
                 // Build pointer mask for Finalizer array in block.
                 // Check assumptions made in finalizer1 array above.
         if {

@@ -274,7 +274,11 @@ pub fn any_to_sockaddr(rsa: GoPtr<crate::ztypes_darwin_arm64::RawSockaddrAny>) -
             })));
             let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.path.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = 0 as i8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.path.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = 0 as i8;
+            __tmp_x == __tmp_y
+        } {
                 // found early NUL; assume Len included the NUL
                 // or was overestimating.
         { let new_val = i.lock().unwrap().as_ref().unwrap().clone(); *n.lock().unwrap() = Some(new_val); };
@@ -291,7 +295,11 @@ pub fn any_to_sockaddr(rsa: GoPtr<crate::ztypes_darwin_arm64::RawSockaddrAny>) -
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet4::default())));
             let mut p: GoPtr<[u8; 2]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.port.clone()); __ptr_value }.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
             { let new_val = {
-                let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y };
+                let __tmp_x = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = 8;
+                    __tmp_x << __tmp_y
+                };
                 let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[(1) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
                 __tmp_x + __tmp_y
             }; *(*sa.lock().unwrap().as_ref().unwrap()).port.lock().unwrap() = Some(new_val); };
@@ -302,7 +310,11 @@ pub fn any_to_sockaddr(rsa: GoPtr<crate::ztypes_darwin_arm64::RawSockaddrAny>) -
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet6::default())));
             let mut p: GoPtr<[u8; 2]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.port.clone()); __ptr_value }.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
             { let new_val = {
-                let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y };
+                let __tmp_x = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = 8;
+                    __tmp_x << __tmp_y
+                };
                 let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[(1) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
                 __tmp_x + __tmp_y
             }; *(*sa.lock().unwrap().as_ref().unwrap()).port.lock().unwrap() = Some(new_val); };

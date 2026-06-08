@@ -1450,7 +1450,15 @@ impl pMask {
     pub fn read(&self, id: Arc<Mutex<Option<u32>>>) -> bool {
         let mut word = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32 as u32; __tmp_x / __tmp_y })));
         let mut mask = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as u32); let __tmp_y = ({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32 as u32; __tmp_x % __tmp_y }); __tmp_x << __tmp_y })));
-        return { let __tmp_x = ({ let __tmp_x = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(self.0.clone(), ({ let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize))); let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = ({
+                let __tmp_x = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(self.0.clone(), ({ let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)));
+                let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __tmp_x & __tmp_y
+            });
+            let __tmp_y = 0 as u32;
+            __tmp_x != __tmp_y
+        };
     }
 
     /// set sets P id's bit.
@@ -6262,8 +6270,40 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
                 // cgoCallers.  We are running in a signal handler
                 // with all signals blocked, so we don't have to worry
                 // about any other code interrupting us.
-        if { let __tmp_x = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers_use.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } && { let __nil_target = (*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __seq_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        while { let __tmp_x = ({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 32; __tmp_x < __tmp_y } && { let __tmp_x = { let __seq_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers_use.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x == __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __nil_target = (*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = {
+                    let __tmp_x = { let __seq_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() };
+                    let __tmp_y = 0 as usize;
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
+        while {
+            let __go_cond_0 = { let __tmp_x = ({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 32; __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __seq_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                    let __tmp_y = 0 as usize;
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let mut guard = cgoOff.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let __rhs = (*{

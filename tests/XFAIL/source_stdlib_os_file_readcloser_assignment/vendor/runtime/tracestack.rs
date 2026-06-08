@@ -604,7 +604,19 @@ pub fn fp_traceback_p_cs(mut fp: Arc<Mutex<Option<usize>>>, pcBuf: Arc<Mutex<Opt
 pub fn fpunwind_expand(dst: Arc<Mutex<Option<Vec<usize>>>>, pcBuf: Arc<Mutex<Option<Vec<usize>>>>) -> i32 {
     if { let __tmp_x = ((*pcBuf.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return 0;
-    } else if { let __tmp_x = ((*pcBuf.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = LOGICAL_STACK_SENTINEL as usize; __tmp_x == __tmp_y } {
+    } else if {
+        let __go_cond_0 = { let __tmp_x = ((*pcBuf.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __seq = { let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                let __tmp_y = LOGICAL_STACK_SENTINEL as usize;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         return (*{
             let _src = (*Arc::new(Mutex::new(Some({
                 let __seq_holder = pcBuf.clone();

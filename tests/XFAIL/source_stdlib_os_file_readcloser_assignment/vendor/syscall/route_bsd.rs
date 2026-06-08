@@ -919,7 +919,11 @@ pub fn parse_network_layer_addr(b: Arc<Mutex<Option<Vec<u8>>>>, family: Arc<Mute
 
         // Don't reorder case expressions.
         // The case expressions for IPv6 must come first.
-    if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = SIZEOF_SOCKADDR_INET6 as u8; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        let __tmp_y = SIZEOF_SOCKADDR_INET6 as u8;
+        __tmp_x == __tmp_y
+    } {
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet6 { port: Arc::new(Mutex::new(Some(0))), zone_id: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(Default::default()))) })));
             {
                 let _dst_start = 0;
@@ -1000,7 +1004,11 @@ pub fn parse_network_layer_addr(b: Arc<Mutex<Option<Vec<u8>>>>, family: Arc<Mute
         };
     }
             return (Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::SockaddrInet6Ptr(sa.clone())) as Box<dyn Sockaddr + Send + Sync>))), Arc::new(Mutex::new(None)));
-        } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = SIZEOF_SOCKADDR_INET4 as u8; __tmp_x == __tmp_y } {
+        } else if {
+            let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __tmp_y = SIZEOF_SOCKADDR_INET4 as u8;
+            __tmp_x == __tmp_y
+        } {
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet4 { port: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(Default::default()))) })));
             {
                 let _dst_start = 0;

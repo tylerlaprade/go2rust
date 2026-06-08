@@ -266,7 +266,35 @@ pub fn callback_update_system_stack(mp: GoPtr<crate::runtime2::m>, sp: Arc<Mutex
                 // Don't use these bounds if they don't contain SP. Perhaps we
                 // were called by something not using the standard thread
                 // stack.
-        if { let __tmp_x = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = { let __v = (*sp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; __tmp_x > __tmp_y } && { let __tmp_x = { let __v = (*sp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; __tmp_x <= __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                    let __tmp_y = 0 as usize;
+                    __tmp_x != __tmp_y
+                };
+                if __go_cond_1 {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __v = (*sp.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        let __tmp_y = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                        __tmp_x > __tmp_y
+                    };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = {
+                    let __tmp_x = { let __v = (*sp.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    let __tmp_y = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+                    __tmp_x <= __tmp_y
+                };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
         { let new_val = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; *(*(*g0_local.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap() = Some(new_val); };
         { let new_val = { let __seq = { let __seq_holder = bounds.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; *(*(*g0_local.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap() = Some(new_val); };
         { let new_val = true; *{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.g0_stack_accurate.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };

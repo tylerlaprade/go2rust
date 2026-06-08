@@ -245,7 +245,11 @@ impl crate::mpagealloc::pageAlloc {
                 // we get tight bounds checks on at least the top bound.
                 //
                 // We must do this regardless of whether we map new memory.
-        if { let __tmp_x = (needIdxLimit as i32); let __tmp_y = ({ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(l) as usize].clone() }.len() as i32); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = (needIdxLimit as i32);
+            let __tmp_y = ({ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(l) as usize].clone() }.len() as i32);
+            __tmp_x > __tmp_y
+        } {
         (*self.summary.lock().unwrap().as_mut().unwrap())[(l) as usize] = (*Arc::new(Mutex::new(Some({
             let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(l) as usize].clone() };
             let __low = 0;

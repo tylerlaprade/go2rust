@@ -410,7 +410,15 @@ impl writeUserArenaHeapBits {
         let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
         let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
         let mut bitmap = { let __recv = s.clone(); let __recv_ptr: *const crate::mheap::mspan = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mheap::mspan }; let __result = unsafe { &*__recv_ptr }.heap_bits(); __result };
-        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = { let __v = (*data.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }))));
+        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({
+            let __tmp_x = {
+                let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))));
+                let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = { let __v = (*data.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x | __tmp_y
+        }))));
                 // Note: no synchronization required for this write because
                 // the allocator has exclusive access to the page, and the bitmap
                 // entries are all for a single page. Also, visibility of these
@@ -470,7 +478,11 @@ let mut zeros = Arc::new(Mutex::new(Some(__go_binary_8)));
         let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
         { let __rhs = !({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))));
+                let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __tmp_x & __tmp_y
+            };
             let __tmp_y = (*__self.mask.lock().unwrap().as_ref().unwrap());
             __tmp_x | __tmp_y
         }))));
@@ -491,7 +503,11 @@ let mut zeros = Arc::new(Mutex::new(Some(__go_binary_8)));
                 // Write zero bits.
         let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
         if { let __tmp_x = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x < __tmp_y } {
-        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = ({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & ! __tmp_y }))));
+        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({
+            let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))));
+            let __tmp_y = ({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y });
+            __tmp_x & ! __tmp_y
+        }))));
         break
     } else if { let __tmp_x = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x == __tmp_y } {
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = 0 as usize;

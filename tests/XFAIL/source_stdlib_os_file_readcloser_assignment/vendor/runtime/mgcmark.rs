@@ -2794,7 +2794,15 @@ pub fn greyobject(obj: Arc<Mutex<Option<usize>>>, base: Arc<Mutex<Option<usize>>
         (*mbits.lock().unwrap().as_ref().unwrap()).set_marked();
                 // Mark span.
         let (mut arena, mut pageIdx, mut pageMask) = page_index_of(Arc::new(Mutex::new(Some({ let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))));
-        if { let __tmp_x = { let __tmp_x = { let __seq = { let __seq_holder = (*arena.lock().unwrap().as_ref().unwrap()).page_marks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(pageIdx) as usize].clone() }; let __tmp_y = pageMask; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __seq = { let __seq_holder = (*arena.lock().unwrap().as_ref().unwrap()).page_marks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(pageIdx) as usize].clone() };
+                let __tmp_y = pageMask;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u8;
+            __tmp_x == __tmp_y
+        } {
         internal_runtime_atomic::or8(internal_runtime_atomic::GoPtr::array_elem(internal_runtime_atomic::GoArrayElemPtr::new((*arena.lock().unwrap().as_ref().unwrap()).page_marks.clone(), (pageIdx) as usize)), Arc::new(Mutex::new(Some(pageMask))));
     }
                 // If this is a noscan object, fast-track it to black
@@ -2963,7 +2971,15 @@ pub fn gcmarknewobject(span: GoPtr<crate::mheap::mspan>, obj: Arc<Mutex<Option<u
 
         // Mark span.
     let (mut arena, mut pageIdx, mut pageMask) = page_index_of(Arc::new(Mutex::new(Some({ let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))));
-    if { let __tmp_x = { let __tmp_x = { let __seq = { let __seq_holder = (*arena.lock().unwrap().as_ref().unwrap()).page_marks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(pageIdx) as usize].clone() }; let __tmp_y = pageMask; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = {
+            let __tmp_x = { let __seq = { let __seq_holder = (*arena.lock().unwrap().as_ref().unwrap()).page_marks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(pageIdx) as usize].clone() };
+            let __tmp_y = pageMask;
+            __tmp_x & __tmp_y
+        };
+        let __tmp_y = 0 as u8;
+        __tmp_x == __tmp_y
+    } {
         internal_runtime_atomic::or8(internal_runtime_atomic::GoPtr::array_elem(internal_runtime_atomic::GoArrayElemPtr::new((*arena.lock().unwrap().as_ref().unwrap()).page_marks.clone(), (pageIdx) as usize)), Arc::new(Mutex::new(Some(pageMask))));
     }
 

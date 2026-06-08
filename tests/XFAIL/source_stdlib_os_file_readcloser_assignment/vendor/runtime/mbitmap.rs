@@ -548,13 +548,41 @@ impl crate::mheap::mspan {
         let mut bytes: GoPtr<[u8; 8]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __recv_field = self.alloc_bits.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some((*whichByte.lock().unwrap().as_ref().unwrap()) as usize))))); __result }.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut aCache = Arc::new(Mutex::new(Some(0 as u64)));
         { let __rhs = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(0) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(1) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 1; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(2) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 2; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(3) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 3; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(4) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 4; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(5) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 5; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(6) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 6; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(7) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 7; let __tmp_y = 8; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(1) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 1; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(2) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 2; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(3) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 3; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(4) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 4; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(5) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 5; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(6) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 6; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = bytes.borrow(); __seq.as_ref().unwrap()[(7) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = 7; let __tmp_y = 8; __tmp_x * __tmp_y });
+            __tmp_x << __tmp_y
+        }; let mut guard = aCache.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
         { let new_val = !(*aCache.lock().unwrap().as_ref().unwrap()); *self.alloc_cache.lock().unwrap() = Some(new_val); };
     }
 

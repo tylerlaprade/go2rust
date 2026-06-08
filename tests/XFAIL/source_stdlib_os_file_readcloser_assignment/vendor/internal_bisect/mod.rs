@@ -1039,7 +1039,11 @@ impl dedup {
         }) as usize));
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 4; __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __elem_ptr_0 = Some(GoArrayElemPtr::from_array_elem(cache.as_ref().unwrap().clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = sync_atomic::load_uint64(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result }; let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __elem_ptr_0 = Some(GoArrayElemPtr::from_array_elem(cache.as_ref().unwrap().clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = sync_atomic::load_uint64(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+            let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x == __tmp_y
+        } {
         return true;
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -181,7 +181,11 @@ pub fn findnull(s: GoPtr<u8>) -> i32 {
     if { let __tmp_x = "darwin".to_string(); let __tmp_y = "plan9".to_string(); __tmp_x == __tmp_y } {
         let mut p: GoPtr<[u8; 140737488355327]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(s.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut l = Arc::new(Mutex::new(Some(0)));
-        while { let __tmp_x = { let __seq = p.borrow(); __seq.as_ref().unwrap()[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
+        while {
+            let __tmp_x = { let __seq = p.borrow(); __seq.as_ref().unwrap()[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        } {
         { let mut guard = l.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         return { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v };

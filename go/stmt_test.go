@@ -4704,6 +4704,24 @@ func find(s *special, offset uintptr, kind byte) bool {
 	}
 }
 
+func TestConcurrentLogicalShortDeclBuildsSequenceIndexConditionsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func overflow(data []uint64, stk []uintptr) bool {
+	go func() {}()
+	isOverflow := len(stk) == 1 && data[2] == 0 && data[3] == 0 && data[4] == 0
+	return isOverflow
+}
+`)
+
+	if strings.Contains(rust, "} && {") {
+		t.Fatalf("logical short declaration with repeated sequence indexes should not chain inline blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("logical short declaration with repeated sequence indexes should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsLogicalCallConditionWithSelectorArgs(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

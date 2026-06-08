@@ -1238,7 +1238,15 @@ impl mmapper {
         m_defer_captured.mutex.unlock();
     }));
             let mut b = { let __map = { let __map_holder = self.active.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::from_slice_elem(p.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
-            if { let __nil_result = (*b.lock().unwrap()).is_none(); __nil_result } || { let __left = GoSliceElemPtr::new(b.clone(), (0) as usize); let __right = GoSliceElemPtr::new(data.clone(), (0) as usize); let __eq = Arc::ptr_eq(&__left.slice, &__right.slice) && __left.index == __right.index; !__eq } {
+            if {
+                let __go_cond_0 = { let __nil_result = (*b.lock().unwrap()).is_none(); __nil_result };
+                if __go_cond_0 {
+                    true
+                } else {
+                    let __go_cond_1 = { let __left = GoSliceElemPtr::new(b.clone(), (0) as usize); let __right = GoSliceElemPtr::new(data.clone(), (0) as usize); let __eq = Arc::ptr_eq(&__left.slice, &__right.slice) && __left.index == __right.index; !__eq };
+                    __go_cond_1
+                }
+            } {
         {
         { let new_val = Box::new(Errno(Arc::new(Mutex::new(Some(E_I_N_V_A_L as usize))))) as Box<dyn StdError + Send + Sync>; *err.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions

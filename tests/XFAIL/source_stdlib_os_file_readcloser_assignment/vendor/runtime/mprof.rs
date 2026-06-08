@@ -2039,7 +2039,11 @@ pub fn eqslice(x: Arc<Mutex<Option<Vec<usize>>>>, y: Arc<Mutex<Option<Vec<usize>
         return false;
     }
     { let __range_holder = x.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, xi) in __range_values.iter().copied().enumerate() {
-        if { let __tmp_x = xi; let __tmp_y = { let __seq = { let __seq_holder = y.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = xi;
+            let __tmp_y = { let __seq = { let __seq_holder = y.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+            __tmp_x != __tmp_y
+        } {
         return false;
     }
     } }

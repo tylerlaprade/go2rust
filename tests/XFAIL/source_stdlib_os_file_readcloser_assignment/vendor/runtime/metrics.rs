@@ -1387,7 +1387,11 @@ impl statDepSet {
     pub fn difference(&self, b: Arc<Mutex<Option<statDepSet>>>) -> Arc<Mutex<Option<statDepSet>>> {
         let mut c: Arc<Mutex<Option<statDepSet>>> = Arc::new(Mutex::new(Some(statDepSet(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
         for i in 0..(({ let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        (*{ let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() }; let __tmp_y = { let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() }; __tmp_x & ! __tmp_y };
+        (*{ let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(i) as usize] = {
+            let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() };
+            let __tmp_y = { let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() };
+            __tmp_x & ! __tmp_y
+        };
     }
         return { let __owned = c.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }
@@ -1396,7 +1400,11 @@ impl statDepSet {
     pub fn union(&self, b: Arc<Mutex<Option<statDepSet>>>) -> Arc<Mutex<Option<statDepSet>>> {
         let mut c: Arc<Mutex<Option<statDepSet>>> = Arc::new(Mutex::new(Some(statDepSet(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
         for i in 0..(({ let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        (*{ let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() }; let __tmp_y = { let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() }; __tmp_x | __tmp_y };
+        (*{ let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(i) as usize] = {
+            let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() };
+            let __tmp_y = { let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(i) as usize].clone() };
+            __tmp_x | __tmp_y
+        };
     }
         return { let __owned = c.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }
@@ -1413,7 +1421,15 @@ impl statDepSet {
 
     /// has returns true if the set contains a given statDep.
     pub fn has(&self, d: Arc<Mutex<Option<statDep>>>) -> bool {
-        return { let __tmp_x = { let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) / 64) as usize].clone() }; let __tmp_y = ({ let __tmp_x = (1 as u64); let __tmp_y = (((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) % 64)); __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = {
+                let __tmp_x = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) / 64) as usize].clone() };
+                let __tmp_y = ({ let __tmp_x = (1 as u64); let __tmp_y = (((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) % 64)); __tmp_x << __tmp_y });
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        };
     }
 }
 
@@ -1431,8 +1447,16 @@ impl heapStatsAggregate {
         let mut nf = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.heap_stats_delta.lock().unwrap().as_ref().unwrap()).small_free_count.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() })));
         { let __target = self.total_allocs.clone(); let __rhs = (*na.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __target = self.total_frees.clone(); let __rhs = (*nf.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        { let __target = self.total_allocated.clone(); let __rhs = { let __tmp_x = { let __v = (*na.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = class_to_size.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        { let __target = self.total_freed.clone(); let __rhs = { let __tmp_x = { let __v = (*nf.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = class_to_size.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.total_allocated.clone(); let __rhs = {
+            let __tmp_x = { let __v = (*na.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = class_to_size.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.total_freed.clone(); let __rhs = {
+            let __tmp_x = { let __v = (*nf.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = class_to_size.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() } as u64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         { let new_val = { let __tmp_x = (*self.total_allocated.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.total_freed.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; *self.in_objects.lock().unwrap() = Some(new_val); };
         { let new_val = { let __tmp_x = (*self.total_allocs.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.total_frees.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; *self.num_objects.lock().unwrap() = Some(new_val); };

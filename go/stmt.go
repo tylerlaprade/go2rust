@@ -9551,6 +9551,7 @@ const minStatementBuiltLogicalConditionNodes = 4
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const concurrentFieldSelectorLogicalConditionComplexity = 4
 const concurrentFieldSelectorConversionLogicalConditionComplexity = 4
+const concurrentSequenceIndexLogicalConditionComplexity = 8
 const concurrentNamedIntegerLogicalComparisonOperandComplexity = 4
 const concurrentGoErrorLogicalComparisonComplexity = 10
 
@@ -9620,7 +9621,11 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		}
 		return count
 	case *ast.IndexExpr:
-		return 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
+		count := 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
+		if logicalConditionIndexReadsConcurrentSequence(e) {
+			count += concurrentSequenceIndexLogicalConditionComplexity
+		}
+		return count
 	case *ast.SelectorExpr:
 		if concurrentLogicalConditionSelectorIsField(e) {
 			return concurrentFieldSelectorLogicalConditionComplexity + countLogicalConditionOperandComplexity(e.X)
@@ -9652,6 +9657,17 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		}
 		return 1
 	}
+}
+
+func logicalConditionIndexReadsConcurrentSequence(index *ast.IndexExpr) bool {
+	if index == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return typeInfo.IsSlice(index.X) || typeInfo.IsArray(index.X) || typeInfo.IsPointerToArray(index.X)
 }
 
 func logicalConditionCallConvertsFieldSelector(call *ast.CallExpr) bool {

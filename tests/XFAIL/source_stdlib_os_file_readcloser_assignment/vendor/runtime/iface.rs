@@ -1616,7 +1616,11 @@ pub fn getitab(inter: GoPtr<internal_abi::r#type::InterfaceType>, typ: GoPtr<int
         itab_add(m.clone());
         unlock(GoPtr::local(itabLock.clone()));
     }
-    if { let __tmp_x = { let __seq = { let __seq_holder = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.fun.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __seq = { let __seq_holder = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.fun.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        let __tmp_y = 0 as usize;
+        __tmp_x != __tmp_y
+    } {
         return m.clone();
     }
     if { let __v = (*canfail.lock().unwrap().as_ref().unwrap()).clone(); __v } {

@@ -2039,7 +2039,11 @@ impl profBuf {
     }
                         // available in case of wraparound
             let mut skip = Arc::new(Mutex::new(Some(0)));
-            if { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
+            if {
+                let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                let __tmp_y = 0 as u64;
+                __tmp_x == __tmp_y
+            } {
                 // Wraparound record. Go back to the beginning of the ring.
         { let new_val = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32; *skip.lock().unwrap() = Some(new_val); };
         { let new_val = self.data.clone(); data = new_val; };
@@ -2113,9 +2117,33 @@ impl profBuf {
                         // in the next call.
             let mut di = Arc::new(Mutex::new(Some(0)));
             let mut ti = Arc::new(Mutex::new(Some(0)));
-            while { let __tmp_x = ({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } && { let __tmp_x = ({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*tags.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
+            while {
+                let __go_cond_0 = {
+                    let __go_cond_1 = { let __tmp_x = ({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y };
+                    if __go_cond_1 {
+                        let __go_cond_2 = {
+                            let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                            let __tmp_y = 0 as u64;
+                            __tmp_x != __tmp_y
+                        };
+                        __go_cond_2
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_0 {
+                    let __go_cond_3 = { let __tmp_x = ({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*tags.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            } {
         if {
-            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*di.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*di.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*di.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = (*Arc::new(Mutex::new(Some((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as usize))).lock().unwrap().as_ref().unwrap());
             __tmp_x > __tmp_y
         } {

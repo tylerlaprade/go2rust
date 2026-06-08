@@ -93,11 +93,43 @@ pub fn trace_read_c_p_u(gen: Arc<Mutex<Option<usize>>>) -> bool {
 
     let (mut data, mut tags, mut eof) = { let __recv = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some(crate::profbuf::profBufReadMode(Arc::new(Mutex::new(Some(PROF_BUF_NON_BLOCKING as i32)))))))); __result };
     while { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 4; __tmp_x < __tmp_y } || { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = (*Arc::new(Mutex::new(Some((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 4; __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                    let __tmp_y = (*Arc::new(Mutex::new(Some((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as u64))).lock().unwrap().as_ref().unwrap());
+                    __tmp_x > __tmp_y
+                };
+                __go_cond_1
+            }
+        } {
         break
     }
                 // truncated profile
-        if { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 4 as u64; __tmp_x < __tmp_y } || { let __nil_result = (*tags.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = ((*tags.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                let __tmp_y = 4 as u64;
+                __tmp_x < __tmp_y
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __nil_result = (*tags.lock().unwrap()).is_some(); __nil_result };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = ((*tags.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x < __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_1
+            }
+        } {
         break
     }
                 // malformed profile
@@ -109,9 +141,21 @@ pub fn trace_read_c_p_u(gen: Arc<Mutex<Option<usize>>>) -> bool {
                 // Deserialize the data in the profile buffer.
         let mut recordLen = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
         let mut timestamp = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })));
-        let mut ppid = Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }; let __tmp_y = 1; __tmp_x >> __tmp_y })));
+        let mut ppid = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
+            let __tmp_y = 1;
+            __tmp_x >> __tmp_y
+        })));
         {
-        let mut hasP = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }; let __tmp_y = 0b1 as u64; __tmp_x & __tmp_y }); let __tmp_y = 0 as u64; __tmp_x != __tmp_y })));;
+        let mut hasP = Arc::new(Mutex::new(Some({
+            let __tmp_x = ({
+                let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
+                let __tmp_y = 0b1 as u64;
+                __tmp_x & __tmp_y
+            });
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        })));;
         if !{ let __v = (*hasP.lock().unwrap().as_ref().unwrap()).clone(); __v } {
             { let new_val = !(0 as u64) as u64; *ppid.lock().unwrap() = Some(new_val); };;
         }
@@ -136,7 +180,43 @@ pub fn trace_read_c_p_u(gen: Arc<Mutex<Option<usize>>>) -> bool {
 
                 // Overflow records always have their headers contain
                 // all zeroes.
-        let mut isOverflowRecord = Arc::new(Mutex::new(Some({ let __tmp_x = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(4) as usize].clone() }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y })));
+        let mut isOverflowRecord = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = {
+                            let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
+                            let __tmp_y = 0 as u64;
+                            __tmp_x == __tmp_y
+                        };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = {
+                        let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() };
+                        let __tmp_y = 0 as u64;
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = {
+                    let __tmp_x = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(4) as usize].clone() };
+                    let __tmp_y = 0 as u64;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_5
+            } else {
+                false
+            }
+        })));
 
                 // Move the data iterator forward.
         { let new_val = Arc::new(Mutex::new(Some({

@@ -966,13 +966,21 @@ impl chunkIdx {
 
 impl pageAlloc {
     pub fn init(&mut self, mheapLock: Arc<Mutex<Option<mutex>>>, sysStat: Arc<Mutex<Option<sysMemStat>>>, test: Arc<Mutex<Option<bool>>>) {
-        if { let __tmp_x = { let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = LOG_MAX_PACKED_VALUE as u64; __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __tmp_y = LOG_MAX_PACKED_VALUE as u64;
+            __tmp_x > __tmp_y
+        } {
                 // We can't represent 1<<levelLogPages[0] pages, the maximum number
                 // of pages we need to represent at the root level, in a summary, which
                 // is a big problem. Throw.
         {
             let __go_print_arg_0 = format!("{}", "runtime: root level max pages = ".to_string());
-            let __go_print_arg_1 = format!("{}", { let __tmp_x = 1; let __tmp_y = { let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; __tmp_x << __tmp_y });
+            let __go_print_arg_1 = format!("{}", {
+                let __tmp_x = 1;
+                let __tmp_y = { let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                __tmp_x << __tmp_y
+            });
             let __go_print_arg_2 = format!("{}", "\n".to_string());
             eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
         };
@@ -1537,7 +1545,11 @@ impl pageAlloc {
         let mut l = Arc::new(Mutex::new(Some(0)));
     'next_level: while { let __tmp_x = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 5; __tmp_x < __tmp_y } {
                 // For the root level, entriesPerBlock is the whole level.
-        let mut entriesPerBlock = Arc::new(Mutex::new(Some({ let __tmp_x = 1; let __tmp_y = { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x << __tmp_y })));
+        let mut entriesPerBlock = Arc::new(Mutex::new(Some({
+            let __tmp_x = 1;
+            let __tmp_y = { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            __tmp_x << __tmp_y
+        })));
         let mut logMaxPages = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })));
 
                 // We've moved into a new level, so let's update i to our new
@@ -2109,13 +2121,25 @@ pub fn chunk_page_index(p: Arc<Mutex<Option<usize>>>) -> u64 {
 /// offAddrToLevelIndex converts an address in the offset address space
 /// to the index into summary[level] containing addr.
 pub fn off_addr_to_level_index(level: Arc<Mutex<Option<i32>>>, addr: Arc<Mutex<Option<offAddr>>>) -> i32 {
-    (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*addr.lock().unwrap().as_ref().unwrap()).a.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x >> __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap())
+    (*Arc::new(Mutex::new(Some(({
+        let __tmp_x = ({ let __tmp_x = (*{ let __field = (*addr.lock().unwrap().as_ref().unwrap()).a.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+        let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        __tmp_x >> __tmp_y
+    }) as i32))).lock().unwrap().as_ref().unwrap())
 }
 
 /// levelIndexToOffAddr converts an index into summary[level] into
 /// the corresponding address in the offset address space.
 pub fn level_index_to_off_addr(level: Arc<Mutex<Option<i32>>>, idx: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::mranges::offAddr>>> {
-    Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x << __tmp_y }); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x + __tmp_y }))), ..Default::default() })))
+    Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({
+        let __tmp_x = ({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            __tmp_x << __tmp_y
+        });
+        let __tmp_y = ARENA_BASE_OFFSET as usize;
+        __tmp_x + __tmp_y
+    }))), ..Default::default() })))
 }
 
 /// addrsToSummaryRange converts base and limit pointers into a range
@@ -2135,8 +2159,20 @@ pub fn addrs_to_summary_range(level: Arc<Mutex<Option<i32>>>, base: Arc<Mutex<Op
         // of a summary's max page count boundary for this level
         // (1 << levelLogPages[level]). So, make limit an inclusive upper bound
         // then shift, then add 1, so we get an exclusive upper bound at the end.
-    { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x >> __tmp_y }) as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *lo.lock().unwrap() = __moved_val; };
-    { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x >> __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x + __tmp_y }; *hi.lock().unwrap() = Some(new_val); };
+    { let new_val = Arc::new(Mutex::new(Some(({
+        let __tmp_x = ({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+        let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        __tmp_x >> __tmp_y
+    }) as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *lo.lock().unwrap() = __moved_val; };
+    { let new_val = {
+        let __tmp_x = (*Arc::new(Mutex::new(Some(({
+            let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+            let __tmp_y = { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            __tmp_x >> __tmp_y
+        }) as i32))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = 1;
+        __tmp_x + __tmp_y
+    }; *hi.lock().unwrap() = Some(new_val); };
     return ((*lo.lock().unwrap().as_ref().unwrap()), (*hi.lock().unwrap().as_ref().unwrap()));
 }
 
@@ -2144,7 +2180,11 @@ pub fn addrs_to_summary_range(level: Arc<Mutex<Option<i32>>>, base: Arc<Mutex<Op
 /// level's block width (1 << levelBits[level]). It assumes lo is inclusive
 /// and hi is exclusive, and so aligns them down and up respectively.
 pub fn block_align_summary_range(level: Arc<Mutex<Option<i32>>>, lo: Arc<Mutex<Option<i32>>>, hi: Arc<Mutex<Option<i32>>>) -> (i32, i32) {
-    let mut e = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as usize); let __tmp_y = { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x << __tmp_y })));
+    let mut e = Arc::new(Mutex::new(Some({
+        let __tmp_x = (1 as usize);
+        let __tmp_y = { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        __tmp_x << __tmp_y
+    })));
     return (
         (*Arc::new(Mutex::new(Some(align_down(
             Arc::new(Mutex::new(Some((*lo.lock().unwrap().as_ref().unwrap()) as usize))),

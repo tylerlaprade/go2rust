@@ -38,7 +38,11 @@ pub fn replace_string_byte(s: Arc<Mutex<Option<String>>>, old: Arc<Mutex<Option<
     }
     let mut n = Arc::new(Mutex::new(Some(({ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_vec())));
     for i in 0..(({ let __range_holder = n.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        if { let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; let __tmp_y = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+            let __tmp_y = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x == __tmp_y
+        } {
         (*n.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
     }
