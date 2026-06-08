@@ -3174,6 +3174,14 @@ func typeSwitchCasePointerWrapper(typeInfo *TypeInfo, typeExpr ast.Expr, subject
 	return sourceMappedPointerInterfaceWrapperTypeForTypes(subjectType, targetType)
 }
 
+func typeSwitchSubjectIsNonEmptyInterface(subjectType types.Type) bool {
+	if subjectType == nil {
+		return false
+	}
+	iface, ok := types.Unalias(subjectType).Underlying().(*types.Interface)
+	return ok && iface.NumMethods() > 0
+}
+
 func sourceMappedPointerInterfaceWrapperTypeForTypes(sourceType types.Type, targetType types.Type) (string, bool) {
 	if sourceType == nil || targetType == nil {
 		return "", false
@@ -3202,9 +3210,9 @@ func sourceMappedPointerInterfaceWrapperTypeForTypes(sourceType types.Type, targ
 	return sourceMappedPointerWrapperTypeName(elemNamed), true
 }
 
-func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
+func typeSwitchCaseResolvedType(typeInfo *TypeInfo, typeExpr ast.Expr) types.Type {
 	if typeInfo == nil || typeExpr == nil {
-		return nil, false
+		return nil
 	}
 	typ := typeInfo.GetType(typeExpr)
 	if ident, ok := typeExpr.(*ast.Ident); ok {
@@ -3216,12 +3224,10 @@ func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types
 			typ = obj.Type()
 		}
 	}
-	if typ == nil {
-		return nil, false
-	}
-	if _, ok := localNamedInterfaceTypeNameFromTypes(typ); !ok {
-		return nil, false
-	}
+	return typ
+}
+
+func typeSwitchNamedInterfaceFromType(typ types.Type) (*types.Interface, bool) {
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok {
 		return nil, false
@@ -3233,20 +3239,47 @@ func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types
 	return iface, true
 }
 
+func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
+	typ := typeSwitchCaseResolvedType(typeInfo, typeExpr)
+	if _, ok := localNamedInterfaceTypeNameFromTypes(typ); !ok {
+		return nil, false
+	}
+	return typeSwitchNamedInterfaceFromType(typ)
+}
+
+func typeSwitchCaseTranspiledInterface(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (*types.Interface, bool) {
+	if !typeSwitchSubjectIsNonEmptyInterface(subjectType) {
+		return nil, false
+	}
+	typ := typeSwitchCaseResolvedType(typeInfo, typeExpr)
+	if _, ok := localNamedInterfaceTypeNameFromTypes(typ); ok {
+		return nil, false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); !ok {
+		return nil, false
+	}
+	return typeSwitchNamedInterfaceFromType(typ)
+}
+
 // typeSwitchCaseInterface resolves a type-switch case expression to its method
 // set when the case denotes an interface with at least one method. It covers
-// both named local interfaces (`case namer:`) and anonymous interface literals
-// (`case interface{ Name() string }:`); both lower to the same structural
-// candidate downcast against the concrete implementors in scope.
-func typeSwitchCaseInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
+// named local interfaces (`case namer:`), source-mapped imported interfaces
+// used in switches over non-empty interface subjects (`case ast.Decl:`), and
+// anonymous interface literals (`case interface{ Name() string }:`). All lower
+// to the same structural candidate downcast against the concrete implementors
+// in scope.
+func typeSwitchCaseInterface(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (*types.Interface, bool) {
 	if iface, ok := typeSwitchCaseLocalInterface(typeInfo, typeExpr); ok {
+		return iface, true
+	}
+	if iface, ok := typeSwitchCaseTranspiledInterface(typeInfo, typeExpr, subjectType); ok {
 		return iface, true
 	}
 	return anonInterfaceMethodSet(typeExpr)
 }
 
 func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) bool {
-	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
+	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
 	}
@@ -3281,7 +3314,7 @@ func typeSwitchInterfaceBindingFallbackRustType(typeInfo *TypeInfo, typeExpr ast
 	return ""
 }
 
-func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, iface *types.Interface, candidates []localInterfaceAssertionCandidate) (string, bool) {
+func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate) (string, bool) {
 	if _, ok := typeExpr.(*ast.InterfaceType); ok {
 		if ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates); ifaceName != "" {
 			return ifaceName, true
@@ -3291,17 +3324,14 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 	if typeInfo == nil || typeExpr == nil {
 		return "", false
 	}
-	typ := typeInfo.GetType(typeExpr)
-	if ident, ok := typeExpr.(*ast.Ident); ok {
-		if obj, ok := typeInfo.GetObject(ident).(*types.TypeName); ok {
-			typ = obj.Type()
-		}
-	} else if sel, ok := typeExpr.(*ast.SelectorExpr); ok {
-		if obj, ok := typeInfo.GetObject(sel.Sel).(*types.TypeName); ok {
-			typ = obj.Type()
-		}
+	typ := typeSwitchCaseResolvedType(typeInfo, typeExpr)
+	if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(typ); ok {
+		return ifaceName, true
 	}
-	return localNamedInterfaceTypeNameFromTypes(typ)
+	if !typeSwitchSubjectIsNonEmptyInterface(subjectType) {
+		return "", false
+	}
+	return transpiledNamedInterfaceTypeNameFromTypes(typ)
 }
 
 // writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
@@ -3311,7 +3341,7 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 // the case variable the case type, even when only one concrete implementor is
 // visible to the transpiler.
 func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool) bool {
-	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
+	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
 	}
@@ -3322,7 +3352,7 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 	}
 	out.WriteString(varName)
 	if len(candidates) > 0 {
-		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, iface, candidates); ok {
+		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, subjectType, iface, candidates); ok {
 			out.WriteString(": ")
 			out.WriteString(goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName)))
 			out.WriteString(" = ")

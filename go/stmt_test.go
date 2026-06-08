@@ -344,6 +344,48 @@ func classify(d ast.Decl) bool {
 	}
 }
 
+func TestSourceMappedImportedInterfaceTypeSwitchInterfaceCaseUsesConcreteCandidates(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/ast"
+
+func classify(d ast.Decl) bool {
+	switch d := d.(type) {
+	case ast.Decl:
+		return d != nil
+	default:
+		return false
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, "_ts_val.and_then(|__v| __v.downcast_ref::<Box<dyn go_ast::r#mod::Decl") ||
+		strings.Contains(rust, "_ts_val.and_then(|__v| __v.downcast_ref::<Box<dyn go_ast::Decl") {
+		t.Fatalf("type switch on source-mapped imported interface case should not test the case as a boxed concrete type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDeclPtr>()") &&
+		!strings.Contains(rust, "downcast_ref::<go_ast::GenDeclPtr>()") {
+		t.Fatalf("type switch on source-mapped imported interface case should test concrete implementors:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>") &&
+		!strings.Contains(rust, "let d: Arc<Mutex<Option<Box<dyn go_ast::Decl + Send + Sync>>>>") {
+		t.Fatalf("type switch case variable should keep the imported interface case type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn go_ast::r#mod::Decl + Send + Sync>") &&
+		!strings.Contains(rust, "as Box<dyn go_ast::Decl + Send + Sync>") {
+		t.Fatalf("type switch interface case binding should rebox the matched candidate as the imported interface:\n%s", rust)
+	}
+}
+
 func TestTypeSwitchOnGoErrorAnonymousInterfaceCasesUseConcreteErrorValues(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
