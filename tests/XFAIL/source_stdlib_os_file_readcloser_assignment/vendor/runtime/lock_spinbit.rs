@@ -257,7 +257,16 @@ pub fn lock2(l: GoPtr<crate::runtime2::mutex>) {
         { let new_val = mutex_wait_list_head(Arc::new(Mutex::new(Some(v)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_wait_list.lock().unwrap().as_ref().unwrap()).next.lock().unwrap() = __moved_val; };
 
                 // Pack a (partial) pointer to this M with the current lock state bits
-        let mut next = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&(*gp.lock().unwrap().as_ref().unwrap()).m.clone()) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MUTEX_M_MASK as usize; __tmp_x & ! __tmp_y }); let __tmp_y = { let __tmp_x = v; let __tmp_y = MUTEX_M_MASK as usize; __tmp_x & __tmp_y }; __tmp_x | __tmp_y }; let __tmp_y = MUTEX_SLEEPING as usize; __tmp_x | __tmp_y })));
+        let __go_binary_0 = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&(*gp.lock().unwrap().as_ref().unwrap()).m.clone()) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+let __go_binary_1 = MUTEX_M_MASK as usize;
+let __go_binary_2 = __go_binary_0 & ! __go_binary_1;
+let __go_binary_3 = v;
+let __go_binary_4 = MUTEX_M_MASK as usize;
+let __go_binary_5 = __go_binary_3 & __go_binary_4;
+let __go_binary_6 = __go_binary_2 | __go_binary_5;
+let __go_binary_7 = MUTEX_SLEEPING as usize;
+let __go_binary_8 = __go_binary_6 | __go_binary_7;
+let mut next = Arc::new(Mutex::new(Some(__go_binary_8)));
         if { let __v = (*weSpin.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = { let __tmp_x = { let __v = (*next.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_SPINNING as usize; __tmp_x & ! __tmp_y }; *next.lock().unwrap() = Some(new_val); };
     }

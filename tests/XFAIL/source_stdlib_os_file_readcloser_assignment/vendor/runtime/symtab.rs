@@ -2015,7 +2015,18 @@ pub fn funcdata(f: Arc<Mutex<Option<funcInfo>>>, i: Arc<Mutex<Option<u8>>>) -> A
         return Arc::new(Mutex::new(None));
     }
     let mut base = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*f.lock().unwrap().as_ref().unwrap()).datap.lock().unwrap().as_ref().unwrap()).gofunc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-    let mut p = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&(*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).nfuncdata.clone()) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<u8>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).npcdata.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4 as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4 as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
+    let __go_binary_0 = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&(*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).nfuncdata.clone()) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+let __go_binary_1 = (*Arc::new(Mutex::new(Some(std::mem::size_of::<u8>()))).lock().unwrap().as_ref().unwrap()) as usize;
+let __go_binary_2 = __go_binary_0 + __go_binary_1;
+let __go_binary_3 = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).npcdata.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+let __go_binary_4 = 4 as usize;
+let __go_binary_5 = __go_binary_3 * __go_binary_4;
+let __go_binary_6 = __go_binary_2 + __go_binary_5;
+let __go_binary_7 = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+let __go_binary_8 = 4 as usize;
+let __go_binary_9 = __go_binary_7 * __go_binary_8;
+let __go_binary_10 = __go_binary_6 + __go_binary_9;
+let mut p = Arc::new(Mutex::new(Some(__go_binary_10)));
     let mut off = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u32>(unimplemented!("unsafe.Pointer conversion to u32")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
 
         // Return off == ^uint32(0) ? 0 : f.datap.gofunc + uintptr(off), but without branches.

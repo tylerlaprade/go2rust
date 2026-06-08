@@ -275,7 +275,26 @@ const NChar: i32 = 5;
     let mut is64 = Arc::new(Mutex::new(Some(false)));
     if { let __tmp_x = { let __v = (*version.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x > __tmp_y } {
                 // Skip the 32-bit data.
-        let mut skip = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() }; let __tmp_y = 4; __tmp_x * __tmp_y }; let __tmp_y = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() }; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NZone) as usize].clone() }; let __tmp_y = 6; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NChar) as usize].clone() }; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NLeap) as usize].clone() }; let __tmp_y = 8; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NStdWall) as usize].clone() }; __tmp_x + __tmp_y }; let __tmp_y = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NUTCLocal) as usize].clone() }; __tmp_x + __tmp_y })));
+        let __go_binary_0 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() };
+let __go_binary_1 = 4;
+let __go_binary_2 = __go_binary_0 * __go_binary_1;
+let __go_binary_3 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NTime) as usize].clone() };
+let __go_binary_4 = __go_binary_2 + __go_binary_3;
+let __go_binary_5 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NZone) as usize].clone() };
+let __go_binary_6 = 6;
+let __go_binary_7 = __go_binary_5 * __go_binary_6;
+let __go_binary_8 = __go_binary_4 + __go_binary_7;
+let __go_binary_9 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NChar) as usize].clone() };
+let __go_binary_10 = __go_binary_8 + __go_binary_9;
+let __go_binary_11 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NLeap) as usize].clone() };
+let __go_binary_12 = 8;
+let __go_binary_13 = __go_binary_11 * __go_binary_12;
+let __go_binary_14 = __go_binary_10 + __go_binary_13;
+let __go_binary_15 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NStdWall) as usize].clone() };
+let __go_binary_16 = __go_binary_14 + __go_binary_15;
+let __go_binary_17 = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(NUTCLocal) as usize].clone() };
+let __go_binary_18 = __go_binary_16 + __go_binary_17;
+let mut skip = Arc::new(Mutex::new(Some(__go_binary_18)));
                 // Skip the version 2 header that we just read.
         { let __rhs = 20; let mut guard = skip.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         (*d.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));

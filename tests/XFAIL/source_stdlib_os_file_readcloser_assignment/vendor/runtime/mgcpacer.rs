@@ -1147,7 +1147,16 @@ impl gcControllerState {
                 // increase in RSS. By capping us at a point >0, we're essentially
                 // saying that we're OK using more CPU during the GC to prevent
                 // this growth in RSS.
-        let mut triggerLowerBound = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = goal; let __tmp_y = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = TRIGGER_RATIO_DEN as u64; __tmp_x / __tmp_y }); let __tmp_y = MIN_TRIGGER_RATIO_NUM as u64; __tmp_x * __tmp_y }; let __tmp_y = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let __go_binary_0 = goal;
+let __go_binary_1 = { let __v = self.heap_marked.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_2 = __go_binary_0 - __go_binary_1;
+let __go_binary_3 = TRIGGER_RATIO_DEN as u64;
+let __go_binary_4 = __go_binary_2 / __go_binary_3;
+let __go_binary_5 = MIN_TRIGGER_RATIO_NUM as u64;
+let __go_binary_6 = __go_binary_4 * __go_binary_5;
+let __go_binary_7 = { let __v = self.heap_marked.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_8 = __go_binary_6 + __go_binary_7;
+let mut triggerLowerBound = Arc::new(Mutex::new(Some(__go_binary_8)));
         if { let __tmp_x = minTrigger; let __tmp_y = { let __v = (*triggerLowerBound.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         { let new_val = (*triggerLowerBound.lock().unwrap().as_ref().unwrap()); minTrigger = new_val; };
     }
@@ -1160,7 +1169,16 @@ impl gcControllerState {
                 // to reflect the costs of a GC with no work to do. With a large heap but
                 // very little scan work to perform, this gives us exactly as much runway
                 // as we would need, in the worst case.
-        let mut maxTrigger = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = goal; let __tmp_y = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = TRIGGER_RATIO_DEN as u64; __tmp_x / __tmp_y }); let __tmp_y = MAX_TRIGGER_RATIO_NUM as u64; __tmp_x * __tmp_y }; let __tmp_y = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let __go_binary_0 = goal;
+let __go_binary_1 = { let __v = self.heap_marked.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_2 = __go_binary_0 - __go_binary_1;
+let __go_binary_3 = TRIGGER_RATIO_DEN as u64;
+let __go_binary_4 = __go_binary_2 / __go_binary_3;
+let __go_binary_5 = MAX_TRIGGER_RATIO_NUM as u64;
+let __go_binary_6 = __go_binary_4 * __go_binary_5;
+let __go_binary_7 = { let __v = self.heap_marked.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_8 = __go_binary_6 + __go_binary_7;
+let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
         if { let __tmp_x = goal; let __tmp_y = DEFAULT_HEAP_MINIMUM as u64; __tmp_x > __tmp_y } && { let __tmp_x = { let __tmp_x = goal; let __tmp_y = DEFAULT_HEAP_MINIMUM as u64; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*maxTrigger.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
         { let new_val = { let __tmp_x = goal; let __tmp_y = DEFAULT_HEAP_MINIMUM as u64; __tmp_x - __tmp_y }; *maxTrigger.lock().unwrap() = Some(new_val); };
     }

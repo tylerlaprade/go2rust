@@ -7524,6 +7524,28 @@ func main() {
 	}
 }
 
+func TestConcurrentShortDeclBuildsComplexBinaryInitializerWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func decode(buf []byte) int64 {
+	go func() {}()
+	sec := int64(buf[7]) | int64(buf[6])<<8 | int64(buf[5])<<16 | int64(buf[4])<<24 |
+		int64(buf[3])<<32 | int64(buf[2])<<40 | int64(buf[1])<<48 | int64(buf[0])<<56
+	return sec
+}
+`)
+
+	if strings.Contains(rust, "let mut sec = Arc::new(Mutex::new(Some({ let __tmp_x =") {
+		t.Fatalf("complex binary short declaration should not inline the whole binary tree into the wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_binary_") {
+		t.Fatalf("complex binary short declaration should build the initializer through statement locals:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut sec = Arc::new(Mutex::new(Some(__go_binary_") {
+		t.Fatalf("short declaration should wrap the final binary initializer local:\n%s", rust)
+	}
+}
+
 func TestMethodReceiverShadowShortDeclUsesLocalIdent(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

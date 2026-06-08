@@ -692,7 +692,16 @@ impl typePointers {
                 // Grab more bits and try again.
         { let new_val = read_uintptr(addb(get_g_c_mask(__self.typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*__self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); *__self.mask.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
-        let mut bits = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
+        let __go_binary_0 = { let __v = __self.addr.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_1 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_2 = PTR_BITS as usize;
+let __go_binary_3 = __go_binary_1 * __go_binary_2;
+let __go_binary_4 = __go_binary_0 + __go_binary_3;
+let __go_binary_5 = (*limit.lock().unwrap().as_ref().unwrap());
+let __go_binary_6 = __go_binary_4 - __go_binary_5;
+let __go_binary_7 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_8 = __go_binary_6 / __go_binary_7;
+let mut bits = Arc::new(Mutex::new(Some(__go_binary_8)));
         { let __target = __self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
     }
     }
@@ -718,7 +727,16 @@ impl typePointers {
         { let __target = __self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*target.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.addr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
                 // Clear any bits past the limit.
         if { let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
-        let mut bits = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
+        let __go_binary_0 = { let __v = __self.addr.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_1 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_2 = PTR_BITS as usize;
+let __go_binary_3 = __go_binary_1 * __go_binary_2;
+let __go_binary_4 = __go_binary_0 + __go_binary_3;
+let __go_binary_5 = (*limit.lock().unwrap().as_ref().unwrap());
+let __go_binary_6 = __go_binary_4 - __go_binary_5;
+let __go_binary_7 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_8 = __go_binary_6 / __go_binary_7;
+let mut bits = Arc::new(Mutex::new(Some(__go_binary_8)));
         { let __target = __self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
     }
         return Arc::new(Mutex::new(Some(__self.clone())));
@@ -761,7 +779,16 @@ impl typePointers {
                 // Grab the mask, but then clear any bits before the target address and any
                 // bits over the limit.
         if { let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
-        let mut bits = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
+        let __go_binary_0 = { let __v = __self.addr.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_1 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_2 = PTR_BITS as usize;
+let __go_binary_3 = __go_binary_1 * __go_binary_2;
+let __go_binary_4 = __go_binary_0 + __go_binary_3;
+let __go_binary_5 = (*limit.lock().unwrap().as_ref().unwrap());
+let __go_binary_6 = __go_binary_4 - __go_binary_5;
+let __go_binary_7 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_8 = __go_binary_6 / __go_binary_7;
+let mut bits = Arc::new(Mutex::new(Some(__go_binary_8)));
         { let __target = __self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
     }
         Arc::new(Mutex::new(Some(__self.clone())))

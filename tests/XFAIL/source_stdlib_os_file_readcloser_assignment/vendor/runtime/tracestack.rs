@@ -321,7 +321,16 @@ pub fn dump_stacks_rec(node: GoPtr<crate::tracemap::traceMapNode>, mut w: Arc<Mu
 
         // The maximum number of bytes required to hold the encoded stack, given that
         // it contains N frames.
-    let mut maxBytes = Arc::new(Mutex::new(Some({ let __tmp_x = 1; let __tmp_y = ({ let __tmp_x = (({ let __tmp_x = 2; let __tmp_y = ({ let __tmp_x = 4; let __tmp_y = ((*frames.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x * __tmp_y } as i32); __tmp_x + __tmp_y }) as i32); let __tmp_y = 10; __tmp_x * __tmp_y } as i32); __tmp_x + __tmp_y })));
+    let __go_binary_0 = 1;
+let __go_binary_1 = 2;
+let __go_binary_2 = 4;
+let __go_binary_3 = (*frames.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
+let __go_binary_4 = __go_binary_2 * __go_binary_3;
+let __go_binary_5 = __go_binary_1 + __go_binary_4;
+let __go_binary_6 = 10;
+let __go_binary_7 = __go_binary_5 * __go_binary_6;
+let __go_binary_8 = __go_binary_0 + __go_binary_7;
+let mut maxBytes = Arc::new(Mutex::new(Some(__go_binary_8)));
 
         // Estimate the size of this record. This
         // bound is pretty loose, but avoids counting

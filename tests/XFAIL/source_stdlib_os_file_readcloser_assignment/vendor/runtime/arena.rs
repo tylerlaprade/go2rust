@@ -414,7 +414,16 @@ impl writeUserArenaHeapBits {
                 // zeros counts the number of bits needed to represent the object minus the
                 // number of bits we've already written. This is the number of 0 bits
                 // that need to be added.
-        let mut zeros = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*__self.offset.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+        let __go_binary_0 = (*offset.lock().unwrap().as_ref().unwrap());
+let __go_binary_1 = (*size.lock().unwrap().as_ref().unwrap());
+let __go_binary_2 = __go_binary_0 + __go_binary_1;
+let __go_binary_3 = { let __v = __self.offset.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_4 = __go_binary_2 - __go_binary_3;
+let __go_binary_5 = internal_goarch::PTR_SIZE as usize;
+let __go_binary_6 = __go_binary_4 / __go_binary_5;
+let __go_binary_7 = { let __v = __self.valid.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+let __go_binary_8 = __go_binary_6 - __go_binary_7;
+let mut zeros = Arc::new(Mutex::new(Some(__go_binary_8)));
                 // Add zero bits up to the bitmap word boundary
         if { let __tmp_x = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x > __tmp_y } {
         let mut z = Arc::new(Mutex::new(Some({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));

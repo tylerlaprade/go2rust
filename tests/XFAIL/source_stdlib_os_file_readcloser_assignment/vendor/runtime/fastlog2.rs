@@ -47,8 +47,28 @@ pub fn fastlog2(x: Arc<Mutex<Option<f64>>>) -> f64 {
         // Extract the exponent from the IEEE float64, and index a constant
         // table with the first 10 bits from the mantissa.
     let mut xExp = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = xBits; let __tmp_y = 52; __tmp_x >> __tmp_y }); let __tmp_y = 0x7FF as u64; __tmp_x & __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1023 as i64; __tmp_x - __tmp_y })));
-    let mut xManIndex = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = xBits; let __tmp_y = ({ let __tmp_x = 52; let __tmp_y = FASTLOG_NUM_BITS; __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }); let __tmp_y = ((1 as u64) << (FASTLOG_NUM_BITS as u64)) as u64; __tmp_x % __tmp_y })));
-    let mut xManScale = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = xBits; let __tmp_y = ({ let __tmp_x = { let __tmp_x = 52; let __tmp_y = FASTLOG_NUM_BITS; __tmp_x - __tmp_y }; let __tmp_y = fastlogScaleBits; __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }); let __tmp_y = ((1 as u64) << (fastlogScaleBits as u64)) as u64; __tmp_x % __tmp_y })));
+    let __go_binary_0 = xBits;
+let __go_binary_1 = 52;
+let __go_binary_2 = FASTLOG_NUM_BITS;
+let __go_binary_3 = __go_binary_1 - __go_binary_2;
+let __go_binary_4 = __go_binary_0 >> __go_binary_3;
+let __go_binary_5 = (1 as u64);
+let __go_binary_6 = FASTLOG_NUM_BITS;
+let __go_binary_7 = __go_binary_5 << __go_binary_6;
+let __go_binary_8 = __go_binary_4 % __go_binary_7;
+let mut xManIndex = Arc::new(Mutex::new(Some(__go_binary_8)));
+    let __go_binary_0 = xBits;
+let __go_binary_1 = 52;
+let __go_binary_2 = FASTLOG_NUM_BITS;
+let __go_binary_3 = __go_binary_1 - __go_binary_2;
+let __go_binary_4 = fastlogScaleBits;
+let __go_binary_5 = __go_binary_3 - __go_binary_4;
+let __go_binary_6 = __go_binary_0 >> __go_binary_5;
+let __go_binary_7 = (1 as u64);
+let __go_binary_8 = fastlogScaleBits;
+let __go_binary_9 = __go_binary_7 << __go_binary_8;
+let __go_binary_10 = __go_binary_6 % __go_binary_9;
+let mut xManScale = Arc::new(Mutex::new(Some(__go_binary_10)));
 
     let (mut low, mut high) = (Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = fastlog2Table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*xManIndex.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))), Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = fastlog2Table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*xManIndex.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }) as usize].clone() }))));
     return { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*xExp.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*low.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __v = (*high.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*low.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*xManScale.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = fastlogScaleRatio as f64; __tmp_x * __tmp_y }; __tmp_x + __tmp_y };
