@@ -14,8 +14,9 @@ Options:
   --sizes               Include each path's disk usage in cleanup output.
   --summary             Print matching paths, sizes, and the total reclaimable
                         space without removing anything.
-  --pressure            Print disk/memory/process pressure plus cleanup
-                        candidates.
+  --pressure            Print quick disk/memory/process pressure plus cleanup
+                        candidates. Pass --top-temp or --top-code to include
+                        wider size scans.
                         Does not remove anything. Defaults to --age-minutes 0
                         unless --age-minutes is also passed.
   --quick               Skip wider home and Code directory size scans.
@@ -23,9 +24,9 @@ Options:
                         roots that cleanup skips.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --top-temp N          With --pressure, print the N largest top-level temp
-                        paths from TMPDIR, /tmp, and /private/tmp (default: 8).
+                        paths from TMPDIR, /tmp, and /private/tmp (default: 0).
   --top-code N          With --pressure, print the N largest ~/Code workspaces
-                        and nested build artifact dirs (default: 8).
+                        and nested build artifact dirs (default: 0).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
   -h, --help            Show this help.
 EOF
@@ -46,8 +47,8 @@ total_kib=0
 active_count=0
 active_kib=0
 invoked_without_args=false
-top_temp_count="${GO2RUST_CLEANUP_TOP_TEMP_COUNT:-8}"
-top_code_count="${GO2RUST_CLEANUP_TOP_CODE_COUNT:-8}"
+top_temp_count="${GO2RUST_CLEANUP_TOP_TEMP_COUNT:-0}"
+top_code_count="${GO2RUST_CLEANUP_TOP_CODE_COUNT:-0}"
 
 if [ "$#" -eq 0 ]; then
     invoked_without_args=true
@@ -152,6 +153,10 @@ esac
 
 if [ "$pressure" = true ] && [ "$age_minutes_explicit" = false ]; then
 	age_minutes=0
+fi
+
+if [ "$pressure" = true ] && [ "$top_temp_count" -eq 0 ] && [ "$top_code_count" -eq 0 ]; then
+	quick=true
 fi
 
 if [ "$invoked_without_args" = true ]; then
