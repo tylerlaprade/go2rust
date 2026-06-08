@@ -10475,6 +10475,28 @@ func callArgumentsContainBinaryWithFunctionValue(args []ast.Expr) bool {
 	return false
 }
 
+func writeWrappedStatementBuiltConcurrentBinaryCallArgument(out *strings.Builder, arg ast.Expr) bool {
+	if !expressionContainsBinaryWithFunctionValue(arg) {
+		return false
+	}
+	temps, result, ok := buildStatementBuiltConcurrentBinaryValueWithMinNodes(arg, nil, 1)
+	if !ok {
+		return false
+	}
+	indent := currentLineIndent(out)
+	WriteWrapperPrefix(out)
+	out.WriteString("{\n")
+	writeIndentedStatementBuiltBinaryTemps(out, temps, indent+"    ")
+	out.WriteString(indent)
+	out.WriteString("    ")
+	out.WriteString(result)
+	out.WriteString("\n")
+	out.WriteString(indent)
+	out.WriteString("}")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func methodReceiverTempBlockShouldUseMultiline(call *ast.CallExpr) bool {
 	if call == nil || !NeedsConcurrentWrapper() {
 		return false
@@ -22372,6 +22394,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Dereferencing *FuncAlias yields the alias value, which is already
 				// represented by the generated wrapped closure handle.
 				TranspileExpression(out, arg)
+			} else if writeWrappedStatementBuiltConcurrentBinaryCallArgument(out, arg) {
+				// Complex binary arguments with function values build operands before wrapping.
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)

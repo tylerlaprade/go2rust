@@ -768,7 +768,12 @@ impl timer {
         if { let __tmp_x = (*{ let __field = (*tsLocal.lock().unwrap().as_ref().unwrap()).race_ctx.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         {
             let new_val = racegostart(
-            Arc::new(Mutex::new(Some({ let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<timers>>>, __arg1: Arc<Mutex<Option<i64>>>| -> i64 { { let __recv = __arg0.clone(); let __recv_ptr: *mut timers = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timers }; let __result = unsafe { &mut *__recv_ptr }.run(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<timers>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y })))
+            Arc::new(Mutex::new(Some({
+                let __go_binary_0 = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<timers>>>, __arg1: Arc<Mutex<Option<i64>>>| -> i64 { { let __recv = __arg0.clone(); let __recv_ptr: *mut timers = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timers }; let __result = unsafe { &mut *__recv_ptr }.run(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<timers>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))));
+                let __go_binary_1 = internal_runtime_sys::P_C_QUANTUM as usize;
+                let __go_binary_2 = __go_binary_0 + __go_binary_1;
+                __go_binary_2
+            })))
         );
             *(*tsLocal.lock().unwrap().as_ref().unwrap()).race_ctx.lock().unwrap() = Some(new_val);
         };

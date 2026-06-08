@@ -467,6 +467,10 @@ func writeIndentedStatementBuiltBinaryTemps(out *strings.Builder, temps string, 
 }
 
 func buildStatementBuiltConcurrentBinaryValue(rhs ast.Expr, hiddenShortDeclLhs []ast.Expr) (string, string, bool) {
+	return buildStatementBuiltConcurrentBinaryValueWithMinNodes(rhs, hiddenShortDeclLhs, minStatementBuiltBinaryInitializerNodes)
+}
+
+func buildStatementBuiltConcurrentBinaryValueWithMinNodes(rhs ast.Expr, hiddenShortDeclLhs []ast.Expr, minNodes int) (string, string, bool) {
 	if !NeedsConcurrentWrapper() {
 		return "", "", false
 	}
@@ -478,7 +482,7 @@ func buildStatementBuiltConcurrentBinaryValue(rhs ast.Expr, hiddenShortDeclLhs [
 	if typeInfo == nil {
 		return "", "", false
 	}
-	if countStatementBuiltConcurrentBinaryNodes(typeInfo, binary) < minStatementBuiltBinaryInitializerNodes {
+	if countStatementBuiltConcurrentBinaryNodes(typeInfo, binary) < minNodes {
 		return "", "", false
 	}
 

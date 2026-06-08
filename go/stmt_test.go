@@ -5125,6 +5125,41 @@ func use() uintptr {
 	}
 }
 
+func TestConcurrentFunctionCallBuildsFunctionValueBinaryArgumentWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timers struct{}
+
+func (ts *timers) run(now int64) int64 {
+	return now
+}
+
+func pc(fn func(*timers, int64) int64) uintptr {
+	return 1
+}
+
+func start(v uintptr) uintptr {
+	return v
+}
+
+const quantum uintptr = 4
+
+func use() uintptr {
+	go func() {}()
+	return start(pc((*timers).run) + quantum)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "Arc::new(Mutex::new(Some({ let __tmp_x = pc(") {
+			t.Fatalf("function-value binary call argument should not keep the wrapper body on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __go_binary_") {
+		t.Fatalf("function-value binary call argument should build binary operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentBinaryOperandBreaksComplexCallArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
