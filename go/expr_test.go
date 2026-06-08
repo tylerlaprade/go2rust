@@ -807,6 +807,46 @@ func collect() []span {
 	}
 }
 
+func TestConcurrentStructLiteralSelectorFieldsBreakAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type linkLayerAddr struct {
+	typ int
+	nlen int
+	alen int
+	slen int
+}
+
+type sockaddrDatalink struct {
+	typ int
+	nlen int
+	alen int
+	slen int
+	length int
+	family int
+}
+
+func copyAddr(lla *linkLayerAddr) sockaddrDatalink {
+	go func() {}()
+	return sockaddrDatalink{
+		typ: lla.typ,
+		nlen: lla.nlen,
+		alen: lla.alen,
+		slen: lla.slen,
+	}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "typ:") && strings.Contains(line, "slen:") {
+			t.Fatalf("selector-heavy struct literal should split fields across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "sockaddrDatalink {\n") {
+		t.Fatalf("selector-heavy struct literal should use multiline struct syntax:\n%s", rust)
+	}
+}
+
 func TestSliceFieldCompositeLiteralUsesSliceExpressionHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

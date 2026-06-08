@@ -9730,7 +9730,45 @@ func structCompositeLiteralShouldUseMultiline(elts []ast.Expr) bool {
 			values = append(values, elt)
 		}
 	}
-	return compositeLiteralValuesShouldUseMultiline(values)
+	if compositeLiteralValuesShouldUseMultiline(values) {
+		return true
+	}
+	return structCompositeLiteralSelectorFieldsShouldUseMultiline(values)
+}
+
+func structCompositeLiteralSelectorFieldsShouldUseMultiline(values []ast.Expr) bool {
+	if !NeedsConcurrentWrapper() || len(values) < 4 {
+		return false
+	}
+	for _, value := range values {
+		if exprContainsTypedFieldSelector(value) {
+			return true
+		}
+	}
+	return false
+}
+
+func exprContainsTypedFieldSelector(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		sel, ok := node.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		if field, ok := typeInfo.info.Uses[sel.Sel].(*types.Var); ok && field.IsField() {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 func callArgumentsShouldUseMultiline(args []ast.Expr) bool {
