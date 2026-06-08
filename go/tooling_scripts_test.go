@@ -198,6 +198,41 @@ func TestGoTestScriptUsesOwnedTempGoCache(t *testing.T) {
 	}
 }
 
+func TestGoTestScriptRefusesUnderMemoryPressure(t *testing.T) {
+	data, err := os.ReadFile("../go_test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(go_test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_GO_TEST_MIN_AVAILABLE_MEM_MB Minimum available memory before go test (default: 512; 0 disables).`,
+		`GO2RUST_GO_TEST_SKIP_PRESSURE_GUARD=1`,
+		`detect_available_memory_bytes()`,
+		`memory_pressure`,
+		`System-wide memory free percentage:`,
+		`enforce_available_memory_floor()`,
+		`GO2RUST_GO_TEST_MIN_AVAILABLE_MEM_MB`,
+		`available memory is ${available_mb} MiB`,
+		`Refusing to start go test while the machine is under memory pressure.`,
+		`./cleanup.sh --pressure --quick`,
+		`enforce_available_memory_floor`,
+		`go test ./go "$@"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("go_test.sh should refuse to start under memory pressure; missing %q", want)
+		}
+	}
+
+	guardIndex := strings.LastIndex(script, "\nenforce_available_memory_floor\n")
+	goTestIndex := strings.Index(script, `go test ./go "$@"`)
+	if guardIndex < 0 || goTestIndex < 0 {
+		t.Fatalf("go_test.sh should call the memory guard before the go test invocation")
+	}
+	if guardIndex > goTestIndex {
+		t.Fatalf("go_test.sh should run the memory-pressure guard before go test")
+	}
+}
+
 func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
