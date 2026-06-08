@@ -107,14 +107,22 @@ impl traceTypeTable {
             { let new_val = dump_types_rec(root.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = w.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *w.lock().unwrap() = __moved_val; };;
         }
     }
-        { let __recv = (*w.lock().unwrap().as_ref().unwrap()).flush(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+        {
+            let __recv = (*w.lock().unwrap().as_ref().unwrap()).flush();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end();
+            __result
+        };
         (*self.tab.lock().unwrap().as_ref().unwrap()).reset();
     }
 }
 
 pub fn dump_types_rec(node: GoPtr<crate::tracemap::traceMapNode>, mut w: Arc<Mutex<Option<traceWriter>>>) -> Arc<Mutex<Option<crate::tracebuf::traceWriter>>> {
     let mut typ: GoPtr<internal_abi::r#type::Type> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<usize>(unimplemented!("unsafe.Pointer conversion to usize")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v }))); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-    let mut typName = { let __recv = to_r_type(typ.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result };
+    let mut typName = {
+        let __recv = to_r_type(typ.clone());
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+        __result
+    };
 
         // The maximum number of bytes required to hold the encoded type.
     let mut maxBytes = Arc::new(Mutex::new(Some({ let __tmp_x = 51; let __tmp_y = ((*typName.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x + __tmp_y })));
@@ -142,7 +150,14 @@ pub fn dump_types_rec(node: GoPtr<crate::tracemap::traceMapNode>, mut w: Arc<Mut
 
         // Recursively walk all child nodes.
     for i in 0..(({ let __range_holder = { let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        let mut child = { let __seq = { let __seq_holder = { let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.load();
+        let mut child = {
+            let mut __recv = {
+                let __seq = { let __seq_holder = { let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(i) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
         if { let __nil_result = (*child.lock().unwrap()).is_none(); __nil_result } {
         continue
     }

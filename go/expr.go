@@ -10241,7 +10241,67 @@ func callArgumentsContainComplex(args []ast.Expr) bool {
 }
 
 func methodReceiverTempBlockShouldUseMultiline(call *ast.CallExpr) bool {
-	return call != nil && NeedsConcurrentWrapper() && callArgumentsContainComplex(call.Args)
+	if call == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	if callArgumentsContainComplex(call.Args) {
+		return true
+	}
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		return methodReceiverExpressionShouldUseMultiline(sel.X)
+	}
+	return false
+}
+
+func methodReceiverExpressionShouldUseMultiline(expr ast.Expr) bool {
+	return NeedsConcurrentWrapper() && compositeLiteralElementIsComplex(expr)
+}
+
+func writeMethodReceiverTempExpression(out *strings.Builder, expr ast.Expr, indent string) {
+	if indent != "" {
+		if indexExpr, ok := unwrapParens(expr).(*ast.IndexExpr); ok && writeMultilineGenericConcurrentSequenceIndexValue(out, indexExpr, indent) {
+			return
+		}
+	}
+	TranspileExpression(out, expr)
+}
+
+func writeMultilineGenericConcurrentSequenceIndexValue(out *strings.Builder, indexExpr *ast.IndexExpr, indent string) bool {
+	if !genericConcurrentSequenceIndexShouldUseMultiline(indexExpr) {
+		return false
+	}
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let __seq = ")
+	writeClonedWrappedExpression(out, indexExpr.X, "__seq_holder", "__seq_guard")
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    __seq[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("].clone()\n")
+	out.WriteString(indent)
+	out.WriteString("}")
+	return true
+}
+
+func genericConcurrentSequenceIndexShouldUseMultiline(indexExpr *ast.IndexExpr) bool {
+	if indexExpr == nil || !indexReadsConcurrentSequence(indexExpr) || isExpressionResultBare(indexExpr.X) {
+		return false
+	}
+	subject := unwrapParens(indexExpr.X)
+	if _, ok := subject.(*ast.StarExpr); ok {
+		return false
+	}
+	if isNamedSliceExpression(subject) || isNamedArrayExpression(subject) {
+		return false
+	}
+	if _, ok := goPtrPointedArrayTypeForExpr(indexExpr.X); ok {
+		return false
+	}
+	if _, ok := goPtrArrayFieldInfoForIndexExpr(indexExpr); ok {
+		return false
+	}
+	return true
 }
 
 func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
@@ -21247,14 +21307,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				restoreForceInnerClones = func() {
 					forceInnerFuncLitCaptureClones = prevForceInnerClones
 				}
-				TranspileExpression(out, sel.X)
+				receiverExprIndent := ""
+				if multilineReceiverBlock {
+					receiverExprIndent = receiverBlockIndent + "    "
+				}
+				writeMethodReceiverTempExpression(out, sel.X, receiverExprIndent)
 				restoreForceInnerClones()
 				if multilineReceiverBlock {
 					out.WriteString(";\n")
 					out.WriteString(receiverBlockIndent)
 					out.WriteString("    let __result = (*__recv")
 					receiverBlockSuffix = ";\n" + receiverBlockIndent + "    __result\n" + receiverBlockIndent + "}"
-					forceMultilineMethodArgs = true
+					forceMultilineMethodArgs = len(call.Args) > 0
 				} else {
 					out.WriteString("; let __result = (*__recv")
 				}
@@ -21289,14 +21353,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					forceInnerFuncLitCaptureClones = prevForceInnerClones
 				}
 			}
-			TranspileExpression(out, sel.X)
+			receiverExprIndent := ""
+			if multilineReceiverBlock {
+				receiverExprIndent = receiverBlockIndent + "    "
+			}
+			writeMethodReceiverTempExpression(out, sel.X, receiverExprIndent)
 			restoreForceInnerClones()
 			if multilineReceiverBlock {
 				out.WriteString(";\n")
 				out.WriteString(receiverBlockIndent)
 				out.WriteString("    let __result = (*__recv")
 				receiverBlockSuffix = ";\n" + receiverBlockIndent + "    __result\n" + receiverBlockIndent + "}"
-				forceMultilineMethodArgs = true
+				forceMultilineMethodArgs = len(call.Args) > 0
 			} else {
 				out.WriteString("; let __result = (*__recv")
 			}
@@ -21306,6 +21374,23 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				out.WriteString(".as_ref().unwrap()).")
 			}
+			closeReceiverBlock = true
+		} else if methodReceiverExpressionShouldUseMultiline(sel.X) {
+			needsMut := methodCallNeedsMutableReceiver(sel)
+			receiverBlockIndent := currentLineIndent(out)
+			out.WriteString("{\n")
+			out.WriteString(receiverBlockIndent)
+			if needsMut {
+				out.WriteString("    let mut __recv = ")
+			} else {
+				out.WriteString("    let __recv = ")
+			}
+			writeMethodReceiverTempExpression(out, sel.X, receiverBlockIndent+"    ")
+			out.WriteString(";\n")
+			out.WriteString(receiverBlockIndent)
+			out.WriteString("    let __result = __recv.")
+			receiverBlockSuffix = ";\n" + receiverBlockIndent + "    __result\n" + receiverBlockIndent + "}"
+			forceMultilineMethodArgs = len(call.Args) > 0
 			closeReceiverBlock = true
 		} else {
 			// Other complex expression - just transpile it

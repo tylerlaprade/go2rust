@@ -2967,7 +2967,11 @@ pub fn gcmarknewobject(span: GoPtr<crate::mheap::mspan>, obj: Arc<Mutex<Option<u
         // Check this here instead of on the hot path.
         // Mark object.
     let mut objIndex = { let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).obj_index(Arc::new(Mutex::new(Some({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
-    { let __recv = { let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).mark_bits_for_index(Arc::new(Mutex::new(Some(objIndex)))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).set_marked(); __result };
+    {
+        let __recv = { let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).mark_bits_for_index(Arc::new(Mutex::new(Some(objIndex)))); __result };
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).set_marked();
+        __result
+    };
 
         // Mark span.
     let (mut arena, mut pageIdx, mut pageMask) = page_index_of(Arc::new(Mutex::new(Some({ let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))));

@@ -4702,7 +4702,11 @@ impl Time {
                 // +3     +2      +1        0        -1     -2       -3
                 // the offset to Thursday
         let mut days = absSeconds::days(&(*self.abs_sec().lock().unwrap().as_ref().unwrap()));
-        let mut thu = Arc::new(Mutex::new(Some(absDays(Arc::new(Mutex::new(Some(((*{ let __v = (*days.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + (THURSDAY as i32 - (((*(*({ let __tmp_x = (*days.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absDays(Arc::new(Mutex::new(Some(1 as u64)))); __tmp_x - __tmp_y }).weekday().lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))) as u64))))))));
+        let mut thu = Arc::new(Mutex::new(Some(absDays(Arc::new(Mutex::new(Some(((*{ let __v = (*days.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + (THURSDAY as i32 - (((*(*{
+    let __recv = ({ let __tmp_x = (*days.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absDays(Arc::new(Mutex::new(Some(1 as u64)))); __tmp_x - __tmp_y });
+    let __result = __recv.weekday();
+    __result
+}.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))) as u64))))))));
         let (__tmp_0, mut yday) = absDays::year_yday(&(*thu.lock().unwrap().as_ref().unwrap())); *year.lock().unwrap() = Some(__tmp_0);;
         return (
             { let __v = (*year.lock().unwrap().as_ref().unwrap()).clone(); __v },
@@ -4800,7 +4804,13 @@ impl Time {
             __tmp_x + __tmp_y
         })));
                 // Check for overflow or underflow.
-        if { let __recv = (*u.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).equal(Arc::new(Mutex::new(Some(self.clone())))); __result } {
+        if {
+            let __recv = (*u.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).equal(
+                Arc::new(Mutex::new(Some(self.clone()))),
+            );
+            __result
+        } {
             return { let __owned = d.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         } else if self.before(Arc::new(Mutex::new(Some({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
             return Arc::new(Mutex::new(Some(std::time::Duration::from_nanos(MIN_DURATION as u64))));

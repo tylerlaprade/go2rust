@@ -1653,7 +1653,11 @@ pub fn double_check_type_pointers_of_type(s: GoPtr<crate::mheap::mspan>, typ: Ar
         };
         {
             let __go_print_arg_0 = format!("{}", "runtime: type=".to_string());
-            let __go_print_arg_1 = format!("{}", (*{ let __recv = to_r_type(GoPtr::local(typ.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_1 = format!("{}", (*{
+                let __recv = to_r_type(GoPtr::local(typ.clone()));
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_2 = format!("{}", "\n".to_string());
             eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
         };
@@ -1923,7 +1927,11 @@ pub fn type_bits_bulk_barrier(typ: Arc<Mutex<Option<internal_abi::r#type::Type>>
     if { let __tmp_x = (*{ let __field = (*typ.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: typeBitsBulkBarrier with type ".to_string());
-            let __go_print_arg_1 = format!("{}", (*{ let __recv = to_r_type(GoPtr::local(typ.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_1 = format!("{}", (*{
+                let __recv = to_r_type(GoPtr::local(typ.clone()));
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_2 = format!("{}", " of size ".to_string());
             let __go_print_arg_3 = format!("{}", (*{ let __field = (*typ.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_4 = format!("{}", " but memory size".to_string());

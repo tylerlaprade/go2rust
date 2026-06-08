@@ -1548,7 +1548,11 @@ impl Func {
         let mut fi: GoPtr<crate::runtime2::funcinl> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(r#fn.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         return (*{ let __ptr_value = fi.with_mut(|__ptr_value| __ptr_value.entry.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());
     }
-        { let __recv = { let __result = r#fn.with_mut(|__recv_value| __recv_value.func_info()); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).entry(); __result }
+        {
+            let __recv = { let __result = r#fn.with_mut(|__recv_value| __recv_value.func_info()); __result };
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).entry();
+            __result
+        }
     }
 
     /// FileLine returns the file name and line number of the

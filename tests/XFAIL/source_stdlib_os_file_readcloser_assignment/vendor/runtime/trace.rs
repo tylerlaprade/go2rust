@@ -579,7 +579,11 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         // events to the last generation, that must mean the G never had its status
         // traced in gen between when we recorded it and now. If that's true, the goid
         // and status we recorded then is exactly what we want right now.
-    { let __recv = (*statusWriter.lock().unwrap().as_ref().unwrap()).flush(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+    {
+        let __recv = (*statusWriter.lock().unwrap().as_ref().unwrap()).flush();
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end();
+        __result
+    };
 
         // Read everything out of the last gen's CPU profile buffer.
     trace_read_c_p_u(Arc::new(Mutex::new(Some(gen))));
@@ -590,9 +594,36 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         // Ordering is important here. traceCPUFlush may generate new stacks and dumping
         // stacks may generate new strings.
     trace_c_p_u_flush(Arc::new(Mutex::new(Some(gen))));
-    { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).stack_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.dump(Arc::new(Mutex::new(Some(gen))));
-    { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).type_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.dump(Arc::new(Mutex::new(Some(gen))));
-    { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.reset(Arc::new(Mutex::new(Some(gen))));
+    {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).stack_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+        };
+        let __result = __recv.dump(
+            Arc::new(Mutex::new(Some(gen))),
+        );
+        __result
+    };
+    {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).type_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+        };
+        let __result = __recv.dump(
+            Arc::new(Mutex::new(Some(gen))),
+        );
+        __result
+    };
+    {
+        let mut __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+        };
+        let __result = __recv.reset(
+            Arc::new(Mutex::new(Some(gen))),
+        );
+        __result
+    };
 
         // That's it. This generation is done producing buffers.
     let gen_closure_clone = gen.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
@@ -657,7 +688,18 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
             Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
         let mut tl = trace_acquire();
         if !(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).status_was_traced(Arc::new(Mutex::new(Some({ let __selector_holder = (*tl.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
-        { let __recv = { let __recv = (*tl.lock().unwrap().as_ref().unwrap()).writer(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status_for_p(pp.clone(), Arc::new(Mutex::new(Some(false)))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+        {
+            let __recv = {
+                let __recv = (*tl.lock().unwrap().as_ref().unwrap()).writer();
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status_for_p(
+                    pp.clone(),
+                    Arc::new(Mutex::new(Some(false))),
+                );
+                __result
+            };
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end();
+            __result
+        };
     }
         trace_release(Arc::new(Mutex::new(Some({ let __arg_holder = tl.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>)))
@@ -689,11 +731,25 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         // final cleanup if the trace has fully stopped.
     let gen_closure_clone = gen.clone(); let stopTrace_closure_clone = stopTrace.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        if !{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = gen_closure_clone; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.empty() {
+        if !{
+            let __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = gen_closure_clone; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.empty();
+            __result
+        } {
         throw(Arc::new(Mutex::new(Some("trace: non-empty full trace buffer for done generation".to_string()))));
     }
         if { let __v = (*stopTrace_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        if !{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 1 as usize; let __tmp_y = ({ let __tmp_x = gen_closure_clone; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }); __tmp_x - __tmp_y }) as usize].clone() }.empty() {
+        if !{
+            let __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = 1 as usize; let __tmp_y = ({ let __tmp_x = gen_closure_clone; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }); __tmp_x - __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.empty();
+            __result
+        } {
         throw(Arc::new(Mutex::new(Some("trace: non-empty full trace buffer for next generation".to_string()))));
     }
         if { let __nil_target = (*trace.lock().unwrap().as_ref().unwrap()).reading.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } || { let __nil_result = (*(*(*trace.lock().unwrap().as_ref().unwrap()).reader.lock().unwrap().as_ref().unwrap()).load().lock().unwrap()).is_some(); __nil_result } {
@@ -810,7 +866,17 @@ pub fn trace_register_labels_and_reasons(gen: Arc<Mutex<Option<usize>>>) {
         _v.extend_from_slice(_slice);
         _v
     }.iter().enumerate() {
-        (*(*trace.lock().unwrap().as_ref().unwrap()).mark_worker_labels.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*label).clone())))) as u64))));
+        (*(*trace.lock().unwrap().as_ref().unwrap()).mark_worker_labels.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some((*label).clone()))),
+            );
+            __result
+        } as u64))));
     }
     for (i, str) in {
         let __seq_holder = traceBlockReasonStrings.clone();
@@ -826,7 +892,17 @@ pub fn trace_register_labels_and_reasons(gen: Arc<Mutex<Option<usize>>>) {
         _v.extend_from_slice(_slice);
         _v
     }.iter().enumerate() {
-        (*(*trace.lock().unwrap().as_ref().unwrap()).go_block_reasons.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*str).clone())))) as u64))));
+        (*(*trace.lock().unwrap().as_ref().unwrap()).go_block_reasons.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some((*str).clone()))),
+            );
+            __result
+        } as u64))));
     }
     for (i, str) in {
         let __seq_holder = traceGoStopReasonStrings.clone();
@@ -842,7 +918,17 @@ pub fn trace_register_labels_and_reasons(gen: Arc<Mutex<Option<usize>>>) {
         _v.extend_from_slice(_slice);
         _v
     }.iter().enumerate() {
-        (*(*trace.lock().unwrap().as_ref().unwrap()).go_stop_reasons.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*str).clone())))) as u64))));
+        (*(*trace.lock().unwrap().as_ref().unwrap()).go_stop_reasons.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some((*str).clone()))),
+            );
+            __result
+        } as u64))));
     }
 }
 

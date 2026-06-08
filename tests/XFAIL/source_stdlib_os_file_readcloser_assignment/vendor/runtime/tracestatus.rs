@@ -1025,7 +1025,17 @@ impl traceSchedResourceState {
     ///
     ///go:nosplit
     pub fn acquire_status(&mut self, gen: Arc<Mutex<Option<usize>>>) -> bool {
-        if !{ let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone() }.compare_and_swap(Arc::new(Mutex::new(Some(0 as u32))), Arc::new(Mutex::new(Some(1 as u32)))) {
+        if !{
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.compare_and_swap(
+                Arc::new(Mutex::new(Some(0 as u32))),
+                Arc::new(Mutex::new(Some(1 as u32))),
+            );
+            __result
+        } {
         return false;
     }
         self.ready_next_gen(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -1036,13 +1046,29 @@ impl traceSchedResourceState {
     pub fn ready_next_gen(&mut self, gen: Arc<Mutex<Option<usize>>>) {
         let mut nextGen = trace_next_gen(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         (*self.seq.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = nextGen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize] = 0 as u64;
-        { let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = nextGen; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone() }.store(Arc::new(Mutex::new(Some(0 as u32))));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = nextGen; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.store(
+                Arc::new(Mutex::new(Some(0 as u32))),
+            );
+            __result
+        };
     }
 
     /// statusWasTraced returns true if the sched resource's status was already acquired for tracing.
     pub fn status_was_traced(&self, gen: Arc<Mutex<Option<usize>>>) -> bool {
         return {
-            let __tmp_x = { let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone() }.load();
+            let __tmp_x = {
+                let mut __recv = {
+                    let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                    __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone()
+                };
+                let __result = __recv.load();
+                __result
+            };
             let __tmp_y = 0 as u32;
             __tmp_x != __tmp_y
         };
@@ -1051,7 +1077,16 @@ impl traceSchedResourceState {
     /// setStatusTraced indicates that the resource's status was already traced, for example
     /// when a goroutine is created.
     pub fn set_status_traced(&self, gen: Arc<Mutex<Option<usize>>>) {
-        { let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone() }.store(Arc::new(Mutex::new(Some(1 as u32))));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.store(
+                Arc::new(Mutex::new(Some(1 as u32))),
+            );
+            __result
+        };
     }
 
     /// nextSeq returns the next sequence number for the resource.

@@ -1066,7 +1066,16 @@ pub fn trace_buf_flush(buf_local: Arc<Mutex<Option<traceBuf>>>, gen: Arc<Mutex<O
             __tmp_x - __tmp_y
         }) as u64))),
     ); __result };
-    { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.push(buf_local.clone());
+    {
+        let mut __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+        };
+        let __result = __recv.push(
+            buf_local.clone(),
+        );
+        __result
+    };
 
         // Notify the scheduler that there's work available and that the trace
         // reader should be scheduled.

@@ -647,9 +647,17 @@ impl TypeAssertionError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
         let mut inter = Arc::new(Mutex::new(Some("interface".to_string())));
         if { let __nil_target = self._interface.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let new_val = { let __recv = to_r_type(GoPtr::local(self._interface.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *inter.lock().unwrap() = __moved_val; };
+        { let new_val = {
+            let __recv = to_r_type(GoPtr::local(self._interface.clone()));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+            __result
+        }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *inter.lock().unwrap() = __moved_val; };
     }
-        let mut r#as = { let __recv = to_r_type(GoPtr::local(self.asserted.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result };
+        let mut r#as = {
+            let __recv = to_r_type(GoPtr::local(self.asserted.clone()));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+            __result
+        };
         if { let __ptr_field = self.concrete.clone(); __ptr_field.is_nil() } {
         return Arc::new(Mutex::new(Some({
             let mut __s = String::new();
@@ -660,7 +668,11 @@ impl TypeAssertionError {
             __s
         })));
     }
-        let mut cs = { let __recv = to_r_type(self.concrete.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result };
+        let mut cs = {
+            let __recv = to_r_type(self.concrete.clone());
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+            __result
+        };
         if { let __tmp_x = (*self.missing_method.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
         let mut msg = Arc::new(Mutex::new(Some({
             let mut __s = String::new();
@@ -675,8 +687,16 @@ impl TypeAssertionError {
         if { let __tmp_x = (*cs.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
                 // provide slightly clearer error message
         if {
-            let __tmp_x = (*{ let __recv = to_r_type(self.concrete.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath(); __result }.lock().unwrap().as_ref().unwrap()).clone();
-            let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(self.asserted.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_x = (*{
+                let __recv = to_r_type(self.concrete.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath();
+                __result
+            }.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = (*{
+                let __recv = to_r_type(GoPtr::local(self.asserted.clone()));
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath();
+                __result
+            }.lock().unwrap().as_ref().unwrap()).clone();
             __tmp_x != __tmp_y
         } {
         { (*msg.lock().unwrap().as_mut().unwrap()).push_str(&" (types from different packages)".to_string()); };

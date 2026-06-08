@@ -1633,7 +1633,21 @@ impl scavengeIndex {
         let mut i = { let __owned = start.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     while { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*min.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x >= __tmp_y } {
                 // Skip over chunks.
-        if !{ let __recv = { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.load(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).should_scavenge(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = force.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result } {
+        if !{
+            let __recv = {
+                let __recv = {
+                    let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                    __seq[(*{ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+                };
+                let __result = __recv.load();
+                __result
+            };
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).should_scavenge(
+                Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = force.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() - 1 as u64); }; continue
     }
 
@@ -1696,14 +1710,30 @@ impl scavengeIndex {
     ///
     /// alloc may only run concurrently with find.
     pub fn alloc(&self, ci: Arc<Mutex<Option<chunkIdx>>>, npages: Arc<Mutex<Option<u64>>>) {
-        let mut sc = { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.load();
+        let mut sc = {
+            let __recv = {
+                let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
         (*sc.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
                 // TODO(mknyszek): Consider eagerly backing memory with huge pages
                 // here and track whether we believe this chunk is backed by huge pages.
                 // In the past we've attempted to use sysHugePageCollapse (which uses
                 // MADV_COLLAPSE on Linux, and is unsupported elswhere) for this purpose,
                 // but that caused performance issues in production environments.
-        { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.store(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        {
+            let __recv = {
+                let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+            };
+            let __result = __recv.store(
+                Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
     }
 
     /// free updates metadata for chunk at index ci with the fact that
@@ -1711,9 +1741,25 @@ impl scavengeIndex {
     ///
     /// free may only run concurrently with find.
     pub fn free(&mut self, ci: Arc<Mutex<Option<chunkIdx>>>, page: Arc<Mutex<Option<u64>>>, npages: Arc<Mutex<Option<u64>>>) {
-        let mut sc = { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.load();
+        let mut sc = {
+            let __recv = {
+                let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
         (*sc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.store(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        {
+            let __recv = {
+                let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+            };
+            let __result = __recv.store(
+                Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
                 // Update scavenge search addresses.
         let mut addr = Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = { let __v = (*page.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
         if (*self.free_h_w_m.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))) {
@@ -1725,7 +1771,13 @@ impl scavengeIndex {
                 // decreases, even if the value we loaded is stale, the actual
                 // value will never be larger.
         let (mut searchAddr, _) = (*self.search_addr_force.lock().unwrap().as_ref().unwrap()).load();
-        if (offAddr { a: Arc::new(Mutex::new(Some(searchAddr))), ..Default::default() }).less_than(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))) {
+        if {
+            let __recv = (offAddr { a: Arc::new(Mutex::new(Some(searchAddr))), ..Default::default() });
+            let __result = __recv.less_than(
+                Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))),
+            );
+            __result
+        } {
         (*self.search_addr_force.lock().unwrap().as_ref().unwrap()).store_marked(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
     }
@@ -1738,7 +1790,13 @@ impl scavengeIndex {
     pub fn next_gen(&mut self) {
         { let __target = self.gen.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         let (mut searchAddr, _) = (*self.search_addr_bg.lock().unwrap().as_ref().unwrap()).load();
-        if (offAddr { a: Arc::new(Mutex::new(Some(searchAddr))), ..Default::default() }).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = self.free_h_w_m.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if {
+            let __recv = (offAddr { a: Arc::new(Mutex::new(Some(searchAddr))), ..Default::default() });
+            let __result = __recv.less_than(
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.free_h_w_m.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            );
+            __result
+        } {
         (*self.search_addr_bg.lock().unwrap().as_ref().unwrap()).store_marked(Arc::new(Mutex::new(Some((*self.free_h_w_m.lock().unwrap().as_ref().unwrap()).addr()))));
     }
         { let new_val = minOffAddr.lock().unwrap().as_ref().unwrap().clone(); *self.free_h_w_m.lock().unwrap() = Some(new_val); };
@@ -1750,9 +1808,25 @@ impl scavengeIndex {
     ///
     /// setEmpty may only run concurrently with find.
     pub fn set_empty(&self, ci: Arc<Mutex<Option<chunkIdx>>>) {
-        let mut val = { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.load();
+        let mut val = {
+            let __recv = {
+                let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
         (*val.lock().unwrap().as_mut().unwrap()).set_empty();
-        { let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.store(Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        {
+            let __recv = {
+                let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()
+            };
+            let __result = __recv.store(
+                Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
     }
 }
 

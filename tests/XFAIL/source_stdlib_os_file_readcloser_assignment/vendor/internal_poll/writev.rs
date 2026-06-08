@@ -101,11 +101,29 @@ impl crate::fd_unix::FD {
     }
         { let new_val = { let __append_target = iovecs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*new_iovec_with_base(GoPtr::slice_elem(GoSliceElemPtr::new(Arc::new(Mutex::new(Some((*chunk).clone()))), (0) as usize))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; iovecs = new_val; };
         if (*self.is_stream.clone().lock().unwrap().as_ref().unwrap()) && { let __tmp_x = (chunk.len() as i32); let __tmp_y = 1073741824; __tmp_x > __tmp_y } {
-        { let __seq = { let __seq_holder = iovecs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*iovecs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.set_len(Arc::new(Mutex::new(Some(1073741824))));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = iovecs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = ((*iovecs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.set_len(
+                Arc::new(Mutex::new(Some(1073741824))),
+            );
+            __result
+        };
         break
     }
                 // continue chunk on next writev
-        { let __seq = { let __seq_holder = iovecs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*iovecs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.set_len(Arc::new(Mutex::new(Some(chunk.len() as i32))));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = iovecs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = ((*iovecs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.set_len(
+                Arc::new(Mutex::new(Some(chunk.len() as i32))),
+            );
+            __result
+        };
         if { let __tmp_x = ((*iovecs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*maxVec.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x == __tmp_y } {
         break
     }

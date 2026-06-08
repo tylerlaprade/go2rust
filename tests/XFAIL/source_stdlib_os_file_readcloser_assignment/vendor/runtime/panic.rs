@@ -1557,14 +1557,22 @@ pub fn should_push_sigpanic(gp: GoPtr<crate::runtime2::g>, pc: Arc<Mutex<Option<
         // Go function, so just assume it's good. Otherwise, traceback
         // may try to read a stale LR that looks like a Go code
         // pointer and wander into the woods.
-    if (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).incgo.lock().unwrap().as_ref().unwrap()) || { let __recv = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).valid(); __result } {
+    if (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).incgo.lock().unwrap().as_ref().unwrap()) || {
+        let __recv = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).valid();
+        __result
+    } {
                 // This wasn't a bad call, so use PC as sigpanic's
                 // return PC.
         return true;
     }
         // This wasn't a bad call, so use PC as sigpanic's
         // return PC.
-    if { let __recv = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).valid(); __result } {
+    if {
+        let __recv = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).valid();
+        __result
+    } {
                 // This was a bad call, but the LR is good, so use the
                 // LR as sigpanic's return PC.
         return false;

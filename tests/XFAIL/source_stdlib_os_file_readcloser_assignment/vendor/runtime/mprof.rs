@@ -1824,7 +1824,11 @@ impl mLockProfile {
 
 impl goroutineProfileStateHolder {
     pub fn load(&self) -> Arc<Mutex<Option<goroutineProfileState>>> {
-        Arc::new(Mutex::new(Some(goroutineProfileState(Arc::new(Mutex::new(Some({ let __recv = Arc::new(Mutex::new(Some(internal_runtime_atomic::types::Uint32::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).load(); __result } as u32)))))))
+        Arc::new(Mutex::new(Some(goroutineProfileState(Arc::new(Mutex::new(Some({
+            let __recv = Arc::new(Mutex::new(Some(internal_runtime_atomic::types::Uint32::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).load();
+            __result
+        } as u32)))))))
     }
 
     pub fn store(&self, value: Arc<Mutex<Option<goroutineProfileState>>>) {
@@ -1913,7 +1917,11 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
     let mut i = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = BUCK_HASH_SIZE as usize; __tmp_x % __tmp_y }) as i32)));
 
         // first check optimistically, without the lock
-    let mut b: GoPtr<bucket> = GoPtr::raw({ let __ptr = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut b: GoPtr<bucket> = GoPtr::raw({ let __ptr = {
+        let mut __recv = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        let __result = __recv.load();
+        __result
+    }.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     while !b.is_nil() {
         if {
             let __go_cond_0 = {
@@ -1959,7 +1967,11 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
     lock(GoPtr::local(profInsertLock.clone()));
 
         // check again under the insertion lock
-    let mut b: GoPtr<bucket> = GoPtr::raw({ let __ptr = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut b: GoPtr<bucket> = GoPtr::raw({ let __ptr = {
+        let mut __recv = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        let __result = __recv.load();
+        __result
+    }.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     while !b.is_nil() {
         if {
             let __go_cond_0 = {
@@ -2024,10 +2036,20 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
         { let new_val = bbuckets.clone().clone(); allnext = new_val; };
     }
 
-    { let new_val = Arc::new(Mutex::new({ let __ptr = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load().clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<bucket>(unimplemented!("unsafe.Pointer conversion to bucket")) } })).clone(); b.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
+    { let new_val = Arc::new(Mutex::new({ let __ptr = {
+        let mut __recv = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        let __result = __recv.load();
+        __result
+    }.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<bucket>(unimplemented!("unsafe.Pointer conversion to bucket")) } })).clone(); b.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
     { let new_val = Arc::new(Mutex::new({ let __ptr = { let __recv = allnext.clone(); let __recv_ptr: *mut internal_runtime_atomic::types::UnsafePointer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut internal_runtime_atomic::types::UnsafePointer }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<bucket>(unimplemented!("unsafe.Pointer conversion to bucket")) } })).clone(); b.with_mut(|__ptr_value| { __ptr_value.allnext = new_val; }); };
 
-    { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.store_no_w_b(Arc::new(Mutex::new(Some(b.addr()))));
+    {
+        let mut __recv = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+        let __result = __recv.store_no_w_b(
+            Arc::new(Mutex::new(Some(b.addr()))),
+        );
+        __result
+    };
     { let __recv = allnext.clone(); let __recv_ptr: *mut internal_runtime_atomic::types::UnsafePointer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut internal_runtime_atomic::types::UnsafePointer }; let __result = unsafe { &mut *__recv_ptr }.store_no_w_b(Arc::new(Mutex::new(Some(b.addr())))); __result };
 
     unlock(GoPtr::local(profInsertLock.clone()));

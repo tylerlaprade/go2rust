@@ -251,7 +251,11 @@ impl rtype {
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let mut s = { let __recv = self.name_off(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.str.clone(); __field }); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result };
+        let mut s = {
+            let __recv = self.name_off(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.str.clone(); __field }); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name();
+            __result
+        };
         if {
             let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_EXTRA_STAR as u8)))); __tmp_x & __tmp_y };
             let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
@@ -303,7 +307,11 @@ impl rtype {
         if { let __nil_result = (*ut.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
-        return { let __recv = self.name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*ut.lock().unwrap().as_ref().unwrap()).pkg_path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result };
+        return {
+            let __recv = self.name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*ut.lock().unwrap().as_ref().unwrap()).pkg_path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name();
+            __result
+        };
     }
 
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
@@ -806,7 +814,11 @@ pub fn elem(t: GoPtr<internal_abi::r#type::Type>) -> Arc<Mutex<Option<internal_a
     if { let __nil_result = (*et.lock().unwrap()).is_some(); __nil_result } {
         return et.clone();
     }
-    std::panic::panic_any(Box::new(format!("{}{}", "reflect: Elem of invalid type ".to_string(), (*{ let __recv = to_r_type(t.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
+    std::panic::panic_any(Box::new(format!("{}{}", "reflect: Elem of invalid type ".to_string(), (*{
+    let __recv = to_r_type(t.clone());
+    let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+    __result
+}.lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
 }
 
 /// add returns p+x.
@@ -947,7 +959,11 @@ pub fn implements(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<internal_abi::r
     }
         let mut vmPkgPath = pkg_path(Arc::new(Mutex::new(Some({ let __arg_holder = vmName.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = (*vmPkgPath.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        { let new_val = { let __recv = (*rV.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).pkg_path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *vmPkgPath.lock().unwrap() = __moved_val; };
+        { let new_val = {
+            let __recv = (*rV.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).pkg_path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name();
+            __result
+        }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *vmPkgPath.lock().unwrap() = __moved_val; };
     }
         if { let __tmp_x = (*tmPkgPath.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*vmPkgPath.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
@@ -1013,8 +1029,16 @@ pub fn have_identical_type(T: Arc<Mutex<Option<internal_abi::r#type::Type>>>, V:
 
     if {
         let __go_cond_0 = {
-            let __tmp_x = (*{ let __recv = to_r_type(GoPtr::local(T.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone();
-            let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(V.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_x = (*{
+                let __recv = to_r_type(GoPtr::local(T.clone()));
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name();
+                __result
+            }.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = (*{
+                let __recv = to_r_type(GoPtr::local(V.clone()));
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name();
+                __result
+            }.lock().unwrap().as_ref().unwrap()).clone();
             __tmp_x != __tmp_y
         };
         if __go_cond_0 {

@@ -10,7 +10,11 @@ pub(crate) static errorType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex
 
 fn __go_init_globals() {
     *errorType.lock().unwrap() = None;
-    *errorType.lock().unwrap() = Some((*{ let __recv = internal_reflectlite::type_of(Arc::new(Mutex::new(Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<Option<Box<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Box<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true); __boxed })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem(); __result }.lock().unwrap().as_ref().unwrap()).clone());
+    *errorType.lock().unwrap() = Some((*{
+        let __recv = internal_reflectlite::type_of(Arc::new(Mutex::new(Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<Option<Box<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Box<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true); __boxed }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem();
+        __result
+    }.lock().unwrap().as_ref().unwrap()).clone());
 }
 
 
@@ -20,7 +24,11 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_1() {
-    *errorType.lock().unwrap() = Some((*{ let __recv = internal_reflectlite::type_of(Arc::new(Mutex::new(Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<Option<Box<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Box<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true); __boxed })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem(); __result }.lock().unwrap().as_ref().unwrap()).clone());
+    *errorType.lock().unwrap() = Some((*{
+        let __recv = internal_reflectlite::type_of(Arc::new(Mutex::new(Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<Option<Box<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Box<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true); __boxed }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem();
+        __result
+    }.lock().unwrap().as_ref().unwrap()).clone());
 }
 
 
@@ -46,7 +54,11 @@ pub fn is(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>, target: Arc<
         return { let __left = err.clone(); let __right = target.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq };
     }
 
-    let mut isComparable = { let __recv = internal_reflectlite::type_of(Arc::new(Mutex::new(Some({ let __err_holder = target.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<crate::r#mod::errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<internal_reflectlite::value::ValueError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).comparable(); __result };
+    let mut isComparable = {
+        let __recv = internal_reflectlite::type_of(Arc::new(Mutex::new(Some({ let __err_holder = target.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<crate::r#mod::errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<internal_reflectlite::value::ValueError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).comparable();
+        __result
+    };
     is_1(err.clone(), target.clone(), Arc::new(Mutex::new(Some(isComparable))))
 }
 

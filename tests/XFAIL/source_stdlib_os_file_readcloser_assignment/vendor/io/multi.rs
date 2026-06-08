@@ -185,7 +185,16 @@ impl multiReader {
         }
     }
     }
-        { let (__tmp_0, __tmp_1) = { let __recv = { let __seq = { let __seq_holder = self.readers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).read(p.clone()); __result }; *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        { let (__tmp_0, __tmp_1) = {
+            let __recv = {
+                let __seq = { let __seq_holder = self.readers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[(0) as usize].clone()
+            };
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).read(
+                p.clone(),
+            );
+            __result
+        }; *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         if { let __left = err.clone(); let __right = EOF.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
                 // Use eofReader instead of nil to avoid nil panic
                 // after performing flatten (Issue 18232).

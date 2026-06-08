@@ -420,11 +420,19 @@ impl Locker for RWMutexPtr {
 
 impl rlocker {
     pub fn lock(&self) {
-        { let __recv = Arc::new(StdMutex::new(Some(RWMutex::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_lock(); __result };
+        {
+            let __recv = Arc::new(StdMutex::new(Some(RWMutex::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_lock();
+            __result
+        };
     }
 
     pub fn unlock(&self) {
-        { let __recv = Arc::new(StdMutex::new(Some(RWMutex::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_unlock(); __result };
+        {
+            let __recv = Arc::new(StdMutex::new(Some(RWMutex::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_unlock();
+            __result
+        };
     }
 }
 

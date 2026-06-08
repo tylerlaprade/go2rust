@@ -413,7 +413,14 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         { let __rhs = 4; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         let mut n: GoPtr<node<K, V>> = {
-            let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.load().clone();
+            let __go_ptr = {
+                let mut __recv = {
+                    let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                    __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone()
+                };
+                let __result = __recv.load();
+                __result
+            }.clone();
             match __go_ptr {
                 sync_atomic::GoPtr::Nil => GoPtr::nil(),
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
@@ -679,12 +686,39 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         let mut oi = Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = oldHash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y })));
         let mut ni = Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*newHash.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y })));
         if { let __tmp_x = { let __v = (*oi.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ni.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
-        { let __seq = { let __seq_holder = (*newIndirect.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*oi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.store(sync_atomic::GoPtr::local({ let __ptr_value = oldEntry.with_mut(|__ptr_value| __ptr_value.node.clone()); __ptr_value }.clone()));
-        { let __seq = { let __seq_holder = (*newIndirect.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*ni.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.store(sync_atomic::GoPtr::local((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*newIndirect.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*oi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.store(
+                sync_atomic::GoPtr::local({ let __ptr_value = oldEntry.with_mut(|__ptr_value| __ptr_value.node.clone()); __ptr_value }.clone()),
+            );
+            __result
+        };
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*newIndirect.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*ni.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.store(
+                sync_atomic::GoPtr::local((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()),
+            );
+            __result
+        };
         break
     }
         let mut nextIndirect = new_indirect_node::<K, V>(GoPtr::local(newIndirect.clone()));
-        { let __seq = { let __seq_holder = (*newIndirect.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*oi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.store(sync_atomic::GoPtr::local((*nextIndirect.lock().unwrap().as_ref().unwrap()).node.clone()));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*newIndirect.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*oi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.store(
+                sync_atomic::GoPtr::local((*nextIndirect.lock().unwrap().as_ref().unwrap()).node.clone()),
+            );
+            __result
+        };
         { let new_val = nextIndirect.clone(); newIndirect = new_val; };
     }
                 // hashShift is for the level parent is at. We need to go deeper.
@@ -1021,7 +1055,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         let mut parent: GoPtr<indirect<K, V>> = { let __ptr_value = i.borrow(); let __field_value = __ptr_value.as_ref().unwrap().parent.clone(); __field_value };
         (*{ let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(true))));
-        { let __seq = { let __seq_holder = { let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.store(sync_atomic::GoPtr::nil());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = { let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.store(
+                sync_atomic::GoPtr::nil(),
+            );
+            __result
+        };
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
         i = parent.clone();
     }
@@ -1102,7 +1145,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         let mut parent: GoPtr<indirect<K, V>> = { let __ptr_value = i.borrow(); let __field_value = __ptr_value.as_ref().unwrap().parent.clone(); __field_value };
         (*{ let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(true))));
-        { let __seq = { let __seq_holder = { let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.store(sync_atomic::GoPtr::nil());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = { let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.store(
+                sync_atomic::GoPtr::nil(),
+            );
+            __result
+        };
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
         i = parent.clone();
     }
@@ -1256,7 +1308,14 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     pub fn iter(&self, i: GoPtr<indirect<K, V>>, r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> bool {
         for j in 0..(({ let __range_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut n: GoPtr<node<K, V>> = {
-            let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(j) as usize].clone() }.load().clone();
+            let __go_ptr = {
+                let mut __recv = {
+                    let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                    __seq[(j) as usize].clone()
+                };
+                let __result = __recv.load();
+                __result
+            }.clone();
             match __go_ptr {
                 sync_atomic::GoPtr::Nil => GoPtr::nil(),
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
@@ -1310,7 +1369,14 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
     pub fn empty(&self) -> bool {
         let mut nc = Arc::new(StdMutex::new(Some(0)));
         for j in 0..(({ let __range_holder = self.children.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        if !{ let __seq = { let __seq_holder = self.children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(j) as usize].clone() }.load().is_nil() {
+        if !{
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(j) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        }.is_nil() {
         { let mut guard = nc.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }

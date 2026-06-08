@@ -777,7 +777,13 @@ impl spanSet {
         let mut block: GoPtr<spanSetBlock> = GoPtr::nil();
         'retry: loop {
             if { let __tmp_x = { let __v = (*top.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = spineLen; __tmp_x < __tmp_y } {
-        block = GoPtr::local({ let __recv = { let __recv = (*self.spine.lock().unwrap().as_ref().unwrap()).load(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some({ let __arg_holder = top.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load(); __result });
+        block = GoPtr::local({ let __recv = {
+            let __recv = (*self.spine.lock().unwrap().as_ref().unwrap()).load();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).lookup(
+                Arc::new(Mutex::new(Some({ let __arg_holder = top.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        }; let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load(); __result });
     } else {
                 // Add a new block to the spine, potentially growing
                 // the spine.
@@ -866,7 +872,16 @@ impl spanSet {
                         // Blocks are allocated off-heap, so no write barrier.
                         // We have a block. Insert the span atomically, since there may be
                         // concurrent readers via the block API.
-            { let __seq = { let __seq_holder = { let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.spans.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.store_no_w_b(s.clone());
+            {
+                let __recv = {
+                    let __seq = { let __seq_holder = { let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.spans.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                    __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+                };
+                let __result = __recv.store_no_w_b(
+                    s.clone(),
+                );
+                __result
+            };
             break 'retry;
         };
     }
@@ -951,12 +966,26 @@ impl spanSet {
                 // see a nil block here, since the length is always updated after
                 // the block is set.
         let mut block = { let __recv_value = blockp.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load(); __result };
-        let mut s: GoPtr<crate::mheap::mspan> = { let __seq = { let __seq_holder = (*block.lock().unwrap().as_ref().unwrap()).spans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load();
+        let mut s: GoPtr<crate::mheap::mspan> = {
+            let __recv = {
+                let __seq = { let __seq_holder = (*block.lock().unwrap().as_ref().unwrap()).spans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
         while s.is_nil() {
                 // We raced with the span actually being set, but given that we
                 // know a block for this span exists, the race window here is
                 // extremely small. Try again.
-        s = { let __seq = { let __seq_holder = (*block.lock().unwrap().as_ref().unwrap()).spans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load();
+        s = {
+            let __recv = {
+                let __seq = { let __seq_holder = (*block.lock().unwrap().as_ref().unwrap()).spans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
     }
                 // We raced with the span actually being set, but given that we
                 // know a block for this span exists, the race window here is
@@ -964,7 +993,16 @@ impl spanSet {
                 // Clear the pointer. This isn't strictly necessary, but defensively
                 // avoids accidentally re-using blocks which could lead to memory
                 // corruption. This way, we'll get a nil pointer access instead.
-        { let __seq = { let __seq_holder = (*block.lock().unwrap().as_ref().unwrap()).spans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.store_no_w_b(GoPtr::nil());
+        {
+            let __recv = {
+                let __seq = { let __seq_holder = (*block.lock().unwrap().as_ref().unwrap()).spans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*bottom.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.store_no_w_b(
+                GoPtr::nil(),
+            );
+            __result
+        };
                 // Increase the popped count. If we are the last possible popper
                 // in the block (note that bottom need not equal spanSetBlockEntries-1
                 // due to races) then it's our responsibility to free the block.

@@ -1130,7 +1130,16 @@ impl consistentHeapStats {
                 // Perform our responsibilities and free up
                 // stats[prevGen] for the next time we want to take
                 // a snapshot.
-        { let __seq = { let __seq_holder = self.stats.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(currGen) as usize].clone() }.merge(GoPtr::array_elem(GoArrayElemPtr::new(self.stats.clone(), ({ let __v = (*prevGen.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.stats.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(currGen) as usize].clone()
+            };
+            let __result = __recv.merge(
+                GoPtr::array_elem(GoArrayElemPtr::new(self.stats.clone(), ({ let __v = (*prevGen.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)),
+            );
+            __result
+        };
         (*self.stats.lock().unwrap().as_mut().unwrap())[({ let __v = (*prevGen.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = heapStatsDelta { committed: Arc::new(Mutex::new(Some(0))), released: Arc::new(Mutex::new(Some(0))), in_heap: Arc::new(Mutex::new(Some(0))), in_stacks: Arc::new(Mutex::new(Some(0))), in_work_bufs: Arc::new(Mutex::new(Some(0))), in_ptr_scalar_bits: Arc::new(Mutex::new(Some(0))), tiny_alloc_count: Arc::new(Mutex::new(Some(0))), large_alloc: Arc::new(Mutex::new(Some(0))), large_alloc_count: Arc::new(Mutex::new(Some(0))), small_alloc_count: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), large_free: Arc::new(Mutex::new(Some(0))), large_free_count: Arc::new(Mutex::new(Some(0))), small_free_count: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) };
                 // Finally, copy out the complete delta.
         { let new_val = { let __seq = { let __seq_holder = self.stats.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(currGen) as usize].clone() }; *out.lock().unwrap() = Some(new_val); };

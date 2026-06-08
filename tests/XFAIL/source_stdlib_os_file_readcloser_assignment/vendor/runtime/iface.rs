@@ -1803,8 +1803,20 @@ pub fn itab_init(m: GoPtr<internal_abi::iface::ITab>, firstTime: Arc<Mutex<Optio
     let mut k = Arc::new(Mutex::new(Some(0)));
     'imethods: while { let __tmp_x = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ni.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         let mut i: Option<GoSliceElemPtr<internal_abi::r#type::Imethod>> = Some(GoSliceElemPtr::new({ let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(), ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
-        let mut itype: GoPtr<internal_abi::r#type::Type> = { let __recv = to_r_type(GoPtr::local({ let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*i.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
-        let mut name = { let __recv = to_r_type(GoPtr::local({ let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*i.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
+        let mut itype: GoPtr<internal_abi::r#type::Type> = {
+            let __recv = to_r_type(GoPtr::local({ let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone()));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).type_off(
+                Arc::new(Mutex::new(Some({ let __selector_holder = (*i.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            );
+            __result
+        };
+        let mut name = {
+            let __recv = to_r_type(GoPtr::local({ let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone()));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name_off(
+                Arc::new(Mutex::new(Some({ let __selector_holder = (*i.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            );
+            __result
+        };
         let mut iname = (*name.lock().unwrap().as_ref().unwrap()).name();
         let mut ipkg = pkg_path(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = (*ipkg.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
@@ -1817,7 +1829,11 @@ pub fn itab_init(m: GoPtr<internal_abi::iface::ITab>, firstTime: Arc<Mutex<Optio
         if { let __left_addr = (*rtyp.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).mtyp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __right_addr = itype.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __tmp_x = (*(*tname.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*iname.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         let mut pkgPath = pkg_path(Arc::new(Mutex::new(Some({ let __arg_holder = tname.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = (*pkgPath.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        { let new_val = { let __recv = (*rtyp.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).pkg_path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pkgPath.lock().unwrap() = __moved_val; };
+        { let new_val = {
+            let __recv = (*rtyp.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).pkg_path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name();
+            __result
+        }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pkgPath.lock().unwrap() = __moved_val; };
     }
         if (*tname.lock().unwrap().as_ref().unwrap()).is_exported() || { let __tmp_x = (*pkgPath.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*ipkg.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         let mut ifn = (*rtyp.lock().unwrap().as_ref().unwrap()).text_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).ifn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));

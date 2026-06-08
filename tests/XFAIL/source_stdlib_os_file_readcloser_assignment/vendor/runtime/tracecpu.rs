@@ -59,10 +59,42 @@ pub fn trace_stop_read_c_p_u() {
         //
         // Wake the goroutine so it can observe that their the buffer is
         // closed an exit.
-    { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.store(Arc::new(Mutex::new(None)));
-    { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.store(Arc::new(Mutex::new(None)));
-    { let __recv = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).close(); __result };
-    { let __recv = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).close(); __result };
+    {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[(0) as usize].clone()
+        };
+        let __result = __recv.store(
+            Arc::new(Mutex::new(None)),
+        );
+        __result
+    };
+    {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[(1) as usize].clone()
+        };
+        let __result = __recv.store(
+            Arc::new(Mutex::new(None)),
+        );
+        __result
+    };
+    {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[(0) as usize].clone()
+        };
+        let __result = (*__recv.lock().unwrap().as_mut().unwrap()).close();
+        __result
+    };
+    {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[(1) as usize].clone()
+        };
+        let __result = (*__recv.lock().unwrap().as_mut().unwrap()).close();
+        __result
+    };
     (*(*trace.lock().unwrap().as_ref().unwrap()).cpu_sleep.lock().unwrap().as_mut().unwrap()).wake();
 
         // Wait until the logger goroutine exits.
@@ -91,7 +123,16 @@ pub fn trace_stop_read_c_p_u() {
 pub fn trace_read_c_p_u(gen: Arc<Mutex<Option<usize>>>) -> bool {
     let mut pcBuf: Arc<Mutex<Option<[usize; 128]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
 
-    let (mut data, mut tags, mut eof) = { let __recv = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some(crate::profbuf::profBufReadMode(Arc::new(Mutex::new(Some(PROF_BUF_NON_BLOCKING as i32)))))))); __result };
+    let (mut data, mut tags, mut eof) = {
+        let __recv = {
+            let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+        };
+        let __result = (*__recv.lock().unwrap().as_mut().unwrap()).read(
+            Arc::new(Mutex::new(Some(crate::profbuf::profBufReadMode(Arc::new(Mutex::new(Some(PROF_BUF_NON_BLOCKING as i32))))))),
+        );
+        __result
+    };
     while { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         if {
             let __go_cond_0 = { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 4; __tmp_x < __tmp_y };
@@ -287,20 +328,29 @@ pub fn trace_read_c_p_u(gen: Arc<Mutex<Option<usize>>>) -> bool {
 
                 // Annotate the batch as containing strings.
                 // Add the stack to the table.
-        let mut stackID = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).stack_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({
-            let __seq_holder = pcBuf.clone();
-            let __seq_guard = __seq_holder.lock().unwrap();
-            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
-            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
-            drop(__seq_guard);
-            let __low = 0;
-            let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
-            let __max = __source_cap;
-            let _slice = &__seq[__low..__high];
-            let mut _v = Vec::with_capacity((__max - __low) as usize);
-            _v.extend_from_slice(_slice);
-            _v
-        }))));
+        let mut stackID = {
+            let __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).stack_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                Arc::new(Mutex::new(Some({
+                    let __seq_holder = pcBuf.clone();
+                    let __seq_guard = __seq_holder.lock().unwrap();
+                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                    let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                    drop(__seq_guard);
+                    let __low = 0;
+                    let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+                    let __max = __source_cap;
+                    let _slice = &__seq[__low..__high];
+                    let mut _v = Vec::with_capacity((__max - __low) as usize);
+                    _v.extend_from_slice(_slice);
+                    _v
+                }))),
+            );
+            __result
+        };
 
                 // Write out the CPU sample.
         (*w.lock().unwrap().as_mut().unwrap()).byte(Arc::new(Mutex::new(Some(TRACE_EV_C_P_U_SAMPLE as u8 as u8))));
@@ -438,7 +488,14 @@ pub fn trace_c_p_u_sample(gp: GoPtr<crate::runtime2::g>, mp: Arc<Mutex<Option<m>
 
         // TODO: Is it safe to osyield here? https://go.dev/issue/52672
     {
-        let mut log = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.load();;
+        let mut log = {
+            let __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };;
         if { let __nil_result = (*log.lock().unwrap()).is_some(); __nil_result } {
             { let __recv = log.clone(); let __recv_ptr: *mut crate::profbuf::profBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::profbuf::profBuf }; let __result = unsafe { &mut *__recv_ptr }.write(
                 Arc::new(Mutex::new(None)),

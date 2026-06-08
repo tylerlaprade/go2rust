@@ -7673,11 +7673,20 @@ pub fn runqput(pp: GoPtr<crate::runtime2::p>, mut gp: GoPtr<crate::runtime2::g>,
             let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
             __tmp_x < __tmp_y
         } {
-        { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
-            let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
-            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
-            __tmp_x % __tmp_y
-        }) as usize].clone() }.set(gp.clone());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({
+                    let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+                    __tmp_x % __tmp_y
+                }) as usize].clone()
+            };
+            let __result = __recv.set(
+                gp.clone(),
+            );
+            __result
+        };
         internal_runtime_atomic::store_rel({ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runqtail.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
         return;
     }
@@ -7776,11 +7785,20 @@ pub fn runqputbatch(pp: GoPtr<crate::runtime2::p>, q: Arc<Mutex<Option<gQueue>>>
         }
     } {
         let mut gp: GoPtr<crate::runtime2::g> = { let __recv = q.clone(); let __recv_ptr: *mut gQueue = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut gQueue }; let __result = unsafe { &mut *__recv_ptr }.pop(); __result };
-        { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
-            let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
-            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
-            __tmp_x % __tmp_y
-        }) as usize].clone() }.set(gp.clone());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({
+                    let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+                    __tmp_x % __tmp_y
+                }) as usize].clone()
+            };
+            let __result = __recv.set(
+                gp.clone(),
+            );
+            __result
+        };
         { let mut guard = t.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

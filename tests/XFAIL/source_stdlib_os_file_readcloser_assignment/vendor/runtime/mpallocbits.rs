@@ -565,40 +565,81 @@ impl pallocBits {
 
     /// allocRange allocates the range [i, i+n).
     pub fn alloc_range(&self, i: Arc<Mutex<Option<u64>>>, n: Arc<Mutex<Option<u64>>>) {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_range(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_range(
+                Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
     }
 
     /// allocAll allocates all the bits of b.
     pub fn alloc_all(&self) {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_all(); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_all();
+            __result
+        };
     }
 
     /// free1 frees a single page in the pallocBits at i.
     pub fn free1(&self, i: Arc<Mutex<Option<u64>>>) {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).clear(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).clear(
+                Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
     }
 
     /// free frees the range [i, i+n) of pages in the pallocBits.
     pub fn free(&self, i: Arc<Mutex<Option<u64>>>, n: Arc<Mutex<Option<u64>>>) {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).clear_range(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).clear_range(
+                Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
     }
 
     /// freeAll frees all the bits of b.
     pub fn free_all(&self) {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).clear_all(); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).clear_all();
+            __result
+        };
     }
 
     /// pages64 returns a 64-bit bitmap representing a block of 64 pages aligned
     /// to 64 pages. The returned block of pages is the one containing the i'th
     /// page in this pallocBits. Each bit represents whether the page is in-use.
     pub fn pages64(&self, i: Arc<Mutex<Option<u64>>>) -> u64 {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).block64(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).block64(
+                Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        }
     }
 
     /// allocPages64 allocates a 64-bit block of 64 pages aligned to 64 pages according
     /// to the bits set in alloc. The block set is the one containing the i'th page.
     pub fn alloc_pages64(&self, i: Arc<Mutex<Option<u64>>>, alloc: Arc<Mutex<Option<u64>>>) {
-        { let __recv = Arc::new(Mutex::new(Some(pageBits::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_block64(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = alloc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(pageBits::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_block64(
+                Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = alloc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
     }
 }
 

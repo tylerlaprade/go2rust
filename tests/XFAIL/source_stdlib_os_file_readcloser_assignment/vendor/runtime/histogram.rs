@@ -144,7 +144,16 @@ impl timeHistogram {
     }
                 // The sub-bucket index is just next timeHistSubBucketBits after the bucketBit.
         let mut subBucket = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*duration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __tmp_x = { let __v = (*bucketBit.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y }; let __tmp_y = TIME_HIST_SUB_BUCKET_BITS as u64; __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = TIME_HIST_NUM_SUB_BUCKETS as u64; __tmp_x % __tmp_y })));
-        { let __seq = { let __seq_holder = self.counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*bucket.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = TIME_HIST_NUM_SUB_BUCKETS as u64; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*subBucket.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }.add(Arc::new(Mutex::new(Some(1 as i64))));
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*bucket.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = TIME_HIST_NUM_SUB_BUCKETS as u64; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*subBucket.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.add(
+                Arc::new(Mutex::new(Some(1 as i64))),
+            );
+            __result
+        };
     }
 
     /// write dumps the histogram to the passed metricValue as a float64 histogram.
@@ -155,7 +164,14 @@ impl timeHistogram {
                 // over the rest.
         (*{ let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[(0) as usize] = (*self.underflow.lock().unwrap().as_mut().unwrap()).load();
         for i in 0..(({ let __range_holder = self.counts.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        (*{ let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] = { let __seq = { let __seq_holder = self.counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.load();
+        (*{ let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] = {
+            let mut __recv = {
+                let __seq = { let __seq_holder = self.counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(i) as usize].clone()
+            };
+            let __result = __recv.load();
+            __result
+        };
     }
         (*{ let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] = (*self.overflow.lock().unwrap().as_mut().unwrap()).load();
     }

@@ -284,7 +284,13 @@ impl addrRange {
 
     /// contains returns whether or not the range contains a given address.
     pub fn contains(&self, addr: Arc<Mutex<Option<usize>>>) -> bool {
-        (*self.base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))) && (offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
+        (*self.base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))) && {
+            let __recv = (offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() });
+            let __result = __recv.less_than(
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            );
+            __result
+        }
     }
 
     /// subtract takes the addrRange toPrune and cuts out any overlap with
@@ -378,7 +384,13 @@ impl addrRange {
     /// removeGreaterEqual removes all addresses in a greater than or equal
     /// to addr and returns the new range.
     pub fn remove_greater_equal(&self, addr: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<addrRange>>> {
-        if (offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if {
+            let __recv = (offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() });
+            let __result = __recv.less_equal(
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            );
+            __result
+        } {
         return Arc::new(Mutex::new(Some(addrRange { base: Arc::new(Mutex::new(Some(Default::default()))), limit: Arc::new(Mutex::new(Some(Default::default()))) })));
     }
         if (*self.limit.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))) {
@@ -537,7 +549,16 @@ impl addrRanges {
         let (mut bot, mut top) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32))));
         while { let __tmp_x = { let __tmp_x = { let __v = (*top.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*bot.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; let __tmp_y = 8; __tmp_x > __tmp_y } {
         let mut i = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*bot.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*top.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x >> __tmp_y }) as i32)));
-        if { let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.contains(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()).addr())))) {
+        if {
+            let __recv = {
+                let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+            };
+            let __result = __recv.contains(
+                Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()).addr()))),
+            );
+            __result
+        } {
                 // a.ranges[i] contains base, so
                 // its successor is the next index.
         return { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
@@ -594,7 +615,16 @@ impl addrRanges {
             true
         );
     }
-        if { let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.contains(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if {
+            let __recv = {
+                let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.contains(
+                Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        } {
         return ({ let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);
     }
         if { let __tmp_x = (i as i32); let __tmp_y = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y } {
@@ -612,7 +642,16 @@ impl addrRanges {
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x == __tmp_y } {
         return false;
     }
-        { let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.contains(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+        {
+            let __recv = {
+                let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.contains(
+                Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        }
     }
 
     /// add inserts a new address range to a.

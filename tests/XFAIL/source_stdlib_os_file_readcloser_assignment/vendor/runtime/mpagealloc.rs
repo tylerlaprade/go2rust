@@ -1504,7 +1504,13 @@ impl pageAlloc {
         if {
             let __go_cond_0 = (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
             if __go_cond_0 {
-                let __go_cond_1 = { let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
+                let __go_cond_1 = {
+                    let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }))));
+                    let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_equal(
+                        Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                    );
+                    __result
+                };
                 __go_cond_1
             } else {
                 false
@@ -1512,7 +1518,13 @@ impl pageAlloc {
         } {
         { let new_val = addr.lock().unwrap().as_ref().unwrap().clone(); *(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap() = Some(new_val); };
         { let new_val = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap() = __moved_val; };
-    } else if !({ let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result } || (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) {
+    } else if !({
+        let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_than(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        );
+        __result
+    } || (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) {
         {
             let __go_print_arg_0 = format!("{}", "runtime: addr = ".to_string());
             let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
@@ -1686,13 +1698,17 @@ impl pageAlloc {
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
                 // We found a sufficiently large run of free pages straddling
                 // some boundary, so compute the address and return it.
-        let mut addr = { let __recv = {
-            let __recv = level_index_to_off_addr(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(
-                Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }))),
-            );
+        let mut addr = {
+            let __recv = {
+                let __recv = level_index_to_off_addr(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(
+                    Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }))),
+                );
+                __result
+            };
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).addr();
             __result
-        }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).addr(); __result };
+        };
         return (
             addr,
             self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))

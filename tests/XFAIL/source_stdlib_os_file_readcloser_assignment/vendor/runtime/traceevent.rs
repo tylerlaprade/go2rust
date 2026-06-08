@@ -931,15 +931,19 @@ impl crate::traceruntime::traceLocker {
                 false
             }
         } {
-            { let __recv = {
-                let __recv = __self.writer();
-                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status(
-                    Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))),
-                    Arc::new(Mutex::new(Some({ let __arg_holder = procStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-                    Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
-                );
+            {
+                let __recv = {
+                    let __recv = __self.writer();
+                    let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status(
+                        Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))),
+                        Arc::new(Mutex::new(Some({ let __arg_holder = procStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                        Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                    );
+                    __result
+                };
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end();
                 __result
-            }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
+            };;
         }
     }
         {
@@ -961,17 +965,21 @@ impl crate::traceruntime::traceLocker {
                 false
             }
         } {
-            { let __recv = {
-                let __recv = __self.writer();
-                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_go_status(
-                    Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))),
-                    Arc::new(Mutex::new(Some({ let __selector_holder = (*__self.mp.lock().unwrap().as_ref().unwrap()).procid.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))),
-                    Arc::new(Mutex::new(Some({ let __arg_holder = goStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-                    Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.in_mark_assist.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
-                    Arc::new(Mutex::new(Some(0 as u64))),
-                );
+            {
+                let __recv = {
+                    let __recv = __self.writer();
+                    let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_go_status(
+                        Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))),
+                        Arc::new(Mutex::new(Some({ let __selector_holder = (*__self.mp.lock().unwrap().as_ref().unwrap()).procid.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))),
+                        Arc::new(Mutex::new(Some({ let __arg_holder = goStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                        Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.in_mark_assist.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                        Arc::new(Mutex::new(Some(0 as u64))),
+                    );
+                    __result
+                };
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end();
                 __result
-            }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
+            };;
         }
     }
                 /* no stack */
@@ -992,33 +1000,82 @@ impl crate::traceruntime::traceLocker {
     /// passed to write.
     pub fn start_p_c(&self, pc: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<traceArg>>> {
                 // +PCQuantum because makeTraceFrame expects return PCs and subtracts PCQuantum.
-        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).stack_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some(vec![LOGICAL_STACK_SENTINEL as usize, { let __tmp_x = start_p_c_for_trace(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }])))) as u64)))))))
+        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({
+            let __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).stack_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                Arc::new(Mutex::new(Some(vec![LOGICAL_STACK_SENTINEL as usize, { let __tmp_x = start_p_c_for_trace(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }]))),
+            );
+            __result
+        } as u64)))))))
     }
 
     /// string returns a traceArg representing s which may be passed to write.
     /// The string is assumed to be relatively short and popular, so it may be
     /// stored for a while in the string dictionary.
     pub fn string(&self, s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<traceArg>>> {
-        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as u64)))))))
+        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        } as u64)))))))
     }
 
     /// uniqueString returns a traceArg representing s which may be passed to write.
     /// The string is assumed to be unique or long, so it will be written out to
     /// the trace eagerly.
     pub fn unique_string(&self, s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<traceArg>>> {
-        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.emit(Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as u64)))))))
+        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.emit(
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        } as u64)))))))
     }
 
     /// rtype returns a traceArg representing typ which may be passed to write.
     pub fn rtype(&self, typ: GoPtr<internal_abi::r#type::Type>) -> Arc<Mutex<Option<traceArg>>> {
-        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).type_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(typ.clone()) as u64)))))))
+        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some({
+            let __recv = {
+                let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).type_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone()
+            };
+            let __result = __recv.put(
+                typ.clone(),
+            );
+            __result
+        } as u64)))))))
     }
 }
 
 impl traceEventWriter {
     /// event writes out a trace event.
     pub fn event(&self, ev: Arc<Mutex<Option<traceEv>>>, args: Arc<Mutex<Option<Vec<traceArg>>>>) {
-        { let __recv = { let __recv = (*self.tl.lock().unwrap().as_ref().unwrap()).writer(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some({ let __arg_holder = ev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), args.clone()); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+        {
+            let __recv = {
+                let __recv = (*self.tl.lock().unwrap().as_ref().unwrap()).writer();
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                    Arc::new(Mutex::new(Some({ let __arg_holder = ev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                    args.clone(),
+                );
+                __result
+            };
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end();
+            __result
+        };
     }
 }
 

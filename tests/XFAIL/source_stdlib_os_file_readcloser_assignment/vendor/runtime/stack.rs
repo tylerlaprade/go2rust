@@ -708,9 +708,25 @@ pub fn stackalloc(mut n: Arc<Mutex<Option<u32>>>) -> Arc<Mutex<Option<crate::run
         let mut log2npage = stacklog2(Arc::new(Mutex::new(Some({ let __arg_holder = npage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
                 // Try to get a stack from the large stack cache.
         lock(GoPtr::local((*stackLarge.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        if !{ let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(log2npage) as usize].clone() }.is_empty() {
+        if !{
+            let __recv = {
+                let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(log2npage) as usize].clone()
+            };
+            let __result = __recv.is_empty();
+            __result
+        } {
         s = { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(log2npage) as usize].clone() }.first.clone();
-        { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(log2npage) as usize].clone() }.remove(s.clone());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(log2npage) as usize].clone()
+            };
+            let __result = __recv.remove(
+                s.clone(),
+            );
+            __result
+        };
     }
         unlock(GoPtr::local((*stackLarge.lock().unwrap().as_ref().unwrap()).lock.clone()));
         lock_with_rank_may_acquire((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone(), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_MHEAP as i32))))))));
@@ -895,7 +911,16 @@ pub fn stackfree(stk: Arc<Mutex<Option<stack>>>) {
                 // large stack cache instead.
         let mut log2npage = stacklog2(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.npages.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         lock(GoPtr::local((*stackLarge.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(log2npage) as usize].clone() }.insert(s.clone());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(log2npage) as usize].clone()
+            };
+            let __result = __recv.insert(
+                s.clone(),
+            );
+            __result
+        };
         unlock(GoPtr::local((*stackLarge.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }
     }
@@ -1785,7 +1810,16 @@ pub fn free_stack_spans() {
         let mut s: GoPtr<crate::mheap::mspan> = { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.first.clone();
     while !s.is_nil() {
         let mut next: GoPtr<crate::mheap::mspan> = { let __ptr_value = s.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value };
-        { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.remove(s.clone());
+        {
+            let mut __recv = {
+                let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+                __seq[(i) as usize].clone()
+            };
+            let __result = __recv.remove(
+                s.clone(),
+            );
+            __result
+        };
         os_stack_free(s.clone());
         (*mheap_.lock().unwrap().as_mut().unwrap()).free_manual(s.clone(), Arc::new(Mutex::new(Some(crate::mheap::spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_STACK as u8))))))));
         s = next.clone();

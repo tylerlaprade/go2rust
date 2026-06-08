@@ -6190,6 +6190,43 @@ func emit(t traceWriter, skip int) {
 	}
 }
 
+func TestConcurrentMethodCallOnIndexedReceiverBreaksReceiverAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type entry struct {
+	id uint
+}
+
+func (e entry) put(gen uint, label string) uint {
+	return e.id + gen + uint(len(label))
+}
+
+type table struct {
+	entries []entry
+}
+
+func emit(t *table, gen uint, label string) uint {
+	go func() {}()
+	return t.entries[gen%2].put(gen, label)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __recv = { let __seq =") {
+			t.Fatalf("method call on indexed receiver should split receiver block:\n%s", rust)
+		}
+		if strings.Contains(line, ".put(") && strings.Contains(line, "Arc::new") {
+			t.Fatalf("method call on indexed receiver should split method arguments:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __recv = {\n") {
+		t.Fatalf("method call on indexed receiver should use multiline receiver block:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".put(\n") {
+		t.Fatalf("method call on indexed receiver should use multiline method arguments:\n%s", rust)
+	}
+}
+
 func TestConcurrentVariadicMethodCallWithComplexPackedArgsBreaksAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

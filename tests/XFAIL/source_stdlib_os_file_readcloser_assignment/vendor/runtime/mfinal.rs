@@ -800,7 +800,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: first argument is ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(etyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", ", not pointer".to_string()));
             __s
         }))));
@@ -874,7 +878,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: second argument is ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(ftyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", ", not a function".to_string()));
             __s
         }))));
@@ -884,9 +892,17 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(etyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", " to finalizer ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(ftyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", " because dotdotdot".to_string()));
             __s
         }))));
@@ -895,9 +911,17 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(etyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", " to finalizer ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(ftyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s
         }))));
     }
@@ -960,9 +984,17 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(etyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", " to finalizer ".to_string()));
-            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*{
+                let __recv = to_r_type(ftyp.clone());
+                let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+                __result
+            }.lock().unwrap().as_ref().unwrap())));
             __s
         }))));
     }
