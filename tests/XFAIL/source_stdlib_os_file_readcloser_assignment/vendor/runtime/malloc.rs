@@ -140,14 +140,6 @@ impl std::fmt::Display for persistentAlloc {
     }
 }
 
-impl GoJsonDecode for persistentAlloc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// linearAlloc is a simple linear allocator that pre-reserves a region
 /// of memory and then optionally maps that region into the Ready state
@@ -203,14 +195,6 @@ impl std::fmt::Display for linearAlloc {
     }
 }
 
-impl GoJsonDecode for linearAlloc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// notInHeap is off-heap memory allocated by a lower-level allocator
 /// like sysAlloc or persistentAlloc.
@@ -248,14 +232,6 @@ impl std::fmt::Display for notInHeap {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for notInHeap {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2161,14 +2137,6 @@ impl std::fmt::Display for AnonymousStruct4 {
         let __go_fmt_0 = format!("{}", (*self.mutex.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.persistent_alloc.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct4 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

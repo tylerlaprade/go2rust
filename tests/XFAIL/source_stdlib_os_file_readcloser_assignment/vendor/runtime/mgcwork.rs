@@ -114,14 +114,6 @@ impl std::fmt::Display for gcWork {
     }
 }
 
-impl GoJsonDecode for gcWork {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct workbufhdr {
@@ -157,14 +149,6 @@ impl std::fmt::Display for workbufhdr {
         let __go_fmt_0 = format!("{}", (*self.node.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.nobj.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for workbufhdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -209,14 +193,6 @@ impl std::fmt::Display for workbuf {
         let __go_fmt_1 = format!("{}", (*self.workbufhdr.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", format_slice(&self.obj));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for workbuf {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

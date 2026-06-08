@@ -102,14 +102,6 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
     }
 }
 
-impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for HashTrieMap<K, V> {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub type hashFunc = Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync>>>>;
 
@@ -178,14 +170,6 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
     }
 }
 
-impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for indirect<K, V> {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// entry is a leaf node in the hash-trie.
 pub struct entry<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
@@ -242,14 +226,6 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
     }
 }
 
-impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for entry<K, V> {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// node is the header for a node. It's polymorphic and
 /// is actually either an entry or an indirect.
@@ -292,14 +268,6 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.is_entry.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for node<K, V> {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

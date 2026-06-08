@@ -3091,6 +3091,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			packageState = parentCtx.Package
 		}
 	}
+	packageState.JsonDecodeSupportNeeded = packageState.JsonDecodeSupportNeeded ||
+		packageNeedsJsonDecodeSupport([]*ast.File{file}, typeInfo)
 	fileState := NewFileState(imports, helpers, NewStatementPreprocessor(fileSet))
 	fileExternalPackages := make(map[string]bool)
 	for _, imp := range file.Imports {

@@ -989,6 +989,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)
 	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.Syntax)
 	pkgState.MethodsByType = collectPackageMethods(pkg.Syntax)
+	pkgState.JsonDecodeSupportNeeded = packageNeedsJsonDecodeSupport(pkg.Syntax, pkgTypeInfo)
 	session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
 	session.PackageTypeModuleNames = pl.packageTypeModules
 	session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames

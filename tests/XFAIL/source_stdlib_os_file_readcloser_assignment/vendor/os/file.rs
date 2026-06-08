@@ -93,23 +93,6 @@ impl std::fmt::Debug for LinkError {
     }
 }
 
-impl GoJsonDecode for LinkError {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Op") {
-            out.op = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Old") {
-            out.old = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("New") {
-            out.new = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 /// noReadFrom can be embedded alongside another type to
 /// hide the ReadFrom method of that other type.
@@ -127,14 +110,6 @@ impl noReadFrom {
 impl std::fmt::Display for noReadFrom {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for noReadFrom {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -179,14 +154,6 @@ impl std::fmt::Display for fileWithoutReadFrom {
     }
 }
 
-impl GoJsonDecode for fileWithoutReadFrom {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// noWriteTo can be embedded alongside another type to
 /// hide the WriteTo method of that other type.
@@ -204,14 +171,6 @@ impl noWriteTo {
 impl std::fmt::Display for noWriteTo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for noWriteTo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -253,14 +212,6 @@ impl std::fmt::Display for fileWithoutWriteTo {
         let __go_fmt_0 = format!("{}", (*self.no_write_to.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", { let __guard = self.file.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for fileWithoutWriteTo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

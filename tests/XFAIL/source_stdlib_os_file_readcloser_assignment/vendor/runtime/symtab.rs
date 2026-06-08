@@ -102,14 +102,6 @@ impl std::fmt::Display for Frames {
     }
 }
 
-impl GoJsonDecode for Frames {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// Frame is the information returned by [Frames] for each call frame.
 #[derive(Clone)]
@@ -185,29 +177,6 @@ impl std::fmt::Display for Frame {
     }
 }
 
-impl GoJsonDecode for Frame {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("PC") {
-            out.p_c = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Function") {
-            out.function = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("File") {
-            out.file = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Line") {
-            out.line = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Entry") {
-            out.entry = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 /// A Func represents a Go function in the running binary.
 #[derive(Debug, Clone)]
@@ -238,14 +207,6 @@ impl std::fmt::Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.opaque.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for Func {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -367,14 +328,6 @@ impl std::fmt::Display for pcHeader {
             __go_fmt_11,
             __go_fmt_12
         )
-    }
-}
-
-impl GoJsonDecode for pcHeader {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -727,14 +680,6 @@ impl std::fmt::Display for moduledata {
     }
 }
 
-impl GoJsonDecode for moduledata {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A modulehash is used to compare the ABI of a new module or a
 /// package in a new module with the loaded program.
@@ -791,14 +736,6 @@ impl std::fmt::Display for modulehash {
     }
 }
 
-impl GoJsonDecode for modulehash {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct functab {
@@ -834,14 +771,6 @@ impl std::fmt::Display for functab {
         let __go_fmt_0 = format!("{}", (*self.entryoff.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.funcoff.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for functab {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -886,14 +815,6 @@ impl std::fmt::Display for textsect {
         let __go_fmt_1 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.baseaddr.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for textsect {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -943,14 +864,6 @@ impl std::fmt::Display for findfuncbucket {
     }
 }
 
-impl GoJsonDecode for findfuncbucket {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone, Default)]
 pub struct funcInfo {
@@ -974,14 +887,6 @@ impl std::fmt::Display for funcInfo {
         let __go_fmt_0 = format!("{}", { let __guard = self._func.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_1 = format!("{}", { let __guard = self.datap.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for funcInfo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1038,14 +943,6 @@ impl std::fmt::Display for srcFunc {
     }
 }
 
-impl GoJsonDecode for srcFunc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct pcvalueCache {
@@ -1081,14 +978,6 @@ impl std::fmt::Display for pcvalueCache {
         let __go_fmt_0 = format!("{}", format_nested_slice(&self.entries));
         let __go_fmt_1 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for pcvalueCache {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1142,14 +1031,6 @@ impl std::fmt::Display for pcvalueCacheEnt {
     }
 }
 
-impl GoJsonDecode for pcvalueCacheEnt {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct stackmap {
@@ -1191,14 +1072,6 @@ impl std::fmt::Display for stackmap {
         let __go_fmt_1 = format!("{}", (*self.nbit.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", format_slice(&self.bytedata));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for stackmap {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

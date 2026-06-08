@@ -127,14 +127,6 @@ impl std::fmt::Display for finblock {
     }
 }
 
-impl GoJsonDecode for finblock {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// NOTE: Layout known to queuefinalizer.
 #[derive(Clone)]
@@ -189,14 +181,6 @@ impl std::fmt::Display for finalizer {
         let __go_fmt_3 = format!("{}", { let __guard = self.fint.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_4 = format!("{}", { if self.ot.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for finalizer {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

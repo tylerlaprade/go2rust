@@ -100,14 +100,6 @@ impl std::fmt::Display for coro {
     }
 }
 
-impl GoJsonDecode for coro {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl GoValueClone for coro {
     fn go_value_clone(&self) -> Self {

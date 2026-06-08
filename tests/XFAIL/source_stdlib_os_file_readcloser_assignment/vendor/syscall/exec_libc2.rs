@@ -122,41 +122,6 @@ impl std::fmt::Display for SysProcAttr {
     }
 }
 
-impl GoJsonDecode for SysProcAttr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Chroot") {
-            out.chroot = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ptrace") {
-            out.ptrace = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Setsid") {
-            out.setsid = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Setpgid") {
-            out.setpgid = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Setctty") {
-            out.setctty = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Noctty") {
-            out.noctty = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ctty") {
-            out.ctty = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Foreground") {
-            out.foreground = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pgid") {
-            out.pgid = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 impl GoValueClone for SysProcAttr {
     fn go_value_clone(&self) -> Self {

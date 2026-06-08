@@ -40,14 +40,6 @@ impl std::fmt::Display for CacheLinePad {
     }
 }
 
-impl GoJsonDecode for CacheLinePad {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// Option names should be lower case. e.g. avx instead of AVX.
 #[derive(Debug, Clone)]
@@ -96,26 +88,6 @@ impl std::fmt::Display for option {
         let __go_fmt_2 = format!("{}", (*self.specified.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.enable.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for option {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Name") {
-            out.name = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Feature") {
-            out.feature = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Specified") {
-            out.specified = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Enable") {
-            out.enable = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -363,77 +335,6 @@ impl std::fmt::Display for AnonymousStruct1 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasAES") {
-            out.has_a_e_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasADX") {
-            out.has_a_d_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX") {
-            out.has_a_v_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX2") {
-            out.has_a_v_x2 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX512F") {
-            out.has_a_v_x512_f = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX512BW") {
-            out.has_a_v_x512_b_w = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX512VL") {
-            out.has_a_v_x512_v_l = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasBMI1") {
-            out.has_b_m_i1 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasBMI2") {
-            out.has_b_m_i2 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasERMS") {
-            out.has_e_r_m_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasFSRM") {
-            out.has_f_s_r_m = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasFMA") {
-            out.has_f_m_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasOSXSAVE") {
-            out.has_o_s_x_s_a_v_e = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasPCLMULQDQ") {
-            out.has_p_c_l_m_u_l_q_d_q = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasPOPCNT") {
-            out.has_p_o_p_c_n_t = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasRDTSCP") {
-            out.has_r_d_t_s_c_p = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA") {
-            out.has_s_h_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSE3") {
-            out.has_s_s_e3 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSSE3") {
-            out.has_s_s_s_e3 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSE41") {
-            out.has_s_s_e41 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSE42") {
-            out.has_s_s_e42 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct2 {
@@ -486,23 +387,6 @@ impl std::fmt::Display for AnonymousStruct2 {
         let __go_fmt_3 = format!("{}", (*self.has_v7_atomics.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct2 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasVFPv4") {
-            out.has_v_f_pv4 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasIDIVA") {
-            out.has_i_d_i_v_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasV7Atomics") {
-            out.has_v7_atomics = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -618,44 +502,6 @@ impl std::fmt::Display for AnonymousStruct3 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct3 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasAES") {
-            out.has_a_e_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasPMULL") {
-            out.has_p_m_u_l_l = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA1") {
-            out.has_s_h_a1 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA2") {
-            out.has_s_h_a2 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA512") {
-            out.has_s_h_a512 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasCRC32") {
-            out.has_c_r_c32 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasATOMICS") {
-            out.has_a_t_o_m_i_c_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasCPUID") {
-            out.has_c_p_u_i_d = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasDIT") {
-            out.has_d_i_t = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsNeoverse") {
-            out.is_neoverse = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct4 {
@@ -717,26 +563,6 @@ impl std::fmt::Display for AnonymousStruct4 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct4 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasLSX") {
-            out.has_l_s_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasCRC32") {
-            out.has_c_r_c32 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasLAMCAS") {
-            out.has_l_a_m_c_a_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasLAM_BH") {
-            out.has_l_a_m__b_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct5 {
@@ -777,17 +603,6 @@ impl std::fmt::Display for AnonymousStruct5 {
         let __go_fmt_1 = format!("{}", (*self.has_m_s_a.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.__blank_2_0.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct5 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasMSA") {
-            out.has_m_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -855,29 +670,6 @@ impl std::fmt::Display for AnonymousStruct6 {
         let __go_fmt_5 = format!("{}", (*self.is_p_o_w_e_r10.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_6 = format!("{}", (*self.__blank_6_0.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct6 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasDARN") {
-            out.has_d_a_r_n = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSCV") {
-            out.has_s_c_v = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsPOWER8") {
-            out.is_p_o_w_e_r8 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsPOWER9") {
-            out.is_p_o_w_e_r9 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsPOWER10") {
-            out.is_p_o_w_e_r10 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -1067,77 +859,6 @@ impl std::fmt::Display for AnonymousStruct7 {
             __go_fmt_21,
             __go_fmt_22
         )
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct7 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasZARCH") {
-            out.has_z_a_r_c_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSTFLE") {
-            out.has_s_t_f_l_e = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasLDISP") {
-            out.has_l_d_i_s_p = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasEIMM") {
-            out.has_e_i_m_m = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasDFP") {
-            out.has_d_f_p = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasETF3EH") {
-            out.has_e_t_f3_e_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasMSA") {
-            out.has_m_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAES") {
-            out.has_a_e_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAESCBC") {
-            out.has_a_e_s_c_b_c = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAESCTR") {
-            out.has_a_e_s_c_t_r = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAESGCM") {
-            out.has_a_e_s_g_c_m = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasGHASH") {
-            out.has_g_h_a_s_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA1") {
-            out.has_s_h_a1 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA256") {
-            out.has_s_h_a256 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA512") {
-            out.has_s_h_a512 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA3") {
-            out.has_s_h_a3 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasVX") {
-            out.has_v_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasVXE") {
-            out.has_v_x_e = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasKDSA") {
-            out.has_k_d_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasECDSA") {
-            out.has_e_c_d_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasEDDSA") {
-            out.has_e_d_d_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

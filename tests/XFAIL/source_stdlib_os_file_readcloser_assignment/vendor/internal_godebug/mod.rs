@@ -601,14 +601,6 @@ impl std::fmt::Display for Setting {
     }
 }
 
-impl GoJsonDecode for Setting {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct setting {
@@ -658,14 +650,6 @@ impl std::fmt::Display for setting {
     }
 }
 
-impl GoJsonDecode for setting {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct value {
@@ -704,14 +688,6 @@ impl std::fmt::Display for value {
     }
 }
 
-impl GoJsonDecode for value {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone, Default)]
 pub struct runtimeStderr {
@@ -727,14 +703,6 @@ impl runtimeStderr {
 impl std::fmt::Display for runtimeStderr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for runtimeStderr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

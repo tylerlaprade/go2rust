@@ -106,14 +106,6 @@ impl std::fmt::Display for file {
     }
 }
 
-impl GoJsonDecode for file {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// newFileKind describes the kind of file to newFile.
 #[derive(Debug, Clone, Default)]
@@ -540,14 +532,6 @@ impl Default for unixDirent {
 impl std::fmt::Display for unixDirent {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for unixDirent {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

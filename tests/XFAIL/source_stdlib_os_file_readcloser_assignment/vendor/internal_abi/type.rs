@@ -195,32 +195,6 @@ impl std::fmt::Display for Type {
     }
 }
 
-impl GoJsonDecode for Type {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Size_") {
-            out.size_ = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("PtrBytes") {
-            out.ptr_bytes = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Hash") {
-            out.hash = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Align_") {
-            out.align_ = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("FieldAlign_") {
-            out.field_align_ = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("GCData") {
-            out.g_c_data = GoPtr::local(<Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?);
-        }
-        Ok(out)
-    }
-}
-
 
 /// A Kind represents the specific kind of type that a Type represents.
 /// The zero Kind is not a valid kind.
@@ -2175,14 +2149,6 @@ impl std::fmt::Display for Method {
     }
 }
 
-impl GoJsonDecode for Method {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// UncommonType is present only for defined types or types with methods
 /// (if T is a defined type, the uncommonTypes for T and *T have methods).
@@ -2243,23 +2209,6 @@ impl std::fmt::Display for UncommonType {
     }
 }
 
-impl GoJsonDecode for UncommonType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Mcount") {
-            out.mcount = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Xcount") {
-            out.xcount = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Moff") {
-            out.moff = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 /// Imethod represents a method on an interface type
 #[derive(Debug, Clone)]
@@ -2296,14 +2245,6 @@ impl std::fmt::Display for Imethod {
         let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for Imethod {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2355,17 +2296,6 @@ impl std::fmt::Display for ArrayType {
         let __go_fmt_2 = format!("{}", { let __guard = self.slice.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_3 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for ArrayType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -2796,14 +2726,6 @@ impl std::fmt::Display for ChanType {
     }
 }
 
-impl GoJsonDecode for ChanType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct structTypeUncommon {
@@ -2839,14 +2761,6 @@ impl std::fmt::Display for structTypeUncommon {
         let __go_fmt_0 = format!("{}", (*self.struct_type.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for structTypeUncommon {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2894,14 +2808,6 @@ impl std::fmt::Display for InterfaceType {
     }
 }
 
-impl GoJsonDecode for InterfaceType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct SliceType {
@@ -2937,14 +2843,6 @@ impl std::fmt::Display for SliceType {
         let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for SliceType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -3003,20 +2901,6 @@ impl std::fmt::Display for FuncType {
     }
 }
 
-impl GoJsonDecode for FuncType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("InCount") {
-            out.in_count = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("OutCount") {
-            out.out_count = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct PtrType {
@@ -3052,14 +2936,6 @@ impl std::fmt::Display for PtrType {
         let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for PtrType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -3107,17 +2983,6 @@ impl std::fmt::Display for StructField {
     }
 }
 
-impl GoJsonDecode for StructField {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Offset") {
-            out.offset = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct StructType {
@@ -3162,14 +3027,6 @@ impl std::fmt::Display for StructType {
     }
 }
 
-impl GoJsonDecode for StructType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone, Default)]
 pub struct Name {
@@ -3189,17 +3046,6 @@ impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", { if self.bytes.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for Name {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Bytes") {
-            out.bytes = GoPtr::local(<Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?);
-        }
-        Ok(out)
     }
 }
 
@@ -5528,14 +5374,6 @@ impl std::fmt::Display for AnonymousStruct1 {
         let __go_fmt_0 = format!("{}", (*self.ptr_type.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

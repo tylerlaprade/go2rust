@@ -97,14 +97,6 @@ impl std::fmt::Display for wbBuf {
     }
 }
 
-impl GoJsonDecode for wbBuf {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl wbBuf {
     /// reset empties b by resetting its next and end pointers.

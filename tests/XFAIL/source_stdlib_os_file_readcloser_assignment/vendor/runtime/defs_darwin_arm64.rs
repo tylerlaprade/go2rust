@@ -168,14 +168,6 @@ impl std::fmt::Display for stackt {
     }
 }
 
-impl GoJsonDecode for stackt {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct usigactiont {
@@ -217,14 +209,6 @@ impl std::fmt::Display for usigactiont {
         let __go_fmt_1 = format!("{}", (*self.sa_mask.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.sa_flags.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for usigactiont {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -327,14 +311,6 @@ impl std::fmt::Display for siginfo {
     }
 }
 
-impl GoJsonDecode for siginfo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct timespec {
@@ -370,14 +346,6 @@ impl std::fmt::Display for timespec {
         let __go_fmt_0 = format!("{}", (*self.tv_sec.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.tv_nsec.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for timespec {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -422,14 +390,6 @@ impl std::fmt::Display for exceptionstate64 {
         let __go_fmt_1 = format!("{}", (*self.esr.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.exc.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for exceptionstate64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -501,14 +461,6 @@ impl std::fmt::Display for regs64 {
     }
 }
 
-impl GoJsonDecode for regs64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct neonstate64 {
@@ -553,14 +505,6 @@ impl std::fmt::Display for neonstate64 {
     }
 }
 
-impl GoJsonDecode for neonstate64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct mcontext64 {
@@ -602,14 +546,6 @@ impl std::fmt::Display for mcontext64 {
         let __go_fmt_1 = format!("{}", (*self.ss.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.ns.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for mcontext64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -675,14 +611,6 @@ impl std::fmt::Display for ucontext {
     }
 }
 
-impl GoJsonDecode for ucontext {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct keventt {
@@ -742,14 +670,6 @@ impl std::fmt::Display for keventt {
         let __go_fmt_4 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_5 = format!("{}", { let __guard = self.udata.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
-    }
-}
-
-impl GoJsonDecode for keventt {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1166,20 +1086,6 @@ impl std::fmt::Display for pthreadattr {
     }
 }
 
-impl GoJsonDecode for pthreadattr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("X__sig") {
-            out.x__sig = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("X__opaque") {
-            out.x__opaque = <Arc<Mutex<Option<[i8; 56]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct pthreadmutex {
@@ -1215,20 +1121,6 @@ impl std::fmt::Display for pthreadmutex {
         let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for pthreadmutex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("X__sig") {
-            out.x__sig = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("X__opaque") {
-            out.x__opaque = <Arc<Mutex<Option<[i8; 56]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -1270,20 +1162,6 @@ impl std::fmt::Display for pthreadmutexattr {
     }
 }
 
-impl GoJsonDecode for pthreadmutexattr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("X__sig") {
-            out.x__sig = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("X__opaque") {
-            out.x__opaque = <Arc<Mutex<Option<[i8; 8]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct pthreadcond {
@@ -1322,20 +1200,6 @@ impl std::fmt::Display for pthreadcond {
     }
 }
 
-impl GoJsonDecode for pthreadcond {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("X__sig") {
-            out.x__sig = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("X__opaque") {
-            out.x__opaque = <Arc<Mutex<Option<[i8; 40]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct pthreadcondattr {
@@ -1371,20 +1235,6 @@ impl std::fmt::Display for pthreadcondattr {
         let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for pthreadcondattr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("X__sig") {
-            out.x__sig = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("X__opaque") {
-            out.x__opaque = <Arc<Mutex<Option<[i8; 8]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

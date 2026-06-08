@@ -119,14 +119,6 @@ impl std::fmt::Display for sweepdata {
     }
 }
 
-impl GoJsonDecode for sweepdata {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// sweepClass is a spanClass and one bit to represent whether we're currently
 /// sweeping partial or full spans.
@@ -541,14 +533,6 @@ impl std::fmt::Display for activeSweep {
     }
 }
 
-impl GoJsonDecode for activeSweep {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// sweepLocker acquires sweep ownership of spans.
 #[derive(Debug, Clone)]
@@ -588,14 +572,6 @@ impl std::fmt::Display for sweepLocker {
     }
 }
 
-impl GoJsonDecode for sweepLocker {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// sweepLocked represents sweep ownership of a span.
 #[derive(Clone, Default)]
@@ -616,14 +592,6 @@ impl std::fmt::Display for sweepLocked {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for sweepLocked {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

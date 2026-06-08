@@ -102,14 +102,6 @@ impl std::fmt::Display for spanSet {
     }
 }
 
-impl GoJsonDecode for spanSet {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct spanSetBlock {
@@ -154,14 +146,6 @@ impl std::fmt::Display for spanSetBlock {
     }
 }
 
-impl GoJsonDecode for spanSetBlock {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// atomicSpanSetSpinePointer is an atomically-accessed spanSetSpinePointer.
 ///
@@ -194,14 +178,6 @@ impl std::fmt::Display for atomicSpanSetSpinePointer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.a.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for atomicSpanSetSpinePointer {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -238,14 +214,6 @@ impl std::fmt::Display for spanSetSpinePointer {
     }
 }
 
-impl GoJsonDecode for spanSetSpinePointer {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// spanSetBlockAlloc represents a concurrent pool of spanSetBlocks.
 #[derive(Debug, Clone)]
@@ -276,14 +244,6 @@ impl std::fmt::Display for spanSetBlockAlloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.stack.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for spanSetBlockAlloc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -697,14 +657,6 @@ impl std::fmt::Display for atomicHeadTailIndex {
     }
 }
 
-impl GoJsonDecode for atomicHeadTailIndex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// atomicMSpanPointer is an atomic.Pointer[mspan]. Can't use generics because it's NotInHeap.
 #[derive(Clone)]
@@ -735,14 +687,6 @@ impl std::fmt::Display for atomicMSpanPointer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.p.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for atomicMSpanPointer {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

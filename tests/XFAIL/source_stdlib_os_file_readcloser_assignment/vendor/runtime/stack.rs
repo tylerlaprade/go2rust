@@ -130,14 +130,6 @@ impl std::fmt::Display for stackpoolItem {
     }
 }
 
-impl GoJsonDecode for stackpoolItem {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct adjustinfo {
@@ -179,14 +171,6 @@ impl std::fmt::Display for adjustinfo {
         let __go_fmt_1 = format!("{}", (*self.delta.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.sghi.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for adjustinfo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -235,14 +219,6 @@ impl PartialEq for bitvector {
             { let __left = self.n.lock().unwrap(); let __right = other.n.lock().unwrap(); __left.as_ref() == __right.as_ref() }
                 && GoPtr::ptr_eq(&self.bytedata, &other.bytedata)
         )
-    }
-}
-
-impl GoJsonDecode for bitvector {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -295,14 +271,6 @@ impl std::fmt::Display for stackObjectRecord {
         let __go_fmt_2 = format!("{}", (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.gcdataoff.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for stackObjectRecord {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1972,14 +1940,6 @@ impl std::fmt::Display for AnonymousStruct32 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct AnonymousStruct33 {
@@ -2014,14 +1974,6 @@ impl std::fmt::Display for AnonymousStruct33 {
         let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.free));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct33 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

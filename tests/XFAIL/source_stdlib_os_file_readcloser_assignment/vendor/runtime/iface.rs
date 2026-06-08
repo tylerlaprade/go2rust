@@ -88,14 +88,6 @@ impl std::fmt::Display for itabTableType {
     }
 }
 
-impl GoJsonDecode for itabTableType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// The specialized convTx routines need a type descriptor to use when calling mallocgc.
 /// We don't need the type to be exact, just to have the correct size, alignment, and pointer-ness.

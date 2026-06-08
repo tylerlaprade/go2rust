@@ -490,20 +490,6 @@ impl std::fmt::Display for Timespec {
     }
 }
 
-impl GoJsonDecode for Timespec {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Sec") {
-            out.sec = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Nsec") {
-            out.nsec = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct Timeval32 {
@@ -542,20 +528,6 @@ impl std::fmt::Display for Timeval32 {
     }
 }
 
-impl GoJsonDecode for Timeval32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Sec") {
-            out.sec = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Usec") {
-            out.usec = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct Rlimit {
@@ -591,20 +563,6 @@ impl std::fmt::Display for Rlimit {
         let __go_fmt_0 = format!("{}", (*self.cur.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.max.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for Rlimit {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Cur") {
-            out.cur = <Arc<Mutex<Option<u64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Max") {
-            out.max = <Arc<Mutex<Option<u64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -770,59 +728,6 @@ impl std::fmt::Display for Stat_t {
     }
 }
 
-impl GoJsonDecode for Stat_t {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Dev") {
-            out.dev = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Mode") {
-            out.mode = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Nlink") {
-            out.nlink = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ino") {
-            out.ino = <Arc<Mutex<Option<u64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Uid") {
-            out.uid = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Gid") {
-            out.gid = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Rdev") {
-            out.rdev = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Size") {
-            out.size = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Blocks") {
-            out.blocks = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Blksize") {
-            out.blksize = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Gen") {
-            out.gen = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Lspare") {
-            out.lspare = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Qspare") {
-            out.qspare = <Arc<Mutex<Option<[i64; 2]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct Dirent {
@@ -891,35 +796,6 @@ impl std::fmt::Display for Dirent {
     }
 }
 
-impl GoJsonDecode for Dirent {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Ino") {
-            out.ino = <Arc<Mutex<Option<u64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Seekoff") {
-            out.seekoff = <Arc<Mutex<Option<u64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Reclen") {
-            out.reclen = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Namlen") {
-            out.namlen = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Name") {
-            out.name = <Arc<Mutex<Option<[i8; 1024]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 3]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct RawSockaddrInet4 {
@@ -973,29 +849,6 @@ impl std::fmt::Display for RawSockaddrInet4 {
         let __go_fmt_3 = format!("{}", format_slice(&self.addr));
         let __go_fmt_4 = format!("{}", format_slice(&self.zero));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for RawSockaddrInet4 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Family") {
-            out.family = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Port") {
-            out.port = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addr") {
-            out.addr = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Zero") {
-            out.zero = <Arc<Mutex<Option<[i8; 8]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -1061,32 +914,6 @@ impl std::fmt::Display for RawSockaddrInet6 {
     }
 }
 
-impl GoJsonDecode for RawSockaddrInet6 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Family") {
-            out.family = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Port") {
-            out.port = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flowinfo") {
-            out.flowinfo = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addr") {
-            out.addr = <Arc<Mutex<Option<[u8; 16]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Scope_id") {
-            out.scope_id = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct RawSockaddrUnix {
@@ -1128,23 +955,6 @@ impl std::fmt::Display for RawSockaddrUnix {
         let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", format_slice(&self.path));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for RawSockaddrUnix {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Family") {
-            out.family = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Path") {
-            out.path = <Arc<Mutex<Option<[i8; 104]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -1222,38 +1032,6 @@ impl std::fmt::Display for RawSockaddrDatalink {
     }
 }
 
-impl GoJsonDecode for RawSockaddrDatalink {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Family") {
-            out.family = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Index") {
-            out.index = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Nlen") {
-            out.nlen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Alen") {
-            out.alen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Slen") {
-            out.slen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Data") {
-            out.data = <Arc<Mutex<Option<[i8; 12]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct RawSockaddr {
@@ -1298,23 +1076,6 @@ impl std::fmt::Display for RawSockaddr {
     }
 }
 
-impl GoJsonDecode for RawSockaddr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Family") {
-            out.family = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Data") {
-            out.data = <Arc<Mutex<Option<[i8; 14]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct RawSockaddrAny {
@@ -1350,17 +1111,6 @@ impl std::fmt::Display for RawSockaddrAny {
         let __go_fmt_0 = format!("{}", (*self.addr.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.pad));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for RawSockaddrAny {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Pad") {
-            out.pad = <Arc<Mutex<Option<[i8; 92]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -1777,20 +1527,6 @@ impl std::fmt::Display for Linger {
     }
 }
 
-impl GoJsonDecode for Linger {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Onoff") {
-            out.onoff = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Linger") {
-            out.linger = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct Iovec {
@@ -1826,20 +1562,6 @@ impl std::fmt::Display for Iovec {
         let __go_fmt_0 = format!("{}", { if self.base.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for Iovec {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Base") {
-            out.base = GoPtr::local(<Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?);
-        }
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<u64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -1881,20 +1603,6 @@ impl std::fmt::Display for IPMreq {
     }
 }
 
-impl GoJsonDecode for IPMreq {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Multiaddr") {
-            out.multiaddr = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Interface") {
-            out.interface = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct IPv6Mreq {
@@ -1930,20 +1638,6 @@ impl std::fmt::Display for IPv6Mreq {
         let __go_fmt_0 = format!("{}", format_slice(&self.multiaddr));
         let __go_fmt_1 = format!("{}", (*self.interface.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for IPv6Mreq {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Multiaddr") {
-            out.multiaddr = <Arc<Mutex<Option<[u8; 16]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Interface") {
-            out.interface = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -2027,38 +1721,6 @@ impl std::fmt::Display for Msghdr {
     }
 }
 
-impl GoJsonDecode for Msghdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Name") {
-            out.name = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Namelen") {
-            out.namelen = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Iovlen") {
-            out.iovlen = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_1") {
-            out.pad_cgo_1 = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Control") {
-            out.control = GoPtr::local(<Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?);
-        }
-        if let Some(field_value) = object.get("Controllen") {
-            out.controllen = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct IfMsghdr {
@@ -2130,35 +1792,6 @@ impl std::fmt::Display for IfMsghdr {
         let __go_fmt_6 = format!("{}", format_slice(&self.pad_cgo_0));
         let __go_fmt_7 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
-    }
-}
-
-impl GoJsonDecode for IfMsghdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Msglen") {
-            out.msglen = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Version") {
-            out.version = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addrs") {
-            out.addrs = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Index") {
-            out.index = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 2]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -2394,98 +2027,6 @@ impl std::fmt::Display for IfData {
     }
 }
 
-impl GoJsonDecode for IfData {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Typelen") {
-            out.typelen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Physical") {
-            out.physical = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addrlen") {
-            out.addrlen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Hdrlen") {
-            out.hdrlen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Recvquota") {
-            out.recvquota = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Xmitquota") {
-            out.xmitquota = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Unused1") {
-            out.unused1 = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Mtu") {
-            out.mtu = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Metric") {
-            out.metric = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Baudrate") {
-            out.baudrate = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ipackets") {
-            out.ipackets = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ierrors") {
-            out.ierrors = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Opackets") {
-            out.opackets = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Oerrors") {
-            out.oerrors = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Collisions") {
-            out.collisions = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ibytes") {
-            out.ibytes = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Obytes") {
-            out.obytes = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Imcasts") {
-            out.imcasts = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Omcasts") {
-            out.omcasts = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Iqdrops") {
-            out.iqdrops = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Noproto") {
-            out.noproto = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Recvtiming") {
-            out.recvtiming = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Xmittiming") {
-            out.xmittiming = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Unused2") {
-            out.unused2 = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Hwassist") {
-            out.hwassist = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Reserved1") {
-            out.reserved1 = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Reserved2") {
-            out.reserved2 = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct IfaMsghdr {
@@ -2560,38 +2101,6 @@ impl std::fmt::Display for IfaMsghdr {
     }
 }
 
-impl GoJsonDecode for IfaMsghdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Msglen") {
-            out.msglen = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Version") {
-            out.version = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addrs") {
-            out.addrs = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Index") {
-            out.index = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 2]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Metric") {
-            out.metric = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct IfmaMsghdr2 {
@@ -2663,38 +2172,6 @@ impl std::fmt::Display for IfmaMsghdr2 {
         let __go_fmt_6 = format!("{}", format_slice(&self.pad_cgo_0));
         let __go_fmt_7 = format!("{}", (*self.refcount.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
-    }
-}
-
-impl GoJsonDecode for IfmaMsghdr2 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Msglen") {
-            out.msglen = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Version") {
-            out.version = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addrs") {
-            out.addrs = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Index") {
-            out.index = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 2]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Refcount") {
-            out.refcount = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -2818,50 +2295,6 @@ impl std::fmt::Display for RtMsghdr {
     }
 }
 
-impl GoJsonDecode for RtMsghdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Msglen") {
-            out.msglen = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Version") {
-            out.version = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Index") {
-            out.index = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pad_cgo_0") {
-            out.pad_cgo_0 = <Arc<Mutex<Option<[u8; 2]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addrs") {
-            out.addrs = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pid") {
-            out.pid = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Seq") {
-            out.seq = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Errno") {
-            out.errno = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Use") {
-            out.r#use = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Inits") {
-            out.inits = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct RtMetrics {
@@ -2965,47 +2398,6 @@ impl std::fmt::Display for RtMetrics {
             __go_fmt_9,
             __go_fmt_10
         )
-    }
-}
-
-impl GoJsonDecode for RtMetrics {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Locks") {
-            out.locks = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Mtu") {
-            out.mtu = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Hopcount") {
-            out.hopcount = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Expire") {
-            out.expire = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Recvpipe") {
-            out.recvpipe = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Sendpipe") {
-            out.sendpipe = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Ssthresh") {
-            out.ssthresh = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Rtt") {
-            out.rtt = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Rttvar") {
-            out.rttvar = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Pksent") {
-            out.pksent = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Filler") {
-            out.filler = <Arc<Mutex<Option<[u32; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

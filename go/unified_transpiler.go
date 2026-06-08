@@ -346,6 +346,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.ASTFiles)
 	pkgState.MethodsByType = collectPackageMethods(pkg.ASTFiles)
+	pkgState.JsonDecodeSupportNeeded = packageNeedsJsonDecodeSupport(pkg.ASTFiles, ut.globalTypeInfo)
 	packageAnalysis := analyzeTranspileFiles(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = packageAnalysis.comparableStructTypes

@@ -85,14 +85,6 @@ impl std::fmt::Display for mmapper {
     }
 }
 
-impl GoJsonDecode for mmapper {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// An Errno is an unsigned number describing an error condition.
 /// It implements the error interface. The zero Errno is by convention
@@ -923,20 +915,6 @@ impl std::fmt::Display for SockaddrInet4 {
     }
 }
 
-impl GoJsonDecode for SockaddrInet4 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Port") {
-            out.port = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addr") {
-            out.addr = <Arc<Mutex<Option<[u8; 4]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct SockaddrInet6 {
@@ -987,23 +965,6 @@ impl std::fmt::Display for SockaddrInet6 {
     }
 }
 
-impl GoJsonDecode for SockaddrInet6 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Port") {
-            out.port = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("ZoneId") {
-            out.zone_id = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Addr") {
-            out.addr = <Arc<Mutex<Option<[u8; 16]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct SockaddrUnix {
@@ -1039,17 +1000,6 @@ impl std::fmt::Display for SockaddrUnix {
         let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.raw.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for SockaddrUnix {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Name") {
-            out.name = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

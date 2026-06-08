@@ -72,14 +72,6 @@ impl std::fmt::Display for poolDequeue {
     }
 }
 
-impl GoJsonDecode for poolDequeue {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct eface {
@@ -115,14 +107,6 @@ impl std::fmt::Display for eface {
         let __go_fmt_0 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.val.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for eface {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -178,14 +162,6 @@ impl std::fmt::Display for poolChain {
     }
 }
 
-impl GoJsonDecode for poolChain {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct poolChainElt {
@@ -230,14 +206,6 @@ impl std::fmt::Display for poolChainElt {
     }
 }
 
-impl GoJsonDecode for poolChainElt {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone, Default)]
 pub struct AnonymousStruct1 {
@@ -253,14 +221,6 @@ impl AnonymousStruct1 {
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

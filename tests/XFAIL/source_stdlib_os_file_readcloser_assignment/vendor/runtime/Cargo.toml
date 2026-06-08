@@ -8,7 +8,6 @@ name = "runtime"
 path = "lib.rs"
 
 [dependencies]
-serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 internal_abi = { path = "../internal_abi" }
 internal_bytealg = { path = "../internal_bytealg" }

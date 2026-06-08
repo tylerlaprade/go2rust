@@ -3,6 +3,7 @@ package main
 import (
 	goast "go/ast"
 	goconstant "go/constant"
+	goparser "go/parser"
 	gotoken "go/token"
 	gotypes "go/types"
 	"os"
@@ -461,6 +462,154 @@ func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 			t.Fatalf("JSON support helpers should include %q:\n%s", want, got)
 		}
 	}
+}
+
+func TestPackageExternalStubsDoNotEmitJsonSupportByDefault(t *testing.T) {
+	pkg := NewPackageState()
+	pkg.ExternalPackageStubs["path"] = &externalPackageStub{
+		Constants: map[string]string{
+			"SEP": "u8",
+		},
+	}
+
+	got := GeneratePackageExternalStubs(pkg)
+	if !strings.Contains(got, "pub const SEP: u8") {
+		t.Fatalf("test setup should emit a non-JSON package stub:\n%s", got)
+	}
+	for _, unwanted := range []string{
+		"pub use serde_json",
+		"GoJsonDecode",
+		"GoJsonInputArg",
+		"GoJsonDecodeTarget",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("non-JSON package stubs should not emit JSON bridge support %q:\n%s", unwanted, got)
+		}
+	}
+}
+
+func TestPackageExternalStubsEmitJsonSupportWhenDecodeNeeded(t *testing.T) {
+	pkg := NewPackageState()
+	pkg.JsonDecodeSupportNeeded = true
+
+	got := GeneratePackageExternalStubs(pkg)
+	for _, want := range []string{
+		"pub use serde_json",
+		"pub trait GoJsonDecode",
+		"pub trait GoJsonDecodeTarget",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("JSON decode package support should emit %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestSharedStdlibStubCrateOmitsSerdeJsonWhenUnused(t *testing.T) {
+	pkg := NewPackageState()
+	pkg.ExternalPackageStubs["path"] = &externalPackageStub{
+		Constants: map[string]string{
+			"SEP": "u8",
+		},
+	}
+
+	dir := t.TempDir()
+	if err := WriteSharedStdlibStubCrate(dir, []*PackageState{pkg}, nil); err != nil {
+		t.Fatalf("WriteSharedStdlibStubCrate error = %v", err)
+	}
+	cargoToml, err := os.ReadFile(filepath.Join(dir, "vendor", sharedStdlibStubCrateName, "Cargo.toml"))
+	if err != nil {
+		t.Fatalf("ReadFile(Cargo.toml) error = %v", err)
+	}
+	if strings.Contains(string(cargoToml), "serde_json") {
+		t.Fatalf("non-JSON shared stdlib stub crate should not depend on serde_json:\n%s", cargoToml)
+	}
+	lib, err := os.ReadFile(filepath.Join(dir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if err != nil {
+		t.Fatalf("ReadFile(lib.rs) error = %v", err)
+	}
+	if strings.Contains(string(lib), "pub use serde_json") || strings.Contains(string(lib), "GoJsonDecode") {
+		t.Fatalf("non-JSON shared stdlib stub crate should not emit JSON helper bridge:\n%s", lib)
+	}
+}
+
+func TestSharedStdlibStubCrateIncludesSerdeJsonWhenJsonDecodeNeeded(t *testing.T) {
+	pkg := NewPackageState()
+	pkg.JsonDecodeSupportNeeded = true
+
+	dir := t.TempDir()
+	if err := WriteSharedStdlibStubCrate(dir, []*PackageState{pkg}, nil); err != nil {
+		t.Fatalf("WriteSharedStdlibStubCrate error = %v", err)
+	}
+	cargoToml, err := os.ReadFile(filepath.Join(dir, "vendor", sharedStdlibStubCrateName, "Cargo.toml"))
+	if err != nil {
+		t.Fatalf("ReadFile(Cargo.toml) error = %v", err)
+	}
+	if !strings.Contains(string(cargoToml), "serde_json = \"1\"") {
+		t.Fatalf("JSON shared stdlib stub crate should depend on serde_json:\n%s", cargoToml)
+	}
+}
+
+func TestPackageNeedsJsonDecodeSupportUsesGoTypes(t *testing.T) {
+	if jsonDecodeSupportForSource(t, `package main
+
+import "encoding/json"
+
+type payload struct {
+	Name string
+}
+
+func encode(p payload) {
+	_, _ = json.Marshal(p)
+}
+`) {
+		t.Fatalf("json.Marshal should not require JSON decode bridge support")
+	}
+
+	if !jsonDecodeSupportForSource(t, `package main
+
+import "encoding/json"
+
+type payload struct {
+	Name string
+}
+
+func decode(data []byte) {
+	var p payload
+	_ = json.Unmarshal(data, &p)
+}
+`) {
+		t.Fatalf("json.Unmarshal should require JSON decode bridge support")
+	}
+
+	if !jsonDecodeSupportForSource(t, `package main
+
+import . "encoding/json"
+
+type payload struct {
+	Name string
+}
+
+func decode(data []byte) {
+	var p payload
+	_ = Unmarshal(data, &p)
+}
+`) {
+		t.Fatalf("dot-imported encoding/json.Unmarshal should require JSON decode bridge support")
+	}
+}
+
+func jsonDecodeSupportForSource(t *testing.T, source string) bool {
+	t.Helper()
+	fileSet := gotoken.NewFileSet()
+	file, err := goparser.ParseFile(fileSet, "main.go", source, goparser.ParseComments|goparser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("ParseFile error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*goast.File{file}, fileSet)
+	if err != nil {
+		t.Fatalf("NewTypeInfo error = %v", err)
+	}
+	return packageNeedsJsonDecodeSupport([]*goast.File{file}, typeInfo)
 }
 
 func TestJsonDecoderMoreMatchesBareBoolSignature(t *testing.T) {

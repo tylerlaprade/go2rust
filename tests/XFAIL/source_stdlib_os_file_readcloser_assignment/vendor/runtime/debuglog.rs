@@ -120,14 +120,6 @@ impl std::fmt::Display for dloggerImpl {
     }
 }
 
-impl GoJsonDecode for dloggerImpl {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A debugLogWriter is a ring buffer of binary debug log records.
 ///
@@ -209,14 +201,6 @@ impl std::fmt::Display for debugLogWriter {
     }
 }
 
-impl GoJsonDecode for debugLogWriter {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct debugLogBuf {
@@ -252,14 +236,6 @@ impl std::fmt::Display for debugLogBuf {
         let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.b));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for debugLogBuf {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -316,14 +292,6 @@ impl std::fmt::Display for debugLogReader {
         let __go_fmt_3 = format!("{}", (*self.tick.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", (*self.nano.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for debugLogReader {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1464,14 +1432,6 @@ impl std::fmt::Display for AnonymousStruct2 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct2 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct3 {
@@ -1506,14 +1466,6 @@ impl std::fmt::Display for AnonymousStruct3 {
         let __go_fmt_0 = format!("{}", (*self.tick.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.i.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct3 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

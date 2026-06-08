@@ -93,14 +93,6 @@ impl std::fmt::Debug for TypeAssertionError {
     }
 }
 
-impl GoJsonDecode for TypeAssertionError {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// An errorString represents a runtime error described by a single string.
 #[derive(Debug, Clone, Default)]
@@ -153,14 +145,6 @@ impl Default for errorAddressString {
 impl std::fmt::Display for errorAddressString {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for errorAddressString {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

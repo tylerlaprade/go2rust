@@ -198,14 +198,6 @@ impl std::fmt::Display for scavengerState {
     }
 }
 
-impl GoJsonDecode for scavengerState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// scavengeIndex is a structure for efficiently managing which pageAlloc chunks have
 /// memory available to scavenge.
@@ -288,14 +280,6 @@ impl std::fmt::Display for scavengeIndex {
     }
 }
 
-impl GoJsonDecode for scavengeIndex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// atomicScavChunkData is an atomic wrapper around a scavChunkData
 /// that stores it in its packed form.
@@ -327,14 +311,6 @@ impl std::fmt::Display for atomicScavChunkData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for atomicScavChunkData {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -389,14 +365,6 @@ impl std::fmt::Display for scavChunkData {
         let __go_fmt_2 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.scav_chunk_flags.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for scavChunkData {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -847,14 +815,6 @@ impl std::fmt::Display for piController {
         let __go_fmt_6 = format!("{}", (*self.err_overflow.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_7 = format!("{}", (*self.input_overflow.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
-    }
-}
-
-impl GoJsonDecode for piController {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2430,14 +2390,6 @@ impl std::fmt::Display for AnonymousStruct14 {
         let __go_fmt_2 = format!("{}", (*self.assist_time.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.background_time.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct14 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

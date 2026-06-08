@@ -77,20 +77,6 @@ impl std::fmt::Display for RegArgs {
     }
 }
 
-impl GoJsonDecode for RegArgs {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Ints") {
-            out.ints = <Arc<Mutex<Option<[usize; 16]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Floats") {
-            out.floats = <Arc<Mutex<Option<[u64; 16]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 /// IntArgRegBitmap is a bitmap large enough to hold one bit per
 /// integer argument/return register.

@@ -103,14 +103,6 @@ impl std::fmt::Display for Location {
     }
 }
 
-impl GoJsonDecode for Location {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A zone represents a single time zone such as CET.
 #[derive(Debug, Clone)]
@@ -153,14 +145,6 @@ impl std::fmt::Display for zone {
         let __go_fmt_1 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.is_d_s_t.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for zone {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -212,14 +196,6 @@ impl std::fmt::Display for zoneTrans {
         let __go_fmt_2 = format!("{}", (*self.isstd.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.isutc.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for zoneTrans {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -660,14 +636,6 @@ impl std::fmt::Display for rule {
         let __go_fmt_3 = format!("{}", (*self.mon.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", (*self.time.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for rule {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

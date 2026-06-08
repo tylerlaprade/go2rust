@@ -108,14 +108,6 @@ impl std::fmt::Display for RWMutex {
     }
 }
 
-impl GoJsonDecode for RWMutex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct rlocker {
@@ -169,14 +161,6 @@ impl std::fmt::Display for rlocker {
         let __go_fmt_3 = format!("{}", (*self.reader_count.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", (*self.reader_wait.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for rlocker {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

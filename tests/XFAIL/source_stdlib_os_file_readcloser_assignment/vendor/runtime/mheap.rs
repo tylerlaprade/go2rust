@@ -391,14 +391,6 @@ impl std::fmt::Display for mheap {
     }
 }
 
-impl GoJsonDecode for mheap {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A heapArena stores metadata for a heap arena. heapArenas are stored
 /// outside of the Go heap and accessed via the mheap_.arenas index.
@@ -469,14 +461,6 @@ impl std::fmt::Display for heapArena {
     }
 }
 
-impl GoJsonDecode for heapArena {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// arenaHint is a hint for where to grow the heap arenas. See
 /// mheap_.arenaHints.
@@ -526,14 +510,6 @@ impl std::fmt::Display for arenaHint {
         let __go_fmt_2 = format!("{}", (*self.down.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for arenaHint {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -969,14 +945,6 @@ impl std::fmt::Display for mSpanStateBox {
     }
 }
 
-impl GoJsonDecode for mSpanStateBox {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// mSpanList heads a linked list of spans.
 #[derive(Clone)]
@@ -1019,14 +987,6 @@ impl std::fmt::Display for mSpanList {
         let __go_fmt_1 = format!("{}", { if self.first.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         let __go_fmt_2 = format!("{}", { if self.last.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for mSpanList {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1252,14 +1212,6 @@ impl std::fmt::Display for mspan {
             __go_fmt_26,
             __go_fmt_27
         )
-    }
-}
-
-impl GoJsonDecode for mspan {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2446,14 +2398,6 @@ impl std::fmt::Display for special {
     }
 }
 
-impl GoJsonDecode for special {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// The described object has a finalizer set for it.
 ///
@@ -2520,14 +2464,6 @@ impl std::fmt::Display for specialfinalizer {
     }
 }
 
-impl GoJsonDecode for specialfinalizer {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// The described object has a cleanup set for it.
 #[derive(Clone)]
@@ -2576,14 +2512,6 @@ impl std::fmt::Display for specialCleanup {
         let __go_fmt_2 = format!("{}", { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_3 = format!("{}", (*self.id.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for specialCleanup {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2654,14 +2582,6 @@ impl std::fmt::Display for specialWeakHandle {
     }
 }
 
-impl GoJsonDecode for specialWeakHandle {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// The described object is being heap profiled.
 #[derive(Clone)]
@@ -2704,14 +2624,6 @@ impl std::fmt::Display for specialprofile {
         let __go_fmt_1 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", { if self.b.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for specialprofile {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2761,14 +2673,6 @@ impl std::fmt::Display for specialReachable {
     }
 }
 
-impl GoJsonDecode for specialReachable {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// specialPinCounter tracks whether an object is pinned multiple times.
 #[derive(Clone)]
@@ -2808,14 +2712,6 @@ impl std::fmt::Display for specialPinCounter {
     }
 }
 
-impl GoJsonDecode for specialPinCounter {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// specialsIter helps iterate over specials lists.
 #[derive(Clone, Default)]
@@ -2840,14 +2736,6 @@ impl std::fmt::Display for specialsIter {
         let __go_fmt_0 = format!("{}", { let __guard = self.pprev.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_1 = format!("{}", { let __guard = self.s.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for specialsIter {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2890,14 +2778,6 @@ impl std::fmt::Display for gcBits {
     }
 }
 
-impl GoJsonDecode for gcBits {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct gcBitsHeader {
@@ -2933,14 +2813,6 @@ impl std::fmt::Display for gcBitsHeader {
         let __go_fmt_0 = format!("{}", (*self.free.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for gcBitsHeader {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2994,14 +2866,6 @@ impl std::fmt::Display for gcBitsArena {
     }
 }
 
-impl GoJsonDecode for gcBitsArena {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct AnonymousStruct15 {
@@ -3045,14 +2909,6 @@ impl std::fmt::Display for AnonymousStruct15 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct15 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct16 {
@@ -3090,14 +2946,6 @@ impl std::fmt::Display for AnonymousStruct16 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct16 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct AnonymousStruct17 {
@@ -3132,14 +2980,6 @@ impl std::fmt::Display for AnonymousStruct17 {
         let __go_fmt_0 = format!("{}", (*self.mcentral.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.pad));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct17 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -3183,14 +3023,6 @@ impl std::fmt::Display for AnonymousStruct18 {
         let __go_fmt_1 = format!("{}", (*self.quarantine_list.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.ready_list.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct18 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -5621,14 +5453,6 @@ impl std::fmt::Display for AnonymousStruct19 {
         let __go_fmt_3 = format!("{}", { let __guard = self.current.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_4 = format!("{}", { let __guard = self.previous.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct19 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

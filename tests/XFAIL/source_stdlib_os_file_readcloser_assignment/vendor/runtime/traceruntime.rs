@@ -105,14 +105,6 @@ impl std::fmt::Display for gTraceState {
     }
 }
 
-impl GoJsonDecode for gTraceState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// mTraceState is per-M state for the tracer.
 #[derive(Clone)]
@@ -167,14 +159,6 @@ impl std::fmt::Display for mTraceState {
         let __go_fmt_3 = format!("{}", (*self.reentered.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", (*self.oldthrowsplit.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for mTraceState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -238,14 +222,6 @@ impl std::fmt::Display for pTraceState {
         let __go_fmt_4 = format!("{}", (*self.swept.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_5 = format!("{}", (*self.reclaimed.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
-    }
-}
-
-impl GoJsonDecode for pTraceState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1048,14 +1024,6 @@ impl std::fmt::Display for traceLocker {
         let __go_fmt_0 = format!("{}", { let __guard = self.mp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_1 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for traceLocker {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

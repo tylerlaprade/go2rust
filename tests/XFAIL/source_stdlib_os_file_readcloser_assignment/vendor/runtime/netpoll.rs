@@ -233,14 +233,6 @@ impl std::fmt::Display for pollDesc {
     }
 }
 
-impl GoJsonDecode for pollDesc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// pollInfo is the bits needed by netpollcheckerr, stored atomically,
 /// mostly duplicating state that is manipulated under lock in pollDesc.
@@ -655,14 +647,6 @@ impl std::fmt::Display for pollCache {
         let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", { if self.first.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for pollCache {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

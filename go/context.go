@@ -85,6 +85,7 @@ type PackageState struct {
 	ExternalTypeStubMethods       map[string]map[string]externalTypeStubMethod
 	ExternalTypeStubConversions   map[string]map[string]bool
 	ExternalPackageStubs          map[string]*externalPackageStub
+	JsonDecodeSupportNeeded       bool
 	Helpers                       *HelperTracker
 	GeneratedCrateDependencies    map[string]bool
 }

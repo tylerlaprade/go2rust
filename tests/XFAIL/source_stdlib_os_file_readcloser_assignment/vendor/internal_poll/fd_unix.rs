@@ -115,23 +115,6 @@ impl std::fmt::Display for FD {
     }
 }
 
-impl GoJsonDecode for FD {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Sysfd") {
-            out.sysfd = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsStream") {
-            out.is_stream = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("ZeroReadIsEOF") {
-            out.zero_read_is_e_o_f = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 pub(crate) static dupCloexecUnsupported: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<sync_atomic::r#type::Bool>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 

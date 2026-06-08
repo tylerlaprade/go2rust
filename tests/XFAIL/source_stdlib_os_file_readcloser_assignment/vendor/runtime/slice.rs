@@ -73,14 +73,6 @@ impl std::fmt::Display for slice {
     }
 }
 
-impl GoJsonDecode for slice {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A notInHeapSlice is a slice backed by internal/runtime/sys.NotInHeap memory.
 #[derive(Clone)]
@@ -123,14 +115,6 @@ impl std::fmt::Display for notInHeapSlice {
         let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.cap.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for notInHeapSlice {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

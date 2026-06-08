@@ -80,14 +80,6 @@ impl std::fmt::Display for rtype {
     }
 }
 
-impl GoJsonDecode for rtype {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A bitCursor is a simple cursor to memory to which we
 /// can write a set of bits.
@@ -125,14 +117,6 @@ impl std::fmt::Display for bitCursor {
         let __go_fmt_0 = format!("{}", { if self.ptr.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         let __go_fmt_1 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for bitCursor {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -981,14 +965,6 @@ impl std::fmt::Display for AnonymousStruct39 {
         let __go_fmt_2 = format!("{}", format_map(&self.m));
         let __go_fmt_3 = format!("{}", format_map(&self.minv));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct39 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

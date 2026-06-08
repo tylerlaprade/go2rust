@@ -12,7 +12,7 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
-        internal_stringslite::__go_init_all();
+        ::internal_stringslite::__go_init_all();
         path::__go_zero_globals();
         path::__go_init_order_0();
     });

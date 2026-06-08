@@ -173,14 +173,6 @@ impl std::fmt::Display for gcCPULimiterState {
     }
 }
 
-impl GoJsonDecode for gcCPULimiterState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// limiterEventType indicates the type of an event occurring on some P.
 ///
@@ -971,14 +963,6 @@ impl std::fmt::Display for limiterEvent {
     }
 }
 
-impl GoJsonDecode for limiterEvent {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct13 {
@@ -1013,14 +997,6 @@ impl std::fmt::Display for AnonymousStruct13 {
         let __go_fmt_0 = format!("{}", (*self.fill.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.capacity.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct13 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

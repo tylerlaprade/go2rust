@@ -287,6 +287,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	packageState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	packageState.PointerComparablePointeeTypes = packageAnalysis.pointerComparablePointees
+	packageState.JsonDecodeSupportNeeded = packageNeedsJsonDecodeSupport(astFiles, pg.typeInfo)
 	pg.usePackageHelpers = len(astFiles) > 1
 	session := NewTranspileSession(pg.typeInfo, pg.packageMapping)
 	session.PackageTypeModuleNames = pg.packageTypeModules

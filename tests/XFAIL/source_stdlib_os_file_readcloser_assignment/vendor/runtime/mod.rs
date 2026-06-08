@@ -93,14 +93,6 @@ impl std::fmt::Display for ticksType {
     }
 }
 
-impl GoJsonDecode for ticksType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A godebugInc provides access to internal/godebug's IncNonDefault function
 /// for a given GODEBUG setting.
@@ -139,14 +131,6 @@ impl std::fmt::Display for godebugInc {
         let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.inc.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for godebugInc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

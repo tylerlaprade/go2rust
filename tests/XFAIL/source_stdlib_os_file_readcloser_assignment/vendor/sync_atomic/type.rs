@@ -58,14 +58,6 @@ impl std::fmt::Display for Bool {
     }
 }
 
-impl GoJsonDecode for Bool {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A Pointer is an atomic pointer of type *T. The zero value is a nil *T.
 pub struct Pointer<T: Any + Send + Sync + 'static> {
@@ -116,14 +108,6 @@ impl<T: Any + Send + Sync + 'static> std::fmt::Display for Pointer<T> {
     }
 }
 
-impl<T: Any + Send + Sync + 'static> GoJsonDecode for Pointer<T> {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// An Int32 is an atomic int32. The zero value is zero.
 #[derive(Debug, Clone)]
@@ -163,14 +147,6 @@ impl std::fmt::Display for Int32 {
     }
 }
 
-impl GoJsonDecode for Int32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A Uint32 is an atomic uint32. The zero value is zero.
 #[derive(Debug, Clone)]
@@ -207,14 +183,6 @@ impl std::fmt::Display for Uint32 {
         let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.v.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for Uint32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -263,14 +231,6 @@ impl std::fmt::Display for Uint64 {
     }
 }
 
-impl GoJsonDecode for Uint64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// noCopy may be added to structs which must not be copied
 /// after the first use.
@@ -296,14 +256,6 @@ impl std::fmt::Display for noCopy {
     }
 }
 
-impl GoJsonDecode for noCopy {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// align64 may be added to structs that must be 64-bit aligned.
 /// This struct is recognized by a special case in the compiler
@@ -322,14 +274,6 @@ impl align64 {
 impl std::fmt::Display for align64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for align64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

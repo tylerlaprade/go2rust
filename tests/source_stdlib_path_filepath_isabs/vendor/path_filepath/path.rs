@@ -1,10 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::r#match::*;
-use crate::path_unix::*;
-use crate::symlink::*;
-use crate::symlink_unix::*;
-
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 

@@ -635,14 +635,6 @@ impl std::fmt::Display for Matcher {
     }
 }
 
-impl GoJsonDecode for Matcher {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A cond is a single condition in the matcher.
 /// Given an input id, if id&mask == bits, return the result.
@@ -686,14 +678,6 @@ impl std::fmt::Display for cond {
         let __go_fmt_1 = format!("{}", (*self.bits.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.result.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for cond {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -745,14 +729,6 @@ impl std::fmt::Display for parseError {
     }
 }
 
-impl GoJsonDecode for parseError {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A dedup is a deduplicator for call stacks, so that we only print
 /// a report for new call stacks, not for call stacks we've already
@@ -800,14 +776,6 @@ impl std::fmt::Display for dedup {
         let __go_fmt_0 = format!("{}", format_nested_slice(&self.recent));
         let __go_fmt_1 = format!("{}", format_map(&self.m));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for dedup {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

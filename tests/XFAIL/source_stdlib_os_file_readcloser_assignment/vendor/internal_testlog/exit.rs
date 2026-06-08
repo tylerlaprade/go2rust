@@ -61,14 +61,6 @@ impl std::fmt::Display for AnonymousStruct1 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub(crate) type panicOnExit0 = AnonymousStruct1;
 

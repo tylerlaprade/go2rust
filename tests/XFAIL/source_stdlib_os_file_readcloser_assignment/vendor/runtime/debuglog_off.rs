@@ -50,14 +50,6 @@ impl std::fmt::Display for dlogPerM {
     }
 }
 
-impl GoJsonDecode for dlogPerM {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub fn put_cached_dlogger(l: Arc<Mutex<Option<dloggerImpl>>>) -> bool {
     false

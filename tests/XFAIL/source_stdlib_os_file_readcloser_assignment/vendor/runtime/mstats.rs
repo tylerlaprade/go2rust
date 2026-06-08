@@ -187,14 +187,6 @@ impl std::fmt::Display for mstats {
     }
 }
 
-impl GoJsonDecode for mstats {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// sysMemStat represents a global system statistic that is managed atomically.
 ///
@@ -696,14 +688,6 @@ impl std::fmt::Display for heapStatsDelta {
     }
 }
 
-impl GoJsonDecode for heapStatsDelta {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// consistentHeapStats represents a set of various memory statistics
 /// whose updates must be viewed completely to get a consistent
@@ -752,14 +736,6 @@ impl std::fmt::Display for consistentHeapStats {
         let __go_fmt_1 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.no_p_lock.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for consistentHeapStats {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -866,47 +842,6 @@ impl std::fmt::Display for cpuStats {
             __go_fmt_9,
             __go_fmt_10
         )
-    }
-}
-
-impl GoJsonDecode for cpuStats {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("GCAssistTime") {
-            out.g_c_assist_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("GCDedicatedTime") {
-            out.g_c_dedicated_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("GCIdleTime") {
-            out.g_c_idle_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("GCPauseTime") {
-            out.g_c_pause_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("GCTotalTime") {
-            out.g_c_total_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("ScavengeAssistTime") {
-            out.scavenge_assist_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("ScavengeBgTime") {
-            out.scavenge_bg_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("ScavengeTotalTime") {
-            out.scavenge_total_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IdleTime") {
-            out.idle_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("UserTime") {
-            out.user_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("TotalTime") {
-            out.total_time = <Arc<Mutex<Option<i64>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

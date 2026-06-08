@@ -84,14 +84,6 @@ impl std::fmt::Display for stackWorkBuf {
     }
 }
 
-impl GoJsonDecode for stackWorkBuf {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// Header declaration must come after the buf declaration above, because of issue #14620.
 #[derive(Clone)]
@@ -134,14 +126,6 @@ impl std::fmt::Display for stackWorkBufHdr {
         let __go_fmt_1 = format!("{}", (*self.workbufhdr.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for stackWorkBufHdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -191,14 +175,6 @@ impl std::fmt::Display for stackObjectBuf {
     }
 }
 
-impl GoJsonDecode for stackObjectBuf {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct stackObjectBufHdr {
@@ -240,14 +216,6 @@ impl std::fmt::Display for stackObjectBufHdr {
         let __go_fmt_1 = format!("{}", (*self.workbufhdr.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for stackObjectBufHdr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -312,14 +280,6 @@ impl std::fmt::Display for stackObject {
         let __go_fmt_4 = format!("{}", { if self.left.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         let __go_fmt_5 = format!("{}", { if self.right.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
-    }
-}
-
-impl GoJsonDecode for stackObject {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -402,14 +362,6 @@ impl std::fmt::Display for stackScanState {
         let __go_fmt_7 = format!("{}", (*self.nobjs.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_8 = format!("{}", { if self.root.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
-    }
-}
-
-impl GoJsonDecode for stackScanState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

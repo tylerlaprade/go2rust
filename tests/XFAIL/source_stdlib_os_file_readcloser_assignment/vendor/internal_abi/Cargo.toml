@@ -8,6 +8,5 @@ name = "internal_abi"
 path = "lib.rs"
 
 [dependencies]
-serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 internal_goarch = { path = "../internal_goarch" }

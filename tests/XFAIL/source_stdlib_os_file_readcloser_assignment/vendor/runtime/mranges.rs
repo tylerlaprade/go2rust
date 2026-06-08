@@ -78,14 +78,6 @@ impl std::fmt::Display for addrRange {
     }
 }
 
-impl GoJsonDecode for addrRange {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// offAddr represents an address in a contiguous view
 /// of the address space on systems where the address space is
@@ -128,14 +120,6 @@ impl PartialEq for offAddr {
     }
 }
 
-impl GoJsonDecode for offAddr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// atomicOffAddr is like offAddr, but operations on it are atomic.
 /// It also contains operations to be able to store marked addresses
@@ -168,14 +152,6 @@ impl std::fmt::Display for atomicOffAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.a.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for atomicOffAddr {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -230,14 +206,6 @@ impl std::fmt::Display for addrRanges {
         let __go_fmt_1 = format!("{}", (*self.total_bytes.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", { let __guard = self.sys_stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for addrRanges {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

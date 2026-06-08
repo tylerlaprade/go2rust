@@ -112,14 +112,6 @@ impl std::fmt::Display for mOS {
     }
 }
 
-impl GoJsonDecode for mOS {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone, Default)]
 pub struct sigset(pub Arc<Mutex<Option<u32>>>);

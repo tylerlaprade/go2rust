@@ -150,14 +150,6 @@ impl std::fmt::Display for mcache {
     }
 }
 
-impl GoJsonDecode for mcache {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A gclink is a node in a linked list of blocks, like mlink,
 /// but it is opaque to the garbage collector.
@@ -193,14 +185,6 @@ impl std::fmt::Display for gclink {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for gclink {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -616,14 +600,6 @@ impl std::fmt::Display for stackfreelist {
         let __go_fmt_0 = format!("{}", (*self.list.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for stackfreelist {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

@@ -67,17 +67,6 @@ impl std::fmt::Display for StackRecord {
     }
 }
 
-impl GoJsonDecode for StackRecord {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Stack") {
-            out.stack = <Arc<Mutex<Option<Vec<usize>>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 impl GoValueClone for StackRecord {
     fn go_value_clone(&self) -> Self {

@@ -8,7 +8,6 @@ name = "internal_bisect"
 path = "lib.rs"
 
 [dependencies]
-serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 runtime = { path = "../runtime" }
 sync = { path = "../sync" }

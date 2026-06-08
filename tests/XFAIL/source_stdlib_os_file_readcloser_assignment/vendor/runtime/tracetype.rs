@@ -70,14 +70,6 @@ impl std::fmt::Display for traceTypeTable {
     }
 }
 
-impl GoJsonDecode for traceTypeTable {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl traceTypeTable {
     /// put returns a unique id for the type typ and caches it in the table,

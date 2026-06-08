@@ -96,14 +96,6 @@ impl std::fmt::Display for mWaitList {
     }
 }
 
-impl GoJsonDecode for mWaitList {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 ///go:nosplit
 pub fn key8(p: Arc<Mutex<Option<usize>>>) -> Option<GoArrayElemPtr<u8, 8>> {

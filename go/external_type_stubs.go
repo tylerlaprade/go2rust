@@ -1039,7 +1039,7 @@ func GeneratePackageExternalStubs(pkg *PackageState) string {
 	if pkg == nil {
 		return ""
 	}
-	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubInterfaces, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubTupleTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
+	return generateExternalStubsForPackage(pkg.ExternalTypeStubs, pkg.ExternalTypeStubInterfaces, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubTupleTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs, pkg.JsonDecodeSupportNeeded)
 }
 
 func WriteSharedStdlibStubCrate(workDir string, states []*PackageState, packageMapping map[string]string) error {
@@ -1074,9 +1074,11 @@ name = "%s"
 path = "lib.rs"
 
 [dependencies]
-serde_json = "1"
 gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
+	if strings.Contains(stubCode, "serde_json::") || strings.Contains(stubCode, "pub use serde_json") {
+		cargoToml += "serde_json = \"1\"\n"
+	}
 	for _, depCrate := range sourceMappedDeps {
 		cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
 	}
@@ -1134,6 +1136,7 @@ func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
 		if state == nil {
 			continue
 		}
+		merged.JsonDecodeSupportNeeded = merged.JsonDecodeSupportNeeded || state.JsonDecodeSupportNeeded
 		mergeBoolMap(merged.ExternalTypeStubs, state.ExternalTypeStubs)
 		mergeBoolMap(merged.ExternalTypeStubInterfaces, state.ExternalTypeStubInterfaces)
 		mergeStringMap(merged.ExternalTypeStubIntegerTypes, state.ExternalTypeStubIntegerTypes)
@@ -1662,6 +1665,10 @@ impl json_Decoder {
 }
 
 func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
+	return generateExternalStubsForPackage(stubs, interfaceTypes, integerTypes, tupleTypes, fieldsByType, methodsByType, conversions, packageStubs, false)
+}
+
+func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub, jsonDecodeSupportNeeded bool) string {
 	if methodsByType["exec_Cmd"] != nil {
 		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
 			stubs["os_File"] = true
@@ -1672,7 +1679,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			stubs["os_File"] = true
 		}
 	}
-	needsJsonSupport := usePackageExternalStubs() || externalStubsNeedJsonSupport(stubs, packageStubs)
+	needsJsonSupport := jsonDecodeSupportNeeded || externalStubsNeedJsonSupport(stubs, packageStubs)
 	if len(stubs) == 0 && len(conversions) == 0 && len(packageStubs) == 0 && !needsJsonSupport {
 		return ""
 	}

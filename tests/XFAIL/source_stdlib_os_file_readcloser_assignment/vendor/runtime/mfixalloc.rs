@@ -148,14 +148,6 @@ impl std::fmt::Display for fixalloc {
     }
 }
 
-impl GoJsonDecode for fixalloc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A generic linked list of blocks.  (Typically the block is bigger than sizeof(MLink).)
 /// Since assignments to mlink.next will result in a write barrier being performed
@@ -196,14 +188,6 @@ impl std::fmt::Display for mlink {
         let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for mlink {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

@@ -11,9 +11,9 @@ use std::sync::{Arc, Mutex};
 /// the source-generated crate; the bridge rows retire when default callers
 /// no longer need the external package shim.
 fn main() {
-    internal_filepathlite::__go_init_all();
-    internal_stringslite::__go_init_all();
-    path_filepath::__go_init_all();
+    ::internal_filepathlite::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::path_filepath::__go_init_all();
 
     println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("/foo".to_string()))))));
     println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("foo".to_string()))))));

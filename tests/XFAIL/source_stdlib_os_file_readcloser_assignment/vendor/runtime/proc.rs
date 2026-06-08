@@ -560,14 +560,6 @@ impl std::fmt::Display for worldStop {
     }
 }
 
-impl GoJsonDecode for worldStop {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct cgothreadstart {
@@ -609,14 +601,6 @@ impl std::fmt::Display for cgothreadstart {
         let __go_fmt_1 = format!("{}", { let __guard = self.tls.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_2 = format!("{}", (*self.r#fn.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for cgothreadstart {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -667,14 +651,6 @@ impl std::fmt::Display for sysmontick {
         let __go_fmt_2 = format!("{}", (*self.schedwhen.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.syscallwhen.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for sysmontick {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -729,14 +705,6 @@ impl std::fmt::Display for gQueue {
     }
 }
 
-impl GoJsonDecode for gQueue {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A gList is a list of Gs linked through g.schedlink. A G can only be
 /// on one gQueue or gList at a time.
@@ -768,14 +736,6 @@ impl std::fmt::Display for gList {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.head.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for gList {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -818,14 +778,6 @@ impl std::fmt::Display for randomOrder {
         let __go_fmt_0 = format!("{}", (*self.count.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.coprimes));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for randomOrder {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -879,14 +831,6 @@ impl std::fmt::Display for randomEnum {
     }
 }
 
-impl GoJsonDecode for randomEnum {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// An initTask represents the set of initializations that need to be done for a package.
 /// Keep in sync with ../../test/noinit.go:initTask
@@ -924,14 +868,6 @@ impl std::fmt::Display for initTask {
         let __go_fmt_0 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.nfns.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for initTask {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -982,14 +918,6 @@ impl std::fmt::Display for tracestat {
         let __go_fmt_2 = format!("{}", (*self.allocs.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.bytes.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for tracestat {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -8367,14 +8295,6 @@ impl std::fmt::Display for AnonymousStruct22 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct22 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct AnonymousStruct23 {
@@ -8409,14 +8329,6 @@ impl std::fmt::Display for AnonymousStruct23 {
         let __go_fmt_0 = format!("{}", (*self.signal_lock.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.hz.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct23 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

@@ -72,20 +72,6 @@ impl std::fmt::Display for ITab {
     }
 }
 
-impl GoJsonDecode for ITab {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Hash") {
-            out.hash = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Fun") {
-            out.fun = <Arc<Mutex<Option<[usize; 1]>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 /// EmptyInterface describes the layout of a "interface{}" or a "any."
 /// These are represented differently than non-empty interface, as the first
@@ -124,14 +110,6 @@ impl std::fmt::Display for EmptyInterface {
         let __go_fmt_0 = format!("{}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         let __go_fmt_1 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for EmptyInterface {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

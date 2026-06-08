@@ -1,8 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::path_nonwindows::*;
-use crate::path_unix::*;
-
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 

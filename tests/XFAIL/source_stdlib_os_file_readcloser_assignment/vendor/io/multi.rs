@@ -32,14 +32,6 @@ impl std::fmt::Display for eofReader {
     }
 }
 
-impl GoJsonDecode for eofReader {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone, Default)]
 pub struct multiReader {
@@ -62,14 +54,6 @@ impl std::fmt::Display for multiReader {
     }
 }
 
-impl GoJsonDecode for multiReader {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone, Default)]
 pub struct multiWriter {
@@ -89,14 +73,6 @@ impl std::fmt::Display for multiWriter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", format_slice_wrapped_stringer(&self.writers));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for multiWriter {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

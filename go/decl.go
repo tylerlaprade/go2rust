@@ -1376,7 +1376,46 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 }
 
 func shouldGenerateJsonDecodeImpl() bool {
-	return currentContext != nil && currentContext.UsePackageExternalStubs
+	return currentContext != nil &&
+		currentContext.UsePackageExternalStubs &&
+		currentContext.Package != nil &&
+		currentContext.Package.JsonDecodeSupportNeeded
+}
+
+func packageNeedsJsonDecodeSupport(files []*ast.File, typeInfo *TypeInfo) bool {
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		needed := false
+		ast.Inspect(file, func(node ast.Node) bool {
+			if needed {
+				return false
+			}
+			ident, ok := node.(*ast.Ident)
+			if !ok {
+				return true
+			}
+			obj := typeInfo.info.Uses[ident]
+			if obj == nil || obj.Pkg() == nil || obj.Pkg().Path() != "encoding/json" {
+				return true
+			}
+			switch obj.Name() {
+			case "Decoder", "Decode", "More", "NewDecoder", "Unmarshal":
+				needed = true
+				return false
+			default:
+				return true
+			}
+		})
+		if needed {
+			return true
+		}
+	}
+	return false
 }
 
 func jsonDecodeFieldName(fieldName string, tag *ast.BasicLit) (string, bool) {

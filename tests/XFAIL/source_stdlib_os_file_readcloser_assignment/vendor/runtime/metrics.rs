@@ -91,14 +91,6 @@ impl std::fmt::Display for metricData {
     }
 }
 
-impl GoJsonDecode for metricData {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// statDep is a dependency on a group of statistics
 /// that a metric might have.
@@ -568,14 +560,6 @@ impl std::fmt::Display for heapStatsAggregate {
     }
 }
 
-impl GoJsonDecode for heapStatsAggregate {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// sysStatsAggregate represents system memory stats obtained
 /// from the runtime. This set of stats is grouped together because
@@ -689,14 +673,6 @@ impl std::fmt::Display for sysStatsAggregate {
     }
 }
 
-impl GoJsonDecode for sysStatsAggregate {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// cpuStatsAggregate represents CPU stats obtained from the runtime
 /// acquired together to avoid skew and inconsistencies.
@@ -728,14 +704,6 @@ impl std::fmt::Display for cpuStatsAggregate {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-impl GoJsonDecode for cpuStatsAggregate {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -788,14 +756,6 @@ impl std::fmt::Display for gcStatsAggregate {
         let __go_fmt_2 = format!("{}", (*self.globals_scan.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.total_scan.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for gcStatsAggregate {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -857,14 +817,6 @@ impl std::fmt::Display for statAggregate {
         let __go_fmt_3 = format!("{}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", (*self.gc_stats.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for statAggregate {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1298,14 +1250,6 @@ impl std::fmt::Display for metricValue {
     }
 }
 
-impl GoJsonDecode for metricValue {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// metricFloat64Histogram is a runtime copy of runtime/metrics.Float64Histogram
 /// and must be kept structurally identical to that type.
@@ -1331,14 +1275,6 @@ impl std::fmt::Display for metricFloat64Histogram {
         let __go_fmt_0 = format!("{}", format_slice(&self.counts));
         let __go_fmt_1 = format!("{}", format_slice(&self.buckets));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for metricFloat64Histogram {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

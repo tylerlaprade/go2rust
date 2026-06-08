@@ -887,14 +887,6 @@ impl std::fmt::Display for traceEventWriter {
     }
 }
 
-impl GoJsonDecode for traceEventWriter {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl crate::traceruntime::traceLocker {
     /// eventWriter creates a new traceEventWriter. It is the main entrypoint for writing trace events.

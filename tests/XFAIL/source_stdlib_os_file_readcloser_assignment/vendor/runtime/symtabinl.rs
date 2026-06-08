@@ -86,14 +86,6 @@ impl std::fmt::Display for inlinedCall {
     }
 }
 
-impl GoJsonDecode for inlinedCall {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// An inlineUnwinder iterates over the stack of inlined calls at a PC by
 /// decoding the inline table. The last step of iteration is always the frame of
@@ -145,14 +137,6 @@ impl std::fmt::Display for inlineUnwinder {
     }
 }
 
-impl GoJsonDecode for inlineUnwinder {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// An inlineFrame is a position in an inlineUnwinder.
 #[derive(Debug, Clone)]
@@ -189,14 +173,6 @@ impl std::fmt::Display for inlineFrame {
         let __go_fmt_0 = format!("{}", (*self.pc.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for inlineFrame {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

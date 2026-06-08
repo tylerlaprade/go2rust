@@ -447,17 +447,6 @@ impl std::fmt::Debug for ValueError {
     }
 }
 
-impl GoJsonDecode for ValueError {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Method") {
-            out.method = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 pub(crate) static dummy: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<AnonymousStruct1>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
@@ -629,14 +618,6 @@ impl std::fmt::Display for AnonymousStruct1 {
         let __go_fmt_0 = format!("{}", (*self.b.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_any(self.x.lock().unwrap().as_ref().unwrap().as_ref()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

@@ -88,14 +88,6 @@ impl std::fmt::Display for Map {
     }
 }
 
-impl GoJsonDecode for Map {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl Map {
     /// Load returns the value stored in the map for a key, or nil if no

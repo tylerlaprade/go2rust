@@ -77,14 +77,6 @@ impl std::fmt::Display for Once {
     }
 }
 
-impl GoJsonDecode for Once {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl Once {
     /// Do calls the function f if and only if Do is being called for the

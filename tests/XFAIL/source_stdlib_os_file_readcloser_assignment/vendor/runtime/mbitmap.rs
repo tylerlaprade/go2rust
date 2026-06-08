@@ -114,14 +114,6 @@ impl std::fmt::Display for typePointers {
     }
 }
 
-impl GoJsonDecode for typePointers {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// markBits provides access to the mark bit for an object in the heap.
 /// bytep points to the byte holding the mark bit.
@@ -172,14 +164,6 @@ impl std::fmt::Display for markBits {
         let __go_fmt_1 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_2 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for markBits {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2082,14 +2066,6 @@ impl std::fmt::Display for AnonymousStruct5 {
         let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", { let __guard = self.data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct5 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

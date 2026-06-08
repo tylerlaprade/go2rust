@@ -553,14 +553,6 @@ impl std::fmt::Display for pageAlloc {
     }
 }
 
-impl GoJsonDecode for pageAlloc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// pallocSum is a packed summary type which packs three numbers: start, max,
 /// and end into a single 8-byte value. Each of these values are a summary of
@@ -2387,14 +2379,6 @@ impl std::fmt::Display for AnonymousStruct20 {
         let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.bound.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct20 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

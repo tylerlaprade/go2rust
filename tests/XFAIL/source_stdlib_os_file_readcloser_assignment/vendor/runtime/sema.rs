@@ -103,14 +103,6 @@ impl std::fmt::Display for semaRoot {
     }
 }
 
-impl GoJsonDecode for semaRoot {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct semTable(pub Arc<Mutex<Option<[AnonymousStruct30; 251]>>>);
@@ -537,14 +529,6 @@ impl std::fmt::Display for AnonymousStruct30 {
         let __go_fmt_0 = format!("{}", (*self.root.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.pad));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct30 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

@@ -202,14 +202,6 @@ impl std::fmt::Display for AnonymousStruct31 {
     }
 }
 
-impl GoJsonDecode for AnonymousStruct31 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub(crate) type sig = AnonymousStruct31;
 

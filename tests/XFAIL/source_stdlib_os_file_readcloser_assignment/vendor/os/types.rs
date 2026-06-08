@@ -58,14 +58,6 @@ impl std::fmt::Display for File {
     }
 }
 
-impl GoJsonDecode for File {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// A FileInfo describes a file and is returned by [Stat] and [Lstat].
 pub type FileInfo = Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>;

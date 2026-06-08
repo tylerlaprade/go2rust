@@ -115,26 +115,6 @@ impl std::fmt::Display for SwissMapType {
     }
 }
 
-impl GoJsonDecode for SwissMapType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("GroupSize") {
-            out.group_size = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("SlotSize") {
-            out.slot_size = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("ElemOff") {
-            out.elem_off = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Flags") {
-            out.flags = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 impl SwissMapType {
     pub fn need_key_update(&self) -> bool {

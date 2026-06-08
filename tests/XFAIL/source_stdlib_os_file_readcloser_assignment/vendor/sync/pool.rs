@@ -123,14 +123,6 @@ impl std::fmt::Display for Pool {
     }
 }
 
-impl GoJsonDecode for Pool {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// Local per-P Pool appendix.
 #[derive(Clone)]
@@ -170,14 +162,6 @@ impl std::fmt::Display for poolLocalInternal {
     }
 }
 
-impl GoJsonDecode for poolLocalInternal {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct poolLocal {
@@ -213,14 +197,6 @@ impl std::fmt::Display for poolLocal {
         let __go_fmt_0 = format!("{}", (*self.pool_local_internal.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.pad));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for poolLocal {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

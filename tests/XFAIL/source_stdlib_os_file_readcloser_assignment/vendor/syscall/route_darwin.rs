@@ -72,17 +72,6 @@ impl std::fmt::Display for InterfaceMulticastAddrMessage {
     }
 }
 
-impl GoJsonDecode for InterfaceMulticastAddrMessage {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Data") {
-            out.data = <Arc<Mutex<Option<Vec<u8>>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 impl crate::route_bsd::anyMessage {
     pub fn to_routing_message(&self, b: Arc<Mutex<Option<Vec<u8>>>>) -> Arc<Mutex<Option<Box<dyn RoutingMessage + Send + Sync>>>> {

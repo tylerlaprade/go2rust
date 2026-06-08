@@ -83,14 +83,6 @@ impl std::fmt::Display for traceStackTable {
     }
 }
 
-impl GoJsonDecode for traceStackTable {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct traceFrame {
@@ -138,17 +130,6 @@ impl std::fmt::Display for traceFrame {
         let __go_fmt_2 = format!("{}", (*self.file_i_d.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.line.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for traceFrame {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("PC") {
-            out.p_c = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

@@ -8,5 +8,4 @@ name = "internal_coverage_rtcov"
 path = "lib.rs"
 
 [dependencies]
-serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }

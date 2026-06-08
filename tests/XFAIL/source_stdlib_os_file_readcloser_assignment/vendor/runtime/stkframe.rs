@@ -112,14 +112,6 @@ impl std::fmt::Display for stkframe {
     }
 }
 
-impl GoJsonDecode for stkframe {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// reflectMethodValue is a partial duplicate of reflect.makeFuncImpl
 /// and reflect.methodValue.
@@ -163,14 +155,6 @@ impl std::fmt::Display for reflectMethodValue {
         let __go_fmt_1 = format!("{}", { let __guard = self.stack.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_2 = format!("{}", (*self.arg_len.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for reflectMethodValue {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

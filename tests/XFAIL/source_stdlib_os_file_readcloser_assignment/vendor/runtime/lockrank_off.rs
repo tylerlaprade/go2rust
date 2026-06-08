@@ -59,14 +59,6 @@ impl std::fmt::Display for lockRankStruct {
     }
 }
 
-impl GoJsonDecode for lockRankStruct {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub fn lock_init(l: GoPtr<crate::runtime2::mutex>, rank: Arc<Mutex<Option<lockRank>>>) {
 }

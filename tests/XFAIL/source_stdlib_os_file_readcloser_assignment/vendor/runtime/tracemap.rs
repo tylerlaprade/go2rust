@@ -91,14 +91,6 @@ impl std::fmt::Display for traceMap {
     }
 }
 
-impl GoJsonDecode for traceMap {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// traceMapNode is an implementation of a lock-free append-only hash-trie
 /// (a trie of the hash bits).
@@ -164,14 +156,6 @@ impl std::fmt::Display for traceMapNode {
         let __go_fmt_3 = format!("{}", (*self.id.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_4 = format!("{}", format_slice(&self.data));
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
-    }
-}
-
-impl GoJsonDecode for traceMapNode {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

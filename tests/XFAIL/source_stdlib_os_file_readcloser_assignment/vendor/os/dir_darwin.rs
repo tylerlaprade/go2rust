@@ -55,14 +55,6 @@ impl std::fmt::Display for dirInfo {
     }
 }
 
-impl GoJsonDecode for dirInfo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl dirInfo {
     pub fn close(&mut self) {

@@ -109,14 +109,6 @@ impl std::fmt::Display for cpuProfile {
     }
 }
 
-impl GoJsonDecode for cpuProfile {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub(crate) static cpuprof: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<cpuProfile>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 

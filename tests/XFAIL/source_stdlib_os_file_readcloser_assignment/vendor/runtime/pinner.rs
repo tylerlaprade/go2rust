@@ -83,14 +83,6 @@ impl std::fmt::Display for pinner {
     }
 }
 
-impl GoJsonDecode for pinner {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct pinState {
@@ -135,14 +127,6 @@ impl std::fmt::Display for pinState {
     }
 }
 
-impl GoJsonDecode for pinState {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// pinnerBits is the same type as gcBits but has different methods.
 #[derive(Clone)]
@@ -179,14 +163,6 @@ impl std::fmt::Display for pinnerBits {
         let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for pinnerBits {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

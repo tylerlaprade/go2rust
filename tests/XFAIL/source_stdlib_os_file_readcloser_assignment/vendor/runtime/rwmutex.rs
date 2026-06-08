@@ -120,14 +120,6 @@ impl std::fmt::Display for rwmutex {
     }
 }
 
-impl GoJsonDecode for rwmutex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 impl rwmutex {
     /// Lock ranking an rwmutex has two aspects:

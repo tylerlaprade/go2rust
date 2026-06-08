@@ -97,14 +97,6 @@ impl std::fmt::Display for liveUserArenaChunk {
     }
 }
 
-impl GoJsonDecode for liveUserArenaChunk {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct writeUserArenaHeapBits {
@@ -152,14 +144,6 @@ impl std::fmt::Display for writeUserArenaHeapBits {
         let __go_fmt_2 = format!("{}", (*self.valid.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_3 = format!("{}", (*self.low.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
-    }
-}
-
-impl GoJsonDecode for writeUserArenaHeapBits {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -1110,14 +1094,6 @@ impl std::fmt::Display for AnonymousStruct1 {
         let __go_fmt_1 = format!("{}", format_slice(&self.reuse));
         let __go_fmt_2 = format!("{}", format_slice(&self.fault));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

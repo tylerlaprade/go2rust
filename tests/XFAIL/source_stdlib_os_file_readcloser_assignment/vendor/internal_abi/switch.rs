@@ -56,17 +56,6 @@ impl std::fmt::Display for InterfaceSwitchCache {
     }
 }
 
-impl GoJsonDecode for InterfaceSwitchCache {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Mask") {
-            out.mask = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct InterfaceSwitchCacheEntry {
@@ -111,23 +100,6 @@ impl std::fmt::Display for InterfaceSwitchCacheEntry {
     }
 }
 
-impl GoJsonDecode for InterfaceSwitchCacheEntry {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Typ") {
-            out.typ = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Case") {
-            out.case = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Itab") {
-            out.itab = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct TypeAssertCache {
@@ -166,17 +138,6 @@ impl std::fmt::Display for TypeAssertCache {
     }
 }
 
-impl GoJsonDecode for TypeAssertCache {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Mask") {
-            out.mask = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
-
 
 #[derive(Debug, Clone)]
 pub struct TypeAssertCacheEntry {
@@ -212,20 +173,6 @@ impl std::fmt::Display for TypeAssertCacheEntry {
         let __go_fmt_0 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.itab.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for TypeAssertCacheEntry {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Typ") {
-            out.typ = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Itab") {
-            out.itab = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 

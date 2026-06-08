@@ -92,14 +92,6 @@ impl std::fmt::Display for traceRegionAlloc {
     }
 }
 
-impl GoJsonDecode for traceRegionAlloc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 /// traceRegionAllocBlock is a block in traceRegionAlloc.
 ///
@@ -149,14 +141,6 @@ impl std::fmt::Display for traceRegionAllocBlock {
     }
 }
 
-impl GoJsonDecode for traceRegionAllocBlock {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 #[derive(Clone)]
 pub struct traceRegionAllocBlockHeader {
@@ -192,14 +176,6 @@ impl std::fmt::Display for traceRegionAllocBlockHeader {
         let __go_fmt_0 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
         let __go_fmt_1 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
-impl GoJsonDecode for traceRegionAllocBlockHeader {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 

@@ -65,14 +65,6 @@ impl std::fmt::Display for pollDesc {
     }
 }
 
-impl GoJsonDecode for pollDesc {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
 
 pub(crate) static serverInit: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<sync::once::Once>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
