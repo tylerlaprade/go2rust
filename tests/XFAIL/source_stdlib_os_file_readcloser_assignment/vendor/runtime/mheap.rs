@@ -178,7 +178,43 @@ impl Default for mheap {
 
 impl std::fmt::Display for mheap {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.pages.lock().unwrap().as_ref().unwrap()), (*self.sweepgen.lock().unwrap().as_ref().unwrap()), { let __guard = self.allspans.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } }, (*self.pages_in_use.lock().unwrap().as_ref().unwrap()), (*self.pages_swept.lock().unwrap().as_ref().unwrap()), (*self.pages_swept_basis.lock().unwrap().as_ref().unwrap()), (*self.sweep_heap_live_basis.lock().unwrap().as_ref().unwrap()), (*self.sweep_pages_per_byte.lock().unwrap().as_ref().unwrap()), (*self.reclaim_index.lock().unwrap().as_ref().unwrap()), (*self.reclaim_credit.lock().unwrap().as_ref().unwrap()), (*self.__blank_12_0.lock().unwrap().as_ref().unwrap()), format_nested_pointer_slice_wrapped(&self.arenas), (*self.arenas_huge_pages.lock().unwrap().as_ref().unwrap()), (*self.heap_arena_alloc.lock().unwrap().as_ref().unwrap()), { if self.arena_hints.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.arena.lock().unwrap().as_ref().unwrap()), format_slice(&self.all_arenas), format_slice(&self.sweep_arenas), format_slice(&self.mark_arenas), (*self.cur_arena.lock().unwrap().as_ref().unwrap()), format_slice(&self.central), (*self.spanalloc.lock().unwrap().as_ref().unwrap()), (*self.cachealloc.lock().unwrap().as_ref().unwrap()), (*self.specialfinalizeralloc.lock().unwrap().as_ref().unwrap()), (*self.special_cleanup_alloc.lock().unwrap().as_ref().unwrap()), (*self.specialprofilealloc.lock().unwrap().as_ref().unwrap()), (*self.special_reachable_alloc.lock().unwrap().as_ref().unwrap()), (*self.special_pin_counter_alloc.lock().unwrap().as_ref().unwrap()), (*self.special_weak_handle_alloc.lock().unwrap().as_ref().unwrap()), (*self.speciallock.lock().unwrap().as_ref().unwrap()), (*self.arena_hint_alloc.lock().unwrap().as_ref().unwrap()), (*self.user_arena.lock().unwrap().as_ref().unwrap()), (*self.cleanup_i_d.lock().unwrap().as_ref().unwrap()), { let __guard = self.unused.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.pages.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.sweepgen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", { let __guard = self.allspans.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } });
+        let __go_fmt_5 = format!("{}", (*self.pages_in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.pages_swept.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.pages_swept_basis.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.sweep_heap_live_basis.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.sweep_pages_per_byte.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.reclaim_index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.reclaim_credit.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.__blank_12_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", format_nested_pointer_slice_wrapped(&self.arenas));
+        let __go_fmt_14 = format!("{}", (*self.arenas_huge_pages.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.heap_arena_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", { if self.arena_hints.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_17 = format!("{}", (*self.arena.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", format_slice(&self.all_arenas));
+        let __go_fmt_19 = format!("{}", format_slice(&self.sweep_arenas));
+        let __go_fmt_20 = format!("{}", format_slice(&self.mark_arenas));
+        let __go_fmt_21 = format!("{}", (*self.cur_arena.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", format_slice(&self.central));
+        let __go_fmt_23 = format!("{}", (*self.spanalloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.cachealloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", (*self.specialfinalizeralloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_26 = format!("{}", (*self.special_cleanup_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", (*self.specialprofilealloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_28 = format!("{}", (*self.special_reachable_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_29 = format!("{}", (*self.special_pin_counter_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_30 = format!("{}", (*self.special_weak_handle_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_31 = format!("{}", (*self.speciallock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_32 = format!("{}", (*self.arena_hint_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_33 = format!("{}", (*self.user_arena.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_34 = format!("{}", (*self.cleanup_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_35 = format!("{}", { let __guard = self.unused.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35)
     }
 }
 
@@ -234,7 +270,14 @@ impl Default for heapArena {
 
 impl std::fmt::Display for heapArena {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.spans.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } }, format_slice(&self.page_in_use), format_slice(&self.page_marks), format_slice(&self.page_specials), { if self.checkmarks.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.zeroed_base.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.spans.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } });
+        let __go_fmt_2 = format!("{}", format_slice(&self.page_in_use));
+        let __go_fmt_3 = format!("{}", format_slice(&self.page_marks));
+        let __go_fmt_4 = format!("{}", format_slice(&self.page_specials));
+        let __go_fmt_5 = format!("{}", { if self.checkmarks.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_6 = format!("{}", (*self.zeroed_base.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -281,7 +324,11 @@ impl Default for arenaHint {
 
 impl std::fmt::Display for arenaHint {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.down.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.addr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.down.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -717,7 +764,8 @@ impl Default for mSpanStateBox {
 
 impl std::fmt::Display for mSpanStateBox {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.s.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.s.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -760,7 +808,10 @@ impl Default for mSpanList {
 
 impl std::fmt::Display for mSpanList {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { if self.first.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.last.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.first.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", { if self.last.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -877,7 +928,35 @@ impl Default for mspan {
 
 impl std::fmt::Display for mspan {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.prev.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { let __guard = self.list.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.start_addr.lock().unwrap().as_ref().unwrap()), (*self.npages.lock().unwrap().as_ref().unwrap()), (*self.manual_free_list.lock().unwrap().as_ref().unwrap()), (*self.freeindex.lock().unwrap().as_ref().unwrap()), (*self.nelems.lock().unwrap().as_ref().unwrap()), (*self.free_index_for_scan.lock().unwrap().as_ref().unwrap()), (*self.alloc_cache.lock().unwrap().as_ref().unwrap()), { if self.alloc_bits.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.gcmark_bits.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { let __guard = self.pinner_bits.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.sweepgen.lock().unwrap().as_ref().unwrap()), (*self.div_mul.lock().unwrap().as_ref().unwrap()), (*self.alloc_count.lock().unwrap().as_ref().unwrap()), (*self.spanclass.lock().unwrap().as_ref().unwrap()), (*self.state.lock().unwrap().as_ref().unwrap()), (*self.needzero.lock().unwrap().as_ref().unwrap()), (*self.is_user_arena_chunk.lock().unwrap().as_ref().unwrap()), (*self.alloc_count_before_cache.lock().unwrap().as_ref().unwrap()), (*self.elemsize.lock().unwrap().as_ref().unwrap()), (*self.limit.lock().unwrap().as_ref().unwrap()), (*self.speciallock.lock().unwrap().as_ref().unwrap()), { let __guard = self.specials.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.user_arena_chunk_free.lock().unwrap().as_ref().unwrap()), { if self.large_type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", { if self.prev.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_3 = format!("{}", { let __guard = self.list.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", (*self.start_addr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.npages.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.manual_free_list.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.freeindex.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.nelems.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.free_index_for_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.alloc_cache.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", { if self.alloc_bits.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_12 = format!("{}", { if self.gcmark_bits.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_13 = format!("{}", { let __guard = self.pinner_bits.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_14 = format!("{}", (*self.sweepgen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.div_mul.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.alloc_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.spanclass.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.needzero.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.is_user_arena_chunk.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.alloc_count_before_cache.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.elemsize.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_23 = format!("{}", (*self.limit.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.speciallock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", { let __guard = self.specials.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_26 = format!("{}", (*self.user_arena_chunk_free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", { if self.large_type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27)
     }
 }
 
@@ -2055,7 +2134,11 @@ impl Default for special {
 
 impl std::fmt::Display for special {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.offset.lock().unwrap().as_ref().unwrap()), (*self.kind.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.kind.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2110,7 +2193,13 @@ impl Default for specialfinalizer {
 
 impl std::fmt::Display for specialfinalizer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.special.lock().unwrap().as_ref().unwrap()), { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.nret.lock().unwrap().as_ref().unwrap()), { let __guard = self.fint.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { if self.ot.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.nret.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", { let __guard = self.fint.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_5 = format!("{}", { if self.ot.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -2156,7 +2245,11 @@ impl Default for specialCleanup {
 
 impl std::fmt::Display for specialCleanup {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.special.lock().unwrap().as_ref().unwrap()), { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.id.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.id.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2221,7 +2314,10 @@ impl Default for specialWeakHandle {
 
 impl std::fmt::Display for specialWeakHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.special.lock().unwrap().as_ref().unwrap()), { let __guard = self.handle.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.handle.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2264,7 +2360,10 @@ impl Default for specialprofile {
 
 impl std::fmt::Display for specialprofile {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.special.lock().unwrap().as_ref().unwrap()), { if self.b.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { if self.b.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2308,7 +2407,10 @@ impl Default for specialReachable {
 
 impl std::fmt::Display for specialReachable {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.special.lock().unwrap().as_ref().unwrap()), (*self.done.lock().unwrap().as_ref().unwrap()), (*self.reachable.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.done.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reachable.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2348,7 +2450,9 @@ impl Default for specialPinCounter {
 
 impl std::fmt::Display for specialPinCounter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.special.lock().unwrap().as_ref().unwrap()), (*self.counter.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.special.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.counter.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2381,7 +2485,9 @@ impl specialsIter {
 
 impl std::fmt::Display for specialsIter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.pprev.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.s.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self.pprev.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __guard = self.s.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2421,7 +2527,9 @@ impl Default for gcBits {
 
 impl std::fmt::Display for gcBits {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.x.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2460,7 +2568,9 @@ impl Default for gcBitsHeader {
 
 impl std::fmt::Display for gcBitsHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.free.lock().unwrap().as_ref().unwrap()), (*self.next.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2505,7 +2615,11 @@ impl Default for gcBitsArena {
 
 impl std::fmt::Display for gcBitsArena {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.free.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, format_slice(&self.bits))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_3 = format!("{}", format_slice(&self.bits));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2546,7 +2660,10 @@ impl Default for AnonymousStruct15 {
 
 impl std::fmt::Display for AnonymousStruct15 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.index.lock().unwrap().as_ref().unwrap()), (*self.released_bg.lock().unwrap().as_ref().unwrap()), (*self.released_eager.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.released_bg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.released_eager.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2584,7 +2701,9 @@ impl Default for AnonymousStruct16 {
 
 impl std::fmt::Display for AnonymousStruct16 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2622,7 +2741,9 @@ impl Default for AnonymousStruct17 {
 
 impl std::fmt::Display for AnonymousStruct17 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.mcentral.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad))
+        let __go_fmt_0 = format!("{}", (*self.mcentral.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.pad));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2663,7 +2784,10 @@ impl Default for AnonymousStruct18 {
 
 impl std::fmt::Display for AnonymousStruct18 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", { if self.arena_hints.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.quarantine_list.lock().unwrap().as_ref().unwrap()), (*self.ready_list.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.arena_hints.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.quarantine_list.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.ready_list.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -4642,7 +4766,12 @@ impl Default for AnonymousStruct19 {
 
 impl std::fmt::Display for AnonymousStruct19 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { if self.free.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.current.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.previous.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.free.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", { let __guard = self.current.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", { let __guard = self.previous.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

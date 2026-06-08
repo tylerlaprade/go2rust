@@ -38,7 +38,8 @@ impl rtype {
 
 impl std::fmt::Display for rtype {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -79,7 +80,9 @@ impl Default for bitCursor {
 
 impl std::fmt::Display for bitCursor {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { if self.ptr.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.n.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.ptr.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -662,7 +665,11 @@ impl Default for AnonymousStruct39 {
 
 impl std::fmt::Display for AnonymousStruct39 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.next.lock().unwrap().as_ref().unwrap()), format_map(&self.m), format_map(&self.minv))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_map(&self.m));
+        let __go_fmt_3 = format!("{}", format_map(&self.minv));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

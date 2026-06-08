@@ -615,7 +615,12 @@ impl Default for Matcher {
 
 impl std::fmt::Display for Matcher {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.verbose.lock().unwrap().as_ref().unwrap()), (*self.quiet.lock().unwrap().as_ref().unwrap()), (*self.enable.lock().unwrap().as_ref().unwrap()), format_slice(&self.list), (*self.dedup.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.verbose.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.quiet.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.enable.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_slice(&self.list));
+        let __go_fmt_4 = format!("{}", (*self.dedup.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -659,7 +664,10 @@ impl Default for cond {
 
 impl std::fmt::Display for cond {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.mask.lock().unwrap().as_ref().unwrap()), (*self.bits.lock().unwrap().as_ref().unwrap()), (*self.result.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.bits.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.result.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -761,7 +769,9 @@ impl Default for dedup {
 
 impl std::fmt::Display for dedup {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_nested_slice(&self.recent), format_map(&self.m))
+        let __go_fmt_0 = format!("{}", format_nested_slice(&self.recent));
+        let __go_fmt_1 = format!("{}", format_map(&self.m));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

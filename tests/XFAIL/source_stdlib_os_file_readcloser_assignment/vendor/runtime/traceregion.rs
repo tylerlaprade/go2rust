@@ -44,7 +44,11 @@ impl Default for traceRegionAlloc {
 
 impl std::fmt::Display for traceRegionAlloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.dropping.lock().unwrap().as_ref().unwrap()), (*self.current.lock().unwrap().as_ref().unwrap()), { if self.full.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.dropping.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.current.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { if self.full.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -91,7 +95,10 @@ impl Default for traceRegionAllocBlock {
 
 impl std::fmt::Display for traceRegionAllocBlock {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -130,7 +137,9 @@ impl Default for traceRegionAllocBlockHeader {
 
 impl std::fmt::Display for traceRegionAllocBlockHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.off.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

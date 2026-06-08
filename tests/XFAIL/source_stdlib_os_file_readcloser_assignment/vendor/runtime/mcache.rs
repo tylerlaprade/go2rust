@@ -63,7 +63,17 @@ impl Default for mcache {
 
 impl std::fmt::Display for mcache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.next_sample.lock().unwrap().as_ref().unwrap()), (*self.mem_prof_rate.lock().unwrap().as_ref().unwrap()), (*self.scan_alloc.lock().unwrap().as_ref().unwrap()), (*self.tiny.lock().unwrap().as_ref().unwrap()), (*self.tinyoffset.lock().unwrap().as_ref().unwrap()), (*self.tiny_allocs.lock().unwrap().as_ref().unwrap()), { let __guard = self.alloc.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } }, format_slice(&self.stackcache), (*self.flush_gen.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.next_sample.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.mem_prof_rate.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.scan_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.tiny.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.tinyoffset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.tiny_allocs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", { let __guard = self.alloc.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } });
+        let __go_fmt_8 = format!("{}", format_slice(&self.stackcache));
+        let __go_fmt_9 = format!("{}", (*self.flush_gen.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9)
     }
 }
 
@@ -105,7 +115,8 @@ impl Default for gclink {
 
 impl std::fmt::Display for gclink {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.next.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -521,7 +532,9 @@ impl Default for stackfreelist {
 
 impl std::fmt::Display for stackfreelist {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.list.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.list.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

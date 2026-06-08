@@ -62,7 +62,16 @@ impl Default for FD {
 
 impl std::fmt::Display for FD {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", (*self.fdmu.lock().unwrap().as_ref().unwrap()), (*self.sysfd.lock().unwrap().as_ref().unwrap()), (*self.sys_file.lock().unwrap().as_ref().unwrap()), (*self.pd.lock().unwrap().as_ref().unwrap()), (*self.csema.lock().unwrap().as_ref().unwrap()), (*self.is_blocking.lock().unwrap().as_ref().unwrap()), (*self.is_stream.lock().unwrap().as_ref().unwrap()), (*self.zero_read_is_e_o_f.lock().unwrap().as_ref().unwrap()), (*self.is_file.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.fdmu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.sysfd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.sys_file.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.pd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.csema.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.is_blocking.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.is_stream.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.zero_read_is_e_o_f.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.is_file.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 

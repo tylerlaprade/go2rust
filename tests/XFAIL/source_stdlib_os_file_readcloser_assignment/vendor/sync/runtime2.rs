@@ -42,7 +42,12 @@ impl Default for notifyList {
 
 impl std::fmt::Display for notifyList {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.wait.lock().unwrap().as_ref().unwrap()), (*self.notify.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.head.lock().unwrap().as_ref().unwrap()), (*self.tail.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.wait.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.notify.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.head.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.tail.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

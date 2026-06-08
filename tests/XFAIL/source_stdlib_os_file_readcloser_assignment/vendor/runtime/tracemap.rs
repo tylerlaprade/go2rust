@@ -42,7 +42,12 @@ impl Default for traceMap {
 
 impl std::fmt::Display for traceMap {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.root.lock().unwrap().as_ref().unwrap()), (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), (*self.seq.lock().unwrap().as_ref().unwrap()), (*self.__blank_3_0.lock().unwrap().as_ref().unwrap()), (*self.mem.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.root.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.seq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.__blank_3_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.mem.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -102,7 +107,12 @@ impl Default for traceMapNode {
 
 impl std::fmt::Display for traceMapNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), format_slice(&self.children), (*self.hash.lock().unwrap().as_ref().unwrap()), (*self.id.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.children));
+        let __go_fmt_2 = format!("{}", (*self.hash.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.id.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

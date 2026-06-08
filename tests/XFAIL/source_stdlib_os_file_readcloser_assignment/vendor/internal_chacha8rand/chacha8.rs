@@ -52,7 +52,12 @@ impl Default for State {
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", format_slice(&self.buf), format_slice(&self.seed), (*self.i.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()), (*self.c.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.buf));
+        let __go_fmt_1 = format!("{}", format_slice(&self.seed));
+        let __go_fmt_2 = format!("{}", (*self.i.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.c.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

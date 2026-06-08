@@ -38,7 +38,9 @@ impl Default for pinner {
 
 impl std::fmt::Display for pinner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.refs), format_slice(&self.ref_store))
+        let __go_fmt_0 = format!("{}", format_slice(&self.refs));
+        let __go_fmt_1 = format!("{}", format_slice(&self.ref_store));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -80,7 +82,10 @@ impl Default for pinState {
 
 impl std::fmt::Display for pinState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", { if self.bytep.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.byte_val.lock().unwrap().as_ref().unwrap()), (*self.mask.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.bytep.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.byte_val.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -120,7 +125,9 @@ impl Default for pinnerBits {
 
 impl std::fmt::Display for pinnerBits {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.x.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

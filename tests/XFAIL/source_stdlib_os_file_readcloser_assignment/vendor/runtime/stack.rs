@@ -64,7 +64,10 @@ impl Default for stackpoolItem {
 
 impl std::fmt::Display for stackpoolItem {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.mu.lock().unwrap().as_ref().unwrap()), (*self.span.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.span.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -106,7 +109,10 @@ impl Default for adjustinfo {
 
 impl std::fmt::Display for adjustinfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.old.lock().unwrap().as_ref().unwrap()), (*self.delta.lock().unwrap().as_ref().unwrap()), (*self.sghi.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.old.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.delta.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.sghi.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -147,7 +153,9 @@ impl Default for bitvector {
 
 impl std::fmt::Display for bitvector {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.n.lock().unwrap().as_ref().unwrap()), { if self.bytedata.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.bytedata.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 impl PartialEq for bitvector {
@@ -202,7 +210,11 @@ impl Default for stackObjectRecord {
 
 impl std::fmt::Display for stackObjectRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.off.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()), (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()), (*self.gcdataoff.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.gcdataoff.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -1340,7 +1352,9 @@ impl Default for AnonymousStruct32 {
 
 impl std::fmt::Display for AnonymousStruct32 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.item.lock().unwrap().as_ref().unwrap()), format_slice(&self.__blank_1_0))
+        let __go_fmt_0 = format!("{}", (*self.item.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.__blank_1_0));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1378,7 +1392,9 @@ impl Default for AnonymousStruct33 {
 
 impl std::fmt::Display for AnonymousStruct33 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.free))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.free));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

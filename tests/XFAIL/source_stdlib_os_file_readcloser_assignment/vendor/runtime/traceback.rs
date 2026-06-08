@@ -450,7 +450,12 @@ impl Default for unwinder {
 
 impl std::fmt::Display for unwinder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.frame.lock().unwrap().as_ref().unwrap()), (*self.g.lock().unwrap().as_ref().unwrap()), (*self.cgo_ctxt.lock().unwrap().as_ref().unwrap()), (*self.callee_func_i_d.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.frame.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.g.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.cgo_ctxt.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.callee_func_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -496,7 +501,11 @@ impl Default for cgoTracebackArg {
 
 impl std::fmt::Display for cgoTracebackArg {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.context.lock().unwrap().as_ref().unwrap()), (*self.sig_context.lock().unwrap().as_ref().unwrap()), { let __guard = self.buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.max.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.context.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.sig_context.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.max.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -551,7 +560,14 @@ impl Default for cgoSymbolizerArg {
 
 impl std::fmt::Display for cgoSymbolizerArg {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.pc.lock().unwrap().as_ref().unwrap()), { let __guard = self.file.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.lineno.lock().unwrap().as_ref().unwrap()), { let __guard = self.func_name.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.entry.lock().unwrap().as_ref().unwrap()), (*self.more.lock().unwrap().as_ref().unwrap()), (*self.data.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.file.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.lineno.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { let __guard = self.func_name.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", (*self.entry.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.more.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 

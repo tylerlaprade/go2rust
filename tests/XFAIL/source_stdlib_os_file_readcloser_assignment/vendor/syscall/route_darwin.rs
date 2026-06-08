@@ -39,7 +39,9 @@ impl Default for InterfaceMulticastAddrMessage {
 
 impl std::fmt::Display for InterfaceMulticastAddrMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.header.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.header.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

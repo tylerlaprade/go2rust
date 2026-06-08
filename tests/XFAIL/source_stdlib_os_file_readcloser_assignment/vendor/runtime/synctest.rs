@@ -55,7 +55,16 @@ impl Default for synctestGroup {
 
 impl std::fmt::Display for synctestGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", (*self.mu.lock().unwrap().as_ref().unwrap()), (*self.timers.lock().unwrap().as_ref().unwrap()), (*self.now.lock().unwrap().as_ref().unwrap()), { let __guard = self.root.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.waiter.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.waiting.lock().unwrap().as_ref().unwrap()), (*self.total.lock().unwrap().as_ref().unwrap()), (*self.running.lock().unwrap().as_ref().unwrap()), (*self.active.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.timers.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.now.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { let __guard = self.root.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", { let __guard = self.waiter.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_5 = format!("{}", (*self.waiting.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.total.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.running.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.active.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 

@@ -61,7 +61,8 @@ impl Default for typeCacheBucket {
 
 impl std::fmt::Display for typeCacheBucket {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { let __guard = self.t.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self.t.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

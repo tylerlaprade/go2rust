@@ -72,7 +72,17 @@ impl Default for fixalloc {
 
 impl std::fmt::Display for fixalloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", (*self.size.lock().unwrap().as_ref().unwrap()), "<func>", (*self.arg.lock().unwrap().as_ref().unwrap()), { if self.list.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.chunk.lock().unwrap().as_ref().unwrap()), (*self.nchunk.lock().unwrap().as_ref().unwrap()), (*self.nalloc.lock().unwrap().as_ref().unwrap()), (*self.inuse.lock().unwrap().as_ref().unwrap()), { let __guard = self.stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.zero.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", "<func>");
+        let __go_fmt_2 = format!("{}", (*self.arg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { if self.list.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_4 = format!("{}", (*self.chunk.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.nchunk.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.nalloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.inuse.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", { let __guard = self.stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_9 = format!("{}", (*self.zero.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9)
     }
 }
 
@@ -116,7 +126,9 @@ impl Default for mlink {
 
 impl std::fmt::Display for mlink {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

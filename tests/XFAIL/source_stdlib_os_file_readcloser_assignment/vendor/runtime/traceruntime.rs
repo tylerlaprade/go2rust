@@ -58,7 +58,8 @@ impl Default for gTraceState {
 
 impl std::fmt::Display for gTraceState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.trace_sched_resource_state.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.trace_sched_resource_state.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -107,7 +108,12 @@ impl Default for mTraceState {
 
 impl std::fmt::Display for mTraceState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.seqlock.lock().unwrap().as_ref().unwrap()), format_nested_slice_wrapped(&self.buf), { let __guard = self.link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.reentered.lock().unwrap().as_ref().unwrap()), (*self.oldthrowsplit.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.seqlock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_nested_slice_wrapped(&self.buf));
+        let __go_fmt_2 = format!("{}", { let __guard = self.link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.reentered.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.oldthrowsplit.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -159,7 +165,13 @@ impl Default for pTraceState {
 
 impl std::fmt::Display for pTraceState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.trace_sched_resource_state.lock().unwrap().as_ref().unwrap()), (*self.m_syscall_i_d.lock().unwrap().as_ref().unwrap()), (*self.may_sweep.lock().unwrap().as_ref().unwrap()), (*self.in_sweep.lock().unwrap().as_ref().unwrap()), (*self.swept.lock().unwrap().as_ref().unwrap()), (*self.reclaimed.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.trace_sched_resource_state.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.m_syscall_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.may_sweep.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.in_sweep.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.swept.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.reclaimed.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -962,7 +974,9 @@ impl Default for traceLocker {
 
 impl std::fmt::Display for traceLocker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.mp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.gen.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.mp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

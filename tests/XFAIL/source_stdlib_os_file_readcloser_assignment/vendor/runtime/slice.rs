@@ -36,7 +36,10 @@ impl Default for slice {
 
 impl std::fmt::Display for slice {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.array.lock().unwrap().as_ref().unwrap()), (*self.len.lock().unwrap().as_ref().unwrap()), (*self.cap.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.array.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.cap.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -79,7 +82,10 @@ impl Default for notInHeapSlice {
 
 impl std::fmt::Display for notInHeapSlice {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", { if self.array.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.len.lock().unwrap().as_ref().unwrap()), (*self.cap.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.array.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.cap.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

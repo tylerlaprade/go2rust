@@ -71,7 +71,9 @@ impl Default for persistentAlloc {
 
 impl std::fmt::Display for persistentAlloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.base.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.off.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.base.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -121,7 +123,11 @@ impl Default for linearAlloc {
 
 impl std::fmt::Display for linearAlloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.next.lock().unwrap().as_ref().unwrap()), (*self.mapped.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()), (*self.map_memory.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mapped.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.map_memory.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -165,7 +171,8 @@ impl Default for notInHeap {
 
 impl std::fmt::Display for notInHeap {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -1746,7 +1753,9 @@ impl Default for AnonymousStruct4 {
 
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.mutex.lock().unwrap().as_ref().unwrap()), (*self.persistent_alloc.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mutex.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.persistent_alloc.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

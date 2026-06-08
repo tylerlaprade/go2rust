@@ -34,7 +34,9 @@ impl Default for Hook {
 
 impl std::fmt::Display for Hook {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", "<func>", (*self.run_on_failure.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", "<func>");
+        let __go_fmt_1 = format!("{}", (*self.run_on_failure.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

@@ -64,7 +64,13 @@ impl Default for file {
 
 impl std::fmt::Display for file {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.pfd.lock().unwrap().as_ref().unwrap()), (*self.name.lock().unwrap().as_ref().unwrap()), (*self.dirinfo.lock().unwrap().as_ref().unwrap()), (*self.nonblock.lock().unwrap().as_ref().unwrap()), (*self.stdout_or_err.lock().unwrap().as_ref().unwrap()), (*self.append_mode.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pfd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.dirinfo.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.nonblock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.stdout_or_err.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.append_mode.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 

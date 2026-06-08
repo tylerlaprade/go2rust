@@ -10,7 +10,12 @@ pub struct Person {
 
 impl Person {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, age: { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            age: __go_clone_1_0,
+        }
     }
 }
 
@@ -23,7 +28,9 @@ impl Default for Person {
 
 impl std::fmt::Display for Person {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.age.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.age.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -37,7 +44,14 @@ pub struct Address {
 
 impl Address {
     pub fn __go_value_clone(&self) -> Self {
-        Self { street: { let __guard = self.street.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, city: { let __guard = self.city.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, state: { let __guard = self.state.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.street.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.city.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.state.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            street: __go_clone_0_0,
+            city: __go_clone_1_0,
+            state: __go_clone_2_0,
+        }
     }
 }
 
@@ -50,7 +64,10 @@ impl Default for Address {
 
 impl std::fmt::Display for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.street.borrow().as_ref().unwrap()), (*self.city.borrow().as_ref().unwrap()), (*self.state.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.street.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.city.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.state.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -65,7 +82,16 @@ pub struct Employee {
 
 impl Employee {
     pub fn __go_value_clone(&self) -> Self {
-        Self { person: { let __guard = self.person.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, address: { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, salary: { let __guard = self.salary.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.person.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.salary.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            person: __go_clone_0_0,
+            address: __go_clone_1_0,
+            i_d: __go_clone_2_0,
+            salary: __go_clone_3_0,
+        }
     }
 }
 
@@ -78,7 +104,11 @@ impl Default for Employee {
 
 impl std::fmt::Display for Employee {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.person.borrow().as_ref().unwrap()), (*self.address.borrow().as_ref().unwrap()), (*self.i_d.borrow().as_ref().unwrap()), (*self.salary.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.person.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.address.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.i_d.borrow().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.salary.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -88,11 +118,11 @@ impl Employee {
 
 fn main() {
         // Basic struct creation
-    let mut p1 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30 as i32))), ..Default::default() })));
+    let mut p1 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() })));
     println!("{} {}", format!("{}", "Person 1:".to_string()), format!("{}", (*p1.borrow().as_ref().unwrap())));
 
         // Struct with field names
-    let mut p2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25 as i32))), ..Default::default() })));
+    let mut p2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() })));
     println!("{} {}", format!("{}", "Person 2:".to_string()), format!("{}", (*p2.borrow().as_ref().unwrap())));
 
         // Access and modify fields
@@ -100,7 +130,7 @@ fn main() {
     println!("{} {}", format!("{}", "Updated Person 2:".to_string()), format!("{}", (*p2.borrow().as_ref().unwrap())));
 
         // Embedded structs
-    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Charlie".to_string()))), age: Rc::new(RefCell::new(Some(35 as i32))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(1001 as i32))), salary: Rc::new(RefCell::new(Some(75000.0 as f64))), ..Default::default() })));
+    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Charlie".to_string()))), age: Rc::new(RefCell::new(Some(35))), ..Default::default() }))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("123 Main St".to_string()))), city: Rc::new(RefCell::new(Some("Anytown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), ..Default::default() }))), i_d: Rc::new(RefCell::new(Some(1001))), salary: Rc::new(RefCell::new(Some(75000.0))), ..Default::default() })));
 
     println!("{} {}", format!("{}", "Employee:".to_string()), format!("{}", (*emp.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "Employee name:".to_string()), format!("{}", (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));

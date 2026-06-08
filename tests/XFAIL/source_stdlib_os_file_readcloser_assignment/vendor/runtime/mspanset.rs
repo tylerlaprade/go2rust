@@ -50,7 +50,12 @@ impl Default for spanSet {
 
 impl std::fmt::Display for spanSet {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.spine_lock.lock().unwrap().as_ref().unwrap()), (*self.spine.lock().unwrap().as_ref().unwrap()), (*self.spine_len.lock().unwrap().as_ref().unwrap()), (*self.spine_cap.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.spine_lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.spine.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.spine_len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.spine_cap.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -92,7 +97,10 @@ impl Default for spanSetBlock {
 
 impl std::fmt::Display for spanSetBlock {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.lfnode.lock().unwrap().as_ref().unwrap()), (*self.popped.lock().unwrap().as_ref().unwrap()), format_slice(&self.spans))
+        let __go_fmt_0 = format!("{}", (*self.lfnode.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.popped.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.spans));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -131,7 +139,8 @@ impl Default for atomicSpanSetSpinePointer {
 
 impl std::fmt::Display for atomicSpanSetSpinePointer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.a.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.a.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -168,7 +177,8 @@ impl Default for spanSetSpinePointer {
 
 impl std::fmt::Display for spanSetSpinePointer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.p.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.p.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -205,7 +215,8 @@ impl Default for spanSetBlockAlloc {
 
 impl std::fmt::Display for spanSetBlockAlloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.stack.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.stack.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -619,7 +630,8 @@ impl Default for atomicHeadTailIndex {
 
 impl std::fmt::Display for atomicHeadTailIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.u.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -656,7 +668,8 @@ impl Default for atomicMSpanPointer {
 
 impl std::fmt::Display for atomicMSpanPointer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.p.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.p.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

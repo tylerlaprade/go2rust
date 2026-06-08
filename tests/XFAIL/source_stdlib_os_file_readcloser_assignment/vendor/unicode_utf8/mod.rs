@@ -73,7 +73,9 @@ impl Default for acceptRange {
 
 impl std::fmt::Display for acceptRange {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lo.lock().unwrap().as_ref().unwrap()), (*self.hi.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lo.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.hi.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

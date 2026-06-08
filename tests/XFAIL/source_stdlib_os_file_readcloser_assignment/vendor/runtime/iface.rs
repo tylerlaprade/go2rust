@@ -41,7 +41,10 @@ impl Default for itabTableType {
 
 impl std::fmt::Display for itabTableType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.size.lock().unwrap().as_ref().unwrap()), (*self.count.lock().unwrap().as_ref().unwrap()), format_slice_wrapped(&self.entries))
+        let __go_fmt_0 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice_wrapped(&self.entries));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

@@ -96,7 +96,21 @@ impl Default for timer {
 
 impl std::fmt::Display for timer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.mu.lock().unwrap().as_ref().unwrap()), (*self.astate.lock().unwrap().as_ref().unwrap()), (*self.state.lock().unwrap().as_ref().unwrap()), (*self.is_chan.lock().unwrap().as_ref().unwrap()), (*self.is_fake.lock().unwrap().as_ref().unwrap()), (*self.blocked.lock().unwrap().as_ref().unwrap()), (*self.when.lock().unwrap().as_ref().unwrap()), (*self.period.lock().unwrap().as_ref().unwrap()), "<func>", format_any(self.arg.lock().unwrap().as_ref().unwrap().as_ref()), (*self.seq.lock().unwrap().as_ref().unwrap()), { let __guard = self.ts.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.send_lock.lock().unwrap().as_ref().unwrap()), (*self.is_sending.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.astate.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.is_chan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.is_fake.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.blocked.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.when.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.period.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", "<func>");
+        let __go_fmt_9 = format!("{}", format_any(self.arg.lock().unwrap().as_ref().unwrap().as_ref()));
+        let __go_fmt_10 = format!("{}", (*self.seq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", { let __guard = self.ts.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_12 = format!("{}", (*self.send_lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.is_sending.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13)
     }
 }
 
@@ -154,7 +168,15 @@ impl Default for timers {
 
 impl std::fmt::Display for timers {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.mu.lock().unwrap().as_ref().unwrap()), format_slice(&self.heap), (*self.len.lock().unwrap().as_ref().unwrap()), (*self.zombies.lock().unwrap().as_ref().unwrap()), (*self.race_ctx.lock().unwrap().as_ref().unwrap()), (*self.min_when_heap.lock().unwrap().as_ref().unwrap()), (*self.min_when_modified.lock().unwrap().as_ref().unwrap()), { let __guard = self.sync_group.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.mu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.heap));
+        let __go_fmt_2 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.zombies.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.race_ctx.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.min_when_heap.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.min_when_modified.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", { let __guard = self.sync_group.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -193,7 +215,9 @@ impl Default for timerWhen {
 
 impl std::fmt::Display for timerWhen {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.timer.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.when.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.timer.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.when.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

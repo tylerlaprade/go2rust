@@ -72,7 +72,20 @@ impl Default for hchan {
 
 impl std::fmt::Display for hchan {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.qcount.lock().unwrap().as_ref().unwrap()), (*self.dataqsiz.lock().unwrap().as_ref().unwrap()), (*self.buf.lock().unwrap().as_ref().unwrap()), (*self.elemsize.lock().unwrap().as_ref().unwrap()), (*self.synctest.lock().unwrap().as_ref().unwrap()), (*self.closed.lock().unwrap().as_ref().unwrap()), { let __guard = self.timer.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.elemtype.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.sendx.lock().unwrap().as_ref().unwrap()), (*self.recvx.lock().unwrap().as_ref().unwrap()), (*self.recvq.lock().unwrap().as_ref().unwrap()), (*self.sendq.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.qcount.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.dataqsiz.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.buf.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.elemsize.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.synctest.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.closed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", { let __guard = self.timer.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_7 = format!("{}", { let __guard = self.elemtype.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_8 = format!("{}", (*self.sendx.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.recvx.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.recvq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.sendq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
     }
 }
 
@@ -104,7 +117,9 @@ impl waitq {
 
 impl std::fmt::Display for waitq {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.first.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.last.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self.first.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __guard = self.last.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

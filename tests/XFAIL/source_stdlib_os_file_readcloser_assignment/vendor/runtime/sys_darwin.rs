@@ -486,7 +486,15 @@ impl Default for AnonymousStruct34 {
 
 impl std::fmt::Display for AnonymousStruct34 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()), (*self.prot.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.off.lock().unwrap().as_ref().unwrap()), (*self.ret1.lock().unwrap().as_ref().unwrap()), (*self.ret2.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.addr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.prot.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.fd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.ret1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.ret2.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -527,7 +535,10 @@ impl Default for AnonymousStruct35 {
 
 impl std::fmt::Display for AnonymousStruct35 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.t.lock().unwrap().as_ref().unwrap()), (*self.numer.lock().unwrap().as_ref().unwrap()), (*self.denom.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.t.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.numer.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.denom.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -574,7 +585,12 @@ impl Default for AnonymousStruct36 {
 
 impl std::fmt::Display for AnonymousStruct36 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.cmd.lock().unwrap().as_ref().unwrap()), (*self.arg.lock().unwrap().as_ref().unwrap()), (*self.ret.lock().unwrap().as_ref().unwrap()), (*self.errno.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.fd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.cmd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.arg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.ret.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.errno.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

@@ -68,7 +68,11 @@ impl Default for dloggerImpl {
 
 impl std::fmt::Display for dloggerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.w.lock().unwrap().as_ref().unwrap()), { let __guard = self.all_link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.owned.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.all_link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.owned.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -135,7 +139,14 @@ impl Default for debugLogWriter {
 
 impl std::fmt::Display for debugLogWriter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.write.lock().unwrap().as_ref().unwrap()), (*self.data.lock().unwrap().as_ref().unwrap()), (*self.tick.lock().unwrap().as_ref().unwrap()), (*self.nano.lock().unwrap().as_ref().unwrap()), (*self.r.lock().unwrap().as_ref().unwrap()), format_slice(&self.buf))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.write.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tick.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.nano.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.r.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", format_slice(&self.buf));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -174,7 +185,9 @@ impl Default for debugLogBuf {
 
 impl std::fmt::Display for debugLogBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), format_slice(&self.b))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.b));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -222,7 +235,12 @@ impl Default for debugLogReader {
 
 impl std::fmt::Display for debugLogReader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", { let __guard = self.data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.begin.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()), (*self.tick.lock().unwrap().as_ref().unwrap()), (*self.nano.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.begin.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tick.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.nano.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -955,7 +973,11 @@ impl Default for AnonymousStruct2 {
 
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.debug_log_reader.lock().unwrap().as_ref().unwrap()), (*self.first.lock().unwrap().as_ref().unwrap()), (*self.lost.lock().unwrap().as_ref().unwrap()), (*self.next_tick.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.debug_log_reader.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.first.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.lost.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.next_tick.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -993,7 +1015,9 @@ impl Default for AnonymousStruct3 {
 
 impl std::fmt::Display for AnonymousStruct3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.tick.lock().unwrap().as_ref().unwrap()), (*self.i.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tick.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.i.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

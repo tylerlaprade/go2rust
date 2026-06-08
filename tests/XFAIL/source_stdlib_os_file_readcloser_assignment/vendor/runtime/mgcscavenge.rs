@@ -90,7 +90,21 @@ impl Default for scavengerState {
 
 impl std::fmt::Display for scavengerState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { let __guard = self.g.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.timer.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.sysmon_wake.lock().unwrap().as_ref().unwrap()), (*self.parked.lock().unwrap().as_ref().unwrap()), (*self.print_controller_reset.lock().unwrap().as_ref().unwrap()), (*self.target_c_p_u_fraction.lock().unwrap().as_ref().unwrap()), (*self.sleep_ratio.lock().unwrap().as_ref().unwrap()), (*self.sleep_controller.lock().unwrap().as_ref().unwrap()), (*self.controller_cooldown.lock().unwrap().as_ref().unwrap()), "<func>", "<func>", "<func>", "<func>")
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.g.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.timer.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.sysmon_wake.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.parked.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.print_controller_reset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.target_c_p_u_fraction.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.sleep_ratio.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.sleep_controller.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.controller_cooldown.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", "<func>");
+        let __go_fmt_11 = format!("{}", "<func>");
+        let __go_fmt_12 = format!("{}", "<func>");
+        let __go_fmt_13 = format!("{}", "<func>");
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13)
     }
 }
 
@@ -152,7 +166,16 @@ impl Default for scavengeIndex {
 
 impl std::fmt::Display for scavengeIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", format_slice(&self.chunks), (*self.min.lock().unwrap().as_ref().unwrap()), (*self.max.lock().unwrap().as_ref().unwrap()), (*self.min_heap_idx.lock().unwrap().as_ref().unwrap()), (*self.search_addr_bg.lock().unwrap().as_ref().unwrap()), (*self.search_addr_force.lock().unwrap().as_ref().unwrap()), (*self.free_h_w_m.lock().unwrap().as_ref().unwrap()), (*self.gen.lock().unwrap().as_ref().unwrap()), (*self.test.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.chunks));
+        let __go_fmt_1 = format!("{}", (*self.min.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.max.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.min_heap_idx.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.search_addr_bg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.search_addr_force.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.free_h_w_m.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.test.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 
@@ -190,7 +213,8 @@ impl Default for atomicScavChunkData {
 
 impl std::fmt::Display for atomicScavChunkData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -239,7 +263,11 @@ impl Default for scavChunkData {
 
 impl std::fmt::Display for scavChunkData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.in_use.lock().unwrap().as_ref().unwrap()), (*self.last_in_use.lock().unwrap().as_ref().unwrap()), (*self.gen.lock().unwrap().as_ref().unwrap()), (*self.scav_chunk_flags.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.last_in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.scav_chunk_flags.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -672,7 +700,15 @@ impl Default for piController {
 
 impl std::fmt::Display for piController {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.kp.lock().unwrap().as_ref().unwrap()), (*self.ti.lock().unwrap().as_ref().unwrap()), (*self.tt.lock().unwrap().as_ref().unwrap()), (*self.min.lock().unwrap().as_ref().unwrap()), (*self.max.lock().unwrap().as_ref().unwrap()), (*self.err_integral.lock().unwrap().as_ref().unwrap()), (*self.err_overflow.lock().unwrap().as_ref().unwrap()), (*self.input_overflow.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.kp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.ti.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.tt.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.min.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.max.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.err_integral.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.err_overflow.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.input_overflow.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -1871,7 +1907,11 @@ impl Default for AnonymousStruct14 {
 
 impl std::fmt::Display for AnonymousStruct14 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.gc_percent_goal.lock().unwrap().as_ref().unwrap()), (*self.memory_limit_goal.lock().unwrap().as_ref().unwrap()), (*self.assist_time.lock().unwrap().as_ref().unwrap()), (*self.background_time.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.gc_percent_goal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.memory_limit_goal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.assist_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.background_time.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

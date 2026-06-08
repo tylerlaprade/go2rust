@@ -576,7 +576,50 @@ impl Default for workType {
 
 impl std::fmt::Display for workType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.full.lock().unwrap().as_ref().unwrap()), (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), (*self.empty.lock().unwrap().as_ref().unwrap()), (*self.__blank_3_0.lock().unwrap().as_ref().unwrap()), (*self.wbuf_spans.lock().unwrap().as_ref().unwrap()), (*self.__blank_5_0.lock().unwrap().as_ref().unwrap()), (*self.bytes_marked.lock().unwrap().as_ref().unwrap()), (*self.markroot_next.lock().unwrap().as_ref().unwrap()), (*self.markroot_jobs.lock().unwrap().as_ref().unwrap()), (*self.nproc.lock().unwrap().as_ref().unwrap()), (*self.tstart.lock().unwrap().as_ref().unwrap()), (*self.nwait.lock().unwrap().as_ref().unwrap()), (*self.n_data_roots.lock().unwrap().as_ref().unwrap()), (*self.n_b_s_s_roots.lock().unwrap().as_ref().unwrap()), (*self.n_span_roots.lock().unwrap().as_ref().unwrap()), (*self.n_stack_roots.lock().unwrap().as_ref().unwrap()), (*self.base_data.lock().unwrap().as_ref().unwrap()), (*self.base_b_s_s.lock().unwrap().as_ref().unwrap()), (*self.base_spans.lock().unwrap().as_ref().unwrap()), (*self.base_stacks.lock().unwrap().as_ref().unwrap()), (*self.base_end.lock().unwrap().as_ref().unwrap()), format_slice_wrapped(&self.stack_roots), (*self.start_sema.lock().unwrap().as_ref().unwrap()), (*self.mark_done_sema.lock().unwrap().as_ref().unwrap()), (*self.bg_mark_done.lock().unwrap().as_ref().unwrap()), (*self.mode.lock().unwrap().as_ref().unwrap()), (*self.user_forced.lock().unwrap().as_ref().unwrap()), (*self.initial_heap_live.lock().unwrap().as_ref().unwrap()), (*self.assist_queue.lock().unwrap().as_ref().unwrap()), (*self.sweep_waiters.lock().unwrap().as_ref().unwrap()), (*self.strong_from_weak.lock().unwrap().as_ref().unwrap()), (*self.cycles.lock().unwrap().as_ref().unwrap()), (*self.stwprocs.lock().unwrap().as_ref().unwrap()), (*self.maxprocs.lock().unwrap().as_ref().unwrap()), (*self.t_sweep_term.lock().unwrap().as_ref().unwrap()), (*self.t_mark.lock().unwrap().as_ref().unwrap()), (*self.t_mark_term.lock().unwrap().as_ref().unwrap()), (*self.t_end.lock().unwrap().as_ref().unwrap()), (*self.pause_n_s.lock().unwrap().as_ref().unwrap()), (*self.heap0.lock().unwrap().as_ref().unwrap()), (*self.heap1.lock().unwrap().as_ref().unwrap()), (*self.heap2.lock().unwrap().as_ref().unwrap()), (*self.cpu_stats.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.full.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.empty.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.__blank_3_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.wbuf_spans.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.__blank_5_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.bytes_marked.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.markroot_next.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.markroot_jobs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.nproc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.tstart.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.nwait.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.n_data_roots.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.n_b_s_s_roots.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.n_span_roots.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.n_stack_roots.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.base_data.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.base_b_s_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.base_spans.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.base_stacks.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.base_end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", format_slice_wrapped(&self.stack_roots));
+        let __go_fmt_22 = format!("{}", (*self.start_sema.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_23 = format!("{}", (*self.mark_done_sema.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.bg_mark_done.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", (*self.mode.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_26 = format!("{}", (*self.user_forced.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", (*self.initial_heap_live.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_28 = format!("{}", (*self.assist_queue.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_29 = format!("{}", (*self.sweep_waiters.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_30 = format!("{}", (*self.strong_from_weak.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_31 = format!("{}", (*self.cycles.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_32 = format!("{}", (*self.stwprocs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_33 = format!("{}", (*self.maxprocs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_34 = format!("{}", (*self.t_sweep_term.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_35 = format!("{}", (*self.t_mark.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_36 = format!("{}", (*self.t_mark_term.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_37 = format!("{}", (*self.t_end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_38 = format!("{}", (*self.pause_n_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_39 = format!("{}", (*self.heap0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_40 = format!("{}", (*self.heap1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_41 = format!("{}", (*self.heap2.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_42 = format!("{}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35, __go_fmt_36, __go_fmt_37, __go_fmt_38, __go_fmt_39, __go_fmt_40, __go_fmt_41, __go_fmt_42)
     }
 }
 
@@ -1003,7 +1046,10 @@ impl Default for gcTrigger {
 
 impl std::fmt::Display for gcTrigger {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.kind.lock().unwrap().as_ref().unwrap()), (*self.now.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.kind.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.now.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1429,7 +1475,10 @@ impl Default for gcBgMarkWorkerNode {
 
 impl std::fmt::Display for gcBgMarkWorkerNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.node.lock().unwrap().as_ref().unwrap()), (*self.gp.lock().unwrap().as_ref().unwrap()), (*self.m.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.node.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.gp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.m.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1470,7 +1519,10 @@ impl Default for AnonymousStruct6 {
 
 impl std::fmt::Display for AnonymousStruct6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.free.lock().unwrap().as_ref().unwrap()), (*self.busy.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.busy.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1508,7 +1560,9 @@ impl Default for AnonymousStruct7 {
 
 impl std::fmt::Display for AnonymousStruct7 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.q.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.q.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1546,7 +1600,9 @@ impl Default for AnonymousStruct8 {
 
 impl std::fmt::Display for AnonymousStruct8 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.list.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.list.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1587,7 +1643,10 @@ impl Default for AnonymousStruct9 {
 
 impl std::fmt::Display for AnonymousStruct9 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.block.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.q.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.block.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.q.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -3041,7 +3100,10 @@ impl Default for AnonymousStruct10 {
 
 impl std::fmt::Display for AnonymousStruct10 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.enabled.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad), (*self.alignme.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.enabled.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.pad));
+        let __go_fmt_2 = format!("{}", (*self.alignme.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -3079,7 +3141,9 @@ impl Default for AnonymousStruct11 {
 
 impl std::fmt::Display for AnonymousStruct11 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.spin_after_ragged_barrier.lock().unwrap().as_ref().unwrap()), (*self.restarted_due_to27993.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.spin_after_ragged_barrier.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.restarted_due_to27993.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

@@ -59,7 +59,15 @@ impl Default for rwmutex {
 
 impl std::fmt::Display for rwmutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.r_lock.lock().unwrap().as_ref().unwrap()), (*self.readers.lock().unwrap().as_ref().unwrap()), (*self.reader_pass.lock().unwrap().as_ref().unwrap()), (*self.w_lock.lock().unwrap().as_ref().unwrap()), (*self.writer.lock().unwrap().as_ref().unwrap()), (*self.reader_count.lock().unwrap().as_ref().unwrap()), (*self.reader_wait.lock().unwrap().as_ref().unwrap()), (*self.read_rank.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r_lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.readers.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reader_pass.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.w_lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.writer.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.reader_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.reader_wait.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.read_rank.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 

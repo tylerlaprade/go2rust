@@ -47,7 +47,9 @@ impl Default for metricData {
 
 impl std::fmt::Display for metricData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.deps.lock().unwrap().as_ref().unwrap()), "<func>")
+        let __go_fmt_0 = format!("{}", (*self.deps.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", "<func>");
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -502,7 +504,14 @@ impl Default for heapStatsAggregate {
 
 impl std::fmt::Display for heapStatsAggregate {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.heap_stats_delta.lock().unwrap().as_ref().unwrap()), (*self.in_objects.lock().unwrap().as_ref().unwrap()), (*self.num_objects.lock().unwrap().as_ref().unwrap()), (*self.total_allocated.lock().unwrap().as_ref().unwrap()), (*self.total_freed.lock().unwrap().as_ref().unwrap()), (*self.total_allocs.lock().unwrap().as_ref().unwrap()), (*self.total_frees.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.heap_stats_delta.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.in_objects.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.num_objects.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.total_allocated.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.total_freed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.total_allocs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.total_frees.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -575,7 +584,18 @@ impl Default for sysStatsAggregate {
 
 impl std::fmt::Display for sysStatsAggregate {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", (*self.stacks_sys.lock().unwrap().as_ref().unwrap()), (*self.m_span_sys.lock().unwrap().as_ref().unwrap()), (*self.m_span_in_use.lock().unwrap().as_ref().unwrap()), (*self.m_cache_sys.lock().unwrap().as_ref().unwrap()), (*self.m_cache_in_use.lock().unwrap().as_ref().unwrap()), (*self.buck_hash_sys.lock().unwrap().as_ref().unwrap()), (*self.gc_misc_sys.lock().unwrap().as_ref().unwrap()), (*self.other_sys.lock().unwrap().as_ref().unwrap()), (*self.heap_goal.lock().unwrap().as_ref().unwrap()), (*self.gc_cycles_done.lock().unwrap().as_ref().unwrap()), (*self.gc_cycles_forced.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.stacks_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.m_span_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.m_span_in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.m_cache_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.m_cache_in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.buck_hash_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.gc_misc_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.other_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.heap_goal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.gc_cycles_done.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.gc_cycles_forced.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
     }
 }
 
@@ -613,7 +633,8 @@ impl Default for cpuStatsAggregate {
 
 impl std::fmt::Display for cpuStatsAggregate {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -660,7 +681,11 @@ impl Default for gcStatsAggregate {
 
 impl std::fmt::Display for gcStatsAggregate {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.heap_scan.lock().unwrap().as_ref().unwrap()), (*self.stack_scan.lock().unwrap().as_ref().unwrap()), (*self.globals_scan.lock().unwrap().as_ref().unwrap()), (*self.total_scan.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.heap_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.stack_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.globals_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.total_scan.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -713,7 +738,12 @@ impl Default for statAggregate {
 
 impl std::fmt::Display for statAggregate {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.ensured.lock().unwrap().as_ref().unwrap()), (*self.heap_stats.lock().unwrap().as_ref().unwrap()), (*self.sys_stats.lock().unwrap().as_ref().unwrap()), (*self.cpu_stats.lock().unwrap().as_ref().unwrap()), (*self.gc_stats.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.ensured.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.heap_stats.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.sys_stats.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.gc_stats.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -1141,7 +1171,10 @@ impl Default for metricValue {
 
 impl std::fmt::Display for metricValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.kind.lock().unwrap().as_ref().unwrap()), (*self.scalar.lock().unwrap().as_ref().unwrap()), (*self.pointer.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.kind.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.scalar.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.pointer.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1175,7 +1208,9 @@ impl metricFloat64Histogram {
 
 impl std::fmt::Display for metricFloat64Histogram {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.counts), format_slice(&self.buckets))
+        let __go_fmt_0 = format!("{}", format_slice(&self.counts));
+        let __go_fmt_1 = format!("{}", format_slice(&self.buckets));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

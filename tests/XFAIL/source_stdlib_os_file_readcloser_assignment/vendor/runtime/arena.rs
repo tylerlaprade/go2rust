@@ -40,7 +40,9 @@ impl Default for liveUserArenaChunk {
 
 impl std::fmt::Display for liveUserArenaChunk {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.x.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -85,7 +87,11 @@ impl Default for writeUserArenaHeapBits {
 
 impl std::fmt::Display for writeUserArenaHeapBits {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.offset.lock().unwrap().as_ref().unwrap()), (*self.mask.lock().unwrap().as_ref().unwrap()), (*self.valid.lock().unwrap().as_ref().unwrap()), (*self.low.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.valid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.low.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -903,7 +909,10 @@ impl Default for AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.reuse), format_slice(&self.fault))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.reuse));
+        let __go_fmt_2 = format!("{}", format_slice(&self.fault));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

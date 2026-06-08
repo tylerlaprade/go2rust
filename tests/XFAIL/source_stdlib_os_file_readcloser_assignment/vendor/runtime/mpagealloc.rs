@@ -459,7 +459,19 @@ impl Default for pageAlloc {
 
 impl std::fmt::Display for pageAlloc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {}}}", format_nested_slice(&self.summary), format_nested_pointer_slice(&self.chunks), (*self.search_addr.lock().unwrap().as_ref().unwrap()), (*self.start.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()), (*self.in_use.lock().unwrap().as_ref().unwrap()), (*self.scav.lock().unwrap().as_ref().unwrap()), { let __guard = self.mheap_lock.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.sys_stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.summary_mapped_ready.lock().unwrap().as_ref().unwrap()), (*self.chunk_huge_pages.lock().unwrap().as_ref().unwrap()), (*self.test.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_nested_slice(&self.summary));
+        let __go_fmt_1 = format!("{}", format_nested_pointer_slice(&self.chunks));
+        let __go_fmt_2 = format!("{}", (*self.search_addr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.start.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.scav.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", { let __guard = self.mheap_lock.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_8 = format!("{}", { let __guard = self.sys_stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_9 = format!("{}", (*self.summary_mapped_ready.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.chunk_huge_pages.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.test.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11)
     }
 }
 
@@ -1852,7 +1864,9 @@ impl Default for AnonymousStruct20 {
 
 impl std::fmt::Display for AnonymousStruct20 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), (*self.bound.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.bound.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

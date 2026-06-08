@@ -54,7 +54,14 @@ impl Default for cpuProfile {
 
 impl std::fmt::Display for cpuProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.on.lock().unwrap().as_ref().unwrap()), { let __guard = self.log.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.extra), (*self.num_extra.lock().unwrap().as_ref().unwrap()), (*self.lost_extra.lock().unwrap().as_ref().unwrap()), (*self.lost_atomic.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.on.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.log.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", format_slice(&self.extra));
+        let __go_fmt_4 = format!("{}", (*self.num_extra.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.lost_extra.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.lost_atomic.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 

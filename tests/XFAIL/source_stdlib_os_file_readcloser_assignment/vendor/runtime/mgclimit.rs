@@ -84,7 +84,20 @@ impl Default for gcCPULimiterState {
 
 impl std::fmt::Display for gcCPULimiterState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.enabled.lock().unwrap().as_ref().unwrap()), (*self.gc_enabled.lock().unwrap().as_ref().unwrap()), (*self.transitioning.lock().unwrap().as_ref().unwrap()), (*self.test.lock().unwrap().as_ref().unwrap()), (*self.bucket.lock().unwrap().as_ref().unwrap()), (*self.overflow.lock().unwrap().as_ref().unwrap()), (*self.assist_time_pool.lock().unwrap().as_ref().unwrap()), (*self.idle_mark_time_pool.lock().unwrap().as_ref().unwrap()), (*self.idle_time_pool.lock().unwrap().as_ref().unwrap()), (*self.last_update.lock().unwrap().as_ref().unwrap()), (*self.last_enabled_cycle.lock().unwrap().as_ref().unwrap()), (*self.nprocs.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.enabled.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.gc_enabled.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.transitioning.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.test.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.bucket.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.overflow.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.assist_time_pool.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.idle_mark_time_pool.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.idle_time_pool.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.last_update.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.last_enabled_cycle.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.nprocs.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
     }
 }
 
@@ -878,7 +891,8 @@ impl Default for limiterEvent {
 
 impl std::fmt::Display for limiterEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.stamp.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.stamp.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -916,7 +930,9 @@ impl Default for AnonymousStruct13 {
 
 impl std::fmt::Display for AnonymousStruct13 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.fill.lock().unwrap().as_ref().unwrap()), (*self.capacity.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.fill.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.capacity.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

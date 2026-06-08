@@ -1150,6 +1150,40 @@ func use(n node) node {
 	}
 }
 
+func TestStructDisplayBuildsFieldStringsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type displayNode struct {
+	a int
+	b string
+	next *displayNode
+	values []int
+	flags [2]bool
+}
+
+func use(n displayNode) {
+	go func() {}()
+	_ = n
+}
+`)
+
+	if strings.Contains(rust, "write!(f, \"{{{} {} {} {} {}}}\", (*self.a.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("struct Display should not embed every field expression in one write! call:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __go_fmt_0 = format!(\"{}\", (*self.a.lock().unwrap().as_ref().unwrap()));",
+		"let __go_fmt_1 = format!(\"{}\", (*self.b.lock().unwrap().as_ref().unwrap()));",
+		"let __go_fmt_2 = format!(\"{}\", { let __guard = self.next.lock().unwrap(); match __guard.as_ref()",
+		"let __go_fmt_3 = format!(\"{}\", format_slice(&self.values));",
+		"let __go_fmt_4 = format!(\"{}\", format_slice(&self.flags));",
+		"write!(f, \"{{{} {} {} {} {}}}\", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("struct Display should build formatted fields with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestStructAliasUsedAsGoValueCloneGenericArgDoesNotEmitAliasTraitImpl(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1900,7 +1934,8 @@ type Pointer[T any] struct {
 			t.Fatalf("zero-length pointer-array phantom field should not require Display via %q:\n%s", forbidden, rust)
 		}
 	}
-	if !strings.Contains(rust, `write!(f, "{{{} {}}}", "[]"`) {
+	if !strings.Contains(rust, `let __go_fmt_0 = format!("{}", "[]");`) ||
+		!strings.Contains(rust, `write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)`) {
 		t.Fatalf("zero-length pointer-array field should format as an empty array literal:\n%s", rust)
 	}
 }

@@ -160,7 +160,46 @@ impl Default for gcControllerState {
 
 impl std::fmt::Display for gcControllerState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.gc_percent.lock().unwrap().as_ref().unwrap()), (*self.memory_limit.lock().unwrap().as_ref().unwrap()), (*self.heap_minimum.lock().unwrap().as_ref().unwrap()), (*self.runway.lock().unwrap().as_ref().unwrap()), (*self.cons_mark.lock().unwrap().as_ref().unwrap()), format_slice(&self.last_cons_mark), (*self.gc_percent_heap_goal.lock().unwrap().as_ref().unwrap()), (*self.sweep_dist_min_trigger.lock().unwrap().as_ref().unwrap()), (*self.triggered.lock().unwrap().as_ref().unwrap()), (*self.last_heap_goal.lock().unwrap().as_ref().unwrap()), (*self.heap_live.lock().unwrap().as_ref().unwrap()), (*self.heap_scan.lock().unwrap().as_ref().unwrap()), (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()), (*self.last_stack_scan.lock().unwrap().as_ref().unwrap()), (*self.max_stack_scan.lock().unwrap().as_ref().unwrap()), (*self.globals_scan.lock().unwrap().as_ref().unwrap()), (*self.heap_marked.lock().unwrap().as_ref().unwrap()), (*self.heap_scan_work.lock().unwrap().as_ref().unwrap()), (*self.stack_scan_work.lock().unwrap().as_ref().unwrap()), (*self.globals_scan_work.lock().unwrap().as_ref().unwrap()), (*self.bg_scan_credit.lock().unwrap().as_ref().unwrap()), (*self.assist_time.lock().unwrap().as_ref().unwrap()), (*self.dedicated_mark_time.lock().unwrap().as_ref().unwrap()), (*self.fractional_mark_time.lock().unwrap().as_ref().unwrap()), (*self.idle_mark_time.lock().unwrap().as_ref().unwrap()), (*self.mark_start_time.lock().unwrap().as_ref().unwrap()), (*self.dedicated_mark_workers_needed.lock().unwrap().as_ref().unwrap()), (*self.idle_mark_workers.lock().unwrap().as_ref().unwrap()), (*self.assist_work_per_byte.lock().unwrap().as_ref().unwrap()), (*self.assist_bytes_per_work.lock().unwrap().as_ref().unwrap()), (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap()), (*self.heap_in_use.lock().unwrap().as_ref().unwrap()), (*self.heap_released.lock().unwrap().as_ref().unwrap()), (*self.heap_free.lock().unwrap().as_ref().unwrap()), (*self.total_alloc.lock().unwrap().as_ref().unwrap()), (*self.total_free.lock().unwrap().as_ref().unwrap()), (*self.mapped_ready.lock().unwrap().as_ref().unwrap()), (*self.test.lock().unwrap().as_ref().unwrap()), (*self.__blank_38_0.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.gc_percent.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.memory_limit.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.heap_minimum.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.runway.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.cons_mark.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", format_slice(&self.last_cons_mark));
+        let __go_fmt_6 = format!("{}", (*self.gc_percent_heap_goal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.sweep_dist_min_trigger.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.triggered.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.last_heap_goal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.heap_live.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.heap_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.last_stack_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.max_stack_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.globals_scan.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.heap_marked.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.heap_scan_work.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.stack_scan_work.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.globals_scan_work.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.bg_scan_credit.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.assist_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.dedicated_mark_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_23 = format!("{}", (*self.fractional_mark_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.idle_mark_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", (*self.mark_start_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_26 = format!("{}", (*self.dedicated_mark_workers_needed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", (*self.idle_mark_workers.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_28 = format!("{}", (*self.assist_work_per_byte.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_29 = format!("{}", (*self.assist_bytes_per_work.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_30 = format!("{}", (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_31 = format!("{}", (*self.heap_in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_32 = format!("{}", (*self.heap_released.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_33 = format!("{}", (*self.heap_free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_34 = format!("{}", (*self.total_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_35 = format!("{}", (*self.total_free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_36 = format!("{}", (*self.mapped_ready.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_37 = format!("{}", (*self.test.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_38 = format!("{}", (*self.__blank_38_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35, __go_fmt_36, __go_fmt_37, __go_fmt_38)
     }
 }
 

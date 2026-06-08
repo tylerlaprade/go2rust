@@ -460,7 +460,14 @@ impl Default for bucket {
 
 impl std::fmt::Display for bucket {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.allnext.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.typ.lock().unwrap().as_ref().unwrap()), (*self.hash.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()), (*self.nstk.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.allnext.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.hash.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.nstk.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -501,7 +508,9 @@ impl Default for memRecord {
 
 impl std::fmt::Display for memRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.active.lock().unwrap().as_ref().unwrap()), format_slice(&self.future))
+        let __go_fmt_0 = format!("{}", (*self.active.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.future));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -547,7 +556,11 @@ impl Default for memRecordCycle {
 
 impl std::fmt::Display for memRecordCycle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.allocs.lock().unwrap().as_ref().unwrap()), (*self.frees.lock().unwrap().as_ref().unwrap()), (*self.alloc_bytes.lock().unwrap().as_ref().unwrap()), (*self.free_bytes.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.allocs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.frees.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.alloc_bytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.free_bytes.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -588,7 +601,9 @@ impl Default for blockRecord {
 
 impl std::fmt::Display for blockRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.count.lock().unwrap().as_ref().unwrap()), (*self.cycles.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.cycles.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -638,7 +653,8 @@ impl Default for mProfCycleHolder {
 
 impl std::fmt::Display for mProfCycleHolder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -741,7 +757,11 @@ impl Default for lockTimer {
 
 impl std::fmt::Display for lockTimer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", { if self.lock.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.time_rate.lock().unwrap().as_ref().unwrap()), (*self.time_start.lock().unwrap().as_ref().unwrap()), (*self.tick_start.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.lock.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.time_rate.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.time_start.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tick_start.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -795,7 +815,14 @@ impl Default for mLockProfile {
 
 impl std::fmt::Display for mLockProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.wait_time.lock().unwrap().as_ref().unwrap()), format_slice(&self.stack), (*self.pending.lock().unwrap().as_ref().unwrap()), (*self.cycles.lock().unwrap().as_ref().unwrap()), (*self.cycles_lost.lock().unwrap().as_ref().unwrap()), (*self.have_stack.lock().unwrap().as_ref().unwrap()), (*self.disabled.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.wait_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.stack));
+        let __go_fmt_2 = format!("{}", (*self.pending.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.cycles.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.cycles_lost.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.have_stack.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.disabled.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -2134,7 +2161,12 @@ impl Default for AnonymousStruct21 {
 
 impl std::fmt::Display for AnonymousStruct21 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.sema.lock().unwrap().as_ref().unwrap()), (*self.active.lock().unwrap().as_ref().unwrap()), (*self.offset.lock().unwrap().as_ref().unwrap()), format_slice(&self.records), format_slice(&self.labels))
+        let __go_fmt_0 = format!("{}", (*self.sema.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.active.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_slice(&self.records));
+        let __go_fmt_4 = format!("{}", format_slice(&self.labels));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

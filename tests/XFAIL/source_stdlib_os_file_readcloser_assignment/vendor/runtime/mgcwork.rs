@@ -59,7 +59,12 @@ impl Default for gcWork {
 
 impl std::fmt::Display for gcWork {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", { if self.wbuf1.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.wbuf2.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.bytes_marked.lock().unwrap().as_ref().unwrap()), (*self.heap_scan_work.lock().unwrap().as_ref().unwrap()), (*self.flushed_work.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.wbuf1.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", { if self.wbuf2.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.bytes_marked.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.heap_scan_work.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.flushed_work.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -98,7 +103,9 @@ impl Default for workbufhdr {
 
 impl std::fmt::Display for workbufhdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.node.lock().unwrap().as_ref().unwrap()), (*self.nobj.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.node.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.nobj.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -140,7 +147,10 @@ impl Default for workbuf {
 
 impl std::fmt::Display for workbuf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.workbufhdr.lock().unwrap().as_ref().unwrap()), format_slice(&self.obj))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.workbufhdr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.obj));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

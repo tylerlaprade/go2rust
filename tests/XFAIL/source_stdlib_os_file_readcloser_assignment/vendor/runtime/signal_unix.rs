@@ -49,7 +49,9 @@ impl Default for sigTabT {
 
 impl std::fmt::Display for sigTabT {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.name.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -96,7 +98,11 @@ impl Default for gsignalStack {
 
 impl std::fmt::Display for gsignalStack {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.stack.lock().unwrap().as_ref().unwrap()), (*self.stackguard0.lock().unwrap().as_ref().unwrap()), (*self.stackguard1.lock().unwrap().as_ref().unwrap()), (*self.stktopsp.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.stack.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.stackguard0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.stackguard1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.stktopsp.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

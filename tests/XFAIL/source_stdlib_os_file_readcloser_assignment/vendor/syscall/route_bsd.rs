@@ -61,7 +61,10 @@ impl Default for anyMessage {
 
 impl std::fmt::Display for anyMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.msglen.lock().unwrap().as_ref().unwrap()), (*self.version.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msglen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.version.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -113,7 +116,9 @@ impl Default for RouteMessage {
 
 impl std::fmt::Display for RouteMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.header.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.header.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -159,7 +164,9 @@ impl Default for InterfaceMessage {
 
 impl std::fmt::Display for InterfaceMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.header.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.header.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -205,7 +212,9 @@ impl Default for InterfaceAddrMessage {
 
 impl std::fmt::Display for InterfaceAddrMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.header.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.header.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -676,7 +685,11 @@ impl Default for AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.nlen.lock().unwrap().as_ref().unwrap()), (*self.alen.lock().unwrap().as_ref().unwrap()), (*self.slen.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.nlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.alen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.slen.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

@@ -522,7 +522,12 @@ impl Default for Info {
 
 impl std::fmt::Display for Info {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.package.lock().unwrap().as_ref().unwrap()), (*self.changed.lock().unwrap().as_ref().unwrap()), (*self.old.lock().unwrap().as_ref().unwrap()), (*self.opaque.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.package.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.changed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.old.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.opaque.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

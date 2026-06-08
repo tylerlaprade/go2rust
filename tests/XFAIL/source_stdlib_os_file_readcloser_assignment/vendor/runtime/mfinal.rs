@@ -60,7 +60,13 @@ impl Default for finblock {
 
 impl std::fmt::Display for finblock {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.alllink.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.cnt.lock().unwrap().as_ref().unwrap()), (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()), format_slice(&self.fin))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.alllink.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.cnt.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", format_slice(&self.fin));
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -109,7 +115,12 @@ impl Default for finalizer {
 
 impl std::fmt::Display for finalizer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.arg.lock().unwrap().as_ref().unwrap()), (*self.nret.lock().unwrap().as_ref().unwrap()), { let __guard = self.fint.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { if self.ot.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self.r#fn.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.arg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.nret.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { let __guard = self.fint.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", { if self.ot.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

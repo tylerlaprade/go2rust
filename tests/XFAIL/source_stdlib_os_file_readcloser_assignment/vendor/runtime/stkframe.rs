@@ -52,7 +52,15 @@ impl Default for stkframe {
 
 impl std::fmt::Display for stkframe {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.r#fn.lock().unwrap().as_ref().unwrap()), (*self.pc.lock().unwrap().as_ref().unwrap()), (*self.continpc.lock().unwrap().as_ref().unwrap()), (*self.lr.lock().unwrap().as_ref().unwrap()), (*self.sp.lock().unwrap().as_ref().unwrap()), (*self.fp.lock().unwrap().as_ref().unwrap()), (*self.varp.lock().unwrap().as_ref().unwrap()), (*self.argp.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#fn.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.pc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.continpc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.lr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.sp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.fp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.varp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.argp.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -96,7 +104,10 @@ impl Default for reflectMethodValue {
 
 impl std::fmt::Display for reflectMethodValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#fn.lock().unwrap().as_ref().unwrap()), { let __guard = self.stack.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.arg_len.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#fn.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.stack.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.arg_len.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

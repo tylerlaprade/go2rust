@@ -44,7 +44,12 @@ impl Default for fileStat {
 
 impl std::fmt::Display for fileStat {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()), (*self.mode.lock().unwrap().as_ref().unwrap()), (*self.mod_time.lock().unwrap().as_ref().unwrap()), (*self.sys.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.mode.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.mod_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.sys.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

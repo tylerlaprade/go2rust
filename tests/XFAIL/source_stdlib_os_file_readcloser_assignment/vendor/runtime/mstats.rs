@@ -78,7 +78,24 @@ impl Default for mstats {
 
 impl std::fmt::Display for mstats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.heap_stats.lock().unwrap().as_ref().unwrap()), (*self.stacks_sys.lock().unwrap().as_ref().unwrap()), (*self.mspan_sys.lock().unwrap().as_ref().unwrap()), (*self.mcache_sys.lock().unwrap().as_ref().unwrap()), (*self.buckhash_sys.lock().unwrap().as_ref().unwrap()), (*self.gc_misc_sys.lock().unwrap().as_ref().unwrap()), (*self.other_sys.lock().unwrap().as_ref().unwrap()), (*self.last_gc_unix.lock().unwrap().as_ref().unwrap()), (*self.pause_total_ns.lock().unwrap().as_ref().unwrap()), format_slice(&self.pause_ns), format_slice(&self.pause_end), (*self.numgc.lock().unwrap().as_ref().unwrap()), (*self.numforcedgc.lock().unwrap().as_ref().unwrap()), (*self.gc_cpu_fraction.lock().unwrap().as_ref().unwrap()), (*self.last_gc_nanotime.lock().unwrap().as_ref().unwrap()), (*self.last_heap_in_use.lock().unwrap().as_ref().unwrap()), (*self.enablegc.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.heap_stats.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.stacks_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.mspan_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.mcache_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.buckhash_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.gc_misc_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.other_sys.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.last_gc_unix.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.pause_total_ns.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", format_slice(&self.pause_ns));
+        let __go_fmt_10 = format!("{}", format_slice(&self.pause_end));
+        let __go_fmt_11 = format!("{}", (*self.numgc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.numforcedgc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.gc_cpu_fraction.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.last_gc_nanotime.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.last_heap_in_use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.enablegc.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16)
     }
 }
 
@@ -531,7 +548,20 @@ impl Default for heapStatsDelta {
 
 impl std::fmt::Display for heapStatsDelta {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.committed.lock().unwrap().as_ref().unwrap()), (*self.released.lock().unwrap().as_ref().unwrap()), (*self.in_heap.lock().unwrap().as_ref().unwrap()), (*self.in_stacks.lock().unwrap().as_ref().unwrap()), (*self.in_work_bufs.lock().unwrap().as_ref().unwrap()), (*self.in_ptr_scalar_bits.lock().unwrap().as_ref().unwrap()), (*self.tiny_alloc_count.lock().unwrap().as_ref().unwrap()), (*self.large_alloc.lock().unwrap().as_ref().unwrap()), (*self.large_alloc_count.lock().unwrap().as_ref().unwrap()), format_slice(&self.small_alloc_count), (*self.large_free.lock().unwrap().as_ref().unwrap()), (*self.large_free_count.lock().unwrap().as_ref().unwrap()), format_slice(&self.small_free_count))
+        let __go_fmt_0 = format!("{}", (*self.committed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.released.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.in_heap.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.in_stacks.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.in_work_bufs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.in_ptr_scalar_bits.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.tiny_alloc_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.large_alloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.large_alloc_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", format_slice(&self.small_alloc_count));
+        let __go_fmt_10 = format!("{}", (*self.large_free.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.large_free_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", format_slice(&self.small_free_count));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
     }
 }
 
@@ -580,7 +610,10 @@ impl Default for consistentHeapStats {
 
 impl std::fmt::Display for consistentHeapStats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.stats), (*self.gen.lock().unwrap().as_ref().unwrap()), (*self.no_p_lock.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.stats));
+        let __go_fmt_1 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.no_p_lock.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -646,7 +679,18 @@ impl Default for cpuStats {
 
 impl std::fmt::Display for cpuStats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", (*self.g_c_assist_time.lock().unwrap().as_ref().unwrap()), (*self.g_c_dedicated_time.lock().unwrap().as_ref().unwrap()), (*self.g_c_idle_time.lock().unwrap().as_ref().unwrap()), (*self.g_c_pause_time.lock().unwrap().as_ref().unwrap()), (*self.g_c_total_time.lock().unwrap().as_ref().unwrap()), (*self.scavenge_assist_time.lock().unwrap().as_ref().unwrap()), (*self.scavenge_bg_time.lock().unwrap().as_ref().unwrap()), (*self.scavenge_total_time.lock().unwrap().as_ref().unwrap()), (*self.idle_time.lock().unwrap().as_ref().unwrap()), (*self.user_time.lock().unwrap().as_ref().unwrap()), (*self.total_time.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.g_c_assist_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.g_c_dedicated_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.g_c_idle_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.g_c_pause_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.g_c_total_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.scavenge_assist_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.scavenge_bg_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.scavenge_total_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.idle_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.user_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.total_time.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
     }
 }
 

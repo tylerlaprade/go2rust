@@ -81,7 +81,6 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	out.WriteString("        write!(f, \"{{")
 
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
@@ -202,18 +201,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		}
 	}
 
-	// Generate format string with placeholders
-	for i := range fields {
-		if i > 0 {
-			out.WriteString(" ")
-		}
-		out.WriteString("{}")
-	}
-	out.WriteString("}}\"")
-
-	// Add field values
-	for _, f := range fields {
-		out.WriteString(", ")
+	writeDisplayFieldValue := func(f fieldEntry) {
 		if f.isInterface {
 			NeedFormatAny()
 			out.WriteString("format_any(self.")
@@ -308,6 +296,26 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		}
 	}
 
+	for i, f := range fields {
+		out.WriteString("        let __go_fmt_")
+		out.WriteString(fmt.Sprintf("%d", i))
+		out.WriteString(" = format!(\"{}\", ")
+		writeDisplayFieldValue(f)
+		out.WriteString(");\n")
+	}
+
+	out.WriteString("        write!(f, \"{{")
+	for i := range fields {
+		if i > 0 {
+			out.WriteString(" ")
+		}
+		out.WriteString("{}")
+	}
+	out.WriteString("}}\"")
+	for i := range fields {
+		out.WriteString(", __go_fmt_")
+		out.WriteString(fmt.Sprintf("%d", i))
+	}
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")

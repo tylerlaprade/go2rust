@@ -463,7 +463,9 @@ impl Default for Timespec {
 
 impl std::fmt::Display for Timespec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.sec.lock().unwrap().as_ref().unwrap()), (*self.nsec.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.sec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.nsec.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -508,7 +510,9 @@ impl Default for Timeval32 {
 
 impl std::fmt::Display for Timeval32 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.sec.lock().unwrap().as_ref().unwrap()), (*self.usec.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.sec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.usec.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -553,7 +557,9 @@ impl Default for Rlimit {
 
 impl std::fmt::Display for Rlimit {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.cur.lock().unwrap().as_ref().unwrap()), (*self.max.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.cur.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.max.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -649,7 +655,26 @@ impl Default for Stat_t {
 
 impl std::fmt::Display for Stat_t {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.dev.lock().unwrap().as_ref().unwrap()), (*self.mode.lock().unwrap().as_ref().unwrap()), (*self.nlink.lock().unwrap().as_ref().unwrap()), (*self.ino.lock().unwrap().as_ref().unwrap()), (*self.uid.lock().unwrap().as_ref().unwrap()), (*self.gid.lock().unwrap().as_ref().unwrap()), (*self.rdev.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0), (*self.atimespec.lock().unwrap().as_ref().unwrap()), (*self.mtimespec.lock().unwrap().as_ref().unwrap()), (*self.ctimespec.lock().unwrap().as_ref().unwrap()), (*self.birthtimespec.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()), (*self.blocks.lock().unwrap().as_ref().unwrap()), (*self.blksize.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.gen.lock().unwrap().as_ref().unwrap()), (*self.lspare.lock().unwrap().as_ref().unwrap()), format_slice(&self.qspare))
+        let __go_fmt_0 = format!("{}", (*self.dev.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mode.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.nlink.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.ino.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.uid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.gid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.rdev.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", format_slice(&self.pad_cgo_0));
+        let __go_fmt_8 = format!("{}", (*self.atimespec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.mtimespec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.ctimespec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.birthtimespec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.blocks.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.blksize.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.lspare.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", format_slice(&self.qspare));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18)
     }
 }
 
@@ -748,7 +773,14 @@ impl Default for Dirent {
 
 impl std::fmt::Display for Dirent {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.ino.lock().unwrap().as_ref().unwrap()), (*self.seekoff.lock().unwrap().as_ref().unwrap()), (*self.reclen.lock().unwrap().as_ref().unwrap()), (*self.namlen.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), format_slice(&self.name), format_slice(&self.pad_cgo_0))
+        let __go_fmt_0 = format!("{}", (*self.ino.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.seekoff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reclen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.namlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", format_slice(&self.name));
+        let __go_fmt_6 = format!("{}", format_slice(&self.pad_cgo_0));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -817,7 +849,12 @@ impl Default for RawSockaddrInet4 {
 
 impl std::fmt::Display for RawSockaddrInet4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), (*self.family.lock().unwrap().as_ref().unwrap()), (*self.port.lock().unwrap().as_ref().unwrap()), format_slice(&self.addr), format_slice(&self.zero))
+        let __go_fmt_0 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.port.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_slice(&self.addr));
+        let __go_fmt_4 = format!("{}", format_slice(&self.zero));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -883,7 +920,13 @@ impl Default for RawSockaddrInet6 {
 
 impl std::fmt::Display for RawSockaddrInet6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), (*self.family.lock().unwrap().as_ref().unwrap()), (*self.port.lock().unwrap().as_ref().unwrap()), (*self.flowinfo.lock().unwrap().as_ref().unwrap()), format_slice(&self.addr), (*self.scope_id.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.port.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.flowinfo.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", format_slice(&self.addr));
+        let __go_fmt_5 = format!("{}", (*self.scope_id.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -943,7 +986,10 @@ impl Default for RawSockaddrUnix {
 
 impl std::fmt::Display for RawSockaddrUnix {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), (*self.family.lock().unwrap().as_ref().unwrap()), format_slice(&self.path))
+        let __go_fmt_0 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.path));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1009,7 +1055,15 @@ impl Default for RawSockaddrDatalink {
 
 impl std::fmt::Display for RawSockaddrDatalink {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), (*self.family.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.nlen.lock().unwrap().as_ref().unwrap()), (*self.alen.lock().unwrap().as_ref().unwrap()), (*self.slen.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.nlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.alen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.slen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -1075,7 +1129,10 @@ impl Default for RawSockaddr {
 
 impl std::fmt::Display for RawSockaddr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), (*self.family.lock().unwrap().as_ref().unwrap()), format_slice(&self.data))
+        let __go_fmt_0 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.data));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1123,7 +1180,9 @@ impl Default for RawSockaddrAny {
 
 impl std::fmt::Display for RawSockaddrAny {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.addr.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad))
+        let __go_fmt_0 = format!("{}", (*self.addr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.pad));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1540,7 +1599,9 @@ impl Default for Linger {
 
 impl std::fmt::Display for Linger {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.onoff.lock().unwrap().as_ref().unwrap()), (*self.linger.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.onoff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.linger.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1585,7 +1646,9 @@ impl Default for Iovec {
 
 impl std::fmt::Display for Iovec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { if self.base.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.len.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.base.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1630,7 +1693,9 @@ impl Default for IPMreq {
 
 impl std::fmt::Display for IPMreq {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.multiaddr), format_slice(&self.interface))
+        let __go_fmt_0 = format!("{}", format_slice(&self.multiaddr));
+        let __go_fmt_1 = format!("{}", format_slice(&self.interface));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1675,7 +1740,9 @@ impl Default for IPv6Mreq {
 
 impl std::fmt::Display for IPv6Mreq {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.multiaddr), (*self.interface.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.multiaddr));
+        let __go_fmt_1 = format!("{}", (*self.interface.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1741,7 +1808,16 @@ impl Default for Msghdr {
 
 impl std::fmt::Display for Msghdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", { let __guard = self.name.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.namelen.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0), { let __guard = self.iov.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.iovlen.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_1), { if self.control.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.controllen.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.name.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.namelen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.pad_cgo_0));
+        let __go_fmt_3 = format!("{}", { let __guard = self.iov.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", (*self.iovlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", format_slice(&self.pad_cgo_1));
+        let __go_fmt_6 = format!("{}", { if self.control.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_7 = format!("{}", (*self.controllen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 
@@ -1822,7 +1898,15 @@ impl Default for IfMsghdr {
 
 impl std::fmt::Display for IfMsghdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.msglen.lock().unwrap().as_ref().unwrap()), (*self.version.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.addrs.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0), (*self.data.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msglen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.version.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.addrs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", format_slice(&self.pad_cgo_0));
+        let __go_fmt_7 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -1963,7 +2047,36 @@ impl Default for IfData {
 
 impl std::fmt::Display for IfData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.typelen.lock().unwrap().as_ref().unwrap()), (*self.physical.lock().unwrap().as_ref().unwrap()), (*self.addrlen.lock().unwrap().as_ref().unwrap()), (*self.hdrlen.lock().unwrap().as_ref().unwrap()), (*self.recvquota.lock().unwrap().as_ref().unwrap()), (*self.xmitquota.lock().unwrap().as_ref().unwrap()), (*self.unused1.lock().unwrap().as_ref().unwrap()), (*self.mtu.lock().unwrap().as_ref().unwrap()), (*self.metric.lock().unwrap().as_ref().unwrap()), (*self.baudrate.lock().unwrap().as_ref().unwrap()), (*self.ipackets.lock().unwrap().as_ref().unwrap()), (*self.ierrors.lock().unwrap().as_ref().unwrap()), (*self.opackets.lock().unwrap().as_ref().unwrap()), (*self.oerrors.lock().unwrap().as_ref().unwrap()), (*self.collisions.lock().unwrap().as_ref().unwrap()), (*self.ibytes.lock().unwrap().as_ref().unwrap()), (*self.obytes.lock().unwrap().as_ref().unwrap()), (*self.imcasts.lock().unwrap().as_ref().unwrap()), (*self.omcasts.lock().unwrap().as_ref().unwrap()), (*self.iqdrops.lock().unwrap().as_ref().unwrap()), (*self.noproto.lock().unwrap().as_ref().unwrap()), (*self.recvtiming.lock().unwrap().as_ref().unwrap()), (*self.xmittiming.lock().unwrap().as_ref().unwrap()), (*self.lastchange.lock().unwrap().as_ref().unwrap()), (*self.unused2.lock().unwrap().as_ref().unwrap()), (*self.hwassist.lock().unwrap().as_ref().unwrap()), (*self.reserved1.lock().unwrap().as_ref().unwrap()), (*self.reserved2.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.typelen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.physical.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.addrlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.hdrlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.recvquota.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.xmitquota.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.unused1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.mtu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.metric.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.baudrate.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.ipackets.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.ierrors.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.opackets.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.oerrors.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.collisions.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.ibytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.obytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.imcasts.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.omcasts.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.iqdrops.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.noproto.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.recvtiming.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_23 = format!("{}", (*self.xmittiming.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.lastchange.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", (*self.unused2.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_26 = format!("{}", (*self.hwassist.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", (*self.reserved1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_28 = format!("{}", (*self.reserved2.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28)
     }
 }
 
@@ -2104,7 +2217,15 @@ impl Default for IfaMsghdr {
 
 impl std::fmt::Display for IfaMsghdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.msglen.lock().unwrap().as_ref().unwrap()), (*self.version.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.addrs.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0), (*self.metric.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msglen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.version.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.addrs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", format_slice(&self.pad_cgo_0));
+        let __go_fmt_7 = format!("{}", (*self.metric.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -2185,7 +2306,15 @@ impl Default for IfmaMsghdr2 {
 
 impl std::fmt::Display for IfmaMsghdr2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.msglen.lock().unwrap().as_ref().unwrap()), (*self.version.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.addrs.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0), (*self.refcount.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msglen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.version.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.addrs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", format_slice(&self.pad_cgo_0));
+        let __go_fmt_7 = format!("{}", (*self.refcount.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -2281,7 +2410,20 @@ impl Default for RtMsghdr {
 
 impl std::fmt::Display for RtMsghdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.msglen.lock().unwrap().as_ref().unwrap()), (*self.version.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.addrs.lock().unwrap().as_ref().unwrap()), (*self.pid.lock().unwrap().as_ref().unwrap()), (*self.seq.lock().unwrap().as_ref().unwrap()), (*self.errno.lock().unwrap().as_ref().unwrap()), (*self.r#use.lock().unwrap().as_ref().unwrap()), (*self.inits.lock().unwrap().as_ref().unwrap()), (*self.rmx.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msglen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.version.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", format_slice(&self.pad_cgo_0));
+        let __go_fmt_5 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.addrs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.pid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.seq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.errno.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.r#use.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.inits.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.rmx.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
     }
 }
 
@@ -2383,7 +2525,18 @@ impl Default for RtMetrics {
 
 impl std::fmt::Display for RtMetrics {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", (*self.locks.lock().unwrap().as_ref().unwrap()), (*self.mtu.lock().unwrap().as_ref().unwrap()), (*self.hopcount.lock().unwrap().as_ref().unwrap()), (*self.expire.lock().unwrap().as_ref().unwrap()), (*self.recvpipe.lock().unwrap().as_ref().unwrap()), (*self.sendpipe.lock().unwrap().as_ref().unwrap()), (*self.ssthresh.lock().unwrap().as_ref().unwrap()), (*self.rtt.lock().unwrap().as_ref().unwrap()), (*self.rttvar.lock().unwrap().as_ref().unwrap()), (*self.pksent.lock().unwrap().as_ref().unwrap()), format_slice(&self.filler))
+        let __go_fmt_0 = format!("{}", (*self.locks.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mtu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.hopcount.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.expire.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.recvpipe.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.sendpipe.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.ssthresh.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.rtt.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.rttvar.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.pksent.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", format_slice(&self.filler));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
     }
 }
 

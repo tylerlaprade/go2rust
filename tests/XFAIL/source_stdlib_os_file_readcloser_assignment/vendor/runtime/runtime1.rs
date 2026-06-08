@@ -44,7 +44,11 @@ impl Default for dbgVar {
 
 impl std::fmt::Display for dbgVar {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), { let __guard = self.value.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.atomic.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.def.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.value.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.atomic.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.def.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -341,7 +345,38 @@ impl Default for AnonymousStruct25 {
 
 impl std::fmt::Display for AnonymousStruct25 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.cgocheck.lock().unwrap().as_ref().unwrap()), (*self.clobberfree.lock().unwrap().as_ref().unwrap()), (*self.disablethp.lock().unwrap().as_ref().unwrap()), (*self.dontfreezetheworld.lock().unwrap().as_ref().unwrap()), (*self.efence.lock().unwrap().as_ref().unwrap()), (*self.gccheckmark.lock().unwrap().as_ref().unwrap()), (*self.gcpacertrace.lock().unwrap().as_ref().unwrap()), (*self.gcshrinkstackoff.lock().unwrap().as_ref().unwrap()), (*self.gcstoptheworld.lock().unwrap().as_ref().unwrap()), (*self.gctrace.lock().unwrap().as_ref().unwrap()), (*self.invalidptr.lock().unwrap().as_ref().unwrap()), (*self.madvdontneed.lock().unwrap().as_ref().unwrap()), (*self.runtime_contention_stacks.lock().unwrap().as_ref().unwrap()), (*self.scavtrace.lock().unwrap().as_ref().unwrap()), (*self.scheddetail.lock().unwrap().as_ref().unwrap()), (*self.schedtrace.lock().unwrap().as_ref().unwrap()), (*self.tracebackancestors.lock().unwrap().as_ref().unwrap()), (*self.asyncpreemptoff.lock().unwrap().as_ref().unwrap()), (*self.harddecommit.lock().unwrap().as_ref().unwrap()), (*self.adaptivestackstart.lock().unwrap().as_ref().unwrap()), (*self.tracefpunwindoff.lock().unwrap().as_ref().unwrap()), (*self.traceadvanceperiod.lock().unwrap().as_ref().unwrap()), (*self.trace_check_stack_ownership.lock().unwrap().as_ref().unwrap()), (*self.profstackdepth.lock().unwrap().as_ref().unwrap()), (*self.dataindependenttiming.lock().unwrap().as_ref().unwrap()), (*self.malloc.lock().unwrap().as_ref().unwrap()), (*self.inittrace.lock().unwrap().as_ref().unwrap()), (*self.sbrk.lock().unwrap().as_ref().unwrap()), (*self.traceallocfree.lock().unwrap().as_ref().unwrap()), (*self.panicnil.lock().unwrap().as_ref().unwrap()), (*self.asynctimerchan.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.cgocheck.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.clobberfree.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.disablethp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.dontfreezetheworld.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.efence.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.gccheckmark.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.gcpacertrace.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.gcshrinkstackoff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.gcstoptheworld.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.gctrace.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.invalidptr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.madvdontneed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.runtime_contention_stacks.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.scavtrace.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.scheddetail.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.schedtrace.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.tracebackancestors.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.asyncpreemptoff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.harddecommit.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.adaptivestackstart.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.tracefpunwindoff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.traceadvanceperiod.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.trace_check_stack_ownership.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_23 = format!("{}", (*self.profstackdepth.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.dataindependenttiming.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", (*self.malloc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_26 = format!("{}", (*self.inittrace.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", (*self.sbrk.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_28 = format!("{}", (*self.traceallocfree.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_29 = format!("{}", (*self.panicnil.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_30 = format!("{}", (*self.asynctimerchan.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30)
     }
 }
 

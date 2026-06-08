@@ -41,7 +41,9 @@ impl Default for stringStruct {
 
 impl std::fmt::Display for stringStruct {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.str.lock().unwrap().as_ref().unwrap()), (*self.len.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.str.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

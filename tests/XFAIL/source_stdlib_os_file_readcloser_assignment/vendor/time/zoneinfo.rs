@@ -109,7 +109,10 @@ impl Default for zone {
 
 impl std::fmt::Display for zone {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.offset.lock().unwrap().as_ref().unwrap()), (*self.is_d_s_t.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.is_d_s_t.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -155,7 +158,11 @@ impl Default for zoneTrans {
 
 impl std::fmt::Display for zoneTrans {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.when.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), (*self.isstd.lock().unwrap().as_ref().unwrap()), (*self.isutc.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.when.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.isstd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.isutc.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -587,7 +594,12 @@ impl Default for rule {
 
 impl std::fmt::Display for rule {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.kind.lock().unwrap().as_ref().unwrap()), (*self.day.lock().unwrap().as_ref().unwrap()), (*self.week.lock().unwrap().as_ref().unwrap()), (*self.mon.lock().unwrap().as_ref().unwrap()), (*self.time.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.kind.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.day.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.week.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.mon.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.time.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

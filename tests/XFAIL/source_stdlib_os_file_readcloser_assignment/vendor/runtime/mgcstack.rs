@@ -42,7 +42,10 @@ impl Default for stackWorkBuf {
 
 impl std::fmt::Display for stackWorkBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap()), format_slice(&self.obj))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.obj));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -85,7 +88,10 @@ impl Default for stackWorkBufHdr {
 
 impl std::fmt::Display for stackWorkBufHdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.workbufhdr.lock().unwrap().as_ref().unwrap()), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.workbufhdr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -129,7 +135,10 @@ impl Default for stackObjectBuf {
 
 impl std::fmt::Display for stackObjectBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.stack_object_buf_hdr.lock().unwrap().as_ref().unwrap()), format_slice(&self.obj))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.stack_object_buf_hdr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.obj));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -171,7 +180,10 @@ impl Default for stackObjectBufHdr {
 
 impl std::fmt::Display for stackObjectBufHdr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.workbufhdr.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.workbufhdr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -224,7 +236,13 @@ impl Default for stackObject {
 
 impl std::fmt::Display for stackObject {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.off.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()), { let __guard = self.r.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { if self.left.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.right.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { let __guard = self.r.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", { if self.left.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_5 = format!("{}", { if self.right.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -286,7 +304,16 @@ impl Default for stackScanState {
 
 impl std::fmt::Display for stackScanState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", (*self.stack.lock().unwrap().as_ref().unwrap()), (*self.conservative.lock().unwrap().as_ref().unwrap()), { let __guard = self.buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.free_buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.cbuf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { if self.head.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.tail.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.nobjs.lock().unwrap().as_ref().unwrap()), { if self.root.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.stack.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.conservative.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", { let __guard = self.free_buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", { let __guard = self.cbuf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_5 = format!("{}", { if self.head.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_6 = format!("{}", { if self.tail.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_7 = format!("{}", (*self.nobjs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", { if self.root.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 

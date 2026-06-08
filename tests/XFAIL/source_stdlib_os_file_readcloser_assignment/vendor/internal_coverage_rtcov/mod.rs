@@ -122,7 +122,14 @@ impl Default for CovMetaBlob {
 
 impl std::fmt::Display for CovMetaBlob {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", { let __guard = self.p.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.len.lock().unwrap().as_ref().unwrap()), format_slice(&self.hash), (*self.pkg_path.lock().unwrap().as_ref().unwrap()), (*self.pkg_i_d.lock().unwrap().as_ref().unwrap()), (*self.counter_mode.lock().unwrap().as_ref().unwrap()), (*self.counter_granularity.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.p.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.hash));
+        let __go_fmt_3 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.pkg_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.counter_mode.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.counter_granularity.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -192,7 +199,10 @@ impl Default for AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.list), format_map(&self.pkg_map), (*self.hard_coded_list_needs_updating.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.list));
+        let __go_fmt_1 = format!("{}", format_map(&self.pkg_map));
+        let __go_fmt_2 = format!("{}", (*self.hard_coded_list_needs_updating.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

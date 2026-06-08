@@ -58,7 +58,17 @@ impl Default for SysProcAttr {
 
 impl std::fmt::Display for SysProcAttr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", (*self.chroot.lock().unwrap().as_ref().unwrap()), { let __guard = self.credential.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.ptrace.lock().unwrap().as_ref().unwrap()), (*self.setsid.lock().unwrap().as_ref().unwrap()), (*self.setpgid.lock().unwrap().as_ref().unwrap()), (*self.setctty.lock().unwrap().as_ref().unwrap()), (*self.noctty.lock().unwrap().as_ref().unwrap()), (*self.ctty.lock().unwrap().as_ref().unwrap()), (*self.foreground.lock().unwrap().as_ref().unwrap()), (*self.pgid.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.chroot.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.credential.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.ptrace.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.setsid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.setpgid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.setctty.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.noctty.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.ctty.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.foreground.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.pgid.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9)
     }
 }
 

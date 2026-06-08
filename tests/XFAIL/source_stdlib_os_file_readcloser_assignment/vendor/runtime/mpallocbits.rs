@@ -79,7 +79,9 @@ impl Default for pallocData {
 
 impl std::fmt::Display for pallocData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.palloc_bits.lock().unwrap().as_ref().unwrap()), (*self.scavenged.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.palloc_bits.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.scavenged.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

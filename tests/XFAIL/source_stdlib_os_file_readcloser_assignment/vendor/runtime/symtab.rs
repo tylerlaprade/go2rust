@@ -45,7 +45,11 @@ impl Default for Frames {
 
 impl std::fmt::Display for Frames {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", format_slice(&self.callers), (*self.next_p_c.lock().unwrap().as_ref().unwrap()), format_slice(&self.frames), format_slice(&self.frame_store))
+        let __go_fmt_0 = format!("{}", format_slice(&self.callers));
+        let __go_fmt_1 = format!("{}", (*self.next_p_c.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.frames));
+        let __go_fmt_3 = format!("{}", format_slice(&self.frame_store));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -103,7 +107,15 @@ impl Default for Frame {
 
 impl std::fmt::Display for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.p_c.lock().unwrap().as_ref().unwrap()), { if self.func.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.function.lock().unwrap().as_ref().unwrap()), (*self.file.lock().unwrap().as_ref().unwrap()), (*self.line.lock().unwrap().as_ref().unwrap()), (*self.start_line.lock().unwrap().as_ref().unwrap()), (*self.entry.lock().unwrap().as_ref().unwrap()), (*self.func_info.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.p_c.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.func.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.function.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.file.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.line.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.start_line.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.entry.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.func_info.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7)
     }
 }
 
@@ -155,7 +167,8 @@ impl Default for Func {
 
 impl std::fmt::Display for Func {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.opaque.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.opaque.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -228,7 +241,20 @@ impl Default for pcHeader {
 
 impl std::fmt::Display for pcHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.magic.lock().unwrap().as_ref().unwrap()), (*self.pad1.lock().unwrap().as_ref().unwrap()), (*self.pad2.lock().unwrap().as_ref().unwrap()), (*self.min_l_c.lock().unwrap().as_ref().unwrap()), (*self.ptr_size.lock().unwrap().as_ref().unwrap()), (*self.nfunc.lock().unwrap().as_ref().unwrap()), (*self.nfiles.lock().unwrap().as_ref().unwrap()), (*self.text_start.lock().unwrap().as_ref().unwrap()), (*self.funcname_offset.lock().unwrap().as_ref().unwrap()), (*self.cu_offset.lock().unwrap().as_ref().unwrap()), (*self.filetab_offset.lock().unwrap().as_ref().unwrap()), (*self.pctab_offset.lock().unwrap().as_ref().unwrap()), (*self.pcln_offset.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.magic.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.pad1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.pad2.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.min_l_c.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.ptr_size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.nfunc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.nfiles.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.text_start.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.funcname_offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.cu_offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.filetab_offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.pctab_offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.pcln_offset.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
     }
 }
 
@@ -401,7 +427,52 @@ impl Default for moduledata {
 
 impl std::fmt::Display for moduledata {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.not_in_heap.lock().unwrap().as_ref().unwrap()), { let __guard = self.pc_header.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.funcnametab), format_slice(&self.cutab), format_slice(&self.filetab), format_slice(&self.pctab), format_slice(&self.pclntable), format_slice(&self.ftab), (*self.findfunctab.lock().unwrap().as_ref().unwrap()), (*self.minpc.lock().unwrap().as_ref().unwrap()), (*self.maxpc.lock().unwrap().as_ref().unwrap()), (*self.text.lock().unwrap().as_ref().unwrap()), (*self.etext.lock().unwrap().as_ref().unwrap()), (*self.noptrdata.lock().unwrap().as_ref().unwrap()), (*self.enoptrdata.lock().unwrap().as_ref().unwrap()), (*self.data.lock().unwrap().as_ref().unwrap()), (*self.edata.lock().unwrap().as_ref().unwrap()), (*self.bss.lock().unwrap().as_ref().unwrap()), (*self.ebss.lock().unwrap().as_ref().unwrap()), (*self.noptrbss.lock().unwrap().as_ref().unwrap()), (*self.enoptrbss.lock().unwrap().as_ref().unwrap()), (*self.covctrs.lock().unwrap().as_ref().unwrap()), (*self.ecovctrs.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()), (*self.gcdata.lock().unwrap().as_ref().unwrap()), (*self.gcbss.lock().unwrap().as_ref().unwrap()), (*self.types.lock().unwrap().as_ref().unwrap()), (*self.etypes.lock().unwrap().as_ref().unwrap()), (*self.rodata.lock().unwrap().as_ref().unwrap()), (*self.gofunc.lock().unwrap().as_ref().unwrap()), format_slice(&self.textsectmap), format_slice(&self.typelinks), format_slice_wrapped(&self.itablinks), format_slice(&self.ptab), (*self.pluginpath.lock().unwrap().as_ref().unwrap()), format_slice(&self.pkghashes), format_slice_wrapped(&self.inittasks), (*self.modulename.lock().unwrap().as_ref().unwrap()), format_slice(&self.modulehashes), (*self.hasmain.lock().unwrap().as_ref().unwrap()), (*self.bad.lock().unwrap().as_ref().unwrap()), (*self.gcdatamask.lock().unwrap().as_ref().unwrap()), (*self.gcbssmask.lock().unwrap().as_ref().unwrap()), format_map(&self.typemap), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.not_in_heap.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.pc_header.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", format_slice(&self.funcnametab));
+        let __go_fmt_3 = format!("{}", format_slice(&self.cutab));
+        let __go_fmt_4 = format!("{}", format_slice(&self.filetab));
+        let __go_fmt_5 = format!("{}", format_slice(&self.pctab));
+        let __go_fmt_6 = format!("{}", format_slice(&self.pclntable));
+        let __go_fmt_7 = format!("{}", format_slice(&self.ftab));
+        let __go_fmt_8 = format!("{}", (*self.findfunctab.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.minpc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.maxpc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.text.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.etext.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.noptrdata.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.enoptrdata.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.edata.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.bss.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.ebss.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.noptrbss.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.enoptrbss.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.covctrs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.ecovctrs.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_23 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_24 = format!("{}", (*self.gcdata.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_25 = format!("{}", (*self.gcbss.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_26 = format!("{}", (*self.types.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_27 = format!("{}", (*self.etypes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_28 = format!("{}", (*self.rodata.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_29 = format!("{}", (*self.gofunc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_30 = format!("{}", format_slice(&self.textsectmap));
+        let __go_fmt_31 = format!("{}", format_slice(&self.typelinks));
+        let __go_fmt_32 = format!("{}", format_slice_wrapped(&self.itablinks));
+        let __go_fmt_33 = format!("{}", format_slice(&self.ptab));
+        let __go_fmt_34 = format!("{}", (*self.pluginpath.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_35 = format!("{}", format_slice(&self.pkghashes));
+        let __go_fmt_36 = format!("{}", format_slice_wrapped(&self.inittasks));
+        let __go_fmt_37 = format!("{}", (*self.modulename.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_38 = format!("{}", format_slice(&self.modulehashes));
+        let __go_fmt_39 = format!("{}", (*self.hasmain.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_40 = format!("{}", (*self.bad.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_41 = format!("{}", (*self.gcdatamask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_42 = format!("{}", (*self.gcbssmask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_43 = format!("{}", format_map(&self.typemap));
+        let __go_fmt_44 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35, __go_fmt_36, __go_fmt_37, __go_fmt_38, __go_fmt_39, __go_fmt_40, __go_fmt_41, __go_fmt_42, __go_fmt_43, __go_fmt_44)
     }
 }
 
@@ -455,7 +526,10 @@ impl Default for modulehash {
 
 impl std::fmt::Display for modulehash {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.modulename.lock().unwrap().as_ref().unwrap()), (*self.linktimehash.lock().unwrap().as_ref().unwrap()), { let __guard = self.runtimehash.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.modulename.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.linktimehash.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.runtimehash.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -494,7 +568,9 @@ impl Default for functab {
 
 impl std::fmt::Display for functab {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.entryoff.lock().unwrap().as_ref().unwrap()), (*self.funcoff.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.entryoff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.funcoff.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -536,7 +612,10 @@ impl Default for textsect {
 
 impl std::fmt::Display for textsect {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.vaddr.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()), (*self.baseaddr.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.vaddr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.baseaddr.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -583,7 +662,9 @@ impl Default for findfuncbucket {
 
 impl std::fmt::Display for findfuncbucket {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.idx.lock().unwrap().as_ref().unwrap()), format_slice(&self.subbuckets))
+        let __go_fmt_0 = format!("{}", (*self.idx.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.subbuckets));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -615,7 +696,9 @@ impl funcInfo {
 
 impl std::fmt::Display for funcInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self._func.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.datap.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self._func.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __guard = self.datap.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -663,7 +746,11 @@ impl Default for srcFunc {
 
 impl std::fmt::Display for srcFunc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", { let __guard = self.datap.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.name_off.lock().unwrap().as_ref().unwrap()), (*self.start_line.lock().unwrap().as_ref().unwrap()), (*self.func_i_d.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.datap.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.name_off.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.start_line.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.func_i_d.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -702,7 +789,9 @@ impl Default for pcvalueCache {
 
 impl std::fmt::Display for pcvalueCache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_nested_slice(&self.entries), (*self.in_use.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_nested_slice(&self.entries));
+        let __go_fmt_1 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -747,7 +836,11 @@ impl Default for pcvalueCacheEnt {
 
 impl std::fmt::Display for pcvalueCacheEnt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.targetpc.lock().unwrap().as_ref().unwrap()), (*self.off.lock().unwrap().as_ref().unwrap()), (*self.val.lock().unwrap().as_ref().unwrap()), (*self.val_p_c.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.targetpc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.off.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.val.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.val_p_c.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -789,7 +882,10 @@ impl Default for stackmap {
 
 impl std::fmt::Display for stackmap {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.n.lock().unwrap().as_ref().unwrap()), (*self.nbit.lock().unwrap().as_ref().unwrap()), format_slice(&self.bytedata))
+        let __go_fmt_0 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.nbit.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.bytedata));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

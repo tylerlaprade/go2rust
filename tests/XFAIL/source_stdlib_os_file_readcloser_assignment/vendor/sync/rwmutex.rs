@@ -69,7 +69,12 @@ impl Default for RWMutex {
 
 impl std::fmt::Display for RWMutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.w.lock().unwrap().as_ref().unwrap()), (*self.writer_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_count.lock().unwrap().as_ref().unwrap()), (*self.reader_wait.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.writer_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reader_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.reader_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.reader_wait.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -117,7 +122,12 @@ impl Default for rlocker {
 
 impl std::fmt::Display for rlocker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.w.lock().unwrap().as_ref().unwrap()), (*self.writer_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_count.lock().unwrap().as_ref().unwrap()), (*self.reader_wait.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.writer_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reader_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.reader_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.reader_wait.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

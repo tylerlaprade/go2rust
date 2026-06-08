@@ -40,7 +40,11 @@ impl Default for mcentral {
 
 impl std::fmt::Display for mcentral {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.spanclass.lock().unwrap().as_ref().unwrap()), format_slice(&self.partial), format_slice(&self.full))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.spanclass.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.partial));
+        let __go_fmt_3 = format!("{}", format_slice(&self.full));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

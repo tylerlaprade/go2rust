@@ -43,7 +43,12 @@ impl Default for inlinedCall {
 
 impl std::fmt::Display for inlinedCall {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.func_i_d.lock().unwrap().as_ref().unwrap()), format_slice(&self.__blank_1_0), (*self.name_off.lock().unwrap().as_ref().unwrap()), (*self.parent_pc.lock().unwrap().as_ref().unwrap()), (*self.start_line.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.func_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.__blank_1_0));
+        let __go_fmt_2 = format!("{}", (*self.name_off.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.parent_pc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.start_line.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -95,7 +100,9 @@ impl Default for inlineUnwinder {
 
 impl std::fmt::Display for inlineUnwinder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.f.lock().unwrap().as_ref().unwrap()), { if self.inl_tree.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.f.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.inl_tree.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -135,7 +142,9 @@ impl Default for inlineFrame {
 
 impl std::fmt::Display for inlineFrame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.pc.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

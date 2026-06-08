@@ -53,7 +53,8 @@ impl Default for mWaitList {
 
 impl std::fmt::Display for mWaitList {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.next.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

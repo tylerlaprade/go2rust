@@ -45,7 +45,9 @@ impl Default for poolDequeue {
 
 impl std::fmt::Display for poolDequeue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.head_tail.lock().unwrap().as_ref().unwrap()), format_slice(&self.vals))
+        let __go_fmt_0 = format!("{}", (*self.head_tail.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.vals));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -84,7 +86,9 @@ impl Default for eface {
 
 impl std::fmt::Display for eface {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.typ.lock().unwrap().as_ref().unwrap()), (*self.val.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.val.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -137,7 +141,9 @@ impl Default for poolChain {
 
 impl std::fmt::Display for poolChain {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.head.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.tail.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.head.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.tail.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -179,7 +185,10 @@ impl Default for poolChainElt {
 
 impl std::fmt::Display for poolChainElt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.pool_dequeue.lock().unwrap().as_ref().unwrap()), (*self.next.lock().unwrap().as_ref().unwrap()), (*self.prev.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pool_dequeue.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.prev.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

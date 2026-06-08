@@ -806,7 +806,9 @@ impl Default for traceSchedResourceState {
 
 impl std::fmt::Display for traceSchedResourceState {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.status_traced), format_slice(&self.seq))
+        let __go_fmt_0 = format!("{}", format_slice(&self.status_traced));
+        let __go_fmt_1 = format!("{}", format_slice(&self.seq));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

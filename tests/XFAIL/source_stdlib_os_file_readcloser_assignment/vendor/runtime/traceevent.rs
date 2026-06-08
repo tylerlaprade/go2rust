@@ -847,7 +847,8 @@ impl Default for traceEventWriter {
 
 impl std::fmt::Display for traceEventWriter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.tl.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tl.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

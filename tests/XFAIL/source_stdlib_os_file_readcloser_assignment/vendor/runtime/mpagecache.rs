@@ -43,7 +43,10 @@ impl Default for pageCache {
 
 impl std::fmt::Display for pageCache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), (*self.cache.lock().unwrap().as_ref().unwrap()), (*self.scav.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.cache.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.scav.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

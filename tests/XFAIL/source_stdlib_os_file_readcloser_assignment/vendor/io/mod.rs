@@ -221,7 +221,9 @@ impl Default for LimitedReader {
 
 impl std::fmt::Display for LimitedReader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.r.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

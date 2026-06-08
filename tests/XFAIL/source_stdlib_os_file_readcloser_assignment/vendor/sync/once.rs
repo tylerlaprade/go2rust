@@ -47,7 +47,10 @@ impl Default for Once {
 
 impl std::fmt::Display for Once {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.done.lock().unwrap().as_ref().unwrap()), (*self.m.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.done.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.m.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

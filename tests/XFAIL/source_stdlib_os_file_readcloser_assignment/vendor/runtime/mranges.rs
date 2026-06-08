@@ -36,7 +36,9 @@ impl Default for addrRange {
 
 impl std::fmt::Display for addrRange {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), (*self.limit.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.limit.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -75,7 +77,8 @@ impl Default for offAddr {
 
 impl std::fmt::Display for offAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.a.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.a.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 impl PartialEq for offAddr {
@@ -121,7 +124,8 @@ impl Default for atomicOffAddr {
 
 impl std::fmt::Display for atomicOffAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.a.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.a.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -173,7 +177,10 @@ impl Default for addrRanges {
 
 impl std::fmt::Display for addrRanges {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.ranges), (*self.total_bytes.lock().unwrap().as_ref().unwrap()), { let __guard = self.sys_stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", format_slice(&self.ranges));
+        let __go_fmt_1 = format!("{}", (*self.total_bytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.sys_stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

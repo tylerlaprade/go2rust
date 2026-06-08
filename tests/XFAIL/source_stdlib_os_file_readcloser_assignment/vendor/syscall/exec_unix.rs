@@ -42,7 +42,11 @@ impl Default for Credential {
 
 impl std::fmt::Display for Credential {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.uid.lock().unwrap().as_ref().unwrap()), (*self.gid.lock().unwrap().as_ref().unwrap()), format_slice(&self.groups), (*self.no_set_groups.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.uid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.gid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.groups));
+        let __go_fmt_3 = format!("{}", (*self.no_set_groups.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -101,7 +105,11 @@ impl Default for ProcAttr {
 
 impl std::fmt::Display for ProcAttr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.dir.lock().unwrap().as_ref().unwrap()), format_slice(&self.env), format_slice(&self.files), { let __guard = self.sys.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.env));
+        let __go_fmt_2 = format!("{}", format_slice(&self.files));
+        let __go_fmt_3 = format!("{}", { let __guard = self.sys.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

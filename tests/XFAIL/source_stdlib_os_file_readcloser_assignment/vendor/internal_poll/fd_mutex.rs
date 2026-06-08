@@ -55,7 +55,10 @@ impl Default for fdMutex {
 
 impl std::fmt::Display for fdMutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.state.lock().unwrap().as_ref().unwrap()), (*self.rsema.lock().unwrap().as_ref().unwrap()), (*self.wsema.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.rsema.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.wsema.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

@@ -56,7 +56,11 @@ impl Default for typePointers {
 
 impl std::fmt::Display for typePointers {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.elem.lock().unwrap().as_ref().unwrap()), (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.mask.lock().unwrap().as_ref().unwrap()), { if self.typ.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.elem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.addr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { if self.typ.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -107,7 +111,10 @@ impl Default for markBits {
 
 impl std::fmt::Display for markBits {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", { if self.bytep.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.mask.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.bytep.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -1409,7 +1416,9 @@ impl Default for AnonymousStruct5 {
 
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { let __guard = self.data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

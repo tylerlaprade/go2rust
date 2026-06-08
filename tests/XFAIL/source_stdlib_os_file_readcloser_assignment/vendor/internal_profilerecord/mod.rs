@@ -62,7 +62,8 @@ impl StackRecord {
 
 impl std::fmt::Display for StackRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.stack))
+        let __go_fmt_0 = format!("{}", format_slice(&self.stack));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

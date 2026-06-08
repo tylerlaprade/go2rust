@@ -48,7 +48,8 @@ impl Default for note {
 
 impl std::fmt::Display for note {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

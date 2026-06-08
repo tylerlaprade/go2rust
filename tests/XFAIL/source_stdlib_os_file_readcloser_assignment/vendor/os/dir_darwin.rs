@@ -33,7 +33,8 @@ impl Default for dirInfo {
 
 impl std::fmt::Display for dirInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.dir.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

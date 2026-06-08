@@ -58,7 +58,10 @@ impl Default for timeHistogram {
 
 impl std::fmt::Display for timeHistogram {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.counts), (*self.underflow.lock().unwrap().as_ref().unwrap()), (*self.overflow.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.counts));
+        let __go_fmt_1 = format!("{}", (*self.underflow.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.overflow.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

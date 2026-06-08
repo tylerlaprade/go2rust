@@ -26,7 +26,8 @@ impl SysFile {
 
 impl std::fmt::Display for SysFile {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.iovecs))
+        let __go_fmt_0 = format!("{}", format_slice(&self.iovecs));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

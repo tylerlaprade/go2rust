@@ -51,7 +51,8 @@ impl multiReader {
 
 impl std::fmt::Display for multiReader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice_wrapped_stringer(&self.readers))
+        let __go_fmt_0 = format!("{}", format_slice_wrapped_stringer(&self.readers));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -80,7 +81,8 @@ impl multiWriter {
 
 impl std::fmt::Display for multiWriter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice_wrapped_stringer(&self.writers))
+        let __go_fmt_0 = format!("{}", format_slice_wrapped_stringer(&self.writers));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

@@ -57,7 +57,12 @@ impl Default for coro {
 
 impl std::fmt::Display for coro {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.gp.lock().unwrap().as_ref().unwrap()), "<func>", { let __guard = self.mp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.locked_ext.lock().unwrap().as_ref().unwrap()), (*self.locked_int.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.gp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", "<func>");
+        let __go_fmt_2 = format!("{}", { let __guard = self.mp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.locked_ext.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.locked_int.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 

@@ -128,7 +128,11 @@ impl Default for stackt {
 
 impl std::fmt::Display for stackt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", { let __guard = self.ss_sp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.ss_size.lock().unwrap().as_ref().unwrap()), (*self.ss_flags.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad_cgo_0))
+        let __go_fmt_0 = format!("{}", { let __guard = self.ss_sp.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.ss_size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.ss_flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_slice(&self.pad_cgo_0));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -170,7 +174,10 @@ impl Default for usigactiont {
 
 impl std::fmt::Display for usigactiont {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.__sigaction_u), (*self.sa_mask.lock().unwrap().as_ref().unwrap()), (*self.sa_flags.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.__sigaction_u));
+        let __go_fmt_1 = format!("{}", (*self.sa_mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.sa_flags.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -233,7 +240,17 @@ impl Default for siginfo {
 
 impl std::fmt::Display for siginfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", (*self.si_signo.lock().unwrap().as_ref().unwrap()), (*self.si_errno.lock().unwrap().as_ref().unwrap()), (*self.si_code.lock().unwrap().as_ref().unwrap()), (*self.si_pid.lock().unwrap().as_ref().unwrap()), (*self.si_uid.lock().unwrap().as_ref().unwrap()), (*self.si_status.lock().unwrap().as_ref().unwrap()), { let __guard = self.si_addr.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.si_value), (*self.si_band.lock().unwrap().as_ref().unwrap()), format_slice(&self.__pad))
+        let __go_fmt_0 = format!("{}", (*self.si_signo.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.si_errno.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.si_code.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.si_pid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.si_uid.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.si_status.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", { let __guard = self.si_addr.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_7 = format!("{}", format_slice(&self.si_value));
+        let __go_fmt_8 = format!("{}", (*self.si_band.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", format_slice(&self.__pad));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9)
     }
 }
 
@@ -272,7 +289,9 @@ impl Default for timespec {
 
 impl std::fmt::Display for timespec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.tv_sec.lock().unwrap().as_ref().unwrap()), (*self.tv_nsec.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tv_sec.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.tv_nsec.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -314,7 +333,10 @@ impl Default for exceptionstate64 {
 
 impl std::fmt::Display for exceptionstate64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.far.lock().unwrap().as_ref().unwrap()), (*self.esr.lock().unwrap().as_ref().unwrap()), (*self.exc.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.far.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.esr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.exc.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -368,7 +390,14 @@ impl Default for regs64 {
 
 impl std::fmt::Display for regs64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", format_slice(&self.x), (*self.fp.lock().unwrap().as_ref().unwrap()), (*self.lr.lock().unwrap().as_ref().unwrap()), (*self.sp.lock().unwrap().as_ref().unwrap()), (*self.pc.lock().unwrap().as_ref().unwrap()), (*self.cpsr.lock().unwrap().as_ref().unwrap()), (*self.__pad.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.x));
+        let __go_fmt_1 = format!("{}", (*self.fp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.lr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.sp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.pc.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.cpsr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.__pad.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -410,7 +439,10 @@ impl Default for neonstate64 {
 
 impl std::fmt::Display for neonstate64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.v), (*self.fpsr.lock().unwrap().as_ref().unwrap()), (*self.fpcr.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.v));
+        let __go_fmt_1 = format!("{}", (*self.fpsr.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.fpcr.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -452,7 +484,10 @@ impl Default for mcontext64 {
 
 impl std::fmt::Display for mcontext64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.es.lock().unwrap().as_ref().unwrap()), (*self.ss.lock().unwrap().as_ref().unwrap()), (*self.ns.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.es.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.ss.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.ns.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -503,7 +538,13 @@ impl Default for ucontext {
 
 impl std::fmt::Display for ucontext {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.uc_onstack.lock().unwrap().as_ref().unwrap()), (*self.uc_sigmask.lock().unwrap().as_ref().unwrap()), (*self.uc_stack.lock().unwrap().as_ref().unwrap()), { let __guard = self.uc_link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.uc_mcsize.lock().unwrap().as_ref().unwrap()), { let __guard = self.uc_mcontext.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.uc_onstack.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.uc_sigmask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.uc_stack.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { let __guard = self.uc_link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_4 = format!("{}", (*self.uc_mcsize.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", { let __guard = self.uc_mcontext.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -554,7 +595,13 @@ impl Default for keventt {
 
 impl std::fmt::Display for keventt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.ident.lock().unwrap().as_ref().unwrap()), (*self.filter.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.fflags.lock().unwrap().as_ref().unwrap()), (*self.data.lock().unwrap().as_ref().unwrap()), { let __guard = self.udata.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.ident.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.filter.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.flags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.fflags.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", { let __guard = self.udata.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -968,7 +1015,9 @@ impl Default for pthreadattr {
 
 impl std::fmt::Display for pthreadattr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x__sig.lock().unwrap().as_ref().unwrap()), format_slice(&self.x__opaque))
+        let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1013,7 +1062,9 @@ impl Default for pthreadmutex {
 
 impl std::fmt::Display for pthreadmutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x__sig.lock().unwrap().as_ref().unwrap()), format_slice(&self.x__opaque))
+        let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1058,7 +1109,9 @@ impl Default for pthreadmutexattr {
 
 impl std::fmt::Display for pthreadmutexattr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x__sig.lock().unwrap().as_ref().unwrap()), format_slice(&self.x__opaque))
+        let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1103,7 +1156,9 @@ impl Default for pthreadcond {
 
 impl std::fmt::Display for pthreadcond {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x__sig.lock().unwrap().as_ref().unwrap()), format_slice(&self.x__opaque))
+        let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -1148,7 +1203,9 @@ impl Default for pthreadcondattr {
 
 impl std::fmt::Display for pthreadcondattr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x__sig.lock().unwrap().as_ref().unwrap()), format_slice(&self.x__opaque))
+        let __go_fmt_0 = format!("{}", (*self.x__sig.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.x__opaque));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

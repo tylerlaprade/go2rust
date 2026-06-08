@@ -49,7 +49,11 @@ impl Default for RegArgs {
 
 impl std::fmt::Display for RegArgs {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", format_slice(&self.ints), format_slice(&self.floats), format_slice(&self.ptrs), (*self.return_is_ptr.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.ints));
+        let __go_fmt_1 = format!("{}", format_slice(&self.floats));
+        let __go_fmt_2 = format!("{}", format_slice(&self.ptrs));
+        let __go_fmt_3 = format!("{}", (*self.return_is_ptr.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

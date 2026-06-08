@@ -57,7 +57,16 @@ impl Default for SockaddrDatalink {
 
 impl std::fmt::Display for SockaddrDatalink {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), (*self.family.lock().unwrap().as_ref().unwrap()), (*self.index.lock().unwrap().as_ref().unwrap()), (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.nlen.lock().unwrap().as_ref().unwrap()), (*self.alen.lock().unwrap().as_ref().unwrap()), (*self.slen.lock().unwrap().as_ref().unwrap()), format_slice(&self.data), (*self.raw.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.family.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.index.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.nlen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.alen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.slen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", format_slice(&self.data));
+        let __go_fmt_8 = format!("{}", (*self.raw.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 

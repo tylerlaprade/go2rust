@@ -56,7 +56,11 @@ impl Default for mOS {
 
 impl std::fmt::Display for mOS {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.initialized.lock().unwrap().as_ref().unwrap()), (*self.mutex.lock().unwrap().as_ref().unwrap()), (*self.cond.lock().unwrap().as_ref().unwrap()), (*self.count.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.initialized.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mutex.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.cond.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.count.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

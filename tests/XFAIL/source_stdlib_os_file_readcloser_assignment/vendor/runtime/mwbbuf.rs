@@ -50,7 +50,10 @@ impl Default for wbBuf {
 
 impl std::fmt::Display for wbBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.next.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()), format_slice(&self.buf))
+        let __go_fmt_0 = format!("{}", (*self.next.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.end.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.buf));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

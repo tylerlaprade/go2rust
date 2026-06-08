@@ -47,7 +47,10 @@ impl Default for mmapper {
 
 impl std::fmt::Display for mmapper {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", "<map>", "<func>", "<func>")
+        let __go_fmt_0 = format!("{}", "<map>");
+        let __go_fmt_1 = format!("{}", "<func>");
+        let __go_fmt_2 = format!("{}", "<func>");
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -875,7 +878,10 @@ impl Default for SockaddrInet4 {
 
 impl std::fmt::Display for SockaddrInet4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.port.lock().unwrap().as_ref().unwrap()), format_slice(&self.addr), (*self.raw.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.port.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.addr));
+        let __go_fmt_2 = format!("{}", (*self.raw.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -926,7 +932,11 @@ impl Default for SockaddrInet6 {
 
 impl std::fmt::Display for SockaddrInet6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.port.lock().unwrap().as_ref().unwrap()), (*self.zone_id.lock().unwrap().as_ref().unwrap()), format_slice(&self.addr), (*self.raw.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.port.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.zone_id.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.addr));
+        let __go_fmt_3 = format!("{}", (*self.raw.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -974,7 +984,9 @@ impl Default for SockaddrUnix {
 
 impl std::fmt::Display for SockaddrUnix {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.raw.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.raw.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

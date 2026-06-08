@@ -34,7 +34,9 @@ impl Default for InterfaceSwitchCache {
 
 impl std::fmt::Display for InterfaceSwitchCache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.mask.lock().unwrap().as_ref().unwrap()), format_slice(&self.entries))
+        let __go_fmt_0 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.entries));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -79,7 +81,10 @@ impl Default for InterfaceSwitchCacheEntry {
 
 impl std::fmt::Display for InterfaceSwitchCacheEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.typ.lock().unwrap().as_ref().unwrap()), (*self.case.lock().unwrap().as_ref().unwrap()), (*self.itab.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.case.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.itab.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -127,7 +132,9 @@ impl Default for TypeAssertCache {
 
 impl std::fmt::Display for TypeAssertCache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.mask.lock().unwrap().as_ref().unwrap()), format_slice(&self.entries))
+        let __go_fmt_0 = format!("{}", (*self.mask.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.entries));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -169,7 +176,9 @@ impl Default for TypeAssertCacheEntry {
 
 impl std::fmt::Display for TypeAssertCacheEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.typ.lock().unwrap().as_ref().unwrap()), (*self.itab.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.itab.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

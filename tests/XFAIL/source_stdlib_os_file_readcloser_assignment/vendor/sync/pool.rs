@@ -84,7 +84,13 @@ impl Default for Pool {
 
 impl std::fmt::Display for Pool {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.no_copy.lock().unwrap().as_ref().unwrap()), (*self.local.lock().unwrap().as_ref().unwrap()), (*self.local_size.lock().unwrap().as_ref().unwrap()), (*self.victim.lock().unwrap().as_ref().unwrap()), (*self.victim_size.lock().unwrap().as_ref().unwrap()), "<func>")
+        let __go_fmt_0 = format!("{}", (*self.no_copy.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.local.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.local_size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.victim.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.victim_size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", "<func>");
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -124,7 +130,9 @@ impl Default for poolLocalInternal {
 
 impl std::fmt::Display for poolLocalInternal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_any(self.private.lock().unwrap().as_ref().unwrap().as_ref()), (*self.shared.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_any(self.private.lock().unwrap().as_ref().unwrap().as_ref()));
+        let __go_fmt_1 = format!("{}", (*self.shared.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -163,7 +171,9 @@ impl Default for poolLocal {
 
 impl std::fmt::Display for poolLocal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.pool_local_internal.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad))
+        let __go_fmt_0 = format!("{}", (*self.pool_local_internal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.pad));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

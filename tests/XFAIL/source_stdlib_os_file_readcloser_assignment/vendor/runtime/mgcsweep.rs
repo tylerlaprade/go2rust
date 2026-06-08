@@ -50,7 +50,12 @@ impl Default for sweepdata {
 
 impl std::fmt::Display for sweepdata {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { let __guard = self.g.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.parked.lock().unwrap().as_ref().unwrap()), (*self.active.lock().unwrap().as_ref().unwrap()), (*self.central_index.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.g.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.parked.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.active.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.central_index.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -468,7 +473,8 @@ impl Default for activeSweep {
 
 impl std::fmt::Display for activeSweep {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.state.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -508,7 +514,9 @@ impl Default for sweepLocker {
 
 impl std::fmt::Display for sweepLocker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.sweep_gen.lock().unwrap().as_ref().unwrap()), (*self.valid.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.sweep_gen.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.valid.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -538,7 +546,8 @@ impl sweepLocked {
 
 impl std::fmt::Display for sweepLocked {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

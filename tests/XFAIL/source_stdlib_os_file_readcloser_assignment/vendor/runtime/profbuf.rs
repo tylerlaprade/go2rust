@@ -143,7 +143,18 @@ impl Default for profBuf {
 
 impl std::fmt::Display for profBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", (*self.r.lock().unwrap().as_ref().unwrap()), (*self.w.lock().unwrap().as_ref().unwrap()), (*self.overflow.lock().unwrap().as_ref().unwrap()), (*self.overflow_time.lock().unwrap().as_ref().unwrap()), (*self.eof.lock().unwrap().as_ref().unwrap()), (*self.hdrsize.lock().unwrap().as_ref().unwrap()), format_slice(&self.data), format_slice(&self.tags), (*self.r_next.lock().unwrap().as_ref().unwrap()), format_slice(&self.overflow_buf), (*self.wait.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.overflow.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.overflow_time.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.eof.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.hdrsize.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", format_slice(&self.data));
+        let __go_fmt_7 = format!("{}", format_slice(&self.tags));
+        let __go_fmt_8 = format!("{}", (*self.r_next.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", format_slice(&self.overflow_buf));
+        let __go_fmt_10 = format!("{}", (*self.wait.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
     }
 }
 

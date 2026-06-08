@@ -113,7 +113,26 @@ impl Default for pollDesc {
 
 impl std::fmt::Display for pollDesc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { if self.link.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.fdseq.lock().unwrap().as_ref().unwrap()), (*self.atomic_info.lock().unwrap().as_ref().unwrap()), (*self.rg.lock().unwrap().as_ref().unwrap()), (*self.wg.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.closing.lock().unwrap().as_ref().unwrap()), (*self.rrun.lock().unwrap().as_ref().unwrap()), (*self.wrun.lock().unwrap().as_ref().unwrap()), (*self.user.lock().unwrap().as_ref().unwrap()), (*self.rseq.lock().unwrap().as_ref().unwrap()), (*self.rt.lock().unwrap().as_ref().unwrap()), (*self.rd.lock().unwrap().as_ref().unwrap()), (*self.wseq.lock().unwrap().as_ref().unwrap()), (*self.wt.lock().unwrap().as_ref().unwrap()), (*self.wd.lock().unwrap().as_ref().unwrap()), { if self.self_.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.link.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.fd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.fdseq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.atomic_info.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.rg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.wg.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.closing.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.rrun.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.wrun.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.user.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.rseq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.rt.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.rd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.wseq.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.wt.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.wd.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", { if self.self_.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18)
     }
 }
 
@@ -531,7 +550,9 @@ impl Default for pollCache {
 
 impl std::fmt::Display for pollCache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { if self.first.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.lock.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { if self.first.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

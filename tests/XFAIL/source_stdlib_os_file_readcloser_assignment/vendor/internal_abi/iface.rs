@@ -44,7 +44,11 @@ impl Default for ITab {
 
 impl std::fmt::Display for ITab {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", { if self.inter.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.hash.lock().unwrap().as_ref().unwrap()), format_slice(&self.fun))
+        let __go_fmt_0 = format!("{}", { if self.inter.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.hash.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_slice(&self.fun));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -92,7 +96,9 @@ impl Default for EmptyInterface {
 
 impl std::fmt::Display for EmptyInterface {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.data.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.data.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

@@ -36,7 +36,8 @@ impl Default for traceStackTable {
 
 impl std::fmt::Display for traceStackTable {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.tab.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tab.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -81,7 +82,11 @@ impl Default for traceFrame {
 
 impl std::fmt::Display for traceFrame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.p_c.lock().unwrap().as_ref().unwrap()), (*self.func_i_d.lock().unwrap().as_ref().unwrap()), (*self.file_i_d.lock().unwrap().as_ref().unwrap()), (*self.line.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.p_c.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.func_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.file_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.line.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

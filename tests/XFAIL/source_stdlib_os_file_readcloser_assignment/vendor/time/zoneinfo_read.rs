@@ -63,7 +63,9 @@ impl Default for dataIO {
 
 impl std::fmt::Display for dataIO {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.p), (*self.error.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.p));
+        let __go_fmt_1 = format!("{}", (*self.error.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

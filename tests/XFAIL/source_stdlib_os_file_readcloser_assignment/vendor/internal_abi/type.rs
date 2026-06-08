@@ -132,7 +132,18 @@ impl Default for Type {
 
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", (*self.size_.lock().unwrap().as_ref().unwrap()), (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()), (*self.hash.lock().unwrap().as_ref().unwrap()), (*self.t_flag.lock().unwrap().as_ref().unwrap()), (*self.align_.lock().unwrap().as_ref().unwrap()), (*self.field_align_.lock().unwrap().as_ref().unwrap()), (*self.kind_.lock().unwrap().as_ref().unwrap()), "<func>", { if self.g_c_data.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.str.lock().unwrap().as_ref().unwrap()), (*self.ptr_to_this.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.size_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.hash.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.t_flag.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.align_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.field_align_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.kind_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", "<func>");
+        let __go_fmt_8 = format!("{}", { if self.g_c_data.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_9 = format!("{}", (*self.str.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.ptr_to_this.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
     }
 }
 
@@ -2099,7 +2110,11 @@ impl Default for Method {
 
 impl std::fmt::Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.mtyp.lock().unwrap().as_ref().unwrap()), (*self.ifn.lock().unwrap().as_ref().unwrap()), (*self.tfn.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mtyp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.ifn.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tfn.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2151,7 +2166,12 @@ impl Default for UncommonType {
 
 impl std::fmt::Display for UncommonType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()), (*self.mcount.lock().unwrap().as_ref().unwrap()), (*self.xcount.lock().unwrap().as_ref().unwrap()), (*self.moff.lock().unwrap().as_ref().unwrap()), (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mcount.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.xcount.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.moff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -2200,7 +2220,9 @@ impl Default for Imethod {
 
 impl std::fmt::Display for Imethod {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.typ.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2246,7 +2268,11 @@ impl Default for ArrayType {
 
 impl std::fmt::Display for ArrayType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.slice.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.len.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.slice.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2674,7 +2700,10 @@ impl Default for ChanType {
 
 impl std::fmt::Display for ChanType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.dir.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2713,7 +2742,9 @@ impl Default for structTypeUncommon {
 
 impl std::fmt::Display for structTypeUncommon {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.struct_type.lock().unwrap().as_ref().unwrap()), (*self.u.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.struct_type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2755,7 +2786,10 @@ impl Default for InterfaceType {
 
 impl std::fmt::Display for InterfaceType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.pkg_path.lock().unwrap().as_ref().unwrap()), format_slice(&self.methods))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.methods));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2794,7 +2828,9 @@ impl Default for SliceType {
 
 impl std::fmt::Display for SliceType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2847,7 +2883,10 @@ impl Default for FuncType {
 
 impl std::fmt::Display for FuncType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.in_count.lock().unwrap().as_ref().unwrap()), (*self.out_count.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.in_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.out_count.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2892,7 +2931,9 @@ impl Default for PtrType {
 
 impl std::fmt::Display for PtrType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2934,7 +2975,10 @@ impl Default for StructField {
 
 impl std::fmt::Display for StructField {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), { let __guard = self.typ.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.offset.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.typ.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2979,7 +3023,10 @@ impl Default for StructType {
 
 impl std::fmt::Display for StructType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.pkg_path.lock().unwrap().as_ref().unwrap()), format_slice(&self.fields))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.fields));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -3008,7 +3055,8 @@ impl Name {
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { if self.bytes.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        let __go_fmt_0 = format!("{}", { if self.bytes.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -5091,7 +5139,9 @@ impl Default for AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.ptr_type.lock().unwrap().as_ref().unwrap()), (*self.u.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.ptr_type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

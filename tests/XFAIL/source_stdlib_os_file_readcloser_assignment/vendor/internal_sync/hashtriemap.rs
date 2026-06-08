@@ -65,7 +65,13 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for HashTrieMap<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.inited.lock().unwrap().as_ref().unwrap()), (*self.init_mu.lock().unwrap().as_ref().unwrap()), (*self.root.lock().unwrap().as_ref().unwrap()), "<func>", "<func>", (*self.seed.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.inited.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.init_mu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.root.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", "<func>");
+        let __go_fmt_4 = format!("{}", "<func>");
+        let __go_fmt_5 = format!("{}", (*self.seed.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -125,7 +131,12 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for indirect<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.node.lock().unwrap().as_ref().unwrap()), (*self.dead.lock().unwrap().as_ref().unwrap()), (*self.mu.lock().unwrap().as_ref().unwrap()), { if self.parent.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, format_slice(&self.children))
+        let __go_fmt_0 = format!("{}", (*self.node.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.dead.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.mu.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", { if self.parent.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        let __go_fmt_4 = format!("{}", format_slice(&self.children));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -176,7 +187,11 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.node.lock().unwrap().as_ref().unwrap()), (*self.overflow.lock().unwrap().as_ref().unwrap()), (*self.key.lock().unwrap().as_ref().unwrap()), (*self.value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.node.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.overflow.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -223,7 +238,8 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for node<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.is_entry.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.is_entry.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
