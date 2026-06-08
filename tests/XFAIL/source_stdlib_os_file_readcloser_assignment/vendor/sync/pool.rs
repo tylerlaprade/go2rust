@@ -297,7 +297,10 @@ impl Pool {
                 // Try to pop the head of the local shard. We prefer
                 // the head over the tail for temporal locality of
                 // reuse.
-        { let (__tmp_0, __tmp_1) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_head(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_0; };
+        {
+            let (__tmp_0, __tmp_1) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_head();
+            let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_0;
+        };
         if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
         x = self.get_slow(Arc::new(StdMutex::new(Some(pid)))).clone();
     }

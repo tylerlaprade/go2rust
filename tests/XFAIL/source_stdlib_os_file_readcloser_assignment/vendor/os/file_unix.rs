@@ -605,7 +605,11 @@ impl crate::types::File {
     }
                 // Free cached dirinfo, so we allocate a new one if we
                 // access this file as a directory again. See #35767 and #37161.
-        { let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).seek(Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = whence.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *ret.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        {
+            let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).seek(Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = whence.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            *ret.lock().unwrap() = Some(__tmp_0);
+            let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
+        };
         runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.clone()) as Box<dyn Any + Send + Sync>))));
         return ({ let __v = (*ret.lock().unwrap().as_ref().unwrap()).clone(); __v }, err.clone());
     }

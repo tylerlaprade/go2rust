@@ -38,7 +38,11 @@ impl crate::types::File {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-        { let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).read(b.clone()); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        {
+            let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).read(b.clone());
+            *n.lock().unwrap() = Some(__tmp_0);
+            let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
+        };
         runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.clone()) as Box<dyn Any + Send + Sync>))));
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, err.clone());
     }
@@ -50,7 +54,11 @@ impl crate::types::File {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-        { let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).pread(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        {
+            let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).pread(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            *n.lock().unwrap() = Some(__tmp_0);
+            let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
+        };
         runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.clone()) as Box<dyn Any + Send + Sync>))));
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, err.clone());
     }
@@ -61,7 +69,11 @@ impl crate::types::File {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-        { let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).write(b.clone()); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        {
+            let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).write(b.clone());
+            *n.lock().unwrap() = Some(__tmp_0);
+            let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
+        };
         runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.clone()) as Box<dyn Any + Send + Sync>))));
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, err.clone());
     }
@@ -72,7 +84,11 @@ impl crate::types::File {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-        { let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).pwrite(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        {
+            let (__tmp_0, __tmp_1) = (*(*self.file.lock().unwrap().as_ref().unwrap()).pfd.lock().unwrap().as_mut().unwrap()).pwrite(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            *n.lock().unwrap() = Some(__tmp_0);
+            let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
+        };
         runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.clone()) as Box<dyn Any + Send + Sync>))));
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, err.clone());
     }

@@ -422,7 +422,11 @@ impl LimitedReader {
             _v
         }))); p = new_val; };
     }
-        { let (__tmp_0, __tmp_1) = (*self.r.lock().unwrap().as_mut().unwrap()).read(p.clone()); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        {
+            let (__tmp_0, __tmp_1) = (*self.r.lock().unwrap().as_mut().unwrap()).read(p.clone());
+            *n.lock().unwrap() = Some(__tmp_0);
+            let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
+        };
         { let __target = self.n.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }

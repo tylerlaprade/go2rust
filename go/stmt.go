@@ -6717,6 +6717,80 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 	writeMoveWrappedInnerAssignmentFromTemp(out, lhs, tmpName)
 }
 
+func writeMultilineTupleReassignment(out *strings.Builder, s *ast.AssignStmt) bool {
+	if s == nil || len(s.Rhs) != 1 || !tupleReassignmentCallShouldUseMultiline(s.Rhs[0]) {
+		return false
+	}
+	call, ok := unwrapParens(s.Rhs[0]).(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let (")
+	for i := range s.Lhs {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__tmp_%d", i))
+	}
+	out.WriteString(") = ")
+	TranspileExpression(out, s.Rhs[0])
+	out.WriteString(";\n")
+	for i, lhs := range s.Lhs {
+		var line strings.Builder
+		tmpName := fmt.Sprintf("__tmp_%d", i)
+		if !writeTupleSliceElemPtrFieldAssignmentFromTemp(&line, lhs, tmpName, call, i) {
+			if !writeTupleGoPtrAssignmentFromTemp(&line, lhs, tmpName, call, i) {
+				writeTupleAssignmentFromTemp(&line, lhs, tmpName, callResultIsBareScalar(call, i))
+			}
+		}
+		writeIndentedTupleAssignmentText(out, line.String(), indent+"    ")
+	}
+	out.WriteString(indent)
+	out.WriteString("}")
+	return true
+}
+
+func tupleReassignmentCallShouldUseMultiline(rhs ast.Expr) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	call, ok := unwrapParens(rhs).(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	return methodCallReceiverIsTypedFieldSelector(call)
+}
+
+func methodCallReceiverIsTypedFieldSelector(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	receiverSel, ok := unwrapParens(sel.X).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[receiverSel]
+	return ok && selection.Kind() == types.FieldVal
+}
+
+func writeIndentedTupleAssignmentText(out *strings.Builder, text string, indent string) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
+	out.WriteString(indent)
+	out.WriteString(text)
+	out.WriteString("\n")
+}
+
 func tupleTempNeedsUnwrapForBareAssignment(lhs ast.Expr, tmpBareScalar bool) bool {
 	if tmpBareScalar {
 		return false
@@ -11454,30 +11528,32 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 					}
 				} else {
-					out.WriteString("{ let (")
-					for i := range s.Lhs {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						out.WriteString(fmt.Sprintf("__tmp_%d", i))
-					}
-					out.WriteString(") = ")
-					TranspileExpression(out, s.Rhs[0])
-					out.WriteString(";")
-					for i, lhs := range s.Lhs {
-						tmpBareScalar := false
-						if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-							if writeTupleSliceElemPtrFieldAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
-								continue
+					if !writeMultilineTupleReassignment(out, s) {
+						out.WriteString("{ let (")
+						for i := range s.Lhs {
+							if i > 0 {
+								out.WriteString(", ")
 							}
-							if writeTupleGoPtrAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
-								continue
-							}
-							tmpBareScalar = callResultIsBareScalar(call, i)
+							out.WriteString(fmt.Sprintf("__tmp_%d", i))
 						}
-						writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), tmpBareScalar)
+						out.WriteString(") = ")
+						TranspileExpression(out, s.Rhs[0])
+						out.WriteString(";")
+						for i, lhs := range s.Lhs {
+							tmpBareScalar := false
+							if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+								if writeTupleSliceElemPtrFieldAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
+									continue
+								}
+								if writeTupleGoPtrAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
+									continue
+								}
+								tmpBareScalar = callResultIsBareScalar(call, i)
+							}
+							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), tmpBareScalar)
+						}
+						out.WriteString(" }")
 					}
-					out.WriteString(" }")
 				}
 			} else if len(s.Lhs) > 1 && len(s.Rhs) > 1 {
 				// Multiple assignments - need to handle specially

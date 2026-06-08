@@ -1127,11 +1127,15 @@ impl scavengerState {
         })));
                 // Update the critSleepRatio, adjusting until we reach our ideal fraction.
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        { let (__tmp_0, __tmp_1) = (*self.sleep_controller.lock().unwrap().as_mut().unwrap()).next(
-            Arc::new(Mutex::new(Some({ let __arg_holder = cpuFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __arg_holder = idealFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
-        ); *self.sleep_ratio.lock().unwrap() = Some(__tmp_0); *ok.lock().unwrap() = Some(__tmp_1); };
+        {
+            let (__tmp_0, __tmp_1) = (*self.sleep_controller.lock().unwrap().as_mut().unwrap()).next(
+                Arc::new(Mutex::new(Some({ let __arg_holder = cpuFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = idealFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            );
+            *self.sleep_ratio.lock().unwrap() = Some(__tmp_0);
+            *ok.lock().unwrap() = Some(__tmp_1);
+        };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // The core assumption of the controller, that we can get a proportional
                 // response, broke down. This may be transient, so temporarily switch to

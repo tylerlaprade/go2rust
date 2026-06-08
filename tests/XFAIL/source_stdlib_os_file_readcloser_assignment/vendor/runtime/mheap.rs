@@ -4064,7 +4064,10 @@ impl mheap {
                 // Note that we skip updates to searchAddr here. It's OK if
                 // it's stale and higher than normal; it'll operate correctly,
                 // just come with a performance cost.
-        { let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*extraPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))); *base.lock().unwrap() = Some(__tmp_0); };
+        {
+            let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*extraPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
+            *base.lock().unwrap() = Some(__tmp_0);
+        };
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         { let (__tmp_0, __tmp_1) = self.grow(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*extraPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))); *growth.lock().unwrap() = Some(__tmp_0); *ok.lock().unwrap() = Some(__tmp_1); };
@@ -4072,7 +4075,10 @@ impl mheap {
         unlock(GoPtr::local(self.lock.clone()));
         return GoPtr::nil();
     }
-        { let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*extraPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))); *base.lock().unwrap() = Some(__tmp_0); };
+        {
+            let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*extraPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
+            *base.lock().unwrap() = Some(__tmp_0);
+        };
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("grew heap, but no adequate free space found".to_string()))));
     }
@@ -4092,7 +4098,11 @@ impl mheap {
                         // just come with a performance cost.
             if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
                 // Try to acquire a base address.
-        { let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *base.lock().unwrap() = Some(__tmp_0); *scav.lock().unwrap() = Some(__tmp_1); };
+        {
+            let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            *base.lock().unwrap() = Some(__tmp_0);
+            *scav.lock().unwrap() = Some(__tmp_1);
+        };
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         { let (__tmp_0, __tmp_1) = self.grow(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *growth.lock().unwrap() = Some(__tmp_0); *ok.lock().unwrap() = Some(__tmp_1); };
@@ -4100,7 +4110,11 @@ impl mheap {
         unlock(GoPtr::local(self.lock.clone()));
         return GoPtr::nil();
     }
-        { let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *base.lock().unwrap() = Some(__tmp_0); *scav.lock().unwrap() = Some(__tmp_1); };
+        {
+            let (__tmp_0, __tmp_1) = (*self.pages.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            *base.lock().unwrap() = Some(__tmp_0);
+            *scav.lock().unwrap() = Some(__tmp_1);
+        };
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("grew heap, but no adequate free space found".to_string()))));
     }

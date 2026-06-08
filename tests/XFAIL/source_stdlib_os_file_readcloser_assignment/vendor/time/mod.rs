@@ -4918,7 +4918,11 @@ impl Time {
     let mut name: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     let mut offset: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
-        { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3, __tmp_4) = (*self.loc.lock().unwrap().as_mut().unwrap()).lookup(Arc::new(Mutex::new(Some(self.unix_sec())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_tmp_0; *offset.lock().unwrap() = Some(__tmp_1); };
+        {
+            let (__tmp_0, __tmp_1, __tmp_2, __tmp_3, __tmp_4) = (*self.loc.lock().unwrap().as_mut().unwrap()).lookup(Arc::new(Mutex::new(Some(self.unix_sec()))));
+            let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_tmp_0;
+            *offset.lock().unwrap() = Some(__tmp_1);
+        };
         return (name.clone(), (*offset.lock().unwrap().as_ref().unwrap()));
     }
 

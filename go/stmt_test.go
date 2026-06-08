@@ -5404,6 +5404,40 @@ func assign(f *info, target uint32, strict bool) int32 {
 	}
 }
 
+func TestConcurrentTupleReassignmentMethodFieldReceiverBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type errString string
+
+func (e errString) Error() string { return string(e) }
+
+type pfd struct{}
+
+func (p *pfd) seek(offset int64, whence int) (int64, error) {
+	return offset, errString("x")
+}
+
+type file struct {
+	pfd *pfd
+}
+
+func (f *file) Seek(offset int64, whence int) (ret int64, err error) {
+	go func() {}()
+	ret, err = f.pfd.seek(offset, whence)
+	return
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let (__tmp_0, __tmp_1) =") && strings.Contains(line, "*ret") {
+			t.Fatalf("tuple reassignment method call should not keep assignments on the tuple line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "\n            let (__tmp_0, __tmp_1) =") {
+		t.Fatalf("tuple reassignment method call should use a multiline block:\n%s", rust)
+	}
+}
+
 func TestTupleBareScalarShortDeclWrapsForGeneratedCallArgument(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
