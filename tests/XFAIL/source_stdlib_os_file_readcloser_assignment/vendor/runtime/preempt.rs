@@ -718,7 +718,31 @@ pub fn is_async_safe_point(gp: GoPtr<crate::runtime2::g>, pc: Arc<Mutex<Option<u
         // Check the inner-most name
     let (mut u, mut uf) = new_inline_unwinder(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut name = { let __recv = (*u.lock().unwrap().as_ref().unwrap()).src_func(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result };
-    if internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("runtime.".to_string())))) || internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("runtime/internal/".to_string())))) || internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("internal/runtime/".to_string())))) || internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("reflect.".to_string())))) {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("runtime.".to_string()))));
+                if __go_cond_2 {
+                    true
+                } else {
+                    let __go_cond_3 = internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("runtime/internal/".to_string()))));
+                    __go_cond_3
+                }
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_4 = internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("internal/runtime/".to_string()))));
+                __go_cond_4
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_5 = internal_stringslite::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("reflect.".to_string()))));
+            __go_cond_5
+        }
+    } {
                 // For now we never async preempt the runtime or
                 // anything closely tied to the runtime. Known issues
                 // include: various points in the scheduler ("don't

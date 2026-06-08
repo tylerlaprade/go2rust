@@ -4781,6 +4781,35 @@ func isGoPointer(p uintptr, datap *module) bool {
 	}
 }
 
+func TestConcurrentIfBuildsRepeatedLogicalCallConditionsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func hasPrefix(name string, prefix string) bool {
+	return false
+}
+
+func isRuntimeName(name string) bool {
+	go func() {}()
+	if hasPrefix(name, "runtime.") ||
+		hasPrefix(name, "runtime/internal/") ||
+		hasPrefix(name, "internal/runtime/") ||
+		hasPrefix(name, "reflect.") {
+		return true
+	}
+	return false
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Count(line, "has_prefix(") > 1 {
+			t.Fatalf("repeated logical call operands should not stay on one condition line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("repeated logical call operands should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsGoErrorComparisonChainWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
