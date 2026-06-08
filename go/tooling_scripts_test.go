@@ -20,6 +20,7 @@ func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-rust-work.*",
 		"go2rust-tests-list.*",
 		"go2rust-test-phase.*",
+		"go2rust-cargo-output.*",
 		"go2rust-rust-diff.*",
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
@@ -121,6 +122,7 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 		`mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX"`,
 		`mktemp "$diff_root/go2rust-rust-diff.XXXXXX"`,
 		`mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX"`,
+		`mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX"`,
 	} {
 		if !strings.Contains(combined, want) {
 			t.Fatalf("scripts should use named go2rust temp path %q", want)
@@ -644,8 +646,15 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 		`note_fixture_phase()`,
 		`report_fixture_timeout()`,
 		`export GO2RUST_TEST_PHASE_FILE="$phase_file"`,
+		`export GO2RUST_TEST_PHASE_DETAIL_FILE="$phase_detail_file"`,
+		`note_fixture_phase "cargo build"`,
+		`cargo "${cargo_offline_args[@]}" build >"$cargo_output_file" 2>&1`,
 		`note_fixture_phase "cargo run"`,
-		`report_fixture_timeout "$timeout" "$phase_file"`,
+		`cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1`,
+		`Rust compilation failed:`,
+		`Rust execution failed:`,
+		`report_fixture_timeout "$timeout" "$phase_file" "$phase_detail_file"`,
+		`Last phase output:`,
 		`Test timed out after $timeout (last phase: $phase)`,
 	} {
 		if !strings.Contains(script, want) {

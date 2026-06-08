@@ -130,6 +130,7 @@ note_fixture_phase() {
 report_fixture_timeout() {
     local timeout="$1"
     local phase_file="$2"
+    local detail_file="$3"
     local phase=""
     if [ -r "$phase_file" ]; then
         phase=$(cat "$phase_file" 2>/dev/null || true)
@@ -138,6 +139,11 @@ report_fixture_timeout() {
         echo "Test timed out after $timeout (last phase: $phase)"
     else
         echo "Test timed out after $timeout"
+    fi
+    if [ -s "$detail_file" ]; then
+        local tail_lines="${GO2RUST_TEST_TIMEOUT_TAIL_LINES:-20}"
+        echo "Last phase output:"
+        tail -n "$tail_lines" "$detail_file" | sed "s/^/  /"
     fi
 }
 
@@ -218,12 +224,45 @@ run_transpile_and_compare() {
         cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})
     fi
 
+    local cargo_output_file="${GO2RUST_TEST_PHASE_DETAIL_FILE:-}"
+    local remove_cargo_output_file=false
+    if [ -z "$cargo_output_file" ]; then
+        cargo_output_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX")
+        remove_cargo_output_file=true
+    fi
+
+    local cargo_build_exit_code
+    note_fixture_phase "cargo build"
+    : > "$cargo_output_file"
+    if (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" build >"$cargo_output_file" 2>&1); then
+        cargo_build_exit_code=0
+    else
+        cargo_build_exit_code=$?
+    fi
+
+    if [ $cargo_build_exit_code -ne 0 ]; then
+        if [ "$remove_cargo_target" = true ]; then
+            rm -rf "$cargo_target_dir"
+        fi
+        echo ""
+        echo "Rust compilation failed:"
+        cat "$cargo_output_file" | sed "s/^/  /"
+        if [ "$remove_cargo_output_file" = true ]; then
+            rm -f "$cargo_output_file"
+        fi
+        return 1
+    fi
+
+    local rust_output
+    local rust_exit_code
     note_fixture_phase "cargo run"
-    if rust_output=$(cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet 2>&1); then
+    : > "$cargo_output_file"
+    if (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?
     fi
+    rust_output=$(cat "$cargo_output_file")
 
     if [ "$remove_cargo_target" = true ]; then
         rm -rf "$cargo_target_dir"
@@ -231,9 +270,15 @@ run_transpile_and_compare() {
     
     if [ $rust_exit_code -ne 0 ]; then
         echo ""
-        echo "Rust compilation/execution failed:"
+        echo "Rust execution failed:"
         echo "$rust_output" | sed "s/^/  /"
+        if [ "$remove_cargo_output_file" = true ]; then
+            rm -f "$cargo_output_file"
+        fi
         return 1
+    fi
+    if [ "$remove_cargo_output_file" = true ]; then
+        rm -f "$cargo_output_file"
     fi
     
     # Compare outputs with smart map comparison
@@ -265,6 +310,8 @@ run_test() {
 
     local phase_file
     phase_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX")
+    local phase_detail_file
+    phase_detail_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX")
 
     # Run the entire test with timeout
     # shellcheck disable=SC2016
@@ -273,6 +320,7 @@ run_test() {
         test_dir="$1"
         phase_file="$2"
         export GO2RUST_TEST_PHASE_FILE="$phase_file"
+        export GO2RUST_TEST_PHASE_DETAIL_FILE="$3"
         note_fixture_phase "allocating temp workspace"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         echo "$$" > "$test_tmp_root/go2rust-test.pid"
@@ -326,19 +374,19 @@ run_test() {
         
         # Use the shared helper for transpilation and comparison
         run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir" "$phase_file"; then
+    ' _ "$test_dir" "$phase_file" "$phase_detail_file"; then
         exit_code=0
     else
         exit_code=$?
     fi
     if [ $exit_code -ne 0 ]; then
         if [ $exit_code -eq 124 ]; then
-            report_fixture_timeout "$timeout" "$phase_file"
+            report_fixture_timeout "$timeout" "$phase_file" "$phase_detail_file"
         fi
-        rm -f "$phase_file"
+        rm -f "$phase_file" "$phase_detail_file"
         return 1
     fi
-    rm -f "$phase_file"
+    rm -f "$phase_file" "$phase_detail_file"
     
     return 0
 }
@@ -358,6 +406,8 @@ run_xfail_test() {
 
     local phase_file
     phase_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX")
+    local phase_detail_file
+    phase_detail_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX")
     
     # Run the entire test with timeout
     # shellcheck disable=SC2016
@@ -366,7 +416,9 @@ run_xfail_test() {
         test_dir="$1"
         test_name="$2"
         phase_file="$3"
+        phase_detail_file="$4"
         export GO2RUST_TEST_PHASE_FILE="$phase_file"
+        export GO2RUST_TEST_PHASE_DETAIL_FILE="$phase_detail_file"
         note_fixture_phase "allocating temp workspace"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         echo "$$" > "$test_tmp_root/go2rust-test.pid"
@@ -421,20 +473,20 @@ run_xfail_test() {
         
         # Use the shared helper for transpilation and comparison
         run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir" "$test_name" "$phase_file"; then
+    ' _ "$test_dir" "$test_name" "$phase_file" "$phase_detail_file"; then
         exit_code=0
     else
         exit_code=$?
     fi
     if [ $exit_code -ne 0 ]; then
         if [ $exit_code -eq 124 ]; then
-            report_fixture_timeout "$timeout" "$phase_file"
+            report_fixture_timeout "$timeout" "$phase_file" "$phase_detail_file"
         elif [ $exit_code -eq 2 ]; then
             # Compilation failure or other problem in the Go code itself- this is a real error for XFAIL tests
-            rm -f "$phase_file"
+            rm -f "$phase_file" "$phase_detail_file"
             return 1
         fi
-        rm -f "$phase_file"
+        rm -f "$phase_file" "$phase_detail_file"
         # Other failures are expected for XFAIL
         # But if we're running specific tests (not all tests), fail so we see the output
         if [ "$SHOW_XFAIL_ERRORS" = "true" ]; then
@@ -442,7 +494,7 @@ run_xfail_test() {
         fi
         return 0
     else
-        rm -f "$phase_file"
+        rm -f "$phase_file" "$phase_detail_file"
         # Test passed - promote it!
         echo "🎉 Promoting XFAIL test '$test_name' - it now passes!"
         mv "$test_dir" "tests/"
