@@ -664,13 +664,22 @@ impl unixDirent {
         if { let __iface_handle = { let __field = self.info.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return ({ let __field = self.info.clone(); __field }, Arc::new(Mutex::new(None)));
     }
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
-            let mut __s = String::new();
-            __s.push_str(&format!("{}", (*self.parent.clone().lock().unwrap().as_ref().unwrap())));
-            __s.push_str(&format!("{}", "/".to_string()));
-            __s.push_str(&format!("{}", (*self.name.clone().lock().unwrap().as_ref().unwrap())));
-            __s
-        })))) }
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = {
+                let mut __f_guard = lstat_1.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({
+                    let mut __s = String::new();
+                    __s.push_str(&format!("{}", (*self.parent.clone().lock().unwrap().as_ref().unwrap())));
+                    __s.push_str(&format!("{}", "/".to_string()));
+                    __s.push_str(&format!("{}", (*self.name.clone().lock().unwrap().as_ref().unwrap())));
+                    __s
+                })))
+            )
+        }
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -1044,13 +1053,22 @@ pub fn new_unix_dirent(parent: Arc<Mutex<Option<String>>>, name: Arc<Mutex<Optio
         return (Arc::new(Mutex::new(Some(Box::new(unixDirentPtr(ude.clone())) as Box<dyn io_fs::r#mod::DirEntry + Send + Sync>))), Arc::new(Mutex::new(None)));
     }
 
-    let (mut info, mut err) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
-        let mut __s = String::new();
-        __s.push_str(&format!("{}", { let __v = (*parent.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-        __s.push_str(&format!("{}", "/".to_string()));
-        __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-        __s
-    })))) };
+    let (mut info, mut err) = {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = {
+            let mut __f_guard = lstat_1.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            Arc::new(Mutex::new(Some({
+                let mut __s = String::new();
+                __s.push_str(&format!("{}", { let __v = (*parent.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+                __s.push_str(&format!("{}", "/".to_string()));
+                __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+                __s
+            })))
+        )
+    };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), err.clone());
     }

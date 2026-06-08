@@ -581,7 +581,16 @@ pub fn hexdump_words(p: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>
     }
 
         if { let __nil_result = (*mark.lock().unwrap()).is_some(); __nil_result } {
-        (*markbuf.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> u8 + Send + Sync> = { let mut __f_guard = mark.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))) };
+        (*markbuf.lock().unwrap().as_mut().unwrap())[(0) as usize] = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> u8 + Send + Sync> = {
+                let mut __f_guard = mark.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> u8 + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
+            )
+        };
         if {
             let __tmp_x = { let __seq = { let __seq_holder = markbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
             let __tmp_y = 0 as u8;

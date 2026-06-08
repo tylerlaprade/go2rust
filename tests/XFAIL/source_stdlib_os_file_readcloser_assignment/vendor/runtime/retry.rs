@@ -37,7 +37,16 @@ use std::sync::{Arc, Mutex};
 pub fn retry_on_e_a_g_a_i_n(r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> i32 + Send + Sync>>>>) -> i32 {
     let mut tries = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*tries.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 20; __tmp_x < __tmp_y } {
-        let mut errno = { let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        let mut errno = {
+            let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         if { let __tmp_x = errno; let __tmp_y = __E_A_G_A_I_N as i32; __tmp_x != __tmp_y } {
         return errno;
     }

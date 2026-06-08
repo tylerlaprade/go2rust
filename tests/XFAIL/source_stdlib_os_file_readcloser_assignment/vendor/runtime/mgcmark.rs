@@ -505,11 +505,29 @@ pub fn gc_mark_root_prepare() {
 
         // Scan globals.
     { let __range_holder = active_modules().clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for datap in __range_values.iter() {
-        let mut nDataRoots = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = { let mut __f_guard = nBlocks.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).edata.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))) };
+        let mut nDataRoots = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = {
+                let mut __f_guard = nBlocks.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).edata.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))
+            )
+        };
         if { let __tmp_x = nDataRoots; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_data_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         { let new_val = nDataRoots; *(*work.lock().unwrap().as_ref().unwrap()).n_data_roots.lock().unwrap() = Some(new_val); };
     }
-        let mut nBSSRoots = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = { let mut __f_guard = nBlocks.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).ebss.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).bss.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))) };
+        let mut nBSSRoots = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = {
+                let mut __f_guard = nBlocks.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).ebss.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).bss.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))
+            )
+        };
         if { let __tmp_x = nBSSRoots; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_b_s_s_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         { let new_val = nBSSRoots; *(*work.lock().unwrap().as_ref().unwrap()).n_b_s_s_roots.lock().unwrap() = Some(new_val); };
     }
@@ -2250,7 +2268,16 @@ pub fn gc_drain(gcw: Arc<Mutex<Option<gcWork>>>, flags: Arc<Mutex<Option<gcDrain
         break
     }
         markroot(gcw.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = job.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = flushBgCredit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } && { let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = { let mut __f_guard = check.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } {
+        if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } && {
+            let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = {
+                let mut __f_guard = check.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        } {
         break 'done;
     }
     }
@@ -2316,7 +2343,16 @@ pub fn gc_drain(gcw: Arc<Mutex<Option<gcWork>>>, flags: Arc<Mutex<Option<gcDrain
         { let new_val = 0 as i64; *(*gcw.lock().unwrap().as_ref().unwrap()).heap_scan_work.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*checkWork.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x <= __tmp_y } {
         { let __rhs = DRAIN_CHECK_THRESHOLD as i64; let mut guard = checkWork.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } && { let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = { let mut __f_guard = check.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } {
+        if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } && {
+            let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = {
+                let mut __f_guard = check.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        } {
         break
     }
     }

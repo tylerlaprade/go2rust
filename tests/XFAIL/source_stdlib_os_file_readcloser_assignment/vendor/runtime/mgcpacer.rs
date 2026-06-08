@@ -1033,7 +1033,16 @@ impl gcControllerState {
     }
     }
     }) as Box<dyn FnMut(Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>) -> bool + Send + Sync>)));
-        if { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>) -> bool + Send + Sync> = { let mut __f_guard = decIfPositive.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(self.dedicated_mark_workers_needed.clone()) } {
+        if {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>) -> bool + Send + Sync> = {
+                let mut __f_guard = decIfPositive.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>) -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                self.dedicated_mark_workers_needed.clone()
+            )
+        } {
                 // This P is now dedicated to marking until the end of
                 // the concurrent mark phase.
         { let new_val = crate::mgc::gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_DEDICATED_MODE as i32)))); *{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };

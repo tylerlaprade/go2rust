@@ -221,13 +221,22 @@ impl crate::types::File {
     }
         { let new_val = { let __append_target = dirents.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(de.clone()); __append_target.clone() }; dirents = new_val; };
     } else {
-        let (mut info, mut err) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
-            let mut __s = String::new();
-            __s.push_str(&format!("{}", (*(*self.file.lock().unwrap().as_ref().unwrap()).name.clone().lock().unwrap().as_ref().unwrap())));
-            __s.push_str(&format!("{}", "/".to_string()));
-            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*name.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap())));
-            __s
-        })))) };
+        let (mut info, mut err) = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = {
+                let mut __f_guard = lstat_1.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({
+                    let mut __s = String::new();
+                    __s.push_str(&format!("{}", (*(*self.file.lock().unwrap().as_ref().unwrap()).name.clone().lock().unwrap().as_ref().unwrap())));
+                    __s.push_str(&format!("{}", "/".to_string()));
+                    __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*name.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap())));
+                    __s
+                })))
+            )
+        };
         if is_not_exist(err.clone()) {
         continue
     }

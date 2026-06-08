@@ -901,7 +901,18 @@ impl timer {
                 // We are committed to possibly sending a value
                 // based on seq, so no need to keep telling
                 // stop/modify that we are sending.
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<i64>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(arg.clone(), seq.clone(), delay.clone()) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
+                let mut __f_guard = f.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                arg.clone(),
+                seq.clone(),
+                delay.clone()
+            )
+        };
         if !{ let __v = (*r#async.lock().unwrap().as_ref().unwrap()).clone(); __v } && (*self.is_chan.clone().lock().unwrap().as_ref().unwrap()) {
         unlock(GoPtr::local(self.send_lock.clone()));
     }

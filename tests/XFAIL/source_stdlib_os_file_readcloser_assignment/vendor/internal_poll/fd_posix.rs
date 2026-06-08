@@ -192,7 +192,16 @@ impl crate::fd_unix::FD {
             let mut fd_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         fd_defer_captured.decref();
     }));
-            { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __selector_holder = self.sysfd.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)))) };
+            {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = {
+                    let mut __f_guard = f.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> () + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    Arc::new(Mutex::new(Some({ let __selector_holder = self.sysfd.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)))
+                )
+            };
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -225,7 +234,16 @@ impl crate::fd_unix::FD {
 /// an EINTR loop.
 pub fn ignoring_e_i_n_t_r(r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     loop {
-        let mut err = { let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        let mut err = {
+            let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         if { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_I_N_T_R as usize)).unwrap_or(false); !__matched } {
         return err.clone();
     }

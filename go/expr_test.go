@@ -6152,6 +6152,30 @@ func prune(p *pageAlloc, need addrRange, level int, index int) addrRange {
 	}
 }
 
+func TestConcurrentClosureVariableCallWithPlainArgsBreaksSetupAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+var load func(file string, name string) ([]byte, error)
+
+func loadInfo(name string, source string) ([]byte, error) {
+	go func() {}()
+	return load(source, name)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "return { let __f_ptr") {
+			t.Fatalf("closure variable call with plain args should split function pointer setup across lines:\n%s", rust)
+		}
+		if strings.Contains(line, "(*__f)(") && strings.Contains(line, "Arc::new") {
+			t.Fatalf("closure variable call with plain args should split arguments across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "(*__f)(\n") {
+		t.Fatalf("closure variable call with plain args should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentMethodCallOnCallReceiverBreaksBlockAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

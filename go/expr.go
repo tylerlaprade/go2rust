@@ -10469,6 +10469,10 @@ func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 	return !ok || !sig.Variadic()
 }
 
+func closureVariableCallShouldUseMultiline(call *ast.CallExpr) bool {
+	return NeedsConcurrentWrapper() || functionCallArgumentsShouldUseMultiline(call)
+}
+
 func callArgumentsUseQualifiedGoPtrSelectorConversion(call *ast.CallExpr) bool {
 	if call == nil || !NeedsConcurrentWrapper() {
 		return false
@@ -21596,7 +21600,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 			boxType := functionBoxTypeForCallTarget(ident)
-			if functionCallArgumentsShouldUseMultiline(call) {
+			if closureVariableCallShouldUseMultiline(call) {
 				indent := currentLineIndent(out)
 				out.WriteString("{\n")
 				out.WriteString(indent)

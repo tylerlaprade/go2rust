@@ -142,7 +142,16 @@ impl crate::fd_unix::FD {
         if { let __tmp_x = { let __v = (*wrote.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = !(0 as usize) as usize; __tmp_x == __tmp_y } {
         { let new_val = 0 as usize; *wrote.lock().unwrap() = Some(new_val); };
     }
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> = { let mut __f_guard = TestHookDidWritev.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i32)))) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> = {
+                let mut __f_guard = TestHookDidWritev.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i32)))
+            )
+        };
         { let __rhs = (*Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         consume(
             v.clone(),

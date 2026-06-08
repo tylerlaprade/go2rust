@@ -521,7 +521,16 @@ pub fn send(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
             false
         }
     } {
-        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = unlockf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                let mut __f_guard = unlockf.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         std::panic::panic_any(Box::new(plainError(Arc::new(Mutex::new(Some("send on synctest channel from outside bubble".to_string()))))) as Box<dyn Any + Send + Sync>);
     }
     if RACEENABLED {
@@ -549,7 +558,16 @@ pub fn send(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
         *{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap() = None;
     }
     let mut gp = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.clone();
-    { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = unlockf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = unlockf.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
     { let new_val = Arc::new(Mutex::new(Some(sg.addr()))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*gp.lock().unwrap().as_ref().unwrap()).param.lock().unwrap() = __moved_val; };
     { let new_val = true; *{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.success.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*{ let __ptr_value = sg.borrow(); __ptr_value.as_ref().unwrap().releasetime.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
@@ -894,7 +912,16 @@ pub fn recv(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
             false
         }
     } {
-        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = unlockf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                let mut __f_guard = unlockf.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         std::panic::panic_any(Box::new(plainError(Arc::new(Mutex::new(Some("receive on synctest channel from outside bubble".to_string()))))) as Box<dyn Any + Send + Sync>);
     }
     if { let __tmp_x = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).dataqsiz.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
@@ -937,7 +964,16 @@ pub fn recv(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
         // c.sendx = (c.sendx+1) % c.dataqsiz
     *{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap() = None;
     let mut gp = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.clone();
-    { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = unlockf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = unlockf.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
     { let new_val = Arc::new(Mutex::new(Some(sg.addr()))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*gp.lock().unwrap().as_ref().unwrap()).param.lock().unwrap() = __moved_val; };
     { let new_val = true; *{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.success.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*{ let __ptr_value = sg.borrow(); __ptr_value.as_ref().unwrap().releasetime.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {

@@ -1290,7 +1290,16 @@ impl crate::mpagealloc::pageAlloc {
             Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*nbytes_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*released_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
         ); let mut guard = released_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
-        if { let __nil_result = (*shouldStop.lock().unwrap()).is_some(); __nil_result } && { let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = { let mut __f_guard = shouldStop.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } {
+        if { let __nil_result = (*shouldStop.lock().unwrap()).is_some(); __nil_result } && {
+            let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = {
+                let mut __f_guard = shouldStop.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        } {
         break
     }
     }
@@ -2251,17 +2260,77 @@ pub fn fill_aligned(mut x: Arc<Mutex<Option<u64>>>, m: Arc<Mutex<Option<u64>>>) 
     if _switch_val == (1 as u64) {
             return { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v };
         } else if _switch_val == (2 as u64) {
-            { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = { let mut __f_guard = apply.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), Arc::new(Mutex::new(Some(0x5555555555555555 as u64)))) }; *x.lock().unwrap() = Some(new_val); };
+            { let new_val = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = {
+                    let mut __f_guard = apply.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    x.clone(),
+                    Arc::new(Mutex::new(Some(0x5555555555555555 as u64)))
+                )
+            }; *x.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (4 as u64) {
-            { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = { let mut __f_guard = apply.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), Arc::new(Mutex::new(Some(0x7777777777777777 as u64)))) }; *x.lock().unwrap() = Some(new_val); };
+            { let new_val = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = {
+                    let mut __f_guard = apply.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    x.clone(),
+                    Arc::new(Mutex::new(Some(0x7777777777777777 as u64)))
+                )
+            }; *x.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (8 as u64) {
-            { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = { let mut __f_guard = apply.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), Arc::new(Mutex::new(Some(0x7f7f7f7f7f7f7f7f as u64)))) }; *x.lock().unwrap() = Some(new_val); };
+            { let new_val = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = {
+                    let mut __f_guard = apply.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    x.clone(),
+                    Arc::new(Mutex::new(Some(0x7f7f7f7f7f7f7f7f as u64)))
+                )
+            }; *x.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (16 as u64) {
-            { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = { let mut __f_guard = apply.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), Arc::new(Mutex::new(Some(0x7fff7fff7fff7fff as u64)))) }; *x.lock().unwrap() = Some(new_val); };
+            { let new_val = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = {
+                    let mut __f_guard = apply.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    x.clone(),
+                    Arc::new(Mutex::new(Some(0x7fff7fff7fff7fff as u64)))
+                )
+            }; *x.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (32 as u64) {
-            { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = { let mut __f_guard = apply.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), Arc::new(Mutex::new(Some(0x7fffffff7fffffff as u64)))) }; *x.lock().unwrap() = Some(new_val); };
+            { let new_val = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = {
+                    let mut __f_guard = apply.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    x.clone(),
+                    Arc::new(Mutex::new(Some(0x7fffffff7fffffff as u64)))
+                )
+            }; *x.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (64 as u64) {
-            { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = { let mut __f_guard = apply.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), Arc::new(Mutex::new(Some(0x7fffffffffffffff as u64)))) }; *x.lock().unwrap() = Some(new_val); };
+            { let new_val = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync> = {
+                    let mut __f_guard = apply.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u64>>>, Arc<Mutex<Option<u64>>>) -> u64 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    x.clone(),
+                    Arc::new(Mutex::new(Some(0x7fffffffffffffff as u64)))
+                )
+            }; *x.lock().unwrap() = Some(new_val); };
         } else {
             throw(Arc::new(Mutex::new(Some("bad m value".to_string()))));
         }

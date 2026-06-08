@@ -267,7 +267,16 @@ pub fn chmod_1(name: Arc<Mutex<Option<String>>>, mode: FileMode) -> Arc<Mutex<Op
 /// an EINTR loop.
 pub fn ignoring_e_i_n_t_r(r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     loop {
-        let mut err = { let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        let mut err = {
+            let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         if { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_I_N_T_R as usize)).unwrap_or(false); !__matched } {
         return err.clone();
     }
@@ -277,7 +286,16 @@ pub fn ignoring_e_i_n_t_r(r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Op
 /// ignoringEINTR2 is ignoringEINTR, but returning an additional value.
 pub fn ignoring_e_i_n_t_r2<T: Any + GoValueClone + Send + Sync + 'static>(r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> (Arc<Mutex<Option<T>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync>>>>) -> (Arc<Mutex<Option<T>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     loop {
-        let (mut v, mut err) = { let __f_ptr: *mut Box<dyn FnMut() -> (Arc<Mutex<Option<T>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (Arc<Mutex<Option<T>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        let (mut v, mut err) = {
+            let __f_ptr: *mut Box<dyn FnMut() -> (Arc<Mutex<Option<T>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (Arc<Mutex<Option<T>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         if { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_I_N_T_R as usize)).unwrap_or(false); !__matched } {
         return (v.clone(), err.clone());
     }

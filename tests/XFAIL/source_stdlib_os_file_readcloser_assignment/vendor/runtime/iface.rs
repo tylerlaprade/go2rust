@@ -1897,7 +1897,16 @@ pub fn iterate_itabs(r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<inter
             Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))
         ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Arc<Mutex<Option<internal_abi::iface::ITab>>>>(unimplemented!("unsafe.Pointer conversion to Arc<Mutex<Option<internal_abi::iface::ITab>>>")) } })).lock().unwrap().as_mut().unwrap()).clone();
         if { let __nil_result = (*m.lock().unwrap()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(m.clone()) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                m.clone()
+            )
+        };
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

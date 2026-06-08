@@ -471,7 +471,16 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
         return;
     }
 
-    if { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __S_I_G_U_S_R1 as u32; __tmp_x == __tmp_y } && { let __nil_result = (*testSigusr1.lock().unwrap()).is_some(); __nil_result } && { let __f_ptr: *mut Box<dyn FnMut(GoPtr<crate::runtime2::g>) -> bool + Send + Sync> = { let mut __f_guard = testSigusr1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(GoPtr<crate::runtime2::g>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(gp.clone()) } {
+    if { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __S_I_G_U_S_R1 as u32; __tmp_x == __tmp_y } && { let __nil_result = (*testSigusr1.lock().unwrap()).is_some(); __nil_result } && {
+        let __f_ptr: *mut Box<dyn FnMut(GoPtr<crate::runtime2::g>) -> bool + Send + Sync> = {
+            let mut __f_guard = testSigusr1.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(GoPtr<crate::runtime2::g>) -> bool + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            gp.clone()
+        )
+    } {
         return;
     }
 

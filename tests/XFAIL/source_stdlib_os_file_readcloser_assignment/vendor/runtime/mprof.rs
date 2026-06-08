@@ -2399,7 +2399,16 @@ pub fn fp_traceback_partial_expand(skip: Arc<Mutex<Option<i32>>>, mut fp: Arc<Mu
             }
         } {
     } else {
-        let mut more = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = skipOrAdd.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*uf.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x + __tmp_y })))) };;
+        let mut more = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync> = {
+                let mut __f_guard = skipOrAdd.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*uf.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x + __tmp_y })))
+            )
+        };;
         if !more {
             return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };;
         }
@@ -2515,7 +2524,16 @@ pub fn try_record_goroutine_profile(gp1: GoPtr<crate::runtime2::g>, pcbuf: Arc<M
         if { let __tmp_x = (*prev.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = goroutineProfileState(Arc::new(Mutex::new(Some(GOROUTINE_PROFILE_IN_PROGRESS as u32)))); __tmp_x == __tmp_y } {
                 // Something else is adding gp1 to the goroutine profile right now.
                 // Give that a moment to finish.
-        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                let mut __f_guard = r#yield.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         continue
     }
 

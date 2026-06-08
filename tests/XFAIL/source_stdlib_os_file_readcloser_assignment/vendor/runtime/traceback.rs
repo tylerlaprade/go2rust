@@ -1725,7 +1725,17 @@ pub fn print_args(f: Arc<Mutex<Option<funcInfo>>>, argp: Arc<Mutex<Option<usize>
             let __go_print_arg_0 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(x as u64)))));
             eprint!("{}", __go_print_arg_0)
         };
-        if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> bool + Send + Sync> = { let mut __f_guard = isLive_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(off.clone(), slotIdx.clone()) } {
+        if !{
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> bool + Send + Sync> = {
+                let mut __f_guard = isLive_closure_clone.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                off.clone(),
+                slotIdx.clone()
+            )
+        } {
         {
             let __go_print_arg_0 = format!("{}", "?".to_string());
             eprint!("{}", __go_print_arg_0)
@@ -1752,7 +1762,16 @@ pub fn print_args(f: Arc<Mutex<Option<funcInfo>>>, argp: Arc<Mutex<Option<usize>
     if _switch_val == (internal_abi::TRACE_ARGS_END_SEQ as u8) {
             break 'printloop
         } else if _switch_val == (internal_abi::TRACE_ARGS_START_AGG as u8) {
-            { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = printcomma.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+            {
+                let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                    let mut __f_guard = printcomma.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+
+                )
+            };
             {
             let __go_print_arg_0 = format!("{}", "{".to_string());
             eprint!("{}", __go_print_arg_0)
@@ -1765,22 +1784,60 @@ pub fn print_args(f: Arc<Mutex<Option<funcInfo>>>, argp: Arc<Mutex<Option<usize>
             eprint!("{}", __go_print_arg_0)
         };
         } else if _switch_val == (internal_abi::TRACE_ARGS_DOTDOTDOT as u8) {
-            { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = printcomma.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+            {
+                let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                    let mut __f_guard = printcomma.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+
+                )
+            };
             {
             let __go_print_arg_0 = format!("{}", "...".to_string());
             eprint!("{}", __go_print_arg_0)
         };
         } else if _switch_val == (internal_abi::TRACE_ARGS_OFFSET_TOO_LARGE as u8) {
-            { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = printcomma.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+            {
+                let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                    let mut __f_guard = printcomma.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+
+                )
+            };
             {
             let __go_print_arg_0 = format!("{}", "_".to_string());
             eprint!("{}", __go_print_arg_0)
         };
         } else {
-            { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = printcomma.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+            {
+                let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                    let mut __f_guard = printcomma.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+
+                )
+            };
             let mut sz = Arc::new(Mutex::new(Some({ let __seq = p.borrow(); __seq.as_ref().unwrap()[({ let __v = (*pi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })));
             { let mut guard = pi.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-            { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> () + Send + Sync> = { let mut __f_guard = print1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(o.clone(), sz.clone(), slotIdx.clone()) };
+            {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> () + Send + Sync> = {
+                    let mut __f_guard = print1.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<u8>>>) -> () + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    o.clone(),
+                    sz.clone(),
+                    slotIdx.clone()
+                )
+            };
             if { let __tmp_x = { let __v = (*o.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*startOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
         { let mut guard = slotIdx.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -2132,8 +2189,26 @@ pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<us
         // Just print the rest of the stack.
         // By default, omits runtime frames. If that means we print nothing at all,
         // repeat forcing all frames printed.
-    if { let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync> = { let mut __f_guard = tracebackWithRuntime.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(false)))) }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync> = { let mut __f_guard = tracebackWithRuntime.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(true)))) };
+    if { let __tmp_x = {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync> = {
+            let mut __f_guard = tracebackWithRuntime.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            Arc::new(Mutex::new(Some(false)))
+        )
+    }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync> = {
+                let mut __f_guard = tracebackWithRuntime.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(true)))
+            )
+        };
     }
     printcreatedby(gp.clone());
 
@@ -2200,7 +2275,16 @@ pub fn traceback2(u: Arc<Mutex<Option<unwinder>>>, showRuntime: Arc<Mutex<Option
     }
 
         {
-        let (mut pr, mut stop) = { let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = { let mut __f_guard = commitFrame.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };;
+        let (mut pr, mut stop) = {
+            let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = {
+                let mut __f_guard = commitFrame.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };;
         if stop {
             return ((*n.lock().unwrap().as_ref().unwrap()), (*lastN.lock().unwrap().as_ref().unwrap()));;
         } else if !pr {
@@ -2347,7 +2431,16 @@ pub fn traceback2(u: Arc<Mutex<Option<unwinder>>>, showRuntime: Arc<Mutex<Option
             }.iter().copied() {
         if { let __nil_result = (*cgoSymbolizer.lock().unwrap()).is_none(); __nil_result } {
         {
-        let (mut pr, mut stop) = { let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = { let mut __f_guard = commitFrame.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };;
+        let (mut pr, mut stop) = {
+            let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = {
+                let mut __f_guard = commitFrame.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };;
         if stop {
             break;
         } else if pr {
@@ -3155,7 +3248,16 @@ pub fn print_one_cgo_traceback(pc: Arc<Mutex<Option<usize>>>, commitFrame: Arc<M
     { let new_val = pc.lock().unwrap().as_ref().unwrap().clone(); *(*arg.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap() = Some(new_val); };
     loop {
         {
-        let (mut pr, mut stop) = { let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = { let mut __f_guard = commitFrame.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };;
+        let (mut pr, mut stop) = {
+            let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = {
+                let mut __f_guard = commitFrame.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };;
         if stop {
             return true;;
         } else if !pr {

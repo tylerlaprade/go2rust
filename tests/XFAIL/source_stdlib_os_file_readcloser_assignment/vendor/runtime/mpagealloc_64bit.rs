@@ -221,8 +221,29 @@ impl crate::mpagealloc::pageAlloc {
                 // an address range r to the address range of the given summary level
                 // that stores the summaries for r.
         let addrRangeToSummaryRange_closure_clone = addrRangeToSummaryRange.clone(); let summaryRangeToSumAddrRange_closure_clone = summaryRangeToSumAddrRange.clone(); let mut addrRangeToSumAddrRange = Arc::new(Mutex::new(Some(Box::new(move |level: Arc<Mutex<Option<i32>>>, r: Arc<Mutex<Option<addrRange>>>| -> Arc<Mutex<Option<addrRange>>> {
-        let (mut sumIdxBase, mut sumIdxLimit) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync> = { let mut __f_guard = addrRangeToSummaryRange_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(level.clone(), r.clone()) };
-        return { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = { let mut __f_guard = summaryRangeToSumAddrRange_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(level.clone(), Arc::new(Mutex::new(Some(sumIdxBase))), Arc::new(Mutex::new(Some(sumIdxLimit)))) };
+        let (mut sumIdxBase, mut sumIdxLimit) = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync> = {
+                let mut __f_guard = addrRangeToSummaryRange_closure_clone.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                level.clone(),
+                r.clone()
+            )
+        };
+        return {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = {
+                let mut __f_guard = summaryRangeToSumAddrRange_closure_clone.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                level.clone(),
+                Arc::new(Mutex::new(Some(sumIdxBase))),
+                Arc::new(Mutex::new(Some(sumIdxLimit)))
+            )
+        };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync>)));
                 // Find the first inUse index which is strictly greater than base.
                 //
@@ -270,7 +291,18 @@ impl crate::mpagealloc::pageAlloc {
         }))).lock().unwrap().as_ref().unwrap()).clone();
     }
                 // Compute the needed address range in the summary array for level l.
-        let mut need = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = { let mut __f_guard = summaryRangeToSumAddrRange.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(l as i32))), Arc::new(Mutex::new(Some(needIdxBase))), Arc::new(Mutex::new(Some(needIdxLimit)))) };
+        let mut need = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = {
+                let mut __f_guard = summaryRangeToSumAddrRange.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(l as i32))),
+                Arc::new(Mutex::new(Some(needIdxBase))),
+                Arc::new(Mutex::new(Some(needIdxLimit)))
+            )
+        };
                 // Prune need down to what needs to be newly mapped. Some parts of it may
                 // already be mapped by what inUse describes due to page alignment requirements
                 // for mapping. Because this function will never be asked to remap the same

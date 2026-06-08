@@ -471,7 +471,16 @@ pub fn runfinq() {
         let mut r#fn = Arc::new(Mutex::new(Some(Arc::as_ptr(&(*f.as_ref().unwrap().borrow().as_ref().unwrap()).r#fn.clone()) as usize)));
         { let new_val = unimplemented!("unsafe.Pointer conversion to function value"); *cleanup.lock().unwrap() = Some(new_val); };
         (*fingStatus.lock().unwrap().as_mut().unwrap()).or(Arc::new(Mutex::new(Some(FING_RUNNING_FINALIZER as u32))));
-        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = cleanup.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                let mut __f_guard = cleanup.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
         (*fingStatus.lock().unwrap().as_mut().unwrap()).and(Arc::new(Mutex::new(Some(!FING_RUNNING_FINALIZER as u32))));
         *(*f.as_ref().unwrap().borrow().as_ref().unwrap()).r#fn.lock().unwrap() = None;
         *(*f.as_ref().unwrap().borrow().as_ref().unwrap()).arg.lock().unwrap() = None;

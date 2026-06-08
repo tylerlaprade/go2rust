@@ -3495,7 +3495,16 @@ pub fn gc_reset_mark_state() {
 pub fn clearpools() {
         // clear sync.Pools
     if { let __nil_result = (*poolcleanup.lock().unwrap()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = poolcleanup.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                let mut __f_guard = poolcleanup.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
     }
 
         // clear boringcrypto caches

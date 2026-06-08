@@ -130,21 +130,30 @@ impl crate::r#mod::Time {
                     true
                 } else {
                     let __go_cond_3 = {
-                        let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = { let mut __f_guard = num2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
-                            let __seq_holder = b.clone();
-                            let __seq_guard = __seq_holder.lock().unwrap();
-                            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
-                            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                            drop(__seq_guard);
-                            let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 5; __tmp_x - __tmp_y }) as usize;
-                            let __high = __seq.len();
-                            let __max = __source_cap;
-                            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
-                            let _slice = &__seq[__low..__high];
-                            let mut _v = Vec::with_capacity((__max - __low) as usize);
-                            _v.extend_from_slice(_slice);
-                            _v
-                        })))) };
+                        let __tmp_x = {
+                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = {
+                                let mut __f_guard = num2.lock().unwrap();
+                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>
+                            };
+                            let __f = unsafe { &mut *__f_ptr };
+                            (*__f)(
+                                Arc::new(Mutex::new(Some({
+                                    let __seq_holder = b.clone();
+                                    let __seq_guard = __seq_holder.lock().unwrap();
+                                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                                    let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                                    drop(__seq_guard);
+                                    let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 5; __tmp_x - __tmp_y }) as usize;
+                                    let __high = __seq.len();
+                                    let __max = __source_cap;
+                                    if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                                    let _slice = &__seq[__low..__high];
+                                    let mut _v = Vec::with_capacity((__max - __low) as usize);
+                                    _v.extend_from_slice(_slice);
+                                    _v
+                                })))
+                            )
+                        };
                         let __tmp_y = 24 as u8;
                         __tmp_x >= __tmp_y
                     };
@@ -453,21 +462,30 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
             __tmp_x != __tmp_y
         } {
             if {
-                let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = { let mut __f_guard = num2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
-                    let __seq_holder = b.clone();
-                    let __seq_guard = __seq_holder.lock().unwrap();
-                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
-                    let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                    drop(__seq_guard);
-                    let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 5; __tmp_x - __tmp_y }) as usize;
-                    let __high = __seq.len();
-                    let __max = __source_cap;
-                    if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
-                    let _slice = &__seq[__low..__high];
-                    let mut _v = Vec::with_capacity((__max - __low) as usize);
-                    _v.extend_from_slice(_slice);
-                    _v
-                })))) };
+                let __tmp_x = {
+                    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = {
+                        let mut __f_guard = num2.lock().unwrap();
+                        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>
+                    };
+                    let __f = unsafe { &mut *__f_ptr };
+                    (*__f)(
+                        Arc::new(Mutex::new(Some({
+                            let __seq_holder = b.clone();
+                            let __seq_guard = __seq_holder.lock().unwrap();
+                            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                            drop(__seq_guard);
+                            let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 5; __tmp_x - __tmp_y }) as usize;
+                            let __high = __seq.len();
+                            let __max = __source_cap;
+                            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                            let _slice = &__seq[__low..__high];
+                            let mut _v = Vec::with_capacity((__max - __low) as usize);
+                            _v.extend_from_slice(_slice);
+                            _v
+                        })))
+                    )
+                };
                 let __tmp_y = 24 as u8;
                 __tmp_x >= __tmp_y
             } {
@@ -497,21 +515,30 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
                 }) as Box<dyn StdError + Send + Sync>)))
             );
         } else if {
-            let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = { let mut __f_guard = num2.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
-                let __seq_holder = b.clone();
-                let __seq_guard = __seq_holder.lock().unwrap();
-                let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
-                let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                drop(__seq_guard);
-                let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x - __tmp_y }) as usize;
-                let __high = __seq.len();
-                let __max = __source_cap;
-                if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
-                let _slice = &__seq[__low..__high];
-                let mut _v = Vec::with_capacity((__max - __low) as usize);
-                _v.extend_from_slice(_slice);
-                _v
-            })))) };
+            let __tmp_x = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync> = {
+                    let mut __f_guard = num2.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    Arc::new(Mutex::new(Some({
+                        let __seq_holder = b.clone();
+                        let __seq_guard = __seq_holder.lock().unwrap();
+                        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                        drop(__seq_guard);
+                        let __low = ({ let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x - __tmp_y }) as usize;
+                        let __high = __seq.len();
+                        let __max = __source_cap;
+                        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                        let _slice = &__seq[__low..__high];
+                        let mut _v = Vec::with_capacity((__max - __low) as usize);
+                        _v.extend_from_slice(_slice);
+                        _v
+                    })))
+                )
+            };
             let __tmp_y = 60 as u8;
             __tmp_x >= __tmp_y
         } {

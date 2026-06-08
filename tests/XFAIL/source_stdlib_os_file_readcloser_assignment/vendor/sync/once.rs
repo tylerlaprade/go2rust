@@ -141,7 +141,16 @@ impl Once {
         let mut o_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         (*o_defer_captured.done.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(1 as u32))));
     }));
-        { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+                let mut __f_guard = f.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        };
     }
 
             // Execute deferred functions
