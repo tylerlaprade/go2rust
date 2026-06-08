@@ -1346,7 +1346,39 @@ pub fn canpanic() -> bool {
     }
 
         // N.B. mp.locks != 1 instead of 0 to account for acquirem.
-    if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).locks.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } || { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_NONE as u32)))); __tmp_x != __tmp_y } || { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).dying.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = {
+                    let __go_cond_3 = { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).locks.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x != __tmp_y };
+                    if __go_cond_3 {
+                        true
+                    } else {
+                        let __go_cond_4 = { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                        __go_cond_4
+                    }
+                };
+                if __go_cond_2 {
+                    true
+                } else {
+                    let __go_cond_5 = { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_NONE as u32)))); __tmp_x != __tmp_y };
+                    __go_cond_5
+                }
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_6 = { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y };
+                __go_cond_6
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_7 = { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).dying.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+            __go_cond_7
+        }
+    } {
         releasem(GoPtr::local(mp.clone()));
         return false;
     }

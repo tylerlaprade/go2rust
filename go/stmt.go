@@ -9492,26 +9492,119 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	out.WriteString("\n    }")
 }
 
+const minStatementBuiltLogicalConditionNodes = 4
+
 func transpileCondition(out *strings.Builder, expr ast.Expr) {
+	if shouldStatementBuildLogicalCondition(expr) {
+		nextTemp := 0
+		writeStatementBuiltLogicalConditionValue(out, expr, currentLineIndent(out), &nextTemp)
+		return
+	}
+	transpileConditionInline(out, expr)
+}
+
+func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
+	return NeedsConcurrentWrapper() &&
+		countLogicalConditionNodes(expr) >= minStatementBuiltLogicalConditionNodes
+}
+
+func countLogicalConditionNodes(expr ast.Expr) int {
+	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
+	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
+		return 0
+	}
+	return 1 +
+		countLogicalConditionNodes(binary.X) +
+		countLogicalConditionNodes(binary.Y)
+}
+
+func currentLineIndent(out *strings.Builder) string {
+	text := out.String()
+	lineStart := strings.LastIndex(text, "\n") + 1
+	line := text[lineStart:]
+	indentEnd := 0
+	for indentEnd < len(line) && (line[indentEnd] == ' ' || line[indentEnd] == '\t') {
+		indentEnd++
+	}
+	return line[:indentEnd]
+}
+
+func writeStatementBuiltLogicalConditionValue(out *strings.Builder, expr ast.Expr, indent string, nextTemp *int) {
+	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
+	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
+		transpileConditionInline(out, expr)
+		return
+	}
+
+	out.WriteString("{\n")
+	left := writeStatementBuiltLogicalConditionTemp(out, binary.X, indent+"    ", nextTemp)
+	out.WriteString(indent)
+	out.WriteString("    if ")
+	out.WriteString(left)
+	out.WriteString(" {\n")
+	if binary.Op == token.LAND {
+		right := writeStatementBuiltLogicalConditionTemp(out, binary.Y, indent+"        ", nextTemp)
+		out.WriteString(indent)
+		out.WriteString("        ")
+		out.WriteString(right)
+		out.WriteString("\n")
+		out.WriteString(indent)
+		out.WriteString("    } else {\n")
+		out.WriteString(indent)
+		out.WriteString("        false\n")
+	} else {
+		out.WriteString(indent)
+		out.WriteString("        true\n")
+		out.WriteString(indent)
+		out.WriteString("    } else {\n")
+		right := writeStatementBuiltLogicalConditionTemp(out, binary.Y, indent+"        ", nextTemp)
+		out.WriteString(indent)
+		out.WriteString("        ")
+		out.WriteString(right)
+		out.WriteString("\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("}")
+}
+
+func writeStatementBuiltLogicalConditionTemp(out *strings.Builder, expr ast.Expr, indent string, nextTemp *int) string {
+	name := fmt.Sprintf("__go_cond_%d", *nextTemp)
+	*nextTemp++
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(name)
+	out.WriteString(" = ")
+	if countLogicalConditionNodes(expr) > 0 {
+		writeStatementBuiltLogicalConditionValue(out, expr, indent, nextTemp)
+	} else {
+		transpileConditionInline(out, expr)
+	}
+	out.WriteString(";\n")
+	return name
+}
+
+func transpileConditionInline(out *strings.Builder, expr ast.Expr) {
 	switch e := expr.(type) {
 	case *ast.ParenExpr:
 		out.WriteString("(")
-		transpileCondition(out, e.X)
+		transpileConditionInline(out, e.X)
 		out.WriteString(")")
 		return
 	case *ast.BinaryExpr:
 		if e.Op == token.LAND || e.Op == token.LOR {
-			transpileCondition(out, e.X)
+			transpileConditionInline(out, e.X)
 			out.WriteString(" ")
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
-			transpileCondition(out, e.Y)
+			transpileConditionInline(out, e.Y)
 			return
 		}
 	case *ast.UnaryExpr:
 		if e.Op == token.NOT {
 			out.WriteString("!")
-			transpileCondition(out, e.X)
+			transpileConditionInline(out, e.X)
 			return
 		}
 	case *ast.CallExpr:

@@ -682,7 +682,47 @@ impl crate::r#mod::Time {
         } else if _switch_val == (24) || _switch_val == (27) || _switch_val == (25) || _switch_val == (26) || _switch_val == (28) || _switch_val == (29) || _switch_val == (32) || _switch_val == (30) || _switch_val == (31) || _switch_val == (33) {
                         // Ugly special case. We cheat and take the "Z" variants
                         // to mean "the time zone as formatted for ISO 8601".
-            if { let __tmp_x = offset; let __tmp_y = 0; __tmp_x == __tmp_y } && ({ let __tmp_x = std; let __tmp_y = 24; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 27; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 25; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 26; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y }) {
+            if {
+                let __go_cond_0 = { let __tmp_x = offset; let __tmp_y = 0; __tmp_x == __tmp_y };
+                if __go_cond_0 {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = {
+                            let __go_cond_3 = {
+                                let __go_cond_4 = {
+                                    let __go_cond_5 = { let __tmp_x = std; let __tmp_y = 24; __tmp_x == __tmp_y };
+                                    if __go_cond_5 {
+                                        true
+                                    } else {
+                                        let __go_cond_6 = { let __tmp_x = std; let __tmp_y = 27; __tmp_x == __tmp_y };
+                                        __go_cond_6
+                                    }
+                                };
+                                if __go_cond_4 {
+                                    true
+                                } else {
+                                    let __go_cond_7 = { let __tmp_x = std; let __tmp_y = 25; __tmp_x == __tmp_y };
+                                    __go_cond_7
+                                }
+                            };
+                            if __go_cond_3 {
+                                true
+                            } else {
+                                let __go_cond_8 = { let __tmp_x = std; let __tmp_y = 26; __tmp_x == __tmp_y };
+                                __go_cond_8
+                            }
+                        };
+                        if __go_cond_2 {
+                            true
+                        } else {
+                            let __go_cond_9 = { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y };
+                            __go_cond_9
+                        }
+                    };
+                    __go_cond_1
+                } else {
+                    false
+                }
+            } {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('Z' as i32) as u8); __append_target.clone() }; b = new_val; };
         break '__go_switch_1
     }

@@ -690,7 +690,39 @@ const zheader: i32 = 0x04034b50;
         { let new_val = Arc::new(Mutex::new(Some(vec![0; ({ let __tmp_x = 30; let __tmp_y = namelen; __tmp_x + __tmp_y }) as usize]))); buf = new_val; };
         {
         let mut err = preadn(Arc::new(Mutex::new(Some(fd))), buf.clone(), Arc::new(Mutex::new(Some(off))));;
-        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } || { let __tmp_x = get4(buf.clone()); let __tmp_y = 67324752; __tmp_x != __tmp_y } || { let __tmp_x = get2(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (8) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let __tmp_y = meth; __tmp_x != __tmp_y } || { let __tmp_x = get2(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (26) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let __tmp_y = namelen; __tmp_x != __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (30) as usize; let __high = ({ let __tmp_x = 30; let __tmp_y = namelen; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result };
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_4 = { let __tmp_x = get4(buf.clone()); let __tmp_y = 67324752; __tmp_x != __tmp_y };
+                            __go_cond_4
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_5 = { let __tmp_x = get2(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (8) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let __tmp_y = meth; __tmp_x != __tmp_y };
+                        __go_cond_5
+                    }
+                };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_6 = { let __tmp_x = get2(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (26) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let __tmp_y = namelen; __tmp_x != __tmp_y };
+                    __go_cond_6
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_7 = { let __tmp_x = (*Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (30) as usize; let __high = ({ let __tmp_x = 30; let __tmp_y = namelen; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y };
+                __go_cond_7
+            }
+        } {
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

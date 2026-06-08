@@ -480,7 +480,63 @@ impl stkframe {
                 // Fetch the argument map at pcdata.
                 // don't know where we are
                 // stack objects.
-        if ({ let __tmp_x = "arm64".to_string(); let __tmp_y = "amd64".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm64".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "loong64".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "ppc64".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "ppc64le".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "riscv64".to_string(); __tmp_x == __tmp_y }) && { let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<internal_abi::r#mod::RegArgs>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = 0 as usize; __tmp_x > __tmp_y } && { let __v = (*isReflect.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = {
+                            let __go_cond_4 = {
+                                let __go_cond_5 = {
+                                    let __go_cond_6 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "amd64".to_string(); __tmp_x == __tmp_y };
+                                    if __go_cond_6 {
+                                        true
+                                    } else {
+                                        let __go_cond_7 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm64".to_string(); __tmp_x == __tmp_y };
+                                        __go_cond_7
+                                    }
+                                };
+                                if __go_cond_5 {
+                                    true
+                                } else {
+                                    let __go_cond_8 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "loong64".to_string(); __tmp_x == __tmp_y };
+                                    __go_cond_8
+                                }
+                            };
+                            if __go_cond_4 {
+                                true
+                            } else {
+                                let __go_cond_9 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "ppc64".to_string(); __tmp_x == __tmp_y };
+                                __go_cond_9
+                            }
+                        };
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_10 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "ppc64le".to_string(); __tmp_x == __tmp_y };
+                            __go_cond_10
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_11 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "riscv64".to_string(); __tmp_x == __tmp_y };
+                        __go_cond_11
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_12 = { let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<internal_abi::r#mod::RegArgs>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = 0 as usize; __tmp_x > __tmp_y };
+                    __go_cond_12
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_13 = { let __v = (*isReflect.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __go_cond_13
+            } else {
+                false
+            }
+        } {
                 // For reflect.makeFuncStub and reflect.methodValueCall,
                 // we need to fake the stack object record.
                 // These frames contain an internal/abi.RegArgs at a hard-coded offset.

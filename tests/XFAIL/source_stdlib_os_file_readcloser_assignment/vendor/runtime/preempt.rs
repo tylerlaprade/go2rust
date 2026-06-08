@@ -254,7 +254,39 @@ pub fn suspend_g(gp: Arc<Mutex<Option<g>>>) -> Arc<Mutex<Option<suspendGState>>>
             _fallthrough = false;
                         // Optimization: if there is already a pending preemption request
                         // (from the previous loop iteration), don't bother with the atomics.
-            if (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).preempt_stop.clone(); __field }.lock().unwrap().as_ref().unwrap()) && (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).preempt.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).stackguard0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = STACK_PREEMPT as usize; __tmp_x == __tmp_y } && { let __left = asyncM.clone(); let __right = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __tmp_x = (*(*asyncM.lock().unwrap().as_ref().unwrap()).preempt_gen.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = { let __v = (*asyncGen.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = {
+                            let __go_cond_3 = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).preempt_stop.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                            if __go_cond_3 {
+                                let __go_cond_4 = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).preempt.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                                __go_cond_4
+                            } else {
+                                false
+                            }
+                        };
+                        if __go_cond_2 {
+                            let __go_cond_5 = { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).stackguard0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = STACK_PREEMPT as usize; __tmp_x == __tmp_y };
+                            __go_cond_5
+                        } else {
+                            false
+                        }
+                    };
+                    if __go_cond_1 {
+                        let __go_cond_6 = { let __left = asyncM.clone(); let __right = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
+                        __go_cond_6
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_0 {
+                    let __go_cond_7 = { let __tmp_x = (*(*asyncM.lock().unwrap().as_ref().unwrap()).preempt_gen.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = { let __v = (*asyncGen.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                    __go_cond_7
+                } else {
+                    false
+                }
+            } {
         break '__go_switch_1
     }
                         // Temporarily block state transitions.
@@ -500,7 +532,47 @@ pub fn is_async_safe_point(gp: GoPtr<crate::runtime2::g>, pc: Arc<Mutex<Option<u
         return (false, 0);
     }
         // Not Go code.
-    if ({ let __tmp_x = "arm64".to_string(); let __tmp_y = "mips".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "mipsle".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "mips64".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "mips64le".to_string(); __tmp_x == __tmp_y }) && { let __tmp_x = { let __v = (*lr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x + __tmp_y }; __tmp_x == __tmp_y } && { let __tmp_x = funcspdelta(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = {
+                    let __go_cond_3 = {
+                        let __go_cond_4 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "mips".to_string(); __tmp_x == __tmp_y };
+                        if __go_cond_4 {
+                            true
+                        } else {
+                            let __go_cond_5 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "mipsle".to_string(); __tmp_x == __tmp_y };
+                            __go_cond_5
+                        }
+                    };
+                    if __go_cond_3 {
+                        true
+                    } else {
+                        let __go_cond_6 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "mips64".to_string(); __tmp_x == __tmp_y };
+                        __go_cond_6
+                    }
+                };
+                if __go_cond_2 {
+                    true
+                } else {
+                    let __go_cond_7 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "mips64le".to_string(); __tmp_x == __tmp_y };
+                    __go_cond_7
+                }
+            };
+            if __go_cond_1 {
+                let __go_cond_8 = { let __tmp_x = { let __v = (*lr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x + __tmp_y }; __tmp_x == __tmp_y };
+                __go_cond_8
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_9 = { let __tmp_x = funcspdelta(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0 as i32; __tmp_x == __tmp_y };
+            __go_cond_9
+        } else {
+            false
+        }
+    } {
                 // We probably stopped at a half-executed CALL instruction,
                 // where the LR is updated but the PC has not. If we preempt
                 // here we'll see a seemingly self-recursive call, which is in

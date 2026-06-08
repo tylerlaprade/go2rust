@@ -1588,7 +1588,47 @@ pub fn tracebacktrap(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>
 
 pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>, mut flags: Arc<Mutex<Option<unwindFlags>>>) {
         // If the goroutine is in cgo, and we have a cgo traceback, print that.
-    if (*iscgo.lock().unwrap().as_ref().unwrap()) && { let __nil_target = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).ncgo.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } && { let __tmp_x = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __nil_target = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cgo_callers.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __seq_holder = { let __named_array = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = {
+                    let __go_cond_3 = {
+                        let __go_cond_4 = (*iscgo.lock().unwrap().as_ref().unwrap());
+                        if __go_cond_4 {
+                            let __go_cond_5 = { let __nil_target = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+                            __go_cond_5
+                        } else {
+                            false
+                        }
+                    };
+                    if __go_cond_3 {
+                        let __go_cond_6 = { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).ncgo.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y };
+                        __go_cond_6
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_2 {
+                    let __go_cond_7 = { let __tmp_x = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+                    __go_cond_7
+                } else {
+                    false
+                }
+            };
+            if __go_cond_1 {
+                let __go_cond_8 = { let __nil_target = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cgo_callers.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+                __go_cond_8
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_9 = { let __tmp_x = { let __seq_holder = { let __named_array = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+            __go_cond_9
+        } else {
+            false
+        }
+    } {
                 // Lock cgoCallers so that a signal handler won't
                 // change it, copy the array, reset it, unlock it.
                 // We are locked to the thread and are not running
@@ -2169,7 +2209,39 @@ pub fn tracebackothers(me: GoPtr<crate::runtime2::g>) {
         // against concurrent creation of new Gs, but even with allglock we may
         // miss Gs created after this loop.
     let curgp_closure_clone = curgp.clone(); let level_closure_clone = level.clone(); let me_closure_clone = me.clone(); for_each_g_race(Arc::new(Mutex::new(Some(Box::new(move |gp: Arc<Mutex<Option<g>>>| {
-        if { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = me_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq } || { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = curgp_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq } || { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GDEAD as u32; __tmp_x == __tmp_y } || is_system_goroutine(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(false)))) && { let __tmp_x = level_closure_clone; let __tmp_y = 2 as i32; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = me_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = curgp_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq };
+                        __go_cond_3
+                    }
+                };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_4 = { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GDEAD as u32; __tmp_x == __tmp_y };
+                    __go_cond_4
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_5 = {
+                    let __go_cond_6 = is_system_goroutine(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(false))));
+                    if __go_cond_6 {
+                        let __go_cond_7 = { let __tmp_x = level_closure_clone; let __tmp_y = 2 as i32; __tmp_x < __tmp_y };
+                        __go_cond_7
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_5
+            }
+        } {
         return;
     }
         {

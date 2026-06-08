@@ -1088,7 +1088,39 @@ impl sweepLocked {
         if { let __v = (*hadSpecials.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __nil_target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.specials.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         span_has_no_specials(s.clone());
     }
-        if trace_alloc_free_enabled() || { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).clobberfree.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } || RACEENABLED || MSANENABLED || ASANENABLED {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = trace_alloc_free_enabled();
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_4 = { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).clobberfree.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                            __go_cond_4
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_5 = RACEENABLED;
+                        __go_cond_5
+                    }
+                };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_6 = MSANENABLED;
+                    __go_cond_6
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_7 = ASANENABLED;
+                __go_cond_7
+            }
+        } {
                 // Find all newly freed objects.
         let mut mbits = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).mark_bits_for_base(); __result };
         let mut abits = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).alloc_bits_for_index(Arc::new(Mutex::new(Some(0 as usize)))); __result };

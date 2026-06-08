@@ -3327,7 +3327,39 @@ pub fn newm(r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>, pp: 
     { let new_val = initSigmask.lock().unwrap().as_ref().unwrap().clone(); *(*mp.lock().unwrap().as_ref().unwrap()).sigmask.lock().unwrap() = Some(new_val); };
     {
         let mut gp = getg();;
-        if { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result } && { let __nil_target = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && ({ let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locked_ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } || (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).incgo.lock().unwrap().as_ref().unwrap())) && { let __tmp_x = "darwin".to_string(); let __tmp_y = "plan9".to_string(); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __nil_target = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = {
+                        let __go_cond_5 = { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locked_ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+                        if __go_cond_5 {
+                            true
+                        } else {
+                            let __go_cond_6 = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).incgo.lock().unwrap().as_ref().unwrap());
+                            __go_cond_6
+                        }
+                    };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_7 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "plan9".to_string(); __tmp_x != __tmp_y };
+                __go_cond_7
+            } else {
+                false
+            }
+        } {
             lock(GoPtr::local((*newmHandoff.lock().unwrap().as_ref().unwrap()).lock.clone()));;
             if { let __tmp_x = (*{ let __field = (*newmHandoff.lock().unwrap().as_ref().unwrap()).have_template_thread.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("on a locked thread with no template thread".to_string()))));

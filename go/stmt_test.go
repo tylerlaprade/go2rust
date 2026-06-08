@@ -4596,6 +4596,43 @@ func run() {
 	}
 }
 
+func TestConcurrentIfBuildsLargeLogicalConditionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type module struct {
+	a uintptr
+	b uintptr
+	c uintptr
+	d uintptr
+	e uintptr
+	f uintptr
+	g uintptr
+	h uintptr
+}
+
+var first module
+
+func inRange(p uintptr) bool {
+	go func() {}()
+	datap := &first
+	if datap.a <= p && p < datap.b ||
+		datap.c <= p && p < datap.d ||
+		datap.e <= p && p < datap.f ||
+		datap.g <= p && p < datap.h {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "} && {") || strings.Contains(rust, "} || {") {
+		t.Fatalf("large logical condition should not chain inline statement blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("large logical condition should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestTupleAssignmentFromBareScalarReturnSlots(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

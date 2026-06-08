@@ -298,7 +298,47 @@ pub fn queuefinalizer(p: Arc<Mutex<Option<usize>>>, r#fn: Arc<Mutex<Option<funcv
         if { let __tmp_x = { let __seq = { let __seq_holder = finptrmask.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
                 // Build pointer mask for Finalizer array in block.
                 // Check assumptions made in finalizer1 array above.
-        if ({ let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<finalizer>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((5 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x != __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((3 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((4 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y }) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = {
+                            let __go_cond_4 = { let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<finalizer>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((5 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                            if __go_cond_4 {
+                                true
+                            } else {
+                                let __go_cond_5 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+                                __go_cond_5
+                            }
+                        };
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_6 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x != __tmp_y };
+                            __go_cond_6
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_7 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                        __go_cond_7
+                    }
+                };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_8 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((3 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                    __go_cond_8
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_9 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((4 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                __go_cond_9
+            }
+        } {
         throw(Arc::new(Mutex::new(Some("finalizer out of sync".to_string()))));
     }
         for i in 0..(({ let __range_holder = finptrmask.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
@@ -528,7 +568,63 @@ pub fn is_go_pointer_without_span(p: Arc<Mutex<Option<usize>>>) -> bool {
         // due to external linking.
     let mut datap = firstmoduledata.clone();
     while { let __nil_result = (*datap.lock().unwrap()).is_some(); __nil_result } {
-        if { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).noptrdata.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).enoptrdata.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).edata.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).bss.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).ebss.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).noptrbss.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).enoptrbss.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).noptrdata.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y };
+                        if __go_cond_3 {
+                            let __go_cond_4 = { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).enoptrdata.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                            __go_cond_4
+                        } else {
+                            false
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_5 = {
+                            let __go_cond_6 = { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y };
+                            if __go_cond_6 {
+                                let __go_cond_7 = { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).edata.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                                __go_cond_7
+                            } else {
+                                false
+                            }
+                        };
+                        __go_cond_5
+                    }
+                };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_8 = {
+                        let __go_cond_9 = { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).bss.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y };
+                        if __go_cond_9 {
+                            let __go_cond_10 = { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).ebss.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                            __go_cond_10
+                        } else {
+                            false
+                        }
+                    };
+                    __go_cond_8
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_11 = {
+                    let __go_cond_12 = { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).noptrbss.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y };
+                    if __go_cond_12 {
+                        let __go_cond_13 = { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).enoptrbss.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                        __go_cond_13
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_11
+            }
+        } {
         return true;
     }
         { let new_val = (*datap.lock().unwrap().as_ref().unwrap()).next.clone(); datap = new_val; };
