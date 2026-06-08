@@ -687,7 +687,13 @@ impl crate::mheap::mheap {
         ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.user_arena_chunk_free.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
                 // Put the large span in the mcentral swept list so that it's
                 // visible to the background sweeper.
-        { let __recv = (*{ let __seq = { let __seq_holder = self.central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __selector_holder = self.sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = (*{ let __seq = { let __seq_holder = self.central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __selector_holder = self.sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
                 // Set up an allocation header. Avoid write barriers here because this type
                 // is not a real type, and it exists in an invalid location.
         { unimplemented!("unsafe.Pointer dereference assignment"); };

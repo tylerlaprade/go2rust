@@ -178,7 +178,13 @@ impl pageCache {
         let mut i = Arc::new(Mutex::new(Some(0 as u64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x < __tmp_y } {
         if { let __tmp_x = { let __tmp_x = (*self.cache.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (1 as u64); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
-        { let __recv = { let __recv = p.clone(); let __recv_ptr: *const crate::mpagealloc::pageAlloc = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mpagealloc::pageAlloc }; let __result = unsafe { &*__recv_ptr }.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free1(Arc::new(Mutex::new(Some({ let __tmp_x = pi; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))); __result };
+        {
+            let __recv = { let __recv = p.clone(); let __recv_ptr: *const crate::mpagealloc::pageAlloc = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mpagealloc::pageAlloc }; let __result = unsafe { &*__recv_ptr }.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free1(
+                Arc::new(Mutex::new(Some({ let __tmp_x = pi; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            );
+            __result
+        };
                 // Update density statistics.
         (*(*(*p.lock().unwrap().as_ref().unwrap()).scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(
             Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),

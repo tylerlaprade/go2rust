@@ -869,6 +869,60 @@ func use(h *holder) *int64 {
 	}
 }
 
+func TestConcurrentArrayElemPointerCallResultReceiverBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type span struct{}
+
+type spanSet struct{}
+
+func (s *spanSet) push(span *span) {}
+
+type holder struct {
+	sets [2]spanSet
+}
+
+func (h *holder) full(i uint) *spanSet {
+	return &h.sets[i%2]
+}
+
+func use(h *holder, i uint, s *span) {
+	go func() {}()
+	h.full(i).push(s)
+}
+`)
+
+	foundReceiverTemp := false
+	foundResultCall := false
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __recv =") && !strings.Contains(line, "let __result = (*__recv") {
+			foundReceiverTemp = true
+		}
+		if strings.Contains(line, "let __result = (*__recv") {
+			foundResultCall = true
+		}
+		if strings.Contains(line, "let __recv =") && strings.Contains(line, "let __result = (*__recv") {
+			t.Fatalf("array element pointer call-result receiver should split receiver setup from result call:\n%s", rust)
+		}
+		if strings.Contains(line, ".push(") && strings.Contains(line, "Arc::new") {
+			t.Fatalf("array element pointer call-result receiver should split method arguments:\n%s", rust)
+		}
+	}
+	if strings.Contains(rust, "__recv.as_ref().unwrap().lock().unwrap()") {
+		t.Fatalf("array element pointer call-result receiver should use GoArrayElemPtr borrows, not wrapper locks:\n%s", rust)
+	}
+	if !foundReceiverTemp || !foundResultCall {
+		t.Fatalf("array element pointer call-result receiver should use a multiline receiver block:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(\n") {
+		t.Fatalf("array element pointer call-result receiver should use multiline method arguments:\n%s", rust)
+	}
+	if !strings.Contains(rust, "\n                __result\n            }") &&
+		!strings.Contains(rust, "\n        __result\n    }") {
+		t.Fatalf("array element pointer call-result receiver should terminate the multiline result assignment:\n%s", rust)
+	}
+}
+
 func TestArrayElemPointerCallResultFieldMethodBorrowsElement(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

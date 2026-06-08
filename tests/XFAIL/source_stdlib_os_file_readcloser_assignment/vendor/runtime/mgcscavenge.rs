@@ -1347,7 +1347,15 @@ impl crate::mpagealloc::pageAlloc {
         } {
                 // We only bother looking for a candidate if there at least
                 // minPages free pages at all.
-        let (mut base, mut npages) = { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).find_scavenge_candidate(Arc::new(Mutex::new(Some({ let __arg_holder = searchIdx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = minPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = maxPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        let (mut base, mut npages) = {
+            let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).find_scavenge_candidate(
+                Arc::new(Mutex::new(Some({ let __arg_holder = searchIdx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = minPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = maxPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            );
+            __result
+        };
                 // If we found something, scavenge it and return!
         if { let __tmp_x = npages; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
                 // Compute the full address for the start of the range.
@@ -1356,7 +1364,14 @@ impl crate::mpagealloc::pageAlloc {
                 // we don't want any allocating goroutines to grab it while
                 // the scavenging is in progress. Be careful here -- just do the
                 // bare minimum to avoid stepping on our own scavenging stats.
-        { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).alloc_range(Arc::new(Mutex::new(Some(base))), Arc::new(Mutex::new(Some(npages)))); __result };
+        {
+            let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).alloc_range(
+                Arc::new(Mutex::new(Some(base))),
+                Arc::new(Mutex::new(Some(npages))),
+            );
+            __result
+        };
         self.update(
             Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(npages as usize))),
@@ -1395,7 +1410,14 @@ impl crate::mpagealloc::pageAlloc {
             { let new_val = b.lock().unwrap().as_ref().unwrap().clone(); *self.search_addr.lock().unwrap() = Some(new_val); };;
         }
     }
-        { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free(Arc::new(Mutex::new(Some(base))), Arc::new(Mutex::new(Some(npages)))); __result };
+        {
+            let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free(
+                Arc::new(Mutex::new(Some(base))),
+                Arc::new(Mutex::new(Some(npages))),
+            );
+            __result
+        };
         self.update(
             Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(npages as usize))),

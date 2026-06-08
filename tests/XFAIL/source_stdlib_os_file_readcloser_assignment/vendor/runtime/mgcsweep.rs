@@ -698,9 +698,17 @@ impl crate::mheap::mheap {
         let mut c = { let __seq = { let __seq_holder = self.central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.clone();
         let mut s: GoPtr<crate::mheap::mspan> = GoPtr::nil();
         if full {
-        s = { let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.full_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop(); __result };
+        s = {
+            let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.full_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop();
+            __result
+        };
     } else {
-        s = { let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.partial_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop(); __result };
+        s = {
+            let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.partial_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop();
+            __result
+        };
     }
         if !s.is_nil() {
                 // Write down that we found something so future sweepers
@@ -1446,7 +1454,13 @@ impl sweepLocked {
                 // There still exist pointers into the span or the span hasn't been
                 // freed yet. It's not ready to be reused. Put it back on the
                 // full swept list for the next cycle.
-        { let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
         return false;
     }
                 // There still exist pointers into the span or the span hasn't been
@@ -1531,9 +1545,21 @@ impl sweepLocked {
                 // Free totally free span directly back to the heap.
                 // Return span back to the right mcentral list.
         if { let __tmp_x = { let __v = (*nalloc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
-        { let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
     } else {
-        { let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).partial_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).partial_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
     }
     }
     } else if !{ let __v = (*preserve.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -1554,7 +1580,13 @@ impl sweepLocked {
     }
         return true;
     }
-        { let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sweepgen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
     }
                 // Handle spans for small objects.
                 // Only mark the span as needing zeroing if we've freed any
@@ -1840,8 +1872,16 @@ pub fn finishsweep_m() {
     let mut sg = Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     for i in 0..(({ let __range_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut c = { let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.mcentral.clone();
-        { let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.partial_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).reset(); __result };
-        { let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.full_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).reset(); __result };
+        {
+            let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.partial_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).reset();
+            __result
+        };
+        {
+            let __recv = { let __recv = c.clone(); let __recv_ptr: *const crate::mcentral::mcentral = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mcentral::mcentral }; let __result = unsafe { &*__recv_ptr }.full_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).reset();
+            __result
+        };
     }
 
         // Sweeping is done, so there won't be any new memory to

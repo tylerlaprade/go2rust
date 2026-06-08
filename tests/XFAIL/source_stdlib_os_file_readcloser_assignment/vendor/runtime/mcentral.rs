@@ -185,7 +185,11 @@ impl mcentral {
         let mut sg = Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         'havespan: {
             {
-        s = { let __recv = self.partial_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop(); __result };;
+        s = {
+            let __recv = self.partial_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop();
+            __result
+        };;
         if !s.is_nil() {
             break 'havespan;;
         }
@@ -195,7 +199,11 @@ impl mcentral {
             if (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).valid.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
                 // Now try partial unswept spans.
         while { let __tmp_x = { let __v = (*spanBudget.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-        s = { let __recv = self.partial_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop(); __result };
+        s = {
+            let __recv = self.partial_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop();
+            __result
+        };
         if s.is_nil() {
         break
     }
@@ -219,7 +227,11 @@ impl mcentral {
                 // Now try full unswept spans, sweeping them and putting them into the
                 // right list if we fail to get a span.
         while { let __tmp_x = { let __v = (*spanBudget.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-        s = { let __recv = self.full_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop(); __result };
+        s = {
+            let __recv = self.full_unswept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).pop();
+            __result
+        };
         if s.is_nil() {
         break
     }
@@ -233,7 +245,13 @@ impl mcentral {
         (*(*sweep.lock().unwrap().as_ref().unwrap()).active.lock().unwrap().as_ref().unwrap()).end(Arc::new(Mutex::new(Some({ let __arg_holder = sl.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         break 'havespan;
     };
-            { let __recv = self.full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push((*s.lock().unwrap().as_ref().unwrap()).mspan.clone()); __result };;
+            {
+                let __recv = self.full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                    (*s.lock().unwrap().as_ref().unwrap()).mspan.clone(),
+                );
+                __result
+            };;
         }
     }
         { let mut guard = spanBudget.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
@@ -354,11 +372,23 @@ impl mcentral {
             __tmp_x > __tmp_y
         } {
                 // Put it back on the partial swept list.
-        { let __recv = self.partial_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = self.partial_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
     } else {
                 // There's no free space and it's not stale, so put it on the
                 // full swept list.
-        { let __recv = self.full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
+        {
+            let __recv = self.full_swept(Arc::new(Mutex::new(Some({ let __arg_holder = sg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(
+                s.clone(),
+            );
+            __result
+        };
     }
     }
     }

@@ -21484,28 +21484,40 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 		} else if receiverCall, ok := sel.X.(*ast.CallExpr); ok {
+			writeElemPtrCallResultReceiver := func(needsMut bool) {
+				multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
+				receiverBlockIndent := ""
+				if multilineReceiverBlock {
+					receiverBlockIndent = currentLineIndent(out)
+					out.WriteString("{\n")
+					out.WriteString(receiverBlockIndent)
+					out.WriteString("    let __recv = ")
+				} else {
+					out.WriteString("{ let __recv = ")
+				}
+				TranspileExpression(out, receiverCall)
+				if multilineReceiverBlock {
+					out.WriteString(";\n")
+					out.WriteString(receiverBlockIndent)
+					out.WriteString("    let __result = (*__recv.as_ref().unwrap()")
+					receiverBlockSuffix = ";\n" + receiverBlockIndent + "    __result\n" + receiverBlockIndent + "}"
+					forceMultilineMethodArgs = len(call.Args) > 0
+				} else {
+					out.WriteString("; let __result = (*__recv.as_ref().unwrap()")
+				}
+				if needsMut {
+					out.WriteString(".borrow_mut().as_mut().unwrap()).")
+				} else {
+					out.WriteString(".borrow().as_ref().unwrap()).")
+				}
+				closeReceiverBlock = true
+			}
 			if _, ok := sliceElemPtrReturnInfoForCall(receiverCall); ok {
 				needsMut := methodCallNeedsMutableReceiver(sel)
-				out.WriteString("{ let __recv = ")
-				TranspileExpression(out, receiverCall)
-				out.WriteString("; let __result = (*__recv.as_ref().unwrap()")
-				if needsMut {
-					out.WriteString(".borrow_mut().as_mut().unwrap()).")
-				} else {
-					out.WriteString(".borrow().as_ref().unwrap()).")
-				}
-				closeReceiverBlock = true
+				writeElemPtrCallResultReceiver(needsMut)
 			} else if _, ok := arrayElemPtrResultInfoForCall(receiverCall, 0); ok {
 				needsMut := methodCallNeedsMutableReceiver(sel)
-				out.WriteString("{ let __recv = ")
-				TranspileExpression(out, receiverCall)
-				out.WriteString("; let __result = (*__recv.as_ref().unwrap()")
-				if needsMut {
-					out.WriteString(".borrow_mut().as_mut().unwrap()).")
-				} else {
-					out.WriteString(".borrow().as_ref().unwrap()).")
-				}
-				closeReceiverBlock = true
+				writeElemPtrCallResultReceiver(needsMut)
 			} else if _, ok := goPtrResultInfoForCall(receiverCall, 0); ok {
 				needsMut := methodCallNeedsMutableReceiver(sel)
 				out.WriteString("{ let __recv = ")
