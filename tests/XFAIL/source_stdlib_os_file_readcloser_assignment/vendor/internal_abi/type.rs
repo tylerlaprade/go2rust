@@ -5034,11 +5034,110 @@ pub fn type_of(a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> GoPtr<Type>
     let __value = match __guard.as_ref() { Some(__value) => __value.as_ref(), None => return GoPtr::nil() };
     let mut __typ = Type::default();
     let __go_any_metadata = go_any_type_metadata(__value);
-    let __kind: u8 = if let Some(__go_meta) = __go_any_metadata { match __go_meta.kind { "struct" => STRUCT, "pointer" => POINTER, "slice" => SLICE, "map" => MAP, "interface" => INTERFACE, "chan" => CHAN, "func" => FUNC, "array" => ARRAY, "basic" => INVALID, _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_meta.kind) } } else if <dyn std::any::Any>::is::<bool>(__value) { BOOL } else if <dyn std::any::Any>::is::<i32>(__value) { INT } else if <dyn std::any::Any>::is::<isize>(__value) { INT } else if <dyn std::any::Any>::is::<i8>(__value) { INT8 } else if <dyn std::any::Any>::is::<i16>(__value) { INT16 } else if <dyn std::any::Any>::is::<i64>(__value) { INT64 } else if <dyn std::any::Any>::is::<u8>(__value) { UINT8 } else if <dyn std::any::Any>::is::<u16>(__value) { UINT16 } else if <dyn std::any::Any>::is::<u32>(__value) { UINT32 } else if <dyn std::any::Any>::is::<u64>(__value) { UINT64 } else if <dyn std::any::Any>::is::<usize>(__value) { UINTPTR } else if <dyn std::any::Any>::is::<f32>(__value) { FLOAT32 } else if <dyn std::any::Any>::is::<f64>(__value) { FLOAT64 } else if <dyn std::any::Any>::is::<String>(__value) { STRING } else if <dyn std::any::Any>::is::<&'static str>(__value) { STRING } else if <dyn std::any::Any>::is::<char>(__value) { INT32 } else if <dyn std::any::Any>::is::<Vec<u8>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i32>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<f64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<String>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<bool>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<u8>>>>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<Box<dyn Any + Send + Sync>>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Box<dyn Any + Send + Sync>>(__value) { INTERFACE } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>(__value) { INTERFACE } else { panic!("internal/abi.TypeOf unsupported Rust Any payload: {}", std::any::type_name_of_val(__value)) };
+    let __kind: u8 = if let Some(__go_meta) = __go_any_metadata {
+        match __go_meta.kind {
+            "struct" => STRUCT,
+            "pointer" => POINTER,
+            "slice" => SLICE,
+            "map" => MAP,
+            "interface" => INTERFACE,
+            "chan" => CHAN,
+            "func" => FUNC,
+            "array" => ARRAY,
+            "basic" => INVALID,
+            _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_meta.kind),
+        }
+    } else if <dyn std::any::Any>::is::<bool>(__value) {
+        BOOL
+    } else if <dyn std::any::Any>::is::<i32>(__value) {
+        INT
+    } else if <dyn std::any::Any>::is::<isize>(__value) {
+        INT
+    } else if <dyn std::any::Any>::is::<i8>(__value) {
+        INT8
+    } else if <dyn std::any::Any>::is::<i16>(__value) {
+        INT16
+    } else if <dyn std::any::Any>::is::<i64>(__value) {
+        INT64
+    } else if <dyn std::any::Any>::is::<u8>(__value) {
+        UINT8
+    } else if <dyn std::any::Any>::is::<u16>(__value) {
+        UINT16
+    } else if <dyn std::any::Any>::is::<u32>(__value) {
+        UINT32
+    } else if <dyn std::any::Any>::is::<u64>(__value) {
+        UINT64
+    } else if <dyn std::any::Any>::is::<usize>(__value) {
+        UINTPTR
+    } else if <dyn std::any::Any>::is::<f32>(__value) {
+        FLOAT32
+    } else if <dyn std::any::Any>::is::<f64>(__value) {
+        FLOAT64
+    } else if <dyn std::any::Any>::is::<String>(__value) {
+        STRING
+    } else if <dyn std::any::Any>::is::<&'static str>(__value) {
+        STRING
+    } else if <dyn std::any::Any>::is::<char>(__value) {
+        INT32
+    } else if <dyn std::any::Any>::is::<Vec<u8>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<i32>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<i64>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<f64>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<String>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<bool>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<u8>>>>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<Box<dyn Any + Send + Sync>>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Box<dyn Any + Send + Sync>>(__value) {
+        INTERFACE
+    } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>(__value) {
+        INTERFACE
+    } else {
+        panic!("internal/abi.TypeOf unsupported Rust Any payload: {}", std::any::type_name_of_val(__value))
+    };
     *__typ.kind_.lock().unwrap() = Some(Kind(Arc::new(Mutex::new(Some(__kind)))));
     *__typ.size_.lock().unwrap() = Some(std::mem::size_of_val(__value));
     if let Some(__go_meta) = __go_any_metadata { if __go_meta.comparable { *__typ.equal.lock().unwrap() = Some(Box::new(|_, _| false) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>); } }
-    if let Some(__go_meta) = __go_any_metadata { if __go_meta.kind == "pointer" { let mut __ptr_type = PtrType::default(); *__ptr_type.r#type.lock().unwrap() = Some(__typ); if let Some(__go_elem_kind) = __go_meta.elem_kind { let mut __elem_type = Type::default(); let __elem_kind: u8 = match __go_elem_kind { "struct" => STRUCT, "pointer" => POINTER, "slice" => SLICE, "map" => MAP, "interface" => INTERFACE, "chan" => CHAN, "func" => FUNC, "array" => ARRAY, "basic" => INVALID, _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_elem_kind) }; *__elem_type.kind_.lock().unwrap() = Some(Kind(Arc::new(Mutex::new(Some(__elem_kind))))); if __go_meta.elem_comparable { *__elem_type.equal.lock().unwrap() = Some(Box::new(|_, _| false) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>); } *__ptr_type.elem.lock().unwrap() = Some(__elem_type); } let __owner = Arc::new(Mutex::new(Some(__ptr_type))); let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().r#type.clone() }; let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); return GoPtr::local(__embedded); } }
+    if let Some(__go_meta) = __go_any_metadata {
+        if __go_meta.kind == "pointer" {
+            let mut __ptr_type = PtrType::default();
+            *__ptr_type.r#type.lock().unwrap() = Some(__typ);
+            if let Some(__go_elem_kind) = __go_meta.elem_kind {
+                let mut __elem_type = Type::default();
+                let __elem_kind: u8 =                 match __go_elem_kind {
+                    "struct" => STRUCT,
+                    "pointer" => POINTER,
+                    "slice" => SLICE,
+                    "map" => MAP,
+                    "interface" => INTERFACE,
+                    "chan" => CHAN,
+                    "func" => FUNC,
+                    "array" => ARRAY,
+                    "basic" => INVALID,
+                    _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_elem_kind),
+                };
+                *__elem_type.kind_.lock().unwrap() = Some(Kind(Arc::new(Mutex::new(Some(__elem_kind)))));
+                if __go_meta.elem_comparable {
+                    *__elem_type.equal.lock().unwrap() = Some(Box::new(|_, _| false) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>);
+                }
+                *__ptr_type.elem.lock().unwrap() = Some(__elem_type);
+            }
+            let __owner = Arc::new(Mutex::new(Some(__ptr_type)));
+            let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().r#type.clone() };
+            let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+            go_register_embedded_owner(__embedded_key, __owner.clone());
+            return GoPtr::local(__embedded);
+        }
+    }
     GoPtr::local(Arc::new(Mutex::new(Some(__typ))))
 }
 

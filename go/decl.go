@@ -4729,18 +4729,7 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	out.WriteString("let mut __typ = Type::default();\n")
 	out.WriteString(indent)
 	out.WriteString("let __go_any_metadata = go_any_type_metadata(__value);\n")
-	out.WriteString(indent)
-	out.WriteString("let __kind: u8 = if let Some(__go_meta) = __go_any_metadata { match __go_meta.kind { \"struct\" => STRUCT, \"pointer\" => POINTER, \"slice\" => SLICE, \"map\" => MAP, \"interface\" => INTERFACE, \"chan\" => CHAN, \"func\" => FUNC, \"array\" => ARRAY, \"basic\" => INVALID, _ => panic!(\"internal/abi.TypeOf unsupported Go metadata kind: {}\", __go_meta.kind) } } else if <dyn std::any::Any>::is::<bool>(__value) { BOOL } else if <dyn std::any::Any>::is::<i32>(__value) { INT } else if <dyn std::any::Any>::is::<isize>(__value) { INT } else if <dyn std::any::Any>::is::<i8>(__value) { INT8 } else if <dyn std::any::Any>::is::<i16>(__value) { INT16 } else if <dyn std::any::Any>::is::<i64>(__value) { INT64 } else if <dyn std::any::Any>::is::<u8>(__value) { UINT8 } else if <dyn std::any::Any>::is::<u16>(__value) { UINT16 } else if <dyn std::any::Any>::is::<u32>(__value) { UINT32 } else if <dyn std::any::Any>::is::<u64>(__value) { UINT64 } else if <dyn std::any::Any>::is::<usize>(__value) { UINTPTR } else if <dyn std::any::Any>::is::<f32>(__value) { FLOAT32 } else if <dyn std::any::Any>::is::<f64>(__value) { FLOAT64 } else if <dyn std::any::Any>::is::<String>(__value) { STRING } else if <dyn std::any::Any>::is::<&'static str>(__value) { STRING } else if <dyn std::any::Any>::is::<char>(__value) { INT32 } else if <dyn std::any::Any>::is::<Vec<u8>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i32>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<f64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<String>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<bool>>(__value) { SLICE } else if <dyn std::any::Any>::is::<")
-	out.WriteString(sliceHandleType)
-	out.WriteString(">(__value) { SLICE } else if <dyn std::any::Any>::is::<")
-	out.WriteString(anySliceType)
-	out.WriteString(">(__value) { SLICE } else if <dyn std::any::Any>::is::<")
-	out.WriteString(anySliceHandleType)
-	out.WriteString(">(__value) { SLICE } else if <dyn std::any::Any>::is::<")
-	out.WriteString(anyBoxType)
-	out.WriteString(">(__value) { INTERFACE } else if <dyn std::any::Any>::is::<")
-	out.WriteString(anyHandleType)
-	out.WriteString(">(__value) { INTERFACE } else { panic!(\"internal/abi.TypeOf unsupported Rust Any payload: {}\", std::any::type_name_of_val(__value)) };\n")
+	writeInternalABIKindAssignment(out, indent, sliceHandleType, anySliceType, anySliceHandleType, anyBoxType, anyHandleType)
 	out.WriteString(indent)
 	out.WriteString("*__typ.kind_")
 	WriteBorrowMethod(out, true)
@@ -4759,38 +4748,7 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	out.WriteString(" = Some(Box::new(|_, _| false) as ")
 	writeInternalABIEqualFunctionType(out)
 	out.WriteString("); } }\n")
-	out.WriteString(indent)
-	out.WriteString("if let Some(__go_meta) = __go_any_metadata { if __go_meta.kind == \"pointer\" { let mut __ptr_type = PtrType::default(); *__ptr_type.r#type")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(__typ); if let Some(__go_elem_kind) = __go_meta.elem_kind { let mut __elem_type = Type::default(); let __elem_kind: u8 = ")
-	out.WriteString(internalABIKindMetadataMatch("__go_elem_kind"))
-	out.WriteString("; *__elem_type.kind_")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Kind(")
-	WriteWrapperPrefix(out)
-	out.WriteString("__elem_kind")
-	WriteWrapperSuffix(out)
-	out.WriteString(")); if __go_meta.elem_comparable { *__elem_type.equal")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Box::new(|_, _| false) as ")
-	writeInternalABIEqualFunctionType(out)
-	out.WriteString("); } *__ptr_type.elem")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(__elem_type); } let __owner = ")
-	WriteWrapperPrefix(out)
-	out.WriteString("__ptr_type")
-	WriteWrapperSuffix(out)
-	out.WriteString("; let __embedded = { let __owner_guard = __owner")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __owner_guard.as_ref().unwrap().r#type.clone() }; let __embedded_key = { let __embedded_guard = __embedded")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); return ")
-	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
-		out.WriteString("__embedded")
-	}) {
-		out.WriteString("__embedded")
-	}
-	out.WriteString("; } }\n")
+	writeInternalABIPointerMetadataBranch(out, fn, indent)
 	out.WriteString(indent)
 	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
 		WriteWrapperPrefix(out)
@@ -4804,8 +4762,167 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	out.WriteString("\n")
 }
 
-func internalABIKindMetadataMatch(valueExpr string) string {
-	return "match " + valueExpr + " { \"struct\" => STRUCT, \"pointer\" => POINTER, \"slice\" => SLICE, \"map\" => MAP, \"interface\" => INTERFACE, \"chan\" => CHAN, \"func\" => FUNC, \"array\" => ARRAY, \"basic\" => INVALID, _ => panic!(\"internal/abi.TypeOf unsupported Go metadata kind: {}\", " + valueExpr + ") }"
+func writeInternalABIKindAssignment(out *strings.Builder, indent string, sliceHandleType string, anySliceType string, anySliceHandleType string, anyBoxType string, anyHandleType string) {
+	out.WriteString(indent)
+	out.WriteString("let __kind: u8 = if let Some(__go_meta) = __go_any_metadata {\n")
+	writeInternalABIKindMetadataMatch(out, indent+"    ", "__go_meta.kind")
+	out.WriteString("\n")
+
+	checks := []struct {
+		rustType string
+		kind     string
+	}{
+		{"bool", "BOOL"},
+		{"i32", "INT"},
+		{"isize", "INT"},
+		{"i8", "INT8"},
+		{"i16", "INT16"},
+		{"i64", "INT64"},
+		{"u8", "UINT8"},
+		{"u16", "UINT16"},
+		{"u32", "UINT32"},
+		{"u64", "UINT64"},
+		{"usize", "UINTPTR"},
+		{"f32", "FLOAT32"},
+		{"f64", "FLOAT64"},
+		{"String", "STRING"},
+		{"&'static str", "STRING"},
+		{"char", "INT32"},
+		{"Vec<u8>", "SLICE"},
+		{"Vec<i32>", "SLICE"},
+		{"Vec<i64>", "SLICE"},
+		{"Vec<f64>", "SLICE"},
+		{"Vec<String>", "SLICE"},
+		{"Vec<bool>", "SLICE"},
+		{sliceHandleType, "SLICE"},
+		{anySliceType, "SLICE"},
+		{anySliceHandleType, "SLICE"},
+		{anyBoxType, "INTERFACE"},
+		{anyHandleType, "INTERFACE"},
+	}
+	for _, check := range checks {
+		out.WriteString(indent)
+		out.WriteString("} else if <dyn std::any::Any>::is::<")
+		out.WriteString(check.rustType)
+		out.WriteString(">(__value) {\n")
+		out.WriteString(indent)
+		out.WriteString("    ")
+		out.WriteString(check.kind)
+		out.WriteString("\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("} else {\n")
+	out.WriteString(indent)
+	out.WriteString("    panic!(\"internal/abi.TypeOf unsupported Rust Any payload: {}\", std::any::type_name_of_val(__value))\n")
+	out.WriteString(indent)
+	out.WriteString("};\n")
+}
+
+func writeInternalABIKindMetadataMatch(out *strings.Builder, indent string, valueExpr string) {
+	out.WriteString(indent)
+	out.WriteString("match ")
+	out.WriteString(valueExpr)
+	out.WriteString(" {\n")
+	for _, arm := range []struct {
+		value string
+		kind  string
+	}{
+		{"struct", "STRUCT"},
+		{"pointer", "POINTER"},
+		{"slice", "SLICE"},
+		{"map", "MAP"},
+		{"interface", "INTERFACE"},
+		{"chan", "CHAN"},
+		{"func", "FUNC"},
+		{"array", "ARRAY"},
+		{"basic", "INVALID"},
+	} {
+		out.WriteString(indent)
+		out.WriteString("    \"")
+		out.WriteString(arm.value)
+		out.WriteString("\" => ")
+		out.WriteString(arm.kind)
+		out.WriteString(",\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("    _ => panic!(\"internal/abi.TypeOf unsupported Go metadata kind: {}\", ")
+	out.WriteString(valueExpr)
+	out.WriteString("),\n")
+	out.WriteString(indent)
+	out.WriteString("}")
+}
+
+func writeInternalABIPointerMetadataBranch(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	out.WriteString(indent)
+	out.WriteString("if let Some(__go_meta) = __go_any_metadata {\n")
+	out.WriteString(indent)
+	out.WriteString("    if __go_meta.kind == \"pointer\" {\n")
+	out.WriteString(indent)
+	out.WriteString("        let mut __ptr_type = PtrType::default();\n")
+	out.WriteString(indent)
+	out.WriteString("        *__ptr_type.r#type")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__typ);\n")
+	out.WriteString(indent)
+	out.WriteString("        if let Some(__go_elem_kind) = __go_meta.elem_kind {\n")
+	out.WriteString(indent)
+	out.WriteString("            let mut __elem_type = Type::default();\n")
+	out.WriteString(indent)
+	out.WriteString("            let __elem_kind: u8 = ")
+	writeInternalABIKindMetadataMatch(out, indent+"            ", "__go_elem_kind")
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("            *__elem_type.kind_")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(Kind(")
+	WriteWrapperPrefix(out)
+	out.WriteString("__elem_kind")
+	WriteWrapperSuffix(out)
+	out.WriteString("));\n")
+	out.WriteString(indent)
+	out.WriteString("            if __go_meta.elem_comparable {\n")
+	out.WriteString(indent)
+	out.WriteString("                *__elem_type.equal")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(Box::new(|_, _| false) as ")
+	writeInternalABIEqualFunctionType(out)
+	out.WriteString(");\n")
+	out.WriteString(indent)
+	out.WriteString("            }\n")
+	out.WriteString(indent)
+	out.WriteString("            *__ptr_type.elem")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__elem_type);\n")
+	out.WriteString(indent)
+	out.WriteString("        }\n")
+	out.WriteString(indent)
+	out.WriteString("        let __owner = ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__ptr_type")
+	WriteWrapperSuffix(out)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("        let __embedded = { let __owner_guard = __owner")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __owner_guard.as_ref().unwrap().r#type.clone() };\n")
+	out.WriteString(indent)
+	out.WriteString("        let __embedded_key = { let __embedded_guard = __embedded")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };\n")
+	out.WriteString(indent)
+	out.WriteString("        go_register_embedded_owner(__embedded_key, __owner.clone());\n")
+	out.WriteString(indent)
+	out.WriteString("        return ")
+	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
+		out.WriteString("__embedded")
+	}) {
+		out.WriteString("__embedded")
+	}
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
 }
 
 func writeInternalABIEqualFunctionType(out *strings.Builder) {

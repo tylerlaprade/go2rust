@@ -552,6 +552,11 @@ func TestTranspileInternalABITypeOfUsesRuntimeTypeIntrinsic(t *testing.T) {
 		strings.Contains(got, "unsafe.Pointer conversion to Type") {
 		t.Fatalf("internal/abi.TypeOf should use a Rust runtime type intrinsic, not Go interface layout casts:\n%s", got)
 	}
+	for _, line := range strings.Split(got, "\n") {
+		if len(line) > 700 {
+			t.Fatalf("internal/abi.TypeOf intrinsic should not emit oversized Rust lines:\n%s", got)
+		}
+	}
 	for _, want := range []string{
 		"<dyn std::any::Any>::is::<String>",
 		"<dyn std::any::Any>::is::<char>",
@@ -563,7 +568,8 @@ func TestTranspileInternalABITypeOfUsesRuntimeTypeIntrinsic(t *testing.T) {
 		"std::mem::size_of_val(__value)",
 		"std::any::type_name_of_val(__value)",
 		"internal/abi.TypeOf unsupported Rust Any payload",
-		"if let Some(__go_meta) = __go_any_metadata { if __go_meta.kind == \"pointer\"",
+		"if let Some(__go_meta) = __go_any_metadata {",
+		"if __go_meta.kind == \"pointer\"",
 		"let mut __ptr_type = PtrType::default()",
 		"if let Some(__go_elem_kind) = __go_meta.elem_kind",
 		"go_register_embedded_owner(__embedded_key, __owner.clone())",
