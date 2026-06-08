@@ -7500,6 +7500,37 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 	return true
 }
 
+func fixedArrayLiteralShouldUseMultiline(values []ast.Expr) bool {
+	if !NeedsConcurrentWrapper() || len(values) < 4 {
+		return false
+	}
+	for _, value := range values {
+		if compositeLiteralElementIsComplex(value) {
+			return true
+		}
+	}
+	return false
+}
+
+func compositeLiteralElementIsComplex(expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		switch node.(type) {
+		case *ast.CallExpr, *ast.SliceExpr, *ast.CompositeLit:
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
 func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
 	lit, ok := expr.(*ast.CompositeLit)
 	if !ok || expected == nil {
@@ -12981,10 +13012,23 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Wrap the entire array/slice in Arc<Mutex<Option<>>>
 			WriteWrapperPrefix(out)
 			elemType := compositeLiteralElementType(e)
+			values := orderedArrayLiteralValues(e.Elts)
+			if arrayType.Len != nil {
+				if length, ok := fixedArrayLiteralLength(e, arrayType); ok {
+					values = orderedArrayLiteralValuesForLength(e.Elts, length)
+				}
+			}
 			explicitVecElemType := false
+			multilineArrayLiteral := arrayType.Len != nil && fixedArrayLiteralShouldUseMultiline(values)
+			arrayLiteralIndent := ""
 			if arrayType.Len != nil {
 				// Fixed-size array
-				out.WriteString("[")
+				if multilineArrayLiteral {
+					arrayLiteralIndent = currentLineIndent(out)
+					out.WriteString("[\n")
+				} else {
+					out.WriteString("[")
+				}
 			} else {
 				// Slice
 				if len(e.Elts) == 0 {
@@ -13005,14 +13049,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("vec![")
 				}
 			}
-			values := orderedArrayLiteralValues(e.Elts)
-			if arrayType.Len != nil {
-				if length, ok := fixedArrayLiteralLength(e, arrayType); ok {
-					values = orderedArrayLiteralValuesForLength(e.Elts, length)
-				}
-			}
 			for i, elt := range values {
-				if i > 0 {
+				if multilineArrayLiteral {
+					out.WriteString(arrayLiteralIndent)
+					out.WriteString("    ")
+				} else if i > 0 {
 					out.WriteString(", ")
 				}
 				if elt == nil {
@@ -13063,8 +13104,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						TranspileExpression(out, elt)
 					}
 				}
+				if multilineArrayLiteral {
+					out.WriteString(",\n")
+				}
 			}
 			if arrayType.Len != nil {
+				if multilineArrayLiteral {
+					out.WriteString(arrayLiteralIndent)
+				}
 				out.WriteString("]")
 			} else if len(e.Elts) == 0 {
 				out.WriteString(")")

@@ -4633,6 +4633,36 @@ func inRange(p uintptr) bool {
 	}
 }
 
+func TestConcurrentFixedArrayCallArgumentBreaksComplexElementsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func word(buf []byte) uint64 {
+	return uint64(buf[0])
+}
+
+type State struct{}
+
+func (s *State) Init64(seed [4]uint64) {}
+
+func (s *State) Init(seed [32]byte) {
+	go func() {}()
+	s.Init64([4]uint64{
+		word(seed[0*8:]),
+		word(seed[1*8:]),
+		word(seed[2*8:]),
+		word(seed[3*8:]),
+	})
+}
+`)
+
+	if strings.Contains(rust, "Some([word(") {
+		t.Fatalf("complex fixed-array call argument should not inline every element in one array expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some([\n") {
+		t.Fatalf("complex fixed-array call argument should break array elements across lines:\n%s", rust)
+	}
+}
+
 func TestTupleAssignmentFromBareScalarReturnSlots(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
