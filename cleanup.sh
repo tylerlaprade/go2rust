@@ -592,6 +592,38 @@ print_pressure_report() {
         echo "none found, or process listing was denied$process_error_suffix"
     fi
 
+    echo
+    echo "Active compiler/validation processes:"
+    local compiler_processes
+    compiler_processes=$(printf '%s\n' "$process_cpu_snapshot" |
+        awk -v repo_root="$repo_root" '
+            NR > 1 {
+                command = ""
+                for (i = 6; i <= NF; i++) {
+                    command = command " " $i
+                }
+                rust_or_cargo = command ~ /(^|[[:space:]\/])(cargo|rustc)([[:space:]]|$)/
+                go_test = command ~ /(^|[[:space:]\/])go([[:space:]]|$)/ && command ~ /[[:space:]]test([[:space:]]|$)/
+                fixture_or_bats = command ~ /(^|[[:space:]])(\.\/)?(test|go_test|go_vet|self_transpile_check)\.sh([[:space:]]|$)/ ||
+                    command ~ /(^|[[:space:]\/])bats([[:space:]]|$)/
+                if (rust_or_cargo || go_test || fixture_or_bats) {
+                    scope = "external compiler"
+                    if (index(command, repo_root) > 0 ||
+                        command ~ /(^|[[:space:]])(\.\/)?(test|go_test|go_vet|self_transpile_check)\.sh([[:space:]]|$)/) {
+                        scope = "go2rust validation"
+                    }
+                    printf "%-20s %s\n", scope, $0
+                }
+            }
+        ' |
+        awk 'NR <= 25')
+    if [ -n "$compiler_processes" ]; then
+        printf "%-20s %s\n" "Scope" "$(printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1')"
+        printf '%s\n' "$compiler_processes"
+    else
+        echo "none found, or process listing was denied$process_error_suffix"
+    fi
+
     print_disk_hotspots
     print_top_code_paths
     print_top_temp_paths
