@@ -1,7 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::path_nonwindows::*;
-use crate::path_unix::*;
+use crate::{path_unix::{SEPARATOR, is_path_separator, volume_name_len_1}};
 
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};

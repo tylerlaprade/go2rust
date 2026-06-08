@@ -2,9 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
 
-use crate::doc::*;
-use crate::doc_64::*;
-use crate::value::*;
+use crate::{doc::{add_int32, add_uint32, and_int32, and_uint32, compare_and_swap_int32, compare_and_swap_pointer, compare_and_swap_uint32, load_int32, load_pointer, load_uint32, or_int32, or_uint32, store_int32, store_pointer, store_uint32, swap_int32, swap_pointer, swap_uint32}, doc_64::{add_uint64, and_uint64, compare_and_swap_uint64, load_uint64, or_uint64, store_uint64, swap_uint64}};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

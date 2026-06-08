@@ -1,8 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::bits_errors::*;
-use crate::bits_tables::*;
-
 use std::sync::{Arc, Mutex};
 
 pub(crate) const UINT_SIZE_1: i32 = 32 << (!(0 as u64) >> 63);

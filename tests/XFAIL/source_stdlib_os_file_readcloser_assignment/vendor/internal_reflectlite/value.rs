@@ -2,8 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any};
 
-use crate::swapper::*;
-use crate::r#type::*;
+use crate::{r#type::{Kind}};
 
 use std::any::Any;
 use std::error::Error as StdError;

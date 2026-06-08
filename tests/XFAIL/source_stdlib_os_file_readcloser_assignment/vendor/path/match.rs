@@ -1,7 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::r#mod::*;
-
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 

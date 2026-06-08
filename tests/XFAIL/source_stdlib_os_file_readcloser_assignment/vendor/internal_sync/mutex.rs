@@ -2,8 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
-use crate::hashtriemap::*;
-use crate::runtime::*;
+use crate::{runtime::{fatal, runtime__semacquire_mutex, runtime__semrelease, runtime_can_spin, runtime_do_spin, runtime_nanotime, throw}};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex as StdMutex};

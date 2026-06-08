@@ -1,10 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::iter::*;
-use crate::r#mod::*;
-use crate::zsortanyfunc::*;
-use crate::zsortordered::*;
-
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

@@ -2,9 +2,6 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
 
-use crate::multi::*;
-use crate::pipe::*;
-
 use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};

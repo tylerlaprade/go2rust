@@ -2,10 +2,6 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
 
-use crate::doc::*;
-use crate::r#type::*;
-use crate::value::*;
-
 use std::sync::{Arc, Mutex};
 
 /// SwapUint64 atomically stores new into *addr and returns the previous *addr value.

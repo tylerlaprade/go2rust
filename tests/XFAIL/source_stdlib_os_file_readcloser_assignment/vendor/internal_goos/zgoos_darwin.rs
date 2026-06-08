@@ -1,7 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::unix::*;
-
 pub const G_O_O_S: &'static str = "darwin";
 
 

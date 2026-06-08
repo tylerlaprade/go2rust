@@ -1,13 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::r#mod::*;
-use crate::compare_native::*;
-use crate::count_native::*;
-use crate::equal_generic::*;
-use crate::equal_native::*;
-use crate::index_native::*;
-use crate::indexbyte_native::*;
-use crate::lastindexbyte_generic::*;
+use crate::{r#mod::{MaxLen}};
 
 pub const MAX_BRUTE_FORCE: i32 = 16;
 

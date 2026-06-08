@@ -1048,6 +1048,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule
 	packageImports := NewImportTracker()
+	siblingItemImports := packageSiblingItemImports(pkg.Syntax, moduleNamesByIndex, pkgTypeInfo)
 
 	// Process each file in the package
 	for i, astFile := range pkg.Syntax {
@@ -1117,7 +1118,11 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		if helpersNeeded {
 			helpers = pkgState.Helpers
 		}
-		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpers)
+		var siblingImports []string
+		if siblingItemImports != nil {
+			siblingImports = siblingItemImports[module.name]
+		}
+		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpers, siblingImports, siblingItemImports != nil)
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", module.name, err)
 		}
@@ -1179,8 +1184,12 @@ func generatedRustModulesContain(modules []generatedRustModule, needle string) b
 	return false
 }
 
-func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {
-	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker, siblingItemImports []string, usePreciseSiblingImports bool) string {
+	if usePreciseSiblingImports {
+		rustCode = prefixSiblingItemImports(rustCode, siblingItemImports)
+	} else {
+		rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+	}
 	if helpers != nil && helpers.HasAny() {
 		rustCode = prefixPackageHelperImports(rustCode, helpers, true)
 	}

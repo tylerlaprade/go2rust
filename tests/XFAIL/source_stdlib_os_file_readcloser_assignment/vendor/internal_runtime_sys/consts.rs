@@ -1,9 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::consts_norace::*;
-use crate::dit_arm64::*;
-use crate::intrinsics::*;
-use crate::nih::*;
+use crate::{consts_norace::{IS_RACE}};
 
 pub const STACK_GUARD_MULTIPLIER: i32 = 1 + internal_goos::IS_AIX + internal_goos::IS_OPENBSD + IS_RACE;
 

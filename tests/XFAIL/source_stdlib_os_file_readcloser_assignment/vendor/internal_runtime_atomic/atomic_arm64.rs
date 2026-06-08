@@ -2,11 +2,6 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
 
-use crate::stubs::*;
-use crate::types::*;
-use crate::types_64bit::*;
-use crate::unaligned::*;
-
 use std::sync::{Arc, Mutex};
 
 pub(crate) const OFFSET_A_R_M64_HAS_A_T_O_M_I_C_S: usize = std::mem::offset_of!(internal_cpu::ARM64, has_a_t_o_m_i_c_s);

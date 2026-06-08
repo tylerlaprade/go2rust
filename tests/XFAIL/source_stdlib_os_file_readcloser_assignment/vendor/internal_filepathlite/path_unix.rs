@@ -1,8 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::path::*;
-use crate::path_nonwindows::*;
-
 use std::sync::{Arc, Mutex};
 
 pub const SEPARATOR: i32 = ('/' as i32);

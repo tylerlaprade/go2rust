@@ -1,7 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::r#mod::*;
-use crate::zgoarch_arm64::*;
+use crate::{r#mod::{A_R_M64}};
 
 pub(crate) const __ARCH_FAMILY: i32 = A_R_M64;
 pub(crate) const __DEFAULT_PHYS_PAGE_SIZE: i32 = 65536;

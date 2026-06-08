@@ -2,8 +2,6 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
 
-use crate::exit::*;
-
 use std::any::Any;
 use std::fmt::{Display};
 use std::sync::{Arc, Mutex};

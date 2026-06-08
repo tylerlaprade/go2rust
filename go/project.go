@@ -329,6 +329,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState.LocalInterfaceMapKeyTypes = collectLocalInterfaceMapKeyTypes(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
+	moduleNamesByIndex := pg.moduleNamesByASTFiles(astFiles, astFilesByPath)
+	siblingItemImports := packageSiblingItemImports(astFiles, moduleNamesByIndex, pg.typeInfo)
 	for _, filename := range pg.goFiles {
 		file := astFilesByPath[normalizeFilePath(filename)]
 		if file == nil {
@@ -460,7 +462,11 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		if helpersNeeded {
 			helpers = packageState.Helpers
 		}
-		rustCode := pg.prefixModuleImports(module.rustCode, module.name, nonMainModuleNames, helpers)
+		var siblingImports []string
+		if siblingItemImports != nil {
+			siblingImports = siblingItemImports[module.name]
+		}
+		rustCode := pg.prefixModuleImports(module.rustCode, module.name, nonMainModuleNames, helpers, siblingImports, siblingItemImports != nil)
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("error writing %s: %v", module.path, err)
 		}
@@ -526,6 +532,27 @@ func (pg *ProjectGenerator) nonMainModuleNames(astFilesByPath map[string]*ast.Fi
 		moduleNames = append(moduleNames, outputName)
 	}
 	sort.Strings(moduleNames)
+	return moduleNames
+}
+
+func (pg *ProjectGenerator) moduleNamesByASTFiles(astFiles []*ast.File, astFilesByPath map[string]*ast.File) []string {
+	moduleByFile := make(map[*ast.File]string, len(pg.goFiles))
+	for _, filename := range pg.goFiles {
+		file := astFilesByPath[normalizeFilePath(filename)]
+		if file == nil {
+			continue
+		}
+		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
+		if baseName == "main" && file.Name.Name == "main" {
+			moduleByFile[file] = ""
+			continue
+		}
+		moduleByFile[file] = pg.moduleNameForBase(baseName)
+	}
+	moduleNames := make([]string, len(astFiles))
+	for i, file := range astFiles {
+		moduleNames[i] = moduleByFile[file]
+	}
 	return moduleNames
 }
 
@@ -596,6 +623,254 @@ func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []strin
 	return imports.String()
 }
 
+func prefixSiblingItemImports(rustCode string, itemNames []string) string {
+	if len(itemNames) == 0 {
+		return rustCode
+	}
+	importLine := "use crate::{" + strings.Join(itemNames, ", ") + "};\n"
+	if strings.TrimSpace(rustCode) == "" {
+		return importLine
+	}
+	return importLine + "\n" + rustCode
+}
+
+func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, typeInfo *TypeInfo) map[string][]string {
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
+		return nil
+	}
+	importsByModule := make(map[string][]string, len(moduleNamesByIndex))
+	for _, moduleName := range moduleNamesByIndex {
+		if moduleName != "" {
+			importsByModule[moduleName] = nil
+		}
+	}
+	if len(importsByModule) == 0 {
+		return importsByModule
+	}
+
+	pkgScope := typeInfo.pkg.Scope()
+	objectModules := make(map[types.Object]string)
+	objectRustNames := make(map[types.Object]string)
+	for ident, obj := range typeInfo.info.Defs {
+		if ident == nil || obj == nil || obj.Parent() != pkgScope || obj.Pkg() != typeInfo.pkg {
+			continue
+		}
+		moduleName := moduleNameForObjectPos(files, moduleNamesByIndex, obj.Pos())
+		if moduleName == "" {
+			continue
+		}
+		rustName, ok := rustPackageObjectImportName(obj)
+		if !ok {
+			continue
+		}
+		objectModules[obj] = moduleName
+		objectRustNames[obj] = rustName
+	}
+	packageMethods := collectPackageMethods(files)
+
+	for i, file := range files {
+		if file == nil || i >= len(moduleNamesByIndex) {
+			continue
+		}
+		currentModule := moduleNamesByIndex[i]
+		if currentModule == "" {
+			continue
+		}
+		neededByModule := make(map[string]map[string]bool)
+		recordObject := func(obj types.Object) {
+			sourceModule := objectModules[obj]
+			if obj == nil || sourceModule == "" || sourceModule == currentModule {
+				return
+			}
+			rustName := objectRustNames[obj]
+			if rustName == "" {
+				return
+			}
+			if neededByModule[sourceModule] == nil {
+				neededByModule[sourceModule] = make(map[string]bool)
+			}
+			neededByModule[sourceModule][rustName] = true
+		}
+		var collectTypeReferences func(types.Type, map[types.Type]bool)
+		collectTupleReferences := func(tuple *types.Tuple, seen map[types.Type]bool) {
+			if tuple == nil {
+				return
+			}
+			for i := 0; i < tuple.Len(); i++ {
+				if v := tuple.At(i); v != nil {
+					collectTypeReferences(v.Type(), seen)
+				}
+			}
+		}
+		collectTypeReferences = func(typ types.Type, seen map[types.Type]bool) {
+			if typ == nil || seen[typ] {
+				return
+			}
+			seen[typ] = true
+			switch t := types.Unalias(typ).(type) {
+			case *types.Named:
+				recordObject(t.Obj())
+				if typeArgs := t.TypeArgs(); typeArgs != nil {
+					for i := 0; i < typeArgs.Len(); i++ {
+						collectTypeReferences(typeArgs.At(i), seen)
+					}
+				}
+			case *types.Pointer:
+				collectTypeReferences(t.Elem(), seen)
+			case *types.Slice:
+				collectTypeReferences(t.Elem(), seen)
+			case *types.Array:
+				collectTypeReferences(t.Elem(), seen)
+			case *types.Map:
+				collectTypeReferences(t.Key(), seen)
+				collectTypeReferences(t.Elem(), seen)
+			case *types.Chan:
+				collectTypeReferences(t.Elem(), seen)
+			case *types.Signature:
+				if recv := t.Recv(); recv != nil {
+					collectTypeReferences(recv.Type(), seen)
+				}
+				collectTupleReferences(t.Params(), seen)
+				collectTupleReferences(t.Results(), seen)
+			case *types.Struct:
+				for i := 0; i < t.NumFields(); i++ {
+					collectTypeReferences(t.Field(i).Type(), seen)
+				}
+			case *types.Interface:
+				for i := 0; i < t.NumEmbeddeds(); i++ {
+					collectTypeReferences(t.EmbeddedType(i), seen)
+				}
+				for i := 0; i < t.NumExplicitMethods(); i++ {
+					collectTypeReferences(t.ExplicitMethod(i).Type(), seen)
+				}
+			case *types.Tuple:
+				collectTupleReferences(t, seen)
+			}
+		}
+		collectReferences := func(node ast.Node) {
+			ast.Inspect(node, func(node ast.Node) bool {
+				switch n := node.(type) {
+				case *ast.Ident:
+					recordObject(typeInfo.info.Uses[n])
+				case ast.Expr:
+					if tv, ok := typeInfo.info.Types[n]; ok {
+						collectTypeReferences(tv.Type, make(map[types.Type]bool))
+					}
+				}
+				return true
+			})
+		}
+		collectPromotedMethodSignatures := func(typeName string) {
+			structDef := structDefs[typeName]
+			if structDef == nil || len(structDef.EmbeddedTypes) == 0 {
+				return
+			}
+			promotedMethods := make(map[string]struct {
+				embeddedType string
+				method       *ast.FuncDecl
+			})
+			collectPromotedMethods(structDef, packageMethods, promotedMethods)
+			for _, methodInfo := range promotedMethods {
+				if methodInfo.method == nil || methodInfo.method.Type == nil {
+					continue
+				}
+				if obj := typeInfo.info.Defs[methodInfo.method.Name]; sourceMappedDeclIsPruned(obj) {
+					continue
+				}
+				collectReferences(methodInfo.method.Type)
+			}
+		}
+		for _, decl := range file.Decls {
+			switch d := decl.(type) {
+			case *ast.FuncDecl:
+				if obj := typeInfo.info.Defs[d.Name]; sourceMappedDeclIsPruned(obj) {
+					continue
+				}
+				collectReferences(d)
+			case *ast.GenDecl:
+				switch d.Tok {
+				case token.TYPE:
+					for _, spec := range d.Specs {
+						typeSpec, ok := spec.(*ast.TypeSpec)
+						if !ok {
+							continue
+						}
+						if obj := typeInfo.info.Defs[typeSpec.Name]; sourceMappedDeclIsPruned(obj) {
+							continue
+						}
+						collectReferences(typeSpec)
+						collectPromotedMethodSignatures(typeSpec.Name.Name)
+					}
+				case token.CONST, token.VAR:
+					collectReferences(d)
+				}
+			}
+		}
+		importsByModule[currentModule] = siblingImportSpecs(neededByModule)
+	}
+
+	return importsByModule
+}
+
+func siblingImportSpecs(neededByModule map[string]map[string]bool) []string {
+	if len(neededByModule) == 0 {
+		return nil
+	}
+	moduleNames := make([]string, 0, len(neededByModule))
+	for moduleName := range neededByModule {
+		moduleNames = append(moduleNames, moduleName)
+	}
+	sort.Strings(moduleNames)
+	var specs []string
+	for _, moduleName := range moduleNames {
+		itemsByName := neededByModule[moduleName]
+		if len(itemsByName) == 0 {
+			continue
+		}
+		itemNames := make([]string, 0, len(itemsByName))
+		for itemName := range itemsByName {
+			itemNames = append(itemNames, itemName)
+		}
+		sort.Strings(itemNames)
+		specs = append(specs, moduleName+"::{"+strings.Join(itemNames, ", ")+"}")
+	}
+	return specs
+}
+
+func moduleNameForObjectPos(files []*ast.File, moduleNamesByIndex []string, pos token.Pos) string {
+	if pos == token.NoPos {
+		return ""
+	}
+	for i, file := range files {
+		if file == nil || i >= len(moduleNamesByIndex) {
+			continue
+		}
+		if file.Pos() <= pos && pos < file.End() {
+			return moduleNamesByIndex[i]
+		}
+	}
+	return ""
+}
+
+func rustPackageObjectImportName(obj types.Object) (string, bool) {
+	switch o := obj.(type) {
+	case *types.TypeName:
+		return RustTypeNameForUse(o.Name()), true
+	case *types.Const:
+		return rustConstName(o.Name()), true
+	case *types.Var:
+		return rustPackageGlobalName(o.Name()), true
+	case *types.Func:
+		sig, ok := o.Type().(*types.Signature)
+		if !ok || sig.Recv() != nil {
+			return "", false
+		}
+		return rustFunctionNameForUse(o.Name()), true
+	default:
+		return "", false
+	}
+}
+
 func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSharedStdlibHelpers bool) string {
 	var names []string
 	if omitSharedStdlibHelpers {
@@ -612,8 +887,12 @@ func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSha
 	return "use crate::{" + strings.Join(names, ", ") + "};\n\n" + rustCode
 }
 
-func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker) string {
-	rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker, siblingItemImports []string, usePreciseSiblingImports bool) string {
+	if usePreciseSiblingImports {
+		rustCode = prefixSiblingItemImports(rustCode, siblingItemImports)
+	} else {
+		rustCode = prefixSiblingModuleImports(rustCode, selfModule, moduleNames)
+	}
 	if helpers != nil && helpers.HasAny() {
 		rustCode = prefixPackageHelperImports(rustCode, helpers, pg.useSharedStdlibStubCrate)
 	}

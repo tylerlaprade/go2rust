@@ -1,8 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::r#mod::*;
-use crate::goarch_arm64::*;
-
 pub const G_O_A_R_C_H: &'static str = "arm64";
 
 

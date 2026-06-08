@@ -76,12 +76,231 @@ func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 
 func TestModuleImportPrefixesDoNotAddBlankLineForImportOnlyBody(t *testing.T) {
 	pg := &ProjectGenerator{useSharedStdlibStubCrate: true}
-	got := pg.prefixModuleImports("use std::any::Any;\n\n", "slices", []string{"iter", "slices"}, nil)
+	got := pg.prefixModuleImports("use std::any::Any;\n\n", "slices", []string{"iter", "slices"}, nil, nil, false)
 	if strings.HasSuffix(got, "\n\n") {
 		t.Fatalf("import-only module body should not end with a blank line: %q", got)
 	}
 	if !strings.HasSuffix(got, "use std::any::Any;\n") {
 		t.Fatalf("import-only module body should keep exactly one trailing newline: %q", got)
+	}
+}
+
+func TestMultiFileModuleImportsOnlyReferencedSiblingItems(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type Shared struct {
+	Value int
+}
+
+const Limit = 3
+
+var count int
+
+func helper() int {
+	return count
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "unused.go"), `package main
+
+func unused() int {
+	return 99
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func use() int {
+	item := Shared{Value: Limit}
+	count = item.Value
+	return helper()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(use())
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "unused.go"),
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
+	if strings.Contains(useRS, "use crate::defs::*;") || strings.Contains(useRS, "use crate::unused::*;") {
+		t.Fatalf("module should not glob-import sibling modules, got:\n%s", useRS)
+	}
+	if !strings.Contains(useRS, "use crate::{defs::{LIMIT, Shared, count, helper}};") {
+		t.Fatalf("module should import only referenced sibling items, got:\n%s", useRS)
+	}
+}
+
+func TestMultiFileModuleImportsIncludeInferredSiblingTypes(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type Shared struct {
+	Value int
+}
+
+func build() Shared {
+	return Shared{Value: 7}
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+var item = build()
+
+func use() int {
+	return item.Value
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(use())
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
+	if strings.Contains(useRS, "use crate::defs::*;") {
+		t.Fatalf("module should not glob-import sibling modules, got:\n%s", useRS)
+	}
+	if !strings.Contains(useRS, "use crate::{defs::{Shared, build}};") {
+		t.Fatalf("module should import inferred sibling types, got:\n%s", useRS)
+	}
+}
+
+func TestMultiFileModuleImportsPromotedMethodSignatureTypes(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type Arg struct {
+	Value int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "embedded.go"), `package main
+
+type Embedded struct{}
+
+func (Embedded) Take(arg Arg) int {
+	return arg.Value
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "owner.go"), `package main
+
+type Owner struct {
+	Embedded
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(Owner{}.Take(Arg{Value: 3}))
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "embedded.go"),
+		filepath.Join(tempDir, "owner.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	ownerRS := mustReadFile(t, filepath.Join(tempDir, "owner.rs"))
+	if strings.Contains(ownerRS, "use crate::defs::*;") || strings.Contains(ownerRS, "use crate::embedded::*;") {
+		t.Fatalf("module should not glob-import sibling modules, got:\n%s", ownerRS)
+	}
+	if !strings.Contains(ownerRS, "use crate::{defs::{Arg}, embedded::{Embedded}};") {
+		t.Fatalf("promoted method forwarder should import sibling signature types, got:\n%s", ownerRS)
+	}
+	if !strings.Contains(ownerRS, "pub fn take(&self") {
+		t.Fatalf("test should exercise a promoted method forwarder, got:\n%s", ownerRS)
+	}
+}
+
+func TestSiblingItemImportsSkipPrunedDeclarations(t *testing.T) {
+	fset := token.NewFileSet()
+	defs, err := parser.ParseFile(fset, "defs.go", `package p
+
+func helper() int {
+	return 1
+}
+`, parser.ParseComments|parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parse defs.go: %v", err)
+	}
+	dead, err := parser.ParseFile(fset, "dead.go", `package p
+
+func dead() int {
+	return helper()
+}
+`, parser.ParseComments|parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parse dead.go: %v", err)
+	}
+	live, err := parser.ParseFile(fset, "live.go", `package p
+
+func live() int {
+	return 2
+}
+`, parser.ParseComments|parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parse live.go: %v", err)
+	}
+	files := []*ast.File{defs, dead, live}
+	typeInfo, err := NewTypeInfoWithImporter("example.com/p", files, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+
+	prevCtx := GetTranspileContext()
+	prevReachable := sourceStdlibReachable
+	SetTranspileContext(&TranspileContext{
+		Package:        NewPackageState(),
+		PackageMapping: map[string]string{"example.com/p": "example_com_p"},
+	})
+	SetSourceStdlibReachable(map[types.Object]bool{
+		typeInfo.pkg.Scope().Lookup("live"): true,
+	})
+	defer func() {
+		SetSourceStdlibReachable(prevReachable)
+		SetTranspileContext(prevCtx)
+	}()
+
+	imports := packageSiblingItemImports(files, []string{"defs", "dead", "live"}, typeInfo)
+	if got := imports["dead"]; len(got) != 0 {
+		t.Fatalf("pruned function should not import references from its body; got %v", got)
 	}
 }
 

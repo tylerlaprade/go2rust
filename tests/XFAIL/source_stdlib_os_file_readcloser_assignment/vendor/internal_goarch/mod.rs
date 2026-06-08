@@ -1,7 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::goarch_arm64::*;
-use crate::zgoarch_arm64::*;
+use crate::{goarch_arm64::{__ARCH_FAMILY, __DEFAULT_PHYS_PAGE_SIZE, __MIN_FRAME_SIZE, __P_C_QUANTUM, __STACK_ALIGN}, zgoarch_arm64::{IS_ARM64BE, IS_ARMBE, IS_MIPS, IS_MIPS64, IS_PPC, IS_PPC64, IS_S390, IS_S390X, IS_SPARC, IS_SPARC64}};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
