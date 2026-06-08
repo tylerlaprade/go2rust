@@ -97,6 +97,8 @@ if [ "$HELP" = true ]; then
     echo ""
     echo "Environment:"
     echo "  GO2RUST_TEST_CARGO_TARGET_DIR  Reuse a Cargo target dir instead of per-test temp targets"
+    echo "  GO2RUST_TEST_MIN_AVAILABLE_MEM_MB  Minimum available memory before Cargo fixture work (default: 1024; 0 disables)"
+    echo "  GO2RUST_TEST_SKIP_PRESSURE_GUARD   Set to 1 to bypass the available-memory guard"
     echo ""
     echo "Arguments:"
     echo "  test_names         Specific tests to run (default: all tests)"
@@ -228,72 +230,6 @@ export SHOW_XFAIL_ERRORS
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap.
 cleanup_stale_test_artifacts
 
-# Fixture-level parallelism controls suite throughput. Keep each nested Cargo
-# invocation low-memory by default so parallel fixtures do not multiply rustc
-# worker pools.
-export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
-export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
-export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
-export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
-export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
-export GO2RUST_CARGO_OFFLINE_ARGS=""
-case "${GO2RUST_CARGO_OFFLINE:-auto}" in
-    1|true|yes)
-        GO2RUST_CARGO_OFFLINE_ARGS="--offline"
-        ;;
-    0|false|no)
-        ;;
-    auto|"")
-        cargo_home="${CARGO_HOME:-$HOME/.cargo}"
-        if compgen -G "$cargo_home/registry/index/*" >/dev/null; then
-            GO2RUST_CARGO_OFFLINE_ARGS="--offline"
-        fi
-        ;;
-    *)
-        echo "error: GO2RUST_CARGO_OFFLINE must be auto, 1, or 0" >&2
-        exit 2
-        ;;
-esac
-export GO2RUST_CARGO_OFFLINE_ARGS
-
-case "$LOW_MEMORY" in
-    1|true|TRUE|yes|YES)
-        JOBS=1
-        JOBS_REASON="low-memory mode"
-        ;;
-esac
-
-if [ -z "${GOCACHE:-}" ]; then
-    TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
-    echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"
-    export GOCACHE="$TEST_GOCACHE_DIR"
-fi
-
-# Build the transpiler once before running the suite. Bats parallelism is
-# file-level, so sharded runs would otherwise race multiple setup_file builds
-# against the same ./go2rust output path. GO2RUST_TEST_BINARY lets the same
-# suite validate a self-transpiled Rust binary without changing test behavior.
-if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
-    case "$GO2RUST_TEST_BINARY" in
-        /*) ;;
-        *) GO2RUST_TEST_BINARY="$(pwd)/$GO2RUST_TEST_BINARY" ;;
-    esac
-    if [ ! -x "$GO2RUST_TEST_BINARY" ]; then
-        echo "Error: GO2RUST_TEST_BINARY is not executable: $GO2RUST_TEST_BINARY"
-        exit 1
-    fi
-    export GO2RUST_TEST_BINARY
-else
-    BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")
-    echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"
-    BUILT_TEST_BINARY="$BUILT_TEST_BINARY_DIR/go2rust"
-    go build -o "$BUILT_TEST_BINARY" ./go
-    chmod +x "$BUILT_TEST_BINARY"
-    GO2RUST_TEST_BINARY="$BUILT_TEST_BINARY"
-    export GO2RUST_TEST_BINARY
-fi
-export GO2RUST_TEST_BINARY_READY=1
-
 detect_available_memory_bytes() {
     if command -v memory_pressure >/dev/null 2>&1; then
         memory_pressure 2>/dev/null | awk '
@@ -341,6 +277,108 @@ detect_available_memory_bytes() {
         return
     fi
 }
+
+enforce_available_memory_floor() {
+    case "${GO2RUST_TEST_SKIP_PRESSURE_GUARD:-0}" in
+        1|true|TRUE|yes|YES)
+            return
+            ;;
+    esac
+
+    local min_mb="${GO2RUST_TEST_MIN_AVAILABLE_MEM_MB:-1024}"
+    case "$min_mb" in
+        ''|*[!0-9]*)
+            echo "error: GO2RUST_TEST_MIN_AVAILABLE_MEM_MB must be a non-negative integer" >&2
+            exit 2
+            ;;
+    esac
+    [ "$min_mb" -eq 0 ] && return
+
+    local available_bytes
+    available_bytes=$(detect_available_memory_bytes)
+    case "$available_bytes" in
+        ''|*[!0-9]*)
+            return
+            ;;
+    esac
+
+    local min_bytes=$(( min_mb * 1024 * 1024 ))
+    if [ "$available_bytes" -lt "$min_bytes" ]; then
+        local available_mb=$(( available_bytes / 1024 / 1024 ))
+        echo "Error: available memory is ${available_mb} MiB, below GO2RUST_TEST_MIN_AVAILABLE_MEM_MB=${min_mb} MiB." >&2
+        echo "Refusing to start fixture Cargo work while the machine is under memory pressure." >&2
+        echo "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_TEST_SKIP_PRESSURE_GUARD=1 to force the run." >&2
+        exit 1
+    fi
+}
+
+# Fixture-level parallelism controls suite throughput. Keep each nested Cargo
+# invocation low-memory by default so parallel fixtures do not multiply rustc
+# worker pools.
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
+export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
+export GO2RUST_CARGO_OFFLINE_ARGS=""
+case "${GO2RUST_CARGO_OFFLINE:-auto}" in
+    1|true|yes)
+        GO2RUST_CARGO_OFFLINE_ARGS="--offline"
+        ;;
+    0|false|no)
+        ;;
+    auto|"")
+        cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+        if compgen -G "$cargo_home/registry/index/*" >/dev/null; then
+            GO2RUST_CARGO_OFFLINE_ARGS="--offline"
+        fi
+        ;;
+    *)
+        echo "error: GO2RUST_CARGO_OFFLINE must be auto, 1, or 0" >&2
+        exit 2
+        ;;
+esac
+export GO2RUST_CARGO_OFFLINE_ARGS
+
+case "$LOW_MEMORY" in
+    1|true|TRUE|yes|YES)
+        JOBS=1
+        JOBS_REASON="low-memory mode"
+        ;;
+esac
+
+if [ -z "${GOCACHE:-}" ]; then
+    TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
+    echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"
+    export GOCACHE="$TEST_GOCACHE_DIR"
+fi
+
+enforce_available_memory_floor
+
+# Build the transpiler once before running the suite. Bats parallelism is
+# file-level, so sharded runs would otherwise race multiple setup_file builds
+# against the same ./go2rust output path. GO2RUST_TEST_BINARY lets the same
+# suite validate a self-transpiled Rust binary without changing test behavior.
+if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
+    case "$GO2RUST_TEST_BINARY" in
+        /*) ;;
+        *) GO2RUST_TEST_BINARY="$(pwd)/$GO2RUST_TEST_BINARY" ;;
+    esac
+    if [ ! -x "$GO2RUST_TEST_BINARY" ]; then
+        echo "Error: GO2RUST_TEST_BINARY is not executable: $GO2RUST_TEST_BINARY"
+        exit 1
+    fi
+    export GO2RUST_TEST_BINARY
+else
+    BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")
+    echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"
+    BUILT_TEST_BINARY="$BUILT_TEST_BINARY_DIR/go2rust"
+    go build -o "$BUILT_TEST_BINARY" ./go
+    chmod +x "$BUILT_TEST_BINARY"
+    GO2RUST_TEST_BINARY="$BUILT_TEST_BINARY"
+    export GO2RUST_TEST_BINARY
+fi
+export GO2RUST_TEST_BINARY_READY=1
 
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then

@@ -240,6 +240,33 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 	}
 }
 
+func TestTestScriptRefusesFixtureCargoUnderSevereMemoryPressure(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_TEST_MIN_AVAILABLE_MEM_MB`,
+		`GO2RUST_TEST_SKIP_PRESSURE_GUARD`,
+		`enforce_available_memory_floor`,
+		`available memory is ${available_mb} MiB`,
+		`Refusing to start fixture Cargo work while the machine is under memory pressure.`,
+		`./cleanup.sh --pressure --quick`,
+		`GO2RUST_TEST_SKIP_PRESSURE_GUARD=1`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should refuse fixture Cargo work under severe memory pressure; missing %q", want)
+		}
+	}
+
+	guardIndex := strings.Index(script, "\nenforce_available_memory_floor\n")
+	buildIndex := strings.Index(script, `go build -o "$BUILT_TEST_BINARY" ./go`)
+	if guardIndex < 0 || buildIndex < 0 || guardIndex > buildIndex {
+		t.Fatalf("test.sh should run the memory-pressure guard before building the fixture transpiler")
+	}
+}
+
 func TestTestScriptLowMemoryModeBoundsJobs(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
