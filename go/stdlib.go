@@ -4058,7 +4058,31 @@ func transpileUnsafeOffsetof(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileUnsafeAdd(out *strings.Builder, call *ast.CallExpr) {
+	if writeUnsafeAddPointerArithmetic(out, call) {
+		return
+	}
 	transpileUnsupportedUnsafeIntrinsic(out, call, "Add")
+}
+
+func writeUnsafeAddPointerArithmetic(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 2 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if !isUnsafePointerLikeType(typeInfo.GetType(call)) || !isUnsafePointerLikeType(typeInfo.GetType(call.Args[0])) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __base = ")
+	writeUnsafePointerRawAddress(out, call.Args[0])
+	out.WriteString("; let __offset = ")
+	writeNumericConversionValue(out, call.Args[1])
+	out.WriteString(" as usize; __base.wrapping_add(__offset) }")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func transpileUnsafeSlice(out *strings.Builder, call *ast.CallExpr) {

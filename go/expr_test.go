@@ -5899,6 +5899,27 @@ func addr(p unsafe.Pointer) uintptr {
 	}
 }
 
+func TestUnsafeAddUsesPointerAddressArithmetic(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func shift(p unsafe.Pointer, n uintptr) unsafe.Pointer {
+	return unsafe.Add(p, n)
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.Add requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.Add should lower through pointer address arithmetic:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __base = { let __ptr = p.clone();") {
+		t.Fatalf("unsafe.Add should read the unsafe pointer handle once:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__base.wrapping_add(__offset)") {
+		t.Fatalf("unsafe.Add should add the byte offset to the raw pointer address:\n%s", rust)
+	}
+}
+
 func TestUnsafeRuntimeIntrinsicsEmitTypedUnimplemented(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -5922,10 +5943,13 @@ func unsafeValues(p *byte, n int, b []byte, s string) (string, []byte, unsafe.Po
 	if strings.Contains(rust, "unsafe::") {
 		t.Fatalf("unsafe compiler intrinsics should not be emitted as Rust module calls:\n%s", rust)
 	}
-	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add"} {
+	for _, name := range []string{"unsafe.String", "unsafe.Slice"} {
 		if !strings.Contains(rust, `unimplemented!("`+name+` requires unsafe intrinsic support")`) {
 			t.Fatalf("%s should emit a loud unsupported intrinsic marker:\n%s", name, rust)
 		}
+	}
+	if strings.Contains(rust, `unimplemented!("unsafe.Add requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.Add should lower through pointer address arithmetic:\n%s", rust)
 	}
 	if strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
 		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should lower through the typed slice-data pointer path:\n%s", rust)
