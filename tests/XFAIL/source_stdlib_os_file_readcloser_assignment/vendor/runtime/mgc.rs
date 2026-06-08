@@ -2092,7 +2092,11 @@ pub fn gc_start(trigger: Arc<Mutex<Option<gcTrigger>>>) {
 
                 // For stats, check if this GC was forced by the user.
                 // Update it under gcsema to avoid gctrace getting wrong values.
-        { let new_val = { let __tmp_x = { let __selector_holder = (*trigger.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = gcTriggerKind(Arc::new(Mutex::new(Some(GC_TRIGGER_CYCLE as i32)))); __tmp_x == __tmp_y }; *(*work.lock().unwrap().as_ref().unwrap()).user_forced.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __selector_holder = (*trigger.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = gcTriggerKind(Arc::new(Mutex::new(Some(GC_TRIGGER_CYCLE as i32))));
+            __tmp_x == __tmp_y
+        }; *(*work.lock().unwrap().as_ref().unwrap()).user_forced.lock().unwrap() = Some(new_val); };
 
         let mut trace_local = trace_acquire();
         if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
@@ -2964,14 +2968,22 @@ pub fn gc_bg_mark_worker(ready: GoChannel<AnonymousStruct12>) {
         throw(Arc::new(Mutex::new(Some("gcBgMarkWorker: blackening not enabled".to_string()))));
     }
 
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_NOT_WORKER as i32)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_NOT_WORKER as i32))));
+            __tmp_x == __tmp_y
+        } {
         throw(Arc::new(Mutex::new(Some("gcBgMarkWorker: mode not set".to_string()))));
     }
 
         let mut startTime = nanotime();
         { let new_val = startTime; *{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_start_time.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         let mut trackLimiterEvent: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_IDLE_MODE as i32)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_IDLE_MODE as i32))));
+            __tmp_x == __tmp_y
+        } {
         { let new_val = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.limiter_event.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).start(Arc::new(Mutex::new(Some(crate::mgclimit::limiterEventType(Arc::new(Mutex::new(Some(LIMITER_EVENT_IDLE_MARK_WORK as u8))))))), Arc::new(Mutex::new(Some(startTime)))); *trackLimiterEvent.lock().unwrap() = Some(new_val); };
     }
 
@@ -3040,7 +3052,11 @@ pub fn gc_bg_mark_worker(ready: GoChannel<AnonymousStruct12>) {
         if { let __v = (*trackLimiterEvent.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.limiter_event.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).stop(Arc::new(Mutex::new(Some(crate::mgclimit::limiterEventType(Arc::new(Mutex::new(Some(LIMITER_EVENT_IDLE_MARK_WORK as u8))))))), Arc::new(Mutex::new(Some(now))));
     }
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_FRACTIONAL_MODE as i32)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_mark_worker_mode.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_FRACTIONAL_MODE as i32))));
+            __tmp_x == __tmp_y
+        } {
         internal_runtime_atomic::xaddint64({ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_fractional_mark_time.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = duration.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 
@@ -3107,7 +3123,19 @@ pub fn gc_mark(startTime: Arc<Mutex<Option<i64>>>) {
     { let new_val = startTime.lock().unwrap().as_ref().unwrap().clone(); *(*work.lock().unwrap().as_ref().unwrap()).tstart.lock().unwrap() = Some(new_val); };
 
         // Check that there's no marking work remaining.
-    if { let __tmp_x = { let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).full.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __tmp_x = { let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).full.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x != __tmp_y
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+            __go_cond_1
+        }
+    } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: full=".to_string());
             let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*(*work.lock().unwrap().as_ref().unwrap()).full.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64)))));

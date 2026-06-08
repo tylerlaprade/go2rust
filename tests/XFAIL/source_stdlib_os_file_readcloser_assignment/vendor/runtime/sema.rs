@@ -898,11 +898,35 @@ pub fn semacquire1(addr: GoPtr<u32>, lifo: Arc<Mutex<Option<bool>>>, profile: Ar
     { let new_val = 0 as i64; *(*s.lock().unwrap().as_ref().unwrap()).releasetime.lock().unwrap() = Some(new_val); };
     { let new_val = 0 as i64; *(*s.lock().unwrap().as_ref().unwrap()).acquiretime.lock().unwrap() = Some(new_val); };
     { let new_val = 0 as u32; *(*s.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap() = Some(new_val); };
-    if { let __tmp_x = semaProfileFlags(Arc::new(Mutex::new(Some(((*{ let __v = (*profile.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & SEMA_BLOCK_PROFILE as i32))))); let __tmp_y = semaProfileFlags(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*blockprofilerate.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __tmp_x = semaProfileFlags(Arc::new(Mutex::new(Some(((*{ let __v = (*profile.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & SEMA_BLOCK_PROFILE as i32)))));
+            let __tmp_y = semaProfileFlags(Arc::new(Mutex::new(Some(0 as i32))));
+            __tmp_x != __tmp_y
+        };
+        if __go_cond_0 {
+            let __go_cond_1 = { let __tmp_x = (*blockprofilerate.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = cputicks(); *t0.lock().unwrap() = Some(new_val); };
         { let new_val = -1 as i64; *(*s.lock().unwrap().as_ref().unwrap()).releasetime.lock().unwrap() = Some(new_val); };
     }
-    if { let __tmp_x = semaProfileFlags(Arc::new(Mutex::new(Some(((*{ let __v = (*profile.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & SEMA_MUTEX_PROFILE as i32))))); let __tmp_y = semaProfileFlags(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*mutexprofilerate.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __tmp_x = semaProfileFlags(Arc::new(Mutex::new(Some(((*{ let __v = (*profile.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & SEMA_MUTEX_PROFILE as i32)))));
+            let __tmp_y = semaProfileFlags(Arc::new(Mutex::new(Some(0 as i32))));
+            __tmp_x != __tmp_y
+        };
+        if __go_cond_0 {
+            let __go_cond_1 = { let __tmp_x = (*mutexprofilerate.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         if { let __tmp_x = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
         { let new_val = cputicks(); *t0.lock().unwrap() = Some(new_val); };
     }

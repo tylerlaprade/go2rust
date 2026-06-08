@@ -1483,7 +1483,11 @@ impl bucket {
 
     /// mp returns the memRecord associated with the memProfile bucket b.
     pub fn mp(&self) -> GoPtr<memRecord> {
-        if { let __tmp_x = { let __selector_holder = self.typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = bucketType(Arc::new(Mutex::new(Some(MEM_PROFILE as i32)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = self.typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = bucketType(Arc::new(Mutex::new(Some(MEM_PROFILE as i32))));
+            __tmp_x != __tmp_y
+        } {
         throw(Arc::new(Mutex::new(Some("bad use of bucket.mp".to_string()))));
     }
         let mut data = add(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({
@@ -1500,7 +1504,23 @@ impl bucket {
 
     /// bp returns the blockRecord associated with the blockProfile bucket b.
     pub fn bp(&self) -> GoPtr<blockRecord> {
-        if { let __tmp_x = { let __selector_holder = self.typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = bucketType(Arc::new(Mutex::new(Some(BLOCK_PROFILE as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = { let __selector_holder = self.typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32)))); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __selector_holder = self.typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = bucketType(Arc::new(Mutex::new(Some(BLOCK_PROFILE as i32))));
+                __tmp_x != __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __selector_holder = self.typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                    let __tmp_y = bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32))));
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         throw(Arc::new(Mutex::new(Some("bad use of bucket.bp".to_string()))));
     }
         let mut data = add(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({
@@ -1824,7 +1844,35 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
         // first check optimistically, without the lock
     let mut b: GoPtr<bucket> = GoPtr::raw({ let __ptr = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     while !b.is_nil() {
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.typ.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && eqslice({ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }, stk.clone()) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __selector_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.typ.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone();
+                        __tmp_x == __tmp_y
+                    };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = eqslice({ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }, stk.clone());
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         return b.clone();
     }
         b = GoPtr::local({ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value });
@@ -1839,7 +1887,35 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
         // check again under the insertion lock
     let mut b: GoPtr<bucket> = GoPtr::raw({ let __ptr = { let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.load().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     while !b.is_nil() {
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.typ.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && eqslice({ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }, stk.clone()) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __selector_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.typ.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone();
+                        __tmp_x == __tmp_y
+                    };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = eqslice({ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }, stk.clone());
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         unlock(GoPtr::local(profInsertLock.clone()));
         return b.clone();
     }
@@ -2120,7 +2196,19 @@ pub fn fp_traceback_partial_expand(skip: Arc<Mutex<Option<i32>>>, mut fp: Arc<Mu
         let (mut u, mut uf) = new_inline_unwinder(Arc::new(Mutex::new(Some({ let __arg_holder = fi.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = callPC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         while (*uf.lock().unwrap().as_ref().unwrap()).valid() {
         let mut sf = (*u.lock().unwrap().as_ref().unwrap()).src_func(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if { let __tmp_x = { let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_WRAPPER as u8)))); __tmp_x == __tmp_y } && elide_wrapper_calling(Arc::new(Mutex::new(Some({ let __arg_holder = lastFuncID.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_WRAPPER as u8))));
+                __tmp_x == __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = elide_wrapper_calling(Arc::new(Mutex::new(Some({ let __arg_holder = lastFuncID.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
     } else {
         let mut more = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = skipOrAdd.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*uf.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x + __tmp_y })))) };;
         if !more {

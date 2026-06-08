@@ -675,7 +675,11 @@ impl sweepClass {
     let mut spc: Arc<Mutex<Option<spanClass>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut full: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        (Arc::new(Mutex::new(Some(crate::mheap::spanClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) >> 1i32) as u8))))))), { let __tmp_x = sweepClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & 1))))); let __tmp_y = sweepClass(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x == __tmp_y })
+        (Arc::new(Mutex::new(Some(crate::mheap::spanClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) >> 1i32) as u8))))))), {
+            let __tmp_x = sweepClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & 1)))));
+            let __tmp_y = sweepClass(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x == __tmp_y
+        })
     }
 }
 

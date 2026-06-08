@@ -617,7 +617,39 @@ impl timer {
     /// t must be locked.
     pub fn needs_add(&self) -> bool {
         assert_lock_held(GoPtr::local(self.mu.clone()));
-        let mut need = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.state.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAPED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*self.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y } && (!((*self.is_chan.clone().lock().unwrap().as_ref().unwrap())) || (*self.is_fake.lock().unwrap().as_ref().unwrap()) || { let __tmp_x = (*self.blocked.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x > __tmp_y }))));
+        let mut need = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = { let __tmp_x = (*self.state.lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAPED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = (*self.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = {
+                    let __go_cond_4 = {
+                        let __go_cond_5 = !(*self.is_chan.clone().lock().unwrap().as_ref().unwrap());
+                        if __go_cond_5 {
+                            true
+                        } else {
+                            let __go_cond_6 = (*self.is_fake.clone().lock().unwrap().as_ref().unwrap());
+                            __go_cond_6
+                        }
+                    };
+                    if __go_cond_4 {
+                        true
+                    } else {
+                        let __go_cond_7 = { let __tmp_x = (*self.blocked.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x > __tmp_y };
+                        __go_cond_7
+                    }
+                };
+                __go_cond_3
+            } else {
+                false
+            }
+        })));
         if { let __v = (*need.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.trace(Arc::new(Mutex::new(Some("needsAdd+".to_string()))));
     } else {
@@ -1260,14 +1292,22 @@ impl timers {
         if { let __tmp_x = zombies; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
         bad_timer();
     }
-        let mut force = Arc::new(Mutex::new(Some({ let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && {
-            let __tmp_x = (*Arc::new(Mutex::new(Some(zombies as i32))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = {
-                let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
-                let __tmp_y = 4;
-                __tmp_x / __tmp_y
-            };
-            __tmp_x > __tmp_y
+        let mut force = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = { let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some(zombies as i32))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = {
+                        let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = 4;
+                        __tmp_x / __tmp_y
+                    };
+                    __tmp_x > __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
         })));
         if { let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = next; __tmp_x < __tmp_y } && !{ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // Next timer is not ready to run, and we don't need to clear deleted timers.
@@ -1296,14 +1336,22 @@ impl timers {
                 // is significantly faster under contention, such as in
                 // package time's BenchmarkTimerAdjust10000,
                 // though we do not fully understand why.
-        { let new_val = { let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && {
-            let __tmp_x = (*Arc::new(Mutex::new(Some((*self.zombies.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = {
-                let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
-                let __tmp_y = 4;
-                __tmp_x / __tmp_y
-            };
-            __tmp_x > __tmp_y
+        { let new_val = {
+            let __go_cond_0 = { let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some((*self.zombies.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = {
+                        let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = 4;
+                        __tmp_x / __tmp_y
+                    };
+                    __tmp_x > __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
         }; *force.lock().unwrap() = Some(new_val); };
         if { let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.adjust(Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))));

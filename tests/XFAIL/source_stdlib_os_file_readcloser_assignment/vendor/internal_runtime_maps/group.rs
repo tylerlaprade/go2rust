@@ -1265,7 +1265,11 @@ pub fn bitset_remove_below(b: Arc<Mutex<Option<bitset>>>, i: Arc<Mutex<Option<us
 ///
 /// On AMD64, this is replaced with an intrisic that checks the lowest bit.
 pub fn bitset_lowest_set(b: Arc<Mutex<Option<bitset>>>) -> bool {
-    return { let __tmp_x = bitset(Arc::new(Mutex::new(Some(((*{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & ((1 << 7i32))))))); let __tmp_y = bitset(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y };
+    return {
+        let __tmp_x = bitset(Arc::new(Mutex::new(Some(((*{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & ((1 << 7i32)))))));
+        let __tmp_y = bitset(Arc::new(Mutex::new(Some(0 as u64))));
+        __tmp_x != __tmp_y
+    };
 }
 
 /// Portable implementation of shiftOutLowest.

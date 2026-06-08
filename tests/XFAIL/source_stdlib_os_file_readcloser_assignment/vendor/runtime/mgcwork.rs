@@ -517,7 +517,11 @@ fn __go_init_0() {
 ///go:nowritebarrier
 pub fn getempty() -> GoPtr<workbuf> {
     let mut b: GoPtr<workbuf> = GoPtr::nil();
-    if { let __tmp_x = { let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).empty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).empty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0 as u64))));
+        __tmp_x != __tmp_y
+    } {
         b = GoPtr::raw({ let __ptr = (*(*work.lock().unwrap().as_ref().unwrap()).empty.lock().unwrap().as_ref().unwrap()).pop().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if !b.is_nil() {
         { let __recv_value = b.borrow(); let __result = (*__recv_value.as_ref().unwrap()).checkempty(); __result };
@@ -630,7 +634,11 @@ pub fn handoff(b: GoPtr<workbuf>) -> GoPtr<workbuf> {
 /// workbufs are on the empty list.
 pub fn prepare_free_workbufs() {
     lock(GoPtr::local((*(*work.lock().unwrap().as_ref().unwrap()).wbuf_spans.lock().unwrap().as_ref().unwrap()).lock.clone()));
-    if { let __tmp_x = { let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).full.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).full.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0 as u64))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("cannot free workbufs when work.full != 0".to_string()))));
     }
 

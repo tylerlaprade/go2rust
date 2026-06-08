@@ -4710,6 +4710,36 @@ func isGoPointer(p uintptr, datap *module) bool {
 	}
 }
 
+func TestConcurrentLogicalValueBuildsComplexOperandsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type funcID uint8
+
+const (
+	sigpanic funcID = 1
+	asyncPreempt funcID = 2
+	debugCall funcID = 3
+)
+
+type fn struct {
+	funcID funcID
+}
+
+func injected(f *fn) bool {
+	go func() {}()
+	injectedCall := f.funcID == sigpanic || f.funcID == asyncPreempt || f.funcID == debugCall
+	return injectedCall
+}
+`)
+
+	if strings.Contains(rust, "} || {") {
+		t.Fatalf("complex logical value should not chain inline statement blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("complex logical value should build operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentMethodCallBreaksComplexArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

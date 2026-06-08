@@ -611,8 +611,24 @@ impl addrRanges {
                 // Because we assume r is not currently represented in a,
                 // findSucc gives us our insertion index.
         let mut i = self.find_succ(Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))));
-        let mut coalescesDown = Arc::new(Mutex::new(Some({ let __tmp_x = i; let __tmp_y = 0; __tmp_x > __tmp_y } && (*{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.limit.lock().unwrap().as_ref().unwrap()).equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))))));
-        let mut coalescesUp = Arc::new(Mutex::new(Some({ let __tmp_x = (i as i32); let __tmp_y = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y } && (*(*r.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).equal(Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))))));
+        let mut coalescesDown = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = { let __tmp_x = i; let __tmp_y = 0; __tmp_x > __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = (*{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.limit.lock().unwrap().as_ref().unwrap()).equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+                __go_cond_1
+            } else {
+                false
+            }
+        })));
+        let mut coalescesUp = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = { let __tmp_x = (i as i32); let __tmp_y = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = (*(*r.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).equal(Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+                __go_cond_1
+            } else {
+                false
+            }
+        })));
         if { let __v = (*coalescesUp.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __v = (*coalescesDown.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // We have neighbors and they both border us.
                 // Merge a.ranges[i-1], r, and a.ranges[i] together into a.ranges[i-1].

@@ -481,7 +481,11 @@ pub fn stackpoolalloc(order: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<crate::
 /// Adds stack x to the free pool. Must be called with stackpool[order].item.mu held.
 pub fn stackpoolfree(x: Arc<Mutex<Option<gclinkptr>>>, order: Arc<Mutex<Option<u8>>>) {
     let mut s: GoPtr<crate::mheap::mspan> = span_of_unchecked(Arc::new(Mutex::new(Some((*{ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize))));
-    if { let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_MANUAL as u8)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_MANUAL as u8))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("freeing stack not in a stack span".to_string()))));
     }
     if crate::mcache::gclinkptr::ptr(&(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.manual_free_list.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())).is_nil() {
@@ -640,7 +644,27 @@ pub fn stackalloc(mut n: Arc<Mutex<Option<u32>>>) -> Arc<Mutex<Option<crate::run
         { let __rhs = 1 as u32; let mut guard = n2.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> __rhs); };
     }
         let mut x: Arc<Mutex<Option<gclinkptr>>> = Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some(0)))))));
-        if { let __tmp_x = STACK_NO_CACHE; let __tmp_y = 0; __tmp_x != __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*thisg.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*thisg.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = STACK_NO_CACHE; let __tmp_y = 0; __tmp_x != __tmp_y };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __selector_holder = (*(*thisg.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = { let __tmp_x = { let __selector_holder = (*(*thisg.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y };
+                __go_cond_3
+            }
+        } {
                 // thisg.m.p == 0 can happen in the guts of exitsyscall
                 // or procresize. Just get a stack from the global pool.
                 // Also don't touch stackcache during gc
@@ -780,7 +804,27 @@ pub fn stackfree(stk: Arc<Mutex<Option<stack>>>) {
         { let __rhs = 1 as usize; let mut guard = n2.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> __rhs); };
     }
         let mut x = Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize)))))));
-        if { let __tmp_x = STACK_NO_CACHE; let __tmp_y = 0; __tmp_x != __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = STACK_NO_CACHE; let __tmp_y = 0; __tmp_x != __tmp_y };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y };
+                __go_cond_3
+            }
+        } {
         lock(GoPtr::local((*{ let __seq = { let __seq_holder = stackpool.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.item.lock().unwrap().as_ref().unwrap()).mu.clone()));
         stackpoolfree(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = order.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         unlock(GoPtr::local((*{ let __seq = { let __seq_holder = stackpool.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.item.lock().unwrap().as_ref().unwrap()).mu.clone()));
@@ -799,7 +843,11 @@ pub fn stackfree(stk: Arc<Mutex<Option<stack>>>) {
     }
     } else {
         let mut s: GoPtr<crate::mheap::mspan> = span_of_unchecked(Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))));
-        if { let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_MANUAL as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_MANUAL as u8))));
+            __tmp_x != __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result } as u64)))));
             let __go_print_arg_1 = format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -971,11 +1019,19 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
         // Adjust saved frame pointer if there is one.
     if {
         let __go_cond_0 = {
-            let __go_cond_1 = { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_M_D64 as i32)))); __tmp_x == __tmp_y };
+            let __go_cond_1 = {
+                let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32))));
+                let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_M_D64 as i32))));
+                __tmp_x == __tmp_y
+            };
             if __go_cond_1 {
                 true
             } else {
-                let __go_cond_2 = { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_R_M64 as i32)))); __tmp_x == __tmp_y };
+                let __go_cond_2 = {
+                    let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32))));
+                    let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_R_M64 as i32))));
+                    __tmp_x == __tmp_y
+                };
                 __go_cond_2
             }
         };
@@ -1515,7 +1571,19 @@ pub fn shrinkstack(gp: GoPtr<crate::runtime2::g>) {
         return;
     }
     let mut f = findfunc(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.startpc.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-    if (*f.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_GC_BG_MARK_WORKER as u8)))); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = (*f.lock().unwrap().as_ref().unwrap()).valid();
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_GC_BG_MARK_WORKER as u8))));
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
                 // We're not allowed to shrink the gcBgMarkWorker
                 // stack (see gcBgMarkWorker for explanation).
         return;

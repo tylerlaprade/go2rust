@@ -237,10 +237,26 @@ pub fn gotraceback() -> (i32, bool, bool) {
     let mut gp = getg();
     let mut t = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::local(traceback_cache.clone()));
     { let new_val = { let __tmp_x = { let __tmp_x = t; let __tmp_y = TRACEBACK_CRASH as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y }; *crash.lock().unwrap() = Some(new_val); };
-    { let new_val = { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::panic::throwType(Arc::new(Mutex::new(Some(THROW_TYPE_USER as u32)))); __tmp_x >= __tmp_y } || { let __tmp_x = { let __tmp_x = t; let __tmp_y = TRACEBACK_ALL as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y }; *all.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __go_cond_0 = {
+            let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::panic::throwType(Arc::new(Mutex::new(Some(THROW_TYPE_USER as u32))));
+            __tmp_x >= __tmp_y
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __tmp_x = { let __tmp_x = t; let __tmp_y = TRACEBACK_ALL as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+            __go_cond_1
+        }
+    }; *all.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).traceback.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).traceback.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *level.lock().unwrap() = __moved_val; };
-    } else if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::panic::throwType(Arc::new(Mutex::new(Some(THROW_TYPE_RUNTIME as u32)))); __tmp_x >= __tmp_y } {
+    } else if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::panic::throwType(Arc::new(Mutex::new(Some(THROW_TYPE_RUNTIME as u32))));
+        __tmp_x >= __tmp_y
+    } {
         { let new_val = 2 as i32; *level.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = t; let __tmp_y = TRACEBACK_SHIFT; __tmp_x >> __tmp_y }) as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *level.lock().unwrap() = __moved_val; };

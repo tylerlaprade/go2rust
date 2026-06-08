@@ -396,6 +396,32 @@ func withShortDeclOuterRhsBindings(lhs []ast.Expr, rhs ast.Expr, emit func()) {
 
 const minStatementBuiltBinaryInitializerNodes = 4
 
+func writeStatementBuiltLogicalShortDecl(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	binary, ok := unwrapParens(rhs).(*ast.BinaryExpr)
+	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
+		return false
+	}
+	if !shouldStatementBuildLogicalCondition(binary) {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if _, ok := namedBoolType(typeInfo.GetType(binary)); ok {
+			return false
+		}
+	}
+
+	out.WriteString("let mut ")
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = ")
+	WriteWrapperPrefix(out)
+	withShortDeclOuterRhsBindings([]ast.Expr{lhs}, rhs, func() {
+		nextTemp := 0
+		writeStatementBuiltLogicalConditionValue(out, binary, currentLineIndent(out), &nextTemp)
+	})
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeStatementBuiltConcurrentBinaryShortDecl(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	temps, result, ok := buildStatementBuiltConcurrentBinaryValue(rhs, []ast.Expr{lhs})
 	if !ok {
@@ -9512,6 +9538,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 const minStatementBuiltLogicalConditionNodes = 4
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const concurrentFieldSelectorLogicalConditionComplexity = 4
+const concurrentNamedIntegerLogicalComparisonOperandComplexity = 4
 
 func transpileCondition(out *strings.Builder, expr ast.Expr) {
 	if shouldStatementBuildLogicalCondition(expr) {
@@ -9562,7 +9589,12 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		if e.Op == token.LAND || e.Op == token.LOR {
 			return 0
 		}
-		return 1 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Y)
+		count := 1 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Y)
+		if logicalConditionBinaryIsComparison(e) {
+			count += countNamedIntegerLogicalComparisonOperandComplexity(e.X)
+			count += countNamedIntegerLogicalComparisonOperandComplexity(e.Y)
+		}
+		return count
 	case *ast.CallExpr:
 		count := 2 + countLogicalConditionOperandComplexity(e.Fun)
 		for _, arg := range e.Args {
@@ -9602,6 +9634,29 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		}
 		return 1
 	}
+}
+
+func logicalConditionBinaryIsComparison(expr *ast.BinaryExpr) bool {
+	if expr == nil {
+		return false
+	}
+	return expr.Op == token.EQL || expr.Op == token.NEQ || expr.Op == token.LSS ||
+		expr.Op == token.GTR || expr.Op == token.LEQ || expr.Op == token.GEQ
+}
+
+func countNamedIntegerLogicalComparisonOperandComplexity(expr ast.Expr) int {
+	if expr == nil || !NeedsConcurrentWrapper() {
+		return 0
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return 0
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil || !isNamedIntegerType(typ) {
+		return 0
+	}
+	return concurrentNamedIntegerLogicalComparisonOperandComplexity
 }
 
 func concurrentLogicalConditionSelectorIsField(sel *ast.SelectorExpr) bool {
@@ -11786,7 +11841,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								}
 								if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 &&
-									writeStatementBuiltConcurrentBinaryShortDecl(out, s.Lhs[0], s.Rhs[0]) {
+									(writeStatementBuiltLogicalShortDecl(out, s.Lhs[0], s.Rhs[0]) ||
+										writeStatementBuiltConcurrentBinaryShortDecl(out, s.Lhs[0], s.Rhs[0])) {
 									// The helper emitted the complete declaration.
 								} else {
 									// Regular assignment or definition

@@ -112,7 +112,11 @@ impl crate::types::File {
         {
         let mut errno = readdir_r(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = d.with_mut(|__ptr_value| __ptr_value.dir.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), dirent.clone(), Arc::new(Mutex::new(Some(entptr.clone()))));;
         if { let __tmp_x = (*errno.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
-            if { let __tmp_x = (*errno.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_I_N_T_R as usize)))); __tmp_x == __tmp_y } {
+            if {
+                let __tmp_x = (*errno.lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_I_N_T_R as usize))));
+                __tmp_x == __tmp_y
+            } {
         continue
     };
             return (names.clone(), dirents.clone(), infos.clone(), Arc::new(Mutex::new(Some(Box::new(io_fs::r#mod::PathError { op: Arc::new(Mutex::new(Some("readdir".to_string()))), path: Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), err: Arc::new(Mutex::new(Some(Box::new((*errno.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))), ..Default::default() }) as Box<dyn StdError + Send + Sync>))));;

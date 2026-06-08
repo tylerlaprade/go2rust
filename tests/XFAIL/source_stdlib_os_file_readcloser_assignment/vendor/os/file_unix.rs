@@ -864,7 +864,27 @@ pub fn epipecheck(file: Arc<Mutex<Option<File>>>, e: Arc<Mutex<Option<Box<dyn St
 /// Changes here should be reflected in openDirAt and openDirNolog, if relevant.
 pub fn open_file_nolog(name: Arc<Mutex<Option<String>>>, flag: Arc<Mutex<Option<i32>>>, perm: FileMode) -> (Arc<Mutex<Option<crate::types::File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     let mut setSticky = Arc::new(Mutex::new(Some(false)));
-    if !SUPPORTS_CREATE_WITH_STICKY_BIT && { let __tmp_x = { let __tmp_x = { let __v = (*flag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 512; __tmp_x & __tmp_y }; let __tmp_y = 0; __tmp_x != __tmp_y } && { let __tmp_x = { let __tmp_x = (*perm.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_STICKY as u32)))); __tmp_x & __tmp_y }; let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = !SUPPORTS_CREATE_WITH_STICKY_BIT;
+            if __go_cond_1 {
+                let __go_cond_2 = { let __tmp_x = { let __tmp_x = { let __v = (*flag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 512; __tmp_x & __tmp_y }; let __tmp_y = 0; __tmp_x != __tmp_y };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = {
+                let __tmp_x = { let __tmp_x = (*perm.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_STICKY as u32)))); __tmp_x & __tmp_y };
+                let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+                __tmp_x != __tmp_y
+            };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
         {
         let (_, mut err) = stat(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if is_not_exist(err.clone()) {
@@ -921,7 +941,19 @@ pub fn open_dir_nolog(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<cra
 
 pub fn new_unix_dirent(parent: Arc<Mutex<Option<String>>>, name: Arc<Mutex<Option<String>>>, typ: FileMode) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::DirEntry + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     let mut ude = Arc::new(Mutex::new(Some(unixDirent { parent: Arc::new(Mutex::new(Some({ let __arg_holder = parent.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: Arc::new(Mutex::new(Some({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
-    if { let __tmp_x = (*typ.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(!0 as u32)))); __tmp_x != __tmp_y } && !(*testingForceReadDirLstat.lock().unwrap().as_ref().unwrap()) {
+    if {
+        let __go_cond_0 = {
+            let __tmp_x = (*typ.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(!0 as u32))));
+            __tmp_x != __tmp_y
+        };
+        if __go_cond_0 {
+            let __go_cond_1 = !(*testingForceReadDirLstat.lock().unwrap().as_ref().unwrap());
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         return (Arc::new(Mutex::new(Some(Box::new(unixDirentPtr(ude.clone())) as Box<dyn io_fs::r#mod::DirEntry + Send + Sync>))), Arc::new(Mutex::new(None)));
     }
 

@@ -572,7 +572,11 @@ impl FileMode {
         let mut buf: Arc<Mutex<Option<[u8; 32]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
         let mut w = Arc::new(Mutex::new(Some(0)));
         for (i, c) in str.char_indices() {
-        if { let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & ((1 << Arc::new(Mutex::new(Some(({ let __tmp_x = 31; let __tmp_y = i as i32; __tmp_x - __tmp_y }) as u64)))))))))); let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & ((1 << Arc::new(Mutex::new(Some(({ let __tmp_x = 31; let __tmp_y = i as i32; __tmp_x - __tmp_y }) as u64))))))))));
+            let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        } {
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some((c as i32) as u8))).lock().unwrap().as_ref().unwrap()).clone();
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -584,7 +588,11 @@ impl FileMode {
         const rwx: &'static str = "rwxrwxrwx";
 
         for (i, c) in rwx.char_indices() {
-        if { let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & ((1 << Arc::new(Mutex::new(Some(({ let __tmp_x = 8; let __tmp_y = i as i32; __tmp_x - __tmp_y }) as u64)))))))))); let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & ((1 << Arc::new(Mutex::new(Some(({ let __tmp_x = 8; let __tmp_y = i as i32; __tmp_x - __tmp_y }) as u64))))))))));
+            let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        } {
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some((c as i32) as u8))).lock().unwrap().as_ref().unwrap()).clone();
     } else {
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = ('-' as i32) as u8;
@@ -597,13 +605,21 @@ impl FileMode {
     /// IsDir reports whether m describes a directory.
     /// That is, it tests for the [ModeDir] bit being set in m.
     pub fn is_dir(&self) -> bool {
-        return { let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & MODE_DIR as u32))))); let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & MODE_DIR as u32)))));
+            let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        };
     }
 
     /// IsRegular reports whether m describes a regular file.
     /// That is, it tests that no mode type bits are set.
     pub fn is_regular(&self) -> bool {
-        return { let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & MODE_TYPE as u32))))); let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = FileMode(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & MODE_TYPE as u32)))));
+            let __tmp_y = FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x == __tmp_y
+        };
     }
 
     /// Perm returns the Unix permission bits in m (m & [ModePerm]).

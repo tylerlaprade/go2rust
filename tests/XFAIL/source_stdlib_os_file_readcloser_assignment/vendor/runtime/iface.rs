@@ -1536,7 +1536,11 @@ pub fn getitab(inter: GoPtr<internal_abi::r#type::InterfaceType>, typ: GoPtr<int
     }
 
         // easy case
-    if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = typ.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_UNCOMMON as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = typ.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_UNCOMMON as u8)))); __tmp_x & __tmp_y };
+        let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+        __tmp_x == __tmp_y
+    } {
         if { let __v = (*canfail.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return GoPtr::nil();
     }

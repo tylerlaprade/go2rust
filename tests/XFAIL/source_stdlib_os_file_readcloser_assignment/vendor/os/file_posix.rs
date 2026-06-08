@@ -220,13 +220,25 @@ pub fn syscall_mode(i: FileMode) -> u32 {
     let mut o: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
 
     { let __rhs = (*Arc::new(Mutex::new(Some((*(*io_fs::r#mod::FileMode::perm(&(*i.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); let mut guard = o.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-    if { let __tmp_x = { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_SETUID as u32)))); __tmp_x & __tmp_y }; let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_SETUID as u32)))); __tmp_x & __tmp_y };
+        let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+        __tmp_x != __tmp_y
+    } {
         { let __rhs = syscall::S__I_S_U_I_D as u32; let mut guard = o.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     }
-    if { let __tmp_x = { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_SETGID as u32)))); __tmp_x & __tmp_y }; let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_SETGID as u32)))); __tmp_x & __tmp_y };
+        let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+        __tmp_x != __tmp_y
+    } {
         { let __rhs = syscall::S__I_S_G_I_D as u32; let mut guard = o.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     }
-    if { let __tmp_x = { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_STICKY as u32)))); __tmp_x & __tmp_y }; let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = (*i.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_STICKY as u32)))); __tmp_x & __tmp_y };
+        let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0 as u32))));
+        __tmp_x != __tmp_y
+    } {
         { let __rhs = syscall::S__I_S_V_T_X as u32; let mut guard = o.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     }
 

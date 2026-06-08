@@ -393,10 +393,26 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
         // signal delivery. We use that as an indicator of delayed signals.
         // For delayed signals, the handler is called on the g0 stack (see
         // adjustSignalStack).
-    let mut delayedSignal = Arc::new(Mutex::new(Some({ let __nil_ptr = (*(*cgo_yield.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).clone(); __nil_ptr != 0 } && { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } && {
-        let __tmp_x = { let __selector_holder = (*gsignal.lock().unwrap().as_ref().unwrap()).stack.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
-        let __tmp_y = (*(*(*mp.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).clone();
-        __tmp_x == __tmp_y
+    let mut delayedSignal = Arc::new(Mutex::new(Some({
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __nil_ptr = (*(*cgo_yield.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).clone(); __nil_ptr != 0 };
+            if __go_cond_1 {
+                let __go_cond_2 = { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = {
+                let __tmp_x = { let __selector_holder = (*gsignal.lock().unwrap().as_ref().unwrap()).stack.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = (*(*(*mp.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).clone();
+                __tmp_x == __tmp_y
+            };
+            __go_cond_3
+        } else {
+            false
+        }
     })));
 
     if { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __S_I_G_P_R_O_F as u32; __tmp_x == __tmp_y } {

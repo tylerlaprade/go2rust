@@ -915,13 +915,21 @@ impl scavengerState {
         if { let __nil_target = self.should_stop.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Box::new(move || -> bool {
         return {
-            let __tmp_x = heap_retained();
-            let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).gc_percent_goal.lock().unwrap().as_mut().unwrap()).load();
-            __tmp_x <= __tmp_y
-        } && {
-            let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).mapped_ready.lock().unwrap().as_mut().unwrap()).load();
-            let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).memory_limit_goal.lock().unwrap().as_mut().unwrap()).load();
-            __tmp_x <= __tmp_y
+            let __go_cond_0 = {
+                let __tmp_x = heap_retained();
+                let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).gc_percent_goal.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x <= __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).mapped_ready.lock().unwrap().as_mut().unwrap()).load();
+                    let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).memory_limit_goal.lock().unwrap().as_mut().unwrap()).load();
+                    __tmp_x <= __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
         };
     }) as Box<dyn FnMut() -> bool + Send + Sync>; *self.should_stop.lock().unwrap() = Some(new_val); };
     }
@@ -1839,7 +1847,11 @@ impl scavChunkData {
 impl scavChunkFlags {
     /// isEmpty returns true if the hasFree flag is unset.
     pub fn is_empty(&self) -> bool {
-        return { let __tmp_x = scavChunkFlags(Arc::new(Mutex::new(Some((((*(*self).clone().0.lock().unwrap().as_ref().unwrap())) & SCAV_CHUNK_HAS_FREE as u8))))); let __tmp_y = scavChunkFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = scavChunkFlags(Arc::new(Mutex::new(Some((((*(*self).clone().0.lock().unwrap().as_ref().unwrap())) & SCAV_CHUNK_HAS_FREE as u8)))));
+            let __tmp_y = scavChunkFlags(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        };
     }
 
     /// setEmpty clears the hasFree flag.

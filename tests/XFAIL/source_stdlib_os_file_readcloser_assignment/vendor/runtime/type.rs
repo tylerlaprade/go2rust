@@ -175,7 +175,11 @@ pub(crate) fn __go_zero_globals() {
 impl rtype {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         let mut s = { let __recv = self.name_off(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.str.clone(); __field }); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result };
-        if { let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_EXTRA_STAR as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_EXTRA_STAR as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         return Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() })));
     }
         return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
@@ -186,7 +190,11 @@ impl rtype {
     }
 
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        if { let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_NAMED as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_NAMED as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        } {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
         let mut s = self.string();
@@ -237,7 +245,11 @@ impl rtype {
     }
 
     pub fn text_off(&self, off: textOff) -> Arc<Mutex<Option<usize>>> {
-        if { let __tmp_x = (*off.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TextOff(Arc::new(Mutex::new(Some(-1 as i32)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*off.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = internal_abi::r#type::TextOff(Arc::new(Mutex::new(Some(-1 as i32))));
+            __tmp_x == __tmp_y
+        } {
                 // -1 is the sentinel value for unreachable code.
                 // See cmd/link/internal/ld/data.go:relocsym.
         return Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(unreachable_method.clone()) as Box<dyn Any + Send + Sync>)))))));
@@ -443,7 +455,11 @@ impl bitCursor {
 ///
 ///go:nosplit
 pub fn get_g_c_mask(t: GoPtr<internal_abi::r#type::Type>) -> GoPtr<u8> {
-    if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_G_C_MASK_ON_DEMAND as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_G_C_MASK_ON_DEMAND as u8)))); __tmp_x & __tmp_y };
+        let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+        __tmp_x != __tmp_y
+    } {
                 // Split the rest into getGCMaskOnDemand so getGCMask itself is inlineable.
         return get_g_c_mask_on_demand(t.clone());
     }
@@ -514,7 +530,11 @@ pub fn build_g_c_mask(mut t: GoPtr<internal_abi::r#type::Type>, mut dst: Arc<Mut
         if { let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("pointerless type".to_string()))));
     }
-        if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_G_C_MASK_ON_DEMAND as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_G_C_MASK_ON_DEMAND as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        } {
                 // copy t.GCData to dst
         (*dst.lock().unwrap().as_ref().unwrap()).write({ let __go_ptr = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.g_c_data.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))));
         return;
@@ -652,7 +672,19 @@ pub fn resolve_name_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: nameOff) ->
 }
 
 pub fn resolve_type_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: typeOff) -> GoPtr<internal_abi::r#type::Type> {
-    if { let __tmp_x = (*off.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TypeOff(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*off.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TypeOff(Arc::new(Mutex::new(Some(-1 as i32)))); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = { let __tmp_x = (*off.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TypeOff(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x == __tmp_y };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = {
+                let __tmp_x = (*off.lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = internal_abi::r#type::TypeOff(Arc::new(Mutex::new(Some(-1 as i32))));
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        }
+    } {
                 // -1 is the sentinel value for unreachable code.
                 // See cmd/link/internal/ld/data.go:relocsym.
         return GoPtr::nil();

@@ -1199,7 +1199,11 @@ pub fn fatalthrow(t: Arc<Mutex<Option<throwType>>>) {
     let mut sp = internal_runtime_sys::get_caller_s_p();
     let mut gp = getg();
 
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_NONE as u32)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_NONE as u32))));
+        __tmp_x == __tmp_y
+    } {
         { let new_val = t.lock().unwrap().as_ref().unwrap().clone(); *(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.lock().unwrap() = Some(new_val); };
     }
 
@@ -1350,7 +1354,19 @@ pub fn dopanic_m(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usize>>>, sp: A
         };
         goroutineheader(GoPtr::local(gp.clone()));
         traceback(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as usize))), GoPtr::local(gp.clone()));
-    } else if { let __tmp_x = level; let __tmp_y = 2 as i32; __tmp_x >= __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_RUNTIME as u32)))); __tmp_x >= __tmp_y } {
+    } else if {
+        let __go_cond_0 = { let __tmp_x = level; let __tmp_y = 2 as i32; __tmp_x >= __tmp_y };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = {
+                let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_RUNTIME as u32))));
+                __tmp_x >= __tmp_y
+            };
+            __go_cond_1
+        }
+    } {
         {
             let __go_print_arg_0 = format!("{}", "\nruntime stack:\n".to_string());
             eprint!("{}", __go_print_arg_0)
@@ -1414,7 +1430,11 @@ pub fn canpanic() -> bool {
                 if __go_cond_2 {
                     true
                 } else {
-                    let __go_cond_5 = { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_NONE as u32)))); __tmp_x != __tmp_y };
+                    let __go_cond_5 = {
+                        let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).throwing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = throwType(Arc::new(Mutex::new(Some(THROW_TYPE_NONE as u32))));
+                        __tmp_x != __tmp_y
+                    };
                     __go_cond_5
                 }
             };
@@ -1509,7 +1529,11 @@ pub fn is_abort_p_c(pc: Arc<Mutex<Option<usize>>>) -> bool {
     if !(*f.lock().unwrap().as_ref().unwrap()).valid() {
         return false;
     }
-    return { let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_ABORT as u8)))); __tmp_x == __tmp_y };
+    return {
+        let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_ABORT as u8))));
+        __tmp_x == __tmp_y
+    };
 }
 
 pub(crate) fn __go_init_functions() {

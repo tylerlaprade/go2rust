@@ -1036,7 +1036,27 @@ pub fn bulk_barrier_pre_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Opt
     }
     } }
         return;
-    } else if { let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } || { let __tmp_x = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x < __tmp_y } || { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().limit.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
+    } else if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8))));
+                __tmp_x != __tmp_y
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_2 = { let __tmp_x = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x < __tmp_y };
+                __go_cond_2
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_3 = { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().limit.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
+            __go_cond_3
+        }
+    } {
         return;
     }
         // If dst is a global, use the data or BSS bitmaps to
@@ -1237,7 +1257,11 @@ pub fn double_check_heap_pointers(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mu
             let __go_print_arg_2 = format!("{}", " typ.Size_=".to_string());
             let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_4 = format!("{}", " TFlagGCMaskOnDemaind=".to_string());
-            let __go_print_arg_5 = format!("{}", { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = typ.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_G_C_MASK_ON_DEMAND as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y });
+            let __go_print_arg_5 = format!("{}", {
+                let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = typ.with_mut(|__ptr_value| __ptr_value.t_flag.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_G_C_MASK_ON_DEMAND as u8)))); __tmp_x & __tmp_y };
+                let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+                __tmp_x != __tmp_y
+            });
             let __go_print_arg_6 = format!("{}", "\n".to_string());
             eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
         };
@@ -1453,7 +1477,11 @@ pub fn double_check_type_pointers_of_type(s: GoPtr<crate::mheap::mspan>, typ: Ar
     if { let __nil_result = (*typ.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
-    if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::INTERFACE as u8)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+        let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::INTERFACE as u8))));
+        __tmp_x == __tmp_y
+    } {
                 // Interfaces are unfortunately inconsistently handled
                 // when it comes to the type pointer, so it's easy to
                 // produce a lot of false positives here.

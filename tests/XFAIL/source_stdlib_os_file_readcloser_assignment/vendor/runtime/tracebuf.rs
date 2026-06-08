@@ -300,7 +300,11 @@ impl traceWriter {
         { let (__tmp_0, __tmp_1) = __self.ensure(Arc::new(Mutex::new(Some({ let __tmp_x = 1; let __tmp_y = ({ let __tmp_x = (({ let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x + __tmp_y }) as i32); let __tmp_y = 10; __tmp_x * __tmp_y } as i32); __tmp_x + __tmp_y })))); { let __moved_val = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; } };
                 // Compute the timestamp diff that we'll put in the trace.
         let mut ts = trace_clock_now();
-        if { let __tmp_x = (*ts.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x <= __tmp_y } {
+        if {
+            let __tmp_x = (*ts.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = { let __selector_holder = (*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            __tmp_x <= __tmp_y
+        } {
         { let new_val = crate::tracetime::traceTime(Arc::new(Mutex::new(Some(((*(*(*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))))); *ts.lock().unwrap() = Some(new_val); };
     }
         let mut tsDiff = Arc::new(Mutex::new(Some((((*{ let __v = (*ts.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) - (*(*(*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))) as u64)));
@@ -399,7 +403,11 @@ impl traceWriter {
     }) as Box<dyn FnMut() -> () + Send + Sync>))));; __self = { let __guard = w_closure_clone_state.lock().unwrap(); __guard.as_ref().unwrap().clone() };
                 // Initialize the buffer.
         let mut ts = trace_clock_now();
-        if { let __tmp_x = (*ts.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x <= __tmp_y } {
+        if {
+            let __tmp_x = (*ts.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = { let __selector_holder = (*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            __tmp_x <= __tmp_y
+        } {
         { let new_val = crate::tracetime::traceTime(Arc::new(Mutex::new(Some(((*(*(*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))))); *ts.lock().unwrap() = Some(new_val); };
     }
         { let new_val = ts.lock().unwrap().as_ref().unwrap().clone(); *(*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.lock().unwrap() = Some(new_val); };
@@ -411,7 +419,11 @@ impl traceWriter {
         { let new_val = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).procid.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *mID.lock().unwrap() = __moved_val; };
     }
                 // Write the buffer's header.
-        if { let __tmp_x = { let __selector_holder = __self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::traceexp::traceExperiment(Arc::new(Mutex::new(Some(TRACE_NO_EXPERIMENT as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = __self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::traceexp::traceExperiment(Arc::new(Mutex::new(Some(TRACE_NO_EXPERIMENT as u8))));
+            __tmp_x == __tmp_y
+        } {
         { let __promoted_recv = __self.trace_buf.clone(); let mut __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_mut().unwrap(); let __result = __promoted_ref.byte(Arc::new(Mutex::new(Some(TRACE_EV_EVENT_BATCH as u8 as u8)))); __result };
     } else {
         { let __promoted_recv = __self.trace_buf.clone(); let mut __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_mut().unwrap(); let __result = __promoted_ref.byte(Arc::new(Mutex::new(Some(TRACE_EV_EXPERIMENTAL_BATCH as u8 as u8)))); __result };

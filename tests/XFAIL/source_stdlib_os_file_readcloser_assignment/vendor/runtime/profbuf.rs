@@ -1697,7 +1697,11 @@ impl profBuf {
     }
 
                 // If there was a reader, wake it up.
-        if { let __tmp_x = profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & PROF_READER_SLEEPING as u64))))); let __tmp_y = profIndex(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & PROF_READER_SLEEPING as u64)))));
+            let __tmp_y = profIndex(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x != __tmp_y
+        } {
         notewakeup(self.wait.clone());
     }
         break
@@ -1724,7 +1728,11 @@ impl profBuf {
         if !(*self.w.lock().unwrap().as_ref().unwrap()).cas(Arc::new(Mutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         continue
     }
-        if { let __tmp_x = profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & PROF_READER_SLEEPING as u64))))); let __tmp_y = profIndex(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & PROF_READER_SLEEPING as u64)))));
+            let __tmp_y = profIndex(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x != __tmp_y
+        } {
         notewakeup(self.wait.clone());
     }
         break
@@ -1799,7 +1807,11 @@ impl profBuf {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), true);
     }
                 // No data, no overflow, EOF set: done.
-        if { let __tmp_x = profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*bw.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & PROF_WRITE_EXTRA as u64))))); let __tmp_y = profIndex(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*bw.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & PROF_WRITE_EXTRA as u64)))));
+            let __tmp_y = profIndex(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x != __tmp_y
+        } {
                 // Writer claims to have published extra information (overflow or eof).
                 // Attempt to clear notification and then check again.
                 // If we fail to clear the notification it means b.w changed,

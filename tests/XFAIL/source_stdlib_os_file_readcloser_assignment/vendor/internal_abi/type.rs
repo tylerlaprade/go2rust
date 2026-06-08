@@ -3287,7 +3287,11 @@ impl Type {
     }
 
     pub fn has_name(&self) -> bool {
-        return { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_NAMED as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_NAMED as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        };
     }
 
     /// Pointers reports whether t contains pointers.
@@ -3297,16 +3301,28 @@ impl Type {
 
     /// IfaceIndir reports whether t is stored indirectly in an interface value.
     pub fn iface_indir(&self) -> bool {
-        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8)))));
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        };
     }
 
     /// isDirectIface reports whether t is stored directly in an interface value.
     pub fn is_direct_iface(&self) -> bool {
-        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8)))));
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn gc_slice(&self, begin: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_G_C_MASK_ON_DEMAND as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_G_C_MASK_ON_DEMAND as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         std::panic::panic_any(Box::new("GcSlice can't handle on-demand gcdata types".to_string()) as Box<dyn Any + Send + Sync>);
     }
         Arc::new(Mutex::new(Some({ let __seq_holder = { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*begin.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
@@ -3314,7 +3330,11 @@ impl Type {
 
     /// Len returns the length of t if t is an array type, otherwise 0
     pub fn len(&self) -> i32 {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8))));
+            __tmp_x == __tmp_y
+        } {
         return (*Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<ArrayType>)) } else { go_lookup_embedded_owner::<ArrayType>(*__ptr_guard.as_ref().unwrap(), "ArrayType") } }.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
     }
         0
@@ -3326,7 +3346,11 @@ impl Type {
 
     /// ChanDir returns the direction of t if t is a channel type, otherwise InvalidDir (0).
     pub fn chan_dir(&self) -> Arc<Mutex<Option<ChanDir>>> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(CHAN as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(CHAN as u8))));
+            __tmp_x == __tmp_y
+        } {
         let mut ch: GoPtr<ChanType> = { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<ChanType>(*__ptr_guard.as_ref().unwrap(), "ChanType")) } };
         return Arc::new(Mutex::new(Some(ChanDir(Arc::new(Mutex::new(Some((*(*{ let __ptr_value = ch.with_mut(|__ptr_value| __ptr_value.dir.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))));
     }
@@ -3335,7 +3359,11 @@ impl Type {
 
     /// Uncommon returns a pointer to T's "uncommon" data if there is any, otherwise nil
     pub fn uncommon(&self) -> Arc<Mutex<Option<UncommonType>>> {
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        } {
         return Arc::new(Mutex::new(None));
     }
         { let _switch_val = { let __v = self.kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
@@ -3394,7 +3422,11 @@ impl Type {
 
     /// StructType returns t cast to a *StructType, or nil if its tag does not match.
     pub fn struct_type(&self) -> GoPtr<StructType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(STRUCT as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(STRUCT as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<StructType>(*__ptr_guard.as_ref().unwrap(), "StructType")) } }
@@ -3402,7 +3434,11 @@ impl Type {
 
     /// MapType returns t cast to a *OldMapType or *SwissMapType, or nil if its tag does not match.
     pub fn map_type(&self) -> GoPtr<crate::map_swiss::SwissMapType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<crate::map_swiss::SwissMapType>(*__ptr_guard.as_ref().unwrap(), "crate::map_swiss::SwissMapType")) } }
@@ -3410,7 +3446,11 @@ impl Type {
 
     /// ArrayType returns t cast to a *ArrayType, or nil if its tag does not match.
     pub fn array_type(&self) -> GoPtr<ArrayType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<ArrayType>(*__ptr_guard.as_ref().unwrap(), "ArrayType")) } }
@@ -3418,7 +3458,11 @@ impl Type {
 
     /// FuncType returns t cast to a *FuncType, or nil if its tag does not match.
     pub fn func_type(&self) -> GoPtr<FuncType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(FUNC as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(FUNC as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<FuncType>(*__ptr_guard.as_ref().unwrap(), "FuncType")) } }
@@ -3426,7 +3470,11 @@ impl Type {
 
     /// InterfaceType returns t cast to a *InterfaceType, or nil if its tag does not match.
     pub fn interface_type(&self) -> GoPtr<InterfaceType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<InterfaceType>(*__ptr_guard.as_ref().unwrap(), "InterfaceType")) } }
@@ -3455,7 +3503,11 @@ impl Type {
     }
 
     pub fn num_method(&self) -> i32 {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8))));
+            __tmp_x == __tmp_y
+        } {
         let mut tt: GoPtr<InterfaceType> = { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<InterfaceType>(*__ptr_guard.as_ref().unwrap(), "InterfaceType")) } };
         return { let __recv_value = tt.borrow(); let __result = (*__recv_value.as_ref().unwrap()).num_method(); __result };
     }
@@ -3463,7 +3515,11 @@ impl Type {
     }
 
     pub fn key(&self) -> Arc<Mutex<Option<Type>>> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8))));
+            __tmp_x == __tmp_y
+        } {
         return (*{ let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<crate::map_swiss::SwissMapType>)) } else { go_lookup_embedded_owner::<crate::map_swiss::SwissMapType>(*__ptr_guard.as_ref().unwrap(), "crate::map_swiss::SwissMapType") } }.lock().unwrap().as_ref().unwrap()).key.clone();
     }
         return Arc::new(Mutex::new(None));
@@ -3698,7 +3754,11 @@ impl FuncType {
 
     pub fn in_slice(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>> {
         let mut uadd = Arc::new(Mutex::new(Some(std::mem::size_of::<FuncType>())));
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         { let __rhs = (*Arc::new(Mutex::new(Some(std::mem::size_of::<UncommonType>()))).lock().unwrap().as_ref().unwrap()) as usize; let mut guard = uadd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         if { let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
@@ -3722,7 +3782,11 @@ impl FuncType {
         return Arc::new(Mutex::new(None));
     }
         let mut uadd = Arc::new(Mutex::new(Some(std::mem::size_of::<FuncType>())));
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         { let __rhs = (*Arc::new(Mutex::new(Some(std::mem::size_of::<UncommonType>()))).lock().unwrap().as_ref().unwrap()) as usize; let mut guard = uadd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         return Arc::new(Mutex::new(Some({

@@ -5416,7 +5416,11 @@ impl absCentury {
     pub fn leap(&self, cyear: Arc<Mutex<Option<absCyear>>>) -> Arc<Mutex<Option<absLeap>>> {
                 // See “Computations on Times” comment above.
         let mut y4ok = Arc::new(Mutex::new(Some(0)));
-        if { let __tmp_x = { let __tmp_x = (*cyear.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absCyear(Arc::new(Mutex::new(Some(4 as i32)))); __tmp_x % __tmp_y }; let __tmp_y = absCyear(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*cyear.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absCyear(Arc::new(Mutex::new(Some(4 as i32)))); __tmp_x % __tmp_y };
+            let __tmp_y = absCyear(Arc::new(Mutex::new(Some(0 as i32))));
+            __tmp_x == __tmp_y
+        } {
         { let new_val = 1; *y4ok.lock().unwrap() = Some(new_val); };
     }
         let mut y100ok = Arc::new(Mutex::new(Some(0)));
@@ -5424,7 +5428,11 @@ impl absCentury {
         { let new_val = 1; *y100ok.lock().unwrap() = Some(new_val); };
     }
         let mut y400ok = Arc::new(Mutex::new(Some(0)));
-        if { let __tmp_x = { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absCentury(Arc::new(Mutex::new(Some(4 as u64)))); __tmp_x % __tmp_y }; let __tmp_y = absCentury(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = absCentury(Arc::new(Mutex::new(Some(4 as u64)))); __tmp_x % __tmp_y };
+            let __tmp_y = absCentury(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x == __tmp_y
+        } {
         { let new_val = 1; *y400ok.lock().unwrap() = Some(new_val); };
     }
         return Arc::new(Mutex::new(Some(absLeap(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*y4ok.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*y100ok.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y400ok.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }); __tmp_x & __tmp_y } as i32)))))));
@@ -5992,10 +6000,26 @@ pub fn div(t: Arc<Mutex<Option<Time>>>, d: Arc<Mutex<Option<Duration>>>) -> (i32
 
         // Operate on absolute value.
         // sec >= 1 before the -- so safe
-    if { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x < __tmp_y } && { let __tmp_x = { let __tmp_x = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); let __tmp_y = ({ let __bin_d = (*d.lock().unwrap().as_ref().unwrap()).clone(); __bin_d + __bin_d }); __tmp_x % __tmp_y }; let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x < __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __tmp_x = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); let __tmp_y = ({ let __bin_d = (*d.lock().unwrap().as_ref().unwrap()).clone(); __bin_d + __bin_d }); __tmp_x % __tmp_y };
+                let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64))));
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
             { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_nanos() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x & __tmp_y }; *qmod2.lock().unwrap() = Some(new_val); };
             { let new_val = std::time::Duration::from_nanos({ let __tmp_x = nsec; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_nanos() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y } as u64); *r.lock().unwrap() = Some(new_val); };
-        } else if { let __tmp_x = { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x % __tmp_y }; let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x == __tmp_y } {
+        } else if {
+            let __tmp_x = { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x % __tmp_y };
+            let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64))));
+            __tmp_x == __tmp_y
+        } {
             let mut d1 = Arc::new(Mutex::new(Some(({ let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x / __tmp_y }).as_nanos() as i64)));
             { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = { let __v = (*d1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x & __tmp_y }; *qmod2.lock().unwrap() = Some(new_val); };
             { let new_val = { let __tmp_x = { let __tmp_x = std::time::Duration::from_nanos({ let __tmp_x = sec; let __tmp_y = { let __v = (*d1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x % __tmp_y } as u64); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x * __tmp_y }; let __tmp_y = std::time::Duration::from_nanos(nsec as u64); __tmp_x + __tmp_y }; *r.lock().unwrap() = Some(new_val); };

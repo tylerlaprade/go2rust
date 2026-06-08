@@ -1023,12 +1023,32 @@ impl pageAlloc {
                 // Update p.start and p.end.
                 // If no growth happened yet, start == 0. This is generally
                 // safe since the zero page is unmapped.
-        let mut firstGrowth = Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = self.start.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = chunkIdx(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y })));
+        let mut firstGrowth = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __selector_holder = self.start.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = chunkIdx(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x == __tmp_y
+        })));
         let (mut start, mut end) = (chunk_index(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), chunk_index(Arc::new(Mutex::new(Some(limit)))));
-        if { let __v = (*firstGrowth.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = (*start.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = self.start.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = { let __v = (*firstGrowth.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = (*start.lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = { let __selector_holder = self.start.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            }
+        } {
         { let new_val = start.lock().unwrap().as_ref().unwrap().clone(); *self.start.lock().unwrap() = Some(new_val); };
     }
-        if { let __tmp_x = (*end.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = (*end.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            __tmp_x > __tmp_y
+        } {
         { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *self.end.lock().unwrap() = Some(new_val); };
     }
                 // Note that [base, limit) will never overlap with any existing
@@ -1050,7 +1070,11 @@ impl pageAlloc {
                 // Newly-grown memory is always considered scavenged.
                 // Set all the bits in the scavenged bitmaps high.
         let mut c = chunk_index(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    while { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*chunk_index(Arc::new(Mutex::new(Some(limit)))).lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
+    while {
+        let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = (*chunk_index(Arc::new(Mutex::new(Some(limit)))).lock().unwrap().as_ref().unwrap()).clone();
+        __tmp_x < __tmp_y
+    } {
         if { let __nil_result = (*{ let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(chunkIdx::l1(&(*c.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap()).is_none(); __nil_result } {
                 // Create the necessary l2 entry.
         const l2Size: usize = std::mem::size_of::<[crate::mpallocbits::pallocData; 8192]>();

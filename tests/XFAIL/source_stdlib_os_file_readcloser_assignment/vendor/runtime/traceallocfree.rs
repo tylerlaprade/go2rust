@@ -196,7 +196,11 @@ impl crate::traceruntime::traceLocker {
 }
 
 pub fn trace_span_type_and_class(s: GoPtr<crate::mheap::mspan>) -> Arc<Mutex<Option<crate::traceevent::traceArg>>> {
-    if { let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8))));
+        __tmp_x == __tmp_y
+    } {
         return Arc::new(Mutex::new(Some(crate::traceevent::traceArg(Arc::new(Mutex::new(Some((((*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.spanclass.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64) << 1i32))))))));
     }
     Arc::new(Mutex::new(Some(crate::traceevent::traceArg(Arc::new(Mutex::new(Some(1 as u64)))))))

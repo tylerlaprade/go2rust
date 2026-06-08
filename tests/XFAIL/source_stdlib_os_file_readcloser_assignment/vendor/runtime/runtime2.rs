@@ -4996,7 +4996,19 @@ impl muintptr {
 
 impl waitReason {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        if { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = waitReason(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x < __tmp_y } || { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = waitReason(Arc::new(Mutex::new(Some((*waitReasonStrings.lock().unwrap().as_ref().unwrap()).len() as u8)))); __tmp_x >= __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = waitReason(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = waitReason(Arc::new(Mutex::new(Some((*waitReasonStrings.lock().unwrap().as_ref().unwrap()).len() as u8))));
+                    __tmp_x >= __tmp_y
+                };
+                __go_cond_1
+            }
+        } {
         return Arc::new(Mutex::new(Some("unknown wait reason".to_string())));
     }
         Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = waitReasonStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*self.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))

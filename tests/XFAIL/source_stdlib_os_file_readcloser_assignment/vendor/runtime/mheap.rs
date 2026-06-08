@@ -3257,7 +3257,11 @@ impl spanClass {
 
     ///go:nosplit
     pub fn noscan(&self) -> bool {
-        return { let __tmp_x = spanClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & 1))))); let __tmp_y = spanClass(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = spanClass(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & 1)))));
+            let __tmp_y = spanClass(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        };
     }
 }
 
@@ -4850,7 +4854,35 @@ pub fn span_of_heap(p: Arc<Mutex<Option<usize>>>) -> GoPtr<mspan> {
         // have to synchronize with span initialization. Then, it's
         // still possible we picked up a stale span pointer, so we
         // have to check the span's bounds.
-    if s.is_nil() || { let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } || { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().limit.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = s.is_nil();
+                if __go_cond_2 {
+                    true
+                } else {
+                    let __go_cond_3 = {
+                        let __tmp_x = (*(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get().lock().unwrap().as_ref().unwrap()).clone();
+                        let __tmp_y = mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8))));
+                        __tmp_x != __tmp_y
+                    };
+                    __go_cond_3
+                }
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_4 = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x < __tmp_y };
+                __go_cond_4
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_5 = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().limit.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y };
+            __go_cond_5
+        }
+    } {
         return GoPtr::nil();
     }
     s.clone()

@@ -1527,7 +1527,19 @@ impl metricValue {
     /// the given buckets.
     pub fn float64_hist_or_init(&mut self, buckets: Arc<Mutex<Option<Vec<f64>>>>) -> GoPtr<metricFloat64Histogram> {
         let mut hist: GoPtr<metricFloat64Histogram> = GoPtr::nil();
-        if { let __tmp_x = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = metricKind(Arc::new(Mutex::new(Some(METRIC_KIND_FLOAT64_HISTOGRAM as i32)))); __tmp_x == __tmp_y } && { let __nil_target = self.pointer.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __selector_holder = self.kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = metricKind(Arc::new(Mutex::new(Some(METRIC_KIND_FLOAT64_HISTOGRAM as i32))));
+                __tmp_x == __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __nil_target = self.pointer.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         hist = GoPtr::raw({ let __ptr = self.pointer.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     } else {
         { let new_val = metricKind(Arc::new(Mutex::new(Some(METRIC_KIND_FLOAT64_HISTOGRAM as i32)))); *self.kind.lock().unwrap() = Some(new_val); };

@@ -5963,6 +5963,18 @@ func concurrentBinaryTempBlockShouldUseMultiline(expr *ast.BinaryExpr) bool {
 	return countLogicalConditionOperandComplexity(expr) >= minStatementBuiltLogicalConditionOperandComplexity
 }
 
+func writeStatementBuiltLogicalExpressionValue(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || (expr.Op != token.LAND && expr.Op != token.LOR) {
+		return false
+	}
+	if !shouldStatementBuildLogicalCondition(expr) {
+		return false
+	}
+	nextTemp := 0
+	writeStatementBuiltLogicalConditionValue(out, expr, currentLineIndent(out), &nextTemp)
+	return true
+}
+
 func localInterfaceExpressionName(expr ast.Expr) (string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -12550,6 +12562,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeNamedBoolLogicalExpression(out, e) {
+			return
+		}
+		if writeStatementBuiltLogicalExpressionValue(out, e) {
 			return
 		}
 

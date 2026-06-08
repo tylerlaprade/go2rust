@@ -233,7 +233,11 @@ impl rtype {
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         let mut s = { let __recv = self.name_off(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.str.clone(); __field }); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result };
-        if { let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_EXTRA_STAR as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_EXTRA_STAR as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         return Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() })));
     }
         return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
@@ -260,7 +264,11 @@ impl rtype {
     }
 
     pub fn pkg_path(&self) -> Arc<Mutex<Option<String>>> {
-        if { let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_NAMED as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*{ let __ptr_value = self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.t_flag.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(internal_abi::T_FLAG_NAMED as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        } {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
         let mut ut = self.uncommon();
@@ -354,7 +362,11 @@ impl rtype {
         if { let __nil_result = (*u.lock().unwrap()).is_none(); __nil_result } {
         std::panic::panic_any(Box::new("reflect: nil type passed to Type.Implements".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        if { let __tmp_x = (*(*u.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(INTERFACE as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*(*u.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(INTERFACE as u8))));
+            __tmp_x != __tmp_y
+        } {
         std::panic::panic_any(Box::new("reflect: non-interface type passed to Type.Implements".to_string()) as Box<dyn Any + Send + Sync>);
     }
         implements((*u.lock().unwrap().as_ref().unwrap()).common(), self.common())
@@ -680,7 +692,11 @@ pub fn implements(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<internal_abi::r
         // This lets us run the scan in overall linear time instead of
         // the quadratic time  a naive search would require.
         // See also ../runtime/iface.go.
-    if { let __tmp_x = (*{ let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(INTERFACE as u8)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = (*{ let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(INTERFACE as u8))));
+        __tmp_x == __tmp_y
+    } {
         let mut v: GoPtr<internal_abi::r#type::InterfaceType> = { let __ptr = Arc::new(Mutex::new(Some(V.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::InterfaceType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::InterfaceType")) } };
         let mut i = Arc::new(Mutex::new(Some(0)));
         let mut j = Arc::new(Mutex::new(Some(0)));
@@ -782,7 +798,27 @@ pub fn directly_assignable(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<intern
 
         // Otherwise at least one of T and V must not be defined
         // and they must have the same kind.
-    if { let __recv_value = T.borrow(); let __result = (*__recv_value.as_ref().unwrap()).has_name(); __result } && { let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).has_name(); __result } || { let __tmp_x = (*{ let __recv_value = T.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __recv_value = T.borrow(); let __result = (*__recv_value.as_ref().unwrap()).has_name(); __result };
+            if __go_cond_1 {
+                let __go_cond_2 = { let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).has_name(); __result };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_3 = {
+                let __tmp_x = (*{ let __recv_value = T.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = (*{ let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                __tmp_x != __tmp_y
+            };
+            __go_cond_3
+        }
+    } {
         return false;
     }
 
@@ -804,7 +840,11 @@ pub fn have_identical_type(T: Arc<Mutex<Option<internal_abi::r#type::Type>>>, V:
         if __go_cond_0 {
             true
         } else {
-            let __go_cond_1 = { let __tmp_x = (*{ let __recv = T.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = V.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y };
+            let __go_cond_1 = {
+                let __tmp_x = (*{ let __recv = T.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = (*{ let __recv = V.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                __tmp_x != __tmp_y
+            };
             __go_cond_1
         }
     } {
@@ -820,13 +860,57 @@ pub fn have_identical_underlying_type(T: GoPtr<internal_abi::r#type::Type>, V: G
     }
 
     let mut kind = { let __recv_value = T.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result };
-    if { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = (*{ let __recv_value = V.borrow(); let __result = (*__recv_value.as_ref().unwrap()).kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+        __tmp_x != __tmp_y
+    } {
         return false;
     }
 
         // Non-composite types of equal kind have same underlying type
         // (the predefined instance of the type).
-    if { let __tmp_x = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::BOOL as u8)))); let __tmp_y = (*kind.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x <= __tmp_y } && { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::COMPLEX128 as u8)))); __tmp_x <= __tmp_y } || { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::STRING as u8)))); __tmp_x == __tmp_y } || { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::UNSAFE_POINTER as u8)))); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = {
+                    let __tmp_x = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::BOOL as u8))));
+                    let __tmp_y = (*kind.lock().unwrap().as_ref().unwrap()).clone();
+                    __tmp_x <= __tmp_y
+                };
+                if __go_cond_2 {
+                    let __go_cond_3 = {
+                        let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone();
+                        let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::COMPLEX128 as u8))));
+                        __tmp_x <= __tmp_y
+                    };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_4 = {
+                    let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::STRING as u8))));
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_4
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_5 = {
+                let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::UNSAFE_POINTER as u8))));
+                __tmp_x == __tmp_y
+            };
+            __go_cond_5
+        }
+    } {
         return true;
     }
 
@@ -838,11 +922,35 @@ pub fn have_identical_underlying_type(T: GoPtr<internal_abi::r#type::Type>, V: G
                         // Special case:
                         // x is a bidirectional channel value, T is a channel type,
                         // and x's type V and T have identical element types.
-            if { let __tmp_x = (*{ let __result = V.with_mut(|__recv_value| __recv_value.chan_dir()); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::ChanDir(Arc::new(Mutex::new(Some(internal_abi::BOTH_DIR as i32)))); __tmp_x == __tmp_y } && have_identical_type({ let __result = T.with_mut(|__recv_value| __recv_value.elem()); __result }, { let __result = V.with_mut(|__recv_value| __recv_value.elem()); __result }, Arc::new(Mutex::new(Some({ let __arg_holder = cmpTags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+            if {
+                let __go_cond_0 = {
+                    let __tmp_x = (*{ let __result = V.with_mut(|__recv_value| __recv_value.chan_dir()); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = internal_abi::r#type::ChanDir(Arc::new(Mutex::new(Some(internal_abi::BOTH_DIR as i32))));
+                    __tmp_x == __tmp_y
+                };
+                if __go_cond_0 {
+                    let __go_cond_1 = have_identical_type({ let __result = T.with_mut(|__recv_value| __recv_value.elem()); __result }, { let __result = V.with_mut(|__recv_value| __recv_value.elem()); __result }, Arc::new(Mutex::new(Some({ let __arg_holder = cmpTags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                    __go_cond_1
+                } else {
+                    false
+                }
+            } {
         return true;
     }
                         // Otherwise continue test for identical underlying type.
-            return { let __tmp_x = (*{ let __result = V.with_mut(|__recv_value| __recv_value.chan_dir()); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __result = T.with_mut(|__recv_value| __recv_value.chan_dir()); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } && have_identical_type({ let __result = T.with_mut(|__recv_value| __recv_value.elem()); __result }, { let __result = V.with_mut(|__recv_value| __recv_value.elem()); __result }, Arc::new(Mutex::new(Some({ let __arg_holder = cmpTags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            return {
+                let __go_cond_0 = {
+                    let __tmp_x = (*{ let __result = V.with_mut(|__recv_value| __recv_value.chan_dir()); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = (*{ let __result = T.with_mut(|__recv_value| __recv_value.chan_dir()); __result }.lock().unwrap().as_ref().unwrap()).clone();
+                    __tmp_x == __tmp_y
+                };
+                if __go_cond_0 {
+                    let __go_cond_1 = have_identical_type({ let __result = T.with_mut(|__recv_value| __recv_value.elem()); __result }, { let __result = V.with_mut(|__recv_value| __recv_value.elem()); __result }, Arc::new(Mutex::new(Some({ let __arg_holder = cmpTags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                    __go_cond_1
+                } else {
+                    false
+                }
+            };
         } else if _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::FUNC as u8))))) {
             let mut t: GoPtr<internal_abi::r#type::FuncType> = { let __ptr = Arc::new(Mutex::new(Some(T.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::FuncType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::FuncType")) } };
             let mut v: GoPtr<internal_abi::r#type::FuncType> = { let __ptr = Arc::new(Mutex::new(Some(V.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::FuncType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::FuncType")) } };

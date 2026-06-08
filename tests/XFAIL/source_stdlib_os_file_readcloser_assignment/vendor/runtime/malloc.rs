@@ -347,7 +347,11 @@ impl crate::mheap::mheap {
         if { let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
                 // We can't use this, so don't ask.
         *v.lock().unwrap() = None;
-    } else if { let __tmp_x = (*arena_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::arenaIdx(Arc::new(Mutex::new(Some(((1 as u64) << (ARENA_BITS as u64)) as u64)))); __tmp_x >= __tmp_y } {
+    } else if {
+        let __tmp_x = (*arena_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = crate::mheap::arenaIdx(Arc::new(Mutex::new(Some(((1 as u64) << (ARENA_BITS as u64)) as u64))));
+        __tmp_x >= __tmp_y
+    } {
         *v.lock().unwrap() = None;
     } else {
         { let new_val = sys_reserve(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_val; };
@@ -444,9 +448,17 @@ impl crate::mheap::mheap {
                 let mut p = Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize)));
                 if { let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         { let new_val = "region exceeds uintptr range".to_string(); *bad.lock().unwrap() = Some(new_val); };
-    } else if { let __tmp_x = (*arena_index(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::arenaIdx(Arc::new(Mutex::new(Some(((1 as u64) << (ARENA_BITS as u64)) as u64)))); __tmp_x >= __tmp_y } {
+    } else if {
+        let __tmp_x = (*arena_index(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = crate::mheap::arenaIdx(Arc::new(Mutex::new(Some(((1 as u64) << (ARENA_BITS as u64)) as u64))));
+        __tmp_x >= __tmp_y
+    } {
         { let new_val = "base outside usable address space".to_string(); *bad.lock().unwrap() = Some(new_val); };
-    } else if { let __tmp_x = (*arena_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::arenaIdx(Arc::new(Mutex::new(Some(((1 as u64) << (ARENA_BITS as u64)) as u64)))); __tmp_x >= __tmp_y } {
+    } else if {
+        let __tmp_x = (*arena_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = crate::mheap::arenaIdx(Arc::new(Mutex::new(Some(((1 as u64) << (ARENA_BITS as u64)) as u64))));
+        __tmp_x >= __tmp_y
+    } {
         { let new_val = "end outside usable address space".to_string(); *bad.lock().unwrap() = Some(new_val); };
     }
                 if { let __tmp_x = (*bad.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
@@ -475,7 +487,11 @@ impl crate::mheap::mheap {
         }
                 // Create arena metadata.
         let mut ri = arena_index(Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))));
-    while { let __tmp_x = (*ri.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*arena_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()).clone(); __tmp_x <= __tmp_y } {
+    while {
+        let __tmp_x = (*ri.lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = (*arena_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()).clone();
+        __tmp_x <= __tmp_y
+    } {
         let mut l2: GoPtr<[Arc<Mutex<Option<crate::mheap::heapArena>>>; 4194304]> = GoPtr::local({ let __seq = { let __seq_holder = self.arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l1(&(*ri.lock().unwrap().as_ref().unwrap()))) as usize].clone() });
         if l2.is_nil() {
                 // Allocate an L2 arena map.
@@ -1817,7 +1833,19 @@ pub fn persistentalloc1(size: Arc<Mutex<Option<usize>>>, mut align: Arc<Mutex<Op
 
     let mut mp = acquirem();
     let mut persistent: Arc<Mutex<Option<persistentAlloc>>> = Arc::new(Mutex::new(None));
-    if { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+                __tmp_x != __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().palloc.clone() }.clone().clone(); persistent = new_val; };
     } else {
         lock(GoPtr::local((*globalAlloc.lock().unwrap().as_ref().unwrap()).mutex.clone()));

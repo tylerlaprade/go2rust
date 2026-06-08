@@ -1414,7 +1414,11 @@ impl limiterEvent {
         let mut stamp: Arc<Mutex<Option<limiterEventStamp>>> = Arc::new(Mutex::new(Some(limiterEventStamp(Arc::new(Mutex::new(Some(0)))))));
         loop {
         { let new_val = limiterEventStamp(Arc::new(Mutex::new(Some((*self.stamp.lock().unwrap().as_mut().unwrap()).load() as u64)))); *stamp.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = (*limiterEventStamp::typ(&(*stamp.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*limiterEventStamp::typ(&(*stamp.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone();
+            __tmp_x != __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: want=".to_string());
             let __go_print_arg_1 = format!("{}", { let __v = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __v });

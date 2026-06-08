@@ -406,7 +406,11 @@ impl gcControllerState {
         { let new_val = 0 as i64; *(*p.lock().unwrap().as_ref().unwrap()).gc_assist_time.lock().unwrap() = Some(new_val); };
         { let new_val = 0 as i64; *(*p.lock().unwrap().as_ref().unwrap()).gc_fractional_mark_time.lock().unwrap() = Some(new_val); };
     } }
-        if { let __tmp_x = { let __selector_holder = (*trigger.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::mgc::gcTriggerKind(Arc::new(Mutex::new(Some(GC_TRIGGER_TIME as i32)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = (*trigger.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::mgc::gcTriggerKind(Arc::new(Mutex::new(Some(GC_TRIGGER_TIME as i32))));
+            __tmp_x == __tmp_y
+        } {
                 // During a periodic GC cycle, reduce the number of idle mark workers
                 // required. However, we need at least one dedicated mark worker or
                 // idle GC worker to ensure GC progress in some scenarios (see comment
@@ -840,7 +844,27 @@ impl gcControllerState {
         return;
     }
         let mut gp = getg();
-        if { let __nil_result = (*gp.lock().unwrap()).is_none(); __nil_result } || { let __nil_target = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __nil_result = (*gp.lock().unwrap()).is_none(); __nil_result };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = { let __nil_target = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = {
+                    let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                    let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_3
+            }
+        } {
         return;
     }
         let mut myID = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));

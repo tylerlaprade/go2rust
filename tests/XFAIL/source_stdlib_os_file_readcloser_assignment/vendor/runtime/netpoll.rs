@@ -692,19 +692,35 @@ pub(crate) fn __go_init_order_39() {
 
 impl pollInfo {
     pub fn closing(&self) -> bool {
-        return { let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_CLOSING as u32))))); let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_CLOSING as u32)))));
+            let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn event_err(&self) -> bool {
-        return { let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_EVENT_ERR as u32))))); let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_EVENT_ERR as u32)))));
+            let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn expired_read_deadline(&self) -> bool {
-        return { let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_EXPIRED_READ_DEADLINE as u32))))); let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_EXPIRED_READ_DEADLINE as u32)))));
+            let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn expired_write_deadline(&self) -> bool {
-        return { let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_EXPIRED_WRITE_DEADLINE as u32))))); let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = pollInfo(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & POLL_EXPIRED_WRITE_DEADLINE as u32)))));
+            let __tmp_y = pollInfo(Arc::new(Mutex::new(Some(0 as u32))));
+            __tmp_x != __tmp_y
+        };
     }
 }
 

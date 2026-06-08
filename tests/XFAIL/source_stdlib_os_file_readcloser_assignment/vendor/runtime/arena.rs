@@ -299,7 +299,19 @@ impl crate::mheap::mspan {
     /// distinguish when a span shouldn't be counted (since mSpanInUse might not be
     /// enough).
     pub fn is_unused_user_arena_chunk(&self) -> bool {
-        return (*self.is_user_arena_chunk.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = { let __selector_holder = self.spanclass.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*make_span_class(Arc::new(Mutex::new(Some(0 as u8))), Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y };
+        return {
+            let __go_cond_0 = (*self.is_user_arena_chunk.clone().lock().unwrap().as_ref().unwrap());
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __selector_holder = self.spanclass.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                    let __tmp_y = (*make_span_class(Arc::new(Mutex::new(Some(0 as u8))), Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap()).clone();
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        };
     }
 
     /// setUserArenaChunkToFault sets the address space for the user arena chunk to fault

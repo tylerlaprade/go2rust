@@ -765,7 +765,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
     if etyp.is_nil() {
         throw(Arc::new(Mutex::new(Some("runtime.SetFinalizer: first argument is nil".to_string()))));
     }
-    if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = etyp.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = etyp.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+        let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: first argument is ".to_string()));
@@ -827,7 +831,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
     }
 
         // switch to system stack and remove finalizer
-    if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = ftyp.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::FUNC as u8)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = ftyp.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+        let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::FUNC as u8))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", "runtime.SetFinalizer: second argument is ".to_string()));
@@ -863,7 +871,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         if { let __left_addr = { let __ptr = GoPtr::local(fint.clone()); __ptr.addr() }; let __right_addr = etyp.addr(); let __eq = __left_addr == __right_addr; __eq } {
                         // ok - same type
             break 'okarg;
-        } else if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8)))); __tmp_x == __tmp_y } {
+        } else if {
+            let __tmp_x = { let __tmp_x = { let __selector_holder = (*fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8))));
+            __tmp_x == __tmp_y
+        } {
             if {
                 let __go_cond_0 = {
                     let __go_cond_1 = { let __nil_result = (*{ let __recv = fint.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.uncommon(); __result }.lock().unwrap()).is_none(); __nil_result };
@@ -885,7 +897,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
                 // one or the other is unnamed, and same element type, so assignable.
         break 'okarg;
     }
-        } else if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::INTERFACE as u8)))); __tmp_x == __tmp_y } {
+        } else if {
+            let __tmp_x = { let __tmp_x = { let __selector_holder = (*fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::INTERFACE as u8))));
+            __tmp_x == __tmp_y
+        } {
             let mut ityp: GoPtr<internal_abi::r#type::InterfaceType> = { let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::InterfaceType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::InterfaceType")) } };
             if { let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = ityp.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // ok - satisfies empty interface

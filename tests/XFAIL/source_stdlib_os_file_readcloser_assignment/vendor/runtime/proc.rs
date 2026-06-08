@@ -1322,7 +1322,11 @@ impl crate::runtime2::p {
     }
                 // Pop from tail of local queue
                 // Push onto head of global queue
-        if { let __tmp_x = { let __selector_holder = self.runnext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = self.runnext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         globrunqputhead(crate::runtime2::guintptr::ptr(&(*self.runnext.lock().unwrap().as_ref().unwrap())));
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); *self.runnext.lock().unwrap() = Some(new_val); };
     }
@@ -1415,14 +1419,22 @@ impl pMask {
 impl gQueue {
     /// empty reports whether q is empty.
     pub fn empty(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.head.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = { let __selector_holder = self.head.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        };
     }
 
     /// push adds gp to the head of q.
     pub fn push(&self, gp: GoPtr<crate::runtime2::g>) {
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some((*(*self.head.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.schedlink.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         (*self.head.lock().unwrap().as_mut().unwrap()).set(gp.clone());
-        if { let __tmp_x = { let __selector_holder = self.tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = self.tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        } {
         (*self.tail.lock().unwrap().as_mut().unwrap()).set(gp.clone());
     }
     }
@@ -1430,7 +1442,11 @@ impl gQueue {
     /// pushBack adds gp to the tail of q.
     pub fn push_back(&self, gp: GoPtr<crate::runtime2::g>) {
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); *{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.schedlink.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __selector_holder = self.tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = self.tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         (*{ let __ptr = crate::runtime2::guintptr::ptr(&(*self.tail.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().schedlink.clone() }.lock().unwrap().as_mut().unwrap()).set(gp.clone());
     } else {
         (*self.head.lock().unwrap().as_mut().unwrap()).set(gp.clone());
@@ -1441,11 +1457,19 @@ impl gQueue {
     /// pushBackAll adds all Gs in q2 to the tail of q. After this q2 must
     /// not be used.
     pub fn push_back_all(&mut self, q2: Arc<Mutex<Option<gQueue>>>) {
-        if { let __tmp_x = { let __selector_holder = (*q2.lock().unwrap().as_ref().unwrap()).tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = (*q2.lock().unwrap().as_ref().unwrap()).tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        } {
         return;
     }
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); *{ let __ptr = crate::runtime2::guintptr::ptr(&(*(*q2.lock().unwrap().as_ref().unwrap()).tail.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().schedlink.clone() }.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __selector_holder = self.tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = self.tail.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some((*(*(*q2.lock().unwrap().as_ref().unwrap()).head.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *{ let __ptr = crate::runtime2::guintptr::ptr(&(*self.tail.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().schedlink.clone() }.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some((*(*(*q2.lock().unwrap().as_ref().unwrap()).head.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *self.head.lock().unwrap() = Some(new_val); };
@@ -1459,7 +1483,11 @@ impl gQueue {
         let mut gp: GoPtr<crate::runtime2::g> = crate::runtime2::guintptr::ptr(&(*self.head.lock().unwrap().as_ref().unwrap()));
         if !gp.is_nil() {
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some((*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.schedlink.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *self.head.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __selector_holder = self.head.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = self.head.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        } {
         { let new_val = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); *self.tail.lock().unwrap() = Some(new_val); };
     }
     }
@@ -1477,7 +1505,11 @@ impl gQueue {
 impl gList {
     /// empty reports whether l is empty.
     pub fn empty(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.head.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = { let __selector_holder = self.head.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        };
     }
 
     /// push adds gp to the head of l.
@@ -2672,10 +2704,18 @@ pub fn start_the_world_with_sema(mut now: Arc<Mutex<Option<i64>>>, w: Arc<Mutex<
     while !p1.is_nil() {
         let mut p: GoPtr<crate::runtime2::p> = p1.clone();
         p1 = crate::runtime2::puintptr::ptr(&(*{ let __ptr_value = p1.with_mut(|__ptr_value| __ptr_value.link.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()));
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         let mut mp: GoPtr<crate::runtime2::m> = crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()));
         { let new_val = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); *{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         throw(Arc::new(Mutex::new(Some("startTheWorld: inconsistent mp->nextp".to_string()))));
     }
         (*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).set(p.clone());
@@ -2926,7 +2966,11 @@ pub fn allocm(pp: GoPtr<crate::runtime2::p>, r#fn: Arc<Mutex<Option<Box<dyn FnMu
     acquirem();
 
     let mut gp = getg();
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x == __tmp_y
+    } {
         acquirep(pp.clone());
     }
 
@@ -3481,7 +3525,11 @@ pub fn stopm() {
     if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("stopm holding locks".to_string()))));
     }
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("stopm holding p".to_string()))));
     }
     if (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).spinning.lock().unwrap().as_ref().unwrap()) {
@@ -3617,7 +3665,11 @@ pub fn startm(mut pp: GoPtr<crate::runtime2::p>, spinning: Arc<Mutex<Option<bool
     if (*{ let __ptr_value = nmp.borrow(); __ptr_value.as_ref().unwrap().spinning.clone() }.lock().unwrap().as_ref().unwrap()) {
         throw(Arc::new(Mutex::new(Some("startm: m is spinning".to_string()))));
     }
-    if { let __tmp_x = { let __selector_holder = { let __ptr_value = nmp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = { let __ptr_value = nmp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("startm: m has p".to_string()))));
     }
     if { let __v = (*spinning.lock().unwrap().as_ref().unwrap()).clone(); __v } && !runqempty(pp.clone()) {
@@ -3781,7 +3833,11 @@ pub fn stoplockedm() {
     let mut gp = getg();
 
     if {
-        let __go_cond_0 = { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y };
+        let __go_cond_0 = {
+            let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        };
         if __go_cond_0 {
             true
         } else {
@@ -3791,7 +3847,11 @@ pub fn stoplockedm() {
     } {
         throw(Arc::new(Mutex::new(Some("stoplockedm: inconsistent locking".to_string()))));
     }
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
                 // Schedule another M to run this p.
         let mut pp: GoPtr<crate::runtime2::p> = releasep();
         handoffp(pp.clone());
@@ -3825,7 +3885,11 @@ pub fn startlockedm(gp: GoPtr<crate::runtime2::g>) {
     if { let __left_addr = mp.addr(); let __right_addr = { let __ptr = GoPtr::local((*getg().lock().unwrap().as_ref().unwrap()).m.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
         throw(Arc::new(Mutex::new(Some("startlockedm: locked to me".to_string()))));
     }
-    if { let __tmp_x = { let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("startlockedm: m has p".to_string()))));
     }
 
@@ -4273,7 +4337,11 @@ pub fn find_runnable() -> (GoPtr<crate::runtime2::g>, bool, bool) {
                 // Poll network until next timer.
         if netpollinited() && (netpoll_any_waiters() || { let __tmp_x = pollUntil; let __tmp_y = 0 as i64; __tmp_x != __tmp_y }) && { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).lastpoll.lock().unwrap().as_mut().unwrap()).swap(Arc::new(Mutex::new(Some(0 as i64)))); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
         (*(*sched.lock().unwrap().as_ref().unwrap()).poll_until.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(pollUntil))));
-        if { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         throw(Arc::new(Mutex::new(Some("findrunnable: netpoll with p".to_string()))));
     }
         if (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
@@ -4752,7 +4820,11 @@ pub fn schedule() {
         throw(Arc::new(Mutex::new(Some("schedule: holding locks".to_string()))));
     }
 
-    if { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).lockedg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).lockedg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
         stoplockedm();
         execute(crate::runtime2::guintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).lockedg.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some(false))));
     }
@@ -4771,7 +4843,27 @@ pub fn schedule() {
                 // Safety check: if we are spinning, the run queue should be empty.
                 // Check this before calling checkTimers, as that might call
                 // goready to put a ready goroutine on the local run queue.
-        if (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap()) && ({ let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runnext.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().runqhead.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().runqtail.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y }) {
+        if {
+            let __go_cond_0 = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runnext.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+                        __tmp_x != __tmp_y
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().runqhead.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().runqtail.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y };
+                        __go_cond_3
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         throw(Arc::new(Mutex::new(Some("schedule: spinning with local work".to_string()))));
     }
 
@@ -4830,7 +4922,11 @@ pub fn schedule() {
         if tryWakeP {
         wakep();
     }
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.lockedm.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.lockedm.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
                 // Hands off own p to the locked m,
                 // then blocks waiting for a new p.
         startlockedm(gp.clone());
@@ -4999,7 +5095,11 @@ pub fn preempt_park(gp: GoPtr<crate::runtime2::g>) {
         if !(*f.lock().unwrap().as_ref().unwrap()).valid() {
         throw(Arc::new(Mutex::new(Some("preempt at unknown pc".to_string()))));
     }
-        if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).flag.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(internal_abi::FUNC_FLAG_S_P_WRITE as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).flag.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(internal_abi::FUNC_FLAG_S_P_WRITE as u8)))); __tmp_x & __tmp_y };
+            let __tmp_y = internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: unexpected SPWRITE function".to_string());
             let __go_print_arg_1 = format!("{}", (*funcname(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()));
@@ -5587,10 +5687,18 @@ pub fn exitsyscall() {
                 // stopped the world.
         let mut trace_local = trace_acquire();
         if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
-        let mut lostP = Arc::new(Mutex::new(Some({ let __left_addr = oldp.addr(); let __right_addr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).addr(); let __eq = __left_addr == __right_addr; !__eq } || {
-            let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).syscalltick.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().syscalltick.clone() }.lock().unwrap().as_ref().unwrap());
-            __tmp_x != __tmp_y
+        let mut lostP = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = { let __left_addr = oldp.addr(); let __right_addr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).addr(); let __eq = __left_addr == __right_addr; !__eq };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).syscalltick.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().syscalltick.clone() }.lock().unwrap().as_ref().unwrap());
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_1
+            }
         })));
         let lostP_closure_clone = lostP.clone(); let trace_closure_clone = trace_local.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         (*trace_closure_clone.lock().unwrap().as_ref().unwrap()).go_sys_exit(Arc::new(Mutex::new(Some({ let __arg_holder = lostP_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -5696,7 +5804,11 @@ pub fn exitsyscallfast(oldp: GoPtr<crate::runtime2::p>) -> bool {
     }
 
         // Try to get any other idle P.
-    if { let __tmp_x = { let __selector_holder = (*sched.lock().unwrap().as_ref().unwrap()).pidle.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*sched.lock().unwrap().as_ref().unwrap()).pidle.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         let mut ok_closure_clone = ok.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         { let new_val = exitsyscallfast_pidle(); *ok_closure_clone.lock().unwrap() = Some(new_val); };
@@ -5791,7 +5903,11 @@ pub fn exitsyscall0(gp: Arc<Mutex<Option<g>>>) {
                 // committing the release by unlocking sched.lock, otherwise we
                 // could race with another M transitioning gp from unlocked to
                 // locked.
-        { let new_val = { let __tmp_x = { let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).lockedm.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y }; *locked.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).lockedm.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        }; *locked.lock().unwrap() = Some(new_val); };
     } else if (*(*sched.lock().unwrap().as_ref().unwrap()).sysmonwait.lock().unwrap().as_ref().unwrap()).load() {
         (*(*sched.lock().unwrap().as_ref().unwrap()).sysmonwait.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(false))));
         notewakeup((*sched.lock().unwrap().as_ref().unwrap()).sysmonnote.clone());
@@ -5975,7 +6091,35 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
     }
                 // Collect Go stack that leads to the cgo call.
         (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.syscallpc.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.syscallsp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))));
-    } else if uses_libcall() && { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    } else if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = uses_libcall();
+                if __go_cond_2 {
+                    let __go_cond_3 = {
+                        let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize))));
+                        __tmp_x != __tmp_y
+                    };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            };
+            if __go_cond_1 {
+                let __go_cond_4 = { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+                __go_cond_4
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_5 = { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+            __go_cond_5
+        } else {
+            false
+        }
+    } {
         (*u.lock().unwrap().as_mut().unwrap()).init_at(
             Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
@@ -6163,7 +6307,11 @@ pub fn procresize(nprocs: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::ru
 
     let mut gp = getg();
     if {
-        let __go_cond_0 = { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y };
+        let __go_cond_0 = {
+            let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        };
         if __go_cond_0 {
             let __go_cond_1 = {
                 let __tmp_x = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap());
@@ -6184,7 +6332,11 @@ pub fn procresize(nprocs: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::ru
                 // We must do this before destroying our current P
                 // because p.destroy itself has write barriers, so we
                 // need to do that from a valid P.
-        if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         let mut trace_local = trace_acquire();
         if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
                 // Pretend that we were descheduled
@@ -6303,7 +6455,11 @@ pub fn acquirep(pp: GoPtr<crate::runtime2::p>) {
 pub fn wirep(pp: GoPtr<crate::runtime2::p>) {
     let mut gp = getg();
 
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x != __tmp_y
+    } {
                 // Call on the systemstack to avoid a nosplit overflow build failure
                 // on some platforms when built with -N -l. See #64113.
         systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
@@ -6312,12 +6468,28 @@ pub fn wirep(pp: GoPtr<crate::runtime2::p>) {
     }
         // Call on the systemstack to avoid a nosplit overflow build failure
         // on some platforms when built with -N -l. See #64113.
-    if { let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PIDLE as u32; __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PIDLE as u32; __tmp_x != __tmp_y };
+            __go_cond_1
+        }
+    } {
                 // Call on the systemstack to avoid a nosplit overflow build failure
                 // on some platforms when built with -N -l. See #64113.
         let pp_closure_clone = pp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         let mut id = Arc::new(Mutex::new(Some(0 as i64)));
-        if { let __tmp_x = { let __selector_holder = { let __ptr_value = pp_closure_clone.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __selector_holder = { let __ptr_value = pp_closure_clone.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x != __tmp_y
+        } {
         { let new_val = { let __selector_holder = { let __ptr = crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = pp_closure_clone.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *id.lock().unwrap() = Some(new_val); };
     }
         {
@@ -6354,7 +6526,11 @@ pub fn releasep() -> GoPtr<crate::runtime2::p> {
 pub fn releasep_no_trace() -> GoPtr<crate::runtime2::p> {
     let mut gp = getg();
 
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize))));
+        __tmp_x == __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("releasep: invalid arg".to_string()))));
     }
     let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
