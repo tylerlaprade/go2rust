@@ -10424,6 +10424,57 @@ func callArgumentsContainComplex(args []ast.Expr) bool {
 	return false
 }
 
+func expressionContainsBinaryWithFunctionValue(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.BinaryExpr:
+		return expressionContainsFunctionValue(e.X) ||
+			expressionContainsFunctionValue(e.Y) ||
+			expressionContainsBinaryWithFunctionValue(e.X) ||
+			expressionContainsBinaryWithFunctionValue(e.Y)
+	case *ast.CallExpr:
+		for _, arg := range e.Args {
+			if expressionContainsBinaryWithFunctionValue(arg) {
+				return true
+			}
+		}
+	case *ast.UnaryExpr:
+		return expressionContainsBinaryWithFunctionValue(e.X)
+	case *ast.StarExpr:
+		return expressionContainsBinaryWithFunctionValue(e.X)
+	case *ast.IndexExpr:
+		return expressionContainsBinaryWithFunctionValue(e.X) || expressionContainsBinaryWithFunctionValue(e.Index)
+	case *ast.SliceExpr:
+		if expressionContainsBinaryWithFunctionValue(e.X) {
+			return true
+		}
+		for _, bound := range []ast.Expr{e.Low, e.High, e.Max} {
+			if bound != nil && expressionContainsBinaryWithFunctionValue(bound) {
+				return true
+			}
+		}
+	case *ast.TypeAssertExpr:
+		return expressionContainsBinaryWithFunctionValue(e.X)
+	case *ast.CompositeLit:
+		for _, elt := range e.Elts {
+			if expressionContainsBinaryWithFunctionValue(elt) {
+				return true
+			}
+		}
+	case *ast.KeyValueExpr:
+		return expressionContainsBinaryWithFunctionValue(e.Key) || expressionContainsBinaryWithFunctionValue(e.Value)
+	}
+	return false
+}
+
+func callArgumentsContainBinaryWithFunctionValue(args []ast.Expr) bool {
+	for _, arg := range args {
+		if expressionContainsBinaryWithFunctionValue(arg) {
+			return true
+		}
+	}
+	return false
+}
+
 func methodReceiverTempBlockShouldUseMultiline(call *ast.CallExpr) bool {
 	if call == nil || !NeedsConcurrentWrapper() {
 		return false
@@ -10549,6 +10600,10 @@ func variadicPackedElementShouldUseMultiline(expr ast.Expr) bool {
 func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 	if call == nil {
 		return false
+	}
+	if NeedsConcurrentWrapper() && callArgumentsContainBinaryWithFunctionValue(call.Args) {
+		sig, ok := callSignatureFromTypeInfo(call)
+		return !ok || !sig.Variadic()
 	}
 	if NeedsConcurrentWrapper() && len(call.Args) >= 4 {
 		sig, ok := callSignatureFromTypeInfo(call)

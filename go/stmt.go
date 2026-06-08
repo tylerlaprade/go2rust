@@ -620,7 +620,7 @@ func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr)
 
 const maxInlineWrappedSlotAssignmentLen = 240
 
-func assignmentRHSContainsFunctionValue(expr ast.Expr) bool {
+func expressionContainsFunctionValue(expr ast.Expr) bool {
 	switch e := unwrapParens(expr).(type) {
 	case *ast.Ident:
 		_, ok := functionValueSignature(e)
@@ -638,37 +638,37 @@ func assignmentRHSContainsFunctionValue(expr ast.Expr) bool {
 		return true
 	case *ast.CallExpr:
 		for _, arg := range e.Args {
-			if assignmentRHSContainsFunctionValue(arg) {
+			if expressionContainsFunctionValue(arg) {
 				return true
 			}
 		}
 	case *ast.BinaryExpr:
-		return assignmentRHSContainsFunctionValue(e.X) || assignmentRHSContainsFunctionValue(e.Y)
+		return expressionContainsFunctionValue(e.X) || expressionContainsFunctionValue(e.Y)
 	case *ast.UnaryExpr:
-		return assignmentRHSContainsFunctionValue(e.X)
+		return expressionContainsFunctionValue(e.X)
 	case *ast.StarExpr:
-		return assignmentRHSContainsFunctionValue(e.X)
+		return expressionContainsFunctionValue(e.X)
 	case *ast.IndexExpr:
-		return assignmentRHSContainsFunctionValue(e.X) || assignmentRHSContainsFunctionValue(e.Index)
+		return expressionContainsFunctionValue(e.X) || expressionContainsFunctionValue(e.Index)
 	case *ast.SliceExpr:
-		if assignmentRHSContainsFunctionValue(e.X) {
+		if expressionContainsFunctionValue(e.X) {
 			return true
 		}
 		for _, bound := range []ast.Expr{e.Low, e.High, e.Max} {
-			if bound != nil && assignmentRHSContainsFunctionValue(bound) {
+			if bound != nil && expressionContainsFunctionValue(bound) {
 				return true
 			}
 		}
 	case *ast.TypeAssertExpr:
-		return assignmentRHSContainsFunctionValue(e.X)
+		return expressionContainsFunctionValue(e.X)
 	case *ast.CompositeLit:
 		for _, elt := range e.Elts {
-			if assignmentRHSContainsFunctionValue(elt) {
+			if expressionContainsFunctionValue(elt) {
 				return true
 			}
 		}
 	case *ast.KeyValueExpr:
-		return assignmentRHSContainsFunctionValue(e.Key) || assignmentRHSContainsFunctionValue(e.Value)
+		return expressionContainsFunctionValue(e.Key) || expressionContainsFunctionValue(e.Value)
 	}
 	return false
 }
@@ -11858,7 +11858,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else { // Regular function call
 										isLenCapCall := isBareLenCapCall(s.Rhs[0])
-										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], assignmentRHSContainsFunctionValue(s.Rhs[0]), func(valueOut *strings.Builder) {
+										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], expressionContainsFunctionValue(s.Rhs[0]), func(valueOut *strings.Builder) {
 											TranspileExpression(valueOut, s.Rhs[0])
 											if isLenCapCall {
 												valueOut.WriteString(" as i32")

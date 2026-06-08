@@ -5060,6 +5060,41 @@ func call(left []byte, right []byte, i int, j int) int {
 	}
 }
 
+func TestConcurrentFunctionCallBreaksSingleFunctionValueArgumentAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timers struct{}
+
+func (ts *timers) run(now int64) int64 {
+	return now
+}
+
+func pc(fn func(*timers, int64) int64) uintptr {
+	return 1
+}
+
+func start(v uintptr) uintptr {
+	return v
+}
+
+const quantum uintptr = 4
+
+func use() uintptr {
+	go func() {}()
+	return start(pc((*timers).run) + quantum)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "start(") && strings.Contains(line, "Box::new(move |") {
+			t.Fatalf("single function-value call argument should not stay on the opening call line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "start(\n") {
+		t.Fatalf("single function-value call argument should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentBinaryOperandBreaksComplexCallArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
