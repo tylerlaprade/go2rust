@@ -3212,6 +3212,31 @@ func header[K comparable, V any](e *entry[K, V]) *node[K, V] {
 	}
 }
 
+func TestGenericStructEmptyInstantiationCompositeLiteralUsesDefault(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type List[T any] struct {
+	head, tail *element[T]
+}
+
+type element[T any] struct {
+	next *element[T]
+	val T
+}
+
+func makeList() List[int] {
+	return List[int]{}
+}
+`)
+
+	if strings.Contains(rust, "return ;") || strings.Contains(rust, "let mut lst = ;") {
+		t.Fatalf("empty instantiated generic struct literal should not lower to an empty expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "List::<i32> { ..Default::default() }") {
+		t.Fatalf("empty instantiated generic struct literal should use the Rust generic path with defaults:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalNewAnonymousStructRegistersType(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
