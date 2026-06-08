@@ -9871,6 +9871,9 @@ func typesStructCompositeLiteralShouldUseMultiline(elts []ast.Expr, structUnder 
 	if !NeedsConcurrentWrapper() || structUnder == nil {
 		return false
 	}
+	if typesStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts, structUnder) {
+		return true
+	}
 	allPositional := true
 	for _, elt := range elts {
 		if _, ok := elt.(*ast.KeyValueExpr); ok {
@@ -9904,6 +9907,71 @@ func typesStructCompositeLiteralShouldUseMultiline(elts []ast.Expr, structUnder 
 		}
 	}
 	return false
+}
+
+func typesStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts []ast.Expr, structUnder *types.Struct) bool {
+	if len(elts) < 4 || structUnder == nil {
+		return false
+	}
+	count := 0
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+	if allPositional {
+		for i, elt := range elts {
+			if i >= structUnder.NumFields() {
+				break
+			}
+			if structCompositeLiteralValueCopiesWrappedLocal(elt, structUnder.Field(i).Type()) {
+				count++
+			}
+		}
+		return count >= 4
+	}
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		field := findTypesStructField(structUnder, key.Name)
+		if field == nil {
+			continue
+		}
+		if structCompositeLiteralValueCopiesWrappedLocal(kv.Value, field.Type()) {
+			count++
+		}
+	}
+	return count >= 4
+}
+
+func structCompositeLiteralValueCopiesWrappedLocal(value ast.Expr, fieldType types.Type) bool {
+	ident, ok := value.(*ast.Ident)
+	if !ok || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
+		return false
+	}
+	if _, isLocalConst := localConstants[ident.Name]; isLocalConst || isConstIdent(ident) || isConstantExpression(value) {
+		return false
+	}
+	if structFieldValueKeepsHandle(nil, fieldType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(ident).(*types.Var)
+	if !ok || obj.IsField() {
+		return false
+	}
+	return typeInfo.pkg == nil || obj.Parent() != typeInfo.pkg.Scope()
 }
 
 func localStructCompositeLiteralShouldUseMultiline(typeName string, elts []ast.Expr) bool {
@@ -14094,8 +14162,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if structType, ok := e.Type.(*ast.StructType); ok {
 			// Anonymous struct literal - generate a type for it
 			typeName := generateAnonymousStructType(structType)
+			var typedStructUnder *types.Struct
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					if structUnder, ok := types.Unalias(typ).Underlying().(*types.Struct); ok {
+						typedStructUnder = structUnder
+					}
+				}
+			}
+			multilineStructLiteral := structCompositeLiteralShouldUseMultiline(e.Elts)
+			if !multilineStructLiteral && NeedsConcurrentWrapper() {
+				multilineStructLiteral = typesStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(e.Elts, typedStructUnder)
+			}
+			structLiteralIndent := ""
 			out.WriteString(typeName)
-			out.WriteString(" { ")
+			if multilineStructLiteral {
+				structLiteralIndent = currentLineIndent(out)
+				out.WriteString(" {\n")
+			} else {
+				out.WriteString(" { ")
+			}
 
 			allPositional := true
 			for _, elt := range e.Elts {
@@ -14107,6 +14193,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			initializedFields := make(map[string]bool)
 			needComma := false
+			writeAnonymousStructFieldPrefix := func() {
+				if multilineStructLiteral {
+					out.WriteString(structLiteralIndent)
+					out.WriteString("    ")
+				} else if needComma {
+					out.WriteString(", ")
+				}
+				needComma = true
+			}
+			writeAnonymousStructFieldSuffix := func() {
+				if multilineStructLiteral {
+					out.WriteString(",\n")
+				}
+			}
 
 			if allPositional {
 				eltIndex := 0
@@ -14119,15 +14219,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if eltIndex >= len(e.Elts) {
 							break
 						}
-						if needComma {
-							out.WriteString(", ")
-						}
-						needComma = true
+						writeAnonymousStructFieldPrefix()
 						rustFieldName := rustStructFieldName(name, fieldIndex, nameIndex)
 						initializedFields[rustFieldName] = true
 						out.WriteString(rustFieldName)
 						out.WriteString(": ")
-						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, nil)
+						var typedFieldType types.Type
+						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
+							typedFieldType = typedStructUnder.Field(eltIndex).Type()
+						}
+						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						writeAnonymousStructFieldSuffix()
 						eltIndex++
 					}
 					if eltIndex >= len(e.Elts) {
@@ -14138,14 +14240,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				for _, elt := range e.Elts {
 					if kv, ok := elt.(*ast.KeyValueExpr); ok {
 						if key, ok := kv.Key.(*ast.Ident); ok {
-							if needComma {
-								out.WriteString(", ")
-							}
-							needComma = true
+							writeAnonymousStructFieldPrefix()
 							initializedFields[ToSnakeCase(key.Name)] = true
 							out.WriteString(ToSnakeCase(key.Name))
 							out.WriteString(": ")
-							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), nil)
+							var typedFieldType types.Type
+							if typedStructUnder != nil {
+								typedFieldType = findTypesStructFieldType(typedStructUnder, key.Name)
+							}
+							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							writeAnonymousStructFieldSuffix()
 						}
 					}
 				}
@@ -14156,10 +14260,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				for nameIndex, name := range field.Names {
 					rustFieldName := rustStructFieldName(name, fieldIndex, nameIndex)
 					if !initializedFields[rustFieldName] {
-						if needComma {
-							out.WriteString(", ")
-						}
-						needComma = true
+						writeAnonymousStructFieldPrefix()
 						out.WriteString(rustFieldName)
 						out.WriteString(": ")
 						if nestedStruct, ok := field.Type.(*ast.StructType); ok {
@@ -14172,11 +14273,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							out.WriteString("Default::default()")
 						}
+						writeAnonymousStructFieldSuffix()
 					}
 				}
 			}
 
-			out.WriteString(" }")
+			if multilineStructLiteral {
+				out.WriteString(structLiteralIndent)
+				out.WriteString("}")
+			} else {
+				out.WriteString(" }")
+			}
 		}
 
 	case *ast.ParenExpr:

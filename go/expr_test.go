@@ -885,6 +885,34 @@ func copyAddr(lla *linkLayerAddr) sockaddrDatalink {
 	}
 }
 
+func TestConcurrentAnonymousStructLiteralLocalFieldsBreakAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func build(a, b, c, d, e, f int) int {
+	go func() {}()
+	args := struct {
+		a int
+		b int
+		c int
+		d int
+		e int
+		f int
+		ret int
+	}{a, b, c, d, e, f, 0}
+	return args.ret
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "AnonymousStruct") && strings.Contains(line, "a:") && strings.Contains(line, "f:") {
+			t.Fatalf("anonymous struct literal with wrapped local fields should split fields across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "Some(AnonymousStruct1 {\n") {
+		t.Fatalf("anonymous struct literal with wrapped local fields should use multiline struct syntax:\n%s", rust)
+	}
+}
+
 func TestSliceFieldCompositeLiteralUsesSliceExpressionHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

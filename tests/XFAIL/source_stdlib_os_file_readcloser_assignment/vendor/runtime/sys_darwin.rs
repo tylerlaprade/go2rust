@@ -155,7 +155,16 @@ pub fn pthread_kill_trampoline() {
 ///
 ///go:nosplit
 pub fn mmap(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>, prot: Arc<Mutex<Option<i32>>>, flags: Arc<Mutex<Option<i32>>>, fd: Arc<Mutex<Option<i32>>>, off: Arc<Mutex<Option<u32>>>) -> (Arc<Mutex<Option<usize>>>, i32) {
-    let mut args = Arc::new(Mutex::new(Some(AnonymousStruct34 { addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), n: Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), prot: Arc::new(Mutex::new(Some({ let __arg_holder = prot.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), flags: Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), fd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), off: Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ret1: Default::default(), ret2: Arc::new(Mutex::new(Some(0))) })));
+    let mut args = Arc::new(Mutex::new(Some(AnonymousStruct34 {
+        addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        n: Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        prot: Arc::new(Mutex::new(Some({ let __arg_holder = prot.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        flags: Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        fd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        off: Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        ret1: Default::default(),
+        ret2: Arc::new(Mutex::new(Some(0))),
+    })));
     libc_call(
         Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
         Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize)))
