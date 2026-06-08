@@ -825,6 +825,8 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`echo "Top memory processes:"`,
 		`echo "Active go2rust validation processes:"`,
 		`echo "Active compiler/validation processes:"`,
+		`elif [ -n "$process_cpu_snapshot" ]; then`,
+		`echo "none found"`,
 		`go_test = command ~ /(^|[[:space:]\/])go([[:space:]]|$)/ && command ~ /[[:space:]]test([[:space:]]|$)/`,
 		`fixture_or_bats = command ~ /(^|[[:space:]])(\.\/)?(test|go_test|go_vet|self_transpile_check)\.sh([[:space:]]|$)/`,
 		`scope = "external compiler"`,

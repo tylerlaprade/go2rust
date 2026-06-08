@@ -588,6 +588,8 @@ print_pressure_report() {
     if [ -n "$validation_processes" ]; then
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1'
         printf '%s\n' "$validation_processes"
+    elif [ -n "$process_cpu_snapshot" ]; then
+        echo "none found"
     else
         echo "none found, or process listing was denied$process_error_suffix"
     fi
@@ -620,6 +622,8 @@ print_pressure_report() {
     if [ -n "$compiler_processes" ]; then
         printf "%-20s %s\n" "Scope" "$(printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1')"
         printf '%s\n' "$compiler_processes"
+    elif [ -n "$process_cpu_snapshot" ]; then
+        echo "none found"
     else
         echo "none found, or process listing was denied$process_error_suffix"
     fi
