@@ -570,7 +570,94 @@ impl workType {
 
 impl Default for workType {
     fn default() -> Self {
-        Self { full: Arc::new(Mutex::new(Some(crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0))))))), __blank_1_0: Arc::new(Mutex::new(Some(Default::default()))), empty: Arc::new(Mutex::new(Some(crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0))))))), __blank_3_0: Arc::new(Mutex::new(Some(Default::default()))), wbuf_spans: Arc::new(Mutex::new(Some(AnonymousStruct6::default()))), __blank_5_0: Arc::new(Mutex::new(Some(0))), bytes_marked: Arc::new(Mutex::new(Some(0))), markroot_next: Arc::new(Mutex::new(Some(0))), markroot_jobs: Arc::new(Mutex::new(Some(0))), nproc: Arc::new(Mutex::new(Some(0))), tstart: Arc::new(Mutex::new(Some(0))), nwait: Arc::new(Mutex::new(Some(0))), n_data_roots: Arc::new(Mutex::new(Some(0))), n_b_s_s_roots: Arc::new(Mutex::new(Some(0))), n_span_roots: Arc::new(Mutex::new(Some(0))), n_stack_roots: Arc::new(Mutex::new(Some(0))), base_data: Arc::new(Mutex::new(Some(0))), base_b_s_s: Arc::new(Mutex::new(Some(0))), base_spans: Arc::new(Mutex::new(Some(0))), base_stacks: Arc::new(Mutex::new(Some(0))), base_end: Arc::new(Mutex::new(Some(0))), stack_roots: Arc::new(Mutex::new(None)), start_sema: Arc::new(Mutex::new(Some(0))), mark_done_sema: Arc::new(Mutex::new(Some(0))), bg_mark_done: Arc::new(Mutex::new(Some(0))), mode: Arc::new(Mutex::new(Some(gcMode(Arc::new(Mutex::new(Some(0))))))), user_forced: Arc::new(Mutex::new(Some(false))), initial_heap_live: Arc::new(Mutex::new(Some(0))), assist_queue: Arc::new(Mutex::new(Some(AnonymousStruct7::default()))), sweep_waiters: Arc::new(Mutex::new(Some(AnonymousStruct8::default()))), strong_from_weak: Arc::new(Mutex::new(Some(AnonymousStruct9::default()))), cycles: Arc::new(Mutex::new(Some(Default::default()))), stwprocs: Arc::new(Mutex::new(Some(0))), maxprocs: Arc::new(Mutex::new(Some(0))), t_sweep_term: Arc::new(Mutex::new(Some(0))), t_mark: Arc::new(Mutex::new(Some(0))), t_mark_term: Arc::new(Mutex::new(Some(0))), t_end: Arc::new(Mutex::new(Some(0))), pause_n_s: Arc::new(Mutex::new(Some(0))), heap0: Arc::new(Mutex::new(Some(0))), heap1: Arc::new(Mutex::new(Some(0))), heap2: Arc::new(Mutex::new(Some(0))), cpu_stats: Arc::new(Mutex::new(Some(cpuStats::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(AnonymousStruct6::default())));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_3 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_3 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_4 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(None));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(gcMode(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(AnonymousStruct7::default())));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(AnonymousStruct8::default())));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(AnonymousStruct9::default())));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_25_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_3 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_28_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_28_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(cpuStats::default())));
+        Self {
+            full: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            empty: __go_default_2_0,
+            __blank_3_0: __go_default_3_0,
+            wbuf_spans: __go_default_4_0,
+            __blank_5_0: __go_default_5_0,
+            bytes_marked: __go_default_6_0,
+            markroot_next: __go_default_7_0,
+            markroot_jobs: __go_default_8_0,
+            nproc: __go_default_9_0,
+            tstart: __go_default_10_0,
+            nwait: __go_default_11_0,
+            n_data_roots: __go_default_12_0,
+            n_b_s_s_roots: __go_default_12_1,
+            n_span_roots: __go_default_12_2,
+            n_stack_roots: __go_default_12_3,
+            base_data: __go_default_13_0,
+            base_b_s_s: __go_default_13_1,
+            base_spans: __go_default_13_2,
+            base_stacks: __go_default_13_3,
+            base_end: __go_default_13_4,
+            stack_roots: __go_default_14_0,
+            start_sema: __go_default_15_0,
+            mark_done_sema: __go_default_16_0,
+            bg_mark_done: __go_default_17_0,
+            mode: __go_default_18_0,
+            user_forced: __go_default_19_0,
+            initial_heap_live: __go_default_20_0,
+            assist_queue: __go_default_21_0,
+            sweep_waiters: __go_default_22_0,
+            strong_from_weak: __go_default_23_0,
+            cycles: __go_default_24_0,
+            stwprocs: __go_default_25_0,
+            maxprocs: __go_default_25_1,
+            t_sweep_term: __go_default_26_0,
+            t_mark: __go_default_26_1,
+            t_mark_term: __go_default_26_2,
+            t_end: __go_default_26_3,
+            pause_n_s: __go_default_27_0,
+            heap0: __go_default_28_0,
+            heap1: __go_default_28_1,
+            heap2: __go_default_28_2,
+            cpu_stats: __go_default_29_0,
+        }
     }
 }
 
@@ -1040,7 +1127,14 @@ impl gcTrigger {
 
 impl Default for gcTrigger {
     fn default() -> Self {
-        Self { kind: Arc::new(Mutex::new(Some(gcTriggerKind(Arc::new(Mutex::new(Some(0))))))), now: Arc::new(Mutex::new(Some(0))), n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(gcTriggerKind(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            kind: __go_default_0_0,
+            now: __go_default_1_0,
+            n: __go_default_2_0,
+        }
     }
 }
 
@@ -1469,7 +1563,14 @@ impl gcBgMarkWorkerNode {
 
 impl Default for gcBgMarkWorkerNode {
     fn default() -> Self {
-        Self { node: Arc::new(Mutex::new(Some(lfnode::default()))), gp: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))), m: Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(lfnode::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            node: __go_default_0_0,
+            gp: __go_default_1_0,
+            m: __go_default_2_0,
+        }
     }
 }
 
@@ -1513,7 +1614,14 @@ impl AnonymousStruct6 {
 
 impl Default for AnonymousStruct6 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), free: Arc::new(Mutex::new(Some(mSpanList::default()))), busy: Arc::new(Mutex::new(Some(mSpanList::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(mSpanList::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(mSpanList::default())));
+        Self {
+            lock: __go_default_0_0,
+            free: __go_default_1_0,
+            busy: __go_default_2_0,
+        }
     }
 }
 
@@ -1554,7 +1662,12 @@ impl AnonymousStruct7 {
 
 impl Default for AnonymousStruct7 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), q: Arc::new(Mutex::new(Some(gQueue::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(gQueue::default())));
+        Self {
+            lock: __go_default_0_0,
+            q: __go_default_1_0,
+        }
     }
 }
 
@@ -1594,7 +1707,12 @@ impl AnonymousStruct8 {
 
 impl Default for AnonymousStruct8 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), list: Arc::new(Mutex::new(Some(gList::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(gList::default())));
+        Self {
+            lock: __go_default_0_0,
+            list: __go_default_1_0,
+        }
     }
 }
 
@@ -1637,7 +1755,14 @@ impl AnonymousStruct9 {
 
 impl Default for AnonymousStruct9 {
     fn default() -> Self {
-        Self { block: Arc::new(Mutex::new(Some(false))), lock: Arc::new(Mutex::new(Some(mutex::default()))), q: Arc::new(Mutex::new(Some(gQueue::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(gQueue::default())));
+        Self {
+            block: __go_default_0_0,
+            lock: __go_default_1_0,
+            q: __go_default_2_0,
+        }
     }
 }
 
@@ -3094,7 +3219,14 @@ impl AnonymousStruct10 {
 
 impl Default for AnonymousStruct10 {
     fn default() -> Self {
-        Self { enabled: Arc::new(Mutex::new(Some(false))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), alignme: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            enabled: __go_default_0_0,
+            pad: __go_default_1_0,
+            alignme: __go_default_2_0,
+        }
     }
 }
 
@@ -3135,7 +3267,12 @@ impl AnonymousStruct11 {
 
 impl Default for AnonymousStruct11 {
     fn default() -> Self {
-        Self { spin_after_ragged_barrier: Arc::new(Mutex::new(Some(Default::default()))), restarted_due_to27993: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            spin_after_ragged_barrier: __go_default_0_0,
+            restarted_due_to27993: __go_default_1_0,
+        }
     }
 }
 

@@ -41,7 +41,16 @@ impl mmapper {
 
 impl Default for mmapper {
     fn default() -> Self {
-        Self { mutex: Default::default(), active: Arc::new(Mutex::new(None)), mmap: Arc::new(Mutex::new(None)), munmap: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Default::default();
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        Self {
+            mutex: __go_default_0_0,
+            active: __go_default_1_0,
+            mmap: __go_default_2_0,
+            munmap: __go_default_3_0,
+        }
     }
 }
 
@@ -872,7 +881,14 @@ impl SockaddrInet4 {
 
 impl Default for SockaddrInet4 {
     fn default() -> Self {
-        Self { port: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(RawSockaddrInet4::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(RawSockaddrInet4::default())));
+        Self {
+            port: __go_default_0_0,
+            addr: __go_default_1_0,
+            raw: __go_default_2_0,
+        }
     }
 }
 
@@ -926,7 +942,16 @@ impl SockaddrInet6 {
 
 impl Default for SockaddrInet6 {
     fn default() -> Self {
-        Self { port: Arc::new(Mutex::new(Some(0))), zone_id: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(RawSockaddrInet6::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(RawSockaddrInet6::default())));
+        Self {
+            port: __go_default_0_0,
+            zone_id: __go_default_1_0,
+            addr: __go_default_2_0,
+            raw: __go_default_3_0,
+        }
     }
 }
 
@@ -978,7 +1003,12 @@ impl SockaddrUnix {
 
 impl Default for SockaddrUnix {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), raw: Arc::new(Mutex::new(Some(RawSockaddrUnix::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(RawSockaddrUnix::default())));
+        Self {
+            name: __go_default_0_0,
+            raw: __go_default_1_0,
+        }
     }
 }
 

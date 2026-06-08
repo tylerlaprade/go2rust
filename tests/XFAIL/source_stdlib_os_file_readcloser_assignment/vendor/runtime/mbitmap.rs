@@ -50,7 +50,16 @@ impl typePointers {
 
 impl Default for typePointers {
     fn default() -> Self {
-        Self { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = GoPtr::nil();
+        Self {
+            elem: __go_default_0_0,
+            addr: __go_default_1_0,
+            mask: __go_default_2_0,
+            typ: __go_default_3_0,
+        }
     }
 }
 
@@ -105,7 +114,14 @@ impl markBits {
 
 impl Default for markBits {
     fn default() -> Self {
-        Self { bytep: GoPtr::nil(), mask: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            bytep: __go_default_0_0,
+            mask: __go_default_1_0,
+            index: __go_default_2_0,
+        }
     }
 }
 
@@ -1410,7 +1426,12 @@ impl AnonymousStruct5 {
 
 impl Default for AnonymousStruct5 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), data: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            lock: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 

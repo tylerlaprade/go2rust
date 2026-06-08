@@ -51,7 +51,26 @@ impl SockaddrDatalink {
 
 impl Default for SockaddrDatalink {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), family: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), nlen: Arc::new(Mutex::new(Some(0))), alen: Arc::new(Mutex::new(Some(0))), slen: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(RawSockaddrDatalink::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(RawSockaddrDatalink::default())));
+        Self {
+            len: __go_default_0_0,
+            family: __go_default_1_0,
+            index: __go_default_2_0,
+            r#type: __go_default_3_0,
+            nlen: __go_default_4_0,
+            alen: __go_default_5_0,
+            slen: __go_default_6_0,
+            data: __go_default_7_0,
+            raw: __go_default_8_0,
+        }
     }
 }
 

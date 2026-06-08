@@ -30,7 +30,10 @@ impl traceStackTable {
 
 impl Default for traceStackTable {
     fn default() -> Self {
-        Self { tab: Arc::new(Mutex::new(Some(traceMap::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(traceMap::default())));
+        Self {
+            tab: __go_default_0_0,
+        }
     }
 }
 
@@ -76,7 +79,16 @@ impl traceFrame {
 
 impl Default for traceFrame {
     fn default() -> Self {
-        Self { p_c: Arc::new(Mutex::new(Some(0))), func_i_d: Arc::new(Mutex::new(Some(0))), file_i_d: Arc::new(Mutex::new(Some(0))), line: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            p_c: __go_default_0_0,
+            func_i_d: __go_default_1_0,
+            file_i_d: __go_default_2_0,
+            line: __go_default_3_0,
+        }
     }
 }
 

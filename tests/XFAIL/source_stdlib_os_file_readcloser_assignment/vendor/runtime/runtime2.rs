@@ -130,7 +130,12 @@ impl mutex {
 
 impl Default for mutex {
     fn default() -> Self {
-        Self { lock_rank_struct: Arc::new(Mutex::new(Some(lockRankStruct::default()))), key: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(lockRankStruct::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lock_rank_struct: __go_default_0_0,
+            key: __go_default_1_0,
+        }
     }
 }
 
@@ -168,7 +173,10 @@ impl funcval {
 
 impl Default for funcval {
     fn default() -> Self {
-        Self { r#fn: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#fn: __go_default_0_0,
+        }
     }
 }
 
@@ -219,7 +227,12 @@ impl iface {
 
 impl Default for iface {
     fn default() -> Self {
-        Self { tab: GoPtr::nil(), data: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            tab: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 
@@ -260,7 +273,12 @@ impl eface {
 
 impl Default for eface {
     fn default() -> Self {
-        Self { _type: GoPtr::nil(), data: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            _type: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 
@@ -1471,7 +1489,22 @@ impl gobuf {
 
 impl Default for gobuf {
     fn default() -> Self {
-        Self { sp: Arc::new(Mutex::new(Some(0))), pc: Arc::new(Mutex::new(Some(0))), g: Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0))))))), ctxt: Arc::new(Mutex::new(Some(0))), ret: Arc::new(Mutex::new(Some(0))), lr: Arc::new(Mutex::new(Some(0))), bp: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            sp: __go_default_0_0,
+            pc: __go_default_1_0,
+            g: __go_default_2_0,
+            ctxt: __go_default_3_0,
+            ret: __go_default_4_0,
+            lr: __go_default_5_0,
+            bp: __go_default_6_0,
+        }
     }
 }
 
@@ -1563,7 +1596,36 @@ impl sudog {
 
 impl Default for sudog {
     fn default() -> Self {
-        Self { g: Arc::new(Mutex::new(None)), next: Arc::new(Mutex::new(None)), prev: Arc::new(Mutex::new(None)), elem: Arc::new(Mutex::new(Some(0))), acquiretime: Arc::new(Mutex::new(Some(0))), releasetime: Arc::new(Mutex::new(Some(0))), ticket: Arc::new(Mutex::new(Some(0))), is_select: Arc::new(Mutex::new(Some(false))), success: Arc::new(Mutex::new(Some(false))), waiters: Arc::new(Mutex::new(Some(0))), parent: Arc::new(Mutex::new(None)), waitlink: Arc::new(Mutex::new(None)), waittail: Arc::new(Mutex::new(None)), c: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(None));
+        let __go_default_11_0 = Arc::new(Mutex::new(None));
+        let __go_default_12_0 = Arc::new(Mutex::new(None));
+        let __go_default_13_0 = Arc::new(Mutex::new(None));
+        Self {
+            g: __go_default_0_0,
+            next: __go_default_1_0,
+            prev: __go_default_2_0,
+            elem: __go_default_3_0,
+            acquiretime: __go_default_4_0,
+            releasetime: __go_default_5_0,
+            ticket: __go_default_6_0,
+            is_select: __go_default_7_0,
+            success: __go_default_8_0,
+            waiters: __go_default_9_0,
+            parent: __go_default_10_0,
+            waitlink: __go_default_11_0,
+            waittail: __go_default_12_0,
+            c: __go_default_13_0,
+        }
     }
 }
 
@@ -1628,7 +1690,20 @@ impl libcall {
 
 impl Default for libcall {
     fn default() -> Self {
-        Self { r#fn: Arc::new(Mutex::new(Some(0))), n: Arc::new(Mutex::new(Some(0))), args: Arc::new(Mutex::new(Some(0))), r1: Arc::new(Mutex::new(Some(0))), r2: Arc::new(Mutex::new(Some(0))), err: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#fn: __go_default_0_0,
+            n: __go_default_1_0,
+            args: __go_default_2_0,
+            r1: __go_default_3_0,
+            r2: __go_default_4_0,
+            err: __go_default_5_0,
+        }
     }
 }
 
@@ -1676,7 +1751,12 @@ impl stack {
 
 impl Default for stack {
     fn default() -> Self {
-        Self { lo: Arc::new(Mutex::new(Some(0))), hi: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lo: __go_default_0_0,
+            hi: __go_default_1_0,
+        }
     }
 }
 
@@ -1726,7 +1806,12 @@ impl heldLockInfo {
 
 impl Default for heldLockInfo {
     fn default() -> Self {
-        Self { lock_addr: Arc::new(Mutex::new(Some(0))), rank: Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            lock_addr: __go_default_0_0,
+            rank: __go_default_1_0,
+        }
     }
 }
 
@@ -1935,7 +2020,124 @@ impl g {
 
 impl Default for g {
     fn default() -> Self {
-        Self { stack: Arc::new(Mutex::new(Some(stack::default()))), stackguard0: Arc::new(Mutex::new(Some(0))), stackguard1: Arc::new(Mutex::new(Some(0))), _panic: Arc::new(Mutex::new(None)), _defer: Arc::new(Mutex::new(None)), m: Arc::new(Mutex::new(None)), sched: Arc::new(Mutex::new(Some(gobuf::default()))), syscallsp: Arc::new(Mutex::new(Some(0))), syscallpc: Arc::new(Mutex::new(Some(0))), syscallbp: Arc::new(Mutex::new(Some(0))), stktopsp: Arc::new(Mutex::new(Some(0))), param: Arc::new(Mutex::new(Some(0))), atomicstatus: Arc::new(Mutex::new(Some(Default::default()))), stack_lock: Arc::new(Mutex::new(Some(0))), goid: Arc::new(Mutex::new(Some(0))), schedlink: Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0))))))), waitsince: Arc::new(Mutex::new(Some(0))), waitreason: Arc::new(Mutex::new(Some(waitReason(Arc::new(Mutex::new(Some(0))))))), preempt: Arc::new(Mutex::new(Some(false))), preempt_stop: Arc::new(Mutex::new(Some(false))), preempt_shrink: Arc::new(Mutex::new(Some(false))), async_safe_point: Arc::new(Mutex::new(Some(false))), paniconfault: Arc::new(Mutex::new(Some(false))), gcscandone: Arc::new(Mutex::new(Some(false))), throwsplit: Arc::new(Mutex::new(Some(false))), active_stack_chans: Arc::new(Mutex::new(Some(false))), parking_on_chan: Arc::new(Mutex::new(Some(Default::default()))), in_mark_assist: Arc::new(Mutex::new(Some(false))), coroexit: Arc::new(Mutex::new(Some(false))), raceignore: Arc::new(Mutex::new(Some(0))), nocgocallback: Arc::new(Mutex::new(Some(false))), tracking: Arc::new(Mutex::new(Some(false))), tracking_seq: Arc::new(Mutex::new(Some(0))), tracking_stamp: Arc::new(Mutex::new(Some(0))), runnable_time: Arc::new(Mutex::new(Some(0))), lockedm: Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0))))))), fips_indicator: Arc::new(Mutex::new(Some(0))), sig: Arc::new(Mutex::new(Some(0))), writebuf: Arc::new(Mutex::new(None)), sigcode0: Arc::new(Mutex::new(Some(0))), sigcode1: Arc::new(Mutex::new(Some(0))), sigpc: Arc::new(Mutex::new(Some(0))), parent_goid: Arc::new(Mutex::new(Some(0))), gopc: Arc::new(Mutex::new(Some(0))), ancestors: Arc::new(Mutex::new(None)), startpc: Arc::new(Mutex::new(Some(0))), racectx: Arc::new(Mutex::new(Some(0))), waiting: Arc::new(Mutex::new(None)), cgo_ctxt: Arc::new(Mutex::new(None)), labels: Arc::new(Mutex::new(Some(0))), timer: Arc::new(Mutex::new(None)), sleep_when: Arc::new(Mutex::new(Some(0))), select_done: Arc::new(Mutex::new(Some(Default::default()))), goroutine_profiled: Arc::new(Mutex::new(Some(Default::default()))), coroarg: Arc::new(Mutex::new(None)), sync_group: Arc::new(Mutex::new(None)), trace: Arc::new(Mutex::new(Some(gTraceState::default()))), gc_assist_bytes: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stack::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(gobuf::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(waitReason(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_32_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_33_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_34_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_35_0 = Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_36_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_37_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_38_0 = Arc::new(Mutex::new(None));
+        let __go_default_39_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_40_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_41_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_42_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_43_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_44_0 = Arc::new(Mutex::new(None));
+        let __go_default_45_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_46_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_47_0 = Arc::new(Mutex::new(None));
+        let __go_default_48_0 = Arc::new(Mutex::new(None));
+        let __go_default_49_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_50_0 = Arc::new(Mutex::new(None));
+        let __go_default_51_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_52_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_53_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_54_0 = Arc::new(Mutex::new(None));
+        let __go_default_55_0 = Arc::new(Mutex::new(None));
+        let __go_default_56_0 = Arc::new(Mutex::new(Some(gTraceState::default())));
+        let __go_default_57_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            stack: __go_default_0_0,
+            stackguard0: __go_default_1_0,
+            stackguard1: __go_default_2_0,
+            _panic: __go_default_3_0,
+            _defer: __go_default_4_0,
+            m: __go_default_5_0,
+            sched: __go_default_6_0,
+            syscallsp: __go_default_7_0,
+            syscallpc: __go_default_8_0,
+            syscallbp: __go_default_9_0,
+            stktopsp: __go_default_10_0,
+            param: __go_default_11_0,
+            atomicstatus: __go_default_12_0,
+            stack_lock: __go_default_13_0,
+            goid: __go_default_14_0,
+            schedlink: __go_default_15_0,
+            waitsince: __go_default_16_0,
+            waitreason: __go_default_17_0,
+            preempt: __go_default_18_0,
+            preempt_stop: __go_default_19_0,
+            preempt_shrink: __go_default_20_0,
+            async_safe_point: __go_default_21_0,
+            paniconfault: __go_default_22_0,
+            gcscandone: __go_default_23_0,
+            throwsplit: __go_default_24_0,
+            active_stack_chans: __go_default_25_0,
+            parking_on_chan: __go_default_26_0,
+            in_mark_assist: __go_default_27_0,
+            coroexit: __go_default_28_0,
+            raceignore: __go_default_29_0,
+            nocgocallback: __go_default_30_0,
+            tracking: __go_default_31_0,
+            tracking_seq: __go_default_32_0,
+            tracking_stamp: __go_default_33_0,
+            runnable_time: __go_default_34_0,
+            lockedm: __go_default_35_0,
+            fips_indicator: __go_default_36_0,
+            sig: __go_default_37_0,
+            writebuf: __go_default_38_0,
+            sigcode0: __go_default_39_0,
+            sigcode1: __go_default_40_0,
+            sigpc: __go_default_41_0,
+            parent_goid: __go_default_42_0,
+            gopc: __go_default_43_0,
+            ancestors: __go_default_44_0,
+            startpc: __go_default_45_0,
+            racectx: __go_default_46_0,
+            waiting: __go_default_47_0,
+            cgo_ctxt: __go_default_48_0,
+            labels: __go_default_49_0,
+            timer: __go_default_50_0,
+            sleep_when: __go_default_51_0,
+            select_done: __go_default_52_0,
+            goroutine_profiled: __go_default_53_0,
+            coroarg: __go_default_54_0,
+            sync_group: __go_default_55_0,
+            trace: __go_default_56_0,
+            gc_assist_bytes: __go_default_57_0,
+        }
     }
 }
 
@@ -2242,7 +2444,152 @@ impl m {
 
 impl Default for m {
     fn default() -> Self {
-        Self { g0: Arc::new(Mutex::new(None)), morebuf: Arc::new(Mutex::new(Some(gobuf::default()))), divmod: Arc::new(Mutex::new(Some(0))), __blank_3_0: Arc::new(Mutex::new(Some(0))), procid: Arc::new(Mutex::new(Some(0))), gsignal: Arc::new(Mutex::new(None)), go_sig_stack: Arc::new(Mutex::new(Some(gsignalStack::default()))), sigmask: Arc::new(Mutex::new(Some(crate::os_darwin::sigset(Arc::new(Mutex::new(Some(0))))))), tls: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), mstartfn: Arc::new(Mutex::new(None)), curg: GoPtr::nil(), caughtsig: Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0))))))), p: Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0))))))), nextp: Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0))))))), oldp: Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0))))))), id: Arc::new(Mutex::new(Some(0))), mallocing: Arc::new(Mutex::new(Some(0))), throwing: Arc::new(Mutex::new(Some(crate::panic::throwType(Arc::new(Mutex::new(Some(0))))))), preemptoff: Arc::new(Mutex::new(Some(String::new()))), locks: Arc::new(Mutex::new(Some(0))), dying: Arc::new(Mutex::new(Some(0))), profilehz: Arc::new(Mutex::new(Some(0))), spinning: Arc::new(Mutex::new(Some(false))), blocked: Arc::new(Mutex::new(Some(false))), new_sigstack: Arc::new(Mutex::new(Some(false))), printlock: Arc::new(Mutex::new(Some(0))), incgo: Arc::new(Mutex::new(Some(false))), isextra: Arc::new(Mutex::new(Some(false))), is_extra_in_c: Arc::new(Mutex::new(Some(false))), is_extra_in_sig: Arc::new(Mutex::new(Some(false))), free_wait: Arc::new(Mutex::new(Some(Default::default()))), needextram: Arc::new(Mutex::new(Some(false))), g0_stack_accurate: Arc::new(Mutex::new(Some(false))), traceback: Arc::new(Mutex::new(Some(0))), ncgocall: Arc::new(Mutex::new(Some(0))), ncgo: Arc::new(Mutex::new(Some(0))), cgo_callers_use: Arc::new(Mutex::new(Some(Default::default()))), cgo_callers: Arc::new(Mutex::new(None)), park: Arc::new(Mutex::new(Some(note::default()))), alllink: Arc::new(Mutex::new(None)), schedlink: Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0))))))), lockedg: Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0))))))), createstack: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), locked_ext: Arc::new(Mutex::new(Some(0))), locked_int: Arc::new(Mutex::new(Some(0))), m_wait_list: Arc::new(Mutex::new(Some(mWaitList::default()))), m_lock_profile: Arc::new(Mutex::new(Some(mLockProfile::default()))), prof_stack: Arc::new(Mutex::new(None)), waitunlockf: Arc::new(Mutex::new(None)), waitlock: Arc::new(Mutex::new(Some(0))), wait_trace_skip: Arc::new(Mutex::new(Some(0))), wait_trace_block_reason: Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(0))))))), syscalltick: Arc::new(Mutex::new(Some(0))), freelink: Arc::new(Mutex::new(None)), trace: Arc::new(Mutex::new(Some(mTraceState::default()))), libcall: Arc::new(Mutex::new(Some(libcall::default()))), libcallpc: Arc::new(Mutex::new(Some(0))), libcallsp: Arc::new(Mutex::new(Some(0))), libcallg: Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0))))))), winsyscall: Arc::new(Mutex::new(Some(winlibcall::default()))), vdso_s_p: Arc::new(Mutex::new(Some(0))), vdso_p_c: Arc::new(Mutex::new(Some(0))), preempt_gen: Arc::new(Mutex::new(Some(Default::default()))), signal_pending: Arc::new(Mutex::new(Some(Default::default()))), pcvalue_cache: Arc::new(Mutex::new(Some(pcvalueCache::default()))), dlog_per_m: Arc::new(Mutex::new(Some(dlogPerM::default()))), m_o_s: Arc::new(Mutex::new(Some(mOS::default()))), chacha8: Arc::new(Mutex::new(Some(Default::default()))), cheaprand: Arc::new(Mutex::new(Some(0))), locks_held_len: Arc::new(Mutex::new(Some(0))), locks_held: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), __blank_71_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(gobuf::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(gsignalStack::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(crate::os_darwin::sigset(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_9_0 = Arc::new(Mutex::new(None));
+        let __go_default_10_0 = GoPtr::nil();
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(crate::panic::throwType(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_32_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_33_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_34_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_35_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_36_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_37_0 = Arc::new(Mutex::new(None));
+        let __go_default_38_0 = Arc::new(Mutex::new(Some(note::default())));
+        let __go_default_39_0 = Arc::new(Mutex::new(None));
+        let __go_default_40_0 = Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_41_0 = Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_42_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_43_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_44_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_45_0 = Arc::new(Mutex::new(Some(mWaitList::default())));
+        let __go_default_46_0 = Arc::new(Mutex::new(Some(mLockProfile::default())));
+        let __go_default_47_0 = Arc::new(Mutex::new(None));
+        let __go_default_48_0 = Arc::new(Mutex::new(None));
+        let __go_default_49_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_50_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_51_0 = Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_52_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_53_0 = Arc::new(Mutex::new(None));
+        let __go_default_54_0 = Arc::new(Mutex::new(Some(mTraceState::default())));
+        let __go_default_55_0 = Arc::new(Mutex::new(Some(libcall::default())));
+        let __go_default_56_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_57_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_58_0 = Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_59_0 = Arc::new(Mutex::new(Some(winlibcall::default())));
+        let __go_default_60_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_61_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_62_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_63_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_64_0 = Arc::new(Mutex::new(Some(pcvalueCache::default())));
+        let __go_default_65_0 = Arc::new(Mutex::new(Some(dlogPerM::default())));
+        let __go_default_66_0 = Arc::new(Mutex::new(Some(mOS::default())));
+        let __go_default_67_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_68_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_69_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_70_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_71_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            g0: __go_default_0_0,
+            morebuf: __go_default_1_0,
+            divmod: __go_default_2_0,
+            __blank_3_0: __go_default_3_0,
+            procid: __go_default_4_0,
+            gsignal: __go_default_5_0,
+            go_sig_stack: __go_default_6_0,
+            sigmask: __go_default_7_0,
+            tls: __go_default_8_0,
+            mstartfn: __go_default_9_0,
+            curg: __go_default_10_0,
+            caughtsig: __go_default_11_0,
+            p: __go_default_12_0,
+            nextp: __go_default_13_0,
+            oldp: __go_default_14_0,
+            id: __go_default_15_0,
+            mallocing: __go_default_16_0,
+            throwing: __go_default_17_0,
+            preemptoff: __go_default_18_0,
+            locks: __go_default_19_0,
+            dying: __go_default_20_0,
+            profilehz: __go_default_21_0,
+            spinning: __go_default_22_0,
+            blocked: __go_default_23_0,
+            new_sigstack: __go_default_24_0,
+            printlock: __go_default_25_0,
+            incgo: __go_default_26_0,
+            isextra: __go_default_27_0,
+            is_extra_in_c: __go_default_28_0,
+            is_extra_in_sig: __go_default_29_0,
+            free_wait: __go_default_30_0,
+            needextram: __go_default_31_0,
+            g0_stack_accurate: __go_default_32_0,
+            traceback: __go_default_33_0,
+            ncgocall: __go_default_34_0,
+            ncgo: __go_default_35_0,
+            cgo_callers_use: __go_default_36_0,
+            cgo_callers: __go_default_37_0,
+            park: __go_default_38_0,
+            alllink: __go_default_39_0,
+            schedlink: __go_default_40_0,
+            lockedg: __go_default_41_0,
+            createstack: __go_default_42_0,
+            locked_ext: __go_default_43_0,
+            locked_int: __go_default_44_0,
+            m_wait_list: __go_default_45_0,
+            m_lock_profile: __go_default_46_0,
+            prof_stack: __go_default_47_0,
+            waitunlockf: __go_default_48_0,
+            waitlock: __go_default_49_0,
+            wait_trace_skip: __go_default_50_0,
+            wait_trace_block_reason: __go_default_51_0,
+            syscalltick: __go_default_52_0,
+            freelink: __go_default_53_0,
+            trace: __go_default_54_0,
+            libcall: __go_default_55_0,
+            libcallpc: __go_default_56_0,
+            libcallsp: __go_default_57_0,
+            libcallg: __go_default_58_0,
+            winsyscall: __go_default_59_0,
+            vdso_s_p: __go_default_60_0,
+            vdso_p_c: __go_default_61_0,
+            preempt_gen: __go_default_62_0,
+            signal_pending: __go_default_63_0,
+            pcvalue_cache: __go_default_64_0,
+            dlog_per_m: __go_default_65_0,
+            m_o_s: __go_default_66_0,
+            chacha8: __go_default_67_0,
+            cheaprand: __go_default_68_0,
+            locks_held_len: __go_default_69_0,
+            locks_held: __go_default_70_0,
+            __blank_71_0: __go_default_71_0,
+        }
     }
 }
 
@@ -2467,7 +2814,88 @@ impl p {
 
 impl Default for p {
     fn default() -> Self {
-        Self { id: Arc::new(Mutex::new(Some(0))), status: Arc::new(Mutex::new(Some(0))), link: Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0))))))), schedtick: Arc::new(Mutex::new(Some(0))), syscalltick: Arc::new(Mutex::new(Some(0))), sysmontick: Arc::new(Mutex::new(Some(sysmontick::default()))), m: Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0))))))), mcache: GoPtr::nil(), pcache: Arc::new(Mutex::new(Some(pageCache::default()))), raceprocctx: Arc::new(Mutex::new(Some(0))), deferpool: Arc::new(Mutex::new(None)), deferpoolbuf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), goidcache: Arc::new(Mutex::new(Some(0))), goidcacheend: Arc::new(Mutex::new(Some(0))), runqhead: Arc::new(Mutex::new(Some(0))), runqtail: Arc::new(Mutex::new(Some(0))), runq: Arc::new(Mutex::new(Some(std::array::from_fn(|_| guintptr(Arc::new(Mutex::new(Some(0)))))))), runnext: Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0))))))), g_free: Arc::new(Mutex::new(Some(AnonymousStruct26::default()))), sudogcache: Arc::new(Mutex::new(None)), sudogbuf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), mspancache: Arc::new(Mutex::new(Some(AnonymousStruct27::default()))), pinner_cache: Arc::new(Mutex::new(None)), trace: Arc::new(Mutex::new(Some(pTraceState::default()))), palloc: Arc::new(Mutex::new(Some(persistentAlloc::default()))), gc_assist_time: Arc::new(Mutex::new(Some(0))), gc_fractional_mark_time: Arc::new(Mutex::new(Some(0))), limiter_event: Arc::new(Mutex::new(Some(limiterEvent::default()))), gc_mark_worker_mode: Arc::new(Mutex::new(Some(crate::mgc::gcMarkWorkerMode(Arc::new(Mutex::new(Some(0))))))), gc_mark_worker_start_time: Arc::new(Mutex::new(Some(0))), gcw: Arc::new(Mutex::new(Some(gcWork::default()))), wb_buf: Arc::new(Mutex::new(Some(wbBuf::default()))), run_safe_point_fn: Arc::new(Mutex::new(Some(0))), stats_seq: Arc::new(Mutex::new(Some(Default::default()))), timers: Arc::new(Mutex::new(Some(timers::default()))), max_stack_scan_delta: Arc::new(Mutex::new(Some(0))), scanned_stack_size: Arc::new(Mutex::new(Some(0))), scanned_stacks: Arc::new(Mutex::new(Some(0))), preempt: Arc::new(Mutex::new(Some(false))), gc_stop_time: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(sysmontick::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_7_0 = GoPtr::nil();
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(pageCache::default())));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(None));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| guintptr(Arc::new(Mutex::new(Some(0))))))));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(AnonymousStruct26::default())));
+        let __go_default_19_0 = Arc::new(Mutex::new(None));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(AnonymousStruct27::default())));
+        let __go_default_22_0 = Arc::new(Mutex::new(None));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(pTraceState::default())));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(persistentAlloc::default())));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(limiterEvent::default())));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(crate::mgc::gcMarkWorkerMode(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(gcWork::default())));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(wbBuf::default())));
+        let __go_default_32_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_33_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_34_0 = Arc::new(Mutex::new(Some(timers::default())));
+        let __go_default_35_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_36_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_37_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_38_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_39_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            id: __go_default_0_0,
+            status: __go_default_1_0,
+            link: __go_default_2_0,
+            schedtick: __go_default_3_0,
+            syscalltick: __go_default_4_0,
+            sysmontick: __go_default_5_0,
+            m: __go_default_6_0,
+            mcache: __go_default_7_0,
+            pcache: __go_default_8_0,
+            raceprocctx: __go_default_9_0,
+            deferpool: __go_default_10_0,
+            deferpoolbuf: __go_default_11_0,
+            goidcache: __go_default_12_0,
+            goidcacheend: __go_default_13_0,
+            runqhead: __go_default_14_0,
+            runqtail: __go_default_15_0,
+            runq: __go_default_16_0,
+            runnext: __go_default_17_0,
+            g_free: __go_default_18_0,
+            sudogcache: __go_default_19_0,
+            sudogbuf: __go_default_20_0,
+            mspancache: __go_default_21_0,
+            pinner_cache: __go_default_22_0,
+            trace: __go_default_23_0,
+            palloc: __go_default_24_0,
+            gc_assist_time: __go_default_25_0,
+            gc_fractional_mark_time: __go_default_26_0,
+            limiter_event: __go_default_27_0,
+            gc_mark_worker_mode: __go_default_28_0,
+            gc_mark_worker_start_time: __go_default_29_0,
+            gcw: __go_default_30_0,
+            wb_buf: __go_default_31_0,
+            run_safe_point_fn: __go_default_32_0,
+            stats_seq: __go_default_33_0,
+            timers: __go_default_34_0,
+            max_stack_scan_delta: __go_default_35_0,
+            scanned_stack_size: __go_default_36_0,
+            scanned_stacks: __go_default_37_0,
+            preempt: __go_default_38_0,
+            gc_stop_time: __go_default_39_0,
+        }
     }
 }
 
@@ -2675,7 +3103,98 @@ impl schedt {
 
 impl Default for schedt {
     fn default() -> Self {
-        Self { goidgen: Arc::new(Mutex::new(Some(Default::default()))), lastpoll: Arc::new(Mutex::new(Some(Default::default()))), poll_until: Arc::new(Mutex::new(Some(Default::default()))), lock: Arc::new(Mutex::new(Some(mutex::default()))), midle: Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0))))))), nmidle: Arc::new(Mutex::new(Some(0))), nmidlelocked: Arc::new(Mutex::new(Some(0))), mnext: Arc::new(Mutex::new(Some(0))), maxmcount: Arc::new(Mutex::new(Some(0))), nmsys: Arc::new(Mutex::new(Some(0))), nmfreed: Arc::new(Mutex::new(Some(0))), ngsys: Arc::new(Mutex::new(Some(Default::default()))), pidle: Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0))))))), npidle: Arc::new(Mutex::new(Some(Default::default()))), nmspinning: Arc::new(Mutex::new(Some(Default::default()))), needspinning: Arc::new(Mutex::new(Some(Default::default()))), runq: Arc::new(Mutex::new(Some(gQueue::default()))), runqsize: Arc::new(Mutex::new(Some(0))), disable: Arc::new(Mutex::new(Some(AnonymousStruct28::default()))), g_free: Arc::new(Mutex::new(Some(AnonymousStruct29::default()))), sudoglock: Arc::new(Mutex::new(Some(mutex::default()))), sudogcache: Arc::new(Mutex::new(None)), deferlock: Arc::new(Mutex::new(Some(mutex::default()))), deferpool: Arc::new(Mutex::new(None)), freem: Arc::new(Mutex::new(None)), gcwaiting: Arc::new(Mutex::new(Some(Default::default()))), stopwait: Arc::new(Mutex::new(Some(0))), stopnote: Arc::new(Mutex::new(Some(note::default()))), sysmonwait: Arc::new(Mutex::new(Some(Default::default()))), sysmonnote: Arc::new(Mutex::new(Some(note::default()))), safe_point_fn: Arc::new(Mutex::new(None)), safe_point_wait: Arc::new(Mutex::new(Some(0))), safe_point_note: Arc::new(Mutex::new(Some(note::default()))), profilehz: Arc::new(Mutex::new(Some(0))), procresizetime: Arc::new(Mutex::new(Some(0))), totaltime: Arc::new(Mutex::new(Some(0))), sysmonlock: Arc::new(Mutex::new(Some(mutex::default()))), time_to_run: Arc::new(Mutex::new(Some(timeHistogram::default()))), idle_time: Arc::new(Mutex::new(Some(Default::default()))), total_mutex_wait_time: Arc::new(Mutex::new(Some(Default::default()))), stw_stopping_time_g_c: Arc::new(Mutex::new(Some(timeHistogram::default()))), stw_stopping_time_other: Arc::new(Mutex::new(Some(timeHistogram::default()))), stw_total_time_g_c: Arc::new(Mutex::new(Some(timeHistogram::default()))), stw_total_time_other: Arc::new(Mutex::new(Some(timeHistogram::default()))), total_runtime_lock_wait_time: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(puintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(gQueue::default())));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(AnonymousStruct28::default())));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(AnonymousStruct29::default())));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_21_0 = Arc::new(Mutex::new(None));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_23_0 = Arc::new(Mutex::new(None));
+        let __go_default_24_0 = Arc::new(Mutex::new(None));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(note::default())));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(note::default())));
+        let __go_default_30_0 = Arc::new(Mutex::new(None));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_32_0 = Arc::new(Mutex::new(Some(note::default())));
+        let __go_default_33_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_34_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_35_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_36_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_37_0 = Arc::new(Mutex::new(Some(timeHistogram::default())));
+        let __go_default_38_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_39_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_40_0 = Arc::new(Mutex::new(Some(timeHistogram::default())));
+        let __go_default_41_0 = Arc::new(Mutex::new(Some(timeHistogram::default())));
+        let __go_default_42_0 = Arc::new(Mutex::new(Some(timeHistogram::default())));
+        let __go_default_43_0 = Arc::new(Mutex::new(Some(timeHistogram::default())));
+        let __go_default_44_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            goidgen: __go_default_0_0,
+            lastpoll: __go_default_1_0,
+            poll_until: __go_default_2_0,
+            lock: __go_default_3_0,
+            midle: __go_default_4_0,
+            nmidle: __go_default_5_0,
+            nmidlelocked: __go_default_6_0,
+            mnext: __go_default_7_0,
+            maxmcount: __go_default_8_0,
+            nmsys: __go_default_9_0,
+            nmfreed: __go_default_10_0,
+            ngsys: __go_default_11_0,
+            pidle: __go_default_12_0,
+            npidle: __go_default_13_0,
+            nmspinning: __go_default_14_0,
+            needspinning: __go_default_15_0,
+            runq: __go_default_16_0,
+            runqsize: __go_default_17_0,
+            disable: __go_default_18_0,
+            g_free: __go_default_19_0,
+            sudoglock: __go_default_20_0,
+            sudogcache: __go_default_21_0,
+            deferlock: __go_default_22_0,
+            deferpool: __go_default_23_0,
+            freem: __go_default_24_0,
+            gcwaiting: __go_default_25_0,
+            stopwait: __go_default_26_0,
+            stopnote: __go_default_27_0,
+            sysmonwait: __go_default_28_0,
+            sysmonnote: __go_default_29_0,
+            safe_point_fn: __go_default_30_0,
+            safe_point_wait: __go_default_31_0,
+            safe_point_note: __go_default_32_0,
+            profilehz: __go_default_33_0,
+            procresizetime: __go_default_34_0,
+            totaltime: __go_default_35_0,
+            sysmonlock: __go_default_36_0,
+            time_to_run: __go_default_37_0,
+            idle_time: __go_default_38_0,
+            total_mutex_wait_time: __go_default_39_0,
+            stw_stopping_time_g_c: __go_default_40_0,
+            stw_stopping_time_other: __go_default_41_0,
+            stw_total_time_g_c: __go_default_42_0,
+            stw_total_time_other: __go_default_43_0,
+            total_runtime_lock_wait_time: __go_default_44_0,
+        }
     }
 }
 
@@ -2802,7 +3321,38 @@ impl _func {
 
 impl Default for _func {
     fn default() -> Self {
-        Self { not_in_heap: Arc::new(Mutex::new(Some(Default::default()))), entry_off: Arc::new(Mutex::new(Some(0))), name_off: Arc::new(Mutex::new(Some(0))), args: Arc::new(Mutex::new(Some(0))), deferreturn: Arc::new(Mutex::new(Some(0))), pcsp: Arc::new(Mutex::new(Some(0))), pcfile: Arc::new(Mutex::new(Some(0))), pcln: Arc::new(Mutex::new(Some(0))), npcdata: Arc::new(Mutex::new(Some(0))), cu_offset: Arc::new(Mutex::new(Some(0))), start_line: Arc::new(Mutex::new(Some(0))), func_i_d: Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0))))))), flag: Arc::new(Mutex::new(Some(internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(0))))))), __blank_13_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), nfuncdata: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            not_in_heap: __go_default_0_0,
+            entry_off: __go_default_1_0,
+            name_off: __go_default_2_0,
+            args: __go_default_3_0,
+            deferreturn: __go_default_4_0,
+            pcsp: __go_default_5_0,
+            pcfile: __go_default_6_0,
+            pcln: __go_default_7_0,
+            npcdata: __go_default_8_0,
+            cu_offset: __go_default_9_0,
+            start_line: __go_default_10_0,
+            func_i_d: __go_default_11_0,
+            flag: __go_default_12_0,
+            __blank_13_0: __go_default_13_0,
+            nfuncdata: __go_default_14_0,
+        }
     }
 }
 
@@ -2873,7 +3423,20 @@ impl funcinl {
 
 impl Default for funcinl {
     fn default() -> Self {
-        Self { ones: Arc::new(Mutex::new(Some(0))), entry: Arc::new(Mutex::new(Some(0))), name: Arc::new(Mutex::new(Some(String::new()))), file: Arc::new(Mutex::new(Some(String::new()))), line: Arc::new(Mutex::new(Some(0))), start_line: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            ones: __go_default_0_0,
+            entry: __go_default_1_0,
+            name: __go_default_2_0,
+            file: __go_default_3_0,
+            line: __go_default_4_0,
+            start_line: __go_default_5_0,
+        }
     }
 }
 
@@ -2923,7 +3486,12 @@ impl lfnode {
 
 impl Default for lfnode {
     fn default() -> Self {
-        Self { next: Arc::new(Mutex::new(Some(0))), pushcnt: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            next: __go_default_0_0,
+            pushcnt: __go_default_1_0,
+        }
     }
 }
 
@@ -2967,7 +3535,14 @@ impl forcegcstate {
 
 impl Default for forcegcstate {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), g: Arc::new(Mutex::new(None)), idle: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            lock: __go_default_0_0,
+            g: __go_default_1_0,
+            idle: __go_default_2_0,
+        }
     }
 }
 
@@ -3032,7 +3607,22 @@ impl _defer {
 
 impl Default for _defer {
     fn default() -> Self {
-        Self { heap: Arc::new(Mutex::new(Some(false))), rangefunc: Arc::new(Mutex::new(Some(false))), sp: Arc::new(Mutex::new(Some(0))), pc: Arc::new(Mutex::new(Some(0))), r#fn: Arc::new(Mutex::new(None)), link: Arc::new(Mutex::new(None)), head: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        let __go_default_6_0 = Arc::new(Mutex::new(None));
+        Self {
+            heap: __go_default_0_0,
+            rangefunc: __go_default_1_0,
+            sp: __go_default_2_0,
+            pc: __go_default_3_0,
+            r#fn: __go_default_4_0,
+            link: __go_default_5_0,
+            head: __go_default_6_0,
+        }
     }
 }
 
@@ -3122,7 +3712,36 @@ impl _panic {
 
 impl Default for _panic {
     fn default() -> Self {
-        Self { argp: Arc::new(Mutex::new(Some(0))), arg: Arc::new(Mutex::new(None)), link: Arc::new(Mutex::new(None)), start_p_c: Arc::new(Mutex::new(Some(0))), start_s_p: Arc::new(Mutex::new(Some(0))), sp: Arc::new(Mutex::new(Some(0))), lr: Arc::new(Mutex::new(Some(0))), fp: Arc::new(Mutex::new(Some(0))), retpc: Arc::new(Mutex::new(Some(0))), defer_bits_ptr: GoPtr::nil(), slots_ptr: Arc::new(Mutex::new(Some(0))), recovered: Arc::new(Mutex::new(Some(false))), goexit: Arc::new(Mutex::new(Some(false))), deferreturn: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = GoPtr::nil();
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            argp: __go_default_0_0,
+            arg: __go_default_1_0,
+            link: __go_default_2_0,
+            start_p_c: __go_default_3_0,
+            start_s_p: __go_default_4_0,
+            sp: __go_default_5_0,
+            lr: __go_default_6_0,
+            fp: __go_default_7_0,
+            retpc: __go_default_8_0,
+            defer_bits_ptr: __go_default_9_0,
+            slots_ptr: __go_default_10_0,
+            recovered: __go_default_11_0,
+            goexit: __go_default_12_0,
+            deferreturn: __go_default_13_0,
+        }
     }
 }
 
@@ -3181,7 +3800,14 @@ impl savedOpenDeferState {
 
 impl Default for savedOpenDeferState {
     fn default() -> Self {
-        Self { retpc: Arc::new(Mutex::new(Some(0))), defer_bits_offset: Arc::new(Mutex::new(Some(0))), slots_offset: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            retpc: __go_default_0_0,
+            defer_bits_offset: __go_default_1_0,
+            slots_offset: __go_default_2_0,
+        }
     }
 }
 
@@ -3227,7 +3853,14 @@ impl ancestorInfo {
 
 impl Default for ancestorInfo {
     fn default() -> Self {
-        Self { pcs: Arc::new(Mutex::new(None)), goid: Arc::new(Mutex::new(Some(0))), gopc: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            pcs: __go_default_0_0,
+            goid: __go_default_1_0,
+            gopc: __go_default_2_0,
+        }
     }
 }
 
@@ -3679,7 +4312,12 @@ impl AnonymousStruct26 {
 
 impl Default for AnonymousStruct26 {
     fn default() -> Self {
-        Self { g_list: Arc::new(Mutex::new(Some(gList::default()))), n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(gList::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            g_list: __go_default_0_0,
+            n: __go_default_1_0,
+        }
     }
 }
 
@@ -3719,7 +4357,12 @@ impl AnonymousStruct27 {
 
 impl Default for AnonymousStruct27 {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil()))));
+        Self {
+            len: __go_default_0_0,
+            buf: __go_default_1_0,
+        }
     }
 }
 
@@ -3762,7 +4405,14 @@ impl AnonymousStruct28 {
 
 impl Default for AnonymousStruct28 {
     fn default() -> Self {
-        Self { user: Arc::new(Mutex::new(Some(false))), runnable: Arc::new(Mutex::new(Some(gQueue::default()))), n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(gQueue::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            user: __go_default_0_0,
+            runnable: __go_default_1_0,
+            n: __go_default_2_0,
+        }
     }
 }
 
@@ -3809,7 +4459,16 @@ impl AnonymousStruct29 {
 
 impl Default for AnonymousStruct29 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), stack: Arc::new(Mutex::new(Some(gList::default()))), no_stack: Arc::new(Mutex::new(Some(gList::default()))), n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(gList::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(gList::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lock: __go_default_0_0,
+            stack: __go_default_1_0,
+            no_stack: __go_default_2_0,
+            n: __go_default_3_0,
+        }
     }
 }
 

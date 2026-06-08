@@ -54,7 +54,20 @@ impl finblock {
 
 impl Default for finblock {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), alllink: Arc::new(Mutex::new(None)), next: Arc::new(Mutex::new(None)), cnt: Arc::new(Mutex::new(Some(0))), __blank_4_0: Arc::new(Mutex::new(Some(0))), fin: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            alllink: __go_default_1_0,
+            next: __go_default_2_0,
+            cnt: __go_default_3_0,
+            __blank_4_0: __go_default_4_0,
+            fin: __go_default_5_0,
+        }
     }
 }
 
@@ -109,7 +122,18 @@ impl finalizer {
 
 impl Default for finalizer {
     fn default() -> Self {
-        Self { r#fn: Arc::new(Mutex::new(None)), arg: Arc::new(Mutex::new(Some(0))), nret: Arc::new(Mutex::new(Some(0))), fint: Arc::new(Mutex::new(None)), ot: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = GoPtr::nil();
+        Self {
+            r#fn: __go_default_0_0,
+            arg: __go_default_1_0,
+            nret: __go_default_2_0,
+            fint: __go_default_3_0,
+            ot: __go_default_4_0,
+        }
     }
 }
 

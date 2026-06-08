@@ -457,7 +457,12 @@ impl Timespec {
 
 impl Default for Timespec {
     fn default() -> Self {
-        Self { sec: Arc::new(Mutex::new(Some(0))), nsec: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            sec: __go_default_0_0,
+            nsec: __go_default_1_0,
+        }
     }
 }
 
@@ -504,7 +509,12 @@ impl Timeval32 {
 
 impl Default for Timeval32 {
     fn default() -> Self {
-        Self { sec: Arc::new(Mutex::new(Some(0))), usec: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            sec: __go_default_0_0,
+            usec: __go_default_1_0,
+        }
     }
 }
 
@@ -551,7 +561,12 @@ impl Rlimit {
 
 impl Default for Rlimit {
     fn default() -> Self {
-        Self { cur: Arc::new(Mutex::new(Some(0))), max: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            cur: __go_default_0_0,
+            max: __go_default_1_0,
+        }
     }
 }
 
@@ -649,7 +664,46 @@ impl Stat_t {
 
 impl Default for Stat_t {
     fn default() -> Self {
-        Self { dev: Arc::new(Mutex::new(Some(0))), mode: Arc::new(Mutex::new(Some(0))), nlink: Arc::new(Mutex::new(Some(0))), ino: Arc::new(Mutex::new(Some(0))), uid: Arc::new(Mutex::new(Some(0))), gid: Arc::new(Mutex::new(Some(0))), rdev: Arc::new(Mutex::new(Some(0))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), atimespec: Arc::new(Mutex::new(Some(Timespec::default()))), mtimespec: Arc::new(Mutex::new(Some(Timespec::default()))), ctimespec: Arc::new(Mutex::new(Some(Timespec::default()))), birthtimespec: Arc::new(Mutex::new(Some(Timespec::default()))), size: Arc::new(Mutex::new(Some(0))), blocks: Arc::new(Mutex::new(Some(0))), blksize: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))), gen: Arc::new(Mutex::new(Some(0))), lspare: Arc::new(Mutex::new(Some(0))), qspare: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(Timespec::default())));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(Timespec::default())));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(Timespec::default())));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(Timespec::default())));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            dev: __go_default_0_0,
+            mode: __go_default_1_0,
+            nlink: __go_default_2_0,
+            ino: __go_default_3_0,
+            uid: __go_default_4_0,
+            gid: __go_default_5_0,
+            rdev: __go_default_6_0,
+            pad_cgo_0: __go_default_7_0,
+            atimespec: __go_default_8_0,
+            mtimespec: __go_default_9_0,
+            ctimespec: __go_default_10_0,
+            birthtimespec: __go_default_11_0,
+            size: __go_default_12_0,
+            blocks: __go_default_13_0,
+            blksize: __go_default_14_0,
+            flags: __go_default_15_0,
+            gen: __go_default_16_0,
+            lspare: __go_default_17_0,
+            qspare: __go_default_18_0,
+        }
     }
 }
 
@@ -767,7 +821,22 @@ impl Dirent {
 
 impl Default for Dirent {
     fn default() -> Self {
-        Self { ino: Arc::new(Mutex::new(Some(0))), seekoff: Arc::new(Mutex::new(Some(0))), reclen: Arc::new(Mutex::new(Some(0))), namlen: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), name: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            ino: __go_default_0_0,
+            seekoff: __go_default_1_0,
+            reclen: __go_default_2_0,
+            namlen: __go_default_3_0,
+            r#type: __go_default_4_0,
+            name: __go_default_5_0,
+            pad_cgo_0: __go_default_6_0,
+        }
     }
 }
 
@@ -843,7 +912,18 @@ impl RawSockaddrInet4 {
 
 impl Default for RawSockaddrInet4 {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), family: Arc::new(Mutex::new(Some(0))), port: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), zero: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            len: __go_default_0_0,
+            family: __go_default_1_0,
+            port: __go_default_2_0,
+            addr: __go_default_3_0,
+            zero: __go_default_4_0,
+        }
     }
 }
 
@@ -914,7 +994,20 @@ impl RawSockaddrInet6 {
 
 impl Default for RawSockaddrInet6 {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), family: Arc::new(Mutex::new(Some(0))), port: Arc::new(Mutex::new(Some(0))), flowinfo: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), scope_id: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            len: __go_default_0_0,
+            family: __go_default_1_0,
+            port: __go_default_2_0,
+            flowinfo: __go_default_3_0,
+            addr: __go_default_4_0,
+            scope_id: __go_default_5_0,
+        }
     }
 }
 
@@ -980,7 +1073,14 @@ impl RawSockaddrUnix {
 
 impl Default for RawSockaddrUnix {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), family: Arc::new(Mutex::new(Some(0))), path: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            len: __go_default_0_0,
+            family: __go_default_1_0,
+            path: __go_default_2_0,
+        }
     }
 }
 
@@ -1049,7 +1149,24 @@ impl RawSockaddrDatalink {
 
 impl Default for RawSockaddrDatalink {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), family: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), nlen: Arc::new(Mutex::new(Some(0))), alen: Arc::new(Mutex::new(Some(0))), slen: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            len: __go_default_0_0,
+            family: __go_default_1_0,
+            index: __go_default_2_0,
+            r#type: __go_default_3_0,
+            nlen: __go_default_4_0,
+            alen: __go_default_5_0,
+            slen: __go_default_6_0,
+            data: __go_default_7_0,
+        }
     }
 }
 
@@ -1123,7 +1240,14 @@ impl RawSockaddr {
 
 impl Default for RawSockaddr {
     fn default() -> Self {
-        Self { len: Arc::new(Mutex::new(Some(0))), family: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            len: __go_default_0_0,
+            family: __go_default_1_0,
+            data: __go_default_2_0,
+        }
     }
 }
 
@@ -1174,7 +1298,12 @@ impl RawSockaddrAny {
 
 impl Default for RawSockaddrAny {
     fn default() -> Self {
-        Self { addr: Arc::new(Mutex::new(Some(RawSockaddr::default()))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(RawSockaddr::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            addr: __go_default_0_0,
+            pad: __go_default_1_0,
+        }
     }
 }
 
@@ -1593,7 +1722,12 @@ impl Linger {
 
 impl Default for Linger {
     fn default() -> Self {
-        Self { onoff: Arc::new(Mutex::new(Some(0))), linger: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            onoff: __go_default_0_0,
+            linger: __go_default_1_0,
+        }
     }
 }
 
@@ -1640,7 +1774,12 @@ impl Iovec {
 
 impl Default for Iovec {
     fn default() -> Self {
-        Self { base: GoPtr::nil(), len: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            base: __go_default_0_0,
+            len: __go_default_1_0,
+        }
     }
 }
 
@@ -1687,7 +1826,12 @@ impl IPMreq {
 
 impl Default for IPMreq {
     fn default() -> Self {
-        Self { multiaddr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), interface: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            multiaddr: __go_default_0_0,
+            interface: __go_default_1_0,
+        }
     }
 }
 
@@ -1734,7 +1878,12 @@ impl IPv6Mreq {
 
 impl Default for IPv6Mreq {
     fn default() -> Self {
-        Self { multiaddr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), interface: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            multiaddr: __go_default_0_0,
+            interface: __go_default_1_0,
+        }
     }
 }
 
@@ -1802,7 +1951,26 @@ impl Msghdr {
 
 impl Default for Msghdr {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(None)), namelen: Arc::new(Mutex::new(Some(0))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), iov: Arc::new(Mutex::new(None)), iovlen: Arc::new(Mutex::new(Some(0))), pad_cgo_1: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), control: GoPtr::nil(), controllen: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_6_0 = GoPtr::nil();
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            namelen: __go_default_1_0,
+            pad_cgo_0: __go_default_2_0,
+            iov: __go_default_3_0,
+            iovlen: __go_default_4_0,
+            pad_cgo_1: __go_default_5_0,
+            control: __go_default_6_0,
+            controllen: __go_default_7_0,
+            flags: __go_default_8_0,
+        }
     }
 }
 
@@ -1892,7 +2060,24 @@ impl IfMsghdr {
 
 impl Default for IfMsghdr {
     fn default() -> Self {
-        Self { msglen: Arc::new(Mutex::new(Some(0))), version: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), addrs: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), data: Arc::new(Mutex::new(Some(IfData::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(IfData::default())));
+        Self {
+            msglen: __go_default_0_0,
+            version: __go_default_1_0,
+            r#type: __go_default_2_0,
+            addrs: __go_default_3_0,
+            flags: __go_default_4_0,
+            index: __go_default_5_0,
+            pad_cgo_0: __go_default_6_0,
+            data: __go_default_7_0,
+        }
     }
 }
 
@@ -2041,7 +2226,66 @@ impl IfData {
 
 impl Default for IfData {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(0))), typelen: Arc::new(Mutex::new(Some(0))), physical: Arc::new(Mutex::new(Some(0))), addrlen: Arc::new(Mutex::new(Some(0))), hdrlen: Arc::new(Mutex::new(Some(0))), recvquota: Arc::new(Mutex::new(Some(0))), xmitquota: Arc::new(Mutex::new(Some(0))), unused1: Arc::new(Mutex::new(Some(0))), mtu: Arc::new(Mutex::new(Some(0))), metric: Arc::new(Mutex::new(Some(0))), baudrate: Arc::new(Mutex::new(Some(0))), ipackets: Arc::new(Mutex::new(Some(0))), ierrors: Arc::new(Mutex::new(Some(0))), opackets: Arc::new(Mutex::new(Some(0))), oerrors: Arc::new(Mutex::new(Some(0))), collisions: Arc::new(Mutex::new(Some(0))), ibytes: Arc::new(Mutex::new(Some(0))), obytes: Arc::new(Mutex::new(Some(0))), imcasts: Arc::new(Mutex::new(Some(0))), omcasts: Arc::new(Mutex::new(Some(0))), iqdrops: Arc::new(Mutex::new(Some(0))), noproto: Arc::new(Mutex::new(Some(0))), recvtiming: Arc::new(Mutex::new(Some(0))), xmittiming: Arc::new(Mutex::new(Some(0))), lastchange: Arc::new(Mutex::new(Some(Timeval32::default()))), unused2: Arc::new(Mutex::new(Some(0))), hwassist: Arc::new(Mutex::new(Some(0))), reserved1: Arc::new(Mutex::new(Some(0))), reserved2: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(Timeval32::default())));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            typelen: __go_default_1_0,
+            physical: __go_default_2_0,
+            addrlen: __go_default_3_0,
+            hdrlen: __go_default_4_0,
+            recvquota: __go_default_5_0,
+            xmitquota: __go_default_6_0,
+            unused1: __go_default_7_0,
+            mtu: __go_default_8_0,
+            metric: __go_default_9_0,
+            baudrate: __go_default_10_0,
+            ipackets: __go_default_11_0,
+            ierrors: __go_default_12_0,
+            opackets: __go_default_13_0,
+            oerrors: __go_default_14_0,
+            collisions: __go_default_15_0,
+            ibytes: __go_default_16_0,
+            obytes: __go_default_17_0,
+            imcasts: __go_default_18_0,
+            omcasts: __go_default_19_0,
+            iqdrops: __go_default_20_0,
+            noproto: __go_default_21_0,
+            recvtiming: __go_default_22_0,
+            xmittiming: __go_default_23_0,
+            lastchange: __go_default_24_0,
+            unused2: __go_default_25_0,
+            hwassist: __go_default_26_0,
+            reserved1: __go_default_27_0,
+            reserved2: __go_default_28_0,
+        }
     }
 }
 
@@ -2211,7 +2455,24 @@ impl IfaMsghdr {
 
 impl Default for IfaMsghdr {
     fn default() -> Self {
-        Self { msglen: Arc::new(Mutex::new(Some(0))), version: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), addrs: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), metric: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            msglen: __go_default_0_0,
+            version: __go_default_1_0,
+            r#type: __go_default_2_0,
+            addrs: __go_default_3_0,
+            flags: __go_default_4_0,
+            index: __go_default_5_0,
+            pad_cgo_0: __go_default_6_0,
+            metric: __go_default_7_0,
+        }
     }
 }
 
@@ -2300,7 +2561,24 @@ impl IfmaMsghdr2 {
 
 impl Default for IfmaMsghdr2 {
     fn default() -> Self {
-        Self { msglen: Arc::new(Mutex::new(Some(0))), version: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), addrs: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), refcount: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            msglen: __go_default_0_0,
+            version: __go_default_1_0,
+            r#type: __go_default_2_0,
+            addrs: __go_default_3_0,
+            flags: __go_default_4_0,
+            index: __go_default_5_0,
+            pad_cgo_0: __go_default_6_0,
+            refcount: __go_default_7_0,
+        }
     }
 }
 
@@ -2404,7 +2682,34 @@ impl RtMsghdr {
 
 impl Default for RtMsghdr {
     fn default() -> Self {
-        Self { msglen: Arc::new(Mutex::new(Some(0))), version: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), pad_cgo_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), flags: Arc::new(Mutex::new(Some(0))), addrs: Arc::new(Mutex::new(Some(0))), pid: Arc::new(Mutex::new(Some(0))), seq: Arc::new(Mutex::new(Some(0))), errno: Arc::new(Mutex::new(Some(0))), r#use: Arc::new(Mutex::new(Some(0))), inits: Arc::new(Mutex::new(Some(0))), rmx: Arc::new(Mutex::new(Some(RtMetrics::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(RtMetrics::default())));
+        Self {
+            msglen: __go_default_0_0,
+            version: __go_default_1_0,
+            r#type: __go_default_2_0,
+            index: __go_default_3_0,
+            pad_cgo_0: __go_default_4_0,
+            flags: __go_default_5_0,
+            addrs: __go_default_6_0,
+            pid: __go_default_7_0,
+            seq: __go_default_8_0,
+            errno: __go_default_9_0,
+            r#use: __go_default_10_0,
+            inits: __go_default_11_0,
+            rmx: __go_default_12_0,
+        }
     }
 }
 
@@ -2519,7 +2824,30 @@ impl RtMetrics {
 
 impl Default for RtMetrics {
     fn default() -> Self {
-        Self { locks: Arc::new(Mutex::new(Some(0))), mtu: Arc::new(Mutex::new(Some(0))), hopcount: Arc::new(Mutex::new(Some(0))), expire: Arc::new(Mutex::new(Some(0))), recvpipe: Arc::new(Mutex::new(Some(0))), sendpipe: Arc::new(Mutex::new(Some(0))), ssthresh: Arc::new(Mutex::new(Some(0))), rtt: Arc::new(Mutex::new(Some(0))), rttvar: Arc::new(Mutex::new(Some(0))), pksent: Arc::new(Mutex::new(Some(0))), filler: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            locks: __go_default_0_0,
+            mtu: __go_default_1_0,
+            hopcount: __go_default_2_0,
+            expire: __go_default_3_0,
+            recvpipe: __go_default_4_0,
+            sendpipe: __go_default_5_0,
+            ssthresh: __go_default_6_0,
+            rtt: __go_default_7_0,
+            rttvar: __go_default_8_0,
+            pksent: __go_default_9_0,
+            filler: __go_default_10_0,
+        }
     }
 }
 

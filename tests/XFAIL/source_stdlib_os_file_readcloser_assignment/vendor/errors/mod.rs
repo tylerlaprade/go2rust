@@ -23,7 +23,10 @@ impl errorString {
 
 impl Default for errorString {
     fn default() -> Self {
-        Self { s: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            s: __go_default_0_0,
+        }
     }
 }
 

@@ -53,7 +53,24 @@ impl rwmutex {
 
 impl Default for rwmutex {
     fn default() -> Self {
-        Self { r_lock: Arc::new(Mutex::new(Some(mutex::default()))), readers: Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0))))))), reader_pass: Arc::new(Mutex::new(Some(0))), w_lock: Arc::new(Mutex::new(Some(mutex::default()))), writer: Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0))))))), reader_count: Arc::new(Mutex::new(Some(Default::default()))), reader_wait: Arc::new(Mutex::new(Some(Default::default()))), read_rank: Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            r_lock: __go_default_0_0,
+            readers: __go_default_1_0,
+            reader_pass: __go_default_2_0,
+            w_lock: __go_default_3_0,
+            writer: __go_default_4_0,
+            reader_count: __go_default_5_0,
+            reader_wait: __go_default_6_0,
+            read_rank: __go_default_7_0,
+        }
     }
 }
 

@@ -469,7 +469,14 @@ impl PathError {
 
 impl Default for PathError {
     fn default() -> Self {
-        Self { op: Arc::new(Mutex::new(Some(String::new()))), path: Arc::new(Mutex::new(Some(String::new()))), err: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            op: __go_default_0_0,
+            path: __go_default_1_0,
+            err: __go_default_2_0,
+        }
     }
 }
 

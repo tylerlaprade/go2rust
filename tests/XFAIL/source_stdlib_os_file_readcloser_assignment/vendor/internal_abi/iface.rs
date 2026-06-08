@@ -38,7 +38,16 @@ impl ITab {
 
 impl Default for ITab {
     fn default() -> Self {
-        Self { inter: GoPtr::nil(), r#type: GoPtr::nil(), hash: Arc::new(Mutex::new(Some(0))), fun: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            inter: __go_default_0_0,
+            r#type: __go_default_1_0,
+            hash: __go_default_2_0,
+            fun: __go_default_3_0,
+        }
     }
 }
 
@@ -90,7 +99,12 @@ impl EmptyInterface {
 
 impl Default for EmptyInterface {
     fn default() -> Self {
-        Self { r#type: GoPtr::nil(), data: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 

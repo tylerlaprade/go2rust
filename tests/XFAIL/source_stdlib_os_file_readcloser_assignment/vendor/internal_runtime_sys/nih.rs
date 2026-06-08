@@ -79,7 +79,10 @@ impl NotInHeap {
 
 impl Default for NotInHeap {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(nih::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(nih::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+        }
     }
 }
 

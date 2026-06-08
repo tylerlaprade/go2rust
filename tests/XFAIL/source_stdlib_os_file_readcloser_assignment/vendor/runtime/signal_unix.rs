@@ -43,7 +43,12 @@ impl sigTabT {
 
 impl Default for sigTabT {
     fn default() -> Self {
-        Self { flags: Arc::new(Mutex::new(Some(0))), name: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            flags: __go_default_0_0,
+            name: __go_default_1_0,
+        }
     }
 }
 
@@ -92,7 +97,16 @@ impl gsignalStack {
 
 impl Default for gsignalStack {
     fn default() -> Self {
-        Self { stack: Arc::new(Mutex::new(Some(stack::default()))), stackguard0: Arc::new(Mutex::new(Some(0))), stackguard1: Arc::new(Mutex::new(Some(0))), stktopsp: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stack::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            stack: __go_default_0_0,
+            stackguard0: __go_default_1_0,
+            stackguard1: __go_default_2_0,
+            stktopsp: __go_default_3_0,
+        }
     }
 }
 

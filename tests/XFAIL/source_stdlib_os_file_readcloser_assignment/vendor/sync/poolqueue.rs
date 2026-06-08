@@ -39,7 +39,12 @@ impl poolDequeue {
 
 impl Default for poolDequeue {
     fn default() -> Self {
-        Self { head_tail: Arc::new(StdMutex::new(Some(Default::default()))), vals: Arc::new(StdMutex::new(None)) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(None));
+        Self {
+            head_tail: __go_default_0_0,
+            vals: __go_default_1_0,
+        }
     }
 }
 
@@ -80,7 +85,12 @@ impl eface {
 
 impl Default for eface {
     fn default() -> Self {
-        Self { typ: Arc::new(StdMutex::new(Some(0))), val: Arc::new(StdMutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(StdMutex::new(Some(0)));
+        Self {
+            typ: __go_default_0_0,
+            val: __go_default_0_1,
+        }
     }
 }
 
@@ -135,7 +145,12 @@ impl poolChain {
 
 impl Default for poolChain {
     fn default() -> Self {
-        Self { head: Arc::new(StdMutex::new(None)), tail: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(None));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            head: __go_default_0_0,
+            tail: __go_default_1_0,
+        }
     }
 }
 
@@ -179,7 +194,14 @@ impl poolChainElt {
 
 impl Default for poolChainElt {
     fn default() -> Self {
-        Self { pool_dequeue: Arc::new(StdMutex::new(Some(poolDequeue::default()))), next: Arc::new(StdMutex::new(Some(Default::default()))), prev: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(poolDequeue::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_1_1 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            pool_dequeue: __go_default_0_0,
+            next: __go_default_1_0,
+            prev: __go_default_1_1,
+        }
     }
 }
 

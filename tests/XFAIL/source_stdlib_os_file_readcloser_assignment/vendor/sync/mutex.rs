@@ -41,7 +41,12 @@ impl Mutex {
 
 impl Default for Mutex {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(StdMutex::new(Some(noCopy::default()))), mu: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            mu: __go_default_1_0,
+        }
     }
 }
 

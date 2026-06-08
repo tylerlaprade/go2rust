@@ -583,7 +583,14 @@ impl Setting {
 
 impl Default for Setting {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), once: Default::default(), setting: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Default::default();
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            name: __go_default_0_0,
+            once: __go_default_1_0,
+            setting: __go_default_2_0,
+        }
     }
 }
 
@@ -629,7 +636,16 @@ impl setting {
 
 impl Default for setting {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(Default::default()))), non_default_once: Default::default(), non_default: Arc::new(Mutex::new(Some(Default::default()))), info: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Default::default();
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = GoPtr::nil();
+        Self {
+            value: __go_default_0_0,
+            non_default_once: __go_default_1_0,
+            non_default: __go_default_2_0,
+            info: __go_default_3_0,
+        }
     }
 }
 
@@ -671,7 +687,12 @@ impl value {
 
 impl Default for value {
     fn default() -> Self {
-        Self { text: Arc::new(Mutex::new(Some(String::new()))), bisect: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            text: __go_default_0_0,
+            bisect: __go_default_1_0,
+        }
     }
 }
 

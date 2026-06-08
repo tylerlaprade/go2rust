@@ -137,7 +137,30 @@ impl profBuf {
 
 impl Default for profBuf {
     fn default() -> Self {
-        Self { r: Arc::new(Mutex::new(Some(profAtomic(Arc::new(Mutex::new(Some(0))))))), w: Arc::new(Mutex::new(Some(profAtomic(Arc::new(Mutex::new(Some(0))))))), overflow: Arc::new(Mutex::new(Some(Default::default()))), overflow_time: Arc::new(Mutex::new(Some(Default::default()))), eof: Arc::new(Mutex::new(Some(Default::default()))), hdrsize: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(None)), tags: Arc::new(Mutex::new(None)), r_next: Arc::new(Mutex::new(Some(profIndex(Arc::new(Mutex::new(Some(0))))))), overflow_buf: Arc::new(Mutex::new(None)), wait: Arc::new(Mutex::new(Some(note::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(profAtomic(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(profAtomic(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        let __go_default_6_0 = Arc::new(Mutex::new(None));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(profIndex(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_8_0 = Arc::new(Mutex::new(None));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(note::default())));
+        Self {
+            r: __go_default_0_0,
+            w: __go_default_0_1,
+            overflow: __go_default_1_0,
+            overflow_time: __go_default_2_0,
+            eof: __go_default_3_0,
+            hdrsize: __go_default_4_0,
+            data: __go_default_5_0,
+            tags: __go_default_6_0,
+            r_next: __go_default_7_0,
+            overflow_buf: __go_default_8_0,
+            wait: __go_default_9_0,
+        }
     }
 }
 

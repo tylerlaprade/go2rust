@@ -453,7 +453,32 @@ impl pageAlloc {
 
 impl Default for pageAlloc {
     fn default() -> Self {
-        Self { summary: Arc::new(Mutex::new(Some(std::array::from_fn(|_| vec![])))), chunks: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), search_addr: Arc::new(Mutex::new(Some(offAddr::default()))), start: Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(0))))))), end: Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(0))))))), in_use: Arc::new(Mutex::new(Some(addrRanges::default()))), scav: Arc::new(Mutex::new(Some(AnonymousStruct15::default()))), mheap_lock: Arc::new(Mutex::new(None)), sys_stat: Arc::new(Mutex::new(None)), summary_mapped_ready: Arc::new(Mutex::new(Some(0))), chunk_huge_pages: Arc::new(Mutex::new(Some(false))), test: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| vec![]))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(offAddr::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_1 = Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(addrRanges::default())));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(AnonymousStruct15::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(None));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            summary: __go_default_0_0,
+            chunks: __go_default_1_0,
+            search_addr: __go_default_2_0,
+            start: __go_default_3_0,
+            end: __go_default_3_1,
+            in_use: __go_default_4_0,
+            scav: __go_default_5_0,
+            mheap_lock: __go_default_6_0,
+            sys_stat: __go_default_7_0,
+            summary_mapped_ready: __go_default_8_0,
+            chunk_huge_pages: __go_default_9_0,
+            test: __go_default_10_0,
+        }
     }
 }
 
@@ -1858,7 +1883,12 @@ impl AnonymousStruct20 {
 
 impl Default for AnonymousStruct20 {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(Some(offAddr::default()))), bound: Arc::new(Mutex::new(Some(offAddr::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(offAddr::default())));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(offAddr::default())));
+        Self {
+            base: __go_default_0_0,
+            bound: __go_default_0_1,
+        }
     }
 }
 

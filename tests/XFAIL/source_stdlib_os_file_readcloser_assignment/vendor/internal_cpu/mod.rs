@@ -26,7 +26,10 @@ impl CacheLinePad {
 
 impl Default for CacheLinePad {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+        }
     }
 }
 
@@ -73,7 +76,16 @@ impl option {
 
 impl Default for option {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), feature: Arc::new(Mutex::new(None)), specified: Arc::new(Mutex::new(Some(false))), enable: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            name: __go_default_0_0,
+            feature: __go_default_1_0,
+            specified: __go_default_2_0,
+            enable: __go_default_3_0,
+        }
     }
 }
 
@@ -245,7 +257,54 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_a_e_s: Arc::new(Mutex::new(Some(false))), has_a_d_x: Arc::new(Mutex::new(Some(false))), has_a_v_x: Arc::new(Mutex::new(Some(false))), has_a_v_x2: Arc::new(Mutex::new(Some(false))), has_a_v_x512_f: Arc::new(Mutex::new(Some(false))), has_a_v_x512_b_w: Arc::new(Mutex::new(Some(false))), has_a_v_x512_v_l: Arc::new(Mutex::new(Some(false))), has_b_m_i1: Arc::new(Mutex::new(Some(false))), has_b_m_i2: Arc::new(Mutex::new(Some(false))), has_e_r_m_s: Arc::new(Mutex::new(Some(false))), has_f_s_r_m: Arc::new(Mutex::new(Some(false))), has_f_m_a: Arc::new(Mutex::new(Some(false))), has_o_s_x_s_a_v_e: Arc::new(Mutex::new(Some(false))), has_p_c_l_m_u_l_q_d_q: Arc::new(Mutex::new(Some(false))), has_p_o_p_c_n_t: Arc::new(Mutex::new(Some(false))), has_r_d_t_s_c_p: Arc::new(Mutex::new(Some(false))), has_s_h_a: Arc::new(Mutex::new(Some(false))), has_s_s_e3: Arc::new(Mutex::new(Some(false))), has_s_s_s_e3: Arc::new(Mutex::new(Some(false))), has_s_s_e41: Arc::new(Mutex::new(Some(false))), has_s_s_e42: Arc::new(Mutex::new(Some(false))), __blank_22_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_a_e_s: __go_default_1_0,
+            has_a_d_x: __go_default_2_0,
+            has_a_v_x: __go_default_3_0,
+            has_a_v_x2: __go_default_4_0,
+            has_a_v_x512_f: __go_default_5_0,
+            has_a_v_x512_b_w: __go_default_6_0,
+            has_a_v_x512_v_l: __go_default_7_0,
+            has_b_m_i1: __go_default_8_0,
+            has_b_m_i2: __go_default_9_0,
+            has_e_r_m_s: __go_default_10_0,
+            has_f_s_r_m: __go_default_11_0,
+            has_f_m_a: __go_default_12_0,
+            has_o_s_x_s_a_v_e: __go_default_13_0,
+            has_p_c_l_m_u_l_q_d_q: __go_default_14_0,
+            has_p_o_p_c_n_t: __go_default_15_0,
+            has_r_d_t_s_c_p: __go_default_16_0,
+            has_s_h_a: __go_default_17_0,
+            has_s_s_e3: __go_default_18_0,
+            has_s_s_s_e3: __go_default_19_0,
+            has_s_s_e41: __go_default_20_0,
+            has_s_s_e42: __go_default_21_0,
+            __blank_22_0: __go_default_22_0,
+        }
     }
 }
 
@@ -378,7 +437,18 @@ impl AnonymousStruct2 {
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_v_f_pv4: Arc::new(Mutex::new(Some(false))), has_i_d_i_v_a: Arc::new(Mutex::new(Some(false))), has_v7_atomics: Arc::new(Mutex::new(Some(false))), __blank_4_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_v_f_pv4: __go_default_1_0,
+            has_i_d_i_v_a: __go_default_2_0,
+            has_v7_atomics: __go_default_3_0,
+            __blank_4_0: __go_default_4_0,
+        }
     }
 }
 
@@ -460,7 +530,32 @@ impl AnonymousStruct3 {
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_a_e_s: Arc::new(Mutex::new(Some(false))), has_p_m_u_l_l: Arc::new(Mutex::new(Some(false))), has_s_h_a1: Arc::new(Mutex::new(Some(false))), has_s_h_a2: Arc::new(Mutex::new(Some(false))), has_s_h_a512: Arc::new(Mutex::new(Some(false))), has_c_r_c32: Arc::new(Mutex::new(Some(false))), has_a_t_o_m_i_c_s: Arc::new(Mutex::new(Some(false))), has_c_p_u_i_d: Arc::new(Mutex::new(Some(false))), has_d_i_t: Arc::new(Mutex::new(Some(false))), is_neoverse: Arc::new(Mutex::new(Some(false))), __blank_11_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_a_e_s: __go_default_1_0,
+            has_p_m_u_l_l: __go_default_2_0,
+            has_s_h_a1: __go_default_3_0,
+            has_s_h_a2: __go_default_4_0,
+            has_s_h_a512: __go_default_5_0,
+            has_c_r_c32: __go_default_6_0,
+            has_a_t_o_m_i_c_s: __go_default_7_0,
+            has_c_p_u_i_d: __go_default_8_0,
+            has_d_i_t: __go_default_9_0,
+            is_neoverse: __go_default_10_0,
+            __blank_11_0: __go_default_11_0,
+        }
     }
 }
 
@@ -552,7 +647,20 @@ impl AnonymousStruct4 {
 
 impl Default for AnonymousStruct4 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_l_s_x: Arc::new(Mutex::new(Some(false))), has_c_r_c32: Arc::new(Mutex::new(Some(false))), has_l_a_m_c_a_s: Arc::new(Mutex::new(Some(false))), has_l_a_m__b_h: Arc::new(Mutex::new(Some(false))), __blank_5_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_l_s_x: __go_default_1_0,
+            has_c_r_c32: __go_default_2_0,
+            has_l_a_m_c_a_s: __go_default_3_0,
+            has_l_a_m__b_h: __go_default_4_0,
+            __blank_5_0: __go_default_5_0,
+        }
     }
 }
 
@@ -611,7 +719,14 @@ impl AnonymousStruct5 {
 
 impl Default for AnonymousStruct5 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_m_s_a: Arc::new(Mutex::new(Some(false))), __blank_2_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_m_s_a: __go_default_1_0,
+            __blank_2_0: __go_default_2_0,
+        }
     }
 }
 
@@ -670,7 +785,22 @@ impl AnonymousStruct6 {
 
 impl Default for AnonymousStruct6 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_d_a_r_n: Arc::new(Mutex::new(Some(false))), has_s_c_v: Arc::new(Mutex::new(Some(false))), is_p_o_w_e_r8: Arc::new(Mutex::new(Some(false))), is_p_o_w_e_r9: Arc::new(Mutex::new(Some(false))), is_p_o_w_e_r10: Arc::new(Mutex::new(Some(false))), __blank_6_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_d_a_r_n: __go_default_1_0,
+            has_s_c_v: __go_default_2_0,
+            is_p_o_w_e_r8: __go_default_3_0,
+            is_p_o_w_e_r9: __go_default_4_0,
+            is_p_o_w_e_r10: __go_default_5_0,
+            __blank_6_0: __go_default_6_0,
+        }
     }
 }
 
@@ -793,7 +923,54 @@ impl AnonymousStruct7 {
 
 impl Default for AnonymousStruct7 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_z_a_r_c_h: Arc::new(Mutex::new(Some(false))), has_s_t_f_l_e: Arc::new(Mutex::new(Some(false))), has_l_d_i_s_p: Arc::new(Mutex::new(Some(false))), has_e_i_m_m: Arc::new(Mutex::new(Some(false))), has_d_f_p: Arc::new(Mutex::new(Some(false))), has_e_t_f3_e_h: Arc::new(Mutex::new(Some(false))), has_m_s_a: Arc::new(Mutex::new(Some(false))), has_a_e_s: Arc::new(Mutex::new(Some(false))), has_a_e_s_c_b_c: Arc::new(Mutex::new(Some(false))), has_a_e_s_c_t_r: Arc::new(Mutex::new(Some(false))), has_a_e_s_g_c_m: Arc::new(Mutex::new(Some(false))), has_g_h_a_s_h: Arc::new(Mutex::new(Some(false))), has_s_h_a1: Arc::new(Mutex::new(Some(false))), has_s_h_a256: Arc::new(Mutex::new(Some(false))), has_s_h_a512: Arc::new(Mutex::new(Some(false))), has_s_h_a3: Arc::new(Mutex::new(Some(false))), has_v_x: Arc::new(Mutex::new(Some(false))), has_v_x_e: Arc::new(Mutex::new(Some(false))), has_k_d_s_a: Arc::new(Mutex::new(Some(false))), has_e_c_d_s_a: Arc::new(Mutex::new(Some(false))), has_e_d_d_s_a: Arc::new(Mutex::new(Some(false))), __blank_22_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_z_a_r_c_h: __go_default_1_0,
+            has_s_t_f_l_e: __go_default_2_0,
+            has_l_d_i_s_p: __go_default_3_0,
+            has_e_i_m_m: __go_default_4_0,
+            has_d_f_p: __go_default_5_0,
+            has_e_t_f3_e_h: __go_default_6_0,
+            has_m_s_a: __go_default_7_0,
+            has_a_e_s: __go_default_8_0,
+            has_a_e_s_c_b_c: __go_default_9_0,
+            has_a_e_s_c_t_r: __go_default_10_0,
+            has_a_e_s_g_c_m: __go_default_11_0,
+            has_g_h_a_s_h: __go_default_12_0,
+            has_s_h_a1: __go_default_13_0,
+            has_s_h_a256: __go_default_14_0,
+            has_s_h_a512: __go_default_15_0,
+            has_s_h_a3: __go_default_16_0,
+            has_v_x: __go_default_17_0,
+            has_v_x_e: __go_default_18_0,
+            has_k_d_s_a: __go_default_19_0,
+            has_e_c_d_s_a: __go_default_20_0,
+            has_e_d_d_s_a: __go_default_21_0,
+            __blank_22_0: __go_default_22_0,
+        }
     }
 }
 

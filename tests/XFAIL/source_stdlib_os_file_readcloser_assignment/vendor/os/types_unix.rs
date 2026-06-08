@@ -38,7 +38,18 @@ impl fileStat {
 
 impl Default for fileStat {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), size: Arc::new(Mutex::new(Some(0))), mode: Arc::new(Mutex::new(Some(io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0))))))), mod_time: Arc::new(Mutex::new(Some(Default::default()))), sys: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            name: __go_default_0_0,
+            size: __go_default_1_0,
+            mode: __go_default_2_0,
+            mod_time: __go_default_3_0,
+            sys: __go_default_4_0,
+        }
     }
 }
 

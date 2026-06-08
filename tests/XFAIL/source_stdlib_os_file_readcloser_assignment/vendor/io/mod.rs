@@ -215,7 +215,12 @@ impl LimitedReader {
 
 impl Default for LimitedReader {
     fn default() -> Self {
-        Self { r: Arc::new(Mutex::new(None)), n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r: __go_default_0_0,
+            n: __go_default_1_0,
+        }
     }
 }
 

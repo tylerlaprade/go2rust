@@ -41,7 +41,14 @@ impl Once {
 
 impl Default for Once {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(StdMutex::new(Some(noCopy::default()))), done: Arc::new(StdMutex::new(Some(Default::default()))), m: Arc::new(StdMutex::new(Some(Mutex::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            done: __go_default_1_0,
+            m: __go_default_2_0,
+        }
     }
 }
 

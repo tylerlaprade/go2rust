@@ -37,7 +37,12 @@ impl Mutex {
 
 impl Default for Mutex {
     fn default() -> Self {
-        Self { state: Arc::new(StdMutex::new(Some(0))), sema: Arc::new(StdMutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        Self {
+            state: __go_default_0_0,
+            sema: __go_default_1_0,
+        }
     }
 }
 

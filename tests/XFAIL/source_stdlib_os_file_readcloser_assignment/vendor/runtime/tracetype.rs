@@ -26,7 +26,10 @@ impl traceTypeTable {
 
 impl Default for traceTypeTable {
     fn default() -> Self {
-        Self { tab: Arc::new(Mutex::new(Some(traceMap::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(traceMap::default())));
+        Self {
+            tab: __go_default_0_0,
+        }
     }
 }
 

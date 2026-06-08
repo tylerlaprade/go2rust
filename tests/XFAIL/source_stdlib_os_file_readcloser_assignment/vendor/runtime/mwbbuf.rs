@@ -44,7 +44,14 @@ impl wbBuf {
 
 impl Default for wbBuf {
     fn default() -> Self {
-        Self { next: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            next: __go_default_0_0,
+            end: __go_default_1_0,
+            buf: __go_default_2_0,
+        }
     }
 }
 

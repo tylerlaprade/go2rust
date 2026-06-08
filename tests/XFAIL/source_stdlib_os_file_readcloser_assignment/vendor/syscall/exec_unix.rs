@@ -36,7 +36,16 @@ impl Credential {
 
 impl Default for Credential {
     fn default() -> Self {
-        Self { uid: Arc::new(Mutex::new(Some(0))), gid: Arc::new(Mutex::new(Some(0))), groups: Arc::new(Mutex::new(None)), no_set_groups: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            uid: __go_default_0_0,
+            gid: __go_default_1_0,
+            groups: __go_default_2_0,
+            no_set_groups: __go_default_3_0,
+        }
     }
 }
 
@@ -99,7 +108,16 @@ impl ProcAttr {
 
 impl Default for ProcAttr {
     fn default() -> Self {
-        Self { dir: Arc::new(Mutex::new(Some(String::new()))), env: Arc::new(Mutex::new(None)), files: Arc::new(Mutex::new(None)), sys: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        Self {
+            dir: __go_default_0_0,
+            env: __go_default_1_0,
+            files: __go_default_2_0,
+            sys: __go_default_3_0,
+        }
     }
 }
 

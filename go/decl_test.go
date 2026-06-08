@@ -1207,6 +1207,40 @@ func use(values []Alias) Alias {
 	}
 }
 
+func TestStructDefaultBuildsFieldsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type defaults struct {
+	a int
+	b string
+	next *defaults
+	values []int
+	flags [2]bool
+}
+
+func use() defaults {
+	go func() {}()
+	return defaults{}
+}
+`)
+
+	if strings.Contains(rust, "Self { a: Arc::new(Mutex::new(Some(0))), b:") {
+		t.Fatalf("struct Default should not embed every field expression in one struct literal:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));",
+		"let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));",
+		"let __go_default_2_0 = Arc::new(Mutex::new(None));",
+		"let __go_default_3_0 = Arc::new(Mutex::new(None));",
+		"let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| false))));",
+		"Self {\n            a: __go_default_0_0,\n            b: __go_default_1_0,\n            next: __go_default_2_0,\n            values: __go_default_3_0,\n            flags: __go_default_4_0,\n        }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("struct Default should build field values with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestStructDefaultUsesBareDefaultForChannelField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1224,7 +1258,8 @@ func zero() worker {
 		strings.Contains(rust, "done: Arc::new(Mutex::new(None))") {
 		t.Fatalf("struct Default should not wrap channel fields in Option handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "done: Default::default()") {
+	if !strings.Contains(rust, "let __go_default_0_0 = Default::default();") ||
+		!strings.Contains(rust, "done: __go_default_0_0") {
 		t.Fatalf("struct Default should use the channel default directly:\n%s", rust)
 	}
 }
@@ -2131,8 +2166,11 @@ type RegArgs struct {
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
 
-	if !strings.Contains(rust, "return_is_ptr: Rc::new(RefCell::new(Some(Bitmap(") &&
-		!strings.Contains(rust, "return_is_ptr: Arc::new(Mutex::new(Some(Bitmap(") {
+	if !strings.Contains(rust, "let __go_default_0_0 = Rc::new(RefCell::new(Some(Bitmap(") &&
+		!strings.Contains(rust, "let __go_default_0_0 = Arc::new(Mutex::new(Some(Bitmap(") {
+		t.Fatalf("named array field default should construct the named type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return_is_ptr: __go_default_0_0") {
 		t.Fatalf("named array field default should construct the named type:\n%s", rust)
 	}
 	if !strings.Contains(rust, "impl Display for Bitmap") || !strings.Contains(rust, "format_slice(&self.0)") {
@@ -2239,8 +2277,11 @@ type graphNode struct {
 	if !strings.Contains(rust, "impl Default for graphNode") {
 		t.Fatalf("named map field default should emit a custom Default impl:\n%s", rust)
 	}
-	if !strings.Contains(rust, "succ: Rc::new(RefCell::new(Some(nodeSet::default())))") &&
-		!strings.Contains(rust, "succ: Arc::new(Mutex::new(Some(nodeSet::default())))") {
+	if !strings.Contains(rust, "let __go_default_0_0 = Rc::new(RefCell::new(Some(nodeSet::default())));") &&
+		!strings.Contains(rust, "let __go_default_0_0 = Arc::new(Mutex::new(Some(nodeSet::default())));") {
+		t.Fatalf("named map field default should construct the named map value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "succ: __go_default_0_0") {
 		t.Fatalf("named map field default should construct the named map value:\n%s", rust)
 	}
 }
@@ -2376,7 +2417,8 @@ func assign(c *liveUserArenaChunk, addr uintptr) {
 	if !strings.Contains(rust, "pub mspan: GoPtr<mspan>") {
 		t.Fatalf("pointer field assigned a GoPtr value should emit GoPtr storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Self { mspan: GoPtr::nil(), x:") {
+	if !strings.Contains(rust, "let __go_default_0_0 = GoPtr::nil();") ||
+		!strings.Contains(rust, "mspan: __go_default_0_0") {
 		t.Fatalf("custom Default should initialize generated GoPtr fields with GoPtr::nil():\n%s", rust)
 	}
 	if strings.Contains(rust, "self.mspan.borrow()") || strings.Contains(rust, "self.mspan.lock()") {

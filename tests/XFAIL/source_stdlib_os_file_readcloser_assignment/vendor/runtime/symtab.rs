@@ -39,7 +39,16 @@ impl Frames {
 
 impl Default for Frames {
     fn default() -> Self {
-        Self { callers: Arc::new(Mutex::new(None)), next_p_c: Arc::new(Mutex::new(Some(0))), frames: Arc::new(Mutex::new(None)), frame_store: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            callers: __go_default_0_0,
+            next_p_c: __go_default_1_0,
+            frames: __go_default_2_0,
+            frame_store: __go_default_3_0,
+        }
     }
 }
 
@@ -101,7 +110,24 @@ impl Frame {
 
 impl Default for Frame {
     fn default() -> Self {
-        Self { p_c: Arc::new(Mutex::new(Some(0))), func: GoPtr::nil(), function: Arc::new(Mutex::new(Some(String::new()))), file: Arc::new(Mutex::new(Some(String::new()))), line: Arc::new(Mutex::new(Some(0))), start_line: Arc::new(Mutex::new(Some(0))), entry: Arc::new(Mutex::new(Some(0))), func_info: Arc::new(Mutex::new(Some(funcInfo::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(funcInfo::default())));
+        Self {
+            p_c: __go_default_0_0,
+            func: __go_default_1_0,
+            function: __go_default_2_0,
+            file: __go_default_3_0,
+            line: __go_default_4_0,
+            start_line: __go_default_5_0,
+            entry: __go_default_6_0,
+            func_info: __go_default_7_0,
+        }
     }
 }
 
@@ -161,7 +187,10 @@ impl Func {
 
 impl Default for Func {
     fn default() -> Self {
-        Self { opaque: Arc::new(Mutex::new(Some(AnonymousStruct12::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(AnonymousStruct12::default())));
+        Self {
+            opaque: __go_default_0_0,
+        }
     }
 }
 
@@ -235,7 +264,34 @@ impl pcHeader {
 
 impl Default for pcHeader {
     fn default() -> Self {
-        Self { magic: Arc::new(Mutex::new(Some(0))), pad1: Arc::new(Mutex::new(Some(0))), pad2: Arc::new(Mutex::new(Some(0))), min_l_c: Arc::new(Mutex::new(Some(0))), ptr_size: Arc::new(Mutex::new(Some(0))), nfunc: Arc::new(Mutex::new(Some(0))), nfiles: Arc::new(Mutex::new(Some(0))), text_start: Arc::new(Mutex::new(Some(0))), funcname_offset: Arc::new(Mutex::new(Some(0))), cu_offset: Arc::new(Mutex::new(Some(0))), filetab_offset: Arc::new(Mutex::new(Some(0))), pctab_offset: Arc::new(Mutex::new(Some(0))), pcln_offset: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            magic: __go_default_0_0,
+            pad1: __go_default_1_0,
+            pad2: __go_default_1_1,
+            min_l_c: __go_default_2_0,
+            ptr_size: __go_default_3_0,
+            nfunc: __go_default_4_0,
+            nfiles: __go_default_5_0,
+            text_start: __go_default_6_0,
+            funcname_offset: __go_default_7_0,
+            cu_offset: __go_default_8_0,
+            filetab_offset: __go_default_9_0,
+            pctab_offset: __go_default_10_0,
+            pcln_offset: __go_default_11_0,
+        }
     }
 }
 
@@ -421,7 +477,98 @@ impl moduledata {
 
 impl Default for moduledata {
     fn default() -> Self {
-        Self { not_in_heap: Arc::new(Mutex::new(Some(Default::default()))), pc_header: Arc::new(Mutex::new(None)), funcnametab: Arc::new(Mutex::new(None)), cutab: Arc::new(Mutex::new(None)), filetab: Arc::new(Mutex::new(None)), pctab: Arc::new(Mutex::new(None)), pclntable: Arc::new(Mutex::new(None)), ftab: Arc::new(Mutex::new(None)), findfunctab: Arc::new(Mutex::new(Some(0))), minpc: Arc::new(Mutex::new(Some(0))), maxpc: Arc::new(Mutex::new(Some(0))), text: Arc::new(Mutex::new(Some(0))), etext: Arc::new(Mutex::new(Some(0))), noptrdata: Arc::new(Mutex::new(Some(0))), enoptrdata: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(Some(0))), edata: Arc::new(Mutex::new(Some(0))), bss: Arc::new(Mutex::new(Some(0))), ebss: Arc::new(Mutex::new(Some(0))), noptrbss: Arc::new(Mutex::new(Some(0))), enoptrbss: Arc::new(Mutex::new(Some(0))), covctrs: Arc::new(Mutex::new(Some(0))), ecovctrs: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))), gcdata: Arc::new(Mutex::new(Some(0))), gcbss: Arc::new(Mutex::new(Some(0))), types: Arc::new(Mutex::new(Some(0))), etypes: Arc::new(Mutex::new(Some(0))), rodata: Arc::new(Mutex::new(Some(0))), gofunc: Arc::new(Mutex::new(Some(0))), textsectmap: Arc::new(Mutex::new(None)), typelinks: Arc::new(Mutex::new(None)), itablinks: Arc::new(Mutex::new(None)), ptab: Arc::new(Mutex::new(None)), pluginpath: Arc::new(Mutex::new(Some(String::new()))), pkghashes: Arc::new(Mutex::new(None)), inittasks: Arc::new(Mutex::new(None)), modulename: Arc::new(Mutex::new(Some(String::new()))), modulehashes: Arc::new(Mutex::new(None)), hasmain: Arc::new(Mutex::new(Some(0))), bad: Arc::new(Mutex::new(Some(false))), gcdatamask: Arc::new(Mutex::new(Some(bitvector::default()))), gcbssmask: Arc::new(Mutex::new(Some(bitvector::default()))), typemap: Arc::new(Mutex::new(None)), next: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        let __go_default_6_0 = Arc::new(Mutex::new(None));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_20_0 = Arc::new(Mutex::new(None));
+        let __go_default_21_0 = Arc::new(Mutex::new(None));
+        let __go_default_22_0 = Arc::new(Mutex::new(None));
+        let __go_default_23_0 = Arc::new(Mutex::new(None));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_25_0 = Arc::new(Mutex::new(None));
+        let __go_default_26_0 = Arc::new(Mutex::new(None));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_28_0 = Arc::new(Mutex::new(None));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(bitvector::default())));
+        let __go_default_31_1 = Arc::new(Mutex::new(Some(bitvector::default())));
+        let __go_default_32_0 = Arc::new(Mutex::new(None));
+        let __go_default_33_0 = Arc::new(Mutex::new(None));
+        Self {
+            not_in_heap: __go_default_0_0,
+            pc_header: __go_default_1_0,
+            funcnametab: __go_default_2_0,
+            cutab: __go_default_3_0,
+            filetab: __go_default_4_0,
+            pctab: __go_default_5_0,
+            pclntable: __go_default_6_0,
+            ftab: __go_default_7_0,
+            findfunctab: __go_default_8_0,
+            minpc: __go_default_9_0,
+            maxpc: __go_default_9_1,
+            text: __go_default_10_0,
+            etext: __go_default_10_1,
+            noptrdata: __go_default_11_0,
+            enoptrdata: __go_default_11_1,
+            data: __go_default_12_0,
+            edata: __go_default_12_1,
+            bss: __go_default_13_0,
+            ebss: __go_default_13_1,
+            noptrbss: __go_default_14_0,
+            enoptrbss: __go_default_14_1,
+            covctrs: __go_default_15_0,
+            ecovctrs: __go_default_15_1,
+            end: __go_default_16_0,
+            gcdata: __go_default_16_1,
+            gcbss: __go_default_16_2,
+            types: __go_default_17_0,
+            etypes: __go_default_17_1,
+            rodata: __go_default_18_0,
+            gofunc: __go_default_19_0,
+            textsectmap: __go_default_20_0,
+            typelinks: __go_default_21_0,
+            itablinks: __go_default_22_0,
+            ptab: __go_default_23_0,
+            pluginpath: __go_default_24_0,
+            pkghashes: __go_default_25_0,
+            inittasks: __go_default_26_0,
+            modulename: __go_default_27_0,
+            modulehashes: __go_default_28_0,
+            hasmain: __go_default_29_0,
+            bad: __go_default_30_0,
+            gcdatamask: __go_default_31_0,
+            gcbssmask: __go_default_31_1,
+            typemap: __go_default_32_0,
+            next: __go_default_33_0,
+        }
     }
 }
 
@@ -520,7 +667,14 @@ impl modulehash {
 
 impl Default for modulehash {
     fn default() -> Self {
-        Self { modulename: Arc::new(Mutex::new(Some(String::new()))), linktimehash: Arc::new(Mutex::new(Some(String::new()))), runtimehash: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            modulename: __go_default_0_0,
+            linktimehash: __go_default_1_0,
+            runtimehash: __go_default_2_0,
+        }
     }
 }
 
@@ -562,7 +716,12 @@ impl functab {
 
 impl Default for functab {
     fn default() -> Self {
-        Self { entryoff: Arc::new(Mutex::new(Some(0))), funcoff: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            entryoff: __go_default_0_0,
+            funcoff: __go_default_1_0,
+        }
     }
 }
 
@@ -606,7 +765,14 @@ impl textsect {
 
 impl Default for textsect {
     fn default() -> Self {
-        Self { vaddr: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))), baseaddr: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            vaddr: __go_default_0_0,
+            end: __go_default_1_0,
+            baseaddr: __go_default_2_0,
+        }
     }
 }
 
@@ -656,7 +822,12 @@ impl findfuncbucket {
 
 impl Default for findfuncbucket {
     fn default() -> Self {
-        Self { idx: Arc::new(Mutex::new(Some(0))), subbuckets: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            idx: __go_default_0_0,
+            subbuckets: __go_default_1_0,
+        }
     }
 }
 
@@ -740,7 +911,16 @@ impl srcFunc {
 
 impl Default for srcFunc {
     fn default() -> Self {
-        Self { datap: Arc::new(Mutex::new(None)), name_off: Arc::new(Mutex::new(Some(0))), start_line: Arc::new(Mutex::new(Some(0))), func_i_d: Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            datap: __go_default_0_0,
+            name_off: __go_default_1_0,
+            start_line: __go_default_2_0,
+            func_i_d: __go_default_3_0,
+        }
     }
 }
 
@@ -783,7 +963,12 @@ impl pcvalueCache {
 
 impl Default for pcvalueCache {
     fn default() -> Self {
-        Self { entries: Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| Default::default()))))), in_use: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| Default::default())))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            entries: __go_default_0_0,
+            in_use: __go_default_1_0,
+        }
     }
 }
 
@@ -830,7 +1015,16 @@ impl pcvalueCacheEnt {
 
 impl Default for pcvalueCacheEnt {
     fn default() -> Self {
-        Self { targetpc: Arc::new(Mutex::new(Some(0))), off: Arc::new(Mutex::new(Some(0))), val: Arc::new(Mutex::new(Some(0))), val_p_c: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            targetpc: __go_default_0_0,
+            off: __go_default_1_0,
+            val: __go_default_2_0,
+            val_p_c: __go_default_3_0,
+        }
     }
 }
 
@@ -876,7 +1070,14 @@ impl stackmap {
 
 impl Default for stackmap {
     fn default() -> Self {
-        Self { n: Arc::new(Mutex::new(Some(0))), nbit: Arc::new(Mutex::new(Some(0))), bytedata: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            n: __go_default_0_0,
+            nbit: __go_default_1_0,
+            bytedata: __go_default_2_0,
+        }
     }
 }
 

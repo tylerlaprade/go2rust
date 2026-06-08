@@ -55,7 +55,12 @@ impl Map {
 
 impl Default for Map {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(StdMutex::new(Some(noCopy::default()))), m: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            m: __go_default_1_0,
+        }
     }
 }
 

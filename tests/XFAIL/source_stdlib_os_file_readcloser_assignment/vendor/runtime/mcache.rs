@@ -57,7 +57,28 @@ impl mcache {
 
 impl Default for mcache {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next_sample: Arc::new(Mutex::new(Some(0))), mem_prof_rate: Arc::new(Mutex::new(Some(0))), scan_alloc: Arc::new(Mutex::new(Some(0))), tiny: Arc::new(Mutex::new(Some(0))), tinyoffset: Arc::new(Mutex::new(Some(0))), tiny_allocs: Arc::new(Mutex::new(Some(0))), alloc: Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil())))), stackcache: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), flush_gen: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil()))));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            next_sample: __go_default_1_0,
+            mem_prof_rate: __go_default_2_0,
+            scan_alloc: __go_default_3_0,
+            tiny: __go_default_4_0,
+            tinyoffset: __go_default_5_0,
+            tiny_allocs: __go_default_6_0,
+            alloc: __go_default_7_0,
+            stackcache: __go_default_8_0,
+            flush_gen: __go_default_9_0,
+        }
     }
 }
 
@@ -109,7 +130,10 @@ impl gclink {
 
 impl Default for gclink {
     fn default() -> Self {
-        Self { next: Arc::new(Mutex::new(Some(gclinkptr(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(gclinkptr(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            next: __go_default_0_0,
+        }
     }
 }
 
@@ -526,7 +550,12 @@ impl stackfreelist {
 
 impl Default for stackfreelist {
     fn default() -> Self {
-        Self { list: Arc::new(Mutex::new(Some(gclinkptr(Arc::new(Mutex::new(Some(0))))))), size: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(gclinkptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            list: __go_default_0_0,
+            size: __go_default_1_0,
+        }
     }
 }
 

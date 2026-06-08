@@ -34,7 +34,12 @@ impl liveUserArenaChunk {
 
 impl Default for liveUserArenaChunk {
     fn default() -> Self {
-        Self { mspan: GoPtr::nil(), x: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            mspan: __go_default_0_0,
+            x: __go_default_1_0,
+        }
     }
 }
 
@@ -81,7 +86,16 @@ impl writeUserArenaHeapBits {
 
 impl Default for writeUserArenaHeapBits {
     fn default() -> Self {
-        Self { offset: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), valid: Arc::new(Mutex::new(Some(0))), low: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            offset: __go_default_0_0,
+            mask: __go_default_1_0,
+            valid: __go_default_2_0,
+            low: __go_default_3_0,
+        }
     }
 }
 
@@ -903,7 +917,14 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), reuse: Arc::new(Mutex::new(None)), fault: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            lock: __go_default_0_0,
+            reuse: __go_default_1_0,
+            fault: __go_default_2_0,
+        }
     }
 }
 

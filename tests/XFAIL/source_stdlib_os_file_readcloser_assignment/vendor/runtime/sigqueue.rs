@@ -134,7 +134,24 @@ impl AnonymousStruct31 {
 
 impl Default for AnonymousStruct31 {
     fn default() -> Self {
-        Self { note: Arc::new(Mutex::new(Some(note::default()))), mask: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), wanted: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), ignored: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), recv: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), state: Arc::new(Mutex::new(Some(Default::default()))), delivering: Arc::new(Mutex::new(Some(Default::default()))), inuse: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(note::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            note: __go_default_0_0,
+            mask: __go_default_1_0,
+            wanted: __go_default_2_0,
+            ignored: __go_default_3_0,
+            recv: __go_default_4_0,
+            state: __go_default_5_0,
+            delivering: __go_default_6_0,
+            inuse: __go_default_7_0,
+        }
     }
 }
 

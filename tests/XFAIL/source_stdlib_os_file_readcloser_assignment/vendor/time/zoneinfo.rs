@@ -60,7 +60,22 @@ impl Location {
 
 impl Default for Location {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), zone: Arc::new(Mutex::new(None)), tx: Arc::new(Mutex::new(None)), extend: Arc::new(Mutex::new(Some(String::new()))), cache_start: Arc::new(Mutex::new(Some(0))), cache_end: Arc::new(Mutex::new(Some(0))), cache_zone: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = GoPtr::nil();
+        Self {
+            name: __go_default_0_0,
+            zone: __go_default_1_0,
+            tx: __go_default_2_0,
+            extend: __go_default_3_0,
+            cache_start: __go_default_4_0,
+            cache_end: __go_default_5_0,
+            cache_zone: __go_default_6_0,
+        }
     }
 }
 
@@ -103,7 +118,14 @@ impl zone {
 
 impl Default for zone {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), offset: Arc::new(Mutex::new(Some(0))), is_d_s_t: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            name: __go_default_0_0,
+            offset: __go_default_1_0,
+            is_d_s_t: __go_default_2_0,
+        }
     }
 }
 
@@ -152,7 +174,16 @@ impl zoneTrans {
 
 impl Default for zoneTrans {
     fn default() -> Self {
-        Self { when: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))), isstd: Arc::new(Mutex::new(Some(false))), isutc: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_1 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            when: __go_default_0_0,
+            index: __go_default_1_0,
+            isstd: __go_default_2_0,
+            isutc: __go_default_2_1,
+        }
     }
 }
 
@@ -588,7 +619,18 @@ impl rule {
 
 impl Default for rule {
     fn default() -> Self {
-        Self { kind: Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0))))))), day: Arc::new(Mutex::new(Some(0))), week: Arc::new(Mutex::new(Some(0))), mon: Arc::new(Mutex::new(Some(0))), time: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(ruleKind(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            kind: __go_default_0_0,
+            day: __go_default_1_0,
+            week: __go_default_2_0,
+            mon: __go_default_3_0,
+            time: __go_default_4_0,
+        }
     }
 }
 

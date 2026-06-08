@@ -74,7 +74,12 @@ impl bitCursor {
 
 impl Default for bitCursor {
     fn default() -> Self {
-        Self { ptr: GoPtr::nil(), n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            ptr: __go_default_0_0,
+            n: __go_default_1_0,
+        }
     }
 }
 
@@ -659,7 +664,16 @@ impl AnonymousStruct39 {
 
 impl Default for AnonymousStruct39 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), next: Arc::new(Mutex::new(Some(0))), m: Arc::new(Mutex::new(None)), minv: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        Self {
+            lock: __go_default_0_0,
+            next: __go_default_1_0,
+            m: __go_default_2_0,
+            minv: __go_default_3_0,
+        }
     }
 }
 

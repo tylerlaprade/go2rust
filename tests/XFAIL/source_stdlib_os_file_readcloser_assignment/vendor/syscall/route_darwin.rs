@@ -33,7 +33,12 @@ impl InterfaceMulticastAddrMessage {
 
 impl Default for InterfaceMulticastAddrMessage {
     fn default() -> Self {
-        Self { header: Arc::new(Mutex::new(Some(IfmaMsghdr2::default()))), data: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(IfmaMsghdr2::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            header: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 

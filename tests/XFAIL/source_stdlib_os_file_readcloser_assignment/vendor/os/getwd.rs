@@ -220,7 +220,12 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { mutex: Default::default(), dir: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Default::default();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            mutex: __go_default_0_0,
+            dir: __go_default_1_0,
+        }
     }
 }
 

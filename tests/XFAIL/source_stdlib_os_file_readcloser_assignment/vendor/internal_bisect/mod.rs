@@ -609,7 +609,18 @@ impl Matcher {
 
 impl Default for Matcher {
     fn default() -> Self {
-        Self { verbose: Arc::new(Mutex::new(Some(false))), quiet: Arc::new(Mutex::new(Some(false))), enable: Arc::new(Mutex::new(Some(false))), list: Arc::new(Mutex::new(None)), dedup: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            verbose: __go_default_0_0,
+            quiet: __go_default_1_0,
+            enable: __go_default_2_0,
+            list: __go_default_3_0,
+            dedup: __go_default_4_0,
+        }
     }
 }
 
@@ -658,7 +669,14 @@ impl cond {
 
 impl Default for cond {
     fn default() -> Self {
-        Self { mask: Arc::new(Mutex::new(Some(0))), bits: Arc::new(Mutex::new(Some(0))), result: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            mask: __go_default_0_0,
+            bits: __go_default_1_0,
+            result: __go_default_2_0,
+        }
     }
 }
 
@@ -714,7 +732,10 @@ impl parseError {
 
 impl Default for parseError {
     fn default() -> Self {
-        Self { text: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            text: __go_default_0_0,
+        }
     }
 }
 
@@ -763,7 +784,14 @@ impl dedup {
 
 impl Default for dedup {
     fn default() -> Self {
-        Self { recent: Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| 0))))), mu: Default::default(), m: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| 0)))));
+        let __go_default_1_0 = Default::default();
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            recent: __go_default_0_0,
+            mu: __go_default_1_0,
+            m: __go_default_2_0,
+        }
     }
 }
 

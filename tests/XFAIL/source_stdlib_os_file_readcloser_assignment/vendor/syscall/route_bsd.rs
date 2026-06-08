@@ -55,7 +55,14 @@ impl anyMessage {
 
 impl Default for anyMessage {
     fn default() -> Self {
-        Self { msglen: Arc::new(Mutex::new(Some(0))), version: Arc::new(Mutex::new(Some(0))), r#type: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            msglen: __go_default_0_0,
+            version: __go_default_1_0,
+            r#type: __go_default_2_0,
+        }
     }
 }
 
@@ -110,7 +117,12 @@ impl RouteMessage {
 
 impl Default for RouteMessage {
     fn default() -> Self {
-        Self { header: Arc::new(Mutex::new(Some(RtMsghdr::default()))), data: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(RtMsghdr::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            header: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 
@@ -158,7 +170,12 @@ impl InterfaceMessage {
 
 impl Default for InterfaceMessage {
     fn default() -> Self {
-        Self { header: Arc::new(Mutex::new(Some(IfMsghdr::default()))), data: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(IfMsghdr::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            header: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 
@@ -206,7 +223,12 @@ impl InterfaceAddrMessage {
 
 impl Default for InterfaceAddrMessage {
     fn default() -> Self {
-        Self { header: Arc::new(Mutex::new(Some(IfaMsghdr::default()))), data: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(IfaMsghdr::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            header: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 
@@ -679,7 +701,16 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(0))), nlen: Arc::new(Mutex::new(Some(0))), alen: Arc::new(Mutex::new(Some(0))), slen: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            nlen: __go_default_1_0,
+            alen: __go_default_2_0,
+            slen: __go_default_3_0,
+        }
     }
 }
 

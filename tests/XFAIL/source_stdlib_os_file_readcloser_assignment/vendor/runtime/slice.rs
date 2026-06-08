@@ -30,7 +30,14 @@ impl slice {
 
 impl Default for slice {
     fn default() -> Self {
-        Self { array: Arc::new(Mutex::new(Some(0))), len: Arc::new(Mutex::new(Some(0))), cap: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            array: __go_default_0_0,
+            len: __go_default_1_0,
+            cap: __go_default_2_0,
+        }
     }
 }
 
@@ -76,7 +83,14 @@ impl notInHeapSlice {
 
 impl Default for notInHeapSlice {
     fn default() -> Self {
-        Self { array: GoPtr::nil(), len: Arc::new(Mutex::new(Some(0))), cap: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            array: __go_default_0_0,
+            len: __go_default_1_0,
+            cap: __go_default_2_0,
+        }
     }
 }
 

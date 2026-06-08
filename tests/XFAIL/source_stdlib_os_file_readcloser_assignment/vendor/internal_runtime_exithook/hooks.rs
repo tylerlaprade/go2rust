@@ -28,7 +28,12 @@ impl Hook {
 
 impl Default for Hook {
     fn default() -> Self {
-        Self { f: Arc::new(Mutex::new(None)), run_on_failure: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            f: __go_default_0_0,
+            run_on_failure: __go_default_1_0,
+        }
     }
 }
 

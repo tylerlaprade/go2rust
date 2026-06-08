@@ -1279,55 +1279,72 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 	if !structNeedsCustomDefault(structType) {
 		return
 	}
+	type defaultFieldValue struct {
+		fieldName string
+		localName string
+	}
+	writeDefaultFieldValue := func(field *ast.Field, name *ast.Ident, fieldName string) {
+		if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
+			writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
+		} else if _, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
+			WriteWrappedNone(out)
+		} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
+			NeedSliceElemPtr()
+			out.WriteString("GoPtr::nil()")
+		} else if name != nil && syncAtomicPointerStorageField(typeSpec, field, name) {
+			WriteWrappedNone(out)
+		} else {
+			writeStructDefaultValue(out, field.Type)
+		}
+	}
 	out.WriteString("\n")
 	writeRustTraitImplHeader(out, generics, "Default", RustTypeNameForUse(structName))
 	out.WriteString("    fn default() -> Self {\n")
-	out.WriteString("        Self { ")
-	needComma := false
+	var fieldValues []defaultFieldValue
 	for fieldIndex, field := range structType.Fields.List {
 		if len(field.Names) > 0 {
 			for nameIndex, name := range field.Names {
-				if needComma {
-					out.WriteString(", ")
-				}
-				needComma = true
-				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
-				out.WriteString(": ")
-				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
-					writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
-				} else if _, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
-					WriteWrappedNone(out)
-				} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
-					NeedSliceElemPtr()
-					out.WriteString("GoPtr::nil()")
-				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
-					WriteWrappedNone(out)
-				} else {
-					writeStructDefaultValue(out, field.Type)
-				}
+				localName := fmt.Sprintf("__go_default_%d_%d", fieldIndex, nameIndex)
+				out.WriteString("        let ")
+				out.WriteString(localName)
+				out.WriteString(" = ")
+				writeDefaultFieldValue(field, name, name.Name)
+				out.WriteString(";\n")
+				fieldValues = append(fieldValues, defaultFieldValue{
+					fieldName: rustStructFieldName(name, fieldIndex, nameIndex),
+					localName: localName,
+				})
 			}
 		} else {
-			if needComma {
-				out.WriteString(", ")
-			}
-			needComma = true
 			fieldName := getEmbeddedFieldName(field.Type)
-			out.WriteString(ToSnakeCase(fieldName))
-			out.WriteString(": ")
-			if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
-				writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
-			} else if _, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
-				WriteWrappedNone(out)
-			} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
-				NeedSliceElemPtr()
-				out.WriteString("GoPtr::nil()")
-			} else {
-				writeStructDefaultValue(out, field.Type)
-			}
+			localName := fmt.Sprintf("__go_default_%d_0", fieldIndex)
+			out.WriteString("        let ")
+			out.WriteString(localName)
+			out.WriteString(" = ")
+			writeDefaultFieldValue(field, nil, fieldName)
+			out.WriteString(";\n")
+			fieldValues = append(fieldValues, defaultFieldValue{
+				fieldName: ToSnakeCase(fieldName),
+				localName: localName,
+			})
 		}
 	}
-	writeRustPhantomValue(out, generics, &needComma)
-	out.WriteString(" }\n")
+	if len(generics.Phantom) > 0 {
+		out.WriteString("        let __go_default_phantom = std::marker::PhantomData;\n")
+		fieldValues = append(fieldValues, defaultFieldValue{
+			fieldName: "__go_phantom",
+			localName: "__go_default_phantom",
+		})
+	}
+	out.WriteString("        Self {\n")
+	for _, fieldValue := range fieldValues {
+		out.WriteString("            ")
+		out.WriteString(fieldValue.fieldName)
+		out.WriteString(": ")
+		out.WriteString(fieldValue.localName)
+		out.WriteString(",\n")
+	}
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }

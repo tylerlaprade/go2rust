@@ -49,7 +49,14 @@ impl fdMutex {
 
 impl Default for fdMutex {
     fn default() -> Self {
-        Self { state: Arc::new(Mutex::new(Some(0))), rsema: Arc::new(Mutex::new(Some(0))), wsema: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            state: __go_default_0_0,
+            rsema: __go_default_1_0,
+            wsema: __go_default_2_0,
+        }
     }
 }
 

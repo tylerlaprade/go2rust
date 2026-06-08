@@ -22,7 +22,12 @@ impl Person {
 
 impl Default for Person {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))), age: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            age: __go_default_1_0,
+        }
     }
 }
 
@@ -58,7 +63,14 @@ impl Address {
 
 impl Default for Address {
     fn default() -> Self {
-        Self { street: Rc::new(RefCell::new(Some(String::new()))), city: Rc::new(RefCell::new(Some(String::new()))), state: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            street: __go_default_0_0,
+            city: __go_default_1_0,
+            state: __go_default_2_0,
+        }
     }
 }
 
@@ -98,7 +110,16 @@ impl Employee {
 
 impl Default for Employee {
     fn default() -> Self {
-        Self { person: Rc::new(RefCell::new(Some(Person::default()))), address: Rc::new(RefCell::new(Some(Address::default()))), i_d: Rc::new(RefCell::new(Some(0))), salary: Rc::new(RefCell::new(Some(0.0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Person::default())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(Address::default())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_3_0 = Rc::new(RefCell::new(Some(0.0)));
+        Self {
+            person: __go_default_0_0,
+            address: __go_default_1_0,
+            i_d: __go_default_2_0,
+            salary: __go_default_3_0,
+        }
     }
 }
 

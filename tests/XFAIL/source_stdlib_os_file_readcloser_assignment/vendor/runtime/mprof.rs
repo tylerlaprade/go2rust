@@ -454,7 +454,22 @@ impl bucket {
 
 impl Default for bucket {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next: Arc::new(Mutex::new(None)), allnext: Arc::new(Mutex::new(None)), typ: Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(0))))))), hash: Arc::new(Mutex::new(Some(0))), size: Arc::new(Mutex::new(Some(0))), nstk: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            next: __go_default_1_0,
+            allnext: __go_default_2_0,
+            typ: __go_default_3_0,
+            hash: __go_default_4_0,
+            size: __go_default_5_0,
+            nstk: __go_default_6_0,
+        }
     }
 }
 
@@ -502,7 +517,12 @@ impl memRecord {
 
 impl Default for memRecord {
     fn default() -> Self {
-        Self { active: Arc::new(Mutex::new(Some(memRecordCycle::default()))), future: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(memRecordCycle::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            active: __go_default_0_0,
+            future: __go_default_1_0,
+        }
     }
 }
 
@@ -550,7 +570,16 @@ impl memRecordCycle {
 
 impl Default for memRecordCycle {
     fn default() -> Self {
-        Self { allocs: Arc::new(Mutex::new(Some(0))), frees: Arc::new(Mutex::new(Some(0))), alloc_bytes: Arc::new(Mutex::new(Some(0))), free_bytes: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            allocs: __go_default_0_0,
+            frees: __go_default_0_1,
+            alloc_bytes: __go_default_1_0,
+            free_bytes: __go_default_1_1,
+        }
     }
 }
 
@@ -595,7 +624,12 @@ impl blockRecord {
 
 impl Default for blockRecord {
     fn default() -> Self {
-        Self { count: Arc::new(Mutex::new(Some(0.0))), cycles: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            count: __go_default_0_0,
+            cycles: __go_default_1_0,
+        }
     }
 }
 
@@ -647,7 +681,10 @@ impl mProfCycleHolder {
 
 impl Default for mProfCycleHolder {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
@@ -751,7 +788,16 @@ impl lockTimer {
 
 impl Default for lockTimer {
     fn default() -> Self {
-        Self { lock: GoPtr::nil(), time_rate: Arc::new(Mutex::new(Some(0))), time_start: Arc::new(Mutex::new(Some(0))), tick_start: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lock: __go_default_0_0,
+            time_rate: __go_default_1_0,
+            time_start: __go_default_2_0,
+            tick_start: __go_default_3_0,
+        }
     }
 }
 
@@ -809,7 +855,22 @@ impl mLockProfile {
 
 impl Default for mLockProfile {
     fn default() -> Self {
-        Self { wait_time: Arc::new(Mutex::new(Some(Default::default()))), stack: Arc::new(Mutex::new(None)), pending: Arc::new(Mutex::new(Some(0))), cycles: Arc::new(Mutex::new(Some(0))), cycles_lost: Arc::new(Mutex::new(Some(0))), have_stack: Arc::new(Mutex::new(Some(false))), disabled: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            wait_time: __go_default_0_0,
+            stack: __go_default_1_0,
+            pending: __go_default_2_0,
+            cycles: __go_default_3_0,
+            cycles_lost: __go_default_4_0,
+            have_stack: __go_default_5_0,
+            disabled: __go_default_6_0,
+        }
     }
 }
 
@@ -2155,7 +2216,18 @@ impl AnonymousStruct21 {
 
 impl Default for AnonymousStruct21 {
     fn default() -> Self {
-        Self { sema: Arc::new(Mutex::new(Some(0))), active: Arc::new(Mutex::new(Some(false))), offset: Arc::new(Mutex::new(Some(Default::default()))), records: Arc::new(Mutex::new(None)), labels: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        Self {
+            sema: __go_default_0_0,
+            active: __go_default_1_0,
+            offset: __go_default_2_0,
+            records: __go_default_3_0,
+            labels: __go_default_4_0,
+        }
     }
 }
 

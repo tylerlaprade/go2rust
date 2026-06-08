@@ -52,7 +52,28 @@ impl SysProcAttr {
 
 impl Default for SysProcAttr {
     fn default() -> Self {
-        Self { chroot: Arc::new(Mutex::new(Some(String::new()))), credential: Arc::new(Mutex::new(None)), ptrace: Arc::new(Mutex::new(Some(false))), setsid: Arc::new(Mutex::new(Some(false))), setpgid: Arc::new(Mutex::new(Some(false))), setctty: Arc::new(Mutex::new(Some(false))), noctty: Arc::new(Mutex::new(Some(false))), ctty: Arc::new(Mutex::new(Some(0))), foreground: Arc::new(Mutex::new(Some(false))), pgid: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            chroot: __go_default_0_0,
+            credential: __go_default_1_0,
+            ptrace: __go_default_2_0,
+            setsid: __go_default_3_0,
+            setpgid: __go_default_4_0,
+            setctty: __go_default_5_0,
+            noctty: __go_default_6_0,
+            ctty: __go_default_7_0,
+            foreground: __go_default_8_0,
+            pgid: __go_default_9_0,
+        }
     }
 }
 

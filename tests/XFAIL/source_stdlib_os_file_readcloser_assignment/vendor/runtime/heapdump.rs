@@ -55,7 +55,10 @@ impl typeCacheBucket {
 
 impl Default for typeCacheBucket {
     fn default() -> Self {
-        Self { t: Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil()))));
+        Self {
+            t: __go_default_0_0,
+        }
     }
 }
 

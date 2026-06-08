@@ -28,7 +28,12 @@ impl InterfaceSwitchCache {
 
 impl Default for InterfaceSwitchCache {
     fn default() -> Self {
-        Self { mask: Arc::new(Mutex::new(Some(0))), entries: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            mask: __go_default_0_0,
+            entries: __go_default_1_0,
+        }
     }
 }
 
@@ -75,7 +80,14 @@ impl InterfaceSwitchCacheEntry {
 
 impl Default for InterfaceSwitchCacheEntry {
     fn default() -> Self {
-        Self { typ: Arc::new(Mutex::new(Some(0))), case: Arc::new(Mutex::new(Some(0))), itab: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            typ: __go_default_0_0,
+            case: __go_default_1_0,
+            itab: __go_default_2_0,
+        }
     }
 }
 
@@ -126,7 +138,12 @@ impl TypeAssertCache {
 
 impl Default for TypeAssertCache {
     fn default() -> Self {
-        Self { mask: Arc::new(Mutex::new(Some(0))), entries: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            mask: __go_default_0_0,
+            entries: __go_default_1_0,
+        }
     }
 }
 
@@ -170,7 +187,12 @@ impl TypeAssertCacheEntry {
 
 impl Default for TypeAssertCacheEntry {
     fn default() -> Self {
-        Self { typ: Arc::new(Mutex::new(Some(0))), itab: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            typ: __go_default_0_0,
+            itab: __go_default_1_0,
+        }
     }
 }
 

@@ -66,7 +66,28 @@ impl fixalloc {
 
 impl Default for fixalloc {
     fn default() -> Self {
-        Self { size: Arc::new(Mutex::new(Some(0))), first: Arc::new(Mutex::new(None)), arg: Arc::new(Mutex::new(Some(0))), list: GoPtr::nil(), chunk: Arc::new(Mutex::new(Some(0))), nchunk: Arc::new(Mutex::new(Some(0))), nalloc: Arc::new(Mutex::new(Some(0))), inuse: Arc::new(Mutex::new(Some(0))), stat: Arc::new(Mutex::new(None)), zero: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = GoPtr::nil();
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(None));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            size: __go_default_0_0,
+            first: __go_default_1_0,
+            arg: __go_default_2_0,
+            list: __go_default_3_0,
+            chunk: __go_default_4_0,
+            nchunk: __go_default_5_0,
+            nalloc: __go_default_6_0,
+            inuse: __go_default_7_0,
+            stat: __go_default_8_0,
+            zero: __go_default_9_0,
+        }
     }
 }
 
@@ -120,7 +141,12 @@ impl mlink {
 
 impl Default for mlink {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            next: __go_default_1_0,
+        }
     }
 }
 

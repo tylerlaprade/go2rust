@@ -38,7 +38,16 @@ impl dbgVar {
 
 impl Default for dbgVar {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), value: Arc::new(Mutex::new(None)), atomic: Arc::new(Mutex::new(None)), def: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            value: __go_default_1_0,
+            atomic: __go_default_2_0,
+            def: __go_default_3_0,
+        }
     }
 }
 
@@ -339,7 +348,70 @@ impl AnonymousStruct25 {
 
 impl Default for AnonymousStruct25 {
     fn default() -> Self {
-        Self { cgocheck: Arc::new(Mutex::new(Some(0))), clobberfree: Arc::new(Mutex::new(Some(0))), disablethp: Arc::new(Mutex::new(Some(0))), dontfreezetheworld: Arc::new(Mutex::new(Some(0))), efence: Arc::new(Mutex::new(Some(0))), gccheckmark: Arc::new(Mutex::new(Some(0))), gcpacertrace: Arc::new(Mutex::new(Some(0))), gcshrinkstackoff: Arc::new(Mutex::new(Some(0))), gcstoptheworld: Arc::new(Mutex::new(Some(0))), gctrace: Arc::new(Mutex::new(Some(0))), invalidptr: Arc::new(Mutex::new(Some(0))), madvdontneed: Arc::new(Mutex::new(Some(0))), runtime_contention_stacks: Arc::new(Mutex::new(Some(Default::default()))), scavtrace: Arc::new(Mutex::new(Some(0))), scheddetail: Arc::new(Mutex::new(Some(0))), schedtrace: Arc::new(Mutex::new(Some(0))), tracebackancestors: Arc::new(Mutex::new(Some(0))), asyncpreemptoff: Arc::new(Mutex::new(Some(0))), harddecommit: Arc::new(Mutex::new(Some(0))), adaptivestackstart: Arc::new(Mutex::new(Some(0))), tracefpunwindoff: Arc::new(Mutex::new(Some(0))), traceadvanceperiod: Arc::new(Mutex::new(Some(0))), trace_check_stack_ownership: Arc::new(Mutex::new(Some(0))), profstackdepth: Arc::new(Mutex::new(Some(0))), dataindependenttiming: Arc::new(Mutex::new(Some(0))), malloc: Arc::new(Mutex::new(Some(false))), inittrace: Arc::new(Mutex::new(Some(0))), sbrk: Arc::new(Mutex::new(Some(0))), traceallocfree: Arc::new(Mutex::new(Some(Default::default()))), panicnil: Arc::new(Mutex::new(Some(Default::default()))), asynctimerchan: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            cgocheck: __go_default_0_0,
+            clobberfree: __go_default_1_0,
+            disablethp: __go_default_2_0,
+            dontfreezetheworld: __go_default_3_0,
+            efence: __go_default_4_0,
+            gccheckmark: __go_default_5_0,
+            gcpacertrace: __go_default_6_0,
+            gcshrinkstackoff: __go_default_7_0,
+            gcstoptheworld: __go_default_8_0,
+            gctrace: __go_default_9_0,
+            invalidptr: __go_default_10_0,
+            madvdontneed: __go_default_11_0,
+            runtime_contention_stacks: __go_default_12_0,
+            scavtrace: __go_default_13_0,
+            scheddetail: __go_default_14_0,
+            schedtrace: __go_default_15_0,
+            tracebackancestors: __go_default_16_0,
+            asyncpreemptoff: __go_default_17_0,
+            harddecommit: __go_default_18_0,
+            adaptivestackstart: __go_default_19_0,
+            tracefpunwindoff: __go_default_20_0,
+            traceadvanceperiod: __go_default_21_0,
+            trace_check_stack_ownership: __go_default_22_0,
+            profstackdepth: __go_default_23_0,
+            dataindependenttiming: __go_default_24_0,
+            malloc: __go_default_25_0,
+            inittrace: __go_default_26_0,
+            sbrk: __go_default_27_0,
+            traceallocfree: __go_default_28_0,
+            panicnil: __go_default_29_0,
+            asynctimerchan: __go_default_30_0,
+        }
     }
 }
 

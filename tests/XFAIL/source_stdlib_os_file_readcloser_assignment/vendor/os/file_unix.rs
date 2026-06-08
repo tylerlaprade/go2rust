@@ -58,7 +58,20 @@ impl file {
 
 impl Default for file {
     fn default() -> Self {
-        Self { pfd: Arc::new(Mutex::new(Some(Default::default()))), name: Arc::new(Mutex::new(Some(String::new()))), dirinfo: Arc::new(Mutex::new(Some(Default::default()))), nonblock: Arc::new(Mutex::new(Some(false))), stdout_or_err: Arc::new(Mutex::new(Some(false))), append_mode: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            pfd: __go_default_0_0,
+            name: __go_default_1_0,
+            dirinfo: __go_default_2_0,
+            nonblock: __go_default_3_0,
+            stdout_or_err: __go_default_4_0,
+            append_mode: __go_default_5_0,
+        }
     }
 }
 
@@ -492,7 +505,16 @@ impl unixDirent {
 
 impl Default for unixDirent {
     fn default() -> Self {
-        Self { parent: Arc::new(Mutex::new(Some(String::new()))), name: Arc::new(Mutex::new(Some(String::new()))), typ: Arc::new(Mutex::new(Some(io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0))))))), info: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        Self {
+            parent: __go_default_0_0,
+            name: __go_default_1_0,
+            typ: __go_default_2_0,
+            info: __go_default_3_0,
+        }
     }
 }
 

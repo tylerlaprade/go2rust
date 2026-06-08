@@ -52,7 +52,16 @@ impl LinkError {
 
 impl Default for LinkError {
     fn default() -> Self {
-        Self { op: Arc::new(Mutex::new(Some(String::new()))), old: Arc::new(Mutex::new(Some(String::new()))), new: Arc::new(Mutex::new(Some(String::new()))), err: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        Self {
+            op: __go_default_0_0,
+            old: __go_default_1_0,
+            new: __go_default_2_0,
+            err: __go_default_3_0,
+        }
     }
 }
 
@@ -136,7 +145,12 @@ impl fileWithoutReadFrom {
 
 impl Default for fileWithoutReadFrom {
     fn default() -> Self {
-        Self { no_read_from: Arc::new(Mutex::new(Some(noReadFrom::default()))), file: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noReadFrom::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            no_read_from: __go_default_0_0,
+            file: __go_default_1_0,
+        }
     }
 }
 
@@ -208,7 +222,12 @@ impl fileWithoutWriteTo {
 
 impl Default for fileWithoutWriteTo {
     fn default() -> Self {
-        Self { no_write_to: Arc::new(Mutex::new(Some(noWriteTo::default()))), file: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noWriteTo::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            no_write_to: __go_default_0_0,
+            file: __go_default_1_0,
+        }
     }
 }
 

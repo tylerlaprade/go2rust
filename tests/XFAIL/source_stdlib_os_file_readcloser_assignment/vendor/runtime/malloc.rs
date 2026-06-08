@@ -65,7 +65,12 @@ impl persistentAlloc {
 
 impl Default for persistentAlloc {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(None)), off: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            base: __go_default_0_0,
+            off: __go_default_1_0,
+        }
     }
 }
 
@@ -117,7 +122,16 @@ impl linearAlloc {
 
 impl Default for linearAlloc {
     fn default() -> Self {
-        Self { next: Arc::new(Mutex::new(Some(0))), mapped: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))), map_memory: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            next: __go_default_0_0,
+            mapped: __go_default_1_0,
+            end: __go_default_2_0,
+            map_memory: __go_default_3_0,
+        }
     }
 }
 
@@ -165,7 +179,10 @@ impl notInHeap {
 
 impl Default for notInHeap {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+        }
     }
 }
 
@@ -1747,7 +1764,12 @@ impl AnonymousStruct4 {
 
 impl Default for AnonymousStruct4 {
     fn default() -> Self {
-        Self { mutex: Arc::new(Mutex::new(Some(mutex::default()))), persistent_alloc: Arc::new(Mutex::new(Some(persistentAlloc::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(persistentAlloc::default())));
+        Self {
+            mutex: __go_default_0_0,
+            persistent_alloc: __go_default_1_0,
+        }
     }
 }
 

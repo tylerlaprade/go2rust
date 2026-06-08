@@ -84,7 +84,36 @@ impl scavengerState {
 
 impl Default for scavengerState {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), g: Arc::new(Mutex::new(None)), timer: Arc::new(Mutex::new(None)), sysmon_wake: Arc::new(Mutex::new(Some(Default::default()))), parked: Arc::new(Mutex::new(Some(false))), print_controller_reset: Arc::new(Mutex::new(Some(false))), target_c_p_u_fraction: Arc::new(Mutex::new(Some(0.0))), sleep_ratio: Arc::new(Mutex::new(Some(0.0))), sleep_controller: Arc::new(Mutex::new(Some(piController::default()))), controller_cooldown: Arc::new(Mutex::new(Some(0))), sleep_stub: Arc::new(Mutex::new(None)), scavenge: Arc::new(Mutex::new(None)), should_stop: Arc::new(Mutex::new(None)), gomaxprocs: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(piController::default())));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(None));
+        let __go_default_11_0 = Arc::new(Mutex::new(None));
+        let __go_default_12_0 = Arc::new(Mutex::new(None));
+        let __go_default_13_0 = Arc::new(Mutex::new(None));
+        Self {
+            lock: __go_default_0_0,
+            g: __go_default_1_0,
+            timer: __go_default_2_0,
+            sysmon_wake: __go_default_3_0,
+            parked: __go_default_4_0,
+            print_controller_reset: __go_default_5_0,
+            target_c_p_u_fraction: __go_default_6_0,
+            sleep_ratio: __go_default_7_0,
+            sleep_controller: __go_default_8_0,
+            controller_cooldown: __go_default_9_0,
+            sleep_stub: __go_default_10_0,
+            scavenge: __go_default_11_0,
+            should_stop: __go_default_12_0,
+            gomaxprocs: __go_default_13_0,
+        }
     }
 }
 
@@ -160,7 +189,26 @@ impl scavengeIndex {
 
 impl Default for scavengeIndex {
     fn default() -> Self {
-        Self { chunks: Arc::new(Mutex::new(None)), min: Arc::new(Mutex::new(Some(Default::default()))), max: Arc::new(Mutex::new(Some(Default::default()))), min_heap_idx: Arc::new(Mutex::new(Some(Default::default()))), search_addr_bg: Arc::new(Mutex::new(Some(atomicOffAddr::default()))), search_addr_force: Arc::new(Mutex::new(Some(atomicOffAddr::default()))), free_h_w_m: Arc::new(Mutex::new(Some(offAddr::default()))), gen: Arc::new(Mutex::new(Some(0))), test: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_1 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(atomicOffAddr::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(atomicOffAddr::default())));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(offAddr::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            chunks: __go_default_0_0,
+            min: __go_default_1_0,
+            max: __go_default_1_1,
+            min_heap_idx: __go_default_2_0,
+            search_addr_bg: __go_default_3_0,
+            search_addr_force: __go_default_4_0,
+            free_h_w_m: __go_default_5_0,
+            gen: __go_default_6_0,
+            test: __go_default_7_0,
+        }
     }
 }
 
@@ -207,7 +255,10 @@ impl atomicScavChunkData {
 
 impl Default for atomicScavChunkData {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
@@ -257,7 +308,16 @@ impl scavChunkData {
 
 impl Default for scavChunkData {
     fn default() -> Self {
-        Self { in_use: Arc::new(Mutex::new(Some(0))), last_in_use: Arc::new(Mutex::new(Some(0))), gen: Arc::new(Mutex::new(Some(0))), scav_chunk_flags: Arc::new(Mutex::new(Some(scavChunkFlags(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(scavChunkFlags(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            in_use: __go_default_0_0,
+            last_in_use: __go_default_1_0,
+            gen: __go_default_2_0,
+            scav_chunk_flags: __go_default_3_0,
+        }
     }
 }
 
@@ -694,7 +754,24 @@ impl piController {
 
 impl Default for piController {
     fn default() -> Self {
-        Self { kp: Arc::new(Mutex::new(Some(0.0))), ti: Arc::new(Mutex::new(Some(0.0))), tt: Arc::new(Mutex::new(Some(0.0))), min: Arc::new(Mutex::new(Some(0.0))), max: Arc::new(Mutex::new(Some(0.0))), err_integral: Arc::new(Mutex::new(Some(0.0))), err_overflow: Arc::new(Mutex::new(Some(false))), input_overflow: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_3_1 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            kp: __go_default_0_0,
+            ti: __go_default_1_0,
+            tt: __go_default_2_0,
+            min: __go_default_3_0,
+            max: __go_default_3_1,
+            err_integral: __go_default_4_0,
+            err_overflow: __go_default_5_0,
+            input_overflow: __go_default_6_0,
+        }
     }
 }
 
@@ -1901,7 +1978,16 @@ impl AnonymousStruct14 {
 
 impl Default for AnonymousStruct14 {
     fn default() -> Self {
-        Self { gc_percent_goal: Arc::new(Mutex::new(Some(Default::default()))), memory_limit_goal: Arc::new(Mutex::new(Some(Default::default()))), assist_time: Arc::new(Mutex::new(Some(Default::default()))), background_time: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            gc_percent_goal: __go_default_0_0,
+            memory_limit_goal: __go_default_1_0,
+            assist_time: __go_default_2_0,
+            background_time: __go_default_3_0,
+        }
     }
 }
 

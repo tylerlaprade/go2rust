@@ -66,7 +66,34 @@ impl hchan {
 
 impl Default for hchan {
     fn default() -> Self {
-        Self { qcount: Arc::new(Mutex::new(Some(0))), dataqsiz: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(0))), elemsize: Arc::new(Mutex::new(Some(0))), synctest: Arc::new(Mutex::new(Some(false))), closed: Arc::new(Mutex::new(Some(0))), timer: Arc::new(Mutex::new(None)), elemtype: Arc::new(Mutex::new(None)), sendx: Arc::new(Mutex::new(Some(0))), recvx: Arc::new(Mutex::new(Some(0))), recvq: Arc::new(Mutex::new(Some(waitq::default()))), sendq: Arc::new(Mutex::new(Some(waitq::default()))), lock: Arc::new(Mutex::new(Some(mutex::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(None));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(waitq::default())));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(waitq::default())));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        Self {
+            qcount: __go_default_0_0,
+            dataqsiz: __go_default_1_0,
+            buf: __go_default_2_0,
+            elemsize: __go_default_3_0,
+            synctest: __go_default_4_0,
+            closed: __go_default_5_0,
+            timer: __go_default_6_0,
+            elemtype: __go_default_7_0,
+            sendx: __go_default_8_0,
+            recvx: __go_default_9_0,
+            recvq: __go_default_10_0,
+            sendq: __go_default_11_0,
+            lock: __go_default_12_0,
+        }
     }
 }
 

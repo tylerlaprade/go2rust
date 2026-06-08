@@ -41,7 +41,14 @@ impl traceWriter {
 
 impl Default for traceWriter {
     fn default() -> Self {
-        Self { trace_locker: Arc::new(Mutex::new(Some(traceLocker::default()))), exp: Arc::new(Mutex::new(Some(crate::traceexp::traceExperiment(Arc::new(Mutex::new(Some(0))))))), trace_buf: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(traceLocker::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::traceexp::traceExperiment(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            trace_locker: __go_default_0_0,
+            exp: __go_default_1_0,
+            trace_buf: __go_default_2_0,
+        }
     }
 }
 
@@ -125,7 +132,16 @@ impl traceBufHeader {
 
 impl Default for traceBufHeader {
     fn default() -> Self {
-        Self { link: Arc::new(Mutex::new(None)), last_time: Arc::new(Mutex::new(Some(crate::tracetime::traceTime(Arc::new(Mutex::new(Some(0))))))), pos: Arc::new(Mutex::new(Some(0))), len_pos: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::tracetime::traceTime(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            link: __go_default_0_0,
+            last_time: __go_default_1_0,
+            pos: __go_default_2_0,
+            len_pos: __go_default_3_0,
+        }
     }
 }
 
@@ -174,7 +190,14 @@ impl traceBuf {
 
 impl Default for traceBuf {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), trace_buf_header: Arc::new(Mutex::new(Some(traceBufHeader::default()))), arr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(traceBufHeader::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            trace_buf_header: __go_default_1_0,
+            arr: __go_default_2_0,
+        }
     }
 }
 

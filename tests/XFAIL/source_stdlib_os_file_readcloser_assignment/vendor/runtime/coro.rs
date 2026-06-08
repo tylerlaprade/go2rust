@@ -51,7 +51,18 @@ impl coro {
 
 impl Default for coro {
     fn default() -> Self {
-        Self { gp: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))), f: Arc::new(Mutex::new(None)), mp: Arc::new(Mutex::new(None)), locked_ext: Arc::new(Mutex::new(Some(0))), locked_int: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            gp: __go_default_0_0,
+            f: __go_default_1_0,
+            mp: __go_default_2_0,
+            locked_ext: __go_default_3_0,
+            locked_int: __go_default_4_0,
+        }
     }
 }
 

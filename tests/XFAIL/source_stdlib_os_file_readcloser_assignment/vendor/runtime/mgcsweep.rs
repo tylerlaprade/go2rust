@@ -44,7 +44,18 @@ impl sweepdata {
 
 impl Default for sweepdata {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), g: Arc::new(Mutex::new(None)), parked: Arc::new(Mutex::new(Some(false))), active: Arc::new(Mutex::new(Some(activeSweep::default()))), central_index: Arc::new(Mutex::new(Some(sweepClass(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(activeSweep::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(sweepClass(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            lock: __go_default_0_0,
+            g: __go_default_1_0,
+            parked: __go_default_2_0,
+            active: __go_default_3_0,
+            central_index: __go_default_4_0,
+        }
     }
 }
 
@@ -467,7 +478,10 @@ impl activeSweep {
 
 impl Default for activeSweep {
     fn default() -> Self {
-        Self { state: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            state: __go_default_0_0,
+        }
     }
 }
 
@@ -508,7 +522,12 @@ impl sweepLocker {
 
 impl Default for sweepLocker {
     fn default() -> Self {
-        Self { sweep_gen: Arc::new(Mutex::new(Some(0))), valid: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            sweep_gen: __go_default_0_0,
+            valid: __go_default_1_0,
+        }
     }
 }
 

@@ -78,7 +78,34 @@ impl gcCPULimiterState {
 
 impl Default for gcCPULimiterState {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(Default::default()))), enabled: Arc::new(Mutex::new(Some(Default::default()))), gc_enabled: Arc::new(Mutex::new(Some(false))), transitioning: Arc::new(Mutex::new(Some(false))), test: Arc::new(Mutex::new(Some(false))), bucket: Arc::new(Mutex::new(Some(AnonymousStruct13::default()))), overflow: Arc::new(Mutex::new(Some(0))), assist_time_pool: Arc::new(Mutex::new(Some(Default::default()))), idle_mark_time_pool: Arc::new(Mutex::new(Some(Default::default()))), idle_time_pool: Arc::new(Mutex::new(Some(Default::default()))), last_update: Arc::new(Mutex::new(Some(Default::default()))), last_enabled_cycle: Arc::new(Mutex::new(Some(Default::default()))), nprocs: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(AnonymousStruct13::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lock: __go_default_0_0,
+            enabled: __go_default_1_0,
+            gc_enabled: __go_default_2_0,
+            transitioning: __go_default_3_0,
+            test: __go_default_4_0,
+            bucket: __go_default_5_0,
+            overflow: __go_default_6_0,
+            assist_time_pool: __go_default_7_0,
+            idle_mark_time_pool: __go_default_8_0,
+            idle_time_pool: __go_default_9_0,
+            last_update: __go_default_10_0,
+            last_enabled_cycle: __go_default_11_0,
+            nprocs: __go_default_12_0,
+        }
     }
 }
 
@@ -885,7 +912,10 @@ impl limiterEvent {
 
 impl Default for limiterEvent {
     fn default() -> Self {
-        Self { stamp: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            stamp: __go_default_0_0,
+        }
     }
 }
 
@@ -924,7 +954,12 @@ impl AnonymousStruct13 {
 
 impl Default for AnonymousStruct13 {
     fn default() -> Self {
-        Self { fill: Arc::new(Mutex::new(Some(0))), capacity: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            fill: __go_default_0_0,
+            capacity: __go_default_0_1,
+        }
     }
 }
 

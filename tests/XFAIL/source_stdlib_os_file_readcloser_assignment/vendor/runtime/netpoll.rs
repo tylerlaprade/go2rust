@@ -107,7 +107,46 @@ impl pollDesc {
 
 impl Default for pollDesc {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), link: GoPtr::nil(), fd: Arc::new(Mutex::new(Some(0))), fdseq: Arc::new(Mutex::new(Some(Default::default()))), atomic_info: Arc::new(Mutex::new(Some(Default::default()))), rg: Arc::new(Mutex::new(Some(Default::default()))), wg: Arc::new(Mutex::new(Some(Default::default()))), lock: Arc::new(Mutex::new(Some(mutex::default()))), closing: Arc::new(Mutex::new(Some(false))), rrun: Arc::new(Mutex::new(Some(false))), wrun: Arc::new(Mutex::new(Some(false))), user: Arc::new(Mutex::new(Some(0))), rseq: Arc::new(Mutex::new(Some(0))), rt: Arc::new(Mutex::new(Some(timer::default()))), rd: Arc::new(Mutex::new(Some(0))), wseq: Arc::new(Mutex::new(Some(0))), wt: Arc::new(Mutex::new(Some(timer::default()))), wd: Arc::new(Mutex::new(Some(0))), self_: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(timer::default())));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(timer::default())));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_18_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            link: __go_default_1_0,
+            fd: __go_default_2_0,
+            fdseq: __go_default_3_0,
+            atomic_info: __go_default_4_0,
+            rg: __go_default_5_0,
+            wg: __go_default_6_0,
+            lock: __go_default_7_0,
+            closing: __go_default_8_0,
+            rrun: __go_default_9_0,
+            wrun: __go_default_10_0,
+            user: __go_default_11_0,
+            rseq: __go_default_12_0,
+            rt: __go_default_13_0,
+            rd: __go_default_14_0,
+            wseq: __go_default_15_0,
+            wt: __go_default_16_0,
+            wd: __go_default_17_0,
+            self_: __go_default_18_0,
+        }
     }
 }
 
@@ -544,7 +583,12 @@ impl pollCache {
 
 impl Default for pollCache {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), first: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        Self {
+            lock: __go_default_0_0,
+            first: __go_default_1_0,
+        }
     }
 }
 

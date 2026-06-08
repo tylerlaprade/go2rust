@@ -56,7 +56,26 @@ impl FD {
 
 impl Default for FD {
     fn default() -> Self {
-        Self { fdmu: Arc::new(Mutex::new(Some(fdMutex::default()))), sysfd: Arc::new(Mutex::new(Some(0))), sys_file: Arc::new(Mutex::new(Some(SysFile::default()))), pd: Arc::new(Mutex::new(Some(pollDesc::default()))), csema: Arc::new(Mutex::new(Some(0))), is_blocking: Arc::new(Mutex::new(Some(0))), is_stream: Arc::new(Mutex::new(Some(false))), zero_read_is_e_o_f: Arc::new(Mutex::new(Some(false))), is_file: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(fdMutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(SysFile::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(pollDesc::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            fdmu: __go_default_0_0,
+            sysfd: __go_default_1_0,
+            sys_file: __go_default_2_0,
+            pd: __go_default_3_0,
+            csema: __go_default_4_0,
+            is_blocking: __go_default_5_0,
+            is_stream: __go_default_6_0,
+            zero_read_is_e_o_f: __go_default_7_0,
+            is_file: __go_default_8_0,
+        }
     }
 }
 

@@ -47,7 +47,10 @@ impl mWaitList {
 
 impl Default for mWaitList {
     fn default() -> Self {
-        Self { next: Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            next: __go_default_0_0,
+        }
     }
 }
 

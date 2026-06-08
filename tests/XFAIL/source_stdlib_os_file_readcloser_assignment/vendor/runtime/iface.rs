@@ -35,7 +35,14 @@ impl itabTableType {
 
 impl Default for itabTableType {
     fn default() -> Self {
-        Self { size: Arc::new(Mutex::new(Some(0))), count: Arc::new(Mutex::new(Some(0))), entries: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+        Self {
+            size: __go_default_0_0,
+            count: __go_default_1_0,
+            entries: __go_default_2_0,
+        }
     }
 }
 

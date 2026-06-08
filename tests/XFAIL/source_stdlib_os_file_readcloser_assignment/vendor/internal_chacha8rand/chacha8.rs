@@ -46,7 +46,18 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self { buf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), seed: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), i: Arc::new(Mutex::new(Some(0))), n: Arc::new(Mutex::new(Some(0))), c: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            buf: __go_default_0_0,
+            seed: __go_default_1_0,
+            i: __go_default_2_0,
+            n: __go_default_3_0,
+            c: __go_default_4_0,
+        }
     }
 }
 

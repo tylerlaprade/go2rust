@@ -50,7 +50,16 @@ impl mOS {
 
 impl Default for mOS {
     fn default() -> Self {
-        Self { initialized: Arc::new(Mutex::new(Some(false))), mutex: Arc::new(Mutex::new(Some(pthreadmutex::default()))), cond: Arc::new(Mutex::new(Some(pthreadcond::default()))), count: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(pthreadmutex::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(pthreadcond::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            initialized: __go_default_0_0,
+            mutex: __go_default_1_0,
+            cond: __go_default_2_0,
+            count: __go_default_3_0,
+        }
     }
 }
 

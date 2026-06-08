@@ -46,7 +46,24 @@ impl stkframe {
 
 impl Default for stkframe {
     fn default() -> Self {
-        Self { r#fn: Arc::new(Mutex::new(Some(funcInfo::default()))), pc: Arc::new(Mutex::new(Some(0))), continpc: Arc::new(Mutex::new(Some(0))), lr: Arc::new(Mutex::new(Some(0))), sp: Arc::new(Mutex::new(Some(0))), fp: Arc::new(Mutex::new(Some(0))), varp: Arc::new(Mutex::new(Some(0))), argp: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(funcInfo::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#fn: __go_default_0_0,
+            pc: __go_default_1_0,
+            continpc: __go_default_2_0,
+            lr: __go_default_3_0,
+            sp: __go_default_4_0,
+            fp: __go_default_5_0,
+            varp: __go_default_6_0,
+            argp: __go_default_7_0,
+        }
     }
 }
 
@@ -98,7 +115,14 @@ impl reflectMethodValue {
 
 impl Default for reflectMethodValue {
     fn default() -> Self {
-        Self { r#fn: Arc::new(Mutex::new(Some(0))), stack: Arc::new(Mutex::new(None)), arg_len: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#fn: __go_default_0_0,
+            stack: __go_default_1_0,
+            arg_len: __go_default_2_0,
+        }
     }
 }
 

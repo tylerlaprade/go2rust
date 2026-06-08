@@ -63,7 +63,18 @@ impl RWMutex {
 
 impl Default for RWMutex {
     fn default() -> Self {
-        Self { w: Arc::new(StdMutex::new(Some(Mutex::default()))), writer_sem: Arc::new(StdMutex::new(Some(0))), reader_sem: Arc::new(StdMutex::new(Some(0))), reader_count: Arc::new(StdMutex::new(Some(Default::default()))), reader_wait: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            w: __go_default_0_0,
+            writer_sem: __go_default_1_0,
+            reader_sem: __go_default_2_0,
+            reader_count: __go_default_3_0,
+            reader_wait: __go_default_4_0,
+        }
     }
 }
 
@@ -116,7 +127,18 @@ impl rlocker {
 
 impl Default for rlocker {
     fn default() -> Self {
-        Self { w: Arc::new(StdMutex::new(Some(Mutex::default()))), writer_sem: Arc::new(StdMutex::new(Some(0))), reader_sem: Arc::new(StdMutex::new(Some(0))), reader_count: Arc::new(StdMutex::new(Some(Default::default()))), reader_wait: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            w: __go_default_0_0,
+            writer_sem: __go_default_1_0,
+            reader_sem: __go_default_2_0,
+            reader_count: __go_default_3_0,
+            reader_wait: __go_default_4_0,
+        }
     }
 }
 

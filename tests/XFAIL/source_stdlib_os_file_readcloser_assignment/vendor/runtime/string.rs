@@ -35,7 +35,12 @@ impl stringStruct {
 
 impl Default for stringStruct {
     fn default() -> Self {
-        Self { str: Arc::new(Mutex::new(Some(0))), len: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            str: __go_default_0_0,
+            len: __go_default_1_0,
+        }
     }
 }
 

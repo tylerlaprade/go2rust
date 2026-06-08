@@ -136,7 +136,14 @@ impl Time {
 
 impl Default for Time {
     fn default() -> Self {
-        Self { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            wall: __go_default_0_0,
+            ext: __go_default_1_0,
+            loc: __go_default_2_0,
+        }
     }
 }
 

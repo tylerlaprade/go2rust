@@ -31,7 +31,12 @@ impl Int32 {
 
 impl Default for Int32 {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
@@ -80,7 +85,14 @@ impl Int64 {
 
 impl Default for Int64 {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), __blank_1_0: Arc::new(Mutex::new(Some(align64::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(align64::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            value: __go_default_2_0,
+        }
     }
 }
 
@@ -125,7 +137,12 @@ impl Uint8 {
 
 impl Default for Uint8 {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
@@ -166,7 +183,10 @@ impl Bool {
 
 impl Default for Bool {
     fn default() -> Self {
-        Self { u: Arc::new(Mutex::new(Some(Uint8::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Uint8::default())));
+        Self {
+            u: __go_default_0_0,
+        }
     }
 }
 
@@ -209,7 +229,12 @@ impl Uint32 {
 
 impl Default for Uint32 {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
@@ -258,7 +283,14 @@ impl Uint64 {
 
 impl Default for Uint64 {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), __blank_1_0: Arc::new(Mutex::new(Some(align64::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(align64::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            value: __go_default_2_0,
+        }
     }
 }
 
@@ -303,7 +335,12 @@ impl Uintptr {
 
 impl Default for Uintptr {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
@@ -346,7 +383,10 @@ impl Float64 {
 
 impl Default for Float64 {
     fn default() -> Self {
-        Self { u: Arc::new(Mutex::new(Some(Uint64::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Uint64::default())));
+        Self {
+            u: __go_default_0_0,
+        }
     }
 }
 
@@ -395,7 +435,12 @@ impl UnsafePointer {
 
 impl Default for UnsafePointer {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            no_copy: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
@@ -443,7 +488,12 @@ impl<T: Any + Send + Sync + 'static> Clone for Pointer<T> {
 
 impl<T: Any + Send + Sync + 'static> Default for Pointer<T> {
     fn default() -> Self {
-        Self { u: Arc::new(Mutex::new(Some(UnsafePointer::default()))), __go_phantom: std::marker::PhantomData }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(UnsafePointer::default())));
+        let __go_default_phantom = std::marker::PhantomData;
+        Self {
+            u: __go_default_0_0,
+            __go_phantom: __go_default_phantom,
+        }
     }
 }
 

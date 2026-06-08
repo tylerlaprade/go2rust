@@ -62,7 +62,16 @@ impl dloggerImpl {
 
 impl Default for dloggerImpl {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), w: Arc::new(Mutex::new(Some(debugLogWriter::default()))), all_link: Arc::new(Mutex::new(None)), owned: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(debugLogWriter::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            w: __go_default_1_0,
+            all_link: __go_default_2_0,
+            owned: __go_default_3_0,
+        }
     }
 }
 
@@ -133,7 +142,22 @@ impl debugLogWriter {
 
 impl Default for debugLogWriter {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), write: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(Some(debugLogBuf::default()))), tick: Arc::new(Mutex::new(Some(0))), nano: Arc::new(Mutex::new(Some(0))), r: Arc::new(Mutex::new(Some(debugLogReader::default()))), buf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(debugLogBuf::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(debugLogReader::default())));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            write: __go_default_1_0,
+            data: __go_default_2_0,
+            tick: __go_default_3_0,
+            nano: __go_default_3_1,
+            r: __go_default_4_0,
+            buf: __go_default_5_0,
+        }
     }
 }
 
@@ -179,7 +203,12 @@ impl debugLogBuf {
 
 impl Default for debugLogBuf {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), b: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            b: __go_default_1_0,
+        }
     }
 }
 
@@ -229,7 +258,18 @@ impl debugLogReader {
 
 impl Default for debugLogReader {
     fn default() -> Self {
-        Self { data: Arc::new(Mutex::new(None)), begin: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))), tick: Arc::new(Mutex::new(Some(0))), nano: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            data: __go_default_0_0,
+            begin: __go_default_1_0,
+            end: __go_default_1_1,
+            tick: __go_default_2_0,
+            nano: __go_default_2_1,
+        }
     }
 }
 
@@ -967,7 +1007,16 @@ impl AnonymousStruct2 {
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { debug_log_reader: Arc::new(Mutex::new(Some(debugLogReader::default()))), first: Arc::new(Mutex::new(Some(false))), lost: Arc::new(Mutex::new(Some(0))), next_tick: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(debugLogReader::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            debug_log_reader: __go_default_0_0,
+            first: __go_default_1_0,
+            lost: __go_default_2_0,
+            next_tick: __go_default_3_0,
+        }
     }
 }
 
@@ -1009,7 +1058,12 @@ impl AnonymousStruct3 {
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { tick: Arc::new(Mutex::new(Some(0))), i: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            tick: __go_default_0_0,
+            i: __go_default_1_0,
+        }
     }
 }
 

@@ -78,7 +78,20 @@ impl Pool {
 
 impl Default for Pool {
     fn default() -> Self {
-        Self { no_copy: Arc::new(StdMutex::new(Some(noCopy::default()))), local: Arc::new(StdMutex::new(Some(0))), local_size: Arc::new(StdMutex::new(Some(0))), victim: Arc::new(StdMutex::new(Some(0))), victim_size: Arc::new(StdMutex::new(Some(0))), new: Arc::new(StdMutex::new(None)) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(StdMutex::new(None));
+        Self {
+            no_copy: __go_default_0_0,
+            local: __go_default_1_0,
+            local_size: __go_default_2_0,
+            victim: __go_default_3_0,
+            victim_size: __go_default_4_0,
+            new: __go_default_5_0,
+        }
     }
 }
 
@@ -124,7 +137,12 @@ impl poolLocalInternal {
 
 impl Default for poolLocalInternal {
     fn default() -> Self {
-        Self { private: Arc::new(StdMutex::new(None)), shared: Arc::new(StdMutex::new(Some(poolChain::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(None));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(poolChain::default())));
+        Self {
+            private: __go_default_0_0,
+            shared: __go_default_1_0,
+        }
     }
 }
 
@@ -165,7 +183,12 @@ impl poolLocal {
 
 impl Default for poolLocal {
     fn default() -> Self {
-        Self { pool_local_internal: Arc::new(StdMutex::new(Some(poolLocalInternal::default()))), pad: Arc::new(StdMutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(poolLocalInternal::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            pool_local_internal: __go_default_0_0,
+            pad: __go_default_1_0,
+        }
     }
 }
 

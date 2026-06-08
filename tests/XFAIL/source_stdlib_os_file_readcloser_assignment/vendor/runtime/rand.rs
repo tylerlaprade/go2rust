@@ -219,7 +219,16 @@ impl AnonymousStruct24 {
 
 impl Default for AnonymousStruct24 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), seed: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), state: Arc::new(Mutex::new(Some(Default::default()))), init: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            lock: __go_default_0_0,
+            seed: __go_default_1_0,
+            state: __go_default_2_0,
+            init: __go_default_3_0,
+        }
     }
 }
 

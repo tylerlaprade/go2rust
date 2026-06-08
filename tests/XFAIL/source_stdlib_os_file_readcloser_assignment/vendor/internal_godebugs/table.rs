@@ -516,7 +516,18 @@ impl Info {
 
 impl Default for Info {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), package: Arc::new(Mutex::new(Some(String::new()))), changed: Arc::new(Mutex::new(Some(0))), old: Arc::new(Mutex::new(Some(String::new()))), opaque: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            name: __go_default_0_0,
+            package: __go_default_1_0,
+            changed: __go_default_2_0,
+            old: __go_default_3_0,
+            opaque: __go_default_4_0,
+        }
     }
 }
 

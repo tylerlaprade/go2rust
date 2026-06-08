@@ -63,7 +63,26 @@ impl SwissMapType {
 
 impl Default for SwissMapType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), key: Arc::new(Mutex::new(None)), elem: Arc::new(Mutex::new(None)), group: Arc::new(Mutex::new(None)), hasher: Arc::new(Mutex::new(None)), group_size: Arc::new(Mutex::new(Some(0))), slot_size: Arc::new(Mutex::new(Some(0))), elem_off: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            key: __go_default_1_0,
+            elem: __go_default_2_0,
+            group: __go_default_3_0,
+            hasher: __go_default_4_0,
+            group_size: __go_default_5_0,
+            slot_size: __go_default_6_0,
+            elem_off: __go_default_7_0,
+            flags: __go_default_8_0,
+        }
     }
 }
 

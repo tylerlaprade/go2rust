@@ -44,7 +44,18 @@ impl spanSet {
 
 impl Default for spanSet {
     fn default() -> Self {
-        Self { spine_lock: Arc::new(Mutex::new(Some(mutex::default()))), spine: Arc::new(Mutex::new(Some(atomicSpanSetSpinePointer::default()))), spine_len: Arc::new(Mutex::new(Some(Default::default()))), spine_cap: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(atomicHeadTailIndex::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(atomicSpanSetSpinePointer::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(atomicHeadTailIndex::default())));
+        Self {
+            spine_lock: __go_default_0_0,
+            spine: __go_default_1_0,
+            spine_len: __go_default_2_0,
+            spine_cap: __go_default_3_0,
+            index: __go_default_4_0,
+        }
     }
 }
 
@@ -91,7 +102,14 @@ impl spanSetBlock {
 
 impl Default for spanSetBlock {
     fn default() -> Self {
-        Self { lfnode: Arc::new(Mutex::new(Some(lfnode::default()))), popped: Arc::new(Mutex::new(Some(Default::default()))), spans: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(lfnode::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            lfnode: __go_default_0_0,
+            popped: __go_default_1_0,
+            spans: __go_default_2_0,
+        }
     }
 }
 
@@ -133,7 +151,10 @@ impl atomicSpanSetSpinePointer {
 
 impl Default for atomicSpanSetSpinePointer {
     fn default() -> Self {
-        Self { a: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            a: __go_default_0_0,
+        }
     }
 }
 
@@ -171,7 +192,10 @@ impl spanSetSpinePointer {
 
 impl Default for spanSetSpinePointer {
     fn default() -> Self {
-        Self { p: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            p: __go_default_0_0,
+        }
     }
 }
 
@@ -209,7 +233,10 @@ impl spanSetBlockAlloc {
 
 impl Default for spanSetBlockAlloc {
     fn default() -> Self {
-        Self { stack: Arc::new(Mutex::new(Some(crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::lfstack::lfstack(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            stack: __go_default_0_0,
+        }
     }
 }
 
@@ -624,7 +651,10 @@ impl atomicHeadTailIndex {
 
 impl Default for atomicHeadTailIndex {
     fn default() -> Self {
-        Self { u: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            u: __go_default_0_0,
+        }
     }
 }
 
@@ -662,7 +692,10 @@ impl atomicMSpanPointer {
 
 impl Default for atomicMSpanPointer {
     fn default() -> Self {
-        Self { p: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            p: __go_default_0_0,
+        }
     }
 }
 

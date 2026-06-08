@@ -444,7 +444,18 @@ impl unwinder {
 
 impl Default for unwinder {
     fn default() -> Self {
-        Self { frame: Arc::new(Mutex::new(Some(stkframe::default()))), g: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))), cgo_ctxt: Arc::new(Mutex::new(Some(0))), callee_func_i_d: Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0))))))), flags: Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stkframe::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            frame: __go_default_0_0,
+            g: __go_default_1_0,
+            cgo_ctxt: __go_default_2_0,
+            callee_func_i_d: __go_default_3_0,
+            flags: __go_default_4_0,
+        }
     }
 }
 
@@ -495,7 +506,16 @@ impl cgoTracebackArg {
 
 impl Default for cgoTracebackArg {
     fn default() -> Self {
-        Self { context: Arc::new(Mutex::new(Some(0))), sig_context: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(None)), max: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            context: __go_default_0_0,
+            sig_context: __go_default_1_0,
+            buf: __go_default_2_0,
+            max: __go_default_3_0,
+        }
     }
 }
 
@@ -554,7 +574,22 @@ impl cgoSymbolizerArg {
 
 impl Default for cgoSymbolizerArg {
     fn default() -> Self {
-        Self { pc: Arc::new(Mutex::new(Some(0))), file: Arc::new(Mutex::new(None)), lineno: Arc::new(Mutex::new(Some(0))), func_name: Arc::new(Mutex::new(None)), entry: Arc::new(Mutex::new(Some(0))), more: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            pc: __go_default_0_0,
+            file: __go_default_1_0,
+            lineno: __go_default_2_0,
+            func_name: __go_default_3_0,
+            entry: __go_default_4_0,
+            more: __go_default_5_0,
+            data: __go_default_6_0,
+        }
     }
 }
 

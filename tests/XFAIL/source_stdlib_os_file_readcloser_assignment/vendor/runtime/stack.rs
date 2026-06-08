@@ -58,7 +58,14 @@ impl stackpoolItem {
 
 impl Default for stackpoolItem {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), mu: Arc::new(Mutex::new(Some(mutex::default()))), span: Arc::new(Mutex::new(Some(mSpanList::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(mSpanList::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            mu: __go_default_1_0,
+            span: __go_default_2_0,
+        }
     }
 }
 
@@ -103,7 +110,14 @@ impl adjustinfo {
 
 impl Default for adjustinfo {
     fn default() -> Self {
-        Self { old: Arc::new(Mutex::new(Some(stack::default()))), delta: Arc::new(Mutex::new(Some(0))), sghi: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stack::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            old: __go_default_0_0,
+            delta: __go_default_1_0,
+            sghi: __go_default_2_0,
+        }
     }
 }
 
@@ -147,7 +161,12 @@ impl bitvector {
 
 impl Default for bitvector {
     fn default() -> Self {
-        Self { n: Arc::new(Mutex::new(Some(0))), bytedata: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = GoPtr::nil();
+        Self {
+            n: __go_default_0_0,
+            bytedata: __go_default_1_0,
+        }
     }
 }
 
@@ -204,7 +223,16 @@ impl stackObjectRecord {
 
 impl Default for stackObjectRecord {
     fn default() -> Self {
-        Self { off: Arc::new(Mutex::new(Some(0))), size: Arc::new(Mutex::new(Some(0))), ptr_bytes: Arc::new(Mutex::new(Some(0))), gcdataoff: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            off: __go_default_0_0,
+            size: __go_default_1_0,
+            ptr_bytes: __go_default_2_0,
+            gcdataoff: __go_default_3_0,
+        }
     }
 }
 
@@ -1346,7 +1374,12 @@ impl AnonymousStruct32 {
 
 impl Default for AnonymousStruct32 {
     fn default() -> Self {
-        Self { item: Arc::new(Mutex::new(Some(stackpoolItem::default()))), __blank_1_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stackpoolItem::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            item: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+        }
     }
 }
 
@@ -1386,7 +1419,12 @@ impl AnonymousStruct33 {
 
 impl Default for AnonymousStruct33 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), free: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            lock: __go_default_0_0,
+            free: __go_default_1_0,
+        }
     }
 }
 

@@ -90,7 +90,36 @@ impl timer {
 
 impl Default for timer {
     fn default() -> Self {
-        Self { mu: Arc::new(Mutex::new(Some(mutex::default()))), astate: Arc::new(Mutex::new(Some(Default::default()))), state: Arc::new(Mutex::new(Some(0))), is_chan: Arc::new(Mutex::new(Some(false))), is_fake: Arc::new(Mutex::new(Some(false))), blocked: Arc::new(Mutex::new(Some(0))), when: Arc::new(Mutex::new(Some(0))), period: Arc::new(Mutex::new(Some(0))), f: Arc::new(Mutex::new(None)), arg: Arc::new(Mutex::new(None)), seq: Arc::new(Mutex::new(Some(0))), ts: Arc::new(Mutex::new(None)), send_lock: Arc::new(Mutex::new(Some(mutex::default()))), is_sending: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(None));
+        let __go_default_9_0 = Arc::new(Mutex::new(None));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(None));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            mu: __go_default_0_0,
+            astate: __go_default_1_0,
+            state: __go_default_2_0,
+            is_chan: __go_default_3_0,
+            is_fake: __go_default_4_0,
+            blocked: __go_default_5_0,
+            when: __go_default_6_0,
+            period: __go_default_7_0,
+            f: __go_default_8_0,
+            arg: __go_default_9_0,
+            seq: __go_default_10_0,
+            ts: __go_default_11_0,
+            send_lock: __go_default_12_0,
+            is_sending: __go_default_13_0,
+        }
     }
 }
 
@@ -162,7 +191,24 @@ impl timers {
 
 impl Default for timers {
     fn default() -> Self {
-        Self { mu: Arc::new(Mutex::new(Some(mutex::default()))), heap: Arc::new(Mutex::new(None)), len: Arc::new(Mutex::new(Some(Default::default()))), zombies: Arc::new(Mutex::new(Some(Default::default()))), race_ctx: Arc::new(Mutex::new(Some(0))), min_when_heap: Arc::new(Mutex::new(Some(Default::default()))), min_when_modified: Arc::new(Mutex::new(Some(Default::default()))), sync_group: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        Self {
+            mu: __go_default_0_0,
+            heap: __go_default_1_0,
+            len: __go_default_2_0,
+            zombies: __go_default_3_0,
+            race_ctx: __go_default_4_0,
+            min_when_heap: __go_default_5_0,
+            min_when_modified: __go_default_6_0,
+            sync_group: __go_default_7_0,
+        }
     }
 }
 
@@ -209,7 +255,12 @@ impl timerWhen {
 
 impl Default for timerWhen {
     fn default() -> Self {
-        Self { timer: Arc::new(Mutex::new(None)), when: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            timer: __go_default_0_0,
+            when: __go_default_1_0,
+        }
     }
 }
 

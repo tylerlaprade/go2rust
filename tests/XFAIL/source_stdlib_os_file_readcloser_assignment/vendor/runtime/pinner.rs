@@ -32,7 +32,12 @@ impl pinner {
 
 impl Default for pinner {
     fn default() -> Self {
-        Self { refs: Arc::new(Mutex::new(None)), ref_store: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            refs: __go_default_0_0,
+            ref_store: __go_default_1_0,
+        }
     }
 }
 
@@ -76,7 +81,14 @@ impl pinState {
 
 impl Default for pinState {
     fn default() -> Self {
-        Self { bytep: GoPtr::nil(), byte_val: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            bytep: __go_default_0_0,
+            byte_val: __go_default_1_0,
+            mask: __go_default_2_0,
+        }
     }
 }
 
@@ -119,7 +131,12 @@ impl pinnerBits {
 
 impl Default for pinnerBits {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), x: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            x: __go_default_1_0,
+        }
     }
 }
 

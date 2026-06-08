@@ -37,7 +37,18 @@ impl inlinedCall {
 
 impl Default for inlinedCall {
     fn default() -> Self {
-        Self { func_i_d: Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0))))))), __blank_1_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), name_off: Arc::new(Mutex::new(Some(0))), parent_pc: Arc::new(Mutex::new(Some(0))), start_line: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            func_i_d: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            name_off: __go_default_2_0,
+            parent_pc: __go_default_3_0,
+            start_line: __go_default_4_0,
+        }
     }
 }
 
@@ -94,7 +105,12 @@ impl inlineUnwinder {
 
 impl Default for inlineUnwinder {
     fn default() -> Self {
-        Self { f: Arc::new(Mutex::new(Some(funcInfo::default()))), inl_tree: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(funcInfo::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        Self {
+            f: __go_default_0_0,
+            inl_tree: __go_default_1_0,
+        }
     }
 }
 
@@ -136,7 +152,12 @@ impl inlineFrame {
 
 impl Default for inlineFrame {
     fn default() -> Self {
-        Self { pc: Arc::new(Mutex::new(Some(0))), index: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            pc: __go_default_0_0,
+            index: __go_default_1_0,
+        }
     }
 }
 

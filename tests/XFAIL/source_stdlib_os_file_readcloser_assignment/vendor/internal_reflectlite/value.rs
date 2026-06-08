@@ -418,7 +418,12 @@ impl ValueError {
 
 impl Default for ValueError {
     fn default() -> Self {
-        Self { method: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            method: __go_default_0_0,
+            kind: __go_default_1_0,
+        }
     }
 }
 
@@ -540,7 +545,12 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { b: Arc::new(Mutex::new(Some(false))), x: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            b: __go_default_0_0,
+            x: __go_default_1_0,
+        }
     }
 }
 

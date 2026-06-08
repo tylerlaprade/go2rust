@@ -57,7 +57,12 @@ impl dataIO {
 
 impl Default for dataIO {
     fn default() -> Self {
-        Self { p: Arc::new(Mutex::new(None)), error: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            p: __go_default_0_0,
+            error: __go_default_1_0,
+        }
     }
 }
 

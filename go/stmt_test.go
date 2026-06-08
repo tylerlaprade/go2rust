@@ -4324,7 +4324,8 @@ func use() {
 	if strings.Contains(rust, "sync::mutex::Mutex::new()") {
 		t.Fatalf("source-mapped sync.Mutex field default should use the generated Default impl, not the helper new constructor:\n%s", rust)
 	}
-	if !strings.Contains(rust, "mutex: Default::default()") {
+	if !strings.Contains(rust, "let __go_default_0_0 = Default::default();") ||
+		!strings.Contains(rust, "mutex: __go_default_0_0") {
 		t.Fatalf("source-mapped sync.Mutex field default should initialize the embedded field with Default::default():\n%s", rust)
 	}
 }

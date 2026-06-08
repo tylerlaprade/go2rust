@@ -480,7 +480,24 @@ impl AnonymousStruct34 {
 
 impl Default for AnonymousStruct34 {
     fn default() -> Self {
-        Self { addr: Arc::new(Mutex::new(Some(0))), n: Arc::new(Mutex::new(Some(0))), prot: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))), fd: Arc::new(Mutex::new(Some(0))), off: Arc::new(Mutex::new(Some(0))), ret1: Arc::new(Mutex::new(Some(0))), ret2: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            addr: __go_default_0_0,
+            n: __go_default_1_0,
+            prot: __go_default_2_0,
+            flags: __go_default_2_1,
+            fd: __go_default_2_2,
+            off: __go_default_3_0,
+            ret1: __go_default_4_0,
+            ret2: __go_default_5_0,
+        }
     }
 }
 
@@ -529,7 +546,14 @@ impl AnonymousStruct35 {
 
 impl Default for AnonymousStruct35 {
     fn default() -> Self {
-        Self { t: Arc::new(Mutex::new(Some(0))), numer: Arc::new(Mutex::new(Some(0))), denom: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            t: __go_default_0_0,
+            numer: __go_default_1_0,
+            denom: __go_default_1_1,
+        }
     }
 }
 
@@ -579,7 +603,18 @@ impl AnonymousStruct36 {
 
 impl Default for AnonymousStruct36 {
     fn default() -> Self {
-        Self { fd: Arc::new(Mutex::new(Some(0))), cmd: Arc::new(Mutex::new(Some(0))), arg: Arc::new(Mutex::new(Some(0))), ret: Arc::new(Mutex::new(Some(0))), errno: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_2 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            fd: __go_default_0_0,
+            cmd: __go_default_0_1,
+            arg: __go_default_0_2,
+            ret: __go_default_1_0,
+            errno: __go_default_1_1,
+        }
     }
 }
 

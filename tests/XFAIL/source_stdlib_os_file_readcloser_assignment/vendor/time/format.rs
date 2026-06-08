@@ -109,7 +109,18 @@ impl ParseError {
 
 impl Default for ParseError {
     fn default() -> Self {
-        Self { layout: Arc::new(Mutex::new(Some(String::new()))), value: Arc::new(Mutex::new(Some(String::new()))), layout_elem: Arc::new(Mutex::new(Some(String::new()))), value_elem: Arc::new(Mutex::new(Some(String::new()))), message: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            layout: __go_default_0_0,
+            value: __go_default_1_0,
+            layout_elem: __go_default_2_0,
+            value_elem: __go_default_3_0,
+            message: __go_default_4_0,
+        }
     }
 }
 

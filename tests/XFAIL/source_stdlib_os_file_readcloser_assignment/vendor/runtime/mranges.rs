@@ -30,7 +30,12 @@ impl addrRange {
 
 impl Default for addrRange {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(Some(offAddr::default()))), limit: Arc::new(Mutex::new(Some(offAddr::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(offAddr::default())));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(offAddr::default())));
+        Self {
+            base: __go_default_0_0,
+            limit: __go_default_0_1,
+        }
     }
 }
 
@@ -71,7 +76,10 @@ impl offAddr {
 
 impl Default for offAddr {
     fn default() -> Self {
-        Self { a: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            a: __go_default_0_0,
+        }
     }
 }
 
@@ -118,7 +126,10 @@ impl atomicOffAddr {
 
 impl Default for atomicOffAddr {
     fn default() -> Self {
-        Self { a: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            a: __go_default_0_0,
+        }
     }
 }
 
@@ -171,7 +182,14 @@ impl addrRanges {
 
 impl Default for addrRanges {
     fn default() -> Self {
-        Self { ranges: Arc::new(Mutex::new(None)), total_bytes: Arc::new(Mutex::new(Some(0))), sys_stat: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            ranges: __go_default_0_0,
+            total_bytes: __go_default_1_0,
+            sys_stat: __go_default_2_0,
+        }
     }
 }
 

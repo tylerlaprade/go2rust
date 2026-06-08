@@ -800,7 +800,12 @@ impl traceSchedResourceState {
 
 impl Default for traceSchedResourceState {
     fn default() -> Self {
-        Self { status_traced: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), seq: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            status_traced: __go_default_0_0,
+            seq: __go_default_1_0,
+        }
     }
 }
 

@@ -42,7 +42,10 @@ impl note {
 
 impl Default for note {
     fn default() -> Self {
-        Self { key: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            key: __go_default_0_0,
+        }
     }
 }
 

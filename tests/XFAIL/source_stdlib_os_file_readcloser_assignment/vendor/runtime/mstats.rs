@@ -72,7 +72,42 @@ impl mstats {
 
 impl Default for mstats {
     fn default() -> Self {
-        Self { heap_stats: Arc::new(Mutex::new(Some(consistentHeapStats::default()))), stacks_sys: Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0))))))), mspan_sys: Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0))))))), mcache_sys: Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0))))))), buckhash_sys: Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0))))))), gc_misc_sys: Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0))))))), other_sys: Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0))))))), last_gc_unix: Arc::new(Mutex::new(Some(0))), pause_total_ns: Arc::new(Mutex::new(Some(0))), pause_ns: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), pause_end: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), numgc: Arc::new(Mutex::new(Some(0))), numforcedgc: Arc::new(Mutex::new(Some(0))), gc_cpu_fraction: Arc::new(Mutex::new(Some(0.0))), last_gc_nanotime: Arc::new(Mutex::new(Some(0))), last_heap_in_use: Arc::new(Mutex::new(Some(0))), enablegc: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(consistentHeapStats::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            heap_stats: __go_default_0_0,
+            stacks_sys: __go_default_1_0,
+            mspan_sys: __go_default_2_0,
+            mcache_sys: __go_default_3_0,
+            buckhash_sys: __go_default_4_0,
+            gc_misc_sys: __go_default_5_0,
+            other_sys: __go_default_6_0,
+            last_gc_unix: __go_default_7_0,
+            pause_total_ns: __go_default_8_0,
+            pause_ns: __go_default_9_0,
+            pause_end: __go_default_10_0,
+            numgc: __go_default_11_0,
+            numforcedgc: __go_default_12_0,
+            gc_cpu_fraction: __go_default_13_0,
+            last_gc_nanotime: __go_default_14_0,
+            last_heap_in_use: __go_default_15_0,
+            enablegc: __go_default_16_0,
+        }
     }
 }
 
@@ -542,7 +577,34 @@ impl heapStatsDelta {
 
 impl Default for heapStatsDelta {
     fn default() -> Self {
-        Self { committed: Arc::new(Mutex::new(Some(0))), released: Arc::new(Mutex::new(Some(0))), in_heap: Arc::new(Mutex::new(Some(0))), in_stacks: Arc::new(Mutex::new(Some(0))), in_work_bufs: Arc::new(Mutex::new(Some(0))), in_ptr_scalar_bits: Arc::new(Mutex::new(Some(0))), tiny_alloc_count: Arc::new(Mutex::new(Some(0))), large_alloc: Arc::new(Mutex::new(Some(0))), large_alloc_count: Arc::new(Mutex::new(Some(0))), small_alloc_count: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), large_free: Arc::new(Mutex::new(Some(0))), large_free_count: Arc::new(Mutex::new(Some(0))), small_free_count: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            committed: __go_default_0_0,
+            released: __go_default_1_0,
+            in_heap: __go_default_2_0,
+            in_stacks: __go_default_3_0,
+            in_work_bufs: __go_default_4_0,
+            in_ptr_scalar_bits: __go_default_5_0,
+            tiny_alloc_count: __go_default_6_0,
+            large_alloc: __go_default_7_0,
+            large_alloc_count: __go_default_8_0,
+            small_alloc_count: __go_default_9_0,
+            large_free: __go_default_10_0,
+            large_free_count: __go_default_11_0,
+            small_free_count: __go_default_12_0,
+        }
     }
 }
 
@@ -604,7 +666,14 @@ impl consistentHeapStats {
 
 impl Default for consistentHeapStats {
     fn default() -> Self {
-        Self { stats: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), gen: Arc::new(Mutex::new(Some(Default::default()))), no_p_lock: Arc::new(Mutex::new(Some(mutex::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        Self {
+            stats: __go_default_0_0,
+            gen: __go_default_1_0,
+            no_p_lock: __go_default_2_0,
+        }
     }
 }
 
@@ -673,7 +742,30 @@ impl cpuStats {
 
 impl Default for cpuStats {
     fn default() -> Self {
-        Self { g_c_assist_time: Arc::new(Mutex::new(Some(0))), g_c_dedicated_time: Arc::new(Mutex::new(Some(0))), g_c_idle_time: Arc::new(Mutex::new(Some(0))), g_c_pause_time: Arc::new(Mutex::new(Some(0))), g_c_total_time: Arc::new(Mutex::new(Some(0))), scavenge_assist_time: Arc::new(Mutex::new(Some(0))), scavenge_bg_time: Arc::new(Mutex::new(Some(0))), scavenge_total_time: Arc::new(Mutex::new(Some(0))), idle_time: Arc::new(Mutex::new(Some(0))), user_time: Arc::new(Mutex::new(Some(0))), total_time: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            g_c_assist_time: __go_default_0_0,
+            g_c_dedicated_time: __go_default_1_0,
+            g_c_idle_time: __go_default_2_0,
+            g_c_pause_time: __go_default_3_0,
+            g_c_total_time: __go_default_4_0,
+            scavenge_assist_time: __go_default_5_0,
+            scavenge_bg_time: __go_default_6_0,
+            scavenge_total_time: __go_default_7_0,
+            idle_time: __go_default_8_0,
+            user_time: __go_default_9_0,
+            total_time: __go_default_10_0,
+        }
     }
 }
 

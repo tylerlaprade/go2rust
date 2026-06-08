@@ -36,7 +36,18 @@ impl notifyList {
 
 impl Default for notifyList {
     fn default() -> Self {
-        Self { wait: Arc::new(StdMutex::new(Some(0))), notify: Arc::new(StdMutex::new(Some(0))), lock: Arc::new(StdMutex::new(Some(0))), head: Arc::new(StdMutex::new(Some(0))), tail: Arc::new(StdMutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(0)));
+        Self {
+            wait: __go_default_0_0,
+            notify: __go_default_1_0,
+            lock: __go_default_2_0,
+            head: __go_default_3_0,
+            tail: __go_default_4_0,
+        }
     }
 }
 

@@ -59,7 +59,20 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for HashTrieMap<K, V> {
     fn default() -> Self {
-        Self { inited: Arc::new(StdMutex::new(Some(Default::default()))), init_mu: Arc::new(StdMutex::new(Some(Mutex::default()))), root: Arc::new(StdMutex::new(Some(Default::default()))), key_hash: Arc::new(StdMutex::new(None)), val_equal: Arc::new(StdMutex::new(None)), seed: Arc::new(StdMutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(StdMutex::new(None));
+        let __go_default_4_0 = Arc::new(StdMutex::new(None));
+        let __go_default_5_0 = Arc::new(StdMutex::new(Some(0)));
+        Self {
+            inited: __go_default_0_0,
+            init_mu: __go_default_1_0,
+            root: __go_default_2_0,
+            key_hash: __go_default_3_0,
+            val_equal: __go_default_4_0,
+            seed: __go_default_5_0,
+        }
     }
 }
 
@@ -125,7 +138,18 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for indirect<K, V> {
     fn default() -> Self {
-        Self { node: Arc::new(StdMutex::new(Some(Default::default()))), dead: Arc::new(StdMutex::new(Some(Default::default()))), mu: Arc::new(StdMutex::new(Some(Mutex::default()))), parent: GoPtr::nil(), children: Arc::new(StdMutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        let __go_default_3_0 = GoPtr::nil();
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            node: __go_default_0_0,
+            dead: __go_default_1_0,
+            mu: __go_default_2_0,
+            parent: __go_default_3_0,
+            children: __go_default_4_0,
+        }
     }
 }
 
@@ -181,7 +205,16 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for entry<K, V> {
     fn default() -> Self {
-        Self { node: Arc::new(StdMutex::new(Some(Default::default()))), overflow: Arc::new(StdMutex::new(Some(Default::default()))), key: Arc::new(StdMutex::new(None)), value: Arc::new(StdMutex::new(None)) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(StdMutex::new(None));
+        let __go_default_3_0 = Arc::new(StdMutex::new(None));
+        Self {
+            node: __go_default_0_0,
+            overflow: __go_default_1_0,
+            key: __go_default_2_0,
+            value: __go_default_3_0,
+        }
     }
 }
 
@@ -232,7 +265,12 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for node<K, V> {
     fn default() -> Self {
-        Self { is_entry: Arc::new(StdMutex::new(Some(false))), __go_phantom: std::marker::PhantomData }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(false)));
+        let __go_default_phantom = std::marker::PhantomData;
+        Self {
+            is_entry: __go_default_0_0,
+            __go_phantom: __go_default_phantom,
+        }
     }
 }
 

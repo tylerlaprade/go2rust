@@ -48,7 +48,14 @@ impl semaRoot {
 
 impl Default for semaRoot {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), treap: Arc::new(Mutex::new(None)), nwait: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            lock: __go_default_0_0,
+            treap: __go_default_1_0,
+            nwait: __go_default_2_0,
+        }
     }
 }
 
@@ -481,7 +488,12 @@ impl AnonymousStruct30 {
 
 impl Default for AnonymousStruct30 {
     fn default() -> Self {
-        Self { root: Arc::new(Mutex::new(Some(semaRoot::default()))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(semaRoot::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            root: __go_default_0_0,
+            pad: __go_default_1_0,
+        }
     }
 }
 

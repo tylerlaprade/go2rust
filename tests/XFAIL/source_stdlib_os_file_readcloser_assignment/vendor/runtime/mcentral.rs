@@ -34,7 +34,16 @@ impl mcentral {
 
 impl Default for mcentral {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), spanclass: Arc::new(Mutex::new(Some(crate::mheap::spanClass(Arc::new(Mutex::new(Some(0))))))), partial: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), full: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::mheap::spanClass(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            spanclass: __go_default_1_0,
+            partial: __go_default_2_0,
+            full: __go_default_3_0,
+        }
     }
 }
 

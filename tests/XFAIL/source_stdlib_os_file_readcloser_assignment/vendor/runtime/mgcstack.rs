@@ -36,7 +36,14 @@ impl stackWorkBuf {
 
 impl Default for stackWorkBuf {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), stack_work_buf_hdr: Arc::new(Mutex::new(Some(stackWorkBufHdr::default()))), obj: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(stackWorkBufHdr::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            stack_work_buf_hdr: __go_default_1_0,
+            obj: __go_default_2_0,
+        }
     }
 }
 
@@ -82,7 +89,14 @@ impl stackWorkBufHdr {
 
 impl Default for stackWorkBufHdr {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), workbufhdr: Arc::new(Mutex::new(Some(workbufhdr::default()))), next: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(workbufhdr::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            workbufhdr: __go_default_1_0,
+            next: __go_default_2_0,
+        }
     }
 }
 
@@ -129,7 +143,14 @@ impl stackObjectBuf {
 
 impl Default for stackObjectBuf {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), stack_object_buf_hdr: Arc::new(Mutex::new(Some(stackObjectBufHdr::default()))), obj: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(stackObjectBufHdr::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            stack_object_buf_hdr: __go_default_1_0,
+            obj: __go_default_2_0,
+        }
     }
 }
 
@@ -174,7 +195,14 @@ impl stackObjectBufHdr {
 
 impl Default for stackObjectBufHdr {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), workbufhdr: Arc::new(Mutex::new(Some(workbufhdr::default()))), next: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(workbufhdr::default())));
+        let __go_default_2_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            workbufhdr: __go_default_1_0,
+            next: __go_default_2_0,
+        }
     }
 }
 
@@ -230,7 +258,20 @@ impl stackObject {
 
 impl Default for stackObject {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), off: Arc::new(Mutex::new(Some(0))), size: Arc::new(Mutex::new(Some(0))), r: Arc::new(Mutex::new(None)), left: GoPtr::nil(), right: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = GoPtr::nil();
+        let __go_default_5_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            off: __go_default_1_0,
+            size: __go_default_2_0,
+            r: __go_default_3_0,
+            left: __go_default_4_0,
+            right: __go_default_5_0,
+        }
     }
 }
 
@@ -298,7 +339,26 @@ impl stackScanState {
 
 impl Default for stackScanState {
     fn default() -> Self {
-        Self { stack: Arc::new(Mutex::new(Some(stack::default()))), conservative: Arc::new(Mutex::new(Some(false))), buf: Arc::new(Mutex::new(None)), free_buf: Arc::new(Mutex::new(None)), cbuf: Arc::new(Mutex::new(None)), head: GoPtr::nil(), tail: GoPtr::nil(), nobjs: Arc::new(Mutex::new(Some(0))), root: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stack::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = GoPtr::nil();
+        let __go_default_6_0 = GoPtr::nil();
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = GoPtr::nil();
+        Self {
+            stack: __go_default_0_0,
+            conservative: __go_default_1_0,
+            buf: __go_default_2_0,
+            free_buf: __go_default_3_0,
+            cbuf: __go_default_4_0,
+            head: __go_default_5_0,
+            tail: __go_default_6_0,
+            nobjs: __go_default_7_0,
+            root: __go_default_8_0,
+        }
     }
 }
 

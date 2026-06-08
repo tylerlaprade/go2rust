@@ -37,7 +37,16 @@ impl ticksType {
 
 impl Default for ticksType {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), start_ticks: Arc::new(Mutex::new(Some(0))), start_time: Arc::new(Mutex::new(Some(0))), val: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            lock: __go_default_0_0,
+            start_ticks: __go_default_1_0,
+            start_time: __go_default_2_0,
+            val: __go_default_3_0,
+        }
     }
 }
 
@@ -83,7 +92,12 @@ impl godebugInc {
 
 impl Default for godebugInc {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), inc: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            name: __go_default_0_0,
+            inc: __go_default_1_0,
+        }
     }
 }
 

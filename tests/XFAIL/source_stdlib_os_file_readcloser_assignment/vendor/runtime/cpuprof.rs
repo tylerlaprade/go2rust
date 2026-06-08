@@ -48,7 +48,22 @@ impl cpuProfile {
 
 impl Default for cpuProfile {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), on: Arc::new(Mutex::new(Some(false))), log: Arc::new(Mutex::new(None)), extra: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), num_extra: Arc::new(Mutex::new(Some(0))), lost_extra: Arc::new(Mutex::new(Some(0))), lost_atomic: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lock: __go_default_0_0,
+            on: __go_default_1_0,
+            log: __go_default_2_0,
+            extra: __go_default_3_0,
+            num_extra: __go_default_4_0,
+            lost_extra: __go_default_5_0,
+            lost_atomic: __go_default_6_0,
+        }
     }
 }
 

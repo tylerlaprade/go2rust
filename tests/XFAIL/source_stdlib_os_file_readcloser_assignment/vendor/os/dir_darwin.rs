@@ -27,7 +27,10 @@ impl dirInfo {
 
 impl Default for dirInfo {
     fn default() -> Self {
-        Self { dir: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            dir: __go_default_0_0,
+        }
     }
 }
 

@@ -52,7 +52,14 @@ impl timeHistogram {
 
 impl Default for timeHistogram {
     fn default() -> Self {
-        Self { counts: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), underflow: Arc::new(Mutex::new(Some(Default::default()))), overflow: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            counts: __go_default_0_0,
+            underflow: __go_default_1_0,
+            overflow: __go_default_2_0,
+        }
     }
 }
 

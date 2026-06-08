@@ -459,7 +459,16 @@ impl worldStop {
 
 impl Default for worldStop {
     fn default() -> Self {
-        Self { reason: Arc::new(Mutex::new(Some(stwReason(Arc::new(Mutex::new(Some(0))))))), started_stopping: Arc::new(Mutex::new(Some(0))), finished_stopping: Arc::new(Mutex::new(Some(0))), stopping_c_p_u_time: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(stwReason(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            reason: __go_default_0_0,
+            started_stopping: __go_default_1_0,
+            finished_stopping: __go_default_2_0,
+            stopping_c_p_u_time: __go_default_3_0,
+        }
     }
 }
 
@@ -505,7 +514,14 @@ impl cgothreadstart {
 
 impl Default for cgothreadstart {
     fn default() -> Self {
-        Self { g: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))), tls: Arc::new(Mutex::new(None)), r#fn: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            g: __go_default_0_0,
+            tls: __go_default_1_0,
+            r#fn: __go_default_2_0,
+        }
     }
 }
 
@@ -553,7 +569,16 @@ impl sysmontick {
 
 impl Default for sysmontick {
     fn default() -> Self {
-        Self { schedtick: Arc::new(Mutex::new(Some(0))), syscalltick: Arc::new(Mutex::new(Some(0))), schedwhen: Arc::new(Mutex::new(Some(0))), syscallwhen: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            schedtick: __go_default_0_0,
+            syscalltick: __go_default_1_0,
+            schedwhen: __go_default_2_0,
+            syscallwhen: __go_default_3_0,
+        }
     }
 }
 
@@ -609,7 +634,12 @@ impl gQueue {
 
 impl Default for gQueue {
     fn default() -> Self {
-        Self { head: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))), tail: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            head: __go_default_0_0,
+            tail: __go_default_1_0,
+        }
     }
 }
 
@@ -649,7 +679,10 @@ impl gList {
 
 impl Default for gList {
     fn default() -> Self {
-        Self { head: Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            head: __go_default_0_0,
+        }
     }
 }
 
@@ -693,7 +726,12 @@ impl randomOrder {
 
 impl Default for randomOrder {
     fn default() -> Self {
-        Self { count: Arc::new(Mutex::new(Some(0))), coprimes: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            count: __go_default_0_0,
+            coprimes: __go_default_1_0,
+        }
     }
 }
 
@@ -740,7 +778,16 @@ impl randomEnum {
 
 impl Default for randomEnum {
     fn default() -> Self {
-        Self { i: Arc::new(Mutex::new(Some(0))), count: Arc::new(Mutex::new(Some(0))), pos: Arc::new(Mutex::new(Some(0))), inc: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            i: __go_default_0_0,
+            count: __go_default_1_0,
+            pos: __go_default_2_0,
+            inc: __go_default_3_0,
+        }
     }
 }
 
@@ -785,7 +832,12 @@ impl initTask {
 
 impl Default for initTask {
     fn default() -> Self {
-        Self { state: Arc::new(Mutex::new(Some(0))), nfns: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            state: __go_default_0_0,
+            nfns: __go_default_1_0,
+        }
     }
 }
 
@@ -832,7 +884,16 @@ impl tracestat {
 
 impl Default for tracestat {
     fn default() -> Self {
-        Self { active: Arc::new(Mutex::new(Some(false))), id: Arc::new(Mutex::new(Some(0))), allocs: Arc::new(Mutex::new(Some(0))), bytes: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            active: __go_default_0_0,
+            id: __go_default_1_0,
+            allocs: __go_default_2_0,
+            bytes: __go_default_3_0,
+        }
     }
 }
 
@@ -6670,7 +6731,18 @@ impl AnonymousStruct22 {
 
 impl Default for AnonymousStruct22 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), newm: Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0))))))), waiting: Arc::new(Mutex::new(Some(false))), wake: Arc::new(Mutex::new(Some(note::default()))), have_template_thread: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(note::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            lock: __go_default_0_0,
+            newm: __go_default_1_0,
+            waiting: __go_default_2_0,
+            wake: __go_default_3_0,
+            have_template_thread: __go_default_4_0,
+        }
     }
 }
 
@@ -6713,7 +6785,12 @@ impl AnonymousStruct23 {
 
 impl Default for AnonymousStruct23 {
     fn default() -> Self {
-        Self { signal_lock: Arc::new(Mutex::new(Some(Default::default()))), hz: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            signal_lock: __go_default_0_0,
+            hz: __go_default_1_0,
+        }
     }
 }
 

@@ -31,7 +31,14 @@ impl suspendGState {
 
 impl Default for suspendGState {
     fn default() -> Self {
-        Self { g: Arc::new(Mutex::new(None)), dead: Arc::new(Mutex::new(Some(false))), stopped: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            g: __go_default_0_0,
+            dead: __go_default_1_0,
+            stopped: __go_default_2_0,
+        }
     }
 }
 

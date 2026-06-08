@@ -49,7 +49,26 @@ impl synctestGroup {
 
 impl Default for synctestGroup {
     fn default() -> Self {
-        Self { mu: Arc::new(Mutex::new(Some(mutex::default()))), timers: Arc::new(Mutex::new(Some(timers::default()))), now: Arc::new(Mutex::new(Some(0))), root: Arc::new(Mutex::new(None)), waiter: Arc::new(Mutex::new(None)), waiting: Arc::new(Mutex::new(Some(false))), total: Arc::new(Mutex::new(Some(0))), running: Arc::new(Mutex::new(Some(0))), active: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(timers::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            mu: __go_default_0_0,
+            timers: __go_default_1_0,
+            now: __go_default_2_0,
+            root: __go_default_3_0,
+            waiter: __go_default_4_0,
+            waiting: __go_default_5_0,
+            total: __go_default_6_0,
+            running: __go_default_7_0,
+            active: __go_default_8_0,
+        }
     }
 }
 

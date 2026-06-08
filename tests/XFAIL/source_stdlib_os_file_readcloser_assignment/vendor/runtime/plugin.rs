@@ -30,7 +30,12 @@ impl ptabEntry {
 
 impl Default for ptabEntry {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(internal_abi::r#type::NameOff(Arc::new(Mutex::new(Some(0))))))), typ: Arc::new(Mutex::new(Some(internal_abi::r#type::TypeOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(internal_abi::r#type::NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(internal_abi::r#type::TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            name: __go_default_0_0,
+            typ: __go_default_1_0,
+        }
     }
 }
 

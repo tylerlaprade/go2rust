@@ -27,7 +27,12 @@ impl sigctxt {
 
 impl Default for sigctxt {
     fn default() -> Self {
-        Self { info: Arc::new(Mutex::new(None)), ctxt: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            info: __go_default_0_0,
+            ctxt: __go_default_1_0,
+        }
     }
 }
 

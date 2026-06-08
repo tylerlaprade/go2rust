@@ -154,7 +154,86 @@ impl gcControllerState {
 
 impl Default for gcControllerState {
     fn default() -> Self {
-        Self { gc_percent: Arc::new(Mutex::new(Some(Default::default()))), memory_limit: Arc::new(Mutex::new(Some(Default::default()))), heap_minimum: Arc::new(Mutex::new(Some(0))), runway: Arc::new(Mutex::new(Some(Default::default()))), cons_mark: Arc::new(Mutex::new(Some(0.0))), last_cons_mark: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0.0)))), gc_percent_heap_goal: Arc::new(Mutex::new(Some(Default::default()))), sweep_dist_min_trigger: Arc::new(Mutex::new(Some(Default::default()))), triggered: Arc::new(Mutex::new(Some(0))), last_heap_goal: Arc::new(Mutex::new(Some(0))), heap_live: Arc::new(Mutex::new(Some(Default::default()))), heap_scan: Arc::new(Mutex::new(Some(Default::default()))), last_heap_scan: Arc::new(Mutex::new(Some(0))), last_stack_scan: Arc::new(Mutex::new(Some(Default::default()))), max_stack_scan: Arc::new(Mutex::new(Some(Default::default()))), globals_scan: Arc::new(Mutex::new(Some(Default::default()))), heap_marked: Arc::new(Mutex::new(Some(0))), heap_scan_work: Arc::new(Mutex::new(Some(Default::default()))), stack_scan_work: Arc::new(Mutex::new(Some(Default::default()))), globals_scan_work: Arc::new(Mutex::new(Some(Default::default()))), bg_scan_credit: Arc::new(Mutex::new(Some(Default::default()))), assist_time: Arc::new(Mutex::new(Some(Default::default()))), dedicated_mark_time: Arc::new(Mutex::new(Some(Default::default()))), fractional_mark_time: Arc::new(Mutex::new(Some(Default::default()))), idle_mark_time: Arc::new(Mutex::new(Some(Default::default()))), mark_start_time: Arc::new(Mutex::new(Some(0))), dedicated_mark_workers_needed: Arc::new(Mutex::new(Some(Default::default()))), idle_mark_workers: Arc::new(Mutex::new(Some(Default::default()))), assist_work_per_byte: Arc::new(Mutex::new(Some(Default::default()))), assist_bytes_per_work: Arc::new(Mutex::new(Some(Default::default()))), fractional_utilization_goal: Arc::new(Mutex::new(Some(0.0))), heap_in_use: Arc::new(Mutex::new(Some(crate::mstats::sysMemStat(Arc::new(Mutex::new(Some(0))))))), heap_released: Arc::new(Mutex::new(Some(crate::mstats::sysMemStat(Arc::new(Mutex::new(Some(0))))))), heap_free: Arc::new(Mutex::new(Some(crate::mstats::sysMemStat(Arc::new(Mutex::new(Some(0))))))), total_alloc: Arc::new(Mutex::new(Some(Default::default()))), total_free: Arc::new(Mutex::new(Some(Default::default()))), mapped_ready: Arc::new(Mutex::new(Some(Default::default()))), test: Arc::new(Mutex::new(Some(false))), __blank_38_0: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0.0))));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(crate::mstats::sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_32_0 = Arc::new(Mutex::new(Some(crate::mstats::sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_33_0 = Arc::new(Mutex::new(Some(crate::mstats::sysMemStat(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_34_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_35_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_36_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_37_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_38_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            gc_percent: __go_default_0_0,
+            memory_limit: __go_default_1_0,
+            heap_minimum: __go_default_2_0,
+            runway: __go_default_3_0,
+            cons_mark: __go_default_4_0,
+            last_cons_mark: __go_default_5_0,
+            gc_percent_heap_goal: __go_default_6_0,
+            sweep_dist_min_trigger: __go_default_7_0,
+            triggered: __go_default_8_0,
+            last_heap_goal: __go_default_9_0,
+            heap_live: __go_default_10_0,
+            heap_scan: __go_default_11_0,
+            last_heap_scan: __go_default_12_0,
+            last_stack_scan: __go_default_13_0,
+            max_stack_scan: __go_default_14_0,
+            globals_scan: __go_default_15_0,
+            heap_marked: __go_default_16_0,
+            heap_scan_work: __go_default_17_0,
+            stack_scan_work: __go_default_18_0,
+            globals_scan_work: __go_default_19_0,
+            bg_scan_credit: __go_default_20_0,
+            assist_time: __go_default_21_0,
+            dedicated_mark_time: __go_default_22_0,
+            fractional_mark_time: __go_default_23_0,
+            idle_mark_time: __go_default_24_0,
+            mark_start_time: __go_default_25_0,
+            dedicated_mark_workers_needed: __go_default_26_0,
+            idle_mark_workers: __go_default_27_0,
+            assist_work_per_byte: __go_default_28_0,
+            assist_bytes_per_work: __go_default_29_0,
+            fractional_utilization_goal: __go_default_30_0,
+            heap_in_use: __go_default_31_0,
+            heap_released: __go_default_32_0,
+            heap_free: __go_default_33_0,
+            total_alloc: __go_default_34_0,
+            total_free: __go_default_35_0,
+            mapped_ready: __go_default_36_0,
+            test: __go_default_37_0,
+            __blank_38_0: __go_default_38_0,
+        }
     }
 }
 

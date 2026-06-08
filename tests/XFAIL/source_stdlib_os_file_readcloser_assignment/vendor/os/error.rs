@@ -47,7 +47,12 @@ impl SyscallError {
 
 impl Default for SyscallError {
     fn default() -> Self {
-        Self { syscall: Arc::new(Mutex::new(Some(String::new()))), err: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            syscall: __go_default_0_0,
+            err: __go_default_1_0,
+        }
     }
 }
 

@@ -73,7 +73,12 @@ impl pallocData {
 
 impl Default for pallocData {
     fn default() -> Self {
-        Self { palloc_bits: Arc::new(Mutex::new(Some(pallocBits(Arc::new(Mutex::new(Some(pageBits(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))))))))), scavenged: Arc::new(Mutex::new(Some(pageBits(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(pallocBits(Arc::new(Mutex::new(Some(pageBits(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(pageBits(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
+        Self {
+            palloc_bits: __go_default_0_0,
+            scavenged: __go_default_1_0,
+        }
     }
 }
 

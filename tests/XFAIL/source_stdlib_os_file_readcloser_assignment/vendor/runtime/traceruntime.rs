@@ -52,7 +52,10 @@ impl gTraceState {
 
 impl Default for gTraceState {
     fn default() -> Self {
-        Self { trace_sched_resource_state: Arc::new(Mutex::new(Some(traceSchedResourceState::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(traceSchedResourceState::default())));
+        Self {
+            trace_sched_resource_state: __go_default_0_0,
+        }
     }
 }
 
@@ -102,7 +105,18 @@ impl mTraceState {
 
 impl Default for mTraceState {
     fn default() -> Self {
-        Self { seqlock: Arc::new(Mutex::new(Some(Default::default()))), buf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| Arc::new(Mutex::new(None))))))), link: Arc::new(Mutex::new(None)), reentered: Arc::new(Mutex::new(Some(0))), oldthrowsplit: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| Arc::new(Mutex::new(None)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            seqlock: __go_default_0_0,
+            buf: __go_default_1_0,
+            link: __go_default_2_0,
+            reentered: __go_default_3_0,
+            oldthrowsplit: __go_default_4_0,
+        }
     }
 }
 
@@ -159,7 +173,20 @@ impl pTraceState {
 
 impl Default for pTraceState {
     fn default() -> Self {
-        Self { trace_sched_resource_state: Arc::new(Mutex::new(Some(traceSchedResourceState::default()))), m_syscall_i_d: Arc::new(Mutex::new(Some(0))), may_sweep: Arc::new(Mutex::new(Some(false))), in_sweep: Arc::new(Mutex::new(Some(false))), swept: Arc::new(Mutex::new(Some(0))), reclaimed: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(traceSchedResourceState::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            trace_sched_resource_state: __go_default_0_0,
+            m_syscall_i_d: __go_default_1_0,
+            may_sweep: __go_default_2_0,
+            in_sweep: __go_default_3_0,
+            swept: __go_default_4_0,
+            reclaimed: __go_default_4_1,
+        }
     }
 }
 
@@ -968,7 +995,12 @@ impl traceLocker {
 
 impl Default for traceLocker {
     fn default() -> Self {
-        Self { mp: Arc::new(Mutex::new(None)), gen: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            mp: __go_default_0_0,
+            gen: __go_default_1_0,
+        }
     }
 }
 

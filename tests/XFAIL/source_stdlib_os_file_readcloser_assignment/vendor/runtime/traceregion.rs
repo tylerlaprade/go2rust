@@ -38,7 +38,16 @@ impl traceRegionAlloc {
 
 impl Default for traceRegionAlloc {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), dropping: Arc::new(Mutex::new(Some(Default::default()))), current: Arc::new(Mutex::new(Some(Default::default()))), full: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = GoPtr::nil();
+        Self {
+            lock: __go_default_0_0,
+            dropping: __go_default_1_0,
+            current: __go_default_2_0,
+            full: __go_default_3_0,
+        }
     }
 }
 
@@ -89,7 +98,14 @@ impl traceRegionAllocBlock {
 
 impl Default for traceRegionAllocBlock {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), trace_region_alloc_block_header: Arc::new(Mutex::new(Some(traceRegionAllocBlockHeader::default()))), data: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(traceRegionAllocBlockHeader::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            trace_region_alloc_block_header: __go_default_1_0,
+            data: __go_default_2_0,
+        }
     }
 }
 
@@ -131,7 +147,12 @@ impl traceRegionAllocBlockHeader {
 
 impl Default for traceRegionAllocBlockHeader {
     fn default() -> Self {
-        Self { next: GoPtr::nil(), off: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            next: __go_default_0_0,
+            off: __go_default_1_0,
+        }
     }
 }
 

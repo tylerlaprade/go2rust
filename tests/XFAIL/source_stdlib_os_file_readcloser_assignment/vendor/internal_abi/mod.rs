@@ -43,7 +43,16 @@ impl RegArgs {
 
 impl Default for RegArgs {
     fn default() -> Self {
-        Self { ints: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), floats: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), ptrs: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), return_is_ptr: Arc::new(Mutex::new(Some(IntArgRegBitmap(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(IntArgRegBitmap(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
+        Self {
+            ints: __go_default_0_0,
+            floats: __go_default_1_0,
+            ptrs: __go_default_2_0,
+            return_is_ptr: __go_default_3_0,
+        }
     }
 }
 

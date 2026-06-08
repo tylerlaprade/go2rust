@@ -126,7 +126,30 @@ impl Type {
 
 impl Default for Type {
     fn default() -> Self {
-        Self { size_: Arc::new(Mutex::new(Some(0))), ptr_bytes: Arc::new(Mutex::new(Some(0))), hash: Arc::new(Mutex::new(Some(0))), t_flag: Arc::new(Mutex::new(Some(TFlag(Arc::new(Mutex::new(Some(0))))))), align_: Arc::new(Mutex::new(Some(0))), field_align_: Arc::new(Mutex::new(Some(0))), kind_: Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(0))))))), equal: Arc::new(Mutex::new(None)), g_c_data: GoPtr::nil(), str: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), ptr_to_this: Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(TFlag(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        let __go_default_8_0 = GoPtr::nil();
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            size_: __go_default_0_0,
+            ptr_bytes: __go_default_1_0,
+            hash: __go_default_2_0,
+            t_flag: __go_default_3_0,
+            align_: __go_default_4_0,
+            field_align_: __go_default_5_0,
+            kind_: __go_default_6_0,
+            equal: __go_default_7_0,
+            g_c_data: __go_default_8_0,
+            str: __go_default_9_0,
+            ptr_to_this: __go_default_10_0,
+        }
     }
 }
 
@@ -2104,7 +2127,16 @@ impl Method {
 
 impl Default for Method {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), mtyp: Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0))))))), ifn: Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0))))))), tfn: Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            name: __go_default_0_0,
+            mtyp: __go_default_1_0,
+            ifn: __go_default_2_0,
+            tfn: __go_default_3_0,
+        }
     }
 }
 
@@ -2160,7 +2192,18 @@ impl UncommonType {
 
 impl Default for UncommonType {
     fn default() -> Self {
-        Self { pkg_path: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), mcount: Arc::new(Mutex::new(Some(0))), xcount: Arc::new(Mutex::new(Some(0))), moff: Arc::new(Mutex::new(Some(0))), __blank_4_0: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            pkg_path: __go_default_0_0,
+            mcount: __go_default_1_0,
+            xcount: __go_default_2_0,
+            moff: __go_default_3_0,
+            __blank_4_0: __go_default_4_0,
+        }
     }
 }
 
@@ -2214,7 +2257,12 @@ impl Imethod {
 
 impl Default for Imethod {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), typ: Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            name: __go_default_0_0,
+            typ: __go_default_1_0,
+        }
     }
 }
 
@@ -2262,7 +2310,16 @@ impl ArrayType {
 
 impl Default for ArrayType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)), slice: Arc::new(Mutex::new(None)), len: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+            slice: __go_default_2_0,
+            len: __go_default_3_0,
+        }
     }
 }
 
@@ -2694,7 +2751,14 @@ impl ChanType {
 
 impl Default for ChanType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)), dir: Arc::new(Mutex::new(Some(ChanDir(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(ChanDir(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+            dir: __go_default_2_0,
+        }
     }
 }
 
@@ -2736,7 +2800,12 @@ impl structTypeUncommon {
 
 impl Default for structTypeUncommon {
     fn default() -> Self {
-        Self { struct_type: Arc::new(Mutex::new(Some(StructType::default()))), u: Arc::new(Mutex::new(Some(UncommonType::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(StructType::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(UncommonType::default())));
+        Self {
+            struct_type: __go_default_0_0,
+            u: __go_default_1_0,
+        }
     }
 }
 
@@ -2780,7 +2849,14 @@ impl InterfaceType {
 
 impl Default for InterfaceType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), pkg_path: Arc::new(Mutex::new(Some(Name::default()))), methods: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Name::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            pkg_path: __go_default_1_0,
+            methods: __go_default_2_0,
+        }
     }
 }
 
@@ -2822,7 +2898,12 @@ impl SliceType {
 
 impl Default for SliceType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+        }
     }
 }
 
@@ -2877,7 +2958,14 @@ impl FuncType {
 
 impl Default for FuncType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), in_count: Arc::new(Mutex::new(Some(0))), out_count: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            in_count: __go_default_1_0,
+            out_count: __go_default_2_0,
+        }
     }
 }
 
@@ -2925,7 +3013,12 @@ impl PtrType {
 
 impl Default for PtrType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+        }
     }
 }
 
@@ -2969,7 +3062,14 @@ impl StructField {
 
 impl Default for StructField {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(Name::default()))), typ: Arc::new(Mutex::new(None)), offset: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Name::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            typ: __go_default_1_0,
+            offset: __go_default_2_0,
+        }
     }
 }
 
@@ -3017,7 +3117,14 @@ impl StructType {
 
 impl Default for StructType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), pkg_path: Arc::new(Mutex::new(Some(Name::default()))), fields: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Name::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            pkg_path: __go_default_1_0,
+            fields: __go_default_2_0,
+        }
     }
 }
 
@@ -5133,7 +5240,12 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { ptr_type: Arc::new(Mutex::new(Some(PtrType::default()))), u: Arc::new(Mutex::new(Some(UncommonType::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(PtrType::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(UncommonType::default())));
+        Self {
+            ptr_type: __go_default_0_0,
+            u: __go_default_1_0,
+        }
     }
 }
 

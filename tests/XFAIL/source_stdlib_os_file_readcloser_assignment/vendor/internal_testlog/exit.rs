@@ -37,7 +37,12 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { mu: Default::default(), val: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Default::default();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            mu: __go_default_0_0,
+            val: __go_default_1_0,
+        }
     }
 }
 

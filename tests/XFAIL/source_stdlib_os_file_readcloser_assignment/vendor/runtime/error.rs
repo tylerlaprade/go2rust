@@ -46,7 +46,16 @@ impl TypeAssertionError {
 
 impl Default for TypeAssertionError {
     fn default() -> Self {
-        Self { _interface: Arc::new(Mutex::new(None)), concrete: GoPtr::nil(), asserted: Arc::new(Mutex::new(None)), missing_method: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            _interface: __go_default_0_0,
+            concrete: __go_default_1_0,
+            asserted: __go_default_2_0,
+            missing_method: __go_default_3_0,
+        }
     }
 }
 
@@ -109,7 +118,12 @@ impl errorAddressString {
 
 impl Default for errorAddressString {
     fn default() -> Self {
-        Self { msg: Arc::new(Mutex::new(Some(String::new()))), addr: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            msg: __go_default_0_0,
+            addr: __go_default_1_0,
+        }
     }
 }
 

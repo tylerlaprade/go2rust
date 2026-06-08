@@ -53,7 +53,18 @@ impl gcWork {
 
 impl Default for gcWork {
     fn default() -> Self {
-        Self { wbuf1: GoPtr::nil(), wbuf2: GoPtr::nil(), bytes_marked: Arc::new(Mutex::new(Some(0))), heap_scan_work: Arc::new(Mutex::new(Some(0))), flushed_work: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_0_1 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            wbuf1: __go_default_0_0,
+            wbuf2: __go_default_0_1,
+            bytes_marked: __go_default_1_0,
+            heap_scan_work: __go_default_2_0,
+            flushed_work: __go_default_3_0,
+        }
     }
 }
 
@@ -97,7 +108,12 @@ impl workbufhdr {
 
 impl Default for workbufhdr {
     fn default() -> Self {
-        Self { node: Arc::new(Mutex::new(Some(lfnode::default()))), nobj: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(lfnode::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            node: __go_default_0_0,
+            nobj: __go_default_1_0,
+        }
     }
 }
 
@@ -141,7 +157,14 @@ impl workbuf {
 
 impl Default for workbuf {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), workbufhdr: Arc::new(Mutex::new(Some(workbufhdr::default()))), obj: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(workbufhdr::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            workbufhdr: __go_default_1_0,
+            obj: __go_default_2_0,
+        }
     }
 }
 

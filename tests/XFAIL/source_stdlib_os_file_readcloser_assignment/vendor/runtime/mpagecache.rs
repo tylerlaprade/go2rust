@@ -37,7 +37,14 @@ impl pageCache {
 
 impl Default for pageCache {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(Some(0))), cache: Arc::new(Mutex::new(Some(0))), scav: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            base: __go_default_0_0,
+            cache: __go_default_1_0,
+            scav: __go_default_2_0,
+        }
     }
 }
 

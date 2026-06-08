@@ -41,7 +41,12 @@ impl metricData {
 
 impl Default for metricData {
     fn default() -> Self {
-        Self { deps: Arc::new(Mutex::new(Some(statDepSet(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))))), compute: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(statDepSet(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            deps: __go_default_0_0,
+            compute: __go_default_1_0,
+        }
     }
 }
 
@@ -498,7 +503,22 @@ impl heapStatsAggregate {
 
 impl Default for heapStatsAggregate {
     fn default() -> Self {
-        Self { heap_stats_delta: Arc::new(Mutex::new(Some(heapStatsDelta::default()))), in_objects: Arc::new(Mutex::new(Some(0))), num_objects: Arc::new(Mutex::new(Some(0))), total_allocated: Arc::new(Mutex::new(Some(0))), total_freed: Arc::new(Mutex::new(Some(0))), total_allocs: Arc::new(Mutex::new(Some(0))), total_frees: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(heapStatsDelta::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            heap_stats_delta: __go_default_0_0,
+            in_objects: __go_default_1_0,
+            num_objects: __go_default_2_0,
+            total_allocated: __go_default_3_0,
+            total_freed: __go_default_4_0,
+            total_allocs: __go_default_5_0,
+            total_frees: __go_default_6_0,
+        }
     }
 }
 
@@ -578,7 +598,30 @@ impl sysStatsAggregate {
 
 impl Default for sysStatsAggregate {
     fn default() -> Self {
-        Self { stacks_sys: Arc::new(Mutex::new(Some(0))), m_span_sys: Arc::new(Mutex::new(Some(0))), m_span_in_use: Arc::new(Mutex::new(Some(0))), m_cache_sys: Arc::new(Mutex::new(Some(0))), m_cache_in_use: Arc::new(Mutex::new(Some(0))), buck_hash_sys: Arc::new(Mutex::new(Some(0))), gc_misc_sys: Arc::new(Mutex::new(Some(0))), other_sys: Arc::new(Mutex::new(Some(0))), heap_goal: Arc::new(Mutex::new(Some(0))), gc_cycles_done: Arc::new(Mutex::new(Some(0))), gc_cycles_forced: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            stacks_sys: __go_default_0_0,
+            m_span_sys: __go_default_1_0,
+            m_span_in_use: __go_default_2_0,
+            m_cache_sys: __go_default_3_0,
+            m_cache_in_use: __go_default_4_0,
+            buck_hash_sys: __go_default_5_0,
+            gc_misc_sys: __go_default_6_0,
+            other_sys: __go_default_7_0,
+            heap_goal: __go_default_8_0,
+            gc_cycles_done: __go_default_9_0,
+            gc_cycles_forced: __go_default_10_0,
+        }
     }
 }
 
@@ -627,7 +670,10 @@ impl cpuStatsAggregate {
 
 impl Default for cpuStatsAggregate {
     fn default() -> Self {
-        Self { cpu_stats: Arc::new(Mutex::new(Some(cpuStats::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(cpuStats::default())));
+        Self {
+            cpu_stats: __go_default_0_0,
+        }
     }
 }
 
@@ -675,7 +721,16 @@ impl gcStatsAggregate {
 
 impl Default for gcStatsAggregate {
     fn default() -> Self {
-        Self { heap_scan: Arc::new(Mutex::new(Some(0))), stack_scan: Arc::new(Mutex::new(Some(0))), globals_scan: Arc::new(Mutex::new(Some(0))), total_scan: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            heap_scan: __go_default_0_0,
+            stack_scan: __go_default_1_0,
+            globals_scan: __go_default_2_0,
+            total_scan: __go_default_3_0,
+        }
     }
 }
 
@@ -732,7 +787,18 @@ impl statAggregate {
 
 impl Default for statAggregate {
     fn default() -> Self {
-        Self { ensured: Arc::new(Mutex::new(Some(statDepSet(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))))), heap_stats: Arc::new(Mutex::new(Some(heapStatsAggregate::default()))), sys_stats: Arc::new(Mutex::new(Some(sysStatsAggregate::default()))), cpu_stats: Arc::new(Mutex::new(Some(cpuStatsAggregate::default()))), gc_stats: Arc::new(Mutex::new(Some(gcStatsAggregate::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(statDepSet(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(heapStatsAggregate::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(sysStatsAggregate::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(cpuStatsAggregate::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(gcStatsAggregate::default())));
+        Self {
+            ensured: __go_default_0_0,
+            heap_stats: __go_default_1_0,
+            sys_stats: __go_default_2_0,
+            cpu_stats: __go_default_3_0,
+            gc_stats: __go_default_4_0,
+        }
     }
 }
 
@@ -1165,7 +1231,14 @@ impl metricValue {
 
 impl Default for metricValue {
     fn default() -> Self {
-        Self { kind: Arc::new(Mutex::new(Some(metricKind(Arc::new(Mutex::new(Some(0))))))), scalar: Arc::new(Mutex::new(Some(0))), pointer: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(metricKind(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            kind: __go_default_0_0,
+            scalar: __go_default_1_0,
+            pointer: __go_default_2_0,
+        }
     }
 }
 

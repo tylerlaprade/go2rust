@@ -172,7 +172,80 @@ impl mheap {
 
 impl Default for mheap {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), lock: Arc::new(Mutex::new(Some(mutex::default()))), pages: Arc::new(Mutex::new(Some(pageAlloc::default()))), sweepgen: Arc::new(Mutex::new(Some(0))), allspans: Arc::new(Mutex::new(None)), pages_in_use: Arc::new(Mutex::new(Some(Default::default()))), pages_swept: Arc::new(Mutex::new(Some(Default::default()))), pages_swept_basis: Arc::new(Mutex::new(Some(Default::default()))), sweep_heap_live_basis: Arc::new(Mutex::new(Some(0))), sweep_pages_per_byte: Arc::new(Mutex::new(Some(0.0))), reclaim_index: Arc::new(Mutex::new(Some(Default::default()))), reclaim_credit: Arc::new(Mutex::new(Some(Default::default()))), __blank_12_0: Arc::new(Mutex::new(Some(Default::default()))), arenas: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), arenas_huge_pages: Arc::new(Mutex::new(Some(false))), heap_arena_alloc: Arc::new(Mutex::new(Some(linearAlloc::default()))), arena_hints: GoPtr::nil(), arena: Arc::new(Mutex::new(Some(linearAlloc::default()))), all_arenas: Arc::new(Mutex::new(None)), sweep_arenas: Arc::new(Mutex::new(None)), mark_arenas: Arc::new(Mutex::new(None)), cur_arena: Arc::new(Mutex::new(Some(AnonymousStruct16::default()))), central: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), spanalloc: Arc::new(Mutex::new(Some(fixalloc::default()))), cachealloc: Arc::new(Mutex::new(Some(fixalloc::default()))), specialfinalizeralloc: Arc::new(Mutex::new(Some(fixalloc::default()))), special_cleanup_alloc: Arc::new(Mutex::new(Some(fixalloc::default()))), specialprofilealloc: Arc::new(Mutex::new(Some(fixalloc::default()))), special_reachable_alloc: Arc::new(Mutex::new(Some(fixalloc::default()))), special_pin_counter_alloc: Arc::new(Mutex::new(Some(fixalloc::default()))), special_weak_handle_alloc: Arc::new(Mutex::new(Some(fixalloc::default()))), speciallock: Arc::new(Mutex::new(Some(mutex::default()))), arena_hint_alloc: Arc::new(Mutex::new(Some(fixalloc::default()))), user_arena: Arc::new(Mutex::new(Some(AnonymousStruct18::default()))), cleanup_i_d: Arc::new(Mutex::new(Some(0))), unused: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(pageAlloc::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(linearAlloc::default())));
+        let __go_default_16_0 = GoPtr::nil();
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(linearAlloc::default())));
+        let __go_default_18_0 = Arc::new(Mutex::new(None));
+        let __go_default_19_0 = Arc::new(Mutex::new(None));
+        let __go_default_20_0 = Arc::new(Mutex::new(None));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(AnonymousStruct16::default())));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_25_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_27_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_28_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_29_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_30_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_31_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_32_0 = Arc::new(Mutex::new(Some(fixalloc::default())));
+        let __go_default_33_0 = Arc::new(Mutex::new(Some(AnonymousStruct18::default())));
+        let __go_default_34_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_35_0 = Arc::new(Mutex::new(None));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            lock: __go_default_1_0,
+            pages: __go_default_2_0,
+            sweepgen: __go_default_3_0,
+            allspans: __go_default_4_0,
+            pages_in_use: __go_default_5_0,
+            pages_swept: __go_default_6_0,
+            pages_swept_basis: __go_default_7_0,
+            sweep_heap_live_basis: __go_default_8_0,
+            sweep_pages_per_byte: __go_default_9_0,
+            reclaim_index: __go_default_10_0,
+            reclaim_credit: __go_default_11_0,
+            __blank_12_0: __go_default_12_0,
+            arenas: __go_default_13_0,
+            arenas_huge_pages: __go_default_14_0,
+            heap_arena_alloc: __go_default_15_0,
+            arena_hints: __go_default_16_0,
+            arena: __go_default_17_0,
+            all_arenas: __go_default_18_0,
+            sweep_arenas: __go_default_19_0,
+            mark_arenas: __go_default_20_0,
+            cur_arena: __go_default_21_0,
+            central: __go_default_22_0,
+            spanalloc: __go_default_23_0,
+            cachealloc: __go_default_24_0,
+            specialfinalizeralloc: __go_default_25_0,
+            special_cleanup_alloc: __go_default_26_0,
+            specialprofilealloc: __go_default_27_0,
+            special_reachable_alloc: __go_default_28_0,
+            special_pin_counter_alloc: __go_default_29_0,
+            special_weak_handle_alloc: __go_default_30_0,
+            speciallock: __go_default_31_0,
+            arena_hint_alloc: __go_default_32_0,
+            user_arena: __go_default_33_0,
+            cleanup_i_d: __go_default_34_0,
+            unused: __go_default_35_0,
+        }
     }
 }
 
@@ -264,7 +337,22 @@ impl heapArena {
 
 impl Default for heapArena {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), spans: Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil())))), page_in_use: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), page_marks: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), page_specials: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), checkmarks: GoPtr::nil(), zeroed_base: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil()))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_5_0 = GoPtr::nil();
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            spans: __go_default_1_0,
+            page_in_use: __go_default_2_0,
+            page_marks: __go_default_3_0,
+            page_specials: __go_default_4_0,
+            checkmarks: __go_default_5_0,
+            zeroed_base: __go_default_6_0,
+        }
     }
 }
 
@@ -318,7 +406,16 @@ impl arenaHint {
 
 impl Default for arenaHint {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), addr: Arc::new(Mutex::new(Some(0))), down: Arc::new(Mutex::new(Some(false))), next: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            addr: __go_default_1_0,
+            down: __go_default_2_0,
+            next: __go_default_3_0,
+        }
     }
 }
 
@@ -758,7 +855,10 @@ impl mSpanStateBox {
 
 impl Default for mSpanStateBox {
     fn default() -> Self {
-        Self { s: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            s: __go_default_0_0,
+        }
     }
 }
 
@@ -802,7 +902,14 @@ impl mSpanList {
 
 impl Default for mSpanList {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), first: GoPtr::nil(), last: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            first: __go_default_1_0,
+            last: __go_default_2_0,
+        }
     }
 }
 
@@ -922,7 +1029,64 @@ impl mspan {
 
 impl Default for mspan {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next: GoPtr::nil(), prev: GoPtr::nil(), list: Arc::new(Mutex::new(None)), start_addr: Arc::new(Mutex::new(Some(0))), npages: Arc::new(Mutex::new(Some(0))), manual_free_list: Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some(0))))))), freeindex: Arc::new(Mutex::new(Some(0))), nelems: Arc::new(Mutex::new(Some(0))), free_index_for_scan: Arc::new(Mutex::new(Some(0))), alloc_cache: Arc::new(Mutex::new(Some(0))), alloc_bits: GoPtr::nil(), gcmark_bits: GoPtr::nil(), pinner_bits: Arc::new(Mutex::new(None)), sweepgen: Arc::new(Mutex::new(Some(0))), div_mul: Arc::new(Mutex::new(Some(0))), alloc_count: Arc::new(Mutex::new(Some(0))), spanclass: Arc::new(Mutex::new(Some(spanClass(Arc::new(Mutex::new(Some(0))))))), state: Arc::new(Mutex::new(Some(mSpanStateBox::default()))), needzero: Arc::new(Mutex::new(Some(0))), is_user_arena_chunk: Arc::new(Mutex::new(Some(false))), alloc_count_before_cache: Arc::new(Mutex::new(Some(0))), elemsize: Arc::new(Mutex::new(Some(0))), limit: Arc::new(Mutex::new(Some(0))), speciallock: Arc::new(Mutex::new(Some(mutex::default()))), specials: Arc::new(Mutex::new(None)), user_arena_chunk_free: Arc::new(Mutex::new(Some(addrRange::default()))), large_type: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = GoPtr::nil();
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_11_0 = GoPtr::nil();
+        let __go_default_12_0 = GoPtr::nil();
+        let __go_default_13_0 = Arc::new(Mutex::new(None));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(spanClass(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(mSpanStateBox::default())));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_23_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_24_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_25_0 = Arc::new(Mutex::new(None));
+        let __go_default_26_0 = Arc::new(Mutex::new(Some(addrRange::default())));
+        let __go_default_27_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            next: __go_default_1_0,
+            prev: __go_default_2_0,
+            list: __go_default_3_0,
+            start_addr: __go_default_4_0,
+            npages: __go_default_5_0,
+            manual_free_list: __go_default_6_0,
+            freeindex: __go_default_7_0,
+            nelems: __go_default_8_0,
+            free_index_for_scan: __go_default_9_0,
+            alloc_cache: __go_default_10_0,
+            alloc_bits: __go_default_11_0,
+            gcmark_bits: __go_default_12_0,
+            pinner_bits: __go_default_13_0,
+            sweepgen: __go_default_14_0,
+            div_mul: __go_default_15_0,
+            alloc_count: __go_default_16_0,
+            spanclass: __go_default_17_0,
+            state: __go_default_18_0,
+            needzero: __go_default_19_0,
+            is_user_arena_chunk: __go_default_20_0,
+            alloc_count_before_cache: __go_default_21_0,
+            elemsize: __go_default_22_0,
+            limit: __go_default_23_0,
+            speciallock: __go_default_24_0,
+            specials: __go_default_25_0,
+            user_arena_chunk_free: __go_default_26_0,
+            large_type: __go_default_27_0,
+        }
     }
 }
 
@@ -2128,7 +2292,16 @@ impl special {
 
 impl Default for special {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next: Arc::new(Mutex::new(None)), offset: Arc::new(Mutex::new(Some(0))), kind: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            next: __go_default_1_0,
+            offset: __go_default_2_0,
+            kind: __go_default_3_0,
+        }
     }
 }
 
@@ -2187,7 +2360,20 @@ impl specialfinalizer {
 
 impl Default for specialfinalizer {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), special: Arc::new(Mutex::new(Some(special::default()))), r#fn: Arc::new(Mutex::new(None)), nret: Arc::new(Mutex::new(Some(0))), fint: Arc::new(Mutex::new(None)), ot: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(special::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            special: __go_default_1_0,
+            r#fn: __go_default_2_0,
+            nret: __go_default_3_0,
+            fint: __go_default_4_0,
+            ot: __go_default_5_0,
+        }
     }
 }
 
@@ -2239,7 +2425,16 @@ impl specialCleanup {
 
 impl Default for specialCleanup {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), special: Arc::new(Mutex::new(Some(special::default()))), r#fn: Arc::new(Mutex::new(None)), id: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(special::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            special: __go_default_1_0,
+            r#fn: __go_default_2_0,
+            id: __go_default_3_0,
+        }
     }
 }
 
@@ -2308,7 +2503,14 @@ impl specialWeakHandle {
 
 impl Default for specialWeakHandle {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), special: Arc::new(Mutex::new(Some(special::default()))), handle: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(special::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            special: __go_default_1_0,
+            handle: __go_default_2_0,
+        }
     }
 }
 
@@ -2354,7 +2556,14 @@ impl specialprofile {
 
 impl Default for specialprofile {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), special: Arc::new(Mutex::new(Some(special::default()))), b: GoPtr::nil() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(special::default())));
+        let __go_default_2_0 = GoPtr::nil();
+        Self {
+            __blank_0_0: __go_default_0_0,
+            special: __go_default_1_0,
+            b: __go_default_2_0,
+        }
     }
 }
 
@@ -2401,7 +2610,14 @@ impl specialReachable {
 
 impl Default for specialReachable {
     fn default() -> Self {
-        Self { special: Arc::new(Mutex::new(Some(special::default()))), done: Arc::new(Mutex::new(Some(false))), reachable: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(special::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            special: __go_default_0_0,
+            done: __go_default_1_0,
+            reachable: __go_default_2_0,
+        }
     }
 }
 
@@ -2444,7 +2660,12 @@ impl specialPinCounter {
 
 impl Default for specialPinCounter {
     fn default() -> Self {
-        Self { special: Arc::new(Mutex::new(Some(special::default()))), counter: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(special::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            special: __go_default_0_0,
+            counter: __go_default_1_0,
+        }
     }
 }
 
@@ -2521,7 +2742,12 @@ impl gcBits {
 
 impl Default for gcBits {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), x: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            x: __go_default_1_0,
+        }
     }
 }
 
@@ -2562,7 +2788,12 @@ impl gcBitsHeader {
 
 impl Default for gcBitsHeader {
     fn default() -> Self {
-        Self { free: Arc::new(Mutex::new(Some(0))), next: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            free: __go_default_0_0,
+            next: __go_default_1_0,
+        }
     }
 }
 
@@ -2609,7 +2840,16 @@ impl gcBitsArena {
 
 impl Default for gcBitsArena {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), free: Arc::new(Mutex::new(Some(0))), next: GoPtr::nil(), bits: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = GoPtr::nil();
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            free: __go_default_1_0,
+            next: __go_default_2_0,
+            bits: __go_default_3_0,
+        }
     }
 }
 
@@ -2654,7 +2894,14 @@ impl AnonymousStruct15 {
 
 impl Default for AnonymousStruct15 {
     fn default() -> Self {
-        Self { index: Arc::new(Mutex::new(Some(scavengeIndex::default()))), released_bg: Arc::new(Mutex::new(Some(Default::default()))), released_eager: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(scavengeIndex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            index: __go_default_0_0,
+            released_bg: __go_default_1_0,
+            released_eager: __go_default_2_0,
+        }
     }
 }
 
@@ -2695,7 +2942,12 @@ impl AnonymousStruct16 {
 
 impl Default for AnonymousStruct16 {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            base: __go_default_0_0,
+            end: __go_default_0_1,
+        }
     }
 }
 
@@ -2735,7 +2987,12 @@ impl AnonymousStruct17 {
 
 impl Default for AnonymousStruct17 {
     fn default() -> Self {
-        Self { mcentral: Arc::new(Mutex::new(Some(mcentral::default()))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mcentral::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            mcentral: __go_default_0_0,
+            pad: __go_default_1_0,
+        }
     }
 }
 
@@ -2778,7 +3035,14 @@ impl AnonymousStruct18 {
 
 impl Default for AnonymousStruct18 {
     fn default() -> Self {
-        Self { arena_hints: GoPtr::nil(), quarantine_list: Arc::new(Mutex::new(Some(mSpanList::default()))), ready_list: Arc::new(Mutex::new(Some(mSpanList::default()))) }
+        let __go_default_0_0 = GoPtr::nil();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(mSpanList::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(mSpanList::default())));
+        Self {
+            arena_hints: __go_default_0_0,
+            quarantine_list: __go_default_1_0,
+            ready_list: __go_default_2_0,
+        }
     }
 }
 
@@ -4760,7 +5024,18 @@ impl AnonymousStruct19 {
 
 impl Default for AnonymousStruct19 {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), free: GoPtr::nil(), next: Arc::new(Mutex::new(None)), current: Arc::new(Mutex::new(None)), previous: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = GoPtr::nil();
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        Self {
+            lock: __go_default_0_0,
+            free: __go_default_1_0,
+            next: __go_default_2_0,
+            current: __go_default_3_0,
+            previous: __go_default_4_0,
+        }
     }
 }
 

@@ -35,7 +35,14 @@ impl traceStringTable {
 
 impl Default for traceStringTable {
     fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), buf: Arc::new(Mutex::new(None)), tab: Arc::new(Mutex::new(Some(traceMap::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(mutex::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(traceMap::default())));
+        Self {
+            lock: __go_default_0_0,
+            buf: __go_default_1_0,
+            tab: __go_default_2_0,
+        }
     }
 }
 

@@ -33,7 +33,10 @@ impl pollDesc {
 
 impl Default for pollDesc {
     fn default() -> Self {
-        Self { runtime_ctx: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            runtime_ctx: __go_default_0_0,
+        }
     }
 }
 

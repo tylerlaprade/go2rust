@@ -841,7 +841,10 @@ impl traceEventWriter {
 
 impl Default for traceEventWriter {
     fn default() -> Self {
-        Self { tl: Arc::new(Mutex::new(Some(traceLocker::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(traceLocker::default())));
+        Self {
+            tl: __go_default_0_0,
+        }
     }
 }
 

@@ -116,7 +116,22 @@ impl CovMetaBlob {
 
 impl Default for CovMetaBlob {
     fn default() -> Self {
-        Self { p: Arc::new(Mutex::new(None)), len: Arc::new(Mutex::new(Some(0))), hash: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), pkg_path: Arc::new(Mutex::new(Some(String::new()))), pkg_i_d: Arc::new(Mutex::new(Some(0))), counter_mode: Arc::new(Mutex::new(Some(0))), counter_granularity: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            p: __go_default_0_0,
+            len: __go_default_1_0,
+            hash: __go_default_2_0,
+            pkg_path: __go_default_3_0,
+            pkg_i_d: __go_default_4_0,
+            counter_mode: __go_default_5_0,
+            counter_granularity: __go_default_6_0,
+        }
     }
 }
 
@@ -193,7 +208,14 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { list: Arc::new(Mutex::new(None)), pkg_map: Arc::new(Mutex::new(None)), hard_coded_list_needs_updating: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            list: __go_default_0_0,
+            pkg_map: __go_default_1_0,
+            hard_coded_list_needs_updating: __go_default_2_0,
+        }
     }
 }
 

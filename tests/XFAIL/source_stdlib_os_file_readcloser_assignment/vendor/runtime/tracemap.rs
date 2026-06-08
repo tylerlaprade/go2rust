@@ -36,7 +36,18 @@ impl traceMap {
 
 impl Default for traceMap {
     fn default() -> Self {
-        Self { root: Arc::new(Mutex::new(Some(Default::default()))), __blank_1_0: Arc::new(Mutex::new(Some(Default::default()))), seq: Arc::new(Mutex::new(Some(Default::default()))), __blank_3_0: Arc::new(Mutex::new(Some(Default::default()))), mem: Arc::new(Mutex::new(Some(traceRegionAlloc::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(traceRegionAlloc::default())));
+        Self {
+            root: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            seq: __go_default_2_0,
+            __blank_3_0: __go_default_3_0,
+            mem: __go_default_4_0,
+        }
     }
 }
 
@@ -101,7 +112,18 @@ impl traceMapNode {
 
 impl Default for traceMapNode {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), children: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))), hash: Arc::new(Mutex::new(Some(0))), id: Arc::new(Mutex::new(Some(0))), data: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            children: __go_default_1_0,
+            hash: __go_default_2_0,
+            id: __go_default_3_0,
+            data: __go_default_4_0,
+        }
     }
 }
 
