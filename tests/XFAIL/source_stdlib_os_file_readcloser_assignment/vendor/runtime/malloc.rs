@@ -408,11 +408,26 @@ impl crate::mheap::mheap {
     }
                 // Create new hints for extending this region.
         let mut hint: GoPtr<crate::mheap::arenaHint> = GoPtr::raw({ let __ptr = (*self.arena_hint_alloc.lock().unwrap().as_mut().unwrap()).alloc().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        { let __tmp_0 = Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))); let __tmp_1 = true; *{ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.addr.clone()); __ptr_value }.lock().unwrap() = __tmp_0.lock().unwrap().take(); *{ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.down.clone()); __ptr_value }.lock().unwrap() = Some(__tmp_1); };
-        { let __tmp_0 = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).arena_hints.clone(); __field }; let __tmp_1 = hint.clone(); hint.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); }); (*mheap_.lock().unwrap().as_mut().unwrap()).arena_hints = __tmp_1.clone(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize)));
+            let __tmp_1 = true;
+            *{ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.addr.clone()); __ptr_value }.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *{ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.down.clone()); __ptr_value }.lock().unwrap() = Some(__tmp_1);
+        };
+        {
+            let __tmp_0 = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).arena_hints.clone(); __field };
+            let __tmp_1 = hint.clone();
+            hint.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); });
+            (*mheap_.lock().unwrap().as_mut().unwrap()).arena_hints = __tmp_1.clone();
+        };
         hint = GoPtr::raw({ let __ptr = (*self.arena_hint_alloc.lock().unwrap().as_mut().unwrap()).alloc().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; *{ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.addr.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let __tmp_0 = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).arena_hints.clone(); __field }; let __tmp_1 = hint.clone(); hint.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); }); (*mheap_.lock().unwrap().as_mut().unwrap()).arena_hints = __tmp_1.clone(); };
+        {
+            let __tmp_0 = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).arena_hints.clone(); __field };
+            let __tmp_1 = hint.clone();
+            hint.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); });
+            (*mheap_.lock().unwrap().as_mut().unwrap()).arena_hints = __tmp_1.clone();
+        };
     }
 
                         // The race detector assumes the heap lives in
@@ -671,7 +686,12 @@ impl linearAlloc {
                 // to deal with situations where the bounds could overflow.
                 // Leave that memory reserved, though, so we don't map it
                 // later.
-        { let __tmp_0 = (*base.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*base.lock().unwrap().as_ref().unwrap()).clone(); *self.next.lock().unwrap() = Some(__tmp_0); *self.mapped.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*base.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*base.lock().unwrap().as_ref().unwrap()).clone();
+            *self.next.lock().unwrap() = Some(__tmp_0);
+            *self.mapped.lock().unwrap() = Some(__tmp_1);
+        };
         { let new_val = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; *self.end.lock().unwrap() = Some(new_val); };
         { let new_val = mapMemory.lock().unwrap().as_ref().unwrap().clone(); *self.map_memory.lock().unwrap() = Some(new_val); };
     }

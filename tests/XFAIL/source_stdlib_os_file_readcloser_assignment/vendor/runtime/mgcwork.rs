@@ -246,7 +246,12 @@ impl gcWork {
         self.init();
         wbuf = self.wbuf1.clone();
     } else if { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
-        { let __tmp_0 = { let __field = self.wbuf2.clone(); __field }; let __tmp_1 = { let __field = self.wbuf1.clone(); __field }; self.wbuf1 = __tmp_0.clone(); self.wbuf2 = __tmp_1.clone(); };
+        {
+            let __tmp_0 = { let __field = self.wbuf2.clone(); __field };
+            let __tmp_1 = { let __field = self.wbuf1.clone(); __field };
+            self.wbuf1 = __tmp_0.clone();
+            self.wbuf2 = __tmp_1.clone();
+        };
         wbuf = self.wbuf1.clone();
         if { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
         putfull(wbuf.clone());
@@ -300,7 +305,12 @@ impl gcWork {
         while { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
         putfull(wbuf.clone());
         { let new_val = true; *self.flushed_work.lock().unwrap() = Some(new_val); };
-        { let __tmp_0 = { let __field = self.wbuf2.clone(); __field }; let __tmp_1 = getempty(); self.wbuf1 = __tmp_0.clone(); self.wbuf2 = __tmp_1.clone(); };
+        {
+            let __tmp_0 = { let __field = self.wbuf2.clone(); __field };
+            let __tmp_1 = getempty();
+            self.wbuf1 = __tmp_0.clone();
+            self.wbuf2 = __tmp_1.clone();
+        };
         wbuf = self.wbuf1.clone();
         { let new_val = true; *flushed.lock().unwrap() = Some(new_val); };
     }
@@ -328,7 +338,12 @@ impl gcWork {
     }
                 // wbuf is empty at this point.
         if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let __tmp_0 = { let __field = self.wbuf2.clone(); __field }; let __tmp_1 = { let __field = self.wbuf1.clone(); __field }; self.wbuf1 = __tmp_0.clone(); self.wbuf2 = __tmp_1.clone(); };
+        {
+            let __tmp_0 = { let __field = self.wbuf2.clone(); __field };
+            let __tmp_1 = { let __field = self.wbuf1.clone(); __field };
+            self.wbuf1 = __tmp_0.clone();
+            self.wbuf2 = __tmp_1.clone();
+        };
         wbuf = self.wbuf1.clone();
         if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         let mut owbuf: GoPtr<workbuf> = wbuf.clone();

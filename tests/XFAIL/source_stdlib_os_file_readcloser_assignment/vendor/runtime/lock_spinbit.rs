@@ -413,7 +413,12 @@ pub fn unlock2_wake(l: GoPtr<crate::runtime2::mutex>) {
         if next.is_nil() {
         break
     }
-        { let __tmp_0 = wakem.clone(); let __tmp_1 = next.clone(); prev = __tmp_0.clone(); wakem = __tmp_1.clone(); };
+        {
+            let __tmp_0 = wakem.clone();
+            let __tmp_1 = next.clone();
+            prev = __tmp_0.clone();
+            wakem = __tmp_1.clone();
+        };
     }
         if { let __left_addr = wakem.addr(); let __right_addr = mp.addr(); let __eq = __left_addr == __right_addr; !__eq } {
         { let new_val = crate::runtime2::muintptr(Arc::new(Mutex::new(Some((*(*(*{ let __ptr_value = wakem.with_mut(|__ptr_value| __ptr_value.m_wait_list.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*{ let __ptr_value = prev.with_mut(|__ptr_value| __ptr_value.m_wait_list.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).next.lock().unwrap() = Some(new_val); };

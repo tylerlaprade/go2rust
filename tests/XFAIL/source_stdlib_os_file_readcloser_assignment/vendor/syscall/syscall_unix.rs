@@ -1559,7 +1559,12 @@ pub fn write(fd: Arc<Mutex<Option<i32>>>, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i3
     if FAKETIME && ({ let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y }) {
         { let new_val = faketime_write(Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()); *n.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        { let __tmp_0 = 0; let __tmp_1 = errno_err(Arc::new(Mutex::new(Some(Errno(Arc::new(Mutex::new(Some(-((*n.lock().unwrap().as_ref().unwrap())) as usize)))))))); *n.lock().unwrap() = Some(__tmp_0); *err.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+        {
+            let __tmp_0 = 0;
+            let __tmp_1 = errno_err(Arc::new(Mutex::new(Some(Errno(Arc::new(Mutex::new(Some(-((*n.lock().unwrap().as_ref().unwrap())) as usize))))))));
+            *n.lock().unwrap() = Some(__tmp_0);
+            *err.lock().unwrap() = __tmp_1.lock().unwrap().take();
+        };
     }
     } else {
         { let (__tmp_0, __tmp_1) = write_1(Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };

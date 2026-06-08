@@ -1048,10 +1048,30 @@ pub fn tzset(mut s: Arc<Mutex<Option<String>>>, lastTxSec: Arc<Mutex<Option<i64>
         // This happens in southern hemispheres. The labelling here thus is a little
         // inconsistent with the goal.
     if { let __tmp_x = { let __v = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        { let __tmp_0 = (*endSec.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*startSec.lock().unwrap().as_ref().unwrap()).clone(); *startSec.lock().unwrap() = Some(__tmp_0); *endSec.lock().unwrap() = Some(__tmp_1); };
-        { let __tmp_0 = (*dstName.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*stdName.lock().unwrap().as_ref().unwrap()).clone(); *stdName.lock().unwrap() = Some(__tmp_0); *dstName.lock().unwrap() = Some(__tmp_1); };
-        { let __tmp_0 = (*dstOffset.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*stdOffset.lock().unwrap().as_ref().unwrap()).clone(); *stdOffset.lock().unwrap() = Some(__tmp_0); *dstOffset.lock().unwrap() = Some(__tmp_1); };
-        { let __tmp_0 = (*dstIsDST.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*stdIsDST.lock().unwrap().as_ref().unwrap()).clone(); *stdIsDST.lock().unwrap() = Some(__tmp_0); *dstIsDST.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*endSec.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*startSec.lock().unwrap().as_ref().unwrap()).clone();
+            *startSec.lock().unwrap() = Some(__tmp_0);
+            *endSec.lock().unwrap() = Some(__tmp_1);
+        };
+        {
+            let __tmp_0 = (*dstName.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*stdName.lock().unwrap().as_ref().unwrap()).clone();
+            *stdName.lock().unwrap() = Some(__tmp_0);
+            *dstName.lock().unwrap() = Some(__tmp_1);
+        };
+        {
+            let __tmp_0 = (*dstOffset.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*stdOffset.lock().unwrap().as_ref().unwrap()).clone();
+            *stdOffset.lock().unwrap() = Some(__tmp_0);
+            *dstOffset.lock().unwrap() = Some(__tmp_1);
+        };
+        {
+            let __tmp_0 = (*dstIsDST.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*stdIsDST.lock().unwrap().as_ref().unwrap()).clone();
+            *stdIsDST.lock().unwrap() = Some(__tmp_0);
+            *dstIsDST.lock().unwrap() = Some(__tmp_1);
+        };
     }
 
         // The start and end values that we return are accurate

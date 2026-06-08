@@ -2282,7 +2282,12 @@ pub fn traceback_hexdump(stk: Arc<Mutex<Option<stack>>>, frame: Arc<Mutex<Option
     }
 
         // Expand a bit more.
-    { let __tmp_0 = { let __tmp_x = { let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = expand as usize; __tmp_x - __tmp_y }; let __tmp_1 = { let __tmp_x = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = expand as usize; __tmp_x + __tmp_y }; *lo.lock().unwrap() = Some(__tmp_0); *hi.lock().unwrap() = Some(__tmp_1); };
+    {
+        let __tmp_0 = { let __tmp_x = { let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = expand as usize; __tmp_x - __tmp_y };
+        let __tmp_1 = { let __tmp_x = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = expand as usize; __tmp_x + __tmp_y };
+        *lo.lock().unwrap() = Some(__tmp_0);
+        *hi.lock().unwrap() = Some(__tmp_1);
+    };
 
         // But don't go too far from frame.sp.
     if { let __tmp_x = { let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).sp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = maxExpand as usize; __tmp_x - __tmp_y }; __tmp_x < __tmp_y } {

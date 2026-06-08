@@ -471,7 +471,12 @@ impl dloggerImpl {
         let mut b: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
         let mut bb: GoPtr<crate::slice::slice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&b.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = bb.with_mut(|__ptr_value| __ptr_value.array.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
-        { let __tmp_0 = (*x.lock().unwrap().as_ref().unwrap()).len(); let __tmp_1 = (*x.lock().unwrap().as_ref().unwrap()).len(); *{ let __ptr_value = bb.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(__tmp_0 as i32); *{ let __ptr_value = bb.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(__tmp_1 as i32); };
+        {
+            let __tmp_0 = (*x.lock().unwrap().as_ref().unwrap()).len();
+            let __tmp_1 = (*x.lock().unwrap().as_ref().unwrap()).len();
+            *{ let __ptr_value = bb.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(__tmp_0 as i32);
+            *{ let __ptr_value = bb.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(__tmp_1 as i32);
+        };
         if { let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2048; __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (DEBUG_LOG_STRING_LIMIT) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); b = new_val; };
     }
@@ -534,7 +539,12 @@ impl debugLogWriter {
 
     ///go:nosplit
     pub fn write_sync(&mut self, tick: Arc<Mutex<Option<u64>>>, nano: Arc<Mutex<Option<u64>>>) {
-        { let __tmp_0 = (*tick.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*nano.lock().unwrap().as_ref().unwrap()).clone(); *self.tick.lock().unwrap() = Some(__tmp_0); *self.nano.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*tick.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*nano.lock().unwrap().as_ref().unwrap()).clone();
+            *self.tick.lock().unwrap() = Some(__tmp_0);
+            *self.nano.lock().unwrap() = Some(__tmp_1);
+        };
         self.ensure(Arc::new(Mutex::new(Some(DEBUG_LOG_HEADER_SIZE as u64))));
         { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.write.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some(0 as u64))); self.write_frame_at(__method_arg0, __method_arg1) };
         { let __target = self.write.clone(); let __rhs = DEBUG_LOG_HEADER_SIZE as u64; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

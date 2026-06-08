@@ -601,7 +601,12 @@ impl crate::runtime2::_panic {
                 // caller instead, we avoid needing to unwind through an extra
                 // frame. It also somewhat simplifies the terminating condition for
                 // deferreturn.
-        { let __tmp_0 = (*pc.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*sp.lock().unwrap().as_ref().unwrap()).clone(); *self.lr.lock().unwrap() = Some(__tmp_0); *self.fp.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*pc.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*sp.lock().unwrap().as_ref().unwrap()).clone();
+            *self.lr.lock().unwrap() = Some(__tmp_0);
+            *self.fp.lock().unwrap() = Some(__tmp_1);
+        };
         self.next_frame();
     }
 
@@ -884,7 +889,12 @@ pub fn pop_defer(gp: Arc<Mutex<Option<g>>>) {
     { let new_val = { let __append_target = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.deferpool.clone()); __ptr_value }.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(d.clone()); __append_target.clone() }; pp.with_mut(|__ptr_value| { __ptr_value.deferpool = new_val; }); };
 
     releasem(GoPtr::local(mp.clone()));
-    { let __tmp_0 = None; let __tmp_1 = GoPtr::nil(); *mp.lock().unwrap() = __tmp_0; pp = __tmp_1.clone(); };
+    {
+        let __tmp_0 = None;
+        let __tmp_1 = GoPtr::nil();
+        *mp.lock().unwrap() = __tmp_0;
+        pp = __tmp_1.clone();
+    };
 }
 
 /// readvarintUnsafe reads the uint32 in varint format starting at fd, and returns the
@@ -1013,7 +1023,12 @@ pub fn recovery(gp: Arc<Mutex<Option<g>>>) {
                 // With how subtle defer handling is, this might not actually be
                 // worthwhile though.
         if (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).goexit.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        { let __tmp_0 = { let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).start_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_ref().unwrap()).start_s_p.lock().unwrap().as_ref().unwrap()) as usize))); *pc.lock().unwrap() = Some(__tmp_0); *sp.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+        {
+            let __tmp_0 = { let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).start_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_1 = Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_ref().unwrap()).start_s_p.lock().unwrap().as_ref().unwrap()) as usize)));
+            *pc.lock().unwrap() = Some(__tmp_0);
+            *sp.lock().unwrap() = __tmp_1.lock().unwrap().take();
+        };
         { let new_val = false; *saveOpenDeferState.lock().unwrap() = Some(new_val); };
         break
     }

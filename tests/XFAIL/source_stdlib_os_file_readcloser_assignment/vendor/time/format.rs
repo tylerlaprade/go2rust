@@ -1354,7 +1354,12 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-            { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (2) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))); *p.lock().unwrap() = __tmp_0.lock().unwrap().take(); *value.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+            {
+                let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (2) as usize; __s[__low..__high].to_string() })));
+                let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() })));
+                *p.lock().unwrap() = __tmp_0.lock().unwrap().take();
+                *value.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            };
             { let (__tmp_0, __tmp_1) = atoi::<String>(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *year.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
             if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         break '__go_switch_2
@@ -1372,7 +1377,12 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-            { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (4) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (4) as usize; __s[__low..].to_string() }))); *p.lock().unwrap() = __tmp_0.lock().unwrap().take(); *value.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+            {
+                let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (4) as usize; __s[__low..__high].to_string() })));
+                let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (4) as usize; __s[__low..].to_string() })));
+                *p.lock().unwrap() = __tmp_0.lock().unwrap().take();
+                *value.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            };
             { let (__tmp_0, __tmp_1) = atoi::<String>(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *year.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         }
         if !_matched && (_switch_val == 258) || _fallthrough {
@@ -1487,7 +1497,12 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-            { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (2) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))); *p.lock().unwrap() = __tmp_0.lock().unwrap().take(); *value.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+            {
+                let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (2) as usize; __s[__low..__high].to_string() })));
+                let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() })));
+                *p.lock().unwrap() = __tmp_0.lock().unwrap().take();
+                *value.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            };
             { let _switch_val = (*p.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == ("PM".to_string()) {
             { let new_val = true; *pmSet.lock().unwrap() = Some(new_val); };
@@ -1505,7 +1520,12 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-            { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (2) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))); *p.lock().unwrap() = __tmp_0.lock().unwrap().take(); *value.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+            {
+                let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (2) as usize; __s[__low..__high].to_string() })));
+                let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() })));
+                *p.lock().unwrap() = __tmp_0.lock().unwrap().take();
+                *value.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            };
             { let _switch_val = (*p.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == ("pm".to_string()) {
             { let new_val = true; *pmSet.lock().unwrap() = Some(new_val); };
@@ -1539,13 +1559,35 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-        { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() }))); let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (4) as usize; let __high = (6) as usize; __s[__low..__high].to_string() }))); let __tmp_3 = "00".to_string(); let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (6) as usize; __s[__low..].to_string() }))); *sign.lock().unwrap() = __tmp_0.lock().unwrap().take(); *hour.lock().unwrap() = __tmp_1.lock().unwrap().take(); *min.lock().unwrap() = __tmp_2.lock().unwrap().take(); *seconds.lock().unwrap() = Some(__tmp_3); *value.lock().unwrap() = __tmp_4.lock().unwrap().take(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() })));
+            let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() })));
+            let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (4) as usize; let __high = (6) as usize; __s[__low..__high].to_string() })));
+            let __tmp_3 = "00".to_string();
+            let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (6) as usize; __s[__low..].to_string() })));
+            *sign.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *hour.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            *min.lock().unwrap() = __tmp_2.lock().unwrap().take();
+            *seconds.lock().unwrap() = Some(__tmp_3);
+            *value.lock().unwrap() = __tmp_4.lock().unwrap().take();
+        };
     } else if { let __tmp_x = std; let __tmp_y = 31; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 26; __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 3; __tmp_x < __tmp_y } {
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-        { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() }))); let __tmp_2 = "00".to_string(); let __tmp_3 = "00".to_string(); let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (3) as usize; __s[__low..].to_string() }))); *sign.lock().unwrap() = __tmp_0.lock().unwrap().take(); *hour.lock().unwrap() = __tmp_1.lock().unwrap().take(); *min.lock().unwrap() = Some(__tmp_2); *seconds.lock().unwrap() = Some(__tmp_3); *value.lock().unwrap() = __tmp_4.lock().unwrap().take(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() })));
+            let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() })));
+            let __tmp_2 = "00".to_string();
+            let __tmp_3 = "00".to_string();
+            let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (3) as usize; __s[__low..].to_string() })));
+            *sign.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *hour.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            *min.lock().unwrap() = Some(__tmp_2);
+            *seconds.lock().unwrap() = Some(__tmp_3);
+            *value.lock().unwrap() = __tmp_4.lock().unwrap().take();
+        };
     } else if { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 9; __tmp_x < __tmp_y } {
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
@@ -1555,19 +1597,52 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-        { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() }))); let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (4) as usize; let __high = (6) as usize; __s[__low..__high].to_string() }))); let __tmp_3 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; let __high = (9) as usize; __s[__low..__high].to_string() }))); let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (9) as usize; __s[__low..].to_string() }))); *sign.lock().unwrap() = __tmp_0.lock().unwrap().take(); *hour.lock().unwrap() = __tmp_1.lock().unwrap().take(); *min.lock().unwrap() = __tmp_2.lock().unwrap().take(); *seconds.lock().unwrap() = __tmp_3.lock().unwrap().take(); *value.lock().unwrap() = __tmp_4.lock().unwrap().take(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() })));
+            let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() })));
+            let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (4) as usize; let __high = (6) as usize; __s[__low..__high].to_string() })));
+            let __tmp_3 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; let __high = (9) as usize; __s[__low..__high].to_string() })));
+            let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (9) as usize; __s[__low..].to_string() })));
+            *sign.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *hour.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            *min.lock().unwrap() = __tmp_2.lock().unwrap().take();
+            *seconds.lock().unwrap() = __tmp_3.lock().unwrap().take();
+            *value.lock().unwrap() = __tmp_4.lock().unwrap().take();
+        };
     } else if { let __tmp_x = std; let __tmp_y = 25; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 30; __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 7; __tmp_x < __tmp_y } {
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-        { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() }))); let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (3) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))); let __tmp_3 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (5) as usize; let __high = (7) as usize; __s[__low..__high].to_string() }))); let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))); *sign.lock().unwrap() = __tmp_0.lock().unwrap().take(); *hour.lock().unwrap() = __tmp_1.lock().unwrap().take(); *min.lock().unwrap() = __tmp_2.lock().unwrap().take(); *seconds.lock().unwrap() = __tmp_3.lock().unwrap().take(); *value.lock().unwrap() = __tmp_4.lock().unwrap().take(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() })));
+            let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() })));
+            let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (3) as usize; let __high = (5) as usize; __s[__low..__high].to_string() })));
+            let __tmp_3 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (5) as usize; let __high = (7) as usize; __s[__low..__high].to_string() })));
+            let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() })));
+            *sign.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *hour.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            *min.lock().unwrap() = __tmp_2.lock().unwrap().take();
+            *seconds.lock().unwrap() = __tmp_3.lock().unwrap().take();
+            *value.lock().unwrap() = __tmp_4.lock().unwrap().take();
+        };
     } else {
         if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 5; __tmp_x < __tmp_y } {
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-        { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() }))); let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (3) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))); let __tmp_3 = "00".to_string(); let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (5) as usize; __s[__low..].to_string() }))); *sign.lock().unwrap() = __tmp_0.lock().unwrap().take(); *hour.lock().unwrap() = __tmp_1.lock().unwrap().take(); *min.lock().unwrap() = __tmp_2.lock().unwrap().take(); *seconds.lock().unwrap() = Some(__tmp_3); *value.lock().unwrap() = __tmp_4.lock().unwrap().take(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (1) as usize; __s[__low..__high].to_string() })));
+            let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (3) as usize; __s[__low..__high].to_string() })));
+            let __tmp_2 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (3) as usize; let __high = (5) as usize; __s[__low..__high].to_string() })));
+            let __tmp_3 = "00".to_string();
+            let __tmp_4 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (5) as usize; __s[__low..].to_string() })));
+            *sign.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *hour.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            *min.lock().unwrap() = __tmp_2.lock().unwrap().take();
+            *seconds.lock().unwrap() = Some(__tmp_3);
+            *value.lock().unwrap() = __tmp_4.lock().unwrap().take();
+        };
     }
             let mut hr: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));let mut mm: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));let mut ss: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
             { let (__tmp_0, __tmp_1, __tmp_2) = getnum(Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true)))); *hr.lock().unwrap() = Some(__tmp_0); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };
@@ -1613,7 +1688,12 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         { let __rhs_holder = errBad.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         break '__go_switch_2
     }
-            { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __high = (n) as usize; __s[..__high].to_string() }))); let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (n) as usize; __s[__low..].to_string() }))); *zoneName.lock().unwrap() = __tmp_0.lock().unwrap().take(); *value.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+            {
+                let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __high = (n) as usize; __s[..__high].to_string() })));
+                let __tmp_1 = Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); let __low = (n) as usize; __s[__low..].to_string() })));
+                *zoneName.lock().unwrap() = __tmp_0.lock().unwrap().take();
+                *value.lock().unwrap() = __tmp_1.lock().unwrap().take();
+            };
         }
         if !_matched && (_switch_val == 34) || _fallthrough {
             _matched = true;

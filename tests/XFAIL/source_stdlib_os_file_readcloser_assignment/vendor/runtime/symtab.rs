@@ -1191,9 +1191,19 @@ impl Frames {
     }
         let mut pc: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(0)));
         if { let __tmp_x = (*self.next_p_c.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        { let __tmp_0 = { let __selector_holder = self.next_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = 0; *pc.lock().unwrap() = Some(__tmp_0); *self.next_p_c.lock().unwrap() = Some(__tmp_1 as usize); };
+        {
+            let __tmp_0 = { let __selector_holder = self.next_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_1 = 0;
+            *pc.lock().unwrap() = Some(__tmp_0);
+            *self.next_p_c.lock().unwrap() = Some(__tmp_1 as usize);
+        };
     } else {
-        { let __tmp_0 = { let __seq = { let __seq_holder = self.callers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_1 = Arc::new(Mutex::new(Some({ let __seq_holder = self.callers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); *pc.lock().unwrap() = Some(__tmp_0); *self.callers.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+        {
+            let __tmp_0 = { let __seq = { let __seq_holder = self.callers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __tmp_1 = Arc::new(Mutex::new(Some({ let __seq_holder = self.callers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+            *pc.lock().unwrap() = Some(__tmp_0);
+            *self.callers.lock().unwrap() = __tmp_1.lock().unwrap().take();
+        };
     }
         let mut funcInfo = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if !(*funcInfo.lock().unwrap().as_ref().unwrap()).valid() {
@@ -1337,7 +1347,12 @@ impl Frames {
                 // as it can be expensive. This avoids computing file/line
                 // for the Frame we find but don't return. See issue 32093.
         let (mut file, mut line) = funcline1(Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).func_info.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(false))));
-        { let __tmp_0 = (*file.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = Arc::new(Mutex::new(Some(line as i32))); *(*frame.lock().unwrap().as_ref().unwrap()).file.lock().unwrap() = Some(__tmp_0); *(*frame.lock().unwrap().as_ref().unwrap()).line.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+        {
+            let __tmp_0 = (*file.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = Arc::new(Mutex::new(Some(line as i32)));
+            *(*frame.lock().unwrap().as_ref().unwrap()).file.lock().unwrap() = Some(__tmp_0);
+            *(*frame.lock().unwrap().as_ref().unwrap()).line.lock().unwrap() = __tmp_1.lock().unwrap().take();
+        };
     }
                 // Compute file/line just before we need to return it,
                 // as it can be expensive. This avoids computing file/line
@@ -1784,7 +1799,12 @@ pub fn pcvalue(f: Arc<Mutex<Option<funcInfo>>>, off: Arc<Mutex<Option<u32>>>, ta
         if { let __tmp_x = (*{ let __field = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).off.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).targetpc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*targetpc.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
         let (mut val, mut pc) = (Arc::new(Mutex::new(Some({ let __selector_holder = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).val_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         if debugCheckCache {
-        { let __tmp_0 = { let __selector_holder = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = { let __selector_holder = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).val_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *checkVal.lock().unwrap() = Some(__tmp_0); *checkPC.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = { let __selector_holder = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_1 = { let __selector_holder = (*ent.as_ref().unwrap().borrow().as_ref().unwrap()).val_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            *checkVal.lock().unwrap() = Some(__tmp_0);
+            *checkPC.lock().unwrap() = Some(__tmp_1);
+        };
         break
     } else {
         { let __target = (*cache.lock().unwrap().as_ref().unwrap()).in_use.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }

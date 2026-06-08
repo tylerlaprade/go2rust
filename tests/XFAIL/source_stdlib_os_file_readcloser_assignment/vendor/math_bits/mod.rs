@@ -276,7 +276,12 @@ pub fn mul32(x: Arc<Mutex<Option<u32>>>, y: Arc<Mutex<Option<u32>>>) -> (u32, u3
     let mut lo: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
 
     let mut tmp = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*y.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })));
-    { let __tmp_0 = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tmp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x >> __tmp_y }) as u32))); let __tmp_1 = Arc::new(Mutex::new(Some((*tmp.lock().unwrap().as_ref().unwrap()) as u32))); *hi.lock().unwrap() = __tmp_0.lock().unwrap().take(); *lo.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+    {
+        let __tmp_0 = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tmp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x >> __tmp_y }) as u32)));
+        let __tmp_1 = Arc::new(Mutex::new(Some((*tmp.lock().unwrap().as_ref().unwrap()) as u32)));
+        *hi.lock().unwrap() = __tmp_0.lock().unwrap().take();
+        *lo.lock().unwrap() = __tmp_1.lock().unwrap().take();
+    };
     return ((*hi.lock().unwrap().as_ref().unwrap()), (*lo.lock().unwrap().as_ref().unwrap()));
 }
 

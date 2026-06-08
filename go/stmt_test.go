@@ -2470,10 +2470,10 @@ func assign(k Type, e Type) (Type, Type) {
 	if !strings.Contains(rust, "let __tmp_0 = k.clone();") ||
 		!strings.Contains(rust, "let __iface_handle = __tmp_0;") ||
 		!strings.Contains(rust, "let __iface_handle = __tmp_1;") ||
-		(!strings.Contains(rust, "*key.borrow_mut() = (*__iface_guard).clone();") &&
-			!strings.Contains(rust, "*key.lock().unwrap() = (*__iface_guard).clone();")) ||
-		(!strings.Contains(rust, "*elem.borrow_mut() = (*__iface_guard).clone();") &&
-			!strings.Contains(rust, "*elem.lock().unwrap() = (*__iface_guard).clone();")) {
+		(!strings.Contains(rust, "*key.borrow_mut() = __iface_value;") &&
+			!strings.Contains(rust, "*key.lock().unwrap() = __iface_value;")) ||
+		(!strings.Contains(rust, "*elem.borrow_mut() = __iface_value;") &&
+			!strings.Contains(rust, "*elem.lock().unwrap() = __iface_value;")) {
 		t.Fatalf("parallel interface assignment should copy temp interface values into existing slots:\n%s", rust)
 	}
 }
@@ -4661,6 +4661,39 @@ func (s *State) Init(seed [32]byte) {
 	if !strings.Contains(rust, "Some([\n") {
 		t.Fatalf("complex fixed-array call argument should break array elements across lines:\n%s", rust)
 	}
+}
+
+func TestConcurrentIndexedSwapBreaksComplexParallelAssignmentAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type G struct{}
+
+type P struct {
+	runq [8]*G
+	runqtail uint32
+}
+
+func shuffle(pp *P, n uint32) {
+	go func() {}()
+	off := func(o uint32) uint32 {
+		return (pp.runqtail + o) % uint32(len(pp.runq))
+	}
+	for i := uint32(1); i < n; i++ {
+		j := i - 1
+		pp.runq[off(i)], pp.runq[off(j)] = pp.runq[off(j)], pp.runq[off(i)]
+	}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __tmp_0 =") && strings.Contains(line, "let __tmp_1 =") {
+			t.Fatalf("complex parallel assignment temps should be emitted across lines:\n%s", rust)
+		}
+		if strings.Contains(line, "let __tmp_1 =") {
+			return
+		}
+	}
+	t.Fatalf("complex parallel assignment should keep the second temp on its own line:\n%s", rust)
 }
 
 func TestTupleAssignmentFromBareScalarReturnSlots(t *testing.T) {

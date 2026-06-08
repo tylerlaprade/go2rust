@@ -4517,11 +4517,26 @@ impl Time {
     pub fn compare(&self, u: Arc<Mutex<Option<Time>>>) -> i32 {
         let mut tc: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));let mut uc: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
         if { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
-        { let __tmp_0 = { let __selector_holder = self.ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = { let __selector_holder = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *tc.lock().unwrap() = Some(__tmp_0); *uc.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = { let __selector_holder = self.ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_1 = { let __selector_holder = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            *tc.lock().unwrap() = Some(__tmp_0);
+            *uc.lock().unwrap() = Some(__tmp_1);
+        };
     } else {
-        { let __tmp_0 = self.sec(); let __tmp_1 = (*u.lock().unwrap().as_ref().unwrap()).sec(); *tc.lock().unwrap() = Some(__tmp_0); *uc.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = self.sec();
+            let __tmp_1 = (*u.lock().unwrap().as_ref().unwrap()).sec();
+            *tc.lock().unwrap() = Some(__tmp_0);
+            *uc.lock().unwrap() = Some(__tmp_1);
+        };
         if { let __tmp_x = { let __v = (*tc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*uc.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
-        { let __tmp_0 = Arc::new(Mutex::new(Some(self.nsec() as i64))); let __tmp_1 = Arc::new(Mutex::new(Some((*u.lock().unwrap().as_ref().unwrap()).nsec() as i64))); *tc.lock().unwrap() = __tmp_0.lock().unwrap().take(); *uc.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+        {
+            let __tmp_0 = Arc::new(Mutex::new(Some(self.nsec() as i64)));
+            let __tmp_1 = Arc::new(Mutex::new(Some((*u.lock().unwrap().as_ref().unwrap()).nsec() as i64)));
+            *tc.lock().unwrap() = __tmp_0.lock().unwrap().take();
+            *uc.lock().unwrap() = __tmp_1.lock().unwrap().take();
+        };
     }
     }
         if { let __tmp_x = { let __v = (*tc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*uc.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
@@ -5882,7 +5897,12 @@ pub fn div(t: Arc<Mutex<Option<Time>>>, d: Arc<Mutex<Option<Duration>>>) -> (i32
             if { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*u0x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         { let mut guard = u1.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-            { let __tmp_0 = (*u0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(nsec as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *u0x.lock().unwrap() = Some(__tmp_0); *u0.lock().unwrap() = Some(__tmp_1); };
+            {
+                let __tmp_0 = (*u0.lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_1 = { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(nsec as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                *u0x.lock().unwrap() = Some(__tmp_0);
+                *u0.lock().unwrap() = Some(__tmp_1);
+            };
             if { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*u0x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         { let mut guard = u1.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -5898,7 +5918,12 @@ pub fn div(t: Arc<Mutex<Option<Time>>>, d: Arc<Mutex<Option<Duration>>>) -> (i32
         if { let __tmp_x = { let __v = (*u1.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } || { let __tmp_x = { let __v = (*u1.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
                 // subtract
         { let new_val = 1; *qmod2.lock().unwrap() = Some(new_val); };
-        { let __tmp_0 = (*u0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *u0x.lock().unwrap() = Some(__tmp_0); *u0.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*u0.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y };
+            *u0x.lock().unwrap() = Some(__tmp_0);
+            *u0.lock().unwrap() = Some(__tmp_1);
+        };
         if { let __tmp_x = { let __v = (*u0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*u0x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
         { let mut guard = u1.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }

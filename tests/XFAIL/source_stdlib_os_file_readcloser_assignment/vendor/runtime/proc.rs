@@ -6876,7 +6876,12 @@ pub fn runqputslow(pp: GoPtr<crate::runtime2::p>, gp: GoPtr<crate::runtime2::g>,
         let mut i = Arc::new(Mutex::new(Some(1 as u32)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
         let mut j = cheaprandn(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
-        { let __tmp_0 = { let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(j) as usize].clone() }; let __tmp_1 = { let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; (*batch.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = __tmp_0; (*batch.lock().unwrap().as_mut().unwrap())[(j) as usize] = __tmp_1; };
+        {
+            let __tmp_0 = { let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(j) as usize].clone() };
+            let __tmp_1 = { let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            (*batch.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = __tmp_0;
+            (*batch.lock().unwrap().as_mut().unwrap())[(j) as usize] = __tmp_1;
+        };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
@@ -6921,7 +6926,12 @@ pub fn runqputbatch(pp: GoPtr<crate::runtime2::p>, q: Arc<Mutex<Option<gQueue>>>
         let mut i = Arc::new(Mutex::new(Some(1 as u32)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         let mut j = cheaprandn(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
-        { let __tmp_0 = { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(j)))) }) as usize].clone() }; let __tmp_1 = { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(i.clone()) }) as usize].clone() }; (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(i.clone()) }) as usize] = __tmp_0; (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(j)))) }) as usize] = __tmp_1; };
+        {
+            let __tmp_0 = { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(j)))) }) as usize].clone() };
+            let __tmp_1 = { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(i.clone()) }) as usize].clone() };
+            (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(i.clone()) }) as usize] = __tmp_0;
+            (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> = { let mut __f_guard = off.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> u32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(j)))) }) as usize] = __tmp_1;
+        };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
@@ -7111,7 +7121,12 @@ pub fn runqsteal(pp: GoPtr<crate::runtime2::p>, p2: Arc<Mutex<Option<p>>>, steal
 
 pub fn gcd(mut a: Arc<Mutex<Option<u32>>>, mut b: Arc<Mutex<Option<u32>>>) -> u32 {
     while { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
-        { let __tmp_0 = (*b.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x % __tmp_y }; *a.lock().unwrap() = Some(__tmp_0); *b.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*b.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x % __tmp_y };
+            *a.lock().unwrap() = Some(__tmp_0);
+            *b.lock().unwrap() = Some(__tmp_1);
+        };
     }
     return { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }

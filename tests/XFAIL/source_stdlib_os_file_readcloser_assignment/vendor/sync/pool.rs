@@ -501,7 +501,12 @@ pub fn pool_cleanup() {
 
         // The pools with non-empty primary caches now have non-empty
         // victim caches and no pools have primary caches.
-    { let __tmp_0 = allPools.clone(); let __tmp_1 = None; *oldPools.lock().unwrap() = __tmp_0.lock().unwrap().take(); *allPools.lock().unwrap() = __tmp_1; };
+    {
+        let __tmp_0 = allPools.clone();
+        let __tmp_1 = None;
+        *oldPools.lock().unwrap() = __tmp_0.lock().unwrap().take();
+        *allPools.lock().unwrap() = __tmp_1;
+    };
 }
 
 fn __go_init_0() {

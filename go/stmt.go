@@ -8209,6 +8209,18 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	}
 }
 
+func writeParallelAssignmentTargetLine(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr, indent string) {
+	var line strings.Builder
+	writeParallelAssignmentTarget(&line, lhs, tmpName, rhs)
+	text := strings.TrimLeft(line.String(), " \t")
+	if text == "" {
+		return
+	}
+	out.WriteString(indent)
+	out.WriteString(text)
+	out.WriteString("\n")
+}
+
 func writePointerHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
@@ -11056,21 +11068,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 				} else {
 					// For reassignment, use temporaries to handle swaps correctly
-					out.WriteString("{ ")
+					indent := currentLineIndent(out)
+					out.WriteString("{\n")
 					// First, capture all RHS values into temporaries
 					for i, rhs := range s.Rhs {
-						if i > 0 {
-							out.WriteString(" ")
-						}
+						out.WriteString(indent)
+						out.WriteString("    ")
 						out.WriteString(fmt.Sprintf("let __tmp_%d = ", i))
 						writeParallelAssignmentTempValueForTarget(out, s.Lhs[i], rhs)
-						out.WriteString(";")
+						out.WriteString(";\n")
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
-						writeParallelAssignmentTarget(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i])
+						writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
 					}
-					out.WriteString(" }")
+					out.WriteString(indent)
+					out.WriteString("}")
 				}
 			} else {
 				// Single assignment

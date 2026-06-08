@@ -2107,7 +2107,12 @@ pub fn gc_start(trigger: Arc<Mutex<Option<gcTrigger>>>) {
 
         systemstack(Arc::new(Mutex::new(Some(Box::new(move || { gc_reset_mark_state() }) as Box<dyn FnMut() -> () + Send + Sync>))));
 
-        { let __tmp_0 = (*gomaxprocs.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*gomaxprocs.lock().unwrap().as_ref().unwrap()).clone(); *(*work.lock().unwrap().as_ref().unwrap()).stwprocs.lock().unwrap() = Some(__tmp_0); *(*work.lock().unwrap().as_ref().unwrap()).maxprocs.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = (*gomaxprocs.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_1 = (*gomaxprocs.lock().unwrap().as_ref().unwrap()).clone();
+            *(*work.lock().unwrap().as_ref().unwrap()).stwprocs.lock().unwrap() = Some(__tmp_0);
+            *(*work.lock().unwrap().as_ref().unwrap()).maxprocs.lock().unwrap() = Some(__tmp_1);
+        };
         if { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).stwprocs.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*ncpu.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
                 // This is used to compute CPU time of the STW phases,
                 // so it can't be more than ncpu, even if GOMAXPROCS is.

@@ -1666,7 +1666,12 @@ impl mLockProfile {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         let (mut cycles, mut lost) = (Arc::new(Mutex::new(Some({ let __selector_holder = self.cycles.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.cycles_lost.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        { let __tmp_0 = 0; let __tmp_1 = 0; *self.cycles.lock().unwrap() = Some(__tmp_0 as i64); *self.cycles_lost.lock().unwrap() = Some(__tmp_1 as i64); };
+        {
+            let __tmp_0 = 0;
+            let __tmp_1 = 0;
+            *self.cycles.lock().unwrap() = Some(__tmp_0 as i64);
+            *self.cycles_lost.lock().unwrap() = Some(__tmp_1 as i64);
+        };
         { let new_val = false; *self.have_stack.lock().unwrap() = Some(new_val); };
         let mut rate = Arc::new(Mutex::new(Some(internal_runtime_atomic::load64(mutexprofilerate.clone()) as i64)));
         save_block_event_stack(Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = self.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32))))))));

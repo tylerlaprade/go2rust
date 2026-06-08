@@ -1294,7 +1294,14 @@ impl traceLocker {
         if (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).may_sweep.lock().unwrap().as_ref().unwrap()) {
         throw(Arc::new(Mutex::new(Some("double traceGCSweepStart".to_string()))));
     }
-        { let __tmp_0 = true; let __tmp_1 = 0; let __tmp_2 = 0; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).may_sweep.lock().unwrap() = Some(__tmp_0); *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).swept.lock().unwrap() = Some(__tmp_1 as usize); *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).reclaimed.lock().unwrap() = Some(__tmp_2 as usize); };
+        {
+            let __tmp_0 = true;
+            let __tmp_1 = 0;
+            let __tmp_2 = 0;
+            *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).may_sweep.lock().unwrap() = Some(__tmp_0);
+            *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).swept.lock().unwrap() = Some(__tmp_1 as usize);
+            *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).reclaimed.lock().unwrap() = Some(__tmp_2 as usize);
+        };
     }
 
     /// GCSweepSpan traces the sweep of a single span. If this is
