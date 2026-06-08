@@ -14387,6 +14387,25 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 		out.WriteString("{ ")
 		for _, varName := range inlineCaptures {
 			capturesReceiver := currentReceiver != "" && varName == currentReceiver && funcLitCapturesCurrentReceiver(funcLit)
+			if receiverCaptureNeedsState(varName, assignedInlineCaptures) {
+				stateName := receiverCaptureStateName(captureRenames[varName])
+				out.WriteString("let ")
+				out.WriteString(RustLocalIdent(stateName))
+				out.WriteString(" = ")
+				WriteWrapperPrefix(out)
+				if sourceName, exists := inlineCaptureSources[varName]; exists {
+					out.WriteString(RustLocalIdent(sourceName))
+				} else {
+					writeReceiverCaptureSourceValue(out, varName, capturesReceiver)
+				}
+				out.WriteString(".clone()")
+				WriteWrapperSuffix(out)
+				out.WriteString("; let ")
+				out.WriteString(RustLocalIdent(receiverCaptureStateCaptureName(captureRenames[varName])))
+				out.WriteString(" = ")
+				out.WriteString(RustLocalIdent(stateName))
+				out.WriteString(".clone(); ")
+			}
 			out.WriteString("let ")
 			if capturesReceiver || assignedInlineCaptures[varName] {
 				out.WriteString("mut ")
@@ -14559,6 +14578,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 			}
 			out.WriteString("\n")
 		}
+		writeFuncLitReceiverCaptureStateWritebacks(out, captureRenames, assignedInlineCaptures)
 		if hasClosureDefer {
 			var lastStmt ast.Stmt
 			if len(funcLit.Body.List) > 0 {
@@ -14579,6 +14599,22 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	if len(inlineCaptures) > 0 {
 		out.WriteString(" }")
 	}
+}
+
+func writeFuncLitReceiverCaptureStateWritebacks(out *strings.Builder, captureRenames map[string]string, assignedCaptured map[string]bool) {
+	if !receiverCaptureNeedsState(currentReceiver, assignedCaptured) {
+		return
+	}
+	cloneName := captureRenames[currentReceiver]
+	if cloneName == "" {
+		return
+	}
+	out.WriteString("        *")
+	out.WriteString(RustLocalIdent(receiverCaptureStateCaptureName(cloneName)))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	out.WriteString(RustLocalIdent(cloneName))
+	out.WriteString(".clone());\n")
 }
 
 func funcLitParamTypeToRust(funcLit *ast.FuncLit, defaultType ast.Expr, paramIndex int) string {

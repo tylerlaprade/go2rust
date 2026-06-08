@@ -632,6 +632,51 @@ func core(single *int) *int {
 	}
 }
 
+func TestValueReceiverFuncLitFieldAssignmentWritesBackThroughCaptureState(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type node struct{}
+
+type writer struct {
+	buf *node
+}
+
+func next() *node {
+	return nil
+}
+
+func systemstack(fn func()) {
+	fn()
+}
+
+func (w writer) refill() writer {
+	systemstack(func() {
+		w.buf = next()
+	})
+	return w
+}
+`)
+
+	if !strings.Contains(rust, "let w_closure_clone_state = ") {
+		t.Fatalf("assigned captured value receiver should allocate a capture state cell:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let w_closure_clone_state_capture = w_closure_clone_state.clone();") {
+		t.Fatalf("closure should capture a clone of the receiver state cell:\n%s", rust)
+	}
+	if strings.Contains(rust, "__self.buf =") {
+		t.Fatalf("closure should not move the outer receiver alias into the function literal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "w_closure_clone.buf = new_val") {
+		t.Fatalf("closure should assign through the receiver clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*w_closure_clone_state_capture") || !strings.Contains(rust, " = Some(w_closure_clone.clone());") {
+		t.Fatalf("closure should write the mutated receiver clone back to the capture state:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self = { let __guard = w_closure_clone_state") {
+		t.Fatalf("enclosing method should copy the receiver state back after the closure call:\n%s", rust)
+	}
+}
+
 func TestDirectlyAssignedCapturedVarsIncludesPointerAssignment(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -375,13 +375,7 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 	sort.Strings(varNames)
 
 	// Generate clone statements
-	assignedCaptured := make(map[string]bool)
-	for _, closure := range info.Closures {
-		captured := sp.CapturedVarsForFuncLit(closure)
-		for name := range directlyAssignedCapturedVarsForFuncLit(closure, captured) {
-			assignedCaptured[name] = true
-		}
-	}
+	assignedCaptured := sp.assignedCapturedVars(info)
 	for _, varName := range varNames {
 		cloneName := info.CapturedVars[varName]
 		sourceName := varName
@@ -394,19 +388,96 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 			}
 		}
 
+		if receiverCaptureNeedsState(varName, assignedCaptured) {
+			stateName := receiverCaptureStateName(cloneName)
+			out.WriteString("let ")
+			out.WriteString(RustLocalIdent(stateName))
+			out.WriteString(" = ")
+			WriteWrapperPrefix(out)
+			writeReceiverCaptureSourceValue(out, sourceName, capturesReceiver)
+			out.WriteString(".clone()")
+			WriteWrapperSuffix(out)
+			out.WriteString("; let ")
+			out.WriteString(RustLocalIdent(receiverCaptureStateCaptureName(cloneName)))
+			out.WriteString(" = ")
+			out.WriteString(RustLocalIdent(stateName))
+			out.WriteString(".clone(); ")
+		}
+
 		out.WriteString("let ")
 		if capturesReceiver || assignedCaptured[varName] {
 			out.WriteString("mut ")
 		}
 		out.WriteString(RustLocalIdent(cloneName))
 		out.WriteString(" = ")
-		if capturesReceiver && sourceName == varName {
-			out.WriteString("(*self)")
-		} else {
-			out.WriteString(RustLocalIdent(sourceName))
-		}
+		writeReceiverCaptureSourceValue(out, sourceName, capturesReceiver)
 		out.WriteString(".clone(); ")
 	}
+}
+
+func (sp *StatementPreprocessor) assignedCapturedVars(info *CaptureInfo) map[string]bool {
+	assignedCaptured := make(map[string]bool)
+	if sp == nil || info == nil {
+		return assignedCaptured
+	}
+	for _, closure := range info.Closures {
+		captured := sp.CapturedVarsForFuncLit(closure)
+		for name := range directlyAssignedCapturedVarsForFuncLit(closure, captured) {
+			assignedCaptured[name] = true
+		}
+	}
+	return assignedCaptured
+}
+
+func (sp *StatementPreprocessor) GeneratePostCaptureStatements(out *strings.Builder, info *CaptureInfo) {
+	if info == nil || len(info.CapturedVars) == 0 {
+		return
+	}
+	assignedCaptured := sp.assignedCapturedVars(info)
+	var varNames []string
+	for varName := range info.CapturedVars {
+		varNames = append(varNames, varName)
+	}
+	sort.Strings(varNames)
+	for _, varName := range varNames {
+		if !receiverCaptureNeedsState(varName, assignedCaptured) {
+			continue
+		}
+		stateName := receiverCaptureStateName(info.CapturedVars[varName])
+		out.WriteString("; ")
+		out.WriteString(currentReceiverRustAlias)
+		out.WriteString(" = { let __guard = ")
+		out.WriteString(RustLocalIdent(stateName))
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __guard.as_ref().unwrap().clone() };")
+	}
+}
+
+func receiverCaptureNeedsState(varName string, assignedCaptured map[string]bool) bool {
+	if currentReceiver == "" || varName != currentReceiver || !assignedCaptured[varName] || currentReceiverRustAlias == "" {
+		return false
+	}
+	return !currentReceiverRustAliasIsPointerHandle && !currentReceiverRustAliasIsGoPtr
+}
+
+func receiverCaptureStateName(cloneName string) string {
+	return cloneName + "_state"
+}
+
+func receiverCaptureStateCaptureName(cloneName string) string {
+	return cloneName + "_state_capture"
+}
+
+func writeReceiverCaptureSourceValue(out *strings.Builder, sourceName string, capturesReceiver bool) {
+	if capturesReceiver && sourceName == currentReceiver {
+		if currentReceiverRustAlias != "" {
+			out.WriteString(currentReceiverRustAlias)
+		} else {
+			out.WriteString("(*self)")
+		}
+		return
+	}
+	out.WriteString(RustLocalIdent(sourceName))
 }
 
 func mergeCaptureRenames(outer map[string]string, inner map[string]string) map[string]string {

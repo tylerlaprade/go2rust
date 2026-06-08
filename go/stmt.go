@@ -6812,14 +6812,7 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 
 	if ident, ok := sel.X.(*ast.Ident); ok {
 		if isCurrentReceiverIdent(ident) {
-			baseName := "self"
-			if currentReceiverRustAlias != "" {
-				baseName = currentReceiverRustAlias
-			} else if currentCaptureRenames != nil {
-				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					baseName = RustLocalIdent(renamed)
-				}
-			}
+			baseName := currentReceiverRustName()
 			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
 			if fieldInfo.IsPromoted {
 				writePromotedHandleAssignmentTarget(out, baseName, fieldInfo, false)
@@ -14416,6 +14409,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
+	}
+	if captureInfo != nil && !stmtTerminates(stmt) {
+		statementPreprocessor.GeneratePostCaptureStatements(out, captureInfo)
 	}
 }
 

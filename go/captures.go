@@ -556,6 +556,12 @@ func directlyAssignedCapturedVarsForFuncLit(funcLit *ast.FuncLit, captured map[s
 			for _, lhs := range node.Lhs {
 				if ident, ok := lhs.(*ast.Ident); ok {
 					markIdent(ident)
+				} else if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
+					if ident, ok := selectorBaseIdent(sel); ok {
+						if isCurrentReceiverIdent(ident) {
+							markIdent(ident)
+						}
+					}
 				}
 			}
 		case *ast.RangeStmt:
@@ -575,6 +581,20 @@ func directlyAssignedCapturedVarsForFuncLit(funcLit *ast.FuncLit, captured map[s
 		return true
 	})
 	return assigned
+}
+
+func selectorBaseIdent(sel *ast.SelectorExpr) (*ast.Ident, bool) {
+	if sel == nil {
+		return nil, false
+	}
+	switch base := unwrapParens(sel.X).(type) {
+	case *ast.Ident:
+		return base, true
+	case *ast.SelectorExpr:
+		return selectorBaseIdent(base)
+	default:
+		return nil, false
+	}
 }
 
 func pointerCapturedVarsInCall(call *ast.CallExpr) map[string]bool {

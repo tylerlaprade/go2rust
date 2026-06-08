@@ -1922,7 +1922,7 @@ impl traceWriter {
     ///go:nosplit
     pub fn flush(&self) -> Arc<Mutex<Option<traceWriter>>> {
         let mut __self = self.clone();
-        let mut w_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
+        let mut w_closure_clone = __self.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
         if { let __nil_target = w_closure_clone.trace_buf.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         trace_buf_flush({ let __field = w_closure_clone.trace_buf.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*w_closure_clone.trace_locker.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
@@ -1936,23 +1936,24 @@ impl traceWriter {
     /// refill puts w.traceBuf on the queue of full buffers and refresh's w's buffer.
     pub fn refill(&self) -> Arc<Mutex<Option<traceWriter>>> {
         let mut __self = self.clone();
-        let mut w_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
+        let w_closure_clone_state = Arc::new(Mutex::new(Some(__self.clone()))); let w_closure_clone_state_capture = w_closure_clone_state.clone(); let mut w_closure_clone = __self.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
         if { let __nil_target = w_closure_clone.trace_buf.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         trace_buf_flush({ let __field = w_closure_clone.trace_buf.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*w_closure_clone.trace_locker.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         if { let __nil_target = (*trace.lock().unwrap().as_ref().unwrap()).empty.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let new_val = (*trace.lock().unwrap().as_ref().unwrap()).empty.clone(); __self.trace_buf = new_val; };
+        { let new_val = (*trace.lock().unwrap().as_ref().unwrap()).empty.clone(); w_closure_clone.trace_buf = new_val; };
         { let new_val = (*w_closure_clone.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().link.clone(); (*trace.lock().unwrap().as_mut().unwrap()).empty = new_val; };
         unlock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
     } else {
         unlock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        { let new_val = Arc::new(Mutex::new({ let __ptr = sys_alloc(Arc::new(Mutex::new(Some(std::mem::size_of::<traceBuf>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<traceBuf>(unimplemented!("unsafe.Pointer conversion to traceBuf")) } })).clone(); __self.trace_buf = new_val; };
+        { let new_val = Arc::new(Mutex::new({ let __ptr = sys_alloc(Arc::new(Mutex::new(Some(std::mem::size_of::<traceBuf>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<traceBuf>(unimplemented!("unsafe.Pointer conversion to traceBuf")) } })).clone(); w_closure_clone.trace_buf = new_val; };
         if { let __nil_target = w_closure_clone.trace_buf.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         throw(Arc::new(Mutex::new(Some("trace: out of memory".to_string()))));
     }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+        *w_closure_clone_state_capture.lock().unwrap() = Some(w_closure_clone.clone());
+    }) as Box<dyn FnMut() -> () + Send + Sync>))));; __self = { let __guard = w_closure_clone_state.lock().unwrap(); __guard.as_ref().unwrap().clone() };
                 // Initialize the buffer.
         let mut ts = trace_clock_now();
         if { let __tmp_x = (*ts.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*__self.trace_buf.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap().last_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x <= __tmp_y } {
