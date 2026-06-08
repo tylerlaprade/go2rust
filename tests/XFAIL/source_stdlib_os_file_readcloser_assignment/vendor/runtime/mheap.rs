@@ -92,7 +92,80 @@ pub struct mheap {
 
 impl mheap {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pages: { let __guard = self.pages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sweepgen: { let __guard = self.sweepgen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, allspans: self.allspans.clone(), pages_in_use: { let __guard = self.pages_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pages_swept: { let __guard = self.pages_swept.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pages_swept_basis: { let __guard = self.pages_swept_basis.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sweep_heap_live_basis: { let __guard = self.sweep_heap_live_basis.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sweep_pages_per_byte: { let __guard = self.sweep_pages_per_byte.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reclaim_index: { let __guard = self.reclaim_index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reclaim_credit: { let __guard = self.reclaim_credit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_12_0: { let __guard = self.__blank_12_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, arenas: { let __guard = self.arenas.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, arenas_huge_pages: { let __guard = self.arenas_huge_pages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_arena_alloc: { let __guard = self.heap_arena_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, arena_hints: self.arena_hints.clone(), arena: { let __guard = self.arena.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, all_arenas: self.all_arenas.clone(), sweep_arenas: self.sweep_arenas.clone(), mark_arenas: self.mark_arenas.clone(), cur_arena: { let __guard = self.cur_arena.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, central: { let __guard = self.central.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spanalloc: { let __guard = self.spanalloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cachealloc: { let __guard = self.cachealloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, specialfinalizeralloc: { let __guard = self.specialfinalizeralloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special_cleanup_alloc: { let __guard = self.special_cleanup_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, specialprofilealloc: { let __guard = self.specialprofilealloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special_reachable_alloc: { let __guard = self.special_reachable_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special_pin_counter_alloc: { let __guard = self.special_pin_counter_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special_weak_handle_alloc: { let __guard = self.special_weak_handle_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, speciallock: { let __guard = self.speciallock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, arena_hint_alloc: { let __guard = self.arena_hint_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, user_arena: { let __guard = self.user_arena.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cleanup_i_d: { let __guard = self.cleanup_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, unused: self.unused.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.pages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.sweepgen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = self.allspans.clone();
+        let __go_clone_5_0 = { let __guard = self.pages_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.pages_swept.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.pages_swept_basis.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.sweep_heap_live_basis.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.sweep_pages_per_byte.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.reclaim_index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.reclaim_credit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.__blank_12_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.arenas.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.arenas_huge_pages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.heap_arena_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = self.arena_hints.clone();
+        let __go_clone_17_0 = { let __guard = self.arena.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = self.all_arenas.clone();
+        let __go_clone_19_0 = self.sweep_arenas.clone();
+        let __go_clone_20_0 = self.mark_arenas.clone();
+        let __go_clone_21_0 = { let __guard = self.cur_arena.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.central.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_23_0 = { let __guard = self.spanalloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_24_0 = { let __guard = self.cachealloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_25_0 = { let __guard = self.specialfinalizeralloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_26_0 = { let __guard = self.special_cleanup_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_27_0 = { let __guard = self.specialprofilealloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_28_0 = { let __guard = self.special_reachable_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_29_0 = { let __guard = self.special_pin_counter_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_30_0 = { let __guard = self.special_weak_handle_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_31_0 = { let __guard = self.speciallock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_32_0 = { let __guard = self.arena_hint_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_33_0 = { let __guard = self.user_arena.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_34_0 = { let __guard = self.cleanup_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_35_0 = self.unused.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            lock: __go_clone_1_0,
+            pages: __go_clone_2_0,
+            sweepgen: __go_clone_3_0,
+            allspans: __go_clone_4_0,
+            pages_in_use: __go_clone_5_0,
+            pages_swept: __go_clone_6_0,
+            pages_swept_basis: __go_clone_7_0,
+            sweep_heap_live_basis: __go_clone_8_0,
+            sweep_pages_per_byte: __go_clone_9_0,
+            reclaim_index: __go_clone_10_0,
+            reclaim_credit: __go_clone_11_0,
+            __blank_12_0: __go_clone_12_0,
+            arenas: __go_clone_13_0,
+            arenas_huge_pages: __go_clone_14_0,
+            heap_arena_alloc: __go_clone_15_0,
+            arena_hints: __go_clone_16_0,
+            arena: __go_clone_17_0,
+            all_arenas: __go_clone_18_0,
+            sweep_arenas: __go_clone_19_0,
+            mark_arenas: __go_clone_20_0,
+            cur_arena: __go_clone_21_0,
+            central: __go_clone_22_0,
+            spanalloc: __go_clone_23_0,
+            cachealloc: __go_clone_24_0,
+            specialfinalizeralloc: __go_clone_25_0,
+            special_cleanup_alloc: __go_clone_26_0,
+            specialprofilealloc: __go_clone_27_0,
+            special_reachable_alloc: __go_clone_28_0,
+            special_pin_counter_alloc: __go_clone_29_0,
+            special_weak_handle_alloc: __go_clone_30_0,
+            speciallock: __go_clone_31_0,
+            arena_hint_alloc: __go_clone_32_0,
+            user_arena: __go_clone_33_0,
+            cleanup_i_d: __go_clone_34_0,
+            unused: __go_clone_35_0,
+        }
     }
 }
 
@@ -133,7 +206,22 @@ pub struct heapArena {
 
 impl heapArena {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spans: { let __guard = self.spans.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, page_in_use: { let __guard = self.page_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, page_marks: { let __guard = self.page_marks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, page_specials: { let __guard = self.page_specials.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, checkmarks: self.checkmarks.clone(), zeroed_base: { let __guard = self.zeroed_base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.spans.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.page_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.page_marks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.page_specials.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = self.checkmarks.clone();
+        let __go_clone_6_0 = { let __guard = self.zeroed_base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            spans: __go_clone_1_0,
+            page_in_use: __go_clone_2_0,
+            page_marks: __go_clone_3_0,
+            page_specials: __go_clone_4_0,
+            checkmarks: __go_clone_5_0,
+            zeroed_base: __go_clone_6_0,
+        }
     }
 }
 
@@ -171,7 +259,16 @@ pub struct arenaHint {
 
 impl arenaHint {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, addr: { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, down: { let __guard = self.down.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.down.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.next.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            addr: __go_clone_1_0,
+            down: __go_clone_2_0,
+            next: __go_clone_3_0,
+        }
     }
 }
 
@@ -604,7 +701,10 @@ pub struct mSpanStateBox {
 
 impl mSpanStateBox {
     pub fn __go_value_clone(&self) -> Self {
-        Self { s: { let __guard = self.s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            s: __go_clone_0_0,
+        }
     }
 }
 
@@ -640,7 +740,14 @@ pub struct mSpanList {
 
 impl mSpanList {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, first: self.first.clone(), last: self.last.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.first.clone();
+        let __go_clone_2_0 = self.last.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            first: __go_clone_1_0,
+            last: __go_clone_2_0,
+        }
     }
 }
 
@@ -700,7 +807,64 @@ pub struct mspan {
 
 impl mspan {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone(), prev: self.prev.clone(), list: self.list.clone(), start_addr: { let __guard = self.start_addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, npages: { let __guard = self.npages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, manual_free_list: { let __guard = self.manual_free_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, freeindex: { let __guard = self.freeindex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nelems: { let __guard = self.nelems.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, free_index_for_scan: { let __guard = self.free_index_for_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alloc_cache: { let __guard = self.alloc_cache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alloc_bits: self.alloc_bits.clone(), gcmark_bits: self.gcmark_bits.clone(), pinner_bits: self.pinner_bits.clone(), sweepgen: { let __guard = self.sweepgen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, div_mul: { let __guard = self.div_mul.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alloc_count: { let __guard = self.alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spanclass: { let __guard = self.spanclass.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, needzero: { let __guard = self.needzero.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_user_arena_chunk: { let __guard = self.is_user_arena_chunk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alloc_count_before_cache: { let __guard = self.alloc_count_before_cache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elemsize: { let __guard = self.elemsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, limit: { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, speciallock: { let __guard = self.speciallock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, specials: self.specials.clone(), user_arena_chunk_free: { let __guard = self.user_arena_chunk_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, large_type: self.large_type.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.next.clone();
+        let __go_clone_2_0 = self.prev.clone();
+        let __go_clone_3_0 = self.list.clone();
+        let __go_clone_4_0 = { let __guard = self.start_addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.npages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.manual_free_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.freeindex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.nelems.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.free_index_for_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.alloc_cache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = self.alloc_bits.clone();
+        let __go_clone_12_0 = self.gcmark_bits.clone();
+        let __go_clone_13_0 = self.pinner_bits.clone();
+        let __go_clone_14_0 = { let __guard = self.sweepgen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.div_mul.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_17_0 = { let __guard = self.spanclass.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_19_0 = { let __guard = self.needzero.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_20_0 = { let __guard = self.is_user_arena_chunk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_21_0 = { let __guard = self.alloc_count_before_cache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.elemsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_23_0 = { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_24_0 = { let __guard = self.speciallock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_25_0 = self.specials.clone();
+        let __go_clone_26_0 = { let __guard = self.user_arena_chunk_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_27_0 = self.large_type.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            next: __go_clone_1_0,
+            prev: __go_clone_2_0,
+            list: __go_clone_3_0,
+            start_addr: __go_clone_4_0,
+            npages: __go_clone_5_0,
+            manual_free_list: __go_clone_6_0,
+            freeindex: __go_clone_7_0,
+            nelems: __go_clone_8_0,
+            free_index_for_scan: __go_clone_9_0,
+            alloc_cache: __go_clone_10_0,
+            alloc_bits: __go_clone_11_0,
+            gcmark_bits: __go_clone_12_0,
+            pinner_bits: __go_clone_13_0,
+            sweepgen: __go_clone_14_0,
+            div_mul: __go_clone_15_0,
+            alloc_count: __go_clone_16_0,
+            spanclass: __go_clone_17_0,
+            state: __go_clone_18_0,
+            needzero: __go_clone_19_0,
+            is_user_arena_chunk: __go_clone_20_0,
+            alloc_count_before_cache: __go_clone_21_0,
+            elemsize: __go_clone_22_0,
+            limit: __go_clone_23_0,
+            speciallock: __go_clone_24_0,
+            specials: __go_clone_25_0,
+            user_arena_chunk_free: __go_clone_26_0,
+            large_type: __go_clone_27_0,
+        }
     }
 }
 
@@ -1869,7 +2033,16 @@ pub struct special {
 
 impl special {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone(), offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.next.clone();
+        let __go_clone_2_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            next: __go_clone_1_0,
+            offset: __go_clone_2_0,
+            kind: __go_clone_3_0,
+        }
     }
 }
 
@@ -1911,7 +2084,20 @@ pub struct specialfinalizer {
 
 impl specialfinalizer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special: { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, r#fn: self.r#fn.clone(), nret: { let __guard = self.nret.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fint: self.fint.clone(), ot: self.ot.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.r#fn.clone();
+        let __go_clone_3_0 = { let __guard = self.nret.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = self.fint.clone();
+        let __go_clone_5_0 = self.ot.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            special: __go_clone_1_0,
+            r#fn: __go_clone_2_0,
+            nret: __go_clone_3_0,
+            fint: __go_clone_4_0,
+            ot: __go_clone_5_0,
+        }
     }
 }
 
@@ -1948,7 +2134,16 @@ pub struct specialCleanup {
 
 impl specialCleanup {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special: { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, r#fn: self.r#fn.clone(), id: { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.r#fn.clone();
+        let __go_clone_3_0 = { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            special: __go_clone_1_0,
+            r#fn: __go_clone_2_0,
+            id: __go_clone_3_0,
+        }
     }
 }
 
@@ -2006,7 +2201,14 @@ pub struct specialWeakHandle {
 
 impl specialWeakHandle {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special: { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, handle: self.handle.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.handle.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            special: __go_clone_1_0,
+            handle: __go_clone_2_0,
+        }
     }
 }
 
@@ -2042,7 +2244,14 @@ pub struct specialprofile {
 
 impl specialprofile {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, special: { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, b: self.b.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.b.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            special: __go_clone_1_0,
+            b: __go_clone_2_0,
+        }
     }
 }
 
@@ -2079,7 +2288,14 @@ pub struct specialReachable {
 
 impl specialReachable {
     pub fn __go_value_clone(&self) -> Self {
-        Self { special: { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, done: { let __guard = self.done.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reachable: { let __guard = self.reachable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.done.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.reachable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            special: __go_clone_0_0,
+            done: __go_clone_1_0,
+            reachable: __go_clone_2_0,
+        }
     }
 }
 
@@ -2114,7 +2330,12 @@ pub struct specialPinCounter {
 
 impl specialPinCounter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { special: { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, counter: { let __guard = self.counter.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.special.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.counter.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            special: __go_clone_0_0,
+            counter: __go_clone_1_0,
+        }
     }
 }
 
@@ -2149,7 +2370,12 @@ pub struct specialsIter {
 
 impl specialsIter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pprev: self.pprev.clone(), s: self.s.clone() }
+        let __go_clone_0_0 = self.pprev.clone();
+        let __go_clone_1_0 = self.s.clone();
+        Self {
+            pprev: __go_clone_0_0,
+            s: __go_clone_1_0,
+        }
     }
 }
 
@@ -2177,7 +2403,12 @@ pub struct gcBits {
 
 impl gcBits {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            x: __go_clone_1_0,
+        }
     }
 }
 
@@ -2211,7 +2442,12 @@ pub struct gcBitsHeader {
 
 impl gcBitsHeader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { free: { let __guard = self.free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            free: __go_clone_0_0,
+            next: __go_clone_1_0,
+        }
     }
 }
 
@@ -2247,7 +2483,16 @@ pub struct gcBitsArena {
 
 impl gcBitsArena {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, free: { let __guard = self.free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone(), bits: { let __guard = self.bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.next.clone();
+        let __go_clone_3_0 = { let __guard = self.bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            free: __go_clone_1_0,
+            next: __go_clone_2_0,
+            bits: __go_clone_3_0,
+        }
     }
 }
 
@@ -2281,7 +2526,14 @@ pub struct AnonymousStruct15 {
 }
 impl AnonymousStruct15 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, released_bg: { let __guard = self.released_bg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, released_eager: { let __guard = self.released_eager.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.released_bg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.released_eager.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            index: __go_clone_0_0,
+            released_bg: __go_clone_1_0,
+            released_eager: __go_clone_2_0,
+        }
     }
 }
 
@@ -2314,7 +2566,12 @@ pub struct AnonymousStruct16 {
 }
 impl AnonymousStruct16 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, end: { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            end: __go_clone_0_1,
+        }
     }
 }
 
@@ -2347,7 +2604,12 @@ pub struct AnonymousStruct17 {
 }
 impl AnonymousStruct17 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mcentral: { let __guard = self.mcentral.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mcentral.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mcentral: __go_clone_0_0,
+            pad: __go_clone_1_0,
+        }
     }
 }
 
@@ -2381,7 +2643,14 @@ pub struct AnonymousStruct18 {
 }
 impl AnonymousStruct18 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { arena_hints: self.arena_hints.clone(), quarantine_list: { let __guard = self.quarantine_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ready_list: { let __guard = self.ready_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.arena_hints.clone();
+        let __go_clone_1_0 = { let __guard = self.quarantine_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.ready_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            arena_hints: __go_clone_0_0,
+            quarantine_list: __go_clone_1_0,
+            ready_list: __go_clone_2_0,
+        }
     }
 }
 
@@ -4349,7 +4618,18 @@ pub struct AnonymousStruct19 {
 }
 impl AnonymousStruct19 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, free: self.free.clone(), next: self.next.clone(), current: self.current.clone(), previous: self.previous.clone() }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.free.clone();
+        let __go_clone_2_0 = self.next.clone();
+        let __go_clone_3_0 = self.current.clone();
+        let __go_clone_4_0 = self.previous.clone();
+        Self {
+            lock: __go_clone_0_0,
+            free: __go_clone_1_0,
+            next: __go_clone_2_0,
+            current: __go_clone_3_0,
+            previous: __go_clone_4_0,
+        }
     }
 }
 

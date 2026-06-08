@@ -17,7 +17,14 @@ pub struct suspendGState {
 
 impl suspendGState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { g: self.g.clone(), dead: { let __guard = self.dead.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stopped: { let __guard = self.stopped.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.g.clone();
+        let __go_clone_1_0 = { let __guard = self.dead.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.stopped.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            g: __go_clone_0_0,
+            dead: __go_clone_1_0,
+            stopped: __go_clone_2_0,
+        }
     }
 }
 

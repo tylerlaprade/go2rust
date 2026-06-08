@@ -45,7 +45,18 @@ pub struct RWMutex {
 
 impl RWMutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { w: { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, writer_sem: { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_sem: { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_count: { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_wait: { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            w: __go_clone_0_0,
+            writer_sem: __go_clone_1_0,
+            reader_sem: __go_clone_2_0,
+            reader_count: __go_clone_3_0,
+            reader_wait: __go_clone_4_0,
+        }
     }
 }
 
@@ -82,7 +93,18 @@ pub struct rlocker {
 
 impl rlocker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { w: { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, writer_sem: { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_sem: { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_count: { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_wait: { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            w: __go_clone_0_0,
+            writer_sem: __go_clone_1_0,
+            reader_sem: __go_clone_2_0,
+            reader_count: __go_clone_3_0,
+            reader_wait: __go_clone_4_0,
+        }
     }
 }
 

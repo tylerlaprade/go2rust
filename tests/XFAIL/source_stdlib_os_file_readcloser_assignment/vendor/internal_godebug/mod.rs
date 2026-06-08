@@ -569,7 +569,14 @@ pub struct Setting {
 
 impl Setting {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, once: self.once.clone(), setting: self.setting.clone() }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.once.clone();
+        let __go_clone_2_0 = self.setting.clone();
+        Self {
+            name: __go_clone_0_0,
+            once: __go_clone_1_0,
+            setting: __go_clone_2_0,
+        }
     }
 }
 
@@ -606,7 +613,16 @@ pub struct setting {
 
 impl setting {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, non_default_once: self.non_default_once.clone(), non_default: { let __guard = self.non_default.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, info: self.info.clone() }
+        let __go_clone_0_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.non_default_once.clone();
+        let __go_clone_2_0 = { let __guard = self.non_default.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.info.clone();
+        Self {
+            value: __go_clone_0_0,
+            non_default_once: __go_clone_1_0,
+            non_default: __go_clone_2_0,
+            info: __go_clone_3_0,
+        }
     }
 }
 
@@ -640,7 +656,12 @@ pub struct value {
 
 impl value {
     pub fn __go_value_clone(&self) -> Self {
-        Self { text: { let __guard = self.text.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bisect: self.bisect.clone() }
+        let __go_clone_0_0 = { let __guard = self.text.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.bisect.clone();
+        Self {
+            text: __go_clone_0_0,
+            bisect: __go_clone_1_0,
+        }
     }
 }
 
@@ -672,7 +693,8 @@ pub struct runtimeStderr {
 
 impl runtimeStderr {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

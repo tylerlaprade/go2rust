@@ -29,7 +29,28 @@ pub struct mcache {
 
 impl mcache {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next_sample: { let __guard = self.next_sample.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mem_prof_rate: { let __guard = self.mem_prof_rate.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scan_alloc: { let __guard = self.scan_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tiny: { let __guard = self.tiny.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tinyoffset: { let __guard = self.tinyoffset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tiny_allocs: { let __guard = self.tiny_allocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alloc: { let __guard = self.alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stackcache: { let __guard = self.stackcache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, flush_gen: { let __guard = self.flush_gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.next_sample.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.mem_prof_rate.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.scan_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.tiny.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.tinyoffset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.tiny_allocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.stackcache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.flush_gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            next_sample: __go_clone_1_0,
+            mem_prof_rate: __go_clone_2_0,
+            scan_alloc: __go_clone_3_0,
+            tiny: __go_clone_4_0,
+            tinyoffset: __go_clone_5_0,
+            tiny_allocs: __go_clone_6_0,
+            alloc: __go_clone_7_0,
+            stackcache: __go_clone_8_0,
+            flush_gen: __go_clone_9_0,
+        }
     }
 }
 
@@ -68,7 +89,10 @@ pub struct gclink {
 
 impl gclink {
     pub fn __go_value_clone(&self) -> Self {
-        Self { next: { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            next: __go_clone_0_0,
+        }
     }
 }
 
@@ -479,7 +503,12 @@ pub struct stackfreelist {
 
 impl stackfreelist {
     pub fn __go_value_clone(&self) -> Self {
-        Self { list: { let __guard = self.list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, size: { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            list: __go_clone_0_0,
+            size: __go_clone_1_0,
+        }
     }
 }
 

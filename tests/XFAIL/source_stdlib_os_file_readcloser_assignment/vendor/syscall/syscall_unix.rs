@@ -25,7 +25,16 @@ pub struct mmapper {
 
 impl mmapper {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mutex: self.mutex.clone(), active: self.active.clone(), mmap: self.mmap.clone(), munmap: self.munmap.clone() }
+        let __go_clone_0_0 = self.mutex.clone();
+        let __go_clone_1_0 = self.active.clone();
+        let __go_clone_2_0 = self.mmap.clone();
+        let __go_clone_3_0 = self.munmap.clone();
+        Self {
+            mutex: __go_clone_0_0,
+            active: __go_clone_1_0,
+            mmap: __go_clone_2_0,
+            munmap: __go_clone_3_0,
+        }
     }
 }
 
@@ -846,7 +855,14 @@ pub struct SockaddrInet4 {
 
 impl SockaddrInet4 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { port: { let __guard = self.port.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, addr: { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, raw: { let __guard = self.raw.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.port.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.raw.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            port: __go_clone_0_0,
+            addr: __go_clone_1_0,
+            raw: __go_clone_2_0,
+        }
     }
 }
 
@@ -888,7 +904,16 @@ pub struct SockaddrInet6 {
 
 impl SockaddrInet6 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { port: { let __guard = self.port.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, zone_id: { let __guard = self.zone_id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, addr: { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, raw: { let __guard = self.raw.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.port.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.zone_id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.raw.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            port: __go_clone_0_0,
+            zone_id: __go_clone_1_0,
+            addr: __go_clone_2_0,
+            raw: __go_clone_3_0,
+        }
     }
 }
 
@@ -931,7 +956,12 @@ pub struct SockaddrUnix {
 
 impl SockaddrUnix {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, raw: { let __guard = self.raw.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.raw.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            raw: __go_clone_1_0,
+        }
     }
 }
 

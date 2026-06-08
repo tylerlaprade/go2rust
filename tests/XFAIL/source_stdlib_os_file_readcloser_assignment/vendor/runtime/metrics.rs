@@ -29,7 +29,12 @@ pub struct metricData {
 
 impl metricData {
     pub fn __go_value_clone(&self) -> Self {
-        Self { deps: { let __guard = self.deps.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, compute: self.compute.clone() }
+        let __go_clone_0_0 = { let __guard = self.deps.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.compute.clone();
+        Self {
+            deps: __go_clone_0_0,
+            compute: __go_clone_1_0,
+        }
     }
 }
 
@@ -469,7 +474,22 @@ pub struct heapStatsAggregate {
 
 impl heapStatsAggregate {
     pub fn __go_value_clone(&self) -> Self {
-        Self { heap_stats_delta: { let __guard = self.heap_stats_delta.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_objects: { let __guard = self.in_objects.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, num_objects: { let __guard = self.num_objects.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_allocated: { let __guard = self.total_allocated.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_freed: { let __guard = self.total_freed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_allocs: { let __guard = self.total_allocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_frees: { let __guard = self.total_frees.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.heap_stats_delta.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.in_objects.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.num_objects.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.total_allocated.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.total_freed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.total_allocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.total_frees.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            heap_stats_delta: __go_clone_0_0,
+            in_objects: __go_clone_1_0,
+            num_objects: __go_clone_2_0,
+            total_allocated: __go_clone_3_0,
+            total_freed: __go_clone_4_0,
+            total_allocs: __go_clone_5_0,
+            total_frees: __go_clone_6_0,
+        }
     }
 }
 
@@ -519,7 +539,30 @@ pub struct sysStatsAggregate {
 
 impl sysStatsAggregate {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stacks_sys: { let __guard = self.stacks_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m_span_sys: { let __guard = self.m_span_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m_span_in_use: { let __guard = self.m_span_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m_cache_sys: { let __guard = self.m_cache_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m_cache_in_use: { let __guard = self.m_cache_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buck_hash_sys: { let __guard = self.buck_hash_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_misc_sys: { let __guard = self.gc_misc_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, other_sys: { let __guard = self.other_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_goal: { let __guard = self.heap_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_cycles_done: { let __guard = self.gc_cycles_done.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_cycles_forced: { let __guard = self.gc_cycles_forced.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.stacks_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.m_span_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.m_span_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.m_cache_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.m_cache_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.buck_hash_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.gc_misc_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.other_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.heap_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.gc_cycles_done.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.gc_cycles_forced.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            stacks_sys: __go_clone_0_0,
+            m_span_sys: __go_clone_1_0,
+            m_span_in_use: __go_clone_2_0,
+            m_cache_sys: __go_clone_3_0,
+            m_cache_in_use: __go_clone_4_0,
+            buck_hash_sys: __go_clone_5_0,
+            gc_misc_sys: __go_clone_6_0,
+            other_sys: __go_clone_7_0,
+            heap_goal: __go_clone_8_0,
+            gc_cycles_done: __go_clone_9_0,
+            gc_cycles_forced: __go_clone_10_0,
+        }
     }
 }
 
@@ -554,7 +597,10 @@ pub struct cpuStatsAggregate {
 
 impl cpuStatsAggregate {
     pub fn __go_value_clone(&self) -> Self {
-        Self { cpu_stats: { let __guard = self.cpu_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.cpu_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            cpu_stats: __go_clone_0_0,
+        }
     }
 }
 
@@ -592,7 +638,16 @@ pub struct gcStatsAggregate {
 
 impl gcStatsAggregate {
     pub fn __go_value_clone(&self) -> Self {
-        Self { heap_scan: { let __guard = self.heap_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stack_scan: { let __guard = self.stack_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, globals_scan: { let __guard = self.globals_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_scan: { let __guard = self.total_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.heap_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.stack_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.globals_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.total_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            heap_scan: __go_clone_0_0,
+            stack_scan: __go_clone_1_0,
+            globals_scan: __go_clone_2_0,
+            total_scan: __go_clone_3_0,
+        }
     }
 }
 
@@ -634,7 +689,18 @@ pub struct statAggregate {
 
 impl statAggregate {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ensured: { let __guard = self.ensured.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_stats: { let __guard = self.heap_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sys_stats: { let __guard = self.sys_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cpu_stats: { let __guard = self.cpu_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_stats: { let __guard = self.gc_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.ensured.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.heap_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.sys_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.cpu_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.gc_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            ensured: __go_clone_0_0,
+            heap_stats: __go_clone_1_0,
+            sys_stats: __go_clone_2_0,
+            cpu_stats: __go_clone_3_0,
+            gc_stats: __go_clone_4_0,
+        }
     }
 }
 
@@ -1055,7 +1121,14 @@ pub struct metricValue {
 
 impl metricValue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scalar: { let __guard = self.scalar.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pointer: { let __guard = self.pointer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.scalar.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.pointer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            kind: __go_clone_0_0,
+            scalar: __go_clone_1_0,
+            pointer: __go_clone_2_0,
+        }
     }
 }
 
@@ -1091,7 +1164,12 @@ pub struct metricFloat64Histogram {
 
 impl metricFloat64Histogram {
     pub fn __go_value_clone(&self) -> Self {
-        Self { counts: self.counts.clone(), buckets: self.buckets.clone() }
+        let __go_clone_0_0 = self.counts.clone();
+        let __go_clone_1_0 = self.buckets.clone();
+        Self {
+            counts: __go_clone_0_0,
+            buckets: __go_clone_1_0,
+        }
     }
 }
 

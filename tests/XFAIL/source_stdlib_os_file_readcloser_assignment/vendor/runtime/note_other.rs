@@ -32,7 +32,10 @@ pub struct note {
 
 impl note {
     pub fn __go_value_clone(&self) -> Self {
-        Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            key: __go_clone_0_0,
+        }
     }
 }
 

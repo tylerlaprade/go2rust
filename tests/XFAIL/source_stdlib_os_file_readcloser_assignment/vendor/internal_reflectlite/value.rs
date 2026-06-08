@@ -406,7 +406,12 @@ pub struct ValueError {
 
 impl ValueError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { method: { let __guard = self.method.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.method.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            method: __go_clone_0_0,
+            kind: __go_clone_1_0,
+        }
     }
 }
 
@@ -523,7 +528,12 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { b: { let __guard = self.b.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x: self.x.clone() }
+        let __go_clone_0_0 = { let __guard = self.b.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.x.clone();
+        Self {
+            b: __go_clone_0_0,
+            x: __go_clone_1_0,
+        }
     }
 }
 

@@ -23,7 +23,26 @@ pub struct synctestGroup {
 
 impl synctestGroup {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mu: { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, timers: { let __guard = self.timers.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, now: { let __guard = self.now.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, root: self.root.clone(), waiter: self.waiter.clone(), waiting: { let __guard = self.waiting.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total: { let __guard = self.total.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, running: { let __guard = self.running.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, active: { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.timers.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.now.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.root.clone();
+        let __go_clone_4_0 = self.waiter.clone();
+        let __go_clone_5_0 = { let __guard = self.waiting.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.total.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.running.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mu: __go_clone_0_0,
+            timers: __go_clone_1_0,
+            now: __go_clone_2_0,
+            root: __go_clone_3_0,
+            waiter: __go_clone_4_0,
+            waiting: __go_clone_5_0,
+            total: __go_clone_6_0,
+            running: __go_clone_7_0,
+            active: __go_clone_8_0,
+        }
     }
 }
 

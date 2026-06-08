@@ -29,7 +29,10 @@ pub struct rtype {
 
 impl rtype {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: self.r#type.clone() }
+        let __go_clone_0_0 = self.r#type.clone();
+        Self {
+            r#type: __go_clone_0_0,
+        }
     }
 }
 
@@ -58,7 +61,12 @@ pub struct bitCursor {
 
 impl bitCursor {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ptr: self.ptr.clone(), n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.ptr.clone();
+        let __go_clone_1_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            ptr: __go_clone_0_0,
+            n: __go_clone_1_0,
+        }
     }
 }
 
@@ -632,7 +640,16 @@ pub struct AnonymousStruct39 {
 }
 impl AnonymousStruct39 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m: self.m.clone(), minv: self.minv.clone() }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.m.clone();
+        let __go_clone_3_0 = self.minv.clone();
+        Self {
+            lock: __go_clone_0_0,
+            next: __go_clone_1_0,
+            m: __go_clone_2_0,
+            minv: __go_clone_3_0,
+        }
     }
 }
 

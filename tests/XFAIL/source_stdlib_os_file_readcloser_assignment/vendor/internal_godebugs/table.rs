@@ -498,7 +498,18 @@ pub struct Info {
 
 impl Info {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, package: { let __guard = self.package.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, changed: { let __guard = self.changed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, old: { let __guard = self.old.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, opaque: { let __guard = self.opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.package.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.changed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.old.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            package: __go_clone_1_0,
+            changed: __go_clone_2_0,
+            old: __go_clone_3_0,
+            opaque: __go_clone_4_0,
+        }
     }
 }
 

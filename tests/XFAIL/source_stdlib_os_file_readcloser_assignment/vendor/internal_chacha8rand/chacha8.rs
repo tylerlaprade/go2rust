@@ -28,7 +28,18 @@ pub struct State {
 
 impl State {
     pub fn __go_value_clone(&self) -> Self {
-        Self { buf: { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, seed: { let __guard = self.seed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, i: { let __guard = self.i.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, c: { let __guard = self.c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.seed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.i.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            buf: __go_clone_0_0,
+            seed: __go_clone_1_0,
+            i: __go_clone_2_0,
+            n: __go_clone_3_0,
+            c: __go_clone_4_0,
+        }
     }
 }
 

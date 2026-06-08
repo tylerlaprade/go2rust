@@ -96,7 +96,30 @@ pub struct Type {
 
 impl Type {
     pub fn __go_value_clone(&self) -> Self {
-        Self { size_: { let __guard = self.size_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ptr_bytes: { let __guard = self.ptr_bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hash: { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, t_flag: { let __guard = self.t_flag.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, align_: { let __guard = self.align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, field_align_: { let __guard = self.field_align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, kind_: { let __guard = self.kind_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, equal: self.equal.clone(), g_c_data: self.g_c_data.clone(), str: { let __guard = self.str.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ptr_to_this: { let __guard = self.ptr_to_this.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.size_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.ptr_bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.t_flag.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.field_align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.kind_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = self.equal.clone();
+        let __go_clone_8_0 = self.g_c_data.clone();
+        let __go_clone_9_0 = { let __guard = self.str.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.ptr_to_this.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            size_: __go_clone_0_0,
+            ptr_bytes: __go_clone_1_0,
+            hash: __go_clone_2_0,
+            t_flag: __go_clone_3_0,
+            align_: __go_clone_4_0,
+            field_align_: __go_clone_5_0,
+            kind_: __go_clone_6_0,
+            equal: __go_clone_7_0,
+            g_c_data: __go_clone_8_0,
+            str: __go_clone_9_0,
+            ptr_to_this: __go_clone_10_0,
+        }
     }
 }
 
@@ -2054,7 +2077,16 @@ pub struct Method {
 
 impl Method {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mtyp: { let __guard = self.mtyp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ifn: { let __guard = self.ifn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tfn: { let __guard = self.tfn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mtyp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.ifn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.tfn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            mtyp: __go_clone_1_0,
+            ifn: __go_clone_2_0,
+            tfn: __go_clone_3_0,
+        }
     }
 }
 
@@ -2095,7 +2127,18 @@ pub struct UncommonType {
 
 impl UncommonType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mcount: { let __guard = self.mcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, xcount: { let __guard = self.xcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, moff: { let __guard = self.moff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_4_0: { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.xcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.moff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            pkg_path: __go_clone_0_0,
+            mcount: __go_clone_1_0,
+            xcount: __go_clone_2_0,
+            moff: __go_clone_3_0,
+            __blank_4_0: __go_clone_4_0,
+        }
     }
 }
 
@@ -2139,7 +2182,12 @@ pub struct Imethod {
 
 impl Imethod {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            typ: __go_clone_1_0,
+        }
     }
 }
 
@@ -2176,7 +2224,16 @@ pub struct ArrayType {
 
 impl ArrayType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone(), slice: self.slice.clone(), len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        let __go_clone_2_0 = self.slice.clone();
+        let __go_clone_3_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+            slice: __go_clone_2_0,
+            len: __go_clone_3_0,
+        }
     }
 }
 
@@ -2597,7 +2654,14 @@ pub struct ChanType {
 
 impl ChanType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone(), dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        let __go_clone_2_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+            dir: __go_clone_2_0,
+        }
     }
 }
 
@@ -2631,7 +2695,12 @@ pub struct structTypeUncommon {
 
 impl structTypeUncommon {
     pub fn __go_value_clone(&self) -> Self {
-        Self { struct_type: { let __guard = self.struct_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, u: { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.struct_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            struct_type: __go_clone_0_0,
+            u: __go_clone_1_0,
+        }
     }
 }
 
@@ -2666,7 +2735,14 @@ pub struct InterfaceType {
 
 impl InterfaceType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, methods: self.methods.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.methods.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            pkg_path: __go_clone_1_0,
+            methods: __go_clone_2_0,
+        }
     }
 }
 
@@ -2700,7 +2776,12 @@ pub struct SliceType {
 
 impl SliceType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+        }
     }
 }
 
@@ -2746,7 +2827,14 @@ pub struct FuncType {
 
 impl FuncType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_count: { let __guard = self.in_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, out_count: { let __guard = self.out_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.in_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.out_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            in_count: __go_clone_1_0,
+            out_count: __go_clone_2_0,
+        }
     }
 }
 
@@ -2786,7 +2874,12 @@ pub struct PtrType {
 
 impl PtrType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+        }
     }
 }
 
@@ -2821,7 +2914,14 @@ pub struct StructField {
 
 impl StructField {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: self.typ.clone(), offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.typ.clone();
+        let __go_clone_2_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            typ: __go_clone_1_0,
+            offset: __go_clone_2_0,
+        }
     }
 }
 
@@ -2859,7 +2959,14 @@ pub struct StructType {
 
 impl StructType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fields: self.fields.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.fields.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            pkg_path: __go_clone_1_0,
+            fields: __go_clone_2_0,
+        }
     }
 }
 
@@ -2892,7 +2999,10 @@ pub struct Name {
 
 impl Name {
     pub fn __go_value_clone(&self) -> Self {
-        Self { bytes: self.bytes.clone() }
+        let __go_clone_0_0 = self.bytes.clone();
+        Self {
+            bytes: __go_clone_0_0,
+        }
     }
 }
 
@@ -4785,7 +4895,12 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ptr_type: { let __guard = self.ptr_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, u: { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.ptr_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            ptr_type: __go_clone_0_0,
+            u: __go_clone_1_0,
+        }
     }
 }
 

@@ -16,7 +16,12 @@ pub struct InterfaceSwitchCache {
 
 impl InterfaceSwitchCache {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, entries: { let __guard = self.entries.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.entries.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mask: __go_clone_0_0,
+            entries: __go_clone_1_0,
+        }
     }
 }
 
@@ -54,7 +59,14 @@ pub struct InterfaceSwitchCacheEntry {
 
 impl InterfaceSwitchCacheEntry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { typ: { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, case: { let __guard = self.case.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, itab: { let __guard = self.itab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.case.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.itab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            typ: __go_clone_0_0,
+            case: __go_clone_1_0,
+            itab: __go_clone_2_0,
+        }
     }
 }
 
@@ -97,7 +109,12 @@ pub struct TypeAssertCache {
 
 impl TypeAssertCache {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, entries: { let __guard = self.entries.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.entries.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mask: __go_clone_0_0,
+            entries: __go_clone_1_0,
+        }
     }
 }
 
@@ -134,7 +151,12 @@ pub struct TypeAssertCacheEntry {
 
 impl TypeAssertCacheEntry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { typ: { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, itab: { let __guard = self.itab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.itab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            typ: __go_clone_0_0,
+            itab: __go_clone_1_0,
+        }
     }
 }
 

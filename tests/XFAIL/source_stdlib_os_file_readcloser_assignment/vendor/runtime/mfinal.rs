@@ -34,7 +34,20 @@ pub struct finblock {
 
 impl finblock {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alllink: self.alllink.clone(), next: self.next.clone(), cnt: { let __guard = self.cnt.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_4_0: { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fin: { let __guard = self.fin.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.alllink.clone();
+        let __go_clone_2_0 = self.next.clone();
+        let __go_clone_3_0 = { let __guard = self.cnt.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.fin.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            alllink: __go_clone_1_0,
+            next: __go_clone_2_0,
+            cnt: __go_clone_3_0,
+            __blank_4_0: __go_clone_4_0,
+            fin: __go_clone_5_0,
+        }
     }
 }
 
@@ -72,7 +85,18 @@ pub struct finalizer {
 
 impl finalizer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#fn: self.r#fn.clone(), arg: { let __guard = self.arg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nret: { let __guard = self.nret.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fint: self.fint.clone(), ot: self.ot.clone() }
+        let __go_clone_0_0 = self.r#fn.clone();
+        let __go_clone_1_0 = { let __guard = self.arg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.nret.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.fint.clone();
+        let __go_clone_4_0 = self.ot.clone();
+        Self {
+            r#fn: __go_clone_0_0,
+            arg: __go_clone_1_0,
+            nret: __go_clone_2_0,
+            fint: __go_clone_3_0,
+            ot: __go_clone_4_0,
+        }
     }
 }
 

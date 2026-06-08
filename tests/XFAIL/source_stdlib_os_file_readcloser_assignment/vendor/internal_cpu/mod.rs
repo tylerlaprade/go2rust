@@ -16,7 +16,10 @@ pub struct CacheLinePad {
 
 impl CacheLinePad {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+        }
     }
 }
 
@@ -53,7 +56,16 @@ pub struct option {
 
 impl option {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, feature: self.feature.clone(), specified: { let __guard = self.specified.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, enable: { let __guard = self.enable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.feature.clone();
+        let __go_clone_2_0 = { let __guard = self.specified.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.enable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            feature: __go_clone_1_0,
+            specified: __go_clone_2_0,
+            enable: __go_clone_3_0,
+        }
     }
 }
 
@@ -174,7 +186,54 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s: { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_d_x: { let __guard = self.has_a_d_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x: { let __guard = self.has_a_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x2: { let __guard = self.has_a_v_x2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x512_f: { let __guard = self.has_a_v_x512_f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x512_b_w: { let __guard = self.has_a_v_x512_b_w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x512_v_l: { let __guard = self.has_a_v_x512_v_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_b_m_i1: { let __guard = self.has_b_m_i1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_b_m_i2: { let __guard = self.has_b_m_i2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_r_m_s: { let __guard = self.has_e_r_m_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_f_s_r_m: { let __guard = self.has_f_s_r_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_f_m_a: { let __guard = self.has_f_m_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_o_s_x_s_a_v_e: { let __guard = self.has_o_s_x_s_a_v_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_p_c_l_m_u_l_q_d_q: { let __guard = self.has_p_c_l_m_u_l_q_d_q.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_p_o_p_c_n_t: { let __guard = self.has_p_o_p_c_n_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_r_d_t_s_c_p: { let __guard = self.has_r_d_t_s_c_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a: { let __guard = self.has_s_h_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_e3: { let __guard = self.has_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_s_e3: { let __guard = self.has_s_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_e41: { let __guard = self.has_s_s_e41.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_e42: { let __guard = self.has_s_s_e42.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_22_0: { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_a_d_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_a_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_a_v_x2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.has_a_v_x512_f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.has_a_v_x512_b_w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.has_a_v_x512_v_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.has_b_m_i1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.has_b_m_i2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.has_e_r_m_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.has_f_s_r_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.has_f_m_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.has_o_s_x_s_a_v_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.has_p_c_l_m_u_l_q_d_q.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.has_p_o_p_c_n_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.has_r_d_t_s_c_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_17_0 = { let __guard = self.has_s_h_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = { let __guard = self.has_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_19_0 = { let __guard = self.has_s_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_20_0 = { let __guard = self.has_s_s_e41.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_21_0 = { let __guard = self.has_s_s_e42.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_a_e_s: __go_clone_1_0,
+            has_a_d_x: __go_clone_2_0,
+            has_a_v_x: __go_clone_3_0,
+            has_a_v_x2: __go_clone_4_0,
+            has_a_v_x512_f: __go_clone_5_0,
+            has_a_v_x512_b_w: __go_clone_6_0,
+            has_a_v_x512_v_l: __go_clone_7_0,
+            has_b_m_i1: __go_clone_8_0,
+            has_b_m_i2: __go_clone_9_0,
+            has_e_r_m_s: __go_clone_10_0,
+            has_f_s_r_m: __go_clone_11_0,
+            has_f_m_a: __go_clone_12_0,
+            has_o_s_x_s_a_v_e: __go_clone_13_0,
+            has_p_c_l_m_u_l_q_d_q: __go_clone_14_0,
+            has_p_o_p_c_n_t: __go_clone_15_0,
+            has_r_d_t_s_c_p: __go_clone_16_0,
+            has_s_h_a: __go_clone_17_0,
+            has_s_s_e3: __go_clone_18_0,
+            has_s_s_s_e3: __go_clone_19_0,
+            has_s_s_e41: __go_clone_20_0,
+            has_s_s_e42: __go_clone_21_0,
+            __blank_22_0: __go_clone_22_0,
+        }
     }
 }
 
@@ -273,7 +332,18 @@ pub struct AnonymousStruct2 {
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v_f_pv4: { let __guard = self.has_v_f_pv4.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_i_d_i_v_a: { let __guard = self.has_i_d_i_v_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v7_atomics: { let __guard = self.has_v7_atomics.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_4_0: { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_v_f_pv4.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_i_d_i_v_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_v7_atomics.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_v_f_pv4: __go_clone_1_0,
+            has_i_d_i_v_a: __go_clone_2_0,
+            has_v7_atomics: __go_clone_3_0,
+            __blank_4_0: __go_clone_4_0,
+        }
     }
 }
 
@@ -325,7 +395,32 @@ pub struct AnonymousStruct3 {
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s: { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_p_m_u_l_l: { let __guard = self.has_p_m_u_l_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a1: { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a2: { let __guard = self.has_s_h_a2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a512: { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_c_r_c32: { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_t_o_m_i_c_s: { let __guard = self.has_a_t_o_m_i_c_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_c_p_u_i_d: { let __guard = self.has_c_p_u_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_d_i_t: { let __guard = self.has_d_i_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_neoverse: { let __guard = self.is_neoverse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_11_0: { let __guard = self.__blank_11_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_p_m_u_l_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_s_h_a2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.has_a_t_o_m_i_c_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.has_c_p_u_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.has_d_i_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.is_neoverse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.__blank_11_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_a_e_s: __go_clone_1_0,
+            has_p_m_u_l_l: __go_clone_2_0,
+            has_s_h_a1: __go_clone_3_0,
+            has_s_h_a2: __go_clone_4_0,
+            has_s_h_a512: __go_clone_5_0,
+            has_c_r_c32: __go_clone_6_0,
+            has_a_t_o_m_i_c_s: __go_clone_7_0,
+            has_c_p_u_i_d: __go_clone_8_0,
+            has_d_i_t: __go_clone_9_0,
+            is_neoverse: __go_clone_10_0,
+            __blank_11_0: __go_clone_11_0,
+        }
     }
 }
 
@@ -392,7 +487,20 @@ pub struct AnonymousStruct4 {
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_s_x: { let __guard = self.has_l_s_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_c_r_c32: { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_a_m_c_a_s: { let __guard = self.has_l_a_m_c_a_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_a_m__b_h: { let __guard = self.has_l_a_m__b_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_5_0: { let __guard = self.__blank_5_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_l_s_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_l_a_m_c_a_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_l_a_m__b_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.__blank_5_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_l_s_x: __go_clone_1_0,
+            has_c_r_c32: __go_clone_2_0,
+            has_l_a_m_c_a_s: __go_clone_3_0,
+            has_l_a_m__b_h: __go_clone_4_0,
+            __blank_5_0: __go_clone_5_0,
+        }
     }
 }
 
@@ -438,7 +546,14 @@ pub struct AnonymousStruct5 {
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_m_s_a: { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_2_0: { let __guard = self.__blank_2_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.__blank_2_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_m_s_a: __go_clone_1_0,
+            __blank_2_0: __go_clone_2_0,
+        }
     }
 }
 
@@ -479,7 +594,22 @@ pub struct AnonymousStruct6 {
 }
 impl AnonymousStruct6 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_d_a_r_n: { let __guard = self.has_d_a_r_n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_c_v: { let __guard = self.has_s_c_v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_p_o_w_e_r8: { let __guard = self.is_p_o_w_e_r8.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_p_o_w_e_r9: { let __guard = self.is_p_o_w_e_r9.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_p_o_w_e_r10: { let __guard = self.is_p_o_w_e_r10.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_6_0: { let __guard = self.__blank_6_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_d_a_r_n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_s_c_v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.is_p_o_w_e_r8.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.is_p_o_w_e_r9.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.is_p_o_w_e_r10.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.__blank_6_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_d_a_r_n: __go_clone_1_0,
+            has_s_c_v: __go_clone_2_0,
+            is_p_o_w_e_r8: __go_clone_3_0,
+            is_p_o_w_e_r9: __go_clone_4_0,
+            is_p_o_w_e_r10: __go_clone_5_0,
+            __blank_6_0: __go_clone_6_0,
+        }
     }
 }
 
@@ -548,7 +678,54 @@ pub struct AnonymousStruct7 {
 }
 impl AnonymousStruct7 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_z_a_r_c_h: { let __guard = self.has_z_a_r_c_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_t_f_l_e: { let __guard = self.has_s_t_f_l_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_d_i_s_p: { let __guard = self.has_l_d_i_s_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_i_m_m: { let __guard = self.has_e_i_m_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_d_f_p: { let __guard = self.has_d_f_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_t_f3_e_h: { let __guard = self.has_e_t_f3_e_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_m_s_a: { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s: { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s_c_b_c: { let __guard = self.has_a_e_s_c_b_c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s_c_t_r: { let __guard = self.has_a_e_s_c_t_r.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s_g_c_m: { let __guard = self.has_a_e_s_g_c_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_g_h_a_s_h: { let __guard = self.has_g_h_a_s_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a1: { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a256: { let __guard = self.has_s_h_a256.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a512: { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a3: { let __guard = self.has_s_h_a3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v_x: { let __guard = self.has_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v_x_e: { let __guard = self.has_v_x_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_k_d_s_a: { let __guard = self.has_k_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_c_d_s_a: { let __guard = self.has_e_c_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_d_d_s_a: { let __guard = self.has_e_d_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_22_0: { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_z_a_r_c_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_s_t_f_l_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_l_d_i_s_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_e_i_m_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.has_d_f_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.has_e_t_f3_e_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.has_a_e_s_c_b_c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.has_a_e_s_c_t_r.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.has_a_e_s_g_c_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.has_g_h_a_s_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.has_s_h_a256.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.has_s_h_a3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_17_0 = { let __guard = self.has_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = { let __guard = self.has_v_x_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_19_0 = { let __guard = self.has_k_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_20_0 = { let __guard = self.has_e_c_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_21_0 = { let __guard = self.has_e_d_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_z_a_r_c_h: __go_clone_1_0,
+            has_s_t_f_l_e: __go_clone_2_0,
+            has_l_d_i_s_p: __go_clone_3_0,
+            has_e_i_m_m: __go_clone_4_0,
+            has_d_f_p: __go_clone_5_0,
+            has_e_t_f3_e_h: __go_clone_6_0,
+            has_m_s_a: __go_clone_7_0,
+            has_a_e_s: __go_clone_8_0,
+            has_a_e_s_c_b_c: __go_clone_9_0,
+            has_a_e_s_c_t_r: __go_clone_10_0,
+            has_a_e_s_g_c_m: __go_clone_11_0,
+            has_g_h_a_s_h: __go_clone_12_0,
+            has_s_h_a1: __go_clone_13_0,
+            has_s_h_a256: __go_clone_14_0,
+            has_s_h_a512: __go_clone_15_0,
+            has_s_h_a3: __go_clone_16_0,
+            has_v_x: __go_clone_17_0,
+            has_v_x_e: __go_clone_18_0,
+            has_k_d_s_a: __go_clone_19_0,
+            has_e_c_d_s_a: __go_clone_20_0,
+            has_e_d_d_s_a: __go_clone_21_0,
+            __blank_22_0: __go_clone_22_0,
+        }
     }
 }
 

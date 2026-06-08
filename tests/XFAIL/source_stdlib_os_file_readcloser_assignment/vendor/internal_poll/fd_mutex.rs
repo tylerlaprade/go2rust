@@ -35,7 +35,14 @@ pub struct fdMutex {
 
 impl fdMutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, rsema: { let __guard = self.rsema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, wsema: { let __guard = self.wsema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.rsema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.wsema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            state: __go_clone_0_0,
+            rsema: __go_clone_1_0,
+            wsema: __go_clone_2_0,
+        }
     }
 }
 

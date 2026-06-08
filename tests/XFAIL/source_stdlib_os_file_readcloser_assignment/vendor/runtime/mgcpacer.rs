@@ -68,7 +68,86 @@ pub struct gcControllerState {
 
 impl gcControllerState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { gc_percent: { let __guard = self.gc_percent.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, memory_limit: { let __guard = self.memory_limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_minimum: { let __guard = self.heap_minimum.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, runway: { let __guard = self.runway.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cons_mark: { let __guard = self.cons_mark.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_cons_mark: { let __guard = self.last_cons_mark.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_percent_heap_goal: { let __guard = self.gc_percent_heap_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sweep_dist_min_trigger: { let __guard = self.sweep_dist_min_trigger.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, triggered: { let __guard = self.triggered.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_heap_goal: { let __guard = self.last_heap_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_live: { let __guard = self.heap_live.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_scan: { let __guard = self.heap_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_heap_scan: { let __guard = self.last_heap_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_stack_scan: { let __guard = self.last_stack_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, max_stack_scan: { let __guard = self.max_stack_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, globals_scan: { let __guard = self.globals_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_marked: { let __guard = self.heap_marked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_scan_work: { let __guard = self.heap_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stack_scan_work: { let __guard = self.stack_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, globals_scan_work: { let __guard = self.globals_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bg_scan_credit: { let __guard = self.bg_scan_credit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, assist_time: { let __guard = self.assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dedicated_mark_time: { let __guard = self.dedicated_mark_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fractional_mark_time: { let __guard = self.fractional_mark_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, idle_mark_time: { let __guard = self.idle_mark_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mark_start_time: { let __guard = self.mark_start_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dedicated_mark_workers_needed: { let __guard = self.dedicated_mark_workers_needed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, idle_mark_workers: { let __guard = self.idle_mark_workers.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, assist_work_per_byte: { let __guard = self.assist_work_per_byte.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, assist_bytes_per_work: { let __guard = self.assist_bytes_per_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fractional_utilization_goal: { let __guard = self.fractional_utilization_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_in_use: { let __guard = self.heap_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_released: { let __guard = self.heap_released.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_free: { let __guard = self.heap_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_alloc: { let __guard = self.total_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_free: { let __guard = self.total_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mapped_ready: { let __guard = self.mapped_ready.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, test: { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_38_0: { let __guard = self.__blank_38_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.gc_percent.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.memory_limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.heap_minimum.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.runway.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.cons_mark.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.last_cons_mark.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.gc_percent_heap_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.sweep_dist_min_trigger.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.triggered.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.last_heap_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.heap_live.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.heap_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.last_heap_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.last_stack_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.max_stack_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.globals_scan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.heap_marked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_17_0 = { let __guard = self.heap_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = { let __guard = self.stack_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_19_0 = { let __guard = self.globals_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_20_0 = { let __guard = self.bg_scan_credit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_21_0 = { let __guard = self.assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.dedicated_mark_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_23_0 = { let __guard = self.fractional_mark_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_24_0 = { let __guard = self.idle_mark_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_25_0 = { let __guard = self.mark_start_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_26_0 = { let __guard = self.dedicated_mark_workers_needed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_27_0 = { let __guard = self.idle_mark_workers.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_28_0 = { let __guard = self.assist_work_per_byte.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_29_0 = { let __guard = self.assist_bytes_per_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_30_0 = { let __guard = self.fractional_utilization_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_31_0 = { let __guard = self.heap_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_32_0 = { let __guard = self.heap_released.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_33_0 = { let __guard = self.heap_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_34_0 = { let __guard = self.total_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_35_0 = { let __guard = self.total_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_36_0 = { let __guard = self.mapped_ready.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_37_0 = { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_38_0 = { let __guard = self.__blank_38_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            gc_percent: __go_clone_0_0,
+            memory_limit: __go_clone_1_0,
+            heap_minimum: __go_clone_2_0,
+            runway: __go_clone_3_0,
+            cons_mark: __go_clone_4_0,
+            last_cons_mark: __go_clone_5_0,
+            gc_percent_heap_goal: __go_clone_6_0,
+            sweep_dist_min_trigger: __go_clone_7_0,
+            triggered: __go_clone_8_0,
+            last_heap_goal: __go_clone_9_0,
+            heap_live: __go_clone_10_0,
+            heap_scan: __go_clone_11_0,
+            last_heap_scan: __go_clone_12_0,
+            last_stack_scan: __go_clone_13_0,
+            max_stack_scan: __go_clone_14_0,
+            globals_scan: __go_clone_15_0,
+            heap_marked: __go_clone_16_0,
+            heap_scan_work: __go_clone_17_0,
+            stack_scan_work: __go_clone_18_0,
+            globals_scan_work: __go_clone_19_0,
+            bg_scan_credit: __go_clone_20_0,
+            assist_time: __go_clone_21_0,
+            dedicated_mark_time: __go_clone_22_0,
+            fractional_mark_time: __go_clone_23_0,
+            idle_mark_time: __go_clone_24_0,
+            mark_start_time: __go_clone_25_0,
+            dedicated_mark_workers_needed: __go_clone_26_0,
+            idle_mark_workers: __go_clone_27_0,
+            assist_work_per_byte: __go_clone_28_0,
+            assist_bytes_per_work: __go_clone_29_0,
+            fractional_utilization_goal: __go_clone_30_0,
+            heap_in_use: __go_clone_31_0,
+            heap_released: __go_clone_32_0,
+            heap_free: __go_clone_33_0,
+            total_alloc: __go_clone_34_0,
+            total_free: __go_clone_35_0,
+            mapped_ready: __go_clone_36_0,
+            test: __go_clone_37_0,
+            __blank_38_0: __go_clone_38_0,
+        }
     }
 }
 

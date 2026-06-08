@@ -18,7 +18,12 @@ pub struct addrRange {
 
 impl addrRange {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, limit: { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            limit: __go_clone_0_1,
+        }
     }
 }
 
@@ -54,7 +59,10 @@ pub struct offAddr {
 
 impl offAddr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { a: { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            a: __go_clone_0_0,
+        }
     }
 }
 
@@ -97,7 +105,10 @@ pub struct atomicOffAddr {
 
 impl atomicOffAddr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { a: { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            a: __go_clone_0_0,
+        }
     }
 }
 
@@ -142,7 +153,14 @@ pub struct addrRanges {
 
 impl addrRanges {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ranges: self.ranges.clone(), total_bytes: { let __guard = self.total_bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sys_stat: self.sys_stat.clone() }
+        let __go_clone_0_0 = self.ranges.clone();
+        let __go_clone_1_0 = { let __guard = self.total_bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.sys_stat.clone();
+        Self {
+            ranges: __go_clone_0_0,
+            total_bytes: __go_clone_1_0,
+            sys_stat: __go_clone_2_0,
+        }
     }
 }
 

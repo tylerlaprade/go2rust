@@ -33,7 +33,18 @@ pub struct coro {
 
 impl coro {
     pub fn __go_value_clone(&self) -> Self {
-        Self { gp: { let __guard = self.gp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, f: self.f.clone(), mp: self.mp.clone(), locked_ext: { let __guard = self.locked_ext.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, locked_int: { let __guard = self.locked_int.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.gp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.f.clone();
+        let __go_clone_2_0 = self.mp.clone();
+        let __go_clone_3_0 = { let __guard = self.locked_ext.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.locked_int.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            gp: __go_clone_0_0,
+            f: __go_clone_1_0,
+            mp: __go_clone_2_0,
+            locked_ext: __go_clone_3_0,
+            locked_int: __go_clone_4_0,
+        }
     }
 }
 

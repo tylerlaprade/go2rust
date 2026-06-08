@@ -45,7 +45,10 @@ pub struct typeCacheBucket {
 
 impl typeCacheBucket {
     pub fn __go_value_clone(&self) -> Self {
-        Self { t: { let __guard = self.t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            t: __go_clone_0_0,
+        }
     }
 }
 

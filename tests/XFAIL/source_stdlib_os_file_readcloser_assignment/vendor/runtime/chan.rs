@@ -32,7 +32,34 @@ pub struct hchan {
 
 impl hchan {
     pub fn __go_value_clone(&self) -> Self {
-        Self { qcount: { let __guard = self.qcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dataqsiz: { let __guard = self.dataqsiz.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buf: { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elemsize: { let __guard = self.elemsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, synctest: { let __guard = self.synctest.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, closed: { let __guard = self.closed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, timer: self.timer.clone(), elemtype: self.elemtype.clone(), sendx: { let __guard = self.sendx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, recvx: { let __guard = self.recvx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, recvq: { let __guard = self.recvq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sendq: { let __guard = self.sendq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.qcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.dataqsiz.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.elemsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.synctest.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.closed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = self.timer.clone();
+        let __go_clone_7_0 = self.elemtype.clone();
+        let __go_clone_8_0 = { let __guard = self.sendx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.recvx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.recvq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.sendq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            qcount: __go_clone_0_0,
+            dataqsiz: __go_clone_1_0,
+            buf: __go_clone_2_0,
+            elemsize: __go_clone_3_0,
+            synctest: __go_clone_4_0,
+            closed: __go_clone_5_0,
+            timer: __go_clone_6_0,
+            elemtype: __go_clone_7_0,
+            sendx: __go_clone_8_0,
+            recvx: __go_clone_9_0,
+            recvq: __go_clone_10_0,
+            sendq: __go_clone_11_0,
+            lock: __go_clone_12_0,
+        }
     }
 }
 
@@ -66,7 +93,12 @@ pub struct waitq {
 
 impl waitq {
     pub fn __go_value_clone(&self) -> Self {
-        Self { first: self.first.clone(), last: self.last.clone() }
+        let __go_clone_0_0 = self.first.clone();
+        let __go_clone_1_0 = self.last.clone();
+        Self {
+            first: __go_clone_0_0,
+            last: __go_clone_1_0,
+        }
     }
 }
 

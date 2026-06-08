@@ -25,7 +25,12 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mu: self.mu.clone(), val: { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.mu.clone();
+        let __go_clone_1_0 = { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mu: __go_clone_0_0,
+            val: __go_clone_1_0,
+        }
     }
 }
 

@@ -42,7 +42,10 @@ pub struct gTraceState {
 
 impl gTraceState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { trace_sched_resource_state: { let __guard = self.trace_sched_resource_state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.trace_sched_resource_state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            trace_sched_resource_state: __go_clone_0_0,
+        }
     }
 }
 
@@ -80,7 +83,18 @@ pub struct mTraceState {
 
 impl mTraceState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { seqlock: { let __guard = self.seqlock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buf: { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, link: self.link.clone(), reentered: { let __guard = self.reentered.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, oldthrowsplit: { let __guard = self.oldthrowsplit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.seqlock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.link.clone();
+        let __go_clone_3_0 = { let __guard = self.reentered.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.oldthrowsplit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            seqlock: __go_clone_0_0,
+            buf: __go_clone_1_0,
+            link: __go_clone_2_0,
+            reentered: __go_clone_3_0,
+            oldthrowsplit: __go_clone_4_0,
+        }
     }
 }
 
@@ -119,7 +133,20 @@ pub struct pTraceState {
 
 impl pTraceState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { trace_sched_resource_state: { let __guard = self.trace_sched_resource_state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m_syscall_i_d: { let __guard = self.m_syscall_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, may_sweep: { let __guard = self.may_sweep.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_sweep: { let __guard = self.in_sweep.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, swept: { let __guard = self.swept.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reclaimed: { let __guard = self.reclaimed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.trace_sched_resource_state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.m_syscall_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.may_sweep.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.in_sweep.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.swept.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_1 = { let __guard = self.reclaimed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            trace_sched_resource_state: __go_clone_0_0,
+            m_syscall_i_d: __go_clone_1_0,
+            may_sweep: __go_clone_2_0,
+            in_sweep: __go_clone_3_0,
+            swept: __go_clone_4_0,
+            reclaimed: __go_clone_4_1,
+        }
     }
 }
 
@@ -917,7 +944,12 @@ pub struct traceLocker {
 
 impl traceLocker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mp: self.mp.clone(), gen: { let __guard = self.gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.mp.clone();
+        let __go_clone_1_0 = { let __guard = self.gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mp: __go_clone_0_0,
+            gen: __go_clone_1_0,
+        }
     }
 }
 

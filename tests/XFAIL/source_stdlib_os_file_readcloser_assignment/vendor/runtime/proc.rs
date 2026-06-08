@@ -443,7 +443,16 @@ pub struct worldStop {
 
 impl worldStop {
     pub fn __go_value_clone(&self) -> Self {
-        Self { reason: { let __guard = self.reason.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, started_stopping: { let __guard = self.started_stopping.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, finished_stopping: { let __guard = self.finished_stopping.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stopping_c_p_u_time: { let __guard = self.stopping_c_p_u_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.reason.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.started_stopping.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.finished_stopping.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.stopping_c_p_u_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            reason: __go_clone_0_0,
+            started_stopping: __go_clone_1_0,
+            finished_stopping: __go_clone_2_0,
+            stopping_c_p_u_time: __go_clone_3_0,
+        }
     }
 }
 
@@ -478,7 +487,14 @@ pub struct cgothreadstart {
 
 impl cgothreadstart {
     pub fn __go_value_clone(&self) -> Self {
-        Self { g: { let __guard = self.g.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tls: self.tls.clone(), r#fn: { let __guard = self.r#fn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.g.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.tls.clone();
+        let __go_clone_2_0 = { let __guard = self.r#fn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            g: __go_clone_0_0,
+            tls: __go_clone_1_0,
+            r#fn: __go_clone_2_0,
+        }
     }
 }
 
@@ -514,7 +530,16 @@ pub struct sysmontick {
 
 impl sysmontick {
     pub fn __go_value_clone(&self) -> Self {
-        Self { schedtick: { let __guard = self.schedtick.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, syscalltick: { let __guard = self.syscalltick.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, schedwhen: { let __guard = self.schedwhen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, syscallwhen: { let __guard = self.syscallwhen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.schedtick.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.syscalltick.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.schedwhen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.syscallwhen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            schedtick: __go_clone_0_0,
+            syscalltick: __go_clone_1_0,
+            schedwhen: __go_clone_2_0,
+            syscallwhen: __go_clone_3_0,
+        }
     }
 }
 
@@ -561,7 +586,12 @@ pub struct gQueue {
 
 impl gQueue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { head: { let __guard = self.head.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tail: { let __guard = self.tail.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.head.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.tail.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            head: __go_clone_0_0,
+            tail: __go_clone_1_0,
+        }
     }
 }
 
@@ -596,7 +626,10 @@ pub struct gList {
 
 impl gList {
     pub fn __go_value_clone(&self) -> Self {
-        Self { head: { let __guard = self.head.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.head.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            head: __go_clone_0_0,
+        }
     }
 }
 
@@ -634,7 +667,12 @@ pub struct randomOrder {
 
 impl randomOrder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { count: { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, coprimes: self.coprimes.clone() }
+        let __go_clone_0_0 = { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.coprimes.clone();
+        Self {
+            count: __go_clone_0_0,
+            coprimes: __go_clone_1_0,
+        }
     }
 }
 
@@ -670,7 +708,16 @@ pub struct randomEnum {
 
 impl randomEnum {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i: { let __guard = self.i.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, count: { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pos: { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, inc: { let __guard = self.inc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.i.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.inc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            i: __go_clone_0_0,
+            count: __go_clone_1_0,
+            pos: __go_clone_2_0,
+            inc: __go_clone_3_0,
+        }
     }
 }
 
@@ -706,7 +753,12 @@ pub struct initTask {
 
 impl initTask {
     pub fn __go_value_clone(&self) -> Self {
-        Self { state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nfns: { let __guard = self.nfns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.nfns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            state: __go_clone_0_0,
+            nfns: __go_clone_1_0,
+        }
     }
 }
 
@@ -742,7 +794,16 @@ pub struct tracestat {
 
 impl tracestat {
     pub fn __go_value_clone(&self) -> Self {
-        Self { active: { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, id: { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, allocs: { let __guard = self.allocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bytes: { let __guard = self.bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.allocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            active: __go_clone_0_0,
+            id: __go_clone_1_0,
+            allocs: __go_clone_2_0,
+            bytes: __go_clone_3_0,
+        }
     }
 }
 
@@ -6565,7 +6626,18 @@ pub struct AnonymousStruct22 {
 }
 impl AnonymousStruct22 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, newm: { let __guard = self.newm.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, waiting: { let __guard = self.waiting.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, wake: { let __guard = self.wake.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, have_template_thread: { let __guard = self.have_template_thread.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.newm.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.waiting.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.wake.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.have_template_thread.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lock: __go_clone_0_0,
+            newm: __go_clone_1_0,
+            waiting: __go_clone_2_0,
+            wake: __go_clone_3_0,
+            have_template_thread: __go_clone_4_0,
+        }
     }
 }
 
@@ -6598,7 +6670,12 @@ pub struct AnonymousStruct23 {
 }
 impl AnonymousStruct23 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { signal_lock: { let __guard = self.signal_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hz: { let __guard = self.hz.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.signal_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.hz.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            signal_lock: __go_clone_0_0,
+            hz: __go_clone_1_0,
+        }
     }
 }
 

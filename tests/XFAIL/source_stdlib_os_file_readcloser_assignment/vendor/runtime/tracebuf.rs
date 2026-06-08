@@ -27,7 +27,14 @@ pub struct traceWriter {
 
 impl traceWriter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { trace_locker: { let __guard = self.trace_locker.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, exp: { let __guard = self.exp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, trace_buf: self.trace_buf.clone() }
+        let __go_clone_0_0 = { let __guard = self.trace_locker.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.exp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.trace_buf.clone();
+        Self {
+            trace_locker: __go_clone_0_0,
+            exp: __go_clone_1_0,
+            trace_buf: __go_clone_2_0,
+        }
     }
 }
 
@@ -62,7 +69,12 @@ pub struct traceBufQueue {
 
 impl traceBufQueue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { head: self.head.clone(), tail: self.tail.clone() }
+        let __go_clone_0_0 = self.head.clone();
+        let __go_clone_0_1 = self.tail.clone();
+        Self {
+            head: __go_clone_0_0,
+            tail: __go_clone_0_1,
+        }
     }
 }
 
@@ -92,7 +104,16 @@ pub struct traceBufHeader {
 
 impl traceBufHeader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { link: self.link.clone(), last_time: { let __guard = self.last_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pos: { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, len_pos: { let __guard = self.len_pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.link.clone();
+        let __go_clone_1_0 = { let __guard = self.last_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.len_pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            link: __go_clone_0_0,
+            last_time: __go_clone_1_0,
+            pos: __go_clone_2_0,
+            len_pos: __go_clone_3_0,
+        }
     }
 }
 
@@ -130,7 +151,14 @@ pub struct traceBuf {
 
 impl traceBuf {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, trace_buf_header: { let __guard = self.trace_buf_header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, arr: { let __guard = self.arr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.trace_buf_header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.arr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            trace_buf_header: __go_clone_1_0,
+            arr: __go_clone_2_0,
+        }
     }
 }
 

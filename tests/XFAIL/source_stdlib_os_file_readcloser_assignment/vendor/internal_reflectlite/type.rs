@@ -67,7 +67,10 @@ pub struct rtype {
 
 impl rtype {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: self.r#type.clone() }
+        let __go_clone_0_0 = self.r#type.clone();
+        Self {
+            r#type: __go_clone_0_0,
+        }
     }
 }
 
@@ -133,7 +136,10 @@ pub struct name {
 
 impl name {
     pub fn __go_value_clone(&self) -> Self {
-        Self { bytes: self.bytes.clone() }
+        let __go_clone_0_0 = self.bytes.clone();
+        Self {
+            bytes: __go_clone_0_0,
+        }
     }
 }
 

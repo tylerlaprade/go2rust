@@ -16,7 +16,12 @@ pub struct Hook {
 
 impl Hook {
     pub fn __go_value_clone(&self) -> Self {
-        Self { f: self.f.clone(), run_on_failure: { let __guard = self.run_on_failure.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.f.clone();
+        let __go_clone_1_0 = { let __guard = self.run_on_failure.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            f: __go_clone_0_0,
+            run_on_failure: __go_clone_1_0,
+        }
     }
 }
 

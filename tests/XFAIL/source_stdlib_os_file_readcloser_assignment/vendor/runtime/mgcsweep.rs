@@ -26,7 +26,18 @@ pub struct sweepdata {
 
 impl sweepdata {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, g: self.g.clone(), parked: { let __guard = self.parked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, active: { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, central_index: { let __guard = self.central_index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.g.clone();
+        let __go_clone_2_0 = { let __guard = self.parked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.central_index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lock: __go_clone_0_0,
+            g: __go_clone_1_0,
+            parked: __go_clone_2_0,
+            active: __go_clone_3_0,
+            central_index: __go_clone_4_0,
+        }
     }
 }
 
@@ -441,7 +452,10 @@ pub struct activeSweep {
 
 impl activeSweep {
     pub fn __go_value_clone(&self) -> Self {
-        Self { state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            state: __go_clone_0_0,
+        }
     }
 }
 
@@ -476,7 +490,12 @@ pub struct sweepLocker {
 
 impl sweepLocker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { sweep_gen: { let __guard = self.sweep_gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, valid: { let __guard = self.valid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.sweep_gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.valid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            sweep_gen: __go_clone_0_0,
+            valid: __go_clone_1_0,
+        }
     }
 }
 
@@ -510,7 +529,10 @@ pub struct sweepLocked {
 
 impl sweepLocked {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mspan: self.mspan.clone() }
+        let __go_clone_0_0 = self.mspan.clone();
+        Self {
+            mspan: __go_clone_0_0,
+        }
     }
 }
 

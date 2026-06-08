@@ -37,7 +37,26 @@ pub struct SwissMapType {
 
 impl SwissMapType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, key: self.key.clone(), elem: self.elem.clone(), group: self.group.clone(), hasher: self.hasher.clone(), group_size: { let __guard = self.group_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, slot_size: { let __guard = self.slot_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem_off: { let __guard = self.elem_off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, flags: { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.key.clone();
+        let __go_clone_2_0 = self.elem.clone();
+        let __go_clone_3_0 = self.group.clone();
+        let __go_clone_4_0 = self.hasher.clone();
+        let __go_clone_5_0 = { let __guard = self.group_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.slot_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.elem_off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            key: __go_clone_1_0,
+            elem: __go_clone_2_0,
+            group: __go_clone_3_0,
+            hasher: __go_clone_4_0,
+            group_size: __go_clone_5_0,
+            slot_size: __go_clone_6_0,
+            elem_off: __go_clone_7_0,
+            flags: __go_clone_8_0,
+        }
     }
 }
 

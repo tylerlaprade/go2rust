@@ -25,7 +25,12 @@ pub struct Mutex {
 
 impl Mutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { state: { let __guard = self.state.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, sema: { let __guard = self.sema.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.state.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.sema.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            state: __go_clone_0_0,
+            sema: __go_clone_1_0,
+        }
     }
 }
 

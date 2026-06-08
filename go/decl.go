@@ -1115,29 +1115,49 @@ func generateStructValueClone(out *strings.Builder, structName string, structTyp
 	if structType == nil {
 		return
 	}
+	type cloneFieldReturn struct {
+		fieldName string
+		localName string
+	}
 	rustStructName := RustTypeNameForUse(structName)
 	writeRustInherentImplHeader(out, generics, rustStructName)
 	out.WriteString("    pub fn __go_value_clone(&self) -> Self {\n")
-	out.WriteString("        Self { ")
-	needComma := false
+	fieldsForReturn := []cloneFieldReturn{}
 	for fieldIndex, field := range structType.Fields.List {
 		fieldNames := field.Names
 		if len(fieldNames) == 0 {
 			fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
 		}
 		for nameIndex, name := range fieldNames {
-			if needComma {
-				out.WriteString(", ")
-			}
-			needComma = true
 			fieldName := rustStructFieldName(name, fieldIndex, nameIndex)
-			out.WriteString(fieldName)
-			out.WriteString(": ")
+			localName := fmt.Sprintf("__go_clone_%d_%d", fieldIndex, nameIndex)
+			out.WriteString("        let ")
+			out.WriteString(localName)
+			out.WriteString(" = ")
 			writeStructCloneField(out, fieldName, field.Type)
+			out.WriteString(";\n")
+			fieldsForReturn = append(fieldsForReturn, cloneFieldReturn{
+				fieldName: fieldName,
+				localName: localName,
+			})
 		}
 	}
-	writeRustPhantomValue(out, generics, &needComma)
-	out.WriteString(" }\n")
+	if len(generics.Phantom) > 0 {
+		out.WriteString("        let __go_clone_phantom = std::marker::PhantomData;\n")
+		fieldsForReturn = append(fieldsForReturn, cloneFieldReturn{
+			fieldName: "__go_phantom",
+			localName: "__go_clone_phantom",
+		})
+	}
+	out.WriteString("        Self {\n")
+	for _, field := range fieldsForReturn {
+		out.WriteString("            ")
+		out.WriteString(field.fieldName)
+		out.WriteString(": ")
+		out.WriteString(field.localName)
+		out.WriteString(",\n")
+	}
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }

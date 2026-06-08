@@ -30,7 +30,16 @@ pub struct TypeAssertionError {
 
 impl TypeAssertionError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { _interface: self._interface.clone(), concrete: self.concrete.clone(), asserted: self.asserted.clone(), missing_method: { let __guard = self.missing_method.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self._interface.clone();
+        let __go_clone_1_0 = self.concrete.clone();
+        let __go_clone_2_0 = self.asserted.clone();
+        let __go_clone_3_0 = { let __guard = self.missing_method.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            _interface: __go_clone_0_0,
+            concrete: __go_clone_1_0,
+            asserted: __go_clone_2_0,
+            missing_method: __go_clone_3_0,
+        }
     }
 }
 
@@ -88,7 +97,12 @@ pub struct errorAddressString {
 
 impl errorAddressString {
     pub fn __go_value_clone(&self) -> Self {
-        Self { msg: { let __guard = self.msg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, addr: { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.msg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            msg: __go_clone_0_0,
+            addr: __go_clone_1_0,
+        }
     }
 }
 

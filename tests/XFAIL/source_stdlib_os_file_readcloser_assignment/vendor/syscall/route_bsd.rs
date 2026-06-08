@@ -41,7 +41,14 @@ pub struct anyMessage {
 
 impl anyMessage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { msglen: { let __guard = self.msglen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, version: { let __guard = self.version.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.msglen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.version.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            msglen: __go_clone_0_0,
+            version: __go_clone_1_0,
+            r#type: __go_clone_2_0,
+        }
     }
 }
 
@@ -88,7 +95,12 @@ pub struct RouteMessage {
 
 impl RouteMessage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { header: { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone() }
+        let __go_clone_0_0 = { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.data.clone();
+        Self {
+            header: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 
@@ -129,7 +141,12 @@ pub struct InterfaceMessage {
 
 impl InterfaceMessage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { header: { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone() }
+        let __go_clone_0_0 = { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.data.clone();
+        Self {
+            header: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 
@@ -170,7 +187,12 @@ pub struct InterfaceAddrMessage {
 
 impl InterfaceAddrMessage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { header: { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone() }
+        let __go_clone_0_0 = { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.data.clone();
+        Self {
+            header: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 
@@ -632,7 +654,16 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nlen: { let __guard = self.nlen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alen: { let __guard = self.alen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, slen: { let __guard = self.slen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.nlen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.alen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.slen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            nlen: __go_clone_1_0,
+            alen: __go_clone_2_0,
+            slen: __go_clone_3_0,
+        }
     }
 }
 

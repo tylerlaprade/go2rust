@@ -45,7 +45,12 @@ pub struct dataIO {
 
 impl dataIO {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: self.p.clone(), error: { let __guard = self.error.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.p.clone();
+        let __go_clone_1_0 = { let __guard = self.error.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            p: __go_clone_0_0,
+            error: __go_clone_1_0,
+        }
     }
 }
 

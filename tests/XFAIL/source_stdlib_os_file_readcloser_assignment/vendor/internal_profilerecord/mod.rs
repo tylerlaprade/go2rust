@@ -53,7 +53,10 @@ pub struct StackRecord {
 
 impl StackRecord {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stack: self.stack.clone() }
+        let __go_clone_0_0 = self.stack.clone();
+        Self {
+            stack: __go_clone_0_0,
+        }
     }
 }
 

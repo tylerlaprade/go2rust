@@ -53,7 +53,12 @@ pub struct persistentAlloc {
 
 impl persistentAlloc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: self.base.clone(), off: { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.base.clone();
+        let __go_clone_1_0 = { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            off: __go_clone_1_0,
+        }
     }
 }
 
@@ -94,7 +99,16 @@ pub struct linearAlloc {
 
 impl linearAlloc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { next: { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mapped: { let __guard = self.mapped.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, end: { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, map_memory: { let __guard = self.map_memory.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mapped.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.map_memory.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            next: __go_clone_0_0,
+            mapped: __go_clone_1_0,
+            end: __go_clone_2_0,
+            map_memory: __go_clone_3_0,
+        }
     }
 }
 
@@ -135,7 +149,10 @@ pub struct notInHeap {
 
 impl notInHeap {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+        }
     }
 }
 
@@ -1711,7 +1728,12 @@ pub struct AnonymousStruct4 {
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mutex: { let __guard = self.mutex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, persistent_alloc: { let __guard = self.persistent_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mutex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.persistent_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mutex: __go_clone_0_0,
+            persistent_alloc: __go_clone_1_0,
+        }
     }
 }
 

@@ -107,7 +107,30 @@ pub struct profBuf {
 
 impl profBuf {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r: { let __guard = self.r.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, w: { let __guard = self.w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, overflow: { let __guard = self.overflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, overflow_time: { let __guard = self.overflow_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, eof: { let __guard = self.eof.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hdrsize: { let __guard = self.hdrsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone(), tags: self.tags.clone(), r_next: { let __guard = self.r_next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, overflow_buf: self.overflow_buf.clone(), wait: { let __guard = self.wait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.overflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.overflow_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.eof.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.hdrsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = self.data.clone();
+        let __go_clone_6_0 = self.tags.clone();
+        let __go_clone_7_0 = { let __guard = self.r_next.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = self.overflow_buf.clone();
+        let __go_clone_9_0 = { let __guard = self.wait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r: __go_clone_0_0,
+            w: __go_clone_0_1,
+            overflow: __go_clone_1_0,
+            overflow_time: __go_clone_2_0,
+            eof: __go_clone_3_0,
+            hdrsize: __go_clone_4_0,
+            data: __go_clone_5_0,
+            tags: __go_clone_6_0,
+            r_next: __go_clone_7_0,
+            overflow_buf: __go_clone_8_0,
+            wait: __go_clone_9_0,
+        }
     }
 }
 

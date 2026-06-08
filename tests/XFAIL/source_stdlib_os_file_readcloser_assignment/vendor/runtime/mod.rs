@@ -21,7 +21,16 @@ pub struct ticksType {
 
 impl ticksType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, start_ticks: { let __guard = self.start_ticks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, start_time: { let __guard = self.start_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, val: { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.start_ticks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.start_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lock: __go_clone_0_0,
+            start_ticks: __go_clone_1_0,
+            start_time: __go_clone_2_0,
+            val: __go_clone_3_0,
+        }
     }
 }
 
@@ -58,7 +67,12 @@ pub struct godebugInc {
 
 impl godebugInc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, inc: { let __guard = self.inc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.inc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            inc: __go_clone_1_0,
+        }
     }
 }
 

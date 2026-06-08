@@ -455,7 +455,14 @@ pub struct PathError {
 
 impl PathError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { op: { let __guard = self.op.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, path: { let __guard = self.path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, err: self.err.clone() }
+        let __go_clone_0_0 = { let __guard = self.op.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.err.clone();
+        Self {
+            op: __go_clone_0_0,
+            path: __go_clone_1_0,
+            err: __go_clone_2_0,
+        }
     }
 }
 

@@ -38,7 +38,22 @@ pub struct Location {
 
 impl Location {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, zone: self.zone.clone(), tx: self.tx.clone(), extend: { let __guard = self.extend.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cache_start: { let __guard = self.cache_start.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cache_end: { let __guard = self.cache_end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cache_zone: self.cache_zone.clone() }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.zone.clone();
+        let __go_clone_2_0 = self.tx.clone();
+        let __go_clone_3_0 = { let __guard = self.extend.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.cache_start.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.cache_end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = self.cache_zone.clone();
+        Self {
+            name: __go_clone_0_0,
+            zone: __go_clone_1_0,
+            tx: __go_clone_2_0,
+            extend: __go_clone_3_0,
+            cache_start: __go_clone_4_0,
+            cache_end: __go_clone_5_0,
+            cache_zone: __go_clone_6_0,
+        }
     }
 }
 
@@ -74,7 +89,14 @@ pub struct zone {
 
 impl zone {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_d_s_t: { let __guard = self.is_d_s_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.is_d_s_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            offset: __go_clone_1_0,
+            is_d_s_t: __go_clone_2_0,
+        }
     }
 }
 
@@ -111,7 +133,16 @@ pub struct zoneTrans {
 
 impl zoneTrans {
     pub fn __go_value_clone(&self) -> Self {
-        Self { when: { let __guard = self.when.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, isstd: { let __guard = self.isstd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, isutc: { let __guard = self.isutc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.when.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.isstd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_1 = { let __guard = self.isutc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            when: __go_clone_0_0,
+            index: __go_clone_1_0,
+            isstd: __go_clone_2_0,
+            isutc: __go_clone_2_1,
+        }
     }
 }
 
@@ -532,7 +563,18 @@ pub struct rule {
 
 impl rule {
     pub fn __go_value_clone(&self) -> Self {
-        Self { kind: { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, day: { let __guard = self.day.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, week: { let __guard = self.week.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mon: { let __guard = self.mon.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, time: { let __guard = self.time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.kind.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.day.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.week.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.mon.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            kind: __go_clone_0_0,
+            day: __go_clone_1_0,
+            week: __go_clone_2_0,
+            mon: __go_clone_3_0,
+            time: __go_clone_4_0,
+        }
     }
 }
 

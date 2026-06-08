@@ -36,7 +36,16 @@ pub struct LinkError {
 
 impl LinkError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { op: { let __guard = self.op.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, old: { let __guard = self.old.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, new: { let __guard = self.new.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, err: self.err.clone() }
+        let __go_clone_0_0 = { let __guard = self.op.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.old.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.new.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.err.clone();
+        Self {
+            op: __go_clone_0_0,
+            old: __go_clone_1_0,
+            new: __go_clone_2_0,
+            err: __go_clone_3_0,
+        }
     }
 }
 
@@ -84,7 +93,8 @@ pub struct noReadFrom {
 
 impl noReadFrom {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -114,7 +124,12 @@ pub struct fileWithoutReadFrom {
 
 impl fileWithoutReadFrom {
     pub fn __go_value_clone(&self) -> Self {
-        Self { no_read_from: { let __guard = self.no_read_from.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, file: self.file.clone() }
+        let __go_clone_0_0 = { let __guard = self.no_read_from.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.file.clone();
+        Self {
+            no_read_from: __go_clone_0_0,
+            file: __go_clone_1_0,
+        }
     }
 }
 
@@ -148,7 +163,8 @@ pub struct noWriteTo {
 
 impl noWriteTo {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -178,7 +194,12 @@ pub struct fileWithoutWriteTo {
 
 impl fileWithoutWriteTo {
     pub fn __go_value_clone(&self) -> Self {
-        Self { no_write_to: { let __guard = self.no_write_to.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, file: self.file.clone() }
+        let __go_clone_0_0 = { let __guard = self.no_write_to.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.file.clone();
+        Self {
+            no_write_to: __go_clone_0_0,
+            file: __go_clone_1_0,
+        }
     }
 }
 

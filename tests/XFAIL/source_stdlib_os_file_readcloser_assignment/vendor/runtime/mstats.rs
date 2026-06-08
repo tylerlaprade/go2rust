@@ -30,7 +30,42 @@ pub struct mstats {
 
 impl mstats {
     pub fn __go_value_clone(&self) -> Self {
-        Self { heap_stats: { let __guard = self.heap_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stacks_sys: { let __guard = self.stacks_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mspan_sys: { let __guard = self.mspan_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mcache_sys: { let __guard = self.mcache_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buckhash_sys: { let __guard = self.buckhash_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_misc_sys: { let __guard = self.gc_misc_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, other_sys: { let __guard = self.other_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_gc_unix: { let __guard = self.last_gc_unix.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pause_total_ns: { let __guard = self.pause_total_ns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pause_ns: { let __guard = self.pause_ns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pause_end: { let __guard = self.pause_end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, numgc: { let __guard = self.numgc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, numforcedgc: { let __guard = self.numforcedgc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_cpu_fraction: { let __guard = self.gc_cpu_fraction.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_gc_nanotime: { let __guard = self.last_gc_nanotime.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_heap_in_use: { let __guard = self.last_heap_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, enablegc: { let __guard = self.enablegc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.heap_stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.stacks_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.mspan_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.mcache_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.buckhash_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.gc_misc_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.other_sys.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.last_gc_unix.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.pause_total_ns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.pause_ns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.pause_end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.numgc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.numforcedgc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.gc_cpu_fraction.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.last_gc_nanotime.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.last_heap_in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.enablegc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            heap_stats: __go_clone_0_0,
+            stacks_sys: __go_clone_1_0,
+            mspan_sys: __go_clone_2_0,
+            mcache_sys: __go_clone_3_0,
+            buckhash_sys: __go_clone_4_0,
+            gc_misc_sys: __go_clone_5_0,
+            other_sys: __go_clone_6_0,
+            last_gc_unix: __go_clone_7_0,
+            pause_total_ns: __go_clone_8_0,
+            pause_ns: __go_clone_9_0,
+            pause_end: __go_clone_10_0,
+            numgc: __go_clone_11_0,
+            numforcedgc: __go_clone_12_0,
+            gc_cpu_fraction: __go_clone_13_0,
+            last_gc_nanotime: __go_clone_14_0,
+            last_heap_in_use: __go_clone_15_0,
+            enablegc: __go_clone_16_0,
+        }
     }
 }
 
@@ -456,7 +491,34 @@ pub struct heapStatsDelta {
 
 impl heapStatsDelta {
     pub fn __go_value_clone(&self) -> Self {
-        Self { committed: { let __guard = self.committed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, released: { let __guard = self.released.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_heap: { let __guard = self.in_heap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_stacks: { let __guard = self.in_stacks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_work_bufs: { let __guard = self.in_work_bufs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_ptr_scalar_bits: { let __guard = self.in_ptr_scalar_bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tiny_alloc_count: { let __guard = self.tiny_alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, large_alloc: { let __guard = self.large_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, large_alloc_count: { let __guard = self.large_alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, small_alloc_count: { let __guard = self.small_alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, large_free: { let __guard = self.large_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, large_free_count: { let __guard = self.large_free_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, small_free_count: { let __guard = self.small_free_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.committed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.released.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.in_heap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.in_stacks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.in_work_bufs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.in_ptr_scalar_bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.tiny_alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.large_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.large_alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.small_alloc_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.large_free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.large_free_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.small_free_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            committed: __go_clone_0_0,
+            released: __go_clone_1_0,
+            in_heap: __go_clone_2_0,
+            in_stacks: __go_clone_3_0,
+            in_work_bufs: __go_clone_4_0,
+            in_ptr_scalar_bits: __go_clone_5_0,
+            tiny_alloc_count: __go_clone_6_0,
+            large_alloc: __go_clone_7_0,
+            large_alloc_count: __go_clone_8_0,
+            small_alloc_count: __go_clone_9_0,
+            large_free: __go_clone_10_0,
+            large_free_count: __go_clone_11_0,
+            small_free_count: __go_clone_12_0,
+        }
     }
 }
 
@@ -498,7 +560,14 @@ pub struct consistentHeapStats {
 
 impl consistentHeapStats {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stats: { let __guard = self.stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gen: { let __guard = self.gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, no_p_lock: { let __guard = self.no_p_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.stats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.gen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.no_p_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            stats: __go_clone_0_0,
+            gen: __go_clone_1_0,
+            no_p_lock: __go_clone_2_0,
+        }
     }
 }
 
@@ -541,7 +610,30 @@ pub struct cpuStats {
 
 impl cpuStats {
     pub fn __go_value_clone(&self) -> Self {
-        Self { g_c_assist_time: { let __guard = self.g_c_assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, g_c_dedicated_time: { let __guard = self.g_c_dedicated_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, g_c_idle_time: { let __guard = self.g_c_idle_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, g_c_pause_time: { let __guard = self.g_c_pause_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, g_c_total_time: { let __guard = self.g_c_total_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scavenge_assist_time: { let __guard = self.scavenge_assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scavenge_bg_time: { let __guard = self.scavenge_bg_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scavenge_total_time: { let __guard = self.scavenge_total_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, idle_time: { let __guard = self.idle_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, user_time: { let __guard = self.user_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, total_time: { let __guard = self.total_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.g_c_assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.g_c_dedicated_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.g_c_idle_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.g_c_pause_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.g_c_total_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.scavenge_assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.scavenge_bg_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.scavenge_total_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.idle_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.user_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.total_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            g_c_assist_time: __go_clone_0_0,
+            g_c_dedicated_time: __go_clone_1_0,
+            g_c_idle_time: __go_clone_2_0,
+            g_c_pause_time: __go_clone_3_0,
+            g_c_total_time: __go_clone_4_0,
+            scavenge_assist_time: __go_clone_5_0,
+            scavenge_bg_time: __go_clone_6_0,
+            scavenge_total_time: __go_clone_7_0,
+            idle_time: __go_clone_8_0,
+            user_time: __go_clone_9_0,
+            total_time: __go_clone_10_0,
+        }
     }
 }
 

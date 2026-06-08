@@ -91,7 +91,18 @@ pub struct ParseError {
 
 impl ParseError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { layout: { let __guard = self.layout.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, layout_elem: { let __guard = self.layout_elem.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, value_elem: { let __guard = self.value_elem.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, message: { let __guard = self.message.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.layout.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.layout_elem.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.value_elem.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.message.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            layout: __go_clone_0_0,
+            value: __go_clone_1_0,
+            layout_elem: __go_clone_2_0,
+            value_elem: __go_clone_3_0,
+            message: __go_clone_4_0,
+        }
     }
 }
 

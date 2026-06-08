@@ -122,7 +122,14 @@ pub struct Time {
 
 impl Time {
     pub fn __go_value_clone(&self) -> Self {
-        Self { wall: { let __guard = self.wall.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ext: { let __guard = self.ext.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, loc: self.loc.clone() }
+        let __go_clone_0_0 = { let __guard = self.wall.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.ext.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.loc.clone();
+        Self {
+            wall: __go_clone_0_0,
+            ext: __go_clone_1_0,
+            loc: __go_clone_2_0,
+        }
     }
 }
 

@@ -15,7 +15,8 @@ pub struct eofReader {
 
 impl eofReader {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -41,7 +42,10 @@ pub struct multiReader {
 
 impl multiReader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { readers: self.readers.clone() }
+        let __go_clone_0_0 = self.readers.clone();
+        Self {
+            readers: __go_clone_0_0,
+        }
     }
 }
 
@@ -67,7 +71,10 @@ pub struct multiWriter {
 
 impl multiWriter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { writers: self.writers.clone() }
+        let __go_clone_0_0 = self.writers.clone();
+        Self {
+            writers: __go_clone_0_0,
+        }
     }
 }
 

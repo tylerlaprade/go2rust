@@ -36,7 +36,10 @@ pub struct File {
 
 impl File {
     pub fn __go_value_clone(&self) -> Self {
-        Self { file: self.file.clone() }
+        let __go_clone_0_0 = self.file.clone();
+        Self {
+            file: __go_clone_0_0,
+        }
     }
 }
 

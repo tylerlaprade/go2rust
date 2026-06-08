@@ -1111,6 +1111,45 @@ func use(terms []Term) Term {
 	}
 }
 
+func TestStructValueCloneBuildsLargeStructWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct {
+	a int
+	b string
+	next *node
+	values []int
+	flags [2]bool
+}
+
+var a int
+
+func use(n node) node {
+	go func() {}()
+	return n
+}
+`)
+
+	if strings.Contains(rust, "Self { a: { let __guard = self.a.lock().unwrap();") {
+		t.Fatalf("struct value clone should not emit every field clone in one struct literal expression:\n%s", rust)
+	}
+	if strings.Contains(rust, "let a =") {
+		t.Fatalf("struct value clone local should not shadow same-named package globals:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __go_clone_0_0 = { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
+		"let __go_clone_1_0 = { let __guard = self.b.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
+		"let __go_clone_2_0 = self.next.clone();",
+		"let __go_clone_3_0 = self.values.clone();",
+		"let __go_clone_4_0 = { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
+		"Self {\n            a: __go_clone_0_0,\n            b: __go_clone_1_0,\n            next: __go_clone_2_0,\n            values: __go_clone_3_0,\n            flags: __go_clone_4_0,\n        }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("struct value clone should build fields with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestStructAliasUsedAsGoValueCloneGenericArgDoesNotEmitAliasTraitImpl(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

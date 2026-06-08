@@ -35,7 +35,12 @@ pub struct SyscallError {
 
 impl SyscallError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { syscall: { let __guard = self.syscall.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, err: self.err.clone() }
+        let __go_clone_0_0 = { let __guard = self.syscall.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.err.clone();
+        Self {
+            syscall: __go_clone_0_0,
+            err: __go_clone_1_0,
+        }
     }
 }
 

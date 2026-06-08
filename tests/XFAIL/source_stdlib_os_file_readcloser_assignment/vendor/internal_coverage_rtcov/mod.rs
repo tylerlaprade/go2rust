@@ -94,7 +94,22 @@ pub struct CovMetaBlob {
 
 impl CovMetaBlob {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: self.p.clone(), len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hash: { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pkg_i_d: { let __guard = self.pkg_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, counter_mode: { let __guard = self.counter_mode.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, counter_granularity: { let __guard = self.counter_granularity.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.p.clone();
+        let __go_clone_1_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.pkg_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.counter_mode.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.counter_granularity.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            p: __go_clone_0_0,
+            len: __go_clone_1_0,
+            hash: __go_clone_2_0,
+            pkg_path: __go_clone_3_0,
+            pkg_i_d: __go_clone_4_0,
+            counter_mode: __go_clone_5_0,
+            counter_granularity: __go_clone_6_0,
+        }
     }
 }
 
@@ -157,7 +172,14 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { list: self.list.clone(), pkg_map: self.pkg_map.clone(), hard_coded_list_needs_updating: { let __guard = self.hard_coded_list_needs_updating.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.list.clone();
+        let __go_clone_1_0 = self.pkg_map.clone();
+        let __go_clone_2_0 = { let __guard = self.hard_coded_list_needs_updating.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            list: __go_clone_0_0,
+            pkg_map: __go_clone_1_0,
+            hard_coded_list_needs_updating: __go_clone_2_0,
+        }
     }
 }
 

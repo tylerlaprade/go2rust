@@ -17,7 +17,10 @@ pub struct dirInfo {
 
 impl dirInfo {
     pub fn __go_value_clone(&self) -> Self {
-        Self { dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            dir: __go_clone_0_0,
+        }
     }
 }
 

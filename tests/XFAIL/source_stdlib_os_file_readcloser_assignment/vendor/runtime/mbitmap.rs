@@ -34,7 +34,16 @@ pub struct typePointers {
 
 impl typePointers {
     pub fn __go_value_clone(&self) -> Self {
-        Self { elem: { let __guard = self.elem.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, addr: { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: self.typ.clone() }
+        let __go_clone_0_0 = { let __guard = self.elem.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.typ.clone();
+        Self {
+            elem: __go_clone_0_0,
+            addr: __go_clone_1_0,
+            mask: __go_clone_2_0,
+            typ: __go_clone_3_0,
+        }
     }
 }
 
@@ -78,7 +87,14 @@ pub struct markBits {
 
 impl markBits {
     pub fn __go_value_clone(&self) -> Self {
-        Self { bytep: self.bytep.clone(), mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.bytep.clone();
+        let __go_clone_1_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            bytep: __go_clone_0_0,
+            mask: __go_clone_1_0,
+            index: __go_clone_2_0,
+        }
     }
 }
 
@@ -1375,7 +1391,12 @@ pub struct AnonymousStruct5 {
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone() }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.data.clone();
+        Self {
+            lock: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 

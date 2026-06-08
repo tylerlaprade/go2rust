@@ -831,7 +831,10 @@ pub struct traceEventWriter {
 
 impl traceEventWriter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tl: { let __guard = self.tl.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.tl.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            tl: __go_clone_0_0,
+        }
     }
 }
 

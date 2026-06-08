@@ -17,7 +17,10 @@ pub struct SysFile {
 
 impl SysFile {
     pub fn __go_value_clone(&self) -> Self {
-        Self { iovecs: self.iovecs.clone() }
+        let __go_clone_0_0 = self.iovecs.clone();
+        Self {
+            iovecs: __go_clone_0_0,
+        }
     }
 }
 

@@ -22,7 +22,16 @@ pub struct ITab {
 
 impl ITab {
     pub fn __go_value_clone(&self) -> Self {
-        Self { inter: self.inter.clone(), r#type: self.r#type.clone(), hash: { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fun: { let __guard = self.fun.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.inter.clone();
+        let __go_clone_1_0 = self.r#type.clone();
+        let __go_clone_2_0 = { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.fun.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            inter: __go_clone_0_0,
+            r#type: __go_clone_1_0,
+            hash: __go_clone_2_0,
+            fun: __go_clone_3_0,
+        }
     }
 }
 
@@ -65,7 +74,12 @@ pub struct EmptyInterface {
 
 impl EmptyInterface {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: self.r#type.clone(), data: { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.r#type.clone();
+        let __go_clone_1_0 = { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 

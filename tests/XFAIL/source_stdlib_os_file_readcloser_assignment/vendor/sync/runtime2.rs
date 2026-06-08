@@ -18,7 +18,18 @@ pub struct notifyList {
 
 impl notifyList {
     pub fn __go_value_clone(&self) -> Self {
-        Self { wait: { let __guard = self.wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, notify: { let __guard = self.notify.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, lock: { let __guard = self.lock.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, head: { let __guard = self.head.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, tail: { let __guard = self.tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.notify.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.head.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            wait: __go_clone_0_0,
+            notify: __go_clone_1_0,
+            lock: __go_clone_2_0,
+            head: __go_clone_3_0,
+            tail: __go_clone_4_0,
+        }
     }
 }
 

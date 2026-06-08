@@ -3626,7 +3626,8 @@ func main() {
 	fmt.Println(h.err.Error())
 }`)
 
-	if !strings.Contains(rust, "Self { err: self.err.clone() }") {
+	if !strings.Contains(rust, "let __go_clone_0_0 = self.err.clone();") ||
+		!strings.Contains(rust, "Self {\n            err: __go_clone_0_0,\n        }") {
 		t.Fatalf("error field value clone should preserve the error handle:\n%s", rust)
 	}
 	if strings.Contains(rust, ".error().borrow()") {

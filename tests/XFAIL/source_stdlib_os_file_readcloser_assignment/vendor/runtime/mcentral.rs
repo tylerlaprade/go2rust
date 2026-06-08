@@ -18,7 +18,16 @@ pub struct mcentral {
 
 impl mcentral {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spanclass: { let __guard = self.spanclass.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, partial: { let __guard = self.partial.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, full: { let __guard = self.full.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.spanclass.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.partial.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.full.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            spanclass: __go_clone_1_0,
+            partial: __go_clone_2_0,
+            full: __go_clone_3_0,
+        }
     }
 }
 

@@ -19,7 +19,18 @@ pub struct inlinedCall {
 
 impl inlinedCall {
     pub fn __go_value_clone(&self) -> Self {
-        Self { func_i_d: { let __guard = self.func_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_1_0: { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, name_off: { let __guard = self.name_off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, parent_pc: { let __guard = self.parent_pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, start_line: { let __guard = self.start_line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.func_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.name_off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.parent_pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.start_line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            func_i_d: __go_clone_0_0,
+            __blank_1_0: __go_clone_1_0,
+            name_off: __go_clone_2_0,
+            parent_pc: __go_clone_3_0,
+            start_line: __go_clone_4_0,
+        }
     }
 }
 
@@ -66,7 +77,12 @@ pub struct inlineUnwinder {
 
 impl inlineUnwinder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { f: { let __guard = self.f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, inl_tree: self.inl_tree.clone() }
+        let __go_clone_0_0 = { let __guard = self.f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.inl_tree.clone();
+        Self {
+            f: __go_clone_0_0,
+            inl_tree: __go_clone_1_0,
+        }
     }
 }
 
@@ -101,7 +117,12 @@ pub struct inlineFrame {
 
 impl inlineFrame {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pc: { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            pc: __go_clone_0_0,
+            index: __go_clone_1_0,
+        }
     }
 }
 

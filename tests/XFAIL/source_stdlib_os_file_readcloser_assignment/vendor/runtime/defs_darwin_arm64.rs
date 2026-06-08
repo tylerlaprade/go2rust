@@ -106,7 +106,16 @@ pub struct stackt {
 
 impl stackt {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ss_sp: self.ss_sp.clone(), ss_size: { let __guard = self.ss_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ss_flags: { let __guard = self.ss_flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad_cgo_0: { let __guard = self.pad_cgo_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.ss_sp.clone();
+        let __go_clone_1_0 = { let __guard = self.ss_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.ss_flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.pad_cgo_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            ss_sp: __go_clone_0_0,
+            ss_size: __go_clone_1_0,
+            ss_flags: __go_clone_2_0,
+            pad_cgo_0: __go_clone_3_0,
+        }
     }
 }
 
@@ -141,7 +150,14 @@ pub struct usigactiont {
 
 impl usigactiont {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __sigaction_u: { let __guard = self.__sigaction_u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sa_mask: { let __guard = self.sa_mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sa_flags: { let __guard = self.sa_flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__sigaction_u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.sa_mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.sa_flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __sigaction_u: __go_clone_0_0,
+            sa_mask: __go_clone_1_0,
+            sa_flags: __go_clone_2_0,
+        }
     }
 }
 
@@ -183,7 +199,28 @@ pub struct siginfo {
 
 impl siginfo {
     pub fn __go_value_clone(&self) -> Self {
-        Self { si_signo: { let __guard = self.si_signo.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_errno: { let __guard = self.si_errno.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_code: { let __guard = self.si_code.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_pid: { let __guard = self.si_pid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_uid: { let __guard = self.si_uid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_status: { let __guard = self.si_status.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_addr: self.si_addr.clone(), si_value: { let __guard = self.si_value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, si_band: { let __guard = self.si_band.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __pad: { let __guard = self.__pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.si_signo.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.si_errno.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.si_code.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.si_pid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.si_uid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.si_status.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = self.si_addr.clone();
+        let __go_clone_7_0 = { let __guard = self.si_value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.si_band.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.__pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            si_signo: __go_clone_0_0,
+            si_errno: __go_clone_1_0,
+            si_code: __go_clone_2_0,
+            si_pid: __go_clone_3_0,
+            si_uid: __go_clone_4_0,
+            si_status: __go_clone_5_0,
+            si_addr: __go_clone_6_0,
+            si_value: __go_clone_7_0,
+            si_band: __go_clone_8_0,
+            __pad: __go_clone_9_0,
+        }
     }
 }
 
@@ -217,7 +254,12 @@ pub struct timespec {
 
 impl timespec {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tv_sec: { let __guard = self.tv_sec.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tv_nsec: { let __guard = self.tv_nsec.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.tv_sec.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.tv_nsec.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            tv_sec: __go_clone_0_0,
+            tv_nsec: __go_clone_1_0,
+        }
     }
 }
 
@@ -252,7 +294,14 @@ pub struct exceptionstate64 {
 
 impl exceptionstate64 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { far: { let __guard = self.far.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, esr: { let __guard = self.esr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, exc: { let __guard = self.exc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.far.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.esr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.exc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            far: __go_clone_0_0,
+            esr: __go_clone_1_0,
+            exc: __go_clone_2_0,
+        }
     }
 }
 
@@ -291,7 +340,22 @@ pub struct regs64 {
 
 impl regs64 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fp: { let __guard = self.fp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lr: { let __guard = self.lr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sp: { let __guard = self.sp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pc: { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cpsr: { let __guard = self.cpsr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __pad: { let __guard = self.__pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.fp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.lr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.sp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.cpsr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.__pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+            fp: __go_clone_1_0,
+            lr: __go_clone_2_0,
+            sp: __go_clone_3_0,
+            pc: __go_clone_4_0,
+            cpsr: __go_clone_5_0,
+            __pad: __go_clone_6_0,
+        }
     }
 }
 
@@ -326,7 +390,14 @@ pub struct neonstate64 {
 
 impl neonstate64 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fpsr: { let __guard = self.fpsr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fpcr: { let __guard = self.fpcr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.fpsr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.fpcr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            v: __go_clone_0_0,
+            fpsr: __go_clone_1_0,
+            fpcr: __go_clone_2_0,
+        }
     }
 }
 
@@ -361,7 +432,14 @@ pub struct mcontext64 {
 
 impl mcontext64 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { es: { let __guard = self.es.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ss: { let __guard = self.ss.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ns: { let __guard = self.ns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.es.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.ss.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.ns.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            es: __go_clone_0_0,
+            ss: __go_clone_1_0,
+            ns: __go_clone_2_0,
+        }
     }
 }
 
@@ -399,7 +477,20 @@ pub struct ucontext {
 
 impl ucontext {
     pub fn __go_value_clone(&self) -> Self {
-        Self { uc_onstack: { let __guard = self.uc_onstack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, uc_sigmask: { let __guard = self.uc_sigmask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, uc_stack: { let __guard = self.uc_stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, uc_link: self.uc_link.clone(), uc_mcsize: { let __guard = self.uc_mcsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, uc_mcontext: self.uc_mcontext.clone() }
+        let __go_clone_0_0 = { let __guard = self.uc_onstack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.uc_sigmask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.uc_stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.uc_link.clone();
+        let __go_clone_4_0 = { let __guard = self.uc_mcsize.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = self.uc_mcontext.clone();
+        Self {
+            uc_onstack: __go_clone_0_0,
+            uc_sigmask: __go_clone_1_0,
+            uc_stack: __go_clone_2_0,
+            uc_link: __go_clone_3_0,
+            uc_mcsize: __go_clone_4_0,
+            uc_mcontext: __go_clone_5_0,
+        }
     }
 }
 
@@ -437,7 +528,20 @@ pub struct keventt {
 
 impl keventt {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ident: { let __guard = self.ident.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, filter: { let __guard = self.filter.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, flags: { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fflags: { let __guard = self.fflags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, udata: self.udata.clone() }
+        let __go_clone_0_0 = { let __guard = self.ident.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.filter.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.fflags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = self.udata.clone();
+        Self {
+            ident: __go_clone_0_0,
+            filter: __go_clone_1_0,
+            flags: __go_clone_2_0,
+            fflags: __go_clone_3_0,
+            data: __go_clone_4_0,
+            udata: __go_clone_5_0,
+        }
     }
 }
 
@@ -846,7 +950,12 @@ pub struct pthreadattr {
 
 impl pthreadattr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x__sig: { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x__opaque: { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x__sig: __go_clone_0_0,
+            x__opaque: __go_clone_1_0,
+        }
     }
 }
 
@@ -886,7 +995,12 @@ pub struct pthreadmutex {
 
 impl pthreadmutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x__sig: { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x__opaque: { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x__sig: __go_clone_0_0,
+            x__opaque: __go_clone_1_0,
+        }
     }
 }
 
@@ -926,7 +1040,12 @@ pub struct pthreadmutexattr {
 
 impl pthreadmutexattr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x__sig: { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x__opaque: { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x__sig: __go_clone_0_0,
+            x__opaque: __go_clone_1_0,
+        }
     }
 }
 
@@ -966,7 +1085,12 @@ pub struct pthreadcond {
 
 impl pthreadcond {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x__sig: { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x__opaque: { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x__sig: __go_clone_0_0,
+            x__opaque: __go_clone_1_0,
+        }
     }
 }
 
@@ -1006,7 +1130,12 @@ pub struct pthreadcondattr {
 
 impl pthreadcondattr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x__sig: { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x__opaque: { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x__sig.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x__opaque.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x__sig: __go_clone_0_0,
+            x__opaque: __go_clone_1_0,
+        }
     }
 }
 

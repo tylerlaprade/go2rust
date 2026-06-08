@@ -27,7 +27,12 @@ pub struct poolDequeue {
 
 impl poolDequeue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { head_tail: { let __guard = self.head_tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, vals: self.vals.clone() }
+        let __go_clone_0_0 = { let __guard = self.head_tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.vals.clone();
+        Self {
+            head_tail: __go_clone_0_0,
+            vals: __go_clone_1_0,
+        }
     }
 }
 
@@ -61,7 +66,12 @@ pub struct eface {
 
 impl eface {
     pub fn __go_value_clone(&self) -> Self {
-        Self { typ: { let __guard = self.typ.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, val: { let __guard = self.val.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.typ.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.val.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            typ: __go_clone_0_0,
+            val: __go_clone_0_1,
+        }
     }
 }
 
@@ -109,7 +119,12 @@ pub struct poolChain {
 
 impl poolChain {
     pub fn __go_value_clone(&self) -> Self {
-        Self { head: self.head.clone(), tail: { let __guard = self.tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.head.clone();
+        let __go_clone_1_0 = { let __guard = self.tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            head: __go_clone_0_0,
+            tail: __go_clone_1_0,
+        }
     }
 }
 
@@ -144,7 +159,14 @@ pub struct poolChainElt {
 
 impl poolChainElt {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pool_dequeue: { let __guard = self.pool_dequeue.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, next: { let __guard = self.next.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, prev: { let __guard = self.prev.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pool_dequeue.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.next.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_1 = { let __guard = self.prev.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            pool_dequeue: __go_clone_0_0,
+            next: __go_clone_1_0,
+            prev: __go_clone_1_1,
+        }
     }
 }
 
@@ -175,7 +197,8 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

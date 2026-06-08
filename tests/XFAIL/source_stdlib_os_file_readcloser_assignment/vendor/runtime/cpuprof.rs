@@ -26,7 +26,22 @@ pub struct cpuProfile {
 
 impl cpuProfile {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, on: { let __guard = self.on.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, log: self.log.clone(), extra: { let __guard = self.extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, num_extra: { let __guard = self.num_extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lost_extra: { let __guard = self.lost_extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lost_atomic: { let __guard = self.lost_atomic.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.on.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.log.clone();
+        let __go_clone_3_0 = { let __guard = self.extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.num_extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.lost_extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.lost_atomic.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lock: __go_clone_0_0,
+            on: __go_clone_1_0,
+            log: __go_clone_2_0,
+            extra: __go_clone_3_0,
+            num_extra: __go_clone_4_0,
+            lost_extra: __go_clone_5_0,
+            lost_atomic: __go_clone_6_0,
+        }
     }
 }
 

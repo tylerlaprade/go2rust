@@ -31,7 +31,12 @@ pub struct sigTabT {
 
 impl sigTabT {
     pub fn __go_value_clone(&self) -> Self {
-        Self { flags: { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            flags: __go_clone_0_0,
+            name: __go_clone_1_0,
+        }
     }
 }
 
@@ -69,7 +74,16 @@ pub struct gsignalStack {
 
 impl gsignalStack {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stack: { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stackguard0: { let __guard = self.stackguard0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stackguard1: { let __guard = self.stackguard1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stktopsp: { let __guard = self.stktopsp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.stackguard0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.stackguard1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.stktopsp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            stack: __go_clone_0_0,
+            stackguard0: __go_clone_1_0,
+            stackguard1: __go_clone_2_0,
+            stktopsp: __go_clone_3_0,
+        }
     }
 }
 

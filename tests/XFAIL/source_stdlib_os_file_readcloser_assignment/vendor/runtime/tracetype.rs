@@ -16,7 +16,10 @@ pub struct traceTypeTable {
 
 impl traceTypeTable {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tab: { let __guard = self.tab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.tab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            tab: __go_clone_0_0,
+        }
     }
 }
 

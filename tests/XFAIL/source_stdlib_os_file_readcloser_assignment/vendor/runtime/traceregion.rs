@@ -22,7 +22,16 @@ pub struct traceRegionAlloc {
 
 impl traceRegionAlloc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dropping: { let __guard = self.dropping.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, current: { let __guard = self.current.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, full: self.full.clone() }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.dropping.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.current.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.full.clone();
+        Self {
+            lock: __go_clone_0_0,
+            dropping: __go_clone_1_0,
+            current: __go_clone_2_0,
+            full: __go_clone_3_0,
+        }
     }
 }
 
@@ -62,7 +71,14 @@ pub struct traceRegionAllocBlock {
 
 impl traceRegionAllocBlock {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, trace_region_alloc_block_header: { let __guard = self.trace_region_alloc_block_header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.trace_region_alloc_block_header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            trace_region_alloc_block_header: __go_clone_1_0,
+            data: __go_clone_2_0,
+        }
     }
 }
 
@@ -96,7 +112,12 @@ pub struct traceRegionAllocBlockHeader {
 
 impl traceRegionAllocBlockHeader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { next: self.next.clone(), off: { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.next.clone();
+        let __go_clone_1_0 = { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            next: __go_clone_0_0,
+            off: __go_clone_1_0,
+        }
     }
 }
 

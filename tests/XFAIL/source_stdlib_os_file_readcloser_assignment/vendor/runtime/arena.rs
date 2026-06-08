@@ -22,7 +22,12 @@ pub struct liveUserArenaChunk {
 
 impl liveUserArenaChunk {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mspan: self.mspan.clone(), x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.mspan.clone();
+        let __go_clone_1_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mspan: __go_clone_0_0,
+            x: __go_clone_1_0,
+        }
     }
 }
 
@@ -58,7 +63,16 @@ pub struct writeUserArenaHeapBits {
 
 impl writeUserArenaHeapBits {
     pub fn __go_value_clone(&self) -> Self {
-        Self { offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, valid: { let __guard = self.valid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, low: { let __guard = self.low.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.valid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.low.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            offset: __go_clone_0_0,
+            mask: __go_clone_1_0,
+            valid: __go_clone_2_0,
+            low: __go_clone_3_0,
+        }
     }
 }
 
@@ -869,7 +883,14 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reuse: self.reuse.clone(), fault: self.fault.clone() }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.reuse.clone();
+        let __go_clone_2_0 = self.fault.clone();
+        Self {
+            lock: __go_clone_0_0,
+            reuse: __go_clone_1_0,
+            fault: __go_clone_2_0,
+        }
     }
 }
 

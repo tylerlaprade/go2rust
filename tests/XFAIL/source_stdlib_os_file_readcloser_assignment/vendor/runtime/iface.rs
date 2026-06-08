@@ -21,7 +21,14 @@ pub struct itabTableType {
 
 impl itabTableType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { size: { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, count: { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, entries: { let __guard = self.entries.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.entries.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            size: __go_clone_0_0,
+            count: __go_clone_1_0,
+            entries: __go_clone_2_0,
+        }
     }
 }
 

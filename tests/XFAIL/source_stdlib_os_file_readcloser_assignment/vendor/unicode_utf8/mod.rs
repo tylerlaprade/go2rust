@@ -55,7 +55,12 @@ pub struct acceptRange {
 
 impl acceptRange {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lo: { let __guard = self.lo.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hi: { let __guard = self.hi.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lo.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.hi.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lo: __go_clone_0_0,
+            hi: __go_clone_1_0,
+        }
     }
 }
 

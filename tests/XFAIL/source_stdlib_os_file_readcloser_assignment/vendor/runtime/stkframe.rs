@@ -22,7 +22,24 @@ pub struct stkframe {
 
 impl stkframe {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#fn: { let __guard = self.r#fn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pc: { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, continpc: { let __guard = self.continpc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lr: { let __guard = self.lr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sp: { let __guard = self.sp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fp: { let __guard = self.fp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, varp: { let __guard = self.varp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, argp: { let __guard = self.argp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#fn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.continpc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.lr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.sp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.fp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.varp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.argp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#fn: __go_clone_0_0,
+            pc: __go_clone_1_0,
+            continpc: __go_clone_2_0,
+            lr: __go_clone_3_0,
+            sp: __go_clone_4_0,
+            fp: __go_clone_5_0,
+            varp: __go_clone_6_0,
+            argp: __go_clone_7_0,
+        }
     }
 }
 
@@ -59,7 +76,14 @@ pub struct reflectMethodValue {
 
 impl reflectMethodValue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#fn: { let __guard = self.r#fn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stack: self.stack.clone(), arg_len: { let __guard = self.arg_len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#fn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.stack.clone();
+        let __go_clone_2_0 = { let __guard = self.arg_len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#fn: __go_clone_0_0,
+            stack: __go_clone_1_0,
+            arg_len: __go_clone_2_0,
+        }
     }
 }
 

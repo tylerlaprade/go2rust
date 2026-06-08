@@ -26,7 +26,18 @@ pub struct spanSet {
 
 impl spanSet {
     pub fn __go_value_clone(&self) -> Self {
-        Self { spine_lock: { let __guard = self.spine_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spine: { let __guard = self.spine.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spine_len: { let __guard = self.spine_len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spine_cap: { let __guard = self.spine_cap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.spine_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.spine.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.spine_len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.spine_cap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            spine_lock: __go_clone_0_0,
+            spine: __go_clone_1_0,
+            spine_len: __go_clone_2_0,
+            spine_cap: __go_clone_3_0,
+            index: __go_clone_4_0,
+        }
     }
 }
 
@@ -61,7 +72,14 @@ pub struct spanSetBlock {
 
 impl spanSetBlock {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lfnode: { let __guard = self.lfnode.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, popped: { let __guard = self.popped.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, spans: { let __guard = self.spans.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lfnode.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.popped.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.spans.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lfnode: __go_clone_0_0,
+            popped: __go_clone_1_0,
+            spans: __go_clone_2_0,
+        }
     }
 }
 
@@ -97,7 +115,10 @@ pub struct atomicSpanSetSpinePointer {
 
 impl atomicSpanSetSpinePointer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { a: { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            a: __go_clone_0_0,
+        }
     }
 }
 
@@ -131,7 +152,10 @@ pub struct spanSetSpinePointer {
 
 impl spanSetSpinePointer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: { let __guard = self.p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            p: __go_clone_0_0,
+        }
     }
 }
 
@@ -165,7 +189,10 @@ pub struct spanSetBlockAlloc {
 
 impl spanSetBlockAlloc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stack: { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            stack: __go_clone_0_0,
+        }
     }
 }
 
@@ -576,7 +603,10 @@ pub struct atomicHeadTailIndex {
 
 impl atomicHeadTailIndex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { u: { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            u: __go_clone_0_0,
+        }
     }
 }
 
@@ -610,7 +640,10 @@ pub struct atomicMSpanPointer {
 
 impl atomicMSpanPointer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: { let __guard = self.p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            p: __go_clone_0_0,
+        }
     }
 }
 

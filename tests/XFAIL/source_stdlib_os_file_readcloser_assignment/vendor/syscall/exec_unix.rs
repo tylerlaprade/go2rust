@@ -20,7 +20,16 @@ pub struct Credential {
 
 impl Credential {
     pub fn __go_value_clone(&self) -> Self {
-        Self { uid: { let __guard = self.uid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gid: { let __guard = self.gid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, groups: self.groups.clone(), no_set_groups: { let __guard = self.no_set_groups.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.uid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.gid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.groups.clone();
+        let __go_clone_3_0 = { let __guard = self.no_set_groups.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            uid: __go_clone_0_0,
+            gid: __go_clone_1_0,
+            groups: __go_clone_2_0,
+            no_set_groups: __go_clone_3_0,
+        }
     }
 }
 
@@ -70,7 +79,16 @@ pub struct ProcAttr {
 
 impl ProcAttr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, env: self.env.clone(), files: self.files.clone(), sys: self.sys.clone() }
+        let __go_clone_0_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.env.clone();
+        let __go_clone_2_0 = self.files.clone();
+        let __go_clone_3_0 = self.sys.clone();
+        Self {
+            dir: __go_clone_0_0,
+            env: __go_clone_1_0,
+            files: __go_clone_2_0,
+            sys: __go_clone_3_0,
+        }
     }
 }
 

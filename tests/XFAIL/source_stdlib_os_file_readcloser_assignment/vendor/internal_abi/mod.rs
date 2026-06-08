@@ -27,7 +27,16 @@ pub struct RegArgs {
 
 impl RegArgs {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ints: { let __guard = self.ints.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, floats: { let __guard = self.floats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ptrs: { let __guard = self.ptrs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, return_is_ptr: { let __guard = self.return_is_ptr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.ints.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.floats.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.ptrs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.return_is_ptr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            ints: __go_clone_0_0,
+            floats: __go_clone_1_0,
+            ptrs: __go_clone_2_0,
+            return_is_ptr: __go_clone_3_0,
+        }
     }
 }
 

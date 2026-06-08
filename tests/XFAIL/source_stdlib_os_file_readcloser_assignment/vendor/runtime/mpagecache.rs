@@ -23,7 +23,14 @@ pub struct pageCache {
 
 impl pageCache {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cache: { let __guard = self.cache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scav: { let __guard = self.scav.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.cache.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.scav.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            cache: __go_clone_1_0,
+            scav: __go_clone_2_0,
+        }
     }
 }
 

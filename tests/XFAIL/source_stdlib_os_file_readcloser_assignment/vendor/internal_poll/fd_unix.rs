@@ -30,7 +30,26 @@ pub struct FD {
 
 impl FD {
     pub fn __go_value_clone(&self) -> Self {
-        Self { fdmu: { let __guard = self.fdmu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sysfd: { let __guard = self.sysfd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sys_file: { let __guard = self.sys_file.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pd: { let __guard = self.pd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, csema: { let __guard = self.csema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_blocking: { let __guard = self.is_blocking.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_stream: { let __guard = self.is_stream.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, zero_read_is_e_o_f: { let __guard = self.zero_read_is_e_o_f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_file: { let __guard = self.is_file.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.fdmu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.sysfd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.sys_file.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.pd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.csema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.is_blocking.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.is_stream.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.zero_read_is_e_o_f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.is_file.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            fdmu: __go_clone_0_0,
+            sysfd: __go_clone_1_0,
+            sys_file: __go_clone_2_0,
+            pd: __go_clone_3_0,
+            csema: __go_clone_4_0,
+            is_blocking: __go_clone_5_0,
+            is_stream: __go_clone_6_0,
+            zero_read_is_e_o_f: __go_clone_7_0,
+            is_file: __go_clone_8_0,
+        }
     }
 }
 

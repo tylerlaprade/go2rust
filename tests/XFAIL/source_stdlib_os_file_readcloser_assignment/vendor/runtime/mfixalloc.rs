@@ -38,7 +38,28 @@ pub struct fixalloc {
 
 impl fixalloc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { size: { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, first: self.first.clone(), arg: { let __guard = self.arg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, list: self.list.clone(), chunk: { let __guard = self.chunk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nchunk: { let __guard = self.nchunk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nalloc: { let __guard = self.nalloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, inuse: { let __guard = self.inuse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stat: self.stat.clone(), zero: { let __guard = self.zero.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.first.clone();
+        let __go_clone_2_0 = { let __guard = self.arg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.list.clone();
+        let __go_clone_4_0 = { let __guard = self.chunk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.nchunk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.nalloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.inuse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = self.stat.clone();
+        let __go_clone_9_0 = { let __guard = self.zero.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            size: __go_clone_0_0,
+            first: __go_clone_1_0,
+            arg: __go_clone_2_0,
+            list: __go_clone_3_0,
+            chunk: __go_clone_4_0,
+            nchunk: __go_clone_5_0,
+            nalloc: __go_clone_6_0,
+            inuse: __go_clone_7_0,
+            stat: __go_clone_8_0,
+            zero: __go_clone_9_0,
+        }
     }
 }
 
@@ -77,7 +98,12 @@ pub struct mlink {
 
 impl mlink {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.next.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            next: __go_clone_1_0,
+        }
     }
 }
 

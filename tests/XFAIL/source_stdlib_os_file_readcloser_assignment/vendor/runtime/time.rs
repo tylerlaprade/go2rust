@@ -54,7 +54,36 @@ pub struct timer {
 
 impl timer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mu: { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, astate: { let __guard = self.astate.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_chan: { let __guard = self.is_chan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_fake: { let __guard = self.is_fake.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, blocked: { let __guard = self.blocked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, when: { let __guard = self.when.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, period: { let __guard = self.period.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, f: self.f.clone(), arg: self.arg.clone(), seq: { let __guard = self.seq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ts: self.ts.clone(), send_lock: { let __guard = self.send_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_sending: { let __guard = self.is_sending.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.astate.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.is_chan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.is_fake.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.blocked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.when.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.period.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = self.f.clone();
+        let __go_clone_9_0 = self.arg.clone();
+        let __go_clone_10_0 = { let __guard = self.seq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = self.ts.clone();
+        let __go_clone_12_0 = { let __guard = self.send_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.is_sending.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mu: __go_clone_0_0,
+            astate: __go_clone_1_0,
+            state: __go_clone_2_0,
+            is_chan: __go_clone_3_0,
+            is_fake: __go_clone_4_0,
+            blocked: __go_clone_5_0,
+            when: __go_clone_6_0,
+            period: __go_clone_7_0,
+            f: __go_clone_8_0,
+            arg: __go_clone_9_0,
+            seq: __go_clone_10_0,
+            ts: __go_clone_11_0,
+            send_lock: __go_clone_12_0,
+            is_sending: __go_clone_13_0,
+        }
     }
 }
 
@@ -95,7 +124,24 @@ pub struct timers {
 
 impl timers {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mu: { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap: self.heap.clone(), len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, zombies: { let __guard = self.zombies.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, race_ctx: { let __guard = self.race_ctx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, min_when_heap: { let __guard = self.min_when_heap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, min_when_modified: { let __guard = self.min_when_modified.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sync_group: self.sync_group.clone() }
+        let __go_clone_0_0 = { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.heap.clone();
+        let __go_clone_2_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.zombies.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.race_ctx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.min_when_heap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.min_when_modified.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = self.sync_group.clone();
+        Self {
+            mu: __go_clone_0_0,
+            heap: __go_clone_1_0,
+            len: __go_clone_2_0,
+            zombies: __go_clone_3_0,
+            race_ctx: __go_clone_4_0,
+            min_when_heap: __go_clone_5_0,
+            min_when_modified: __go_clone_6_0,
+            sync_group: __go_clone_7_0,
+        }
     }
 }
 
@@ -129,7 +175,12 @@ pub struct timerWhen {
 
 impl timerWhen {
     pub fn __go_value_clone(&self) -> Self {
-        Self { timer: self.timer.clone(), when: { let __guard = self.when.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.timer.clone();
+        let __go_clone_1_0 = { let __guard = self.when.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            timer: __go_clone_0_0,
+            when: __go_clone_1_0,
+        }
     }
 }
 

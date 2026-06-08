@@ -35,7 +35,18 @@ pub struct gcWork {
 
 impl gcWork {
     pub fn __go_value_clone(&self) -> Self {
-        Self { wbuf1: self.wbuf1.clone(), wbuf2: self.wbuf2.clone(), bytes_marked: { let __guard = self.bytes_marked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, heap_scan_work: { let __guard = self.heap_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, flushed_work: { let __guard = self.flushed_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.wbuf1.clone();
+        let __go_clone_0_1 = self.wbuf2.clone();
+        let __go_clone_1_0 = { let __guard = self.bytes_marked.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.heap_scan_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.flushed_work.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            wbuf1: __go_clone_0_0,
+            wbuf2: __go_clone_0_1,
+            bytes_marked: __go_clone_1_0,
+            heap_scan_work: __go_clone_2_0,
+            flushed_work: __go_clone_3_0,
+        }
     }
 }
 
@@ -69,7 +80,12 @@ pub struct workbufhdr {
 
 impl workbufhdr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { node: { let __guard = self.node.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nobj: { let __guard = self.nobj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.node.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.nobj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            node: __go_clone_0_0,
+            nobj: __go_clone_1_0,
+        }
     }
 }
 
@@ -104,7 +120,14 @@ pub struct workbuf {
 
 impl workbuf {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, workbufhdr: { let __guard = self.workbufhdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, obj: { let __guard = self.obj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.workbufhdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.obj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            workbufhdr: __go_clone_1_0,
+            obj: __go_clone_2_0,
+        }
     }
 }
 

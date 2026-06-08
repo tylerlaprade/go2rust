@@ -16,7 +16,14 @@ pub struct slice {
 
 impl slice {
     pub fn __go_value_clone(&self) -> Self {
-        Self { array: { let __guard = self.array.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cap: { let __guard = self.cap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.array.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.cap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            array: __go_clone_0_0,
+            len: __go_clone_1_0,
+            cap: __go_clone_2_0,
+        }
     }
 }
 
@@ -52,7 +59,14 @@ pub struct notInHeapSlice {
 
 impl notInHeapSlice {
     pub fn __go_value_clone(&self) -> Self {
-        Self { array: self.array.clone(), len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cap: { let __guard = self.cap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.array.clone();
+        let __go_clone_1_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.cap.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            array: __go_clone_0_0,
+            len: __go_clone_1_0,
+            cap: __go_clone_2_0,
+        }
     }
 }
 

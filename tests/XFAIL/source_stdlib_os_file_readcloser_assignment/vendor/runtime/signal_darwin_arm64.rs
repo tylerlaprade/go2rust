@@ -15,7 +15,12 @@ pub struct sigctxt {
 
 impl sigctxt {
     pub fn __go_value_clone(&self) -> Self {
-        Self { info: self.info.clone(), ctxt: { let __guard = self.ctxt.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.info.clone();
+        let __go_clone_1_0 = { let __guard = self.ctxt.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            info: __go_clone_0_0,
+            ctxt: __go_clone_1_0,
+        }
     }
 }
 

@@ -38,7 +38,20 @@ pub struct file {
 
 impl file {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pfd: { let __guard = self.pfd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dirinfo: { let __guard = self.dirinfo.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nonblock: { let __guard = self.nonblock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stdout_or_err: { let __guard = self.stdout_or_err.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, append_mode: { let __guard = self.append_mode.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pfd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.dirinfo.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.nonblock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.stdout_or_err.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.append_mode.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            pfd: __go_clone_0_0,
+            name: __go_clone_1_0,
+            dirinfo: __go_clone_2_0,
+            nonblock: __go_clone_3_0,
+            stdout_or_err: __go_clone_4_0,
+            append_mode: __go_clone_5_0,
+        }
     }
 }
 
@@ -457,7 +470,16 @@ pub struct unixDirent {
 
 impl unixDirent {
     pub fn __go_value_clone(&self) -> Self {
-        Self { parent: { let __guard = self.parent.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, info: self.info.clone() }
+        let __go_clone_0_0 = { let __guard = self.parent.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.info.clone();
+        Self {
+            parent: __go_clone_0_0,
+            name: __go_clone_1_0,
+            typ: __go_clone_2_0,
+            info: __go_clone_3_0,
+        }
     }
 }
 

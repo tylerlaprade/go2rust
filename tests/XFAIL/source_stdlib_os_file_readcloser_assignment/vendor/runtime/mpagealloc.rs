@@ -421,7 +421,32 @@ pub struct pageAlloc {
 
 impl pageAlloc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { summary: { let __guard = self.summary.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, chunks: { let __guard = self.chunks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, search_addr: { let __guard = self.search_addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, start: { let __guard = self.start.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, end: { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_use: { let __guard = self.in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scav: { let __guard = self.scav.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mheap_lock: self.mheap_lock.clone(), sys_stat: self.sys_stat.clone(), summary_mapped_ready: { let __guard = self.summary_mapped_ready.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, chunk_huge_pages: { let __guard = self.chunk_huge_pages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, test: { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.summary.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.chunks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.search_addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.start.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_1 = { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.in_use.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.scav.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = self.mheap_lock.clone();
+        let __go_clone_7_0 = self.sys_stat.clone();
+        let __go_clone_8_0 = { let __guard = self.summary_mapped_ready.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.chunk_huge_pages.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            summary: __go_clone_0_0,
+            chunks: __go_clone_1_0,
+            search_addr: __go_clone_2_0,
+            start: __go_clone_3_0,
+            end: __go_clone_3_1,
+            in_use: __go_clone_4_0,
+            scav: __go_clone_5_0,
+            mheap_lock: __go_clone_6_0,
+            sys_stat: __go_clone_7_0,
+            summary_mapped_ready: __go_clone_8_0,
+            chunk_huge_pages: __go_clone_9_0,
+            test: __go_clone_10_0,
+        }
     }
 }
 
@@ -1809,7 +1834,12 @@ pub struct AnonymousStruct20 {
 }
 impl AnonymousStruct20 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bound: { let __guard = self.bound.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.bound.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            bound: __go_clone_0_1,
+        }
     }
 }
 

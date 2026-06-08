@@ -29,7 +29,24 @@ pub struct rwmutex {
 
 impl rwmutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r_lock: { let __guard = self.r_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, readers: { let __guard = self.readers.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reader_pass: { let __guard = self.reader_pass.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, w_lock: { let __guard = self.w_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, writer: { let __guard = self.writer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reader_count: { let __guard = self.reader_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reader_wait: { let __guard = self.reader_wait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, read_rank: { let __guard = self.read_rank.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.readers.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.reader_pass.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.w_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.writer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.reader_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.reader_wait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.read_rank.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r_lock: __go_clone_0_0,
+            readers: __go_clone_1_0,
+            reader_pass: __go_clone_2_0,
+            w_lock: __go_clone_3_0,
+            writer: __go_clone_4_0,
+            reader_count: __go_clone_5_0,
+            reader_wait: __go_clone_6_0,
+            read_rank: __go_clone_7_0,
+        }
     }
 }
 

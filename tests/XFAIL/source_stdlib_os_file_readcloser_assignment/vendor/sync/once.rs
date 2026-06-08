@@ -27,7 +27,14 @@ pub struct Once {
 
 impl Once {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, done: { let __guard = self.done.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, m: { let __guard = self.m.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.done.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.m.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            done: __go_clone_1_0,
+            m: __go_clone_2_0,
+        }
     }
 }
 

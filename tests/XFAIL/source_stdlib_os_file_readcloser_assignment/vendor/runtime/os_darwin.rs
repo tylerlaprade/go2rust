@@ -34,7 +34,16 @@ pub struct mOS {
 
 impl mOS {
     pub fn __go_value_clone(&self) -> Self {
-        Self { initialized: { let __guard = self.initialized.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mutex: { let __guard = self.mutex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cond: { let __guard = self.cond.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, count: { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.initialized.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mutex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.cond.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            initialized: __go_clone_0_0,
+            mutex: __go_clone_1_0,
+            cond: __go_clone_2_0,
+            count: __go_clone_3_0,
+        }
     }
 }
 

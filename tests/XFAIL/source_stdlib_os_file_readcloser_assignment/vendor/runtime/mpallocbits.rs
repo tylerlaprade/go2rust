@@ -61,7 +61,12 @@ pub struct pallocData {
 
 impl pallocData {
     pub fn __go_value_clone(&self) -> Self {
-        Self { palloc_bits: { let __guard = self.palloc_bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scavenged: { let __guard = self.scavenged.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.palloc_bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.scavenged.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            palloc_bits: __go_clone_0_0,
+            scavenged: __go_clone_1_0,
+        }
     }
 }
 

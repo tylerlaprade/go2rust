@@ -21,7 +21,12 @@ pub struct InterfaceMulticastAddrMessage {
 
 impl InterfaceMulticastAddrMessage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { header: { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone() }
+        let __go_clone_0_0 = { let __guard = self.header.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.data.clone();
+        Self {
+            header: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 

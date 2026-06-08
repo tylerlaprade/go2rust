@@ -23,7 +23,12 @@ pub struct stringStruct {
 
 impl stringStruct {
     pub fn __go_value_clone(&self) -> Self {
-        Self { str: { let __guard = self.str.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.str.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            str: __go_clone_0_0,
+            len: __go_clone_1_0,
+        }
     }
 }
 

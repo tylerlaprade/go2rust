@@ -23,7 +23,10 @@ pub struct pollDesc {
 
 impl pollDesc {
     pub fn __go_value_clone(&self) -> Self {
-        Self { runtime_ctx: { let __guard = self.runtime_ctx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.runtime_ctx.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            runtime_ctx: __go_clone_0_0,
+        }
     }
 }
 

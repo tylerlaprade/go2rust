@@ -591,7 +591,18 @@ pub struct Matcher {
 
 impl Matcher {
     pub fn __go_value_clone(&self) -> Self {
-        Self { verbose: { let __guard = self.verbose.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, quiet: { let __guard = self.quiet.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, enable: { let __guard = self.enable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, list: self.list.clone(), dedup: { let __guard = self.dedup.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.verbose.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.quiet.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.enable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.list.clone();
+        let __go_clone_4_0 = { let __guard = self.dedup.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            verbose: __go_clone_0_0,
+            quiet: __go_clone_1_0,
+            enable: __go_clone_2_0,
+            list: __go_clone_3_0,
+            dedup: __go_clone_4_0,
+        }
     }
 }
 
@@ -628,7 +639,14 @@ pub struct cond {
 
 impl cond {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bits: { let __guard = self.bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, result: { let __guard = self.result.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.bits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.result.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mask: __go_clone_0_0,
+            bits: __go_clone_1_0,
+            result: __go_clone_2_0,
+        }
     }
 }
 
@@ -678,7 +696,10 @@ pub struct parseError {
 
 impl parseError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { text: { let __guard = self.text.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.text.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            text: __go_clone_0_0,
+        }
     }
 }
 
@@ -720,7 +741,14 @@ pub struct dedup {
 
 impl dedup {
     pub fn __go_value_clone(&self) -> Self {
-        Self { recent: { let __guard = self.recent.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mu: self.mu.clone(), m: self.m.clone() }
+        let __go_clone_0_0 = { let __guard = self.recent.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.mu.clone();
+        let __go_clone_2_0 = self.m.clone();
+        Self {
+            recent: __go_clone_0_0,
+            mu: __go_clone_1_0,
+            m: __go_clone_2_0,
+        }
     }
 }
 

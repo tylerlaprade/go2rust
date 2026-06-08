@@ -38,7 +38,14 @@ pub struct timeHistogram {
 
 impl timeHistogram {
     pub fn __go_value_clone(&self) -> Self {
-        Self { counts: { let __guard = self.counts.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, underflow: { let __guard = self.underflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, overflow: { let __guard = self.overflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.counts.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.underflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.overflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            counts: __go_clone_0_0,
+            underflow: __go_clone_1_0,
+            overflow: __go_clone_2_0,
+        }
     }
 }
 

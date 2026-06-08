@@ -13,7 +13,10 @@ pub struct errorString {
 
 impl errorString {
     pub fn __go_value_clone(&self) -> Self {
-        Self { s: { let __guard = self.s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            s: __go_clone_0_0,
+        }
     }
 }
 

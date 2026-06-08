@@ -788,7 +788,12 @@ pub struct traceSchedResourceState {
 
 impl traceSchedResourceState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { status_traced: { let __guard = self.status_traced.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, seq: { let __guard = self.seq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.status_traced.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.seq.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            status_traced: __go_clone_0_0,
+            seq: __go_clone_1_0,
+        }
     }
 }
 

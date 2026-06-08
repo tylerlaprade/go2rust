@@ -58,7 +58,20 @@ pub struct Pool {
 
 impl Pool {
     pub fn __go_value_clone(&self) -> Self {
-        Self { no_copy: { let __guard = self.no_copy.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, local: { let __guard = self.local.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, local_size: { let __guard = self.local_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, victim: { let __guard = self.victim.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, victim_size: { let __guard = self.victim_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, new: self.new.clone() }
+        let __go_clone_0_0 = { let __guard = self.no_copy.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.local.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.local_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.victim.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.victim_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = self.new.clone();
+        Self {
+            no_copy: __go_clone_0_0,
+            local: __go_clone_1_0,
+            local_size: __go_clone_2_0,
+            victim: __go_clone_3_0,
+            victim_size: __go_clone_4_0,
+            new: __go_clone_5_0,
+        }
     }
 }
 
@@ -93,7 +106,12 @@ pub struct poolLocalInternal {
 
 impl poolLocalInternal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { private: self.private.clone(), shared: { let __guard = self.shared.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.private.clone();
+        let __go_clone_1_0 = { let __guard = self.shared.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            private: __go_clone_0_0,
+            shared: __go_clone_1_0,
+        }
     }
 }
 
@@ -127,7 +145,12 @@ pub struct poolLocal {
 
 impl poolLocal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pool_local_internal: { let __guard = self.pool_local_internal.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pool_local_internal.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pad.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            pool_local_internal: __go_clone_0_0,
+            pad: __go_clone_1_0,
+        }
     }
 }
 

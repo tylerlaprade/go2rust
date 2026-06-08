@@ -22,7 +22,14 @@ pub struct stackWorkBuf {
 
 impl stackWorkBuf {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stack_work_buf_hdr: { let __guard = self.stack_work_buf_hdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, obj: { let __guard = self.obj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.stack_work_buf_hdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.obj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            stack_work_buf_hdr: __go_clone_1_0,
+            obj: __go_clone_2_0,
+        }
     }
 }
 
@@ -58,7 +65,14 @@ pub struct stackWorkBufHdr {
 
 impl stackWorkBufHdr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, workbufhdr: { let __guard = self.workbufhdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.workbufhdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.next.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            workbufhdr: __go_clone_1_0,
+            next: __go_clone_2_0,
+        }
     }
 }
 
@@ -95,7 +109,14 @@ pub struct stackObjectBuf {
 
 impl stackObjectBuf {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stack_object_buf_hdr: { let __guard = self.stack_object_buf_hdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, obj: { let __guard = self.obj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.stack_object_buf_hdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.obj.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            stack_object_buf_hdr: __go_clone_1_0,
+            obj: __go_clone_2_0,
+        }
     }
 }
 
@@ -130,7 +151,14 @@ pub struct stackObjectBufHdr {
 
 impl stackObjectBufHdr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, workbufhdr: { let __guard = self.workbufhdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next: self.next.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.workbufhdr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.next.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            workbufhdr: __go_clone_1_0,
+            next: __go_clone_2_0,
+        }
     }
 }
 
@@ -170,7 +198,20 @@ pub struct stackObject {
 
 impl stackObject {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, off: { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, size: { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, r: self.r.clone(), left: self.left.clone(), right: self.right.clone() }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.r.clone();
+        let __go_clone_4_0 = self.left.clone();
+        let __go_clone_5_0 = self.right.clone();
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            off: __go_clone_1_0,
+            size: __go_clone_2_0,
+            r: __go_clone_3_0,
+            left: __go_clone_4_0,
+            right: __go_clone_5_0,
+        }
     }
 }
 
@@ -213,7 +254,26 @@ pub struct stackScanState {
 
 impl stackScanState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stack: { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, conservative: { let __guard = self.conservative.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buf: self.buf.clone(), free_buf: self.free_buf.clone(), cbuf: self.cbuf.clone(), head: self.head.clone(), tail: self.tail.clone(), nobjs: { let __guard = self.nobjs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, root: self.root.clone() }
+        let __go_clone_0_0 = { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.conservative.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.buf.clone();
+        let __go_clone_3_0 = self.free_buf.clone();
+        let __go_clone_4_0 = self.cbuf.clone();
+        let __go_clone_5_0 = self.head.clone();
+        let __go_clone_6_0 = self.tail.clone();
+        let __go_clone_7_0 = { let __guard = self.nobjs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = self.root.clone();
+        Self {
+            stack: __go_clone_0_0,
+            conservative: __go_clone_1_0,
+            buf: __go_clone_2_0,
+            free_buf: __go_clone_3_0,
+            cbuf: __go_clone_4_0,
+            head: __go_clone_5_0,
+            tail: __go_clone_6_0,
+            nobjs: __go_clone_7_0,
+            root: __go_clone_8_0,
+        }
     }
 }
 

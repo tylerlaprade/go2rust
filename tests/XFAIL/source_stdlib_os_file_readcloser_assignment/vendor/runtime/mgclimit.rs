@@ -44,7 +44,34 @@ pub struct gcCPULimiterState {
 
 impl gcCPULimiterState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, enabled: { let __guard = self.enabled.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gc_enabled: { let __guard = self.gc_enabled.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, transitioning: { let __guard = self.transitioning.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, test: { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bucket: { let __guard = self.bucket.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, overflow: { let __guard = self.overflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, assist_time_pool: { let __guard = self.assist_time_pool.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, idle_mark_time_pool: { let __guard = self.idle_mark_time_pool.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, idle_time_pool: { let __guard = self.idle_time_pool.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_update: { let __guard = self.last_update.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, last_enabled_cycle: { let __guard = self.last_enabled_cycle.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nprocs: { let __guard = self.nprocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.enabled.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.gc_enabled.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.transitioning.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.bucket.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.overflow.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.assist_time_pool.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.idle_mark_time_pool.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.idle_time_pool.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.last_update.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.last_enabled_cycle.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.nprocs.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lock: __go_clone_0_0,
+            enabled: __go_clone_1_0,
+            gc_enabled: __go_clone_2_0,
+            transitioning: __go_clone_3_0,
+            test: __go_clone_4_0,
+            bucket: __go_clone_5_0,
+            overflow: __go_clone_6_0,
+            assist_time_pool: __go_clone_7_0,
+            idle_mark_time_pool: __go_clone_8_0,
+            idle_time_pool: __go_clone_9_0,
+            last_update: __go_clone_10_0,
+            last_enabled_cycle: __go_clone_11_0,
+            nprocs: __go_clone_12_0,
+        }
     }
 }
 
@@ -835,7 +862,10 @@ pub struct limiterEvent {
 
 impl limiterEvent {
     pub fn __go_value_clone(&self) -> Self {
-        Self { stamp: { let __guard = self.stamp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.stamp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            stamp: __go_clone_0_0,
+        }
     }
 }
 
@@ -868,7 +898,12 @@ pub struct AnonymousStruct13 {
 }
 impl AnonymousStruct13 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { fill: { let __guard = self.fill.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, capacity: { let __guard = self.capacity.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.fill.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.capacity.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            fill: __go_clone_0_0,
+            capacity: __go_clone_0_1,
+        }
     }
 }
 

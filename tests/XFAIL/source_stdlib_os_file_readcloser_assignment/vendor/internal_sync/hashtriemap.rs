@@ -33,7 +33,20 @@ pub struct HashTrieMap<K: Any + GoComparable + Send + Sync + 'static, V: Any + S
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> HashTrieMap<K, V> {
     pub fn __go_value_clone(&self) -> Self {
-        Self { inited: { let __guard = self.inited.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, init_mu: { let __guard = self.init_mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, root: { let __guard = self.root.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, key_hash: self.key_hash.clone(), val_equal: self.val_equal.clone(), seed: { let __guard = self.seed.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.inited.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.init_mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.root.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.key_hash.clone();
+        let __go_clone_4_0 = self.val_equal.clone();
+        let __go_clone_5_0 = { let __guard = self.seed.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            inited: __go_clone_0_0,
+            init_mu: __go_clone_1_0,
+            root: __go_clone_2_0,
+            key_hash: __go_clone_3_0,
+            val_equal: __go_clone_4_0,
+            seed: __go_clone_5_0,
+        }
     }
 }
 
@@ -82,7 +95,18 @@ pub struct indirect<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> indirect<K, V> {
     pub fn __go_value_clone(&self) -> Self {
-        Self { node: { let __guard = self.node.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, dead: { let __guard = self.dead.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, mu: { let __guard = self.mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, parent: self.parent.clone(), children: { let __guard = self.children.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.node.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.dead.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.parent.clone();
+        let __go_clone_4_0 = { let __guard = self.children.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            node: __go_clone_0_0,
+            dead: __go_clone_1_0,
+            mu: __go_clone_2_0,
+            parent: __go_clone_3_0,
+            children: __go_clone_4_0,
+        }
     }
 }
 
@@ -124,7 +148,16 @@ pub struct entry<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + 
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> entry<K, V> {
     pub fn __go_value_clone(&self) -> Self {
-        Self { node: { let __guard = self.node.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, overflow: { let __guard = self.overflow.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, key: self.key.clone(), value: self.value.clone() }
+        let __go_clone_0_0 = { let __guard = self.node.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.overflow.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.key.clone();
+        let __go_clone_3_0 = self.value.clone();
+        Self {
+            node: __go_clone_0_0,
+            overflow: __go_clone_1_0,
+            key: __go_clone_2_0,
+            value: __go_clone_3_0,
+        }
     }
 }
 
@@ -166,7 +199,12 @@ pub struct node<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + S
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> node<K, V> {
     pub fn __go_value_clone(&self) -> Self {
-        Self { is_entry: { let __guard = self.is_entry.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, __go_phantom: std::marker::PhantomData }
+        let __go_clone_0_0 = { let __guard = self.is_entry.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_phantom = std::marker::PhantomData;
+        Self {
+            is_entry: __go_clone_0_0,
+            __go_phantom: __go_clone_phantom,
+        }
     }
 }
 

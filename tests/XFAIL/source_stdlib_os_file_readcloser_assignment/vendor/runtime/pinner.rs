@@ -20,7 +20,12 @@ pub struct pinner {
 
 impl pinner {
     pub fn __go_value_clone(&self) -> Self {
-        Self { refs: self.refs.clone(), ref_store: { let __guard = self.ref_store.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.refs.clone();
+        let __go_clone_1_0 = { let __guard = self.ref_store.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            refs: __go_clone_0_0,
+            ref_store: __go_clone_1_0,
+        }
     }
 }
 
@@ -55,7 +60,14 @@ pub struct pinState {
 
 impl pinState {
     pub fn __go_value_clone(&self) -> Self {
-        Self { bytep: self.bytep.clone(), byte_val: { let __guard = self.byte_val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.bytep.clone();
+        let __go_clone_1_0 = { let __guard = self.byte_val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            bytep: __go_clone_0_0,
+            byte_val: __go_clone_1_0,
+            mask: __go_clone_2_0,
+        }
     }
 }
 
@@ -90,7 +102,12 @@ pub struct pinnerBits {
 
 impl pinnerBits {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            x: __go_clone_1_0,
+        }
     }
 }
 

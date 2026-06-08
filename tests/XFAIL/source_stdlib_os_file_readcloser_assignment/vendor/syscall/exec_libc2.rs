@@ -24,7 +24,28 @@ pub struct SysProcAttr {
 
 impl SysProcAttr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { chroot: { let __guard = self.chroot.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, credential: self.credential.clone(), ptrace: { let __guard = self.ptrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, setsid: { let __guard = self.setsid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, setpgid: { let __guard = self.setpgid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, setctty: { let __guard = self.setctty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, noctty: { let __guard = self.noctty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ctty: { let __guard = self.ctty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, foreground: { let __guard = self.foreground.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pgid: { let __guard = self.pgid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.chroot.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.credential.clone();
+        let __go_clone_2_0 = { let __guard = self.ptrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.setsid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.setpgid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.setctty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.noctty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.ctty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.foreground.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.pgid.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            chroot: __go_clone_0_0,
+            credential: __go_clone_1_0,
+            ptrace: __go_clone_2_0,
+            setsid: __go_clone_3_0,
+            setpgid: __go_clone_4_0,
+            setctty: __go_clone_5_0,
+            noctty: __go_clone_6_0,
+            ctty: __go_clone_7_0,
+            foreground: __go_clone_8_0,
+            pgid: __go_clone_9_0,
+        }
     }
 }
 

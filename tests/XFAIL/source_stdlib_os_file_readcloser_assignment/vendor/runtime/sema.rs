@@ -34,7 +34,14 @@ pub struct semaRoot {
 
 impl semaRoot {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, treap: self.treap.clone(), nwait: { let __guard = self.nwait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.treap.clone();
+        let __go_clone_2_0 = { let __guard = self.nwait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            lock: __go_clone_0_0,
+            treap: __go_clone_1_0,
+            nwait: __go_clone_2_0,
+        }
     }
 }
 
@@ -459,7 +466,12 @@ pub struct AnonymousStruct30 {
 }
 impl AnonymousStruct30 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { root: { let __guard = self.root.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.root.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            root: __go_clone_0_0,
+            pad: __go_clone_1_0,
+        }
     }
 }
 

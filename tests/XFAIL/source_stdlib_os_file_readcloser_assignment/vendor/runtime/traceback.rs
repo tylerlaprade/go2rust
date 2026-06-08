@@ -426,7 +426,18 @@ pub struct unwinder {
 
 impl unwinder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { frame: { let __guard = self.frame.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, g: { let __guard = self.g.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cgo_ctxt: { let __guard = self.cgo_ctxt.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, callee_func_i_d: { let __guard = self.callee_func_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, flags: { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.frame.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.g.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.cgo_ctxt.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.callee_func_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            frame: __go_clone_0_0,
+            g: __go_clone_1_0,
+            cgo_ctxt: __go_clone_2_0,
+            callee_func_i_d: __go_clone_3_0,
+            flags: __go_clone_4_0,
+        }
     }
 }
 
@@ -463,7 +474,16 @@ pub struct cgoTracebackArg {
 
 impl cgoTracebackArg {
     pub fn __go_value_clone(&self) -> Self {
-        Self { context: { let __guard = self.context.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sig_context: { let __guard = self.sig_context.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buf: self.buf.clone(), max: { let __guard = self.max.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.context.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.sig_context.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.buf.clone();
+        let __go_clone_3_0 = { let __guard = self.max.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            context: __go_clone_0_0,
+            sig_context: __go_clone_1_0,
+            buf: __go_clone_2_0,
+            max: __go_clone_3_0,
+        }
     }
 }
 
@@ -503,7 +523,22 @@ pub struct cgoSymbolizerArg {
 
 impl cgoSymbolizerArg {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pc: { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, file: self.file.clone(), lineno: { let __guard = self.lineno.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, func_name: self.func_name.clone(), entry: { let __guard = self.entry.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, more: { let __guard = self.more.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.file.clone();
+        let __go_clone_2_0 = { let __guard = self.lineno.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.func_name.clone();
+        let __go_clone_4_0 = { let __guard = self.entry.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.more.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            pc: __go_clone_0_0,
+            file: __go_clone_1_0,
+            lineno: __go_clone_2_0,
+            func_name: __go_clone_3_0,
+            entry: __go_clone_4_0,
+            more: __go_clone_5_0,
+            data: __go_clone_6_0,
+        }
     }
 }
 

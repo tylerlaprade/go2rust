@@ -203,7 +203,12 @@ pub struct LimitedReader {
 
 impl LimitedReader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r: self.r.clone(), n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.r.clone();
+        let __go_clone_1_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r: __go_clone_0_0,
+            n: __go_clone_1_0,
+        }
     }
 }
 
@@ -238,7 +243,8 @@ pub struct discard {
 
 impl discard {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

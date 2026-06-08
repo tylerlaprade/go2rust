@@ -20,7 +20,10 @@ pub struct traceStackTable {
 
 impl traceStackTable {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tab: { let __guard = self.tab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.tab.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            tab: __go_clone_0_0,
+        }
     }
 }
 
@@ -56,7 +59,16 @@ pub struct traceFrame {
 
 impl traceFrame {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p_c: { let __guard = self.p_c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, func_i_d: { let __guard = self.func_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, file_i_d: { let __guard = self.file_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, line: { let __guard = self.line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.p_c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.func_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.file_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            p_c: __go_clone_0_0,
+            func_i_d: __go_clone_1_0,
+            file_i_d: __go_clone_2_0,
+            line: __go_clone_3_0,
+        }
     }
 }
 
