@@ -1437,15 +1437,18 @@ func sliceExpressionSubjectIsArray(expr ast.Expr) bool {
 }
 
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && isDirectTypeParamType(typeInfo.GetType(expr)) && !isExpressionResultBare(expr) {
+		return true
+	}
+
 	switch e := expr.(type) {
 	case *ast.CallExpr:
-		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.IsTypeConversion(e) && !typeConversionEmitsWrappedValue(e) {
 			return false
 		}
 		return true
 	case *ast.IndexExpr:
-		typeInfo := GetTypeInfo()
 		if typeInfo == nil {
 			return false
 		}
@@ -1460,7 +1463,6 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		}
 		return false
 	case *ast.TypeAssertExpr:
-		typeInfo := GetTypeInfo()
 		if typeInfo == nil {
 			return false
 		}
@@ -1472,7 +1474,6 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		}
 		return typeInfo.IsPointer(e)
 	case *ast.UnaryExpr:
-		typeInfo := GetTypeInfo()
 		return e.Op == token.AND && typeInfo != nil && typeInfo.IsPointer(e)
 	case *ast.ParenExpr:
 		return methodReceiverExpressionNeedsUnwrap(e.X)

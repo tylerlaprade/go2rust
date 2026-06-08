@@ -7931,6 +7931,32 @@ func use[T any](b *box[T], value T) {
 	}
 }
 
+func TestTypeParamInterfaceMethodCallUnwrapsReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Shape interface{ Area() int }
+type Sq struct{ s int }
+
+func (p Sq) Area() int { return p.s * p.s }
+
+func total[T Shape](items []T) int {
+	sum := 0
+	for _, it := range items {
+		sum += it.Area()
+	}
+	return sum
+}
+`)
+
+	if strings.Contains(rust, "it.area()") {
+		t.Fatalf("type-parameter method receiver should not dispatch on the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*it.borrow().as_ref().unwrap()).area()") &&
+		!strings.Contains(rust, "(*it.lock().unwrap().as_ref().unwrap()).area()") {
+		t.Fatalf("type-parameter method receiver should unwrap the handle before dispatch:\n%s", rust)
+	}
+}
+
 func TestTypeParamAnyCallArgumentUsesScopedClone(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
