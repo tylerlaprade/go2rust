@@ -9293,6 +9293,8 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 			}
 			out.WriteString(fieldValueName)
 			out.WriteString(".clone()")
+		} else if writeTypeParamStructFieldIdentValue(out, valIdent, expectedFieldType) {
+			// Direct T fields copy the inner Go value into a fresh field handle.
 		} else {
 			WriteWrapperPrefix(out)
 			if !writeCallArgumentValue(out, value) {
@@ -23235,7 +23237,7 @@ func writeFunctionSignatureCallArgumentForCall(out *strings.Builder, call *ast.C
 	writeFunctionSignatureCallArgument(out, arg, expected)
 }
 
-func writeTypeParamIdentValueCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+func writeTypeParamIdentValue(out *strings.Builder, arg ast.Expr, expected types.Type, operation string) bool {
 	if !isDirectTypeParamType(expected) || goTypeParamHasOrderedConstraint(expected) {
 		return false
 	}
@@ -23249,7 +23251,11 @@ func writeTypeParamIdentValueCallArgument(out *strings.Builder, arg ast.Expr, ex
 	}
 	actual := typeInfo.GetType(ident)
 	if actual == nil {
-		out.WriteString("/* ERROR: Type information required for type-parameter call argument */ unimplemented!(\"type info required for type-parameter call argument\")")
+		out.WriteString("/* ERROR: Type information required for ")
+		out.WriteString(operation)
+		out.WriteString(" */ unimplemented!(\"type info required for ")
+		out.WriteString(operation)
+		out.WriteString("\")")
 		return true
 	}
 	if !isDirectTypeParamType(actual) || !types.AssignableTo(actual, expected) {
@@ -23259,6 +23265,14 @@ func writeTypeParamIdentValueCallArgument(out *strings.Builder, arg ast.Expr, ex
 	writeScopedIdentValueClone(out, ident)
 	WriteWrapperSuffix(out)
 	return true
+}
+
+func writeTypeParamIdentValueCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	return writeTypeParamIdentValue(out, arg, expected, "type-parameter call argument")
+}
+
+func writeTypeParamStructFieldIdentValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	return writeTypeParamIdentValue(out, arg, expected, "type-parameter struct field")
 }
 
 func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {

@@ -7976,6 +7976,30 @@ func use[T any](value T) {
 	}
 }
 
+func TestTypeParamStructLiteralFieldClonesWrappedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type element[T any] struct {
+	val T
+}
+
+func makeElem[T any](value T) *element[T] {
+	return &element[T]{val: value}
+}
+`)
+
+	if !strings.Contains(rust, "pub fn make_elem<T: Any + GoValueClone + 'static>") {
+		t.Fatalf("type-parameter struct field copy should require GoValueClone:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(value)") || strings.Contains(rust, "Some(value.clone())") || strings.Contains(rust, "Some())") {
+		t.Fatalf("type-parameter struct field should not alias the source handle or emit an empty initializer:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __arg_holder = value.clone(); let __arg_guard = __arg_holder.borrow();") ||
+		!strings.Contains(rust, "(*__arg_guard.as_ref().unwrap()).go_value_clone()") {
+		t.Fatalf("type-parameter struct field should clone the inner value into a fresh field handle:\n%s", rust)
+	}
+}
+
 func TestComparableTypeParamSliceElementEqualityUsesGoComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
