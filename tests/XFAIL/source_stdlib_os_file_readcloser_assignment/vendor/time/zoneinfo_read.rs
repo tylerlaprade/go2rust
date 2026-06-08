@@ -1176,7 +1176,15 @@ pub fn load_location_1(name: Arc<Mutex<Option<String>>>, sources: Arc<Mutex<Opti
         }
     }
     }
-        if { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result } && { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_O_E_N_T as usize)).unwrap_or(false); !__matched } {
+        if {
+            let __go_cond_0 = { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_O_E_N_T as usize)).unwrap_or(false); !__matched };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let __rhs_holder = err.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *firstErr.lock().unwrap() = new_val; };
     }
     } }
@@ -1190,7 +1198,15 @@ pub fn load_location_1(name: Arc<Mutex<Option<String>>>, sources: Arc<Mutex<Opti
         }
     }
     }
-        if { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result } && { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_O_E_N_T as usize)).unwrap_or(false); !__matched } {
+        if {
+            let __go_cond_0 = { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_O_E_N_T as usize)).unwrap_or(false); !__matched };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let __rhs_holder = err.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *firstErr.lock().unwrap() = new_val; };
     }
     }
@@ -1206,7 +1222,15 @@ pub fn load_location_1(name: Arc<Mutex<Option<String>>>, sources: Arc<Mutex<Opti
         }
     }
     };
-            if { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result } && { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_O_E_N_T as usize)).unwrap_or(false); !__matched } {
+            if {
+                let __go_cond_0 = { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result };
+                if __go_cond_0 {
+                    let __go_cond_1 = { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_N_O_E_N_T as usize)).unwrap_or(false); !__matched };
+                    __go_cond_1
+                } else {
+                    false
+                }
+            } {
         { let __rhs_holder = err.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *firstErr.lock().unwrap() = new_val; };
     };
         }

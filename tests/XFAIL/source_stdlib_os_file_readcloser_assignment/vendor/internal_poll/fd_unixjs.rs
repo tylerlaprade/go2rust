@@ -141,7 +141,15 @@ impl crate::fd_unix::FD {
         let (mut n, mut err) = ignoring_e_i_n_t_r_i_o(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<i32>>>, __arg1: Arc<Mutex<Option<Vec<u8>>>>| -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) { syscall::read_dirent(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync>))), Arc::new(Mutex::new(Some({ let __selector_holder = self.sysfd.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), buf.clone());
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = 0; n = new_val; };
-        if { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_A_G_A_I_N as usize)).unwrap_or(false); __matched } && (*self.pd.lock().unwrap().as_ref().unwrap()).pollable() {
+        if {
+            let __go_cond_0 = { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_A_G_A_I_N as usize)).unwrap_or(false); __matched };
+            if __go_cond_0 {
+                let __go_cond_1 = (*self.pd.lock().unwrap().as_ref().unwrap()).pollable();
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         {
         { let __rhs_holder = (*self.pd.lock().unwrap().as_ref().unwrap()).wait_read(Arc::new(Mutex::new(Some({ let __selector_holder = self.is_file.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {

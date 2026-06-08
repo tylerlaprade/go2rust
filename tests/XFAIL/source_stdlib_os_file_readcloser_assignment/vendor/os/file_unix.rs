@@ -860,7 +860,15 @@ pub fn sigpipe() {
 /// output or standard error. See the SIGPIPE docs in os/signal, and
 /// issue 11845.
 pub fn epipecheck(file: Arc<Mutex<Option<File>>>, e: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-    if { let __err_holder = e.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_P_I_P_E as usize)).unwrap_or(false); __matched } && (*(*(*file.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap()).stdout_or_err.lock().unwrap().as_ref().unwrap()) {
+    if {
+        let __go_cond_0 = { let __err_holder = e.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_P_I_P_E as usize)).unwrap_or(false); __matched };
+        if __go_cond_0 {
+            let __go_cond_1 = (*(*(*file.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap()).stdout_or_err.lock().unwrap().as_ref().unwrap());
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         sigpipe();
     }
 }

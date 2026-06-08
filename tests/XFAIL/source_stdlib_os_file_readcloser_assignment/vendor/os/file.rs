@@ -580,7 +580,15 @@ impl crate::types::File {
     /// It passes io.EOF through unchanged, otherwise converts
     /// poll.ErrFileClosing to ErrClosed and wraps the error in a PathError.
     pub fn wrap_err(&self, op: Arc<Mutex<Option<String>>>, mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } || { let __left = err.clone(); let __right = io::EOF.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
+        if {
+            let __go_cond_0 = { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = { let __left = err.clone(); let __right = io::EOF.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq };
+                __go_cond_1
+            }
+        } {
         return err.clone();
     }
         if { let __left = err.clone(); let __right = internal_poll::ErrFileClosing.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {

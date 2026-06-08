@@ -52,7 +52,15 @@ pub fn is(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>, target: Arc<
 
 pub fn is_1(mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>, target: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>, targetComparable: Arc<Mutex<Option<bool>>>) -> bool {
     loop {
-        if { let __v = (*targetComparable.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __left = err.clone(); let __right = target.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
+        if {
+            let __go_cond_0 = { let __v = (*targetComparable.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __left = err.clone(); let __right = target.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         return true;
     }
         {

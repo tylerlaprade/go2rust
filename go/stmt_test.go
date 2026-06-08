@@ -4710,6 +4710,39 @@ func isGoPointer(p uintptr, datap *module) bool {
 	}
 }
 
+func TestConcurrentIfBuildsGoErrorComparisonChainWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type errno int
+
+func (e errno) Error() string {
+	return ""
+}
+
+const (
+	errA errno = 1
+	errB errno = 2
+	errC errno = 3
+	errD errno = 4
+)
+
+func check(err error) bool {
+	go func() {}()
+	if err != errA && err != errB && err != errC && err != errD {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "} && {") {
+		t.Fatalf("go error comparison chain should not keep inline downcast blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("go error comparison chain should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentLogicalValueBuildsComplexOperandsWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

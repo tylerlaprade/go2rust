@@ -9551,6 +9551,7 @@ const minStatementBuiltLogicalConditionNodes = 4
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const concurrentFieldSelectorLogicalConditionComplexity = 4
 const concurrentNamedIntegerLogicalComparisonOperandComplexity = 4
+const concurrentGoErrorLogicalComparisonComplexity = 10
 
 func transpileCondition(out *strings.Builder, expr ast.Expr) {
 	if shouldStatementBuildLogicalCondition(expr) {
@@ -9605,6 +9606,7 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		if logicalConditionBinaryIsComparison(e) {
 			count += countNamedIntegerLogicalComparisonOperandComplexity(e.X)
 			count += countNamedIntegerLogicalComparisonOperandComplexity(e.Y)
+			count += countGoErrorLogicalComparisonComplexity(e)
 		}
 		return count
 	case *ast.CallExpr:
@@ -9669,6 +9671,25 @@ func countNamedIntegerLogicalComparisonOperandComplexity(expr ast.Expr) int {
 		return 0
 	}
 	return concurrentNamedIntegerLogicalComparisonOperandComplexity
+}
+
+func countGoErrorLogicalComparisonComplexity(expr *ast.BinaryExpr) int {
+	if expr == nil || !NeedsConcurrentWrapper() || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return 0
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return 0
+	}
+	leftType := typeInfo.GetType(expr.X)
+	rightType := typeInfo.GetType(expr.Y)
+	if isGoErrorType(leftType) && (isConcreteGoErrorValue(rightType) || isGoErrorType(rightType)) {
+		return concurrentGoErrorLogicalComparisonComplexity
+	}
+	if isGoErrorType(rightType) && isConcreteGoErrorValue(leftType) {
+		return concurrentGoErrorLogicalComparisonComplexity
+	}
+	return 0
 }
 
 func concurrentLogicalConditionSelectorIsField(sel *ast.SelectorExpr) bool {
