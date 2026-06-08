@@ -4885,7 +4885,23 @@ impl Time {
     }
         let mut sec = self.sec();
         let mut nsec = self.nsec();
-        { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![(*version.lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 56; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 48; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 40; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 32; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 24; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 16; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(sec as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = 24; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = 16; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(nsec as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*offsetMin.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(), (*Arc::new(Mutex::new(Some((*offsetMin.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone()]); __append_target.clone() }; b = new_val; };
+        { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![
+            (*version.lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 56; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 48; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 40; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 32; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 24; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 16; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = sec; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(sec as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = 24; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = 16; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = nsec; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(nsec as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*offsetMin.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+            (*Arc::new(Mutex::new(Some((*offsetMin.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone(),
+        ]); __append_target.clone() }; b = new_val; };
                 // byte 0 : version
                 // bytes 1-8: seconds
                 // bytes 9-12: nanoseconds

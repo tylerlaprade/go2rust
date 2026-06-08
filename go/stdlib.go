@@ -4461,6 +4461,43 @@ func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, e
 	return writeLocalInterfaceWrappedValue(out, expr, elemType)
 }
 
+func appendExtendShouldUseMultiline(args []ast.Expr) bool {
+	if !NeedsConcurrentWrapper() || len(args) < 4 {
+		return false
+	}
+	for _, arg := range args {
+		if compositeLiteralElementIsComplex(arg) {
+			return true
+		}
+	}
+	return false
+}
+
+func writeAppendExtendElements(out *strings.Builder, args []ast.Expr, writeAppendElement func(ast.Expr)) {
+	if !appendExtendShouldUseMultiline(args) {
+		out.WriteString(".extend(vec![")
+		for i, arg := range args {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			writeAppendElement(arg)
+		}
+		out.WriteString("])")
+		return
+	}
+
+	indent := currentLineIndent(out)
+	out.WriteString(".extend(vec![\n")
+	for _, arg := range args {
+		out.WriteString(indent)
+		out.WriteString("    ")
+		writeAppendElement(arg)
+		out.WriteString(",\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("])")
+}
+
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) >= 2 {
 		if transpileNamedSliceAppend(out, call) {
@@ -4671,14 +4708,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				writeAppendElement(call.Args[1])
 				out.WriteString(")")
 			} else {
-				out.WriteString(".extend(vec![")
-				for i := 1; i < len(call.Args); i++ {
-					if i > 1 {
-						out.WriteString(", ")
-					}
-					writeAppendElement(call.Args[i])
-				}
-				out.WriteString("])")
+				writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
 			}
 			out.WriteString("; ")
 			writeReadTarget()
@@ -4725,14 +4755,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				writeAppendElement(call.Args[1])
 				out.WriteString(")")
 			} else {
-				out.WriteString(".extend(vec![")
-				for i := 1; i < len(call.Args); i++ {
-					if i > 1 {
-						out.WriteString(", ")
-					}
-					writeAppendElement(call.Args[i])
-				}
-				out.WriteString("])")
+				writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
 			}
 			out.WriteString("; __slice.clone() }")
 			return true
@@ -4775,14 +4798,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			// Multiple elements, use extend
 			writeAppendTargetMutationPrefix()
-			out.WriteString(".extend(vec![")
-			for i := 1; i < len(call.Args); i++ {
-				if i > 1 {
-					out.WriteString(", ")
-				}
-				writeAppendElement(call.Args[i])
-			}
-			out.WriteString("])")
+			writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
 			writeAppendTargetMutationSuffix()
 		}
 	}

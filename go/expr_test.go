@@ -1614,6 +1614,40 @@ func runes(s string) []rune {
 	}
 }
 
+func TestConcurrentAppendManyElementsBreaksExtendVecAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func encode(b []byte, version byte, sec int64, nsec int32, offsetMin int16) []byte {
+	go func() {}()
+	b = append(b,
+		version,
+		byte(sec>>56),
+		byte(sec>>48),
+		byte(sec>>40),
+		byte(sec>>32),
+		byte(sec>>24),
+		byte(sec>>16),
+		byte(sec>>8),
+		byte(sec),
+		byte(nsec>>24),
+		byte(nsec>>16),
+		byte(nsec>>8),
+		byte(nsec),
+		byte(offsetMin>>8),
+		byte(offsetMin),
+	)
+	return b
+}
+`)
+
+	if strings.Contains(rust, ".extend(vec![(*version") {
+		t.Fatalf("multi-element append should not inline every element in one vec expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".extend(vec![\n") {
+		t.Fatalf("multi-element append should break extend vec elements across lines:\n%s", rust)
+	}
+}
+
 func TestStringRangeRuneComparisonWithRuneVariableCastsToGoRune(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
