@@ -9549,6 +9549,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 
 const minStatementBuiltLogicalConditionNodes = 4
 const minStatementBuiltLogicalConditionOperandComplexity = 10
+const minStatementBuiltLogicalConditionFieldComparisons = 4
 const concurrentFieldSelectorLogicalConditionComplexity = 4
 const concurrentFieldSelectorConversionLogicalConditionComplexity = 4
 const concurrentSequenceIndexLogicalConditionComplexity = 8
@@ -9569,6 +9570,9 @@ func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
 		return false
 	}
 	if countLogicalConditionNodes(expr) >= minStatementBuiltLogicalConditionNodes {
+		return true
+	}
+	if countLogicalConditionFieldComparisons(expr) >= minStatementBuiltLogicalConditionFieldComparisons {
 		return true
 	}
 	return logicalConditionHasComplexOperand(expr)
@@ -9596,6 +9600,20 @@ func logicalConditionHasComplexOperand(expr ast.Expr) bool {
 		return true
 	}
 	return logicalConditionHasComplexOperand(binary.X) || logicalConditionHasComplexOperand(binary.Y)
+}
+
+func countLogicalConditionFieldComparisons(expr ast.Expr) int {
+	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
+	if !ok {
+		return 0
+	}
+	if binary.Op == token.LAND || binary.Op == token.LOR {
+		return countLogicalConditionFieldComparisons(binary.X) + countLogicalConditionFieldComparisons(binary.Y)
+	}
+	if logicalConditionBinaryIsComparison(binary) && exprContainsTypedFieldSelector(binary) {
+		return 1
+	}
+	return 0
 }
 
 func countLogicalConditionOperandComplexity(expr ast.Expr) int {

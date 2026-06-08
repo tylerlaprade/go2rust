@@ -858,7 +858,31 @@ pub fn sigpanic() {
         };
             throw(Arc::new(Mutex::new(Some("fault".to_string()))));
         } else if _switch_val == (__S_I_G_S_E_G_V as u32) {
-            if ({ let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_E_G_V__M_A_P_E_R_R as usize; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_E_G_V__A_C_C_E_R_R as usize; __tmp_x == __tmp_y }) && { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0x1000 as usize; __tmp_x < __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y };
+                        if __go_cond_2 {
+                            true
+                        } else {
+                            let __go_cond_3 = { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_E_G_V__M_A_P_E_R_R as usize; __tmp_x == __tmp_y };
+                            __go_cond_3
+                        }
+                    };
+                    if __go_cond_1 {
+                        true
+                    } else {
+                        let __go_cond_4 = { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_E_G_V__A_C_C_E_R_R as usize; __tmp_x == __tmp_y };
+                        __go_cond_4
+                    }
+                };
+                if __go_cond_0 {
+                    let __go_cond_5 = { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0x1000 as usize; __tmp_x < __tmp_y };
+                    __go_cond_5
+                } else {
+                    false
+                }
+            } {
         panicmem();
     }
                         // Support runtime/debug.SetPanicOnFault.

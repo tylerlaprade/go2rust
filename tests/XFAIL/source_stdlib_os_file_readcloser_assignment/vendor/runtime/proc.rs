@@ -6263,7 +6263,31 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
     let mut u: Arc<Mutex<Option<unwinder>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut stk: Arc<Mutex<Option<[usize; 64]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
     let mut n = Arc::new(Mutex::new(Some(0)));
-    if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).ncgo.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } && { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __tmp_x = (*{ let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.borrow(); __ptr_value.as_ref().unwrap().syscallpc.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).ncgo.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y };
+                if __go_cond_2 {
+                    let __go_cond_3 = { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            };
+            if __go_cond_1 {
+                let __go_cond_4 = { let __tmp_x = (*{ let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.borrow(); __ptr_value.as_ref().unwrap().syscallpc.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+                __go_cond_4
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_5 = { let __tmp_x = (*{ let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+            __go_cond_5
+        } else {
+            false
+        }
+    } {
         let mut cgoOff = Arc::new(Mutex::new(Some(0)));
                 // Check cgoCallersUse to make sure that we are not
                 // interrupting other code that is fiddling with

@@ -1661,7 +1661,31 @@ impl moduledata {
         if { let __tmp_x = (({ let __len_target = { let __field = self.textsectmap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x > __tmp_y } {
         { let __range_holder = self.textsectmap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, sect) in __range_values.iter().enumerate() {
                 // For the last section, include the end address (etext), as it is included in the functab.
-        if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.end.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || ({ let __tmp_x = (i as i32); let __tmp_y = ({ let __tmp_x = (({ let __len_target = { let __field = self.textsectmap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.end.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y }) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.end.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = {
+                    let __go_cond_4 = { let __tmp_x = (i as i32); let __tmp_y = ({ let __tmp_x = (({ let __len_target = { let __field = self.textsectmap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); __tmp_x == __tmp_y };
+                    if __go_cond_4 {
+                        let __go_cond_5 = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.end.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+                        __go_cond_5
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_3
+            }
+        } {
         { let new_val = {
             let __tmp_x = { let __tmp_x = (*sect.baseaddr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
             let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap());

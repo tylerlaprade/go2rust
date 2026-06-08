@@ -4722,6 +4722,34 @@ func overflow(data []uint64, stk []uintptr) bool {
 	}
 }
 
+func TestConcurrentLogicalShortDeclBuildsPointerFieldConditionsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type stackFrame struct {
+	pc uintptr
+	sp uintptr
+}
+
+type goroutine struct {
+	syscallpc uintptr
+	syscallsp uintptr
+}
+
+func check(frame *stackFrame, gp *goroutine, pc0 uintptr, sp0 uintptr) bool {
+	go func() {}()
+	isSyscall := frame.pc == pc0 && frame.sp == sp0 && pc0 == gp.syscallpc && sp0 == gp.syscallsp
+	return isSyscall
+}
+`)
+
+	if strings.Contains(rust, "} && {") {
+		t.Fatalf("logical short declaration with pointer field comparisons should not chain inline blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("logical short declaration with pointer field comparisons should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsLogicalCallConditionWithSelectorArgs(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

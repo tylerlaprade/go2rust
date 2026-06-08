@@ -848,7 +848,31 @@ impl unwinder {
             flags: Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             ..Default::default()
         }; *self = new_val; };
-        let mut isSyscall = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*pc0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).sp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*sp0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*pc0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallpc.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*sp0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y })));
+        let mut isSyscall = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*pc0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).sp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*sp0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = { let __v = (*pc0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallpc.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = { let __v = (*sp0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        })));
         self.resolve_internal(Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some({ let __arg_holder = isSyscall.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 
