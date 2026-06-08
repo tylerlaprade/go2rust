@@ -7510,6 +7510,45 @@ func build(base, size, offset uintptr, elems int) nodeSlice {
 	}
 }
 
+func TestConcurrentSelectorAssignmentFromMethodExpressionCallBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timers struct {
+	raceCtx uintptr
+}
+
+func (ts *timers) run(now int64) int64 {
+	return now
+}
+
+func pc(fn func(*timers, int64) int64) uintptr {
+	return 1
+}
+
+func start(v uintptr) uintptr {
+	return v
+}
+
+const quantum uintptr = 4
+
+func use(ts *timers) {
+	go func() {}()
+	if ts.raceCtx == 0 {
+		ts.raceCtx = start(pc((*timers).run) + quantum)
+	}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let new_val = start(") && strings.Contains(line, "= Some(new_val); }") {
+			t.Fatalf("complex selector assignment should split the value and target writes across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let new_val = start(") {
+		t.Fatalf("test setup should lower the assignment through a start call:\n%s", rust)
+	}
+}
+
 func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

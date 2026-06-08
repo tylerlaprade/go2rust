@@ -618,6 +618,101 @@ func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr)
 	return true
 }
 
+const maxInlineWrappedSlotAssignmentLen = 240
+
+func assignmentRHSContainsFunctionValue(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		_, ok := functionValueSignature(e)
+		return ok
+	case *ast.SelectorExpr:
+		if _, ok := methodExpressionSignature(e); ok {
+			return true
+		}
+		if _, ok := pointerMethodValueSignature(e); ok {
+			return true
+		}
+		_, ok := selectorFunctionValueSignature(e)
+		return ok
+	case *ast.FuncLit:
+		return true
+	case *ast.CallExpr:
+		for _, arg := range e.Args {
+			if assignmentRHSContainsFunctionValue(arg) {
+				return true
+			}
+		}
+	case *ast.BinaryExpr:
+		return assignmentRHSContainsFunctionValue(e.X) || assignmentRHSContainsFunctionValue(e.Y)
+	case *ast.UnaryExpr:
+		return assignmentRHSContainsFunctionValue(e.X)
+	case *ast.StarExpr:
+		return assignmentRHSContainsFunctionValue(e.X)
+	case *ast.IndexExpr:
+		return assignmentRHSContainsFunctionValue(e.X) || assignmentRHSContainsFunctionValue(e.Index)
+	case *ast.SliceExpr:
+		if assignmentRHSContainsFunctionValue(e.X) {
+			return true
+		}
+		for _, bound := range []ast.Expr{e.Low, e.High, e.Max} {
+			if bound != nil && assignmentRHSContainsFunctionValue(bound) {
+				return true
+			}
+		}
+	case *ast.TypeAssertExpr:
+		return assignmentRHSContainsFunctionValue(e.X)
+	case *ast.CompositeLit:
+		for _, elt := range e.Elts {
+			if assignmentRHSContainsFunctionValue(elt) {
+				return true
+			}
+		}
+	case *ast.KeyValueExpr:
+		return assignmentRHSContainsFunctionValue(e.Key) || assignmentRHSContainsFunctionValue(e.Value)
+	}
+	return false
+}
+
+func writeWrappedSlotAssignmentBlock(out *strings.Builder, lhs ast.Expr, forceMultiline bool, writeValue func(*strings.Builder)) {
+	linePrefix := currentLineText(out)
+	valuePrefix := linePrefix + "{ let new_val = "
+	var value strings.Builder
+	value.WriteString(valuePrefix)
+	writeValue(&value)
+	valueText := strings.TrimPrefix(value.String(), valuePrefix)
+
+	targetPrefix := linePrefix + "{ let new_val = " + valueText + "; *"
+	var target strings.Builder
+	target.WriteString(targetPrefix)
+	TranspileExpressionContext(&target, lhs, LValue)
+	WriteBorrowMethod(&target, true)
+	targetText := "*" + strings.TrimPrefix(target.String(), targetPrefix)
+
+	inlineLen := len("{ let new_val = ") + len(valueText) + len("; ") + len(targetText) + len(" = Some(new_val); }")
+	multiline := forceMultiline && (strings.Contains(valueText, "\n") || strings.Contains(targetText, "\n") || inlineLen > maxInlineWrappedSlotAssignmentLen)
+	if !multiline {
+		out.WriteString("{ let new_val = ")
+		out.WriteString(valueText)
+		out.WriteString("; ")
+		out.WriteString(targetText)
+		out.WriteString(" = Some(new_val); }")
+		return
+	}
+
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let new_val = ")
+	out.WriteString(valueText)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    ")
+	out.WriteString(targetText)
+	out.WriteString(" = Some(new_val);\n")
+	out.WriteString(indent)
+	out.WriteString("}")
+}
+
 func typeIsPredeclaredMutableBareScalar(t types.Type) bool {
 	t = types.Unalias(t)
 	basic, ok := t.(*types.Basic)
@@ -9798,14 +9893,18 @@ func concurrentLogicalConditionSelectorIsField(sel *ast.SelectorExpr) bool {
 }
 
 func currentLineIndent(out *strings.Builder) string {
-	text := out.String()
-	lineStart := strings.LastIndex(text, "\n") + 1
-	line := text[lineStart:]
+	line := currentLineText(out)
 	indentEnd := 0
 	for indentEnd < len(line) && (line[indentEnd] == ' ' || line[indentEnd] == '\t') {
 		indentEnd++
 	}
 	return line[:indentEnd]
+}
+
+func currentLineText(out *strings.Builder) string {
+	text := out.String()
+	lineStart := strings.LastIndex(text, "\n") + 1
+	return text[lineStart:]
 }
 
 func writeStatementBuiltLogicalConditionValue(out *strings.Builder, expr ast.Expr, indent string, nextTemp *int) {
@@ -11759,17 +11858,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else { // Regular function call
 										isLenCapCall := isBareLenCapCall(s.Rhs[0])
-										out.WriteString("{ ")
-										out.WriteString("let new_val = ")
-										TranspileExpression(out, s.Rhs[0])
-										if isLenCapCall {
-											out.WriteString(" as i32")
-										}
-										out.WriteString("; ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
+										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], assignmentRHSContainsFunctionValue(s.Rhs[0]), func(valueOut *strings.Builder) {
+											TranspileExpression(valueOut, s.Rhs[0])
+											if isLenCapCall {
+												valueOut.WriteString(" as i32")
+											}
+										})
 									}
 								} else {
 									if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
