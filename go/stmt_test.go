@@ -4679,6 +4679,35 @@ func overlaps(x *buf, s *state, addr uintptr) bool {
 	}
 }
 
+func TestConcurrentMethodCallBreaksComplexArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type log struct{}
+
+func (l *log) write(a any, n int64, hdr []uint64, stk []uint64) {}
+
+type profiler struct {
+	log log
+	extra []uint64
+}
+
+func (p *profiler) addExtra(i int) {
+	go func() {}()
+	hdr := [1]uint64{1}
+	p.log.write(nil, 0, hdr[:], p.extra[i+1:i+int(p.extra[i])])
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, ".write(") && strings.Contains(line, "let __seq_holder") {
+			t.Fatalf("complex method-call arguments should not stay on the opening call line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, ".write(\n") {
+		t.Fatalf("complex method-call arguments should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentFixedArrayCallArgumentBreaksComplexElementsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

@@ -9733,6 +9733,26 @@ func structCompositeLiteralShouldUseMultiline(elts []ast.Expr) bool {
 	return compositeLiteralValuesShouldUseMultiline(values)
 }
 
+func callArgumentsShouldUseMultiline(args []ast.Expr) bool {
+	if !NeedsConcurrentWrapper() || len(args) < 3 {
+		return false
+	}
+	for _, arg := range args {
+		if compositeLiteralElementIsComplex(arg) {
+			return true
+		}
+	}
+	return false
+}
+
+func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
+	if call == nil || !callArgumentsShouldUseMultiline(call.Args) {
+		return false
+	}
+	sig, ok := callSignatureFromTypeInfo(call)
+	return !ok || !sig.Variadic()
+}
+
 func writeTypesStructCompositeLiteralFieldValue(out *strings.Builder, value ast.Expr, structType types.Type, field *types.Var) {
 	if fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field); ok {
 		if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
@@ -20587,10 +20607,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
 
 		out.WriteString(rustMethodSelectorName(sel))
+		multilineMethodArgs := methodCallArgumentsShouldUseMultiline(call)
+		methodArgIndent := ""
 		out.WriteString("(")
+		if multilineMethodArgs {
+			methodArgIndent = currentLineIndent(out)
+			out.WriteString("\n")
+		}
 		if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
 			for i, arg := range call.Args {
-				if i > 0 {
+				if multilineMethodArgs {
+					out.WriteString(methodArgIndent)
+					out.WriteString("    ")
+				} else if i > 0 {
 					out.WriteString(", ")
 				}
 				if externalStdlibStubMethodCall {
@@ -20600,7 +20629,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					writeRegularMethodCallArgument(out, sel, call, arg, i)
 				}
+				if multilineMethodArgs {
+					out.WriteString(",\n")
+				}
 			}
+		}
+		if multilineMethodArgs {
+			out.WriteString(methodArgIndent)
 		}
 		out.WriteString(")")
 		if closeReceiverBlock {
