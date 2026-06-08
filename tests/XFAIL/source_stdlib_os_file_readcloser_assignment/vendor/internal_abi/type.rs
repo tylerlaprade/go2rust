@@ -3475,14 +3475,32 @@ impl UncommonType {
         if { let __tmp_x = (*self.mcount.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
-        Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.mcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+        Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.mcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = 0;
+            let __high = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))
     }
 
     pub fn exported_methods(&self) -> Arc<Mutex<Option<Vec<Method>>>> {
         if { let __tmp_x = (*self.xcount.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
-        Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.xcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+        Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.xcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = 0;
+            let __high = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))
     }
 }
 
@@ -3686,7 +3704,16 @@ impl FuncType {
         if { let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
-        return Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("t.inCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 65536]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        return Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("t.inCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 65536]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = 0;
+            let __high = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
     }
 
     pub fn out_slice(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>> {
@@ -3698,7 +3725,16 @@ impl FuncType {
         if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
         { let __rhs = (*Arc::new(Mutex::new(Some(std::mem::size_of::<UncommonType>()))).lock().unwrap().as_ref().unwrap()) as usize; let mut guard = uadd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        return Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("outCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize; let __high = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize; let __max = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        return Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("outCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __high = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
+            let __max = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
     }
 
     pub fn is_variadic(&self) -> bool {

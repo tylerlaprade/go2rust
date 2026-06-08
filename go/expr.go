@@ -1380,6 +1380,46 @@ func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max
 	out.WriteString("; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }")
 }
 
+func writeSliceVecFromSeqMultiline(out *strings.Builder, low ast.Expr, high ast.Expr, max ast.Expr, defaultMax string, canExtendWithinCapacity bool, indent string, closeIndent string) {
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __low = ")
+	writeSliceBoundValue(out, low, "0")
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __high = ")
+	writeSliceBoundValue(out, high, "__seq.len()")
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __max = ")
+	writeSliceBoundValue(out, max, defaultMax)
+	out.WriteString(";\n")
+	if canExtendWithinCapacity {
+		out.WriteString(indent)
+		out.WriteString("if __seq.len() < __high { __seq.resize_with(__high, Default::default); }\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("let _slice = &__seq[__low..__high];\n")
+	out.WriteString(indent)
+	out.WriteString("let mut _v = Vec::with_capacity((__max - __low) as usize);\n")
+	out.WriteString(indent)
+	out.WriteString("_v.extend_from_slice(_slice);\n")
+	out.WriteString(indent)
+	out.WriteString("_v\n")
+	out.WriteString(closeIndent)
+	out.WriteString("}")
+}
+
+func threeIndexSliceCopyShouldUseMultiline(slice *ast.SliceExpr) bool {
+	if slice == nil || !NeedsConcurrentWrapper() || !slice.Slice3 {
+		return false
+	}
+	if countLogicalConditionOperandComplexity(slice.X) >= minStatementBuiltLogicalConditionOperandComplexity {
+		return true
+	}
+	return sliceBoundNeedsLocalTemp(slice.Low) || sliceBoundNeedsLocalTemp(slice.High) || sliceBoundNeedsLocalTemp(slice.Max)
+}
+
 func sequenceTypeIsArray(typ types.Type) bool {
 	if typ == nil {
 		return false
@@ -13041,9 +13081,19 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let mut __seq = ")
-			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
-			writeSliceVecFromSeq(out, e.Low, e.High, e.Max, "__seq.capacity()", !subjectIsArray)
+			if threeIndexSliceCopyShouldUseMultiline(e) {
+				closeIndent := currentLineIndent(out)
+				indent := closeIndent + "    "
+				out.WriteString("{\n")
+				out.WriteString(indent)
+				out.WriteString("let mut __seq = ")
+				writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+				writeSliceVecFromSeqMultiline(out, e.Low, e.High, e.Max, "__seq.capacity()", !subjectIsArray, indent, closeIndent)
+			} else {
+				out.WriteString("{ let mut __seq = ")
+				writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+				writeSliceVecFromSeq(out, e.Low, e.High, e.Max, "__seq.capacity()", !subjectIsArray)
+			}
 			WriteWrapperSuffix(out)
 		} else if isStringSlice {
 			WriteWrapperPrefix(out)

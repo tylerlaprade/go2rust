@@ -527,7 +527,17 @@ pub fn gc_mark_root_prepare() {
         //
         // Snapshot allArenas as markArenas. This snapshot is safe because allArenas
         // is append-only.
-    { let new_val = Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).all_arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (({ let __len_target = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).all_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize; let __max = (({ let __len_target = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).all_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); (*mheap_.lock().unwrap().as_mut().unwrap()).mark_arenas = new_val; };
+    { let new_val = Arc::new(Mutex::new(Some({
+        let mut __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).all_arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+        let __low = 0;
+        let __high = (({ let __len_target = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).all_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize;
+        let __max = (({ let __len_target = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).all_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))); (*mheap_.lock().unwrap().as_mut().unwrap()).mark_arenas = new_val; };
     { let new_val = { let __tmp_x = (({ let __len_target = { let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).mark_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 16; __tmp_x * __tmp_y }; *(*work.lock().unwrap().as_ref().unwrap()).n_span_roots.lock().unwrap() = Some(new_val); };
 
         // Scan stacks.

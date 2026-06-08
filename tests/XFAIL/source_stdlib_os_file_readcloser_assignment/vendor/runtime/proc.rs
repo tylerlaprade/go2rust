@@ -1800,7 +1800,17 @@ pub fn all_gs_snapshot() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::runtime
         // monotonically and existing entries never change, so we can
         // simply return a copy of the slice header. For added safety,
         // we trim everything past len because that can still change.
-    Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = allgs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = 0; let __high = ((*allgs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize; let __max = ((*allgs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+    Arc::new(Mutex::new(Some({
+        let mut __seq = { let __seq_holder = allgs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+        let __low = 0;
+        let __high = ((*allgs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize;
+        let __max = ((*allgs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    })))
 }
 
 /// atomicAllG returns &allgs[0] and len(allgs) for use with atomicAllGIndex.

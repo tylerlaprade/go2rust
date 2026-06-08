@@ -5092,6 +5092,40 @@ func methods(p unsafe.Pointer, n int) []Method {
 	}
 }
 
+func TestConcurrentPointerArrayThreeIndexSliceBreaksCopyBlockAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type Type struct{}
+
+type Func struct {
+	in uint16
+}
+
+func add(p unsafe.Pointer, off uintptr, why string) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(p) + off)
+}
+
+func (f *Func) outSlice(out uint16, uadd uintptr) []*Type {
+	go func() {}()
+	return (*[1 << 17]*Type)(add(unsafe.Pointer(f), uadd, "outCount > 0"))[f.in : f.in+out : f.in+out]
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let mut __seq =") && strings.Contains(line, "let __low =") {
+			t.Fatalf("three-index pointer-array slice should split sequence setup from bounds:\n%s", rust)
+		}
+		if strings.Contains(line, "let __low =") && strings.Contains(line, "let __high =") {
+			t.Fatalf("three-index pointer-array slice should split slice bounds across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!(\"unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]\"))") {
+		t.Fatalf("unsafe.Pointer to array conversion should keep the typed unsupported array pointee:\n%s", rust)
+	}
+}
+
 func TestUintptrConversionFromUnsafePointerArrayIndexKeepsIndexedScalarBare(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
