@@ -84,7 +84,9 @@ impl crate::signal_darwin_arm64::sigctxt {
                 // Make it look the like faulting PC called sigpanic.
                 // In case we are panicking from external C code
         self.set_r28(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(gp.addr()))).lock().unwrap().as_ref().unwrap()) as usize as u64))));
-        self.set_pc(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(sigpanic.clone()) as Box<dyn Any + Send + Sync>)))) as u64))));
+        self.set_pc(
+            Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(sigpanic.clone()) as Box<dyn Any + Send + Sync>)))) as u64))),
+        );
     }
 
     pub fn push_call(&self, targetPC: Arc<Mutex<Option<usize>>>, resumePC: Arc<Mutex<Option<usize>>>) {

@@ -1037,7 +1037,8 @@ pub fn update(def: Arc<Mutex<Option<String>>>, env: Arc<Mutex<Option<String>>>) 
         parse(did.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = def.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
                 // Clear any cached values that are no longer present.
-        let did_closure_clone = did.clone(); (*cache.lock().unwrap().as_ref().unwrap()).range(Arc::new(Mutex::new(Some(Box::new(move |name: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, s: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+        let did_closure_clone = did.clone(); (*cache.lock().unwrap().as_ref().unwrap()).range(
+            Arc::new(Mutex::new(Some(Box::new(move |name: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, s: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
         if !{ let __map = { let __map_holder = did_closure_clone.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({
         let val = name.clone();
         let guard = val.lock().unwrap();
@@ -1058,7 +1059,8 @@ pub fn update(def: Arc<Mutex<Option<String>>>, env: Arc<Mutex<Option<String>>>) 
     }).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(empty.clone()));
     }
         true
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))),
+        );
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

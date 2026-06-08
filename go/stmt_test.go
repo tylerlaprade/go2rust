@@ -5039,6 +5039,32 @@ func update(w writer, s *sample) writer {
 	}
 }
 
+func TestConcurrentPointerReceiverMethodCallBreaksFunctionValueArgumentAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timer struct{}
+type g struct{}
+
+func ready(arg any, seq uintptr, delay int64) {}
+
+func (t *timer) init(f func(any, uintptr, int64), arg any) {}
+
+func use(t *timer, gp *g) {
+	go func() {}()
+	t.init(ready, gp)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __recv =") && strings.Contains(line, "Box::new(move |") {
+			t.Fatalf("pointer receiver method call with function-value argument should not stay on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, ".init(\n") {
+		t.Fatalf("pointer receiver method call with function-value argument should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentFunctionCallBreaksComplexArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

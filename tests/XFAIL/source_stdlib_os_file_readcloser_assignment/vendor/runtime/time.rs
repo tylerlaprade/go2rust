@@ -1712,7 +1712,10 @@ pub fn time_sleep(ns: Arc<Mutex<Option<i64>>>) {
     let mut t = (*gp.lock().unwrap().as_ref().unwrap()).timer.clone();
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(timer::default()))).clone(); t = new_val; };
-        { let __recv = t.clone(); let __recv_ptr: *mut timer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timer }; let __result = unsafe { &mut *__recv_ptr }.init(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, __arg1: Arc<Mutex<Option<usize>>>, __arg2: Arc<Mutex<Option<i64>>>| { goroutine_ready(__arg0, __arg1, __arg2) }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(gp.clone()) as Box<dyn Any + Send + Sync>)))); __result };
+        { let __recv = t.clone(); let __recv_ptr: *mut timer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timer }; let __result = unsafe { &mut *__recv_ptr }.init(
+            Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, __arg1: Arc<Mutex<Option<usize>>>, __arg2: Arc<Mutex<Option<i64>>>| { goroutine_ready(__arg0, __arg1, __arg2) }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))),
+            Arc::new(Mutex::new(Some(Box::new(gp.clone()) as Box<dyn Any + Send + Sync>))),
+        ); __result };
         if { let __nil_target = (*gp.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = true; *(*t.lock().unwrap().as_ref().unwrap()).is_fake.lock().unwrap() = Some(new_val); };
     }

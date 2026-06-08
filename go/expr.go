@@ -10475,6 +10475,15 @@ func callArgumentsContainBinaryWithFunctionValue(args []ast.Expr) bool {
 	return false
 }
 
+func callArgumentsContainFunctionValue(args []ast.Expr) bool {
+	for _, arg := range args {
+		if expressionContainsFunctionValue(arg) {
+			return true
+		}
+	}
+	return false
+}
+
 func writeWrappedStatementBuiltConcurrentBinaryCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if !expressionContainsBinaryWithFunctionValue(arg) {
 		return false
@@ -10564,6 +10573,10 @@ func genericConcurrentSequenceIndexShouldUseMultiline(indexExpr *ast.IndexExpr) 
 func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 	if call == nil || !NeedsConcurrentWrapper() {
 		return false
+	}
+	if callArgumentsContainFunctionValue(call.Args) {
+		sig, ok := callSignatureFromTypeInfo(call)
+		return !ok || !sig.Variadic()
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
 	if ok && sig.Variadic() {
