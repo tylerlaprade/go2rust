@@ -9753,6 +9753,16 @@ func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 	return !ok || !sig.Variadic()
 }
 
+func functionValueSelectorCallShouldUseMultiline(call *ast.CallExpr) bool {
+	if call == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	if sig, ok := callSignatureFromTypeInfo(call); ok && sig.Variadic() {
+		return false
+	}
+	return len(call.Args) >= 4 || callArgumentsShouldUseMultiline(call.Args)
+}
+
 func writeTypesStructCompositeLiteralFieldValue(out *strings.Builder, value ast.Expr, structType types.Type, field *types.Var) {
 	if fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field); ok {
 		if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
@@ -21688,17 +21698,77 @@ func selectorAllowsUniqueStructFieldFallback(sel *ast.SelectorExpr) bool {
 }
 
 func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) {
-	out.WriteString("{ let __f_holder = ")
+	multiline := functionValueSelectorCallShouldUseMultiline(call)
+	indent := ""
+	if multiline {
+		indent = currentLineIndent(out)
+		out.WriteString("{\n")
+		out.WriteString(indent)
+		out.WriteString("    let __f_holder = ")
+	} else {
+		out.WriteString("{ let __f_holder = ")
+	}
 	TranspileExpressionContext(out, sel, LValue)
 	out.WriteString(".clone()")
 	boxType := functionBoxTypeForCallTarget(sel)
-	out.WriteString("; let __f_ptr: *mut ")
-	out.WriteString(boxType)
-	out.WriteString(" = { let mut __f_guard = __f_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-	out.WriteString(boxType)
-	out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
+	if multiline {
+		out.WriteString(";\n")
+		out.WriteString(indent)
+		out.WriteString("    let __f_ptr: *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" = {\n")
+		out.WriteString(indent)
+		out.WriteString("        let mut __f_guard = __f_holder")
+		WriteBorrowMethod(out, true)
+		out.WriteString(";\n")
+		out.WriteString(indent)
+		out.WriteString("        __f_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(boxType)
+		out.WriteString("\n")
+		out.WriteString(indent)
+		out.WriteString("    };\n")
+		out.WriteString(indent)
+		out.WriteString("    let __f = unsafe { &mut *__f_ptr };\n")
+		out.WriteString(indent)
+		out.WriteString("    (*__f)(")
+		if len(call.Args) > 0 {
+			out.WriteString("\n")
+		}
+	} else {
+		out.WriteString("; let __f_ptr: *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" = { let mut __f_guard = __f_holder")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(boxType)
+		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
+	}
+	writeArgPrefix := func(i int) {
+		if multiline {
+			out.WriteString(indent)
+			out.WriteString("        ")
+		} else if i > 0 {
+			out.WriteString(", ")
+		}
+	}
+	writeArgSuffix := func() {
+		if multiline {
+			out.WriteString(",\n")
+		}
+	}
+	closeCall := func() {
+		if multiline {
+			if len(call.Args) > 0 {
+				out.WriteString(indent)
+				out.WriteString("    ")
+			}
+			out.WriteString(")\n")
+			out.WriteString(indent)
+			out.WriteString("}")
+		} else {
+			out.WriteString(") }")
+		}
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if sig, ok := signatureFromType(typeInfo.GetType(sel)); ok {
 			if sig.Variadic() {
@@ -21706,27 +21776,25 @@ func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr,
 			} else {
 				params := sig.Params()
 				for i, arg := range call.Args {
-					if i > 0 {
-						out.WriteString(", ")
-					}
+					writeArgPrefix(i)
 					var expected types.Type
 					if params != nil && i < params.Len() {
 						expected = params.At(i).Type()
 					}
 					writeFunctionSignatureCallArgument(out, arg, expected)
+					writeArgSuffix()
 				}
 			}
-			out.WriteString(") }")
+			closeCall()
 			return
 		}
 	}
 	for i, arg := range call.Args {
-		if i > 0 {
-			out.WriteString(", ")
-		}
+		writeArgPrefix(i)
 		writeFunctionValueArgument(out, arg)
+		writeArgSuffix()
 	}
-	out.WriteString(") }")
+	closeCall()
 }
 
 func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) {

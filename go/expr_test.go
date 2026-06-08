@@ -5905,6 +5905,32 @@ func main() {
 	}
 }
 
+func TestConcurrentFunctionFieldCallBreaksSetupAndArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Mapper struct {
+	mmap func(uintptr, uintptr, int, int, int, int64) (uintptr, error)
+}
+
+func (m *Mapper) Map(length uintptr, prot int, flags int, fd int, offset int64) (uintptr, error) {
+	go func() {}()
+	return m.mmap(0, length, prot, flags, fd, offset)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __f_holder") && strings.Contains(line, "let __f_ptr") {
+			t.Fatalf("function field call should split function pointer setup across lines:\n%s", rust)
+		}
+		if strings.Contains(line, "(*__f)(") && strings.Contains(line, "Arc::new") {
+			t.Fatalf("function field call should split arguments across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "(*__f)(\n") {
+		t.Fatalf("function field call should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestMethodExpressionFunctionArgumentUsesClosure(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
