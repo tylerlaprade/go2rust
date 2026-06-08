@@ -1923,10 +1923,18 @@ pub fn sweepone() -> usize {
         {
         let mut state = (*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get();;
         if { let __tmp_x = (*state.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } {
-            if !({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } || {
-                let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap());
-                let __tmp_y = { let __tmp_x = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as u32; __tmp_x + __tmp_y };
-                __tmp_x == __tmp_y
+            if !({
+                let __go_cond_0 = { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+                if __go_cond_0 {
+                    true
+                } else {
+                    let __go_cond_1 = {
+                        let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = { let __tmp_x = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as u32; __tmp_x + __tmp_y };
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_1
+                }
             }) {
         {
             let __go_print_arg_0 = format!("{}", "runtime: bad span s.state=".to_string());

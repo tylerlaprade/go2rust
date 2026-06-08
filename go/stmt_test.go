@@ -4858,6 +4858,31 @@ func fractional(layout string, i int) bool {
 	}
 }
 
+func TestConcurrentIfBuildsNegatedNestedLogicalConditionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func visible(i uintptr, off uintptr) bool {
+	go func() {}()
+	if !(i < 128*8 || off-16*8 < i && i < off+16*8) {
+		return false
+	}
+	return true
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "if !") && strings.Contains(line, "||") && strings.Contains(line, "&&") {
+			t.Fatalf("negated nested logical condition should not stay on one if line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "if !({\n") {
+		t.Fatalf("negated nested logical condition should wrap a statement-built condition:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("negated nested logical condition should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsGoErrorComparisonChainWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

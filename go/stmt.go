@@ -9554,6 +9554,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 }
 
 const minStatementBuiltLogicalConditionNodes = 3
+const minStatementBuiltNegatedLogicalConditionNodes = 2
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const minStatementBuiltLogicalConditionFieldComparisons = 4
 const minStatementBuiltLogicalConditionCallOperands = 4
@@ -9576,6 +9577,9 @@ func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
 	if !NeedsConcurrentWrapper() {
 		return false
 	}
+	if unary, ok := unwrapParens(expr).(*ast.UnaryExpr); ok && unary.Op == token.NOT {
+		return shouldStatementBuildNegatedLogicalCondition(unary.X)
+	}
 	if countLogicalConditionNodes(expr) >= minStatementBuiltLogicalConditionNodes {
 		return true
 	}
@@ -9586,6 +9590,13 @@ func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
 		return true
 	}
 	return logicalConditionHasComplexOperand(expr)
+}
+
+func shouldStatementBuildNegatedLogicalCondition(expr ast.Expr) bool {
+	if countLogicalConditionNodes(expr) >= minStatementBuiltNegatedLogicalConditionNodes {
+		return true
+	}
+	return shouldStatementBuildLogicalCondition(expr)
 }
 
 func countLogicalConditionNodes(expr ast.Expr) int {
@@ -9798,6 +9809,13 @@ func currentLineIndent(out *strings.Builder) string {
 }
 
 func writeStatementBuiltLogicalConditionValue(out *strings.Builder, expr ast.Expr, indent string, nextTemp *int) {
+	if unary, ok := unwrapParens(expr).(*ast.UnaryExpr); ok && unary.Op == token.NOT && shouldStatementBuildNegatedLogicalCondition(unary.X) {
+		out.WriteString("!(")
+		writeStatementBuiltLogicalConditionValue(out, unary.X, indent, nextTemp)
+		out.WriteString(")")
+		return
+	}
+
 	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
 	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
 		transpileConditionInline(out, expr)
@@ -9844,13 +9862,23 @@ func writeStatementBuiltLogicalConditionTemp(out *strings.Builder, expr ast.Expr
 	out.WriteString("let ")
 	out.WriteString(name)
 	out.WriteString(" = ")
-	if countLogicalConditionNodes(expr) > 0 {
+	if shouldWriteStatementBuiltLogicalConditionTemp(expr) {
 		writeStatementBuiltLogicalConditionValue(out, expr, indent, nextTemp)
 	} else {
 		transpileConditionInline(out, expr)
 	}
 	out.WriteString(";\n")
 	return name
+}
+
+func shouldWriteStatementBuiltLogicalConditionTemp(expr ast.Expr) bool {
+	if countLogicalConditionNodes(expr) > 0 {
+		return true
+	}
+	if unary, ok := unwrapParens(expr).(*ast.UnaryExpr); ok && unary.Op == token.NOT {
+		return shouldWriteStatementBuiltLogicalConditionTemp(unary.X)
+	}
+	return false
 }
 
 func transpileConditionInline(out *strings.Builder, expr ast.Expr) {

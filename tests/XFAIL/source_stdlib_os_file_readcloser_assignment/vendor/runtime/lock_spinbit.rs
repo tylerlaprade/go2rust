@@ -332,7 +332,23 @@ pub fn unlock2_wake(l: GoPtr<crate::runtime2::mutex>) {
         // On occasion, seek out and wake the M at the bottom of the stack so it
         // doesn't starve.
     let mut antiStarve = Arc::new(Mutex::new(Some({ let __tmp_x = cheaprandn(Arc::new(Mutex::new(Some(MUTEX_TAIL_WAKE_PERIOD as u32)))); let __tmp_y = 0 as u32; __tmp_x == __tmp_y })));
-    if !({ let __v = (*antiStarve.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __tmp_x = v; let __tmp_y = MUTEX_SPINNING as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } || mutex_prefer_low_latency(l.clone())) {
+    if !({
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __v = (*antiStarve.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_2 = { let __tmp_x = { let __tmp_x = v; let __tmp_y = MUTEX_SPINNING as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y };
+                __go_cond_2
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_3 = mutex_prefer_low_latency(l.clone());
+            __go_cond_3
+        }
+    }) {
         return;
     }
 

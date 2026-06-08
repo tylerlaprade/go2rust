@@ -2352,7 +2352,23 @@ pub fn gc_mark_done() {
                 // empty before performing the ragged barrier. Otherwise,
                 // there could be global work that a P could take after the P
                 // has passed the ragged barrier.
-        if !({ let __tmp_x = (*gcphase.lock().unwrap().as_ref().unwrap()); let __tmp_y = __G_CMARK as u32; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).nwait.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).nproc.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && !gc_mark_work_available(GoPtr::nil())) {
+        if !({
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = (*gcphase.lock().unwrap().as_ref().unwrap()); let __tmp_y = __G_CMARK as u32; __tmp_x == __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).nwait.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).nproc.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = !gc_mark_work_available(GoPtr::nil());
+                __go_cond_3
+            } else {
+                false
+            }
+        }) {
         semrelease(GoPtr::local((*work.lock().unwrap().as_ref().unwrap()).mark_done_sema.clone()));
         return;
     }

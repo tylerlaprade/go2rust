@@ -2258,7 +2258,31 @@ pub fn gc_drain(gcw: Arc<Mutex<Option<gcWork>>>, flags: Arc<Mutex<Option<gcDrain
         if { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
                 // Stop if we're preemptible, if someone wants to STW, or if
                 // someone is calling forEachP.
-        while !((*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().preempt.clone() }.lock().unwrap().as_ref().unwrap()) && ({ let __v = (*preemptible.lock().unwrap().as_ref().unwrap()).clone(); __v } || (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load() || { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().run_safe_point_fn.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y })) {
+        while !({
+            let __go_cond_0 = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().preempt.clone() }.lock().unwrap().as_ref().unwrap());
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = { let __v = (*preemptible.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_4 = (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load();
+                            __go_cond_4
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_5 = { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().run_safe_point_fn.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+                        __go_cond_5
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        }) {
         let mut job = Arc::new(Mutex::new(Some({
             let __tmp_x = internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local((*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone()), Arc::new(Mutex::new(Some(1 as i32))));
             let __tmp_y = 1 as u32;
@@ -2295,7 +2319,31 @@ pub fn gc_drain(gcw: Arc<Mutex<Option<gcWork>>>, flags: Arc<Mutex<Option<gcDrain
                 // mark workers in retake. That might be simpler than trying to
                 // enumerate all the reasons why we might want to preempt, even
                 // if we're supposed to be mostly non-preemptible.
-        while !((*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().preempt.clone() }.lock().unwrap().as_ref().unwrap()) && ({ let __v = (*preemptible.lock().unwrap().as_ref().unwrap()).clone(); __v } || (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load() || { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().run_safe_point_fn.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y })) {
+        while !({
+            let __go_cond_0 = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().preempt.clone() }.lock().unwrap().as_ref().unwrap());
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = { let __v = (*preemptible.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_4 = (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load();
+                            __go_cond_4
+                        }
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_5 = { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().run_safe_point_fn.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+                        __go_cond_5
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        }) {
                 // Try to keep work available on the global queue. We used to
                 // check if there were waiting workers, but it's better to
                 // just keep work available than to make workers wait. In the
@@ -3006,7 +3054,23 @@ pub fn gc_dump_object(label: Arc<Mutex<Option<String>>>, obj: Arc<Mutex<Option<u
                 // For big objects, just print the beginning (because
                 // that usually hints at the object's type) and the
                 // fields around off.
-        if !({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((128 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x < __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((16 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((16 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }; __tmp_x < __tmp_y }) {
+        if !({
+            let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((128 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((16 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((16 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }; __tmp_x < __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_1
+            }
+        }) {
         { let new_val = true; *skipped.lock().unwrap() = Some(new_val); };
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };; continue
     }

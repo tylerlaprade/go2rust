@@ -1704,7 +1704,23 @@ pub fn shrinkstack(gp: GoPtr<crate::runtime2::g>) {
     {
         let mut s = readgstatus(gp.clone());;
         if { let __tmp_x = { let __tmp_x = s; let __tmp_y = __GSCAN as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-            if !({ let __left_addr = gp.addr(); let __right_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __left_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __right_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq } && { let __tmp_x = s; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y }) {
+            if !({
+                let __go_cond_0 = {
+                    let __go_cond_1 = { let __left_addr = gp.addr(); let __right_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; __eq };
+                    if __go_cond_1 {
+                        let __go_cond_2 = { let __left_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __right_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq };
+                        __go_cond_2
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_0 {
+                    let __go_cond_3 = { let __tmp_x = s; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            }) {
         throw(Arc::new(Mutex::new(Some("bad status in shrinkstack".to_string()))));
     };
         }
