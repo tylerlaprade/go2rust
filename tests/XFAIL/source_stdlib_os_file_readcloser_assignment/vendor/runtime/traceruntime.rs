@@ -1635,7 +1635,15 @@ impl traceLocker {
                 // syscall context we're always stealing a P for ourselves, we may have not wired it up yet (so
                 // it wouldn't be visible to eventWriter) or we may not even intend to wire it up to ourselves
                 // at all (e.g. entersyscall_gcwait).
-        if !(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).status_was_traced(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) && (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).acquire_status(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if {
+            let __go_cond_0 = !(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).status_was_traced(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            if __go_cond_0 {
+                let __go_cond_1 = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).acquire_status(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Careful: don't use the event writer. We never want status or in-progress events
                 // to trigger more in-progress events.
         { let __recv = {
@@ -1852,7 +1860,15 @@ pub fn trace_acquire_enabled() -> Arc<Mutex<Option<traceLocker>>> {
         // Check if we're already tracing. It's safe to be reentrant in general,
         // because this function (and the invariants of traceLocker.writer) ensure
         // that it is.
-    if { let __tmp_x = { let __tmp_x = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }; let __tmp_y = 1 as usize; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = {
+            let __tmp_x = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).load();
+            let __tmp_y = 2 as usize;
+            __tmp_x % __tmp_y
+        };
+        let __tmp_y = 1 as usize;
+        __tmp_x == __tmp_y
+    } {
         { let __target = (*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).reentered.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return Arc::new(Mutex::new(Some(traceLocker { mp: mp.clone(), gen: Arc::new(Mutex::new(Some((*(*trace.lock().unwrap().as_ref().unwrap()).gen.lock().unwrap().as_mut().unwrap()).load()))), ..Default::default() })));
     }
@@ -1891,7 +1907,11 @@ pub fn trace_acquire_enabled() -> Arc<Mutex<Option<traceLocker>>> {
 ///
 ///go:nosplit
 pub fn trace_release(tl: Arc<Mutex<Option<traceLocker>>>) {
-    if { let __tmp_x = (*(*(*(*tl.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).reentered.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x > __tmp_y } {
+    if {
+        let __tmp_x = (*(*(*(*tl.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).reentered.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = 0 as u32;
+        __tmp_x > __tmp_y
+    } {
         { let __target = (*(*(*tl.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).reentered.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     } else {
         let mut seq = (*(*(*(*tl.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as usize))));

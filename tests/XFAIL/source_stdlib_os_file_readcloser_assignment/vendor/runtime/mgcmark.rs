@@ -540,14 +540,42 @@ pub fn gc_mark_root_prepare() {
     { let new_val = ({ let __len_target = { let __field = (*work.lock().unwrap().as_ref().unwrap()).stack_roots.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *(*work.lock().unwrap().as_ref().unwrap()).n_stack_roots.lock().unwrap() = Some(new_val); };
 
     { let new_val = 0 as u32; *(*work.lock().unwrap().as_ref().unwrap()).markroot_next.lock().unwrap() = Some(new_val); };
-    { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_data_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_b_s_s_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_span_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_stack_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.lock().unwrap() = __moved_val; };
+    { let new_val = Arc::new(Mutex::new(Some(({
+        let __tmp_x = {
+            let __tmp_x = {
+                let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_data_roots.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_b_s_s_roots.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
+            let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_span_roots.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        };
+        let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).n_stack_roots.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    }) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.lock().unwrap() = __moved_val; };
 
         // Calculate base indexes of each root type
     { let new_val = Arc::new(Mutex::new(Some(FIXED_ROOT_COUNT as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*work.lock().unwrap().as_ref().unwrap()).base_data.lock().unwrap() = __moved_val; };
-    { let new_val = { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_data.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_data_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *(*work.lock().unwrap().as_ref().unwrap()).base_b_s_s.lock().unwrap() = Some(new_val); };
-    { let new_val = { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_b_s_s.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_b_s_s_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *(*work.lock().unwrap().as_ref().unwrap()).base_spans.lock().unwrap() = Some(new_val); };
-    { let new_val = { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_spans.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_span_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *(*work.lock().unwrap().as_ref().unwrap()).base_stacks.lock().unwrap() = Some(new_val); };
-    { let new_val = { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_stacks.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_stack_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *(*work.lock().unwrap().as_ref().unwrap()).base_end.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_data.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_data_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    }; *(*work.lock().unwrap().as_ref().unwrap()).base_b_s_s.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_b_s_s.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_b_s_s_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    }; *(*work.lock().unwrap().as_ref().unwrap()).base_spans.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_spans.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_span_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    }; *(*work.lock().unwrap().as_ref().unwrap()).base_stacks.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).base_stacks.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).n_stack_roots.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    }; *(*work.lock().unwrap().as_ref().unwrap()).base_end.lock().unwrap() = Some(new_val); };
 }
 
 /// gcMarkRootCheck checks that all roots have been scanned. It is
@@ -624,7 +652,11 @@ pub fn markroot(gcw: Arc<Mutex<Option<gcWork>>>, i: Arc<Mutex<Option<u32>>>, flu
 
                 // Finalizers that contain cleanups only have fn set. None of the other
                 // fields are necessary.
-        scanblock(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = (*fb.lock().unwrap().as_ref().unwrap()).fin.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*cnt.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mfinal::finalizer>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y }))), GoPtr::array_elem(GoArrayElemPtr::new(finptrmask.clone(), (0) as usize)), gcw.clone(), Arc::new(Mutex::new(None)));
+        scanblock(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = (*fb.lock().unwrap().as_ref().unwrap()).fin.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __v = (*cnt.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mfinal::finalizer>()))).lock().unwrap().as_ref().unwrap()) as usize;
+            __tmp_x * __tmp_y
+        }))), GoPtr::array_elem(GoArrayElemPtr::new(finptrmask.clone(), (0) as usize)), gcw.clone(), Arc::new(Mutex::new(None)));
         { let new_val = (*fb.lock().unwrap().as_ref().unwrap()).alllink.clone(); fb = new_val; };
     }
         } else if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = FIXED_ROOT_FREE_G_STACKS as u32; __tmp_x == __tmp_y } {
@@ -874,7 +906,15 @@ pub fn markroot_spans(gcw: Arc<Mutex<Option<gcWork>>>, shard: Arc<Mutex<Option<i
                         // A finalizer can be set for an inner byte of an object, find object beginning.
             let mut p = Arc::new(Mutex::new(Some({
                 let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result };
-                let __tmp_y = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = spf.with_mut(|__ptr_value| __ptr_value.special.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+                let __tmp_y = {
+                    let __tmp_x = {
+                        let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = spf.with_mut(|__ptr_value| __ptr_value.special.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap());
+                        __tmp_x / __tmp_y
+                    };
+                    let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap());
+                    __tmp_x * __tmp_y
+                };
                 __tmp_x + __tmp_y
             })));
                         // Mark everything that can be reached from
@@ -1427,7 +1467,15 @@ pub fn gc_flush_bg_credit(mut scanWork: Arc<Mutex<Option<i64>>>) {
     let mut scanBytes = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some((*scanWork.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = assistBytesPerWork; __tmp_x * __tmp_y }) as i64)));
 
     lock(GoPtr::local((*(*work.lock().unwrap().as_ref().unwrap()).assist_queue.lock().unwrap().as_ref().unwrap()).lock.clone()));
-    while !(*(*(*work.lock().unwrap().as_ref().unwrap()).assist_queue.lock().unwrap().as_ref().unwrap()).q.lock().unwrap().as_ref().unwrap()).empty() && { let __tmp_x = { let __v = (*scanBytes.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
+    while {
+        let __go_cond_0 = !(*(*(*work.lock().unwrap().as_ref().unwrap()).assist_queue.lock().unwrap().as_ref().unwrap()).q.lock().unwrap().as_ref().unwrap()).empty();
+        if __go_cond_0 {
+            let __go_cond_1 = { let __tmp_x = { let __v = (*scanBytes.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         let mut gp: GoPtr<crate::runtime2::g> = (*(*(*work.lock().unwrap().as_ref().unwrap()).assist_queue.lock().unwrap().as_ref().unwrap()).q.lock().unwrap().as_mut().unwrap()).pop();
 
                 // Note that gp.gcAssistBytes is negative because gp
@@ -1682,7 +1730,11 @@ pub fn scanstack(gp: Arc<Mutex<Option<g>>>, gcw: Arc<Mutex<Option<gcWork>>>) -> 
         printlock();
         {
             let __go_print_arg_0 = format!("{}", "  live stkobj at".to_string());
-            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*(*state.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = obj.with_mut(|__ptr_value| __ptr_value.off.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y } as u64)))));
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({
+                let __tmp_x = (*(*(*state.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = obj.with_mut(|__ptr_value| __ptr_value.off.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            } as u64)))));
             let __go_print_arg_2 = format!("{}", "of size".to_string());
             let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = obj.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()));
             eprint!("{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
@@ -1697,7 +1749,11 @@ pub fn scanstack(gp: Arc<Mutex<Option<g>>>, gcw: Arc<Mutex<Option<gcWork>>>) -> 
         printunlock();
     }
         let (mut ptrBytes, mut gcData) = { let __recv = r.clone(); let __recv_ptr: *const crate::stack::stackObjectRecord = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::stack::stackObjectRecord }; let __result = unsafe { &*__recv_ptr }.gcdata(); __result };
-        let mut b = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*(*state.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = obj.with_mut(|__ptr_value| __ptr_value.off.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut b = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*(*(*state.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = obj.with_mut(|__ptr_value| __ptr_value.off.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         if conservative {
         scan_conservative(Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(ptrBytes))), gcData.clone(), gcw.clone(), state.clone());
     } else {
@@ -1721,7 +1777,11 @@ pub fn scanstack(gp: Arc<Mutex<Option<g>>>, gcw: Arc<Mutex<Option<gcWork>>>) -> 
     }
         {
             let __go_print_arg_0 = format!("{}", "  dead stkobj at".to_string());
-            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*obj.as_ref().unwrap().borrow().as_ref().unwrap()).off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y } as u64)))));
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({
+                let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*obj.as_ref().unwrap().borrow().as_ref().unwrap()).off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            } as u64)))));
             let __go_print_arg_2 = format!("{}", "of size".to_string());
             let __go_print_arg_3 = format!("{}", (*(*(*obj.as_ref().unwrap().borrow().as_ref().unwrap()).r.lock().unwrap().as_ref().unwrap()).size.lock().unwrap().as_ref().unwrap()));
             eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
@@ -1755,8 +1815,16 @@ pub fn scanframeworker(frame: Arc<Mutex<Option<stkframe>>>, state: Arc<Mutex<Opt
         };
     }
 
-    let mut isAsyncPreempt = Arc::new(Mutex::new(Some((*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = { let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_ASYNC_PREEMPT as u8)))); __tmp_x == __tmp_y })));
-    let mut isDebugCall = Arc::new(Mutex::new(Some((*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = { let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_DEBUG_CALL_V2 as u8)))); __tmp_x == __tmp_y })));
+    let mut isAsyncPreempt = Arc::new(Mutex::new(Some((*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).valid() && {
+        let __tmp_x = { let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_ASYNC_PREEMPT as u8))));
+        __tmp_x == __tmp_y
+    })));
+    let mut isDebugCall = Arc::new(Mutex::new(Some((*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).valid() && {
+        let __tmp_x = { let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_DEBUG_CALL_V2 as u8))));
+        __tmp_x == __tmp_y
+    })));
     if (*{ let __field = (*state.lock().unwrap().as_ref().unwrap()).conservative.clone(); __field }.lock().unwrap().as_ref().unwrap()) || { let __v = (*isAsyncPreempt.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __v = (*isDebugCall.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         if DEBUG_SCAN_CONSERVATIVE {
         {
@@ -1962,7 +2030,11 @@ pub fn gc_drain(gcw: Arc<Mutex<Option<gcWork>>>, flags: Arc<Mutex<Option<gcDrain
                 // Stop if we're preemptible, if someone wants to STW, or if
                 // someone is calling forEachP.
         while !((*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().preempt.clone() }.lock().unwrap().as_ref().unwrap()) && ({ let __v = (*preemptible.lock().unwrap().as_ref().unwrap()).clone(); __v } || (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load() || { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().run_safe_point_fn.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y })) {
-        let mut job = Arc::new(Mutex::new(Some({ let __tmp_x = internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local((*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone()), Arc::new(Mutex::new(Some(1 as i32)))); let __tmp_y = 1 as u32; __tmp_x - __tmp_y })));
+        let mut job = Arc::new(Mutex::new(Some({
+            let __tmp_x = internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local((*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone()), Arc::new(Mutex::new(Some(1 as i32))));
+            let __tmp_y = 1 as u32;
+            __tmp_x - __tmp_y
+        })));
         if { let __tmp_x = { let __v = (*job.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
         break
     }
@@ -2106,7 +2178,11 @@ pub fn gc_drain_n(gcw: Arc<Mutex<Option<gcWork>>>, scanWork: Arc<Mutex<Option<i6
         if { let __tmp_x = b; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
                 // Try to do a root job.
         if { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut job = Arc::new(Mutex::new(Some({ let __tmp_x = internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local((*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone()), Arc::new(Mutex::new(Some(1 as i32)))); let __tmp_y = 1 as u32; __tmp_x - __tmp_y })));
+        let mut job = Arc::new(Mutex::new(Some({
+            let __tmp_x = internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local((*work.lock().unwrap().as_ref().unwrap()).markroot_next.clone()), Arc::new(Mutex::new(Some(1 as i32))));
+            let __tmp_y = 1 as u32;
+            __tmp_x - __tmp_y
+        })));
         if { let __tmp_x = { let __v = (*job.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).markroot_jobs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         { let __rhs = markroot(gcw.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = job.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false)))); let mut guard = workFlushed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         continue

@@ -239,7 +239,15 @@ pub fn trace_c_p_u_sample(gp: GoPtr<crate::runtime2::g>, mp: Arc<Mutex<Option<m>
         // in the tracer and we can just take advantage of that. If it isn't, then
         // we need to acquire it and read the generation.
     let mut locked = Arc::new(Mutex::new(Some(false)));
-    if { let __tmp_x = { let __tmp_x = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = {
+            let __tmp_x = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).load();
+            let __tmp_y = 2 as usize;
+            __tmp_x % __tmp_y
+        };
+        let __tmp_y = 0 as usize;
+        __tmp_x == __tmp_y
+    } {
         (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as usize))));
         { let new_val = true; *locked.lock().unwrap() = Some(new_val); };
     }

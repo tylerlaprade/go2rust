@@ -191,7 +191,11 @@ pub(crate) fn __go_zero_globals() {
 impl stkframe {
     /// argBytes returns the argument frame size for a call to frame.fn.
     pub fn arg_bytes(&self) -> usize {
-        if { let __tmp_x = (*(*self.r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().args.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_abi::ARGS_SIZE_UNKNOWN as i32; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*(*self.r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().args.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = internal_abi::ARGS_SIZE_UNKNOWN as i32;
+            __tmp_x != __tmp_y
+        } {
         return (*Arc::new(Mutex::new(Some({ let __selector_holder = (*self.r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().args.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
     }
                 // This is an uncommon and complicated case. Fall back to fully

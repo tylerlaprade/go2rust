@@ -59,7 +59,27 @@ fn __go_init_0() {
     let mut lim: Arc<Mutex<Option<Rlimit>>> = Arc::new(Mutex::new(Some(Default::default())));
     {
         let mut err = getrlimit(Arc::new(Mutex::new(Some(8))), lim.clone());;
-        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = (*{ let __field = (*lim.lock().unwrap().as_ref().unwrap()).max.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } && { let __tmp_x = (*{ let __field = (*lim.lock().unwrap().as_ref().unwrap()).cur.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __field = (*lim.lock().unwrap().as_ref().unwrap()).max.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x - __tmp_y }; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = (*{ let __field = (*lim.lock().unwrap().as_ref().unwrap()).max.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = {
+                    let __tmp_x = (*{ let __field = (*lim.lock().unwrap().as_ref().unwrap()).cur.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = { let __tmp_x = (*{ let __field = (*lim.lock().unwrap().as_ref().unwrap()).max.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x - __tmp_y };
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
             (*origRlimitNofile.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(lim.clone()));;
             let mut nlim = { let __owned = lim.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
             { let new_val = { let __tmp_x = (*{ let __field = (*nlim.lock().unwrap().as_ref().unwrap()).max.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x - __tmp_y }; *(*nlim.lock().unwrap().as_ref().unwrap()).cur.lock().unwrap() = Some(new_val); };;

@@ -4679,6 +4679,37 @@ func overlaps(x *buf, s *state, addr uintptr) bool {
 	}
 }
 
+func TestConcurrentIfBuildsLogicalCallConditionWithSelectorArgs(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type module struct {
+	data uintptr
+	edata uintptr
+	bss uintptr
+	ebss uintptr
+}
+
+func inRange(p uintptr, start uintptr, end uintptr) bool {
+	return start <= p && p < end
+}
+
+func isGoPointer(p uintptr, datap *module) bool {
+	go func() {}()
+	if inRange(p, datap.data, datap.edata) || inRange(p, datap.bss, datap.ebss) {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "} || {") {
+		t.Fatalf("logical call condition with selector args should not chain inline statement blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("logical call condition with selector args should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentMethodCallBreaksComplexArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

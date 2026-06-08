@@ -689,7 +689,15 @@ pub fn implements(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<internal_abi::r
         let mut tmName = (*rT.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         let mut vm: Option<GoSliceElemPtr<internal_abi::r#type::Imethod>> = Some(GoSliceElemPtr::new({ let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(), ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
         let mut vmName = (*rV.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*vm.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        if { let __tmp_x = (*(*vmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*tmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } && { let __left_addr = (*rV.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*vm.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __right_addr = (*rT.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __eq = __left_addr == __right_addr; __eq } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*(*vmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*tmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __left_addr = (*rV.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*vm.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __right_addr = (*rT.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __eq = __left_addr == __right_addr; __eq };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         if !(*tmName.lock().unwrap().as_ref().unwrap()).is_exported() {
         let mut tmPkgPath = pkg_path(Arc::new(Mutex::new(Some({ let __arg_holder = tmName.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = (*tmPkgPath.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
@@ -727,7 +735,15 @@ pub fn implements(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<internal_abi::r
         let mut tmName = (*rT.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         let mut vm = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = vmethods.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })));
         let mut vmName = (*rV.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*vm.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        if { let __tmp_x = (*(*vmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*tmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } && { let __left_addr = (*rV.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*vm.lock().unwrap().as_ref().unwrap()).mtyp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __right_addr = (*rT.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __eq = __left_addr == __right_addr; __eq } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*(*vmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*tmName.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __left_addr = (*rV.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*vm.lock().unwrap().as_ref().unwrap()).mtyp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __right_addr = (*rT.lock().unwrap().as_ref().unwrap()).type_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).addr(); let __eq = __left_addr == __right_addr; __eq };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         if !(*tmName.lock().unwrap().as_ref().unwrap()).is_exported() {
         let mut tmPkgPath = pkg_path(Arc::new(Mutex::new(Some({ let __arg_holder = tmName.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = (*tmPkgPath.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
@@ -864,22 +880,46 @@ pub fn have_identical_underlying_type(T: GoPtr<internal_abi::r#type::Type>, V: G
         } else if _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::STRUCT as u8))))) {
             let mut t: GoPtr<internal_abi::r#type::StructType> = { let __ptr = Arc::new(Mutex::new(Some(T.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::StructType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::StructType")) } };
             let mut v: GoPtr<internal_abi::r#type::StructType> = { let __ptr = Arc::new(Mutex::new(Some(V.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::StructType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::StructType")) } };
-            if { let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = (({ let __len_target = { let __field = { let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x != __tmp_y } {
+            if {
+                let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
+                let __tmp_y = (({ let __len_target = { let __field = { let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
+                __tmp_x != __tmp_y
+            } {
         return false;
     }
-            if { let __tmp_x = (*(*{ let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.pkg_path.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*{ let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.pkg_path.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+            if {
+                let __tmp_x = (*(*{ let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.pkg_path.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = (*(*{ let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.pkg_path.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone();
+                __tmp_x != __tmp_y
+            } {
         return false;
     }
             for i in 0..(({ let __range_holder = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut tf: Option<GoSliceElemPtr<internal_abi::r#type::StructField>> = Some(GoSliceElemPtr::new({ let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(), (i) as usize));
         let mut vf: Option<GoSliceElemPtr<internal_abi::r#type::StructField>> = Some(GoSliceElemPtr::new({ let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.fields.clone()); __ptr_value }.clone(), (i) as usize));
-        if { let __tmp_x = (*(*(*tf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*(*vf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*(*(*tf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = (*(*(*vf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone();
+            __tmp_x != __tmp_y
+        } {
         return false;
     }
         if !have_identical_type({ let __field = (*tf.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); __field }, { let __field = (*vf.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = cmpTags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return false;
     }
-        if { let __v = (*cmpTags.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*(*(*tf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).tag().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*(*(*vf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).tag().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = { let __v = (*cmpTags.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*(*tf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).tag().lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = (*(*(*vf.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).tag().lock().unwrap().as_ref().unwrap()).clone();
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         return false;
     }
         if { let __tmp_x = (*{ let __field = (*tf.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*vf.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {

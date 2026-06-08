@@ -797,7 +797,19 @@ impl Location {
             return (name.clone(), (*offset.lock().unwrap().as_ref().unwrap()), (*start.lock().unwrap().as_ref().unwrap()), (*end.lock().unwrap().as_ref().unwrap()), (*isDST.lock().unwrap().as_ref().unwrap()));;
         }
     }
-        if { let __tmp_x = (({ let __len_target = { let __field = __self.tx.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __seq = { let __seq_holder = __self.tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (({ let __len_target = { let __field = __self.tx.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    let __tmp_y = (*{ let __seq = { let __seq_holder = __self.tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.when.lock().unwrap().as_ref().unwrap());
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            }
+        } {
         let mut zone: Option<GoSliceElemPtr<zone>> = Some(GoSliceElemPtr::new(__self.zone.clone(), (__self.lookup_first_zone()) as usize));
         { let new_val = { let __selector_holder = (*zone.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *name.lock().unwrap() = Some(new_val); };
         { let new_val = { let __selector_holder = (*zone.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *offset.lock().unwrap() = Some(new_val); };
@@ -866,8 +878,20 @@ impl Location {
         return 0;
     }
                 // Case 2.
-        if { let __tmp_x = (({ let __len_target = { let __field = self.tx.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && (*{ let __seq = { let __seq_holder = self.zone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[((*{ let __seq = { let __seq_holder = self.tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.index.lock().unwrap().as_ref().unwrap())) as usize].clone() }.is_d_s_t.lock().unwrap().as_ref().unwrap()) {
-        let mut zi = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = self.tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.index.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x - __tmp_y })));
+        if {
+            let __go_cond_0 = { let __tmp_x = (({ let __len_target = { let __field = self.tx.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = (*{ let __seq = { let __seq_holder = self.zone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[((*{ let __seq = { let __seq_holder = self.tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.index.lock().unwrap().as_ref().unwrap())) as usize].clone() }.is_d_s_t.lock().unwrap().as_ref().unwrap());
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
+        let mut zi = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = self.tx.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.index.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = 1;
+            __tmp_x - __tmp_y
+        })));
     while { let __tmp_x = { let __v = (*zi.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         if !(*{ let __seq = { let __seq_holder = self.zone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*zi.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.is_d_s_t.lock().unwrap().as_ref().unwrap()) {
         return { let __v = (*zi.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -1336,7 +1360,11 @@ let mut dow = Arc::new(Mutex::new(Some(__go_binary_24)));
     }
             let mut i = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).week.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y }; let __tmp_y = days_in(Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).mon.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y };
+            let __tmp_y = days_in(Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).mon.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            __tmp_x >= __tmp_y
+        } {
         break
     }
         { let __rhs = 7; let mut guard = d.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

@@ -524,8 +524,16 @@ impl crate::mheap::mheap {
 
                 // Register the arena in allArenas if requested.
         if { let __v = (*register.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        if { let __tmp_x = (({ let __len_target = { let __field = self.all_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = (({ let __cap_target = { let __field = self.all_arenas.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); __tmp_x == __tmp_y } {
-        let mut size = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __cap_target = { let __field = self.all_arenas.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })));
+        if {
+            let __tmp_x = (({ let __len_target = { let __field = self.all_arenas.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
+            let __tmp_y = (({ let __cap_target = { let __field = self.all_arenas.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32);
+            __tmp_x == __tmp_y
+        } {
+        let mut size = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __cap_target = { let __field = self.all_arenas.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            let __tmp_y = internal_goarch::PTR_SIZE as usize;
+            __tmp_x * __tmp_y
+        })));
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         { let new_val = physPageSize.lock().unwrap().as_ref().unwrap().clone(); *size.lock().unwrap() = Some(new_val); };
     }
@@ -668,7 +676,11 @@ impl crate::mcache::mcache {
         if { let __tmp_x = freeIndex; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
         throw(Arc::new(Mutex::new(Some("freeIndex is not valid".to_string()))));
     }
-        { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(freeIndex as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x + __tmp_y } as usize)))); *v.lock().unwrap() = Some(new_val); };
+        { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(freeIndex as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result };
+            __tmp_x + __tmp_y
+        } as usize)))); *v.lock().unwrap() = Some(new_val); };
         { let __target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_count.clone()); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         if { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         {
@@ -807,7 +819,11 @@ pub fn next_free_fast(s: GoPtr<crate::mheap::mspan>) -> Arc<Mutex<Option<crate::
         { let __target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_cache.clone()); __ptr_value }.clone(); let __rhs = (*Arc::new(Mutex::new(Some(({ let __tmp_x = theBit; let __tmp_y = 1; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> __rhs); };
         { let new_val = freeidx.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.freeindex.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let __target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_count.clone()); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        return Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x + __tmp_y } as usize)))))));
+        return Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*result.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result };
+            __tmp_x + __tmp_y
+        } as usize)))))));
     }
     }
     Arc::new(Mutex::new(Some(crate::mcache::gclinkptr(Arc::new(Mutex::new(Some(0 as usize)))))))
@@ -1523,7 +1539,19 @@ pub fn pre_mallocgc_debug(size: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_a
         // This causes 64-bit atomic accesses to panic.
         // Hence, we use stricter alignment that matches
         // the normal allocator better.
-    if (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).active.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*getg().lock().unwrap().as_ref().unwrap()).goid.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).active.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*(*getg().lock().unwrap().as_ref().unwrap()).goid.lock().unwrap().as_ref().unwrap());
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
                 // Init functions are executed sequentially in a single goroutine.
         { let __target = (*inittrace.lock().unwrap().as_ref().unwrap()).allocs.clone(); let __rhs = 1 as u64; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
@@ -1532,7 +1560,19 @@ pub fn pre_mallocgc_debug(size: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_a
 }
 
 pub fn post_mallocgc_debug(x: Arc<Mutex<Option<usize>>>, elemsize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>) {
-    if (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).active.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*getg().lock().unwrap().as_ref().unwrap()).goid.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).active.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = (*{ let __field = (*inittrace.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*(*getg().lock().unwrap().as_ref().unwrap()).goid.lock().unwrap().as_ref().unwrap());
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
                 // Init functions are executed sequentially in a single goroutine.
         { let __target = (*inittrace.lock().unwrap().as_ref().unwrap()).bytes.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*elemsize.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

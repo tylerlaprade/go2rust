@@ -211,7 +211,11 @@ impl crate::mpagealloc::pageAlloc {
         assert_lock_held(GoPtr::local(self.mheap_lock.clone()));
                 // If the searchAddr refers to a region which has a higher address than
                 // any known chunk, then we know we're out of memory.
-        if { let __tmp_x = (*chunk_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = (*chunk_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))).lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            __tmp_x >= __tmp_y
+        } {
         return Arc::new(Mutex::new(Some(pageCache { base: Arc::new(Mutex::new(Some(0))), cache: Arc::new(Mutex::new(Some(0))), scav: Arc::new(Mutex::new(Some(0))) })));
     }
         let mut c = Arc::new(Mutex::new(Some(pageCache { base: Arc::new(Mutex::new(Some(0))), cache: Arc::new(Mutex::new(Some(0))), scav: Arc::new(Mutex::new(Some(0))) })));

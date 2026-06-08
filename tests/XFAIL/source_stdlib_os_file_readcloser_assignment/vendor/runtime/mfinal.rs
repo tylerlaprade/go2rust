@@ -290,7 +290,19 @@ pub fn queuefinalizer(p: Arc<Mutex<Option<usize>>>, r#fn: Arc<Mutex<Option<funcv
         // necessary barriers to queuefinalizer (which it may
         // have automatically).
     lock(GoPtr::local(finlock.clone()));
-    if { let __slot_guard = finq.lock().unwrap(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.lock().unwrap()).is_some()).unwrap_or(false); !__not_nil } || { let __tmp_x = (*{ let __field = (*(*finq.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).cnt.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*(*finq.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).fin.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = { let __slot_guard = finq.lock().unwrap(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.lock().unwrap()).is_some()).unwrap_or(false); !__not_nil };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = {
+                let __tmp_x = (*{ let __field = (*(*finq.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).cnt.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*(*(*finq.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).fin.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        }
+    } {
         if { let __slot_guard = finc.lock().unwrap(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.lock().unwrap()).is_some()).unwrap_or(false); !__not_nil } {
         { let new_val = Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some(__FIN_BLOCK_SIZE as usize))), Arc::new(Mutex::new(Some(0 as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<finblock>(unimplemented!("unsafe.Pointer conversion to finblock")) } })).clone(); *finc.lock().unwrap() = Some(new_val); };
         { let new_val = (*allfin.lock().unwrap().as_ref().unwrap()).clone(); (*(*finc.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_mut().unwrap()).alllink = new_val; };
@@ -314,28 +326,44 @@ pub fn queuefinalizer(p: Arc<Mutex<Option<usize>>>, r#fn: Arc<Mutex<Option<funcv
                         if __go_cond_3 {
                             true
                         } else {
-                            let __go_cond_6 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x != __tmp_y };
+                            let __go_cond_6 = {
+                                let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize;
+                                let __tmp_y = internal_goarch::PTR_SIZE as usize;
+                                __tmp_x != __tmp_y
+                            };
                             __go_cond_6
                         }
                     };
                     if __go_cond_2 {
                         true
                     } else {
-                        let __go_cond_7 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                        let __go_cond_7 = {
+                            let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize;
+                            let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize;
+                            __tmp_x != __tmp_y
+                        };
                         __go_cond_7
                     }
                 };
                 if __go_cond_1 {
                     true
                 } else {
-                    let __go_cond_8 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((3 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                    let __go_cond_8 = {
+                        let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize;
+                        let __tmp_y = ((3 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize;
+                        __tmp_x != __tmp_y
+                    };
                     __go_cond_8
                 }
             };
             if __go_cond_0 {
                 true
             } else {
-                let __go_cond_9 = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = ((4 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x != __tmp_y };
+                let __go_cond_9 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize;
+                    let __tmp_y = ((4 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize;
+                    __tmp_x != __tmp_y
+                };
                 __go_cond_9
             }
         } {
@@ -446,7 +474,11 @@ pub fn runfinq() {
                 // amount of returns and it would be complex to try and
                 // figure out how many of those can get passed in registers,
                 // just conservatively assume none of them do.
-        let mut framesz = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<Box<dyn Any + Send + Sync>>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = (*{ let __field = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).nret.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut framesz = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<Box<dyn Any + Send + Sync>>()))).lock().unwrap().as_ref().unwrap()) as usize;
+            let __tmp_y = (*{ let __field = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).nret.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         if { let __tmp_x = { let __v = (*framecap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*framesz.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
                 // The frame does not contain pointers interesting for GC,
                 // all not yet finalized objects are stored in finq.
@@ -479,7 +511,11 @@ pub fn runfinq() {
                 // memory. That means we have to clear
                 // it before writing to it to avoid
                 // confusing the write barrier.
-        { let _switch_val = { let __tmp_x = { let __selector_holder = (*(*f.as_ref().unwrap().borrow().as_ref().unwrap()).fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+        { let _switch_val = {
+    let __tmp_x = { let __selector_holder = (*(*f.as_ref().unwrap().borrow().as_ref().unwrap()).fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+    let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8))));
+    __tmp_x & __tmp_y
+};
     if _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8))))) {
                         // direct use of pointer
             { unimplemented!("unsafe.Pointer dereference assignment"); };
@@ -828,7 +864,23 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
                         // ok - same type
             break 'okarg;
         } else if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8)))); __tmp_x == __tmp_y } {
-            if ({ let __nil_result = (*{ let __recv = fint.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.uncommon(); __result }.lock().unwrap()).is_none(); __nil_result } || { let __nil_result = (*{ let __result = etyp.with_mut(|__recv_value| __recv_value.uncommon()); __result }.lock().unwrap()).is_none(); __nil_result }) && { let __left = (*{ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<internal_abi::r#type::PtrType>)) } else { go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType") } }.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right = { let __ptr_value = ot.borrow(); let __field_value = __ptr_value.as_ref().unwrap().elem.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = { let __nil_result = (*{ let __recv = fint.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.uncommon(); __result }.lock().unwrap()).is_none(); __nil_result };
+                    if __go_cond_1 {
+                        true
+                    } else {
+                        let __go_cond_2 = { let __nil_result = (*{ let __result = etyp.with_mut(|__recv_value| __recv_value.uncommon()); __result }.lock().unwrap()).is_none(); __nil_result };
+                        __go_cond_2
+                    }
+                };
+                if __go_cond_0 {
+                    let __go_cond_3 = { let __left = (*{ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<internal_abi::r#type::PtrType>)) } else { go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType") } }.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right = { let __ptr_value = ot.borrow(); let __field_value = __ptr_value.as_ref().unwrap().elem.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            } {
                 // ok - not same type, but both pointers,
                 // one or the other is unnamed, and same element type, so assignable.
         break 'okarg;
@@ -863,7 +915,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         // compute size needed for return parameters
     let mut nret = Arc::new(Mutex::new(Some(0 as usize)));
     { let __range_holder = { let __result = ft.with_mut(|__recv_value| __recv_value.out_slice()); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
-        { let new_val = { let __tmp_x = align_up(Arc::new(Mutex::new(Some({ let __arg_holder = nret.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).align_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)))); let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *nret.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = align_up(Arc::new(Mutex::new(Some({ let __arg_holder = nret.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).align_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))));
+            let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        }; *nret.lock().unwrap() = Some(new_val); };
     } }
     { let new_val = align_up(Arc::new(Mutex::new(Some({ let __arg_holder = nret.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize)))); *nret.lock().unwrap() = Some(new_val); };
 

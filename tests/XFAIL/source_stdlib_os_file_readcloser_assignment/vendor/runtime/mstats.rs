@@ -1132,7 +1132,11 @@ impl cpuStats {
         { let __target = self.scavenge_bg_time.clone(); let __rhs = scavBgCpu; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __target = self.scavenge_total_time.clone(); let __rhs = { let __tmp_x = scavAssistCpu; let __tmp_y = scavBgCpu; __tmp_x + __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Update total CPU.
-        { let new_val = { let __tmp_x = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).totaltime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).procresizetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*gomaxprocs.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; *self.total_time.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).totaltime.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).procresizetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*gomaxprocs.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            __tmp_x + __tmp_y
+        }; *self.total_time.lock().unwrap() = Some(new_val); };
         { let __target = self.idle_time.clone(); let __rhs = (*(*sched.lock().unwrap().as_ref().unwrap()).idle_time.lock().unwrap().as_mut().unwrap()).load(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Compute userTime. We compute this indirectly as everything that's not the above.
                 //
@@ -1142,7 +1146,15 @@ impl cpuStats {
                 // else via sysmon. Meanwhile if we subtract GC time from whatever's left, we get non-GC
                 // _Prunning time. Note that this still leaves time spent in sweeping and in the scheduler,
                 // but that's fine. The overwhelming majority of this time will be actual user time.
-        { let new_val = { let __tmp_x = (*self.total_time.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = { let __tmp_x = (*self.g_c_total_time.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.scavenge_total_time.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*self.idle_time.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }); __tmp_x - __tmp_y }; *self.user_time.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*self.total_time.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({
+                let __tmp_x = { let __tmp_x = (*self.g_c_total_time.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.scavenge_total_time.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                let __tmp_y = (*self.idle_time.lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            });
+            __tmp_x - __tmp_y
+        }; *self.user_time.lock().unwrap() = Some(new_val); };
     }
 }
 

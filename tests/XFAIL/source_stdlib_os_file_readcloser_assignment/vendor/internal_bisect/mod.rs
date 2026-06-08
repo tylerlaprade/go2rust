@@ -842,7 +842,11 @@ impl Matcher {
         let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = (({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         let mut c: Option<GoSliceElemPtr<cond>> = Some(GoSliceElemPtr::new(self.list.clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
-        if { let __tmp_x = { let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*c.as_ref().unwrap().borrow().as_ref().unwrap()).mask.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = (*{ let __field = (*c.as_ref().unwrap().borrow().as_ref().unwrap()).bits.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*c.as_ref().unwrap().borrow().as_ref().unwrap()).mask.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y };
+            let __tmp_y = (*{ let __field = (*c.as_ref().unwrap().borrow().as_ref().unwrap()).bits.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            __tmp_x == __tmp_y
+        } {
         return (*(*c.as_ref().unwrap().borrow().as_ref().unwrap()).result.lock().unwrap().as_ref().unwrap());
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
@@ -959,7 +963,11 @@ impl dedup {
     /// If h does not appear in any of them, then it is inserted into a random slot,
     /// overwriting whatever was there before.
     pub fn seen_lossy(&self, h: Arc<Mutex<Option<u64>>>) -> bool {
-        let mut cache: Option<GoArrayElemPtr<[u64; 4], 128>> = Some(GoArrayElemPtr::new(self.recent.clone(), ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*h.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*self.recent.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize));
+        let mut cache: Option<GoArrayElemPtr<[u64; 4], 128>> = Some(GoArrayElemPtr::new(self.recent.clone(), ({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*h.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*self.recent.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize));
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 4; __tmp_x < __tmp_y } {
         if { let __tmp_x = { let __elem_ptr_0 = Some(GoArrayElemPtr::from_array_elem(cache.as_ref().unwrap().clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = sync_atomic::load_uint64(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result }; let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {

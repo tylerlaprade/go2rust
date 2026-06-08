@@ -191,7 +191,11 @@ impl cpuProfile {
         osyield();
     }
                 // TODO: Is it safe to osyield here? https://go.dev/issue/52672
-        if { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32); let __tmp_y = 1000; __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32);
+            let __tmp_y = 1000;
+            __tmp_x < __tmp_y
+        } {
         let mut i = Arc::new(Mutex::new(Some({ let __selector_holder = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = 1; let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap()).clone();
         {

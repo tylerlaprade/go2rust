@@ -816,7 +816,11 @@ impl sweepLocker {
         throw(Arc::new(Mutex::new(Some("use of invalid sweepLocker".to_string()))));
     }
                 // Check before attempting to CAS.
-        if { let __tmp_x = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::local({ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.sweepgen.clone()); __ptr_value }.clone())); let __tmp_y = { let __tmp_x = (*self.sweep_gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as u32; __tmp_x - __tmp_y }; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::local({ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.sweepgen.clone()); __ptr_value }.clone()));
+            let __tmp_y = { let __tmp_x = (*self.sweep_gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as u32; __tmp_x - __tmp_y };
+            __tmp_x != __tmp_y
+        } {
         return (Arc::new(Mutex::new(Some(sweepLocked { ..Default::default() }))), false);
     }
                 // Attempt to acquire sweep ownership of s.
@@ -1017,7 +1021,11 @@ impl sweepLocked {
         let mut siter = new_specials_iter(s.clone());
         while (*siter.lock().unwrap().as_ref().unwrap()).valid() {
                 // A finalizer can be set for an inner byte of an object, find object beginning.
-        let mut objIndex = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y })));
+        let mut objIndex = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x / __tmp_y
+        })));
         let mut p = Arc::new(Mutex::new(Some({ let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; let __tmp_y = { let __tmp_x = { let __v = (*objIndex.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
         let mut mbits = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).mark_bits_for_index(Arc::new(Mutex::new(Some({ let __arg_holder = objIndex.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
         if !(*mbits.lock().unwrap().as_ref().unwrap()).is_marked() {
@@ -1040,11 +1048,27 @@ impl sweepLocked {
                 // Pass 2: queue all finalizers and clear any weak handles. Weak handles are cleared
                 // before finalization as specified by the weak package. See the documentation
                 // for that package for more details.
-        while (*siter.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*endOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        while {
+            let __go_cond_0 = (*siter.lock().unwrap().as_ref().unwrap()).valid();
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = { let __v = (*endOffset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Find the exact byte for which the special was setup
                 // (as opposed to object beginning).
         let mut special = (*siter.lock().unwrap().as_ref().unwrap()).s.clone();
-        let mut p = Arc::new(Mutex::new(Some({ let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*special.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut p = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*special.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         if { let __tmp_x = (*{ let __field = (*special.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __KIND_SPECIAL_FINALIZER as u8; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __field = (*special.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __KIND_SPECIAL_WEAK_HANDLE as u8; __tmp_x == __tmp_y } {
         (*siter.lock().unwrap().as_mut().unwrap()).unlink_and_next();
         free_special(special.clone(), Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -1056,11 +1080,27 @@ impl sweepLocked {
     }
     } else {
                 // Pass 2: the object is truly dead, free (and handle) all specials.
-        while (*siter.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*endOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        while {
+            let __go_cond_0 = (*siter.lock().unwrap().as_ref().unwrap()).valid();
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = { let __v = (*endOffset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Find the exact byte for which the special was setup
                 // (as opposed to object beginning).
         let mut special = (*siter.lock().unwrap().as_ref().unwrap()).s.clone();
-        let mut p = Arc::new(Mutex::new(Some({ let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*special.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut p = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*special.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         (*siter.lock().unwrap().as_mut().unwrap()).unlink_and_next();
         free_special(special.clone(), Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
@@ -1134,7 +1174,27 @@ impl sweepLocked {
         let mut abits = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).alloc_bits_for_index(Arc::new(Mutex::new(Some(0 as usize)))); __result };
         let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        if !(*mbits.lock().unwrap().as_ref().unwrap()).is_marked() && ({ let __tmp_x = (*{ let __field = (*abits.lock().unwrap().as_ref().unwrap()).index.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.freeindex.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || (*abits.lock().unwrap().as_ref().unwrap()).is_marked()) {
+        if {
+            let __go_cond_0 = !(*mbits.lock().unwrap().as_ref().unwrap()).is_marked();
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __tmp_x = (*{ let __field = (*abits.lock().unwrap().as_ref().unwrap()).index.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.freeindex.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x < __tmp_y
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = (*abits.lock().unwrap().as_ref().unwrap()).is_marked();
+                        __go_cond_3
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         let mut x = Arc::new(Mutex::new(Some({ let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; let __tmp_y = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
         if trace_alloc_free_enabled() {
         let mut trace_local = trace_acquire();
@@ -1711,7 +1771,11 @@ pub fn sweepone() -> usize {
         {
         let mut state = (*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get();;
         if { let __tmp_x = (*state.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } {
-            if !({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as u32; __tmp_x + __tmp_y }; __tmp_x == __tmp_y }) {
+            if !({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } || {
+                let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = { let __tmp_x = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as u32; __tmp_x + __tmp_y };
+                __tmp_x == __tmp_y
+            }) {
         {
             let __go_print_arg_0 = format!("{}", "runtime: bad span s.state=".to_string());
             let __go_print_arg_1 = format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -1887,8 +1951,16 @@ pub fn deduct_sweep_credit(spanBytes: Arc<Mutex<Option<usize>>>, callerSweepPage
                 // sweep.
                 //
                 // See issue #57523.
-        let mut pagesTarget = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweep_pages_per_byte.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*newHeapLive.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*callerSweepPages.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
-        while { let __tmp_x = { let __v = (*pagesTarget.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*(*mheap_.lock().unwrap().as_ref().unwrap()).pages_swept.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = sweptBasis; __tmp_x - __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        let mut pagesTarget = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweep_pages_per_byte.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*newHeapLive.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*callerSweepPages.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        })));
+        while {
+            let __tmp_x = { let __v = (*pagesTarget.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*(*mheap_.lock().unwrap().as_ref().unwrap()).pages_swept.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = sweptBasis; __tmp_x - __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         if { let __tmp_x = sweepone(); let __tmp_y = !(0 as usize) as usize; __tmp_x == __tmp_y } {
         { let new_val = 0.0; *(*mheap_.lock().unwrap().as_ref().unwrap()).sweep_pages_per_byte.lock().unwrap() = Some(new_val); };
         break

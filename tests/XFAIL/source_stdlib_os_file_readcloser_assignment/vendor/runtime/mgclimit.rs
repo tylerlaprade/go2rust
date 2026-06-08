@@ -1226,7 +1226,11 @@ impl gcCPULimiterState {
     /// This is an internal function that deals just with the bucket. Prefer update.
     /// l.lock must be held.
     pub fn accumulate(&mut self, mutatorTime: Arc<Mutex<Option<i64>>>, gcTime: Arc<Mutex<Option<i64>>>) {
-        let mut headroom = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+        let mut headroom = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        })));
         let mut enabled = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*headroom.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y })));
                 // Let's be careful about three things here:
                 // 1. The addition and subtraction, for the invariants.
@@ -1245,7 +1249,19 @@ impl gcCPULimiterState {
         return;
     }
                 // Handle non-limiting cases.
-        if { let __tmp_x = { let __v = (*change.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } && { let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(-((*change.lock().unwrap().as_ref().unwrap())) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = { let __v = (*change.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*Arc::new(Mutex::new(Some(-((*change.lock().unwrap().as_ref().unwrap())) as u64))).lock().unwrap().as_ref().unwrap());
+                    __tmp_x <= __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Bucket emptied.
         { let new_val = 0 as u64; *(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap() = Some(new_val); };
     } else {
@@ -1288,11 +1304,19 @@ impl gcCPULimiterState {
         self.update_locked(Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         { let new_val = nprocs.lock().unwrap().as_ref().unwrap().clone(); *self.nprocs.lock().unwrap() = Some(new_val); };
         { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some((*nprocs.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = CAPACITY_PER_PROC as u64; __tmp_x * __tmp_y }; *(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         { let new_val = { let __selector_holder = (*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap() = Some(new_val); };
         (*self.enabled.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(true))));
         (*self.last_enabled_cycle.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
-    } else if { let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    } else if {
+        let __tmp_x = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).fill.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*(*self.bucket.lock().unwrap().as_ref().unwrap()).capacity.lock().unwrap().as_ref().unwrap());
+        __tmp_x < __tmp_y
+    } {
         (*self.enabled.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(false))));
     }
         self.unlock();

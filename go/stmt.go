@@ -9511,6 +9511,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 
 const minStatementBuiltLogicalConditionNodes = 4
 const minStatementBuiltLogicalConditionOperandComplexity = 10
+const concurrentFieldSelectorLogicalConditionComplexity = 4
 
 func transpileCondition(out *strings.Builder, expr ast.Expr) {
 	if shouldStatementBuildLogicalCondition(expr) {
@@ -9571,6 +9572,9 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 	case *ast.IndexExpr:
 		return 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
 	case *ast.SelectorExpr:
+		if concurrentLogicalConditionSelectorIsField(e) {
+			return concurrentFieldSelectorLogicalConditionComplexity + countLogicalConditionOperandComplexity(e.X)
+		}
 		return 1 + countLogicalConditionOperandComplexity(e.X)
 	case *ast.SliceExpr:
 		count := 2 + countLogicalConditionOperandComplexity(e.X)
@@ -9598,6 +9602,18 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		}
 		return 1
 	}
+}
+
+func concurrentLogicalConditionSelectorIsField(sel *ast.SelectorExpr) bool {
+	if sel == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	return ok && selection.Kind() == types.FieldVal
 }
 
 func currentLineIndent(out *strings.Builder) string {

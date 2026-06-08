@@ -407,7 +407,15 @@ impl timer {
         assert_world_stopped_or_lock_held(self.mu.clone());
         self.trace(Arc::new(Mutex::new(Some("updateHeap".to_string()))));
         let mut ts = self.ts.clone();
-        if { let __nil_result = (*ts.lock().unwrap()).is_none(); __nil_result } || { let __peer = { let __seq = { let __seq_holder = (*ts.lock().unwrap().as_ref().unwrap()).heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.timer.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq } {
+        if {
+            let __go_cond_0 = { let __nil_result = (*ts.lock().unwrap()).is_none(); __nil_result };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = { let __peer = { let __seq = { let __seq_holder = (*ts.lock().unwrap().as_ref().unwrap()).heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.timer.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq };
+                __go_cond_1
+            }
+        } {
         bad_timer();
     }
         assert_lock_held(GoPtr::local((*ts.lock().unwrap().as_ref().unwrap()).mu.clone()));
@@ -720,7 +728,15 @@ impl timer {
         let mut delay = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.when.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
         if { let __tmp_x = (*self.period.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
                 // Leave in heap but adjust next time to fire.
-        { let new_val = { let __tmp_x = (*self.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*self.period.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 1 as i64; let __tmp_y = { let __tmp_x = { let __v = (*delay.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.period.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; __tmp_x + __tmp_y }); __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; *next.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*self.when.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = {
+                let __tmp_x = (*self.period.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = 1 as i64; let __tmp_y = { let __tmp_x = { let __v = (*delay.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.period.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; __tmp_x + __tmp_y });
+                __tmp_x * __tmp_y
+            };
+            __tmp_x + __tmp_y
+        }; *next.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*next.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         { let new_val = MAX_WHEN as i64; *next.lock().unwrap() = Some(new_val); };
     }
@@ -1015,7 +1031,11 @@ impl timers {
         throw(Arc::new(Mutex::new(Some("bad ts".to_string()))));
     }
 
-        if { let __tmp_x = { let __tmp_x = (*(*t.lock().unwrap().as_ref().unwrap()).astate.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = ({ let __tmp_x = TIMER_MODIFIED as u8; let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x | __tmp_y }) as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*(*t.lock().unwrap().as_ref().unwrap()).astate.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = ({ let __tmp_x = TIMER_MODIFIED as u8; let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x | __tmp_y }) as u8; __tmp_x & __tmp_y };
+            let __tmp_y = 0 as u8;
+            __tmp_x == __tmp_y
+        } {
                 // Fast path: head of timers does not need adjustment.
         return;
     }
@@ -1145,7 +1165,11 @@ impl timers {
         throw(Arc::new(Mutex::new(Some("bad ts".to_string()))));
     }
 
-        if { let __tmp_x = { let __tmp_x = (*(*t.lock().unwrap().as_ref().unwrap()).astate.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = ({ let __tmp_x = TIMER_MODIFIED as u8; let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x | __tmp_y }) as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*(*t.lock().unwrap().as_ref().unwrap()).astate.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = ({ let __tmp_x = TIMER_MODIFIED as u8; let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x | __tmp_y }) as u8; __tmp_x & __tmp_y };
+            let __tmp_y = 0 as u8;
+            __tmp_x == __tmp_y
+        } {
                 // Does not need adjustment.
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
     }
@@ -1238,7 +1262,11 @@ impl timers {
     }
         let mut force = Arc::new(Mutex::new(Some({ let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && {
             let __tmp_x = (*Arc::new(Mutex::new(Some(zombies as i32))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x / __tmp_y };
+            let __tmp_y = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = 4;
+                __tmp_x / __tmp_y
+            };
             __tmp_x > __tmp_y
         })));
         if { let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = next; __tmp_x < __tmp_y } && !{ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -1270,7 +1298,11 @@ impl timers {
                 // though we do not fully understand why.
         { let new_val = { let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && {
             let __tmp_x = (*Arc::new(Mutex::new(Some((*self.zombies.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x / __tmp_y };
+            let __tmp_y = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = 4;
+                __tmp_x / __tmp_y
+            };
             __tmp_x > __tmp_y
         }; *force.lock().unwrap() = Some(new_val); };
         if { let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -1308,7 +1340,19 @@ impl timers {
         throw(Arc::new(Mutex::new(Some("bad ts".to_string()))));
     }
 
-            if { let __tmp_x = { let __tmp_x = (*(*t.lock().unwrap().as_ref().unwrap()).astate.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = ({ let __tmp_x = TIMER_MODIFIED as u8; let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x | __tmp_y }) as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*tw.lock().unwrap().as_ref().unwrap()).when.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __tmp_x = { let __tmp_x = (*(*t.lock().unwrap().as_ref().unwrap()).astate.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = ({ let __tmp_x = TIMER_MODIFIED as u8; let __tmp_y = TIMER_ZOMBIE as u8; __tmp_x | __tmp_y }) as u8; __tmp_x & __tmp_y };
+                    let __tmp_y = 0 as u8;
+                    __tmp_x == __tmp_y
+                };
+                if __go_cond_0 {
+                    let __go_cond_1 = { let __tmp_x = (*{ let __field = (*tw.lock().unwrap().as_ref().unwrap()).when.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y };
+                    __go_cond_1
+                } else {
+                    false
+                }
+            } {
                 // Fast path: not ready to run.
         return (*(*tw.lock().unwrap().as_ref().unwrap()).when.lock().unwrap().as_ref().unwrap());
     }
@@ -1351,7 +1395,11 @@ impl timers {
                 // First timer has no parent.
                 // The heap is timerHeapN-ary. See siftupTimer and siftdownTimer.
         let mut p = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAP_N as u64; __tmp_x / __tmp_y }) as i32)));
-        if { let __tmp_x = (*tw.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*tw.when.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*{ let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap());
+            __tmp_x < __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", "bad timer heap at ".to_string());
             let __go_print_arg_1 = format!("{}", i);
@@ -1485,7 +1533,11 @@ impl timers {
         if { let __tmp_x = (({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x <= __tmp_y } {
         return;
     }
-        let mut i = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAP_N as u64; __tmp_x / __tmp_y }) as i32)));
+        let mut i = Arc::new(Mutex::new(Some(({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = TIMER_HEAP_N as u64;
+            __tmp_x / __tmp_y
+        }) as i32)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         self.sift_down(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }

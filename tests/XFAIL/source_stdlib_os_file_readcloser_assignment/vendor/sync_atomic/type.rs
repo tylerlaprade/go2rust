@@ -349,7 +349,11 @@ impl Bool {
     pub fn swap(&self, new: Arc<Mutex<Option<bool>>>) -> bool {
     let mut old: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        return { let __tmp_x = swap_uint32(self.v.clone(), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = swap_uint32(self.v.clone(), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))));
+            let __tmp_y = 0 as u32;
+            __tmp_x != __tmp_y
+        };
     }
 
     /// CompareAndSwap executes the compare-and-swap operation for the boolean value x.

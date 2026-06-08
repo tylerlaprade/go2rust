@@ -1411,7 +1411,11 @@ impl profIndex {
 impl profBuf {
     /// hasOverflow reports whether b has any overflow records pending.
     pub fn has_overflow(&self) -> bool {
-        return { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.overflow.lock().unwrap().as_mut().unwrap()).load() as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x > __tmp_y };
+        return {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*self.overflow.lock().unwrap().as_mut().unwrap()).load() as u32))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = 0 as u32;
+            __tmp_x > __tmp_y
+        };
     }
 
     /// takeOverflow consumes the pending overflow records, returning the overflow count
@@ -1494,7 +1498,11 @@ impl profBuf {
             __tmp_x + __tmp_y
         })));
         let mut want = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
-        let mut i = Arc::new(Mutex::new(Some(({ let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as i32)));
+        let mut i = Arc::new(Mutex::new(Some(({
+            let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x % __tmp_y
+        }) as i32)));
         if { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as i32); let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x > __tmp_y } {
                 // Can't fit in trailing fragment of slice.
                 // Skip over that and start over at beginning of slice.
@@ -1533,7 +1541,11 @@ impl profBuf {
         })));
                 // first record
         let mut want = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*nstk1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
-        let mut i = Arc::new(Mutex::new(Some(({ let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as i32)));
+        let mut i = Arc::new(Mutex::new(Some(({
+            let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x % __tmp_y
+        }) as i32)));
         if { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as i32); let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x > __tmp_y } {
                 // Can't fit in trailing fragment of slice.
                 // Skip over that and start over at beginning of slice.
@@ -1613,14 +1625,22 @@ impl profBuf {
                 // value we copied when scanning b.tags (heap-allocated).
                 // We arrange that the store here is always overwriting a nil,
                 // so there is no need for a deletion barrier on b.tags[wt].
-        let mut wt = Arc::new(Mutex::new(Some(({ let __tmp_x = profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as i32)));
+        let mut wt = Arc::new(Mutex::new(Some(({
+            let __tmp_x = profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x % __tmp_y
+        }) as i32)));
         if { let __nil_result = (*tagPtr.lock().unwrap()).is_some(); __nil_result } {
         { unimplemented!("unsafe.Pointer dereference assignment"); };
     }
                 // Main record.
                 // It has to fit in a contiguous section of the slice, so if it doesn't fit at the end,
                 // leave a rewind marker (0) and start over at the beginning of the slice.
-        let mut wd = Arc::new(Mutex::new(Some(({ let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as i32)));
+        let mut wd = Arc::new(Mutex::new(Some(({
+            let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x % __tmp_y
+        }) as i32)));
         let mut nd = Arc::new(Mutex::new(Some({
             let __tmp_x = (count_sub(Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))) as i32);
             let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
@@ -1628,7 +1648,11 @@ impl profBuf {
         })));
         let mut skip = Arc::new(Mutex::new(Some(0)));
         if {
-            let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32);
+            let __tmp_x = ({
+                let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y } as i32);
+                let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
+                __tmp_x + __tmp_y
+            } as i32);
             let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
             __tmp_x > __tmp_y
         } {
@@ -1638,7 +1662,11 @@ impl profBuf {
         { let new_val = 0; *wd.lock().unwrap() = Some(new_val); };
     }
         let mut data = Arc::new(Mutex::new(Some({ let __seq_holder = self.data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
-        (*data.lock().unwrap().as_mut().unwrap())[(0) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*self.hdrsize.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()).clone();
+        (*data.lock().unwrap().as_mut().unwrap())[(0) as usize] = (*Arc::new(Mutex::new(Some(({
+            let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*self.hdrsize.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        }) as u64))).lock().unwrap().as_ref().unwrap()).clone();
         (*data.lock().unwrap().as_mut().unwrap())[(1) as usize] = (*Arc::new(Mutex::new(Some((*now.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()).clone();
                 // header, zero-padded
         let mut i = {
@@ -1659,7 +1687,11 @@ impl profBuf {
                 // Commit write.
                 // Racing with reader setting flag bits in b.w, to avoid lost wakeups.
         let mut old = (*self.w.lock().unwrap().as_ref().unwrap()).load();
-        let mut new = profIndex::add_counts_and_clear_flags(&(*old.lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32); let __tmp_y = ((*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()) as i32); __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(1))));
+        let mut new = profIndex::add_counts_and_clear_flags(&(*old.lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(Some({
+    let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32);
+    let __tmp_y = ((*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()) as i32);
+    __tmp_x + __tmp_y
+}))), Arc::new(Mutex::new(Some(1))));
         if !(*self.w.lock().unwrap().as_ref().unwrap()).cas(Arc::new(Mutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         continue
     }
@@ -1718,7 +1750,11 @@ impl profBuf {
         let mut rPrev = (*self.r.lock().unwrap().as_ref().unwrap()).load();
         if { let __tmp_x = (*rPrev.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*br.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
         let mut ntag = count_sub(Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::tag_count(&(*rPrev.lock().unwrap().as_ref().unwrap()))))));
-        let mut ti = Arc::new(Mutex::new(Some(({ let __tmp_x = profIndex::tag_count(&(*rPrev.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as i32)));
+        let mut ti = Arc::new(Mutex::new(Some(({
+            let __tmp_x = profIndex::tag_count(&(*rPrev.lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x % __tmp_y
+        }) as i32)));
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ntag; __tmp_x < __tmp_y } {
         (*self.tags.lock().unwrap().as_mut().unwrap())[({ let __v = (*ti.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = 0;
@@ -1803,7 +1839,11 @@ impl profBuf {
                         // Return or sleep according to mode.
                         // Necessary on Darwin, notetsleepg below does not work in signal handler, root cause of #61768.
                         // Committed to sleeping.
-            { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); data = new_val; };
+            { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({
+                let __tmp_x = profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()));
+                let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x % __tmp_y
+            }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); data = new_val; };
             if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (numData as i32); __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (numData) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); data = new_val; };
     } else {
@@ -1825,7 +1865,11 @@ impl profBuf {
             if { let __tmp_x = ntag; let __tmp_y = 0; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("runtime: malformed profBuf buffer - tag and data out of sync".to_string()))));
     }
-            { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.tags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); tags = new_val; };
+            { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.tags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({
+                let __tmp_x = profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()));
+                let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x % __tmp_y
+            }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); tags = new_val; };
             if { let __tmp_x = ((*tags.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (ntag as i32); __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = tags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (ntag) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); tags = new_val; };
     }

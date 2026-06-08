@@ -464,7 +464,15 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
 /// sg must already be dequeued from c.
 /// ep must be non-nil and point to the heap or the caller's stack.
 pub fn send(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep: Arc<Mutex<Option<usize>>>, unlockf: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>, skip: Arc<Mutex<Option<i32>>>) {
-    if (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __go_cond_0 = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        if __go_cond_0 {
+            let __go_cond_1 = { let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = unlockf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
         std::panic::panic_any(Box::new(plainError(Arc::new(Mutex::new(Some("send on synctest channel from outside bubble".to_string()))))) as Box<dyn Any + Send + Sync>);
     }
@@ -792,7 +800,15 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
 /// sg must already be dequeued from c.
 /// A non-nil ep must point to the heap or the caller's stack.
 pub fn recv(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep: Arc<Mutex<Option<usize>>>, unlockf: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>, skip: Arc<Mutex<Option<i32>>>) {
-    if (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __go_cond_0 = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        if __go_cond_0 {
+            let __go_cond_1 = { let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = unlockf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
         std::panic::panic_any(Box::new(plainError(Arc::new(Mutex::new(Some("receive on synctest channel from outside bubble".to_string()))))) as Box<dyn Any + Send + Sync>);
     }

@@ -481,7 +481,11 @@ pub fn get_g_c_mask_on_demand(t: GoPtr<internal_abi::r#type::Type>) -> GoPtr<u8>
         continue
     }
                         // Build gcmask for this type.
-            let mut bytes = Arc::new(Mutex::new(Some({ let __tmp_x = internal_goarch::PTR_SIZE as usize; let __tmp_y = div_round_up(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize)))); __tmp_x * __tmp_y })));
+            let mut bytes = Arc::new(Mutex::new(Some({
+                let __tmp_x = internal_goarch::PTR_SIZE as usize;
+                let __tmp_y = div_round_up(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize))));
+                __tmp_x * __tmp_y
+            })));
             p = GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({ let __arg_holder = bytes.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
             let p_closure_clone = p.clone(); let t_closure_clone = t.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         build_g_c_mask(t_closure_clone.clone(), Arc::new(Mutex::new(Some(bitCursor { ptr: p_closure_clone.clone(), n: Arc::new(Mutex::new(Some(0 as usize))), ..Default::default() }))));
@@ -545,7 +549,11 @@ pub fn build_g_c_mask(mut t: GoPtr<internal_abi::r#type::Type>, mut dst: Arc<Mut
         if !{ let __recv = ft.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.pointers(); __result } {
         continue
     }
-        if { let __tmp_x = (*{ let __field = (*ft.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x / __tmp_y }; __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = (*{ let __field = (*ft.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x / __tmp_y };
+            __tmp_x > __tmp_y
+        } {
                 // Avoid recursive call for field type that
                 // is larger than half of the parent type.
                 // There can be only one.

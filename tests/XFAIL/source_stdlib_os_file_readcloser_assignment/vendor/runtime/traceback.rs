@@ -911,7 +911,31 @@ impl unwinder {
                 // We also defensively check that this won't switch M's on us,
                 // which could happen at critical points in the scheduler.
                 // This ensures gp.m doesn't change from a stack jump.
-        if { let __tmp_x = unwindFlags(Arc::new(Mutex::new(Some(((*(*self.flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & UNWIND_JUMP_STACK as u8))))); let __tmp_y = unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } && { let __left_addr = gp.addr(); let __right_addr = { let __ptr = GoPtr::local((*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).g0.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } && { let __ptr_field = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __left = { let __ptr_value = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __right = { let __ptr_value = gp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().m.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = unwindFlags(Arc::new(Mutex::new(Some(((*(*self.flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & UNWIND_JUMP_STACK as u8))))); let __tmp_y = unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __left_addr = gp.addr(); let __right_addr = { let __ptr = GoPtr::local((*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).g0.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __ptr_field = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __left = { let __ptr_value = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __right = { let __ptr_value = gp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().m.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         '__go_switch_1: loop {
         { let _switch_val = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_MORESTACK as u8))))) {
@@ -974,7 +998,11 @@ impl unwinder {
                 // systemstack doesn't have an SP delta (the CALL
                 // instruction opens the frame), therefore no way
                 // to check.
-        { let new_val = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).sp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(funcspdelta(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *(*frame.lock().unwrap().as_ref().unwrap()).fp.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).sp.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some(funcspdelta(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        }; *(*frame.lock().unwrap().as_ref().unwrap()).fp.lock().unwrap() = Some(new_val); };
         if !USES_L_R {
                 // On x86, call instruction pushes return PC before entering new function.
         { let __target = (*frame.lock().unwrap().as_ref().unwrap()).fp.clone(); let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -1094,7 +1122,11 @@ impl unwinder {
         if { let __tmp_x = (*self.callee_func_i_d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_SIGPANIC as u8)))); __tmp_x == __tmp_y } {
         if { let __tmp_x = (*(*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().deferreturn.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
         { let new_val = {
-            let __tmp_x = { let __tmp_x = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).entry(); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().deferreturn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).entry();
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().deferreturn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = 1 as usize;
             __tmp_x + __tmp_y
         }; *(*frame.lock().unwrap().as_ref().unwrap()).continpc.lock().unwrap() = Some(new_val); };
@@ -1249,7 +1281,19 @@ impl unwinder {
                 // or when printing a traceback during a crash, everything may not be
                 // stopped nicely, and the stack walk may not be able to complete.
         let mut gp: GoPtr<crate::runtime2::g> = crate::runtime2::guintptr::ptr(&(*self.g.lock().unwrap().as_ref().unwrap()));
-        if { let __tmp_x = unwindFlags(Arc::new(Mutex::new(Some(((*(*self.flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & ((UNWIND_PRINT_ERRORS as u8 | UNWIND_SILENT_ERRORS as u8))))))); let __tmp_y = unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = (*(*self.frame.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().stktopsp.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = unwindFlags(Arc::new(Mutex::new(Some(((*(*self.flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & ((UNWIND_PRINT_ERRORS as u8 | UNWIND_SILENT_ERRORS as u8))))))); let __tmp_y = unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*self.frame.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().stktopsp.clone() }.lock().unwrap().as_ref().unwrap());
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: g".to_string());
             let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()));
@@ -1283,7 +1327,19 @@ impl unwinder {
     /// actually running code, like in runtime.mstart, in which case this returns
     /// frame.pc because that's the best we can do.
     pub fn sym_p_c(&self) -> usize {
-        if { let __tmp_x = unwindFlags(Arc::new(Mutex::new(Some(((*(*self.flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & UNWIND_TRAP as u8))))); let __tmp_y = unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = (*(*self.frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x > __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = unwindFlags(Arc::new(Mutex::new(Some(((*(*self.flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & UNWIND_TRAP as u8))))); let __tmp_y = unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*self.frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*(*self.frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).entry();
+                    __tmp_x > __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Regular call.
         return { let __tmp_x = (*(*self.frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x - __tmp_y };
     }
@@ -1297,7 +1353,27 @@ impl unwinder {
     /// If the current frame is not a cgo frame or if there's no registered cgo
     /// unwinder, it returns 0.
     pub fn cgo_callers(&mut self, pcBuf: Arc<Mutex<Option<Vec<usize>>>>) -> i32 {
-        if { let __nil_result = (*cgoTraceback.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = { let __selector_holder = (*(*self.frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_CGOCALLBACK as u8)))); __tmp_x != __tmp_y } || { let __tmp_x = (*self.cgo_ctxt.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __nil_result = (*cgoTraceback.lock().unwrap()).is_none(); __nil_result };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __selector_holder = (*(*self.frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_CGOCALLBACK as u8))));
+                        __tmp_x != __tmp_y
+                    };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = { let __tmp_x = (*self.cgo_ctxt.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x < __tmp_y };
+                __go_cond_3
+            }
+        } {
                 // We don't have a cgo unwinder (typical case), or we do but we're not
                 // in a cgo frame or we're out of cgo context.
         return 0;
@@ -1655,7 +1731,11 @@ pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<us
             }
         };
         if __go_cond_0 {
-            let __go_cond_9 = { let __tmp_x = { let __seq_holder = { let __named_array = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+            let __go_cond_9 = {
+                let __tmp_x = { let __seq_holder = { let __named_array = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() };
+                let __tmp_y = 0 as usize;
+                __tmp_x != __tmp_y
+            };
             __go_cond_9
         } else {
             false
@@ -1877,10 +1957,18 @@ pub fn traceback2(u: Arc<Mutex<Option<unwinder>>>, showRuntime: Arc<Mutex<Option
             eprint!("{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
         };
         if !(*iu.lock().unwrap().as_ref().unwrap()).is_inlined(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        if { let __tmp_x = (*(*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = (*(*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry();
+            __tmp_x > __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", " +".to_string());
-            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x - __tmp_y } as u64)))));
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({
+                let __tmp_x = (*(*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry();
+                __tmp_x - __tmp_y
+            } as u64)))));
             eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
         };
     }
@@ -2281,7 +2369,15 @@ pub fn tracebackothers(me: GoPtr<crate::runtime2::g>) {
             eprint!("{}", __go_print_arg_0)
         };
         goroutineheader(GoPtr::local(gp.clone()));
-        if { let __left = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).m.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } && { let __tmp_x = { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = { let __left = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).m.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __tmp_x = { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         {
             let __go_print_arg_0 = format!("{}", "\tgoroutine running on other thread; stack unavailable\n".to_string());
             eprint!("{}", __go_print_arg_0)
@@ -2495,7 +2591,15 @@ pub fn print_one_cgo_traceback(pc: Arc<Mutex<Option<usize>>>, commitFrame: Arc<M
 /// callCgoSymbolizer calls the cgoSymbolizer function.
 pub fn call_cgo_symbolizer(arg: Arc<Mutex<Option<cgoSymbolizerArg>>>) {
     let mut call = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<usize>>>, __arg1: Arc<Mutex<Option<usize>>>| -> i32 { cgocall(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>)));
-    if { let __tmp_x = (*panicking.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x > __tmp_y } || { let __left_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __right_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
+    if {
+        let __go_cond_0 = { let __tmp_x = (*panicking.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __left_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __right_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq };
+            __go_cond_1
+        }
+    } {
                 // We do not want to call into the scheduler when panicking
                 // or when on the system stack.
         { let new_val = Box::new(move |__arg0: Arc<Mutex<Option<usize>>>, __arg1: Arc<Mutex<Option<usize>>>| -> i32 { asmcgocall(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>; *call.lock().unwrap() = Some(new_val); };
@@ -2517,7 +2621,15 @@ pub fn cgo_context_p_cs(ctxt: Arc<Mutex<Option<usize>>>, buf_local: Arc<Mutex<Op
         return;
     }
     let mut call = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<usize>>>, __arg1: Arc<Mutex<Option<usize>>>| -> i32 { cgocall(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>)));
-    if { let __tmp_x = (*panicking.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x > __tmp_y } || { let __left_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __right_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
+    if {
+        let __go_cond_0 = { let __tmp_x = (*panicking.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __left_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __right_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq };
+            __go_cond_1
+        }
+    } {
                 // We do not want to call into the scheduler when panicking
                 // or when on the system stack.
         { let new_val = Box::new(move |__arg0: Arc<Mutex<Option<usize>>>, __arg1: Arc<Mutex<Option<usize>>>| -> i32 { asmcgocall(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>; *call.lock().unwrap() = Some(new_val); };

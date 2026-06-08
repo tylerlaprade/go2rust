@@ -3783,7 +3783,19 @@ impl mheap {
         assert_lock_held(GoPtr::local(self.lock.clone()));
         let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
                 // First try to free the mspan directly to the cache.
-        if !pp.is_nil() && { let __tmp_x = ((*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 128; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = !pp.is_nil();
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = ((*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()) as i32);
+                    let __tmp_y = 128;
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[((*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap())) as usize] = s.clone();
         { let __target = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return;
@@ -4106,7 +4118,11 @@ impl mheap {
                 // Adjust s.limit down to the object-containing part of the span.
         { let new_val = {
             let __tmp_x = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result };
-            let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            let __tmp_y = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            };
             __tmp_x + __tmp_y
         }; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.limit.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
                 // It's safe to access h.sweepgen without the heap lock because it's
@@ -4201,7 +4217,11 @@ impl mheap {
         let (mut av, mut asize) = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = ask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = GoPtr::local(Arc::new(Mutex::new(Some(self.arena_hints.clone())))); let __method_arg2 = Arc::new(Mutex::new(Some(true))); self.sys_alloc(__method_arg0, __method_arg1, __method_arg2) };
         if { let __nil_result = (*av.lock().unwrap()).is_none(); __nil_result } {
         let mut inUse = Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_free.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_free.lock().unwrap().as_ref().unwrap()).load();
+                let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).load();
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load();
             __tmp_x + __tmp_y
         })));
@@ -4215,7 +4235,11 @@ impl mheap {
         };
         return (0, false);
     }
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*av.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*av.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap());
+            __tmp_x == __tmp_y
+        } {
                 // The new space is contiguous with the old
                 // space, so just extend the current space.
         { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some((*av.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = asize; __tmp_x + __tmp_y }; *(*self.cur_arena.lock().unwrap().as_ref().unwrap()).end.lock().unwrap() = Some(new_val); };
@@ -4224,7 +4248,11 @@ impl mheap {
                 // remains of the current space and switch to
                 // the new space. This should be rare.
         {
-        let mut size = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));;
+        let mut size = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        })));;
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
             sys_map(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*gcController.lock().unwrap().as_ref().unwrap()).heap_released.clone());;
             let mut stats: Option<GoArrayElemPtr<heapStatsDelta, 3>> = (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).acquire();;
@@ -4667,7 +4695,11 @@ pub fn recordspan(vh: Arc<Mutex<Option<usize>>>, p: Arc<Mutex<Option<usize>>>) {
 
     assert_lock_held(GoPtr::local({ let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.lock.clone()); __ptr_value }.clone()));
 
-    if { let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = (({ let __cap_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); __tmp_x >= __tmp_y } {
+    if {
+        let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
+        let __tmp_y = (({ let __cap_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32);
+        __tmp_x >= __tmp_y
+    } {
         let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 64; let __tmp_y = 1024; __tmp_x * __tmp_y }; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x / __tmp_y })));
         if { let __tmp_x = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (({ let __cap_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); let __tmp_y = 3; __tmp_x * __tmp_y } as i32); let __tmp_y = 2; __tmp_x / __tmp_y } as i32); __tmp_x < __tmp_y } {
         { let new_val = { let __tmp_x = ({ let __tmp_x = (({ let __cap_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); let __tmp_y = 3; __tmp_x * __tmp_y } as i32); let __tmp_y = 2; __tmp_x / __tmp_y }; *n.lock().unwrap() = Some(new_val); };
@@ -4772,7 +4804,11 @@ pub fn span_of(p: Arc<Mutex<Option<usize>>>) -> GoPtr<mspan> {
     }
     } else {
                 // If there's an L1, then ri.l1() can be out of bounds but ri.l2() can't.
-        if { let __tmp_x = arenaIdx::l1(&(*ri.lock().unwrap().as_ref().unwrap())); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*mheap_.lock().unwrap().as_ref().unwrap()).arenas.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = arenaIdx::l1(&(*ri.lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*mheap_.lock().unwrap().as_ref().unwrap()).arenas.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x >= __tmp_y
+        } {
         return GoPtr::nil();
     }
     }
@@ -4829,7 +4865,11 @@ pub fn page_index_of(p: Arc<Mutex<Option<usize>>>) -> (Arc<Mutex<Option<heapAren
 
     let mut ai = arena_index(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     { let new_val = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(arenaIdx::l2(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.clone(); arena = new_val; };
-    { let new_val = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = 8 as usize; __tmp_x / __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*arena.lock().unwrap().as_ref().unwrap()).page_in_use.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x % __tmp_y }; *pageIdx.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = 8 as usize; __tmp_x / __tmp_y });
+        let __tmp_y = (*Arc::new(Mutex::new(Some((*(*arena.lock().unwrap().as_ref().unwrap()).page_in_use.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize;
+        __tmp_x % __tmp_y
+    }; *pageIdx.lock().unwrap() = Some(new_val); };
     { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x << __tmp_y }) as u8))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pageMask.lock().unwrap() = __moved_val; };
     return (arena.clone(), (*pageIdx.lock().unwrap().as_ref().unwrap()), (*pageMask.lock().unwrap().as_ref().unwrap()));
 }
@@ -5193,7 +5233,11 @@ pub fn new_arena_may_unlock() -> GoPtr<gcBitsArena> {
 
         // If result.bits is not 8 byte aligned adjust index so
         // that &result.bits[result.free] is 8 byte aligned.
-    if { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = 7 as usize; __tmp_x & __tmp_y } as usize; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support")))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = 7 as usize; __tmp_x & __tmp_y } as usize;
+        let __tmp_y = 0 as usize;
+        __tmp_x == __tmp_y
+    } {
         { let new_val = 0 as usize; *{ let __ptr_value = result.with_mut(|__ptr_value| __ptr_value.free.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = {

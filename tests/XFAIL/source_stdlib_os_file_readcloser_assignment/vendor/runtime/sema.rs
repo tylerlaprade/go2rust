@@ -635,7 +635,11 @@ impl semaRoot {
                 // Add t first in s's wait list.
                 // Add s to end of t's wait list.
         { let new_val = t.clone(); last = new_val; };
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(addr.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*t.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(addr.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*t.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x < __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some((*t.lock().unwrap().as_ref().unwrap()).prev.clone()))).clone(); pt = new_val; };
     } else {
         { let new_val = Arc::new(Mutex::new(Some((*t.lock().unwrap().as_ref().unwrap()).next.clone()))).clone(); pt = new_val; };
@@ -662,7 +666,19 @@ impl semaRoot {
         { let new_val = last.clone(); (*s.lock().unwrap().as_mut().unwrap()).parent = new_val; };
         { let new_val = s.clone(); let __dst = pt.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone(); };
                 // Rotate up into tree according to ticket (priority).
-        while { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).parent.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*(*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).ticket.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        while {
+            let __go_cond_0 = { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).parent.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).ticket.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                    __tmp_x > __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         if { let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).prev.clone(); let __right = s.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         self.rotate_right({ let __field = (*s.lock().unwrap().as_ref().unwrap()).parent.clone(); __field });
     } else {
@@ -693,7 +709,11 @@ impl semaRoot {
         if { let __tmp_x = { let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*Arc::new(Mutex::new(Some(addr.addr()))).lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         break 'found;
     }
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(addr.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*s.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(addr.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*s.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x < __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).prev.clone()))).clone(); ps = new_val; };
     } else {
         { let new_val = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).next.clone()))).clone(); ps = new_val; };
@@ -737,7 +757,27 @@ impl semaRoot {
             *(*s.lock().unwrap().as_ref().unwrap()).waittail.lock().unwrap() = None;;
         } else {
             while { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } || { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).prev.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        if { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).prev.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*(*(*s.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*s.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).prev.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result };
+                    if __go_cond_2 {
+                        let __go_cond_3 = {
+                            let __tmp_x = (*(*(*s.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap().as_ref().unwrap());
+                            let __tmp_y = (*(*(*s.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap().as_ref().unwrap());
+                            __tmp_x < __tmp_y
+                        };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_1
+            }
+        } {
         self.rotate_right(s.clone());
     } else {
         self.rotate_left(s.clone());
@@ -977,7 +1017,19 @@ pub fn semrelease1(addr: GoPtr<u32>, handoff: Arc<Mutex<Option<bool>>>, skipfram
         { let new_val = 1 as u32; *(*s.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap() = Some(new_val); };
     }
         ready_with_time(s.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = 5; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
-        if { let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).ticket.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x == __tmp_y } && { let __tmp_x = (*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).ticket.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = 0 as i32;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Direct G handoff
                 // readyWithTime has added the waiter G as runnext in the
                 // current P; we now call the scheduler so that we start running

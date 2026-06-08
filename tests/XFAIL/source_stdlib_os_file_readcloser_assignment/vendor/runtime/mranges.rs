@@ -293,13 +293,45 @@ impl addrRange {
     /// If b is strictly contained in a, thus forcing a split, it will throw.
     pub fn subtract(&self, b: Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> {
         let mut __self = self.clone();
-        if (*(*b.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = __self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) && (*__self.limit.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if {
+            let __go_cond_0 = (*(*b.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = __self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            if __go_cond_0 {
+                let __go_cond_1 = (*__self.limit.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         return Arc::new(Mutex::new(Some(addrRange { base: Arc::new(Mutex::new(Some(Default::default()))), limit: Arc::new(Mutex::new(Some(Default::default()))) })));
-    } else if (*__self.base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) && (*(*b.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = __self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+    } else if {
+        let __go_cond_0 = (*__self.base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        if __go_cond_0 {
+            let __go_cond_1 = (*(*b.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = __self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         throw(Arc::new(Mutex::new(Some("bad prune".to_string()))));
-    } else if (*(*b.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = __self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) && (*__self.base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+    } else if {
+        let __go_cond_0 = (*(*b.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = __self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        if __go_cond_0 {
+            let __go_cond_1 = (*__self.base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = { let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *__self.base.lock().unwrap() = Some(new_val); };
-    } else if (*__self.base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) && (*(*b.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = __self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+    } else if {
+        let __go_cond_0 = (*__self.base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        if __go_cond_0 {
+            let __go_cond_1 = (*(*b.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = __self.limit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = { let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *__self.limit.lock().unwrap() = Some(new_val); };
     }
         Arc::new(Mutex::new(Some(__self.clone())))
@@ -309,7 +341,11 @@ impl addrRange {
     /// the base to align first. On success, returns the aligned start of the region
     /// taken and true.
     pub fn take_from_front(&mut self, len: Arc<Mutex<Option<usize>>>, align: Arc<Mutex<Option<u8>>>) -> (usize, bool) {
-        let mut base = Arc::new(Mutex::new(Some({ let __tmp_x = align_up(Arc::new(Mutex::new(Some((*self.base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*align.lock().unwrap().as_ref().unwrap()) as usize)))); let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
+        let mut base = Arc::new(Mutex::new(Some({
+            let __tmp_x = align_up(Arc::new(Mutex::new(Some((*self.base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*align.lock().unwrap().as_ref().unwrap()) as usize))));
+            let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x + __tmp_y
+        })));
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.limit.lock().unwrap().as_ref().unwrap()).addr(); __tmp_x > __tmp_y } {
         return (0, false);
     }
@@ -362,13 +398,21 @@ impl offAddr {
     /// lessThan returns true if l1 is less than l2 in the offset
     /// address space.
     pub fn less_than(&self, l2: Arc<Mutex<Option<offAddr>>>) -> bool {
-        return { let __tmp_x = ({ let __tmp_x = (*self.a.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = (*{ let __field = (*l2.lock().unwrap().as_ref().unwrap()).a.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); __tmp_x < __tmp_y };
+        return {
+            let __tmp_x = ({ let __tmp_x = (*self.a.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+            let __tmp_y = ({ let __tmp_x = (*{ let __field = (*l2.lock().unwrap().as_ref().unwrap()).a.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+            __tmp_x < __tmp_y
+        };
     }
 
     /// lessEqual returns true if l1 is less than or equal to l2 in
     /// the offset address space.
     pub fn less_equal(&self, l2: Arc<Mutex<Option<offAddr>>>) -> bool {
-        return { let __tmp_x = ({ let __tmp_x = (*self.a.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = (*{ let __field = (*l2.lock().unwrap().as_ref().unwrap()).a.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }); __tmp_x <= __tmp_y };
+        return {
+            let __tmp_x = ({ let __tmp_x = (*self.a.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+            let __tmp_y = ({ let __tmp_x = (*{ let __field = (*l2.lock().unwrap().as_ref().unwrap()).a.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y });
+            __tmp_x <= __tmp_y
+        };
     }
 
     /// equal returns true if the two offAddr values are equal.
@@ -446,7 +490,11 @@ impl addrRanges {
         let mut ranges: GoPtr<crate::slice::notInHeapSlice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&self.ranges.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = 0; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = 16; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), sysStat.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
+        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), sysStat.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
         { let new_val = sysStat.clone(); self.sys_stat = new_val; };
         { let new_val = 0 as usize; *self.total_bytes.lock().unwrap() = Some(new_val); };
     }
@@ -586,12 +634,20 @@ impl addrRanges {
     } else if { let __v = (*coalescesUp.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = { let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *{ let __seq = { let __seq_holder = self.ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.base.lock().unwrap() = Some(new_val); };
     } else {
-        if { let __tmp_x = ({ let __tmp_x = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = (({ let __cap_target = { let __field = self.ranges.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = ({ let __tmp_x = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x + __tmp_y } as i32);
+            let __tmp_y = (({ let __cap_target = { let __field = self.ranges.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32);
+            __tmp_x > __tmp_y
+        } {
         let mut oldRanges = self.ranges.clone();
         let mut ranges: GoPtr<crate::slice::notInHeapSlice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&self.ranges.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = { let __tmp_x = ((*oldRanges.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x + __tmp_y }; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = { let __tmp_x = ((*oldRanges.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x * __tmp_y }; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), { let __field = self.sys_stat.clone(); __field }).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
+        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), { let __field = self.sys_stat.clone(); __field }).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
         {
             let _dst_start = 0;
             let _dst_len = ((i) as usize) - _dst_start;
@@ -699,12 +755,20 @@ impl addrRanges {
     /// cloneInto makes a deep clone of a's state into b, re-using
     /// b's ranges if able.
     pub fn clone_into(&self, b: Arc<Mutex<Option<addrRanges>>>) {
-        if { let __tmp_x = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = (({ let __cap_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).ranges.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
+            let __tmp_y = (({ let __cap_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).ranges.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32);
+            __tmp_x > __tmp_y
+        } {
                 // Grow the array.
         let mut ranges: GoPtr<crate::slice::notInHeapSlice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&(*b.lock().unwrap().as_ref().unwrap()).ranges.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = 0; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = ({ let __cap_target = { let __field = self.ranges.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), { let __field = (*b.lock().unwrap().as_ref().unwrap()).sys_stat.clone(); __field }).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
+        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), { let __field = (*b.lock().unwrap().as_ref().unwrap()).sys_stat.clone(); __field }).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
     }
                 // Grow the array.
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); (*b.lock().unwrap().as_mut().unwrap()).ranges = new_val; };

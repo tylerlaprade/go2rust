@@ -204,7 +204,11 @@ pub fn trace_span_type_and_class(s: GoPtr<crate::mheap::mspan>) -> Arc<Mutex<Opt
 
 /// traceSpanID creates a trace ID for the span s for the trace.
 pub fn trace_span_i_d(s: GoPtr<crate::mheap::mspan>) -> Arc<Mutex<Option<crate::traceevent::traceArg>>> {
-    return Arc::new(Mutex::new(Some(crate::traceevent::traceArg(Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*trace.lock().unwrap().as_ref().unwrap()).min_page_heap_addr.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y } as u64 / PAGE_SIZE as u64))))))));
+    return Arc::new(Mutex::new(Some(crate::traceevent::traceArg(Arc::new(Mutex::new(Some(({
+    let __tmp_x = (*Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result } as u64))).lock().unwrap().as_ref().unwrap());
+    let __tmp_y = (*{ let __field = (*trace.lock().unwrap().as_ref().unwrap()).min_page_heap_addr.clone(); __field }.lock().unwrap().as_ref().unwrap());
+    __tmp_x - __tmp_y
+} as u64 / PAGE_SIZE as u64))))))));
 }
 
 /// traceHeapObjectID creates a trace ID for a heap object at address addr.

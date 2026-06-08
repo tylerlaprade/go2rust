@@ -1259,7 +1259,27 @@ impl Frames {
                 // There are no cycles in implied virtual PCs (some number of frames were
                 // inlined, but that number is finite), so this unpacking cannot cause an infinite loop.
         let mut unext = (*u.lock().unwrap().as_ref().unwrap()).next(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    while (*unext.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = (({ let __len_target = { let __field = self.callers.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = self.callers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = { let __tmp_x = (*{ let __field = (*unext.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x + __tmp_y }; __tmp_x != __tmp_y } {
+    while {
+        let __go_cond_0 = {
+            let __go_cond_1 = (*unext.lock().unwrap().as_ref().unwrap()).valid();
+            if __go_cond_1 {
+                let __go_cond_2 = { let __tmp_x = (({ let __len_target = { let __field = self.callers.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = {
+                let __tmp_x = { let __seq = { let __seq_holder = self.callers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                let __tmp_y = { let __tmp_x = (*{ let __field = (*unext.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x + __tmp_y };
+                __tmp_x != __tmp_y
+            };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
         let mut snext = (*u.lock().unwrap().as_ref().unwrap()).src_func(Arc::new(Mutex::new(Some({ let __arg_holder = unext.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = { let __selector_holder = (*snext.lock().unwrap().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_WRAPPER as u8)))); __tmp_x == __tmp_y } && elide_wrapper_calling(Arc::new(Mutex::new(Some({ let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
                 // Skip, because tracebackPCs (inside runtime.Callers) would too.
@@ -1445,7 +1465,19 @@ impl crate::runtime2::_func {
         { let new_val = (*datap.lock().unwrap().as_ref().unwrap()).next.clone(); datap = new_val; };; continue
     }
         let mut base = Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize)));
-        if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    let __tmp_y = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let new_val = datap.clone(); r#mod = new_val; };
         break
     }
@@ -1486,7 +1518,11 @@ impl moduledata {
         { let __range_holder = self.textsectmap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, sect) in __range_values.iter().enumerate() {
                 // For the last section, include the end address (etext), as it is included in the functab.
         if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.end.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || ({ let __tmp_x = (i as i32); let __tmp_y = ({ let __tmp_x = (({ let __len_target = { let __field = self.textsectmap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.end.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y }) {
-        { let new_val = { let __tmp_x = { let __tmp_x = (*sect.baseaddr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; *res.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = (*sect.baseaddr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
+            let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        }; *res.lock().unwrap() = Some(new_val); };
         break
     }
     } }
@@ -1524,13 +1560,21 @@ impl moduledata {
         return (0, false);
     }
                 // pc is not in any section.
-        let mut end = Arc::new(Mutex::new(Some({ let __tmp_x = (*sect.baseaddr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*sect.end.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x + __tmp_y })));
+        let mut end = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*sect.baseaddr.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = (*sect.end.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+            __tmp_x + __tmp_y
+        })));
                 // For the last section, include the end address (etext), as it is included in the functab.
         if { let __tmp_x = (i as i32); let __tmp_y = ({ let __tmp_x = (({ let __len_target = { let __field = self.textsectmap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); __tmp_x == __tmp_y } {
         { let mut guard = end.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.baseaddr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *res.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some(({
+            let __tmp_x = { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*sect.baseaddr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y };
+            let __tmp_y = (*sect.vaddr.lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        }) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *res.lock().unwrap() = __moved_val; };
         break
     }
     } }
@@ -1768,15 +1812,27 @@ pub fn findfunc(pc: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<funcInfo>>> {
         return Arc::new(Mutex::new(Some(funcInfo { _func: Default::default(), datap: Default::default() })));
     }
 
-    let mut x = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(pcOff as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).text.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).minpc.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+    let mut x = Arc::new(Mutex::new(Some({
+        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(pcOff as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).text.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+        let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).minpc.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        __tmp_x - __tmp_y
+    })));
     let mut b = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_abi::FUNC_TAB_BUCKET_SIZE as usize; __tmp_x / __tmp_y })));
     let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_abi::FUNC_TAB_BUCKET_SIZE as usize; __tmp_x % __tmp_y }; let __tmp_y = ((internal_abi::FUNC_TAB_BUCKET_SIZE as usize) / (nsub as usize)) as usize; __tmp_x / __tmp_y })));
 
     let mut ffb: GoPtr<findfuncbucket> = GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some({ let __selector_holder = (*datap.lock().unwrap().as_ref().unwrap()).findfunctab.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<findfuncbucket>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-    let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = ffb.borrow(); __ptr_value.as_ref().unwrap().idx.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = { let __ptr_value = ffb.with_mut(|__ptr_value| __ptr_value.subbuckets.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+    let mut idx = Arc::new(Mutex::new(Some({
+        let __tmp_x = (*{ let __ptr_value = ffb.borrow(); __ptr_value.as_ref().unwrap().idx.clone() }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = { let __ptr_value = ffb.with_mut(|__ptr_value| __ptr_value.subbuckets.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as u32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    })));
 
         // Find the ftab entry.
-    while { let __tmp_x = (*{ let __seq = { let __seq_holder = (*datap.lock().unwrap().as_ref().unwrap()).ftab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }) as usize].clone() }.entryoff.lock().unwrap().as_ref().unwrap()); let __tmp_y = pcOff; __tmp_x <= __tmp_y } {
+    while {
+        let __tmp_x = (*{ let __seq = { let __seq_holder = (*datap.lock().unwrap().as_ref().unwrap()).ftab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }) as usize].clone() }.entryoff.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = pcOff;
+        __tmp_x <= __tmp_y
+    } {
         { let mut guard = idx.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
@@ -1789,7 +1845,11 @@ pub fn findfunc(pc: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<funcInfo>>> {
 /// For now, align to goarch.PtrSize and reduce mod the number of entries.
 /// In practice, this appears to be fairly randomly and evenly distributed.
 pub fn pcvalue_cache_key(targetpc: Arc<Mutex<Option<usize>>>) -> usize {
-    return { let __tmp_x = ({ let __tmp_x = { let __v = (*targetpc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*pcvalueCache { entries: Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| Default::default()))))), in_use: Arc::new(Mutex::new(Some(0))) }.entries.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x % __tmp_y };
+    return {
+        let __tmp_x = ({ let __tmp_x = { let __v = (*targetpc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y });
+        let __tmp_y = (*Arc::new(Mutex::new(Some((*pcvalueCache { entries: Arc::new(Mutex::new(Some(std::array::from_fn(|_| std::array::from_fn(|_| Default::default()))))), in_use: Arc::new(Mutex::new(Some(0))) }.entries.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize;
+        __tmp_x % __tmp_y
+    };
 }
 
 /// Returns the PCData value, and the PC where this value starts.
@@ -2089,7 +2149,11 @@ pub fn func_max_s_p_delta(f: Arc<Mutex<Option<funcInfo>>>) -> i32 {
 }
 
 pub fn pcdatastart(f: Arc<Mutex<Option<funcInfo>>>, table: Arc<Mutex<Option<u32>>>) -> u32 {
-    { let __v = (*Arc::new(Mutex::new({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&(*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).nfuncdata.clone()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<u8>()))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*table.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4 as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u32>(unimplemented!("unsafe.Pointer conversion to u32")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v }
+    { let __v = (*Arc::new(Mutex::new({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&(*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).nfuncdata.clone()) as usize))), Arc::new(Mutex::new(Some({
+        let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<u8>()))).lock().unwrap().as_ref().unwrap()) as usize;
+        let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*table.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4 as usize; __tmp_x * __tmp_y };
+        __tmp_x + __tmp_y
+    })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u32>(unimplemented!("unsafe.Pointer conversion to u32")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v }
 }
 
 pub fn pcdatavalue(f: Arc<Mutex<Option<funcInfo>>>, table: Arc<Mutex<Option<u32>>>, targetpc: Arc<Mutex<Option<usize>>>) -> i32 {

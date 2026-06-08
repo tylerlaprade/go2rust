@@ -496,7 +496,11 @@ impl gcControllerState {
         let mut live = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load();
         let mut scan = (*self.heap_scan.lock().unwrap().as_mut().unwrap()).load();
         let mut work_local = Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load();
+                let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load();
             __tmp_x + __tmp_y
         })));
@@ -506,7 +510,11 @@ impl gcControllerState {
                 // The expected scan work is computed as the amount of bytes scanned last
                 // GC cycle (both heap and stack), plus our estimate of globals work for this cycle.
         let mut scanWorkExpected = Arc::new(Mutex::new(Some(({
-            let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
             __tmp_x + __tmp_y
         }) as i64)));
@@ -529,7 +537,11 @@ impl gcControllerState {
                 // memory anyway.
         let mut extHeapGoal = Arc::new(Mutex::new(Some({
             let __tmp_x = (*Arc::new(Mutex::new(Some(({
-                let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*heapGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*scanWorkExpected.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+                let __tmp_x = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*heapGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*Arc::new(Mutex::new(Some((*scanWorkExpected.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap());
+                    __tmp_x / __tmp_y
+                };
                 let __tmp_y = (*Arc::new(Mutex::new(Some((*maxScanWork.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap());
                 __tmp_x * __tmp_y
             }) as i64))).lock().unwrap().as_ref().unwrap());
@@ -650,7 +662,11 @@ impl gcControllerState {
             __tmp_x / __tmp_y
         }; let mut guard = utilization.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        if { let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } {
+        if {
+            let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load();
+            let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap());
+            __tmp_x <= __tmp_y
+        } {
                 // Shouldn't happen, but let's be very safe about this in case the
                 // GC is somehow extremely short.
                 //
@@ -706,13 +722,21 @@ impl gcControllerState {
                 //
                 // Note that because we only care about the ratio, assistDuration and procs cancel out.
         let mut scanWork = Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load();
+                let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load();
             __tmp_x + __tmp_y
         })));
         let mut currentConsMark = Arc::new(Mutex::new(Some({
             let __tmp_x = ({
-                let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_x = (*Arc::new(Mutex::new(Some(({
+                    let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load();
+                    let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap());
+                    __tmp_x - __tmp_y
+                }) as f64))).lock().unwrap().as_ref().unwrap());
                 let __tmp_y = ({ let __tmp_x = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*idleUtilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y });
                 __tmp_x * __tmp_y
             });
@@ -726,7 +750,11 @@ impl gcControllerState {
         let mut oldConsMark = Arc::new(Mutex::new(Some({ let __selector_holder = self.cons_mark.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let new_val = currentConsMark.lock().unwrap().as_ref().unwrap().clone(); *self.cons_mark.lock().unwrap() = Some(new_val); };
         for i in 0..(({ let __range_holder = self.last_cons_mark.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        if { let __tmp_x = { let __seq = { let __seq_holder = self.last_cons_mark.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; let __tmp_y = (*self.cons_mark.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = self.last_cons_mark.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+            let __tmp_y = (*self.cons_mark.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         { let new_val = { let __seq = { let __seq_holder = self.last_cons_mark.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; *self.cons_mark.lock().unwrap() = Some(new_val); };
     }
     }
@@ -760,7 +788,11 @@ impl gcControllerState {
             let __go_print_arg_4 = format!("{}", (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load());
             let __go_print_arg_5 = format!("{}", " B work (".to_string());
             let __go_print_arg_6 = format!("{}", {
-                let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+                let __tmp_x = {
+                    let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load();
+                    __tmp_x + __tmp_y
+                };
                 let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
                 __tmp_x + __tmp_y
             });
@@ -920,7 +952,19 @@ impl gcControllerState {
         return (GoPtr::nil(), { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v });
     } else {
         let mut delta = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.mark_start_time.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
-        if { let __tmp_x = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } && { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_fractional_mark_time.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_fractional_mark_time.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+                    let __tmp_y = (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap());
+                    __tmp_x > __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         (*gcBgMarkWorkerPool.lock().unwrap().as_ref().unwrap()).push({ let __ptr_value = node.with_mut(|__ptr_value| __ptr_value.node.clone()); __ptr_value }.clone());
         return (GoPtr::nil(), { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v });
     }
@@ -1092,7 +1136,11 @@ impl gcControllerState {
         let mut heapFree: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));let mut heapAlloc: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));let mut mappedReady: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
         loop {
         { let new_val = (*self.heap_free.lock().unwrap().as_ref().unwrap()).load(); *heapFree.lock().unwrap() = Some(new_val); };
-        { let new_val = { let __tmp_x = (*self.total_alloc.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.total_free.lock().unwrap().as_mut().unwrap()).load(); __tmp_x - __tmp_y }; *heapAlloc.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*self.total_alloc.lock().unwrap().as_mut().unwrap()).load();
+            let __tmp_y = (*self.total_free.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x - __tmp_y
+        }; *heapAlloc.lock().unwrap() = Some(new_val); };
         { let new_val = (*self.mapped_ready.lock().unwrap().as_mut().unwrap()).load(); *mappedReady.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __tmp_x = { let __v = (*heapFree.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*heapAlloc.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*mappedReady.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
         break
@@ -1356,7 +1404,11 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
                 let __tmp_y = {
                     let __tmp_x = {
                         let __tmp_x = ({
-                            let __tmp_x = { let __tmp_x = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+                            let __tmp_x = {
+                                let __tmp_x = (*self.heap_marked.lock().unwrap().as_ref().unwrap());
+                                let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load();
+                                __tmp_x + __tmp_y
+                            };
                             let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
                             __tmp_x + __tmp_y
                         });
@@ -1402,7 +1454,11 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
         (*self.runway.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(({
             let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.cons_mark.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.75; __tmp_x * __tmp_y }; let __tmp_y = 0.25; __tmp_x / __tmp_y });
             let __tmp_y = (*Arc::new(Mutex::new(Some(({
-                let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+                let __tmp_x = {
+                    let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load();
+                    __tmp_x + __tmp_y
+                };
                 let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
                 __tmp_x + __tmp_y
             }) as f64))).lock().unwrap().as_ref().unwrap());

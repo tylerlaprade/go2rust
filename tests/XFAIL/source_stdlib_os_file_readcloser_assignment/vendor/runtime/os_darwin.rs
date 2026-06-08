@@ -682,7 +682,11 @@ pub fn mpreinit(mp: Arc<Mutex<Option<m>>>) {
                 // mlock the signal stack to work around a kernel bug where it may
                 // SIGILL when the signal stack is not faulted in while a signal
                 // arrives. See issue 42774.
-        mlock(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*physPageSize.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = physPageSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        mlock(Arc::new(Mutex::new(Some({
+            let __tmp_x = (*(*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*physPageSize.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        }))), Arc::new(Mutex::new(Some({ let __arg_holder = physPageSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 }
 

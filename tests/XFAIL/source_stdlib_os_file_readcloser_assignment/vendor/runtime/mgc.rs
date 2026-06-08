@@ -1930,7 +1930,15 @@ impl gcTrigger {
             return { let __tmp_x = { let __v = (*lastgc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x != __tmp_y } && { let __tmp_x = { let __tmp_x = (*self.now.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*lastgc.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; let __tmp_y = (*forcegcperiod.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y };
         } else if _switch_val == (gcTriggerKind(Arc::new(Mutex::new(Some(GC_TRIGGER_CYCLE as i32))))) {
                         // t.n > work.cycles, but accounting for wraparound.
-            return { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*work.lock().unwrap().as_ref().unwrap()).cycles.lock().unwrap().as_mut().unwrap()).load(); __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y };
+            return {
+                let __tmp_x = (*Arc::new(Mutex::new(Some(({
+                    let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*(*work.lock().unwrap().as_ref().unwrap()).cycles.lock().unwrap().as_mut().unwrap()).load();
+                    __tmp_x - __tmp_y
+                }) as i32))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = 0 as i32;
+                __tmp_x > __tmp_y
+            };
         }
     }
                 // t.n > work.cycles, but accounting for wraparound.
@@ -1974,11 +1982,19 @@ pub fn poll_fractional_worker_exit() -> bool {
         return true;
     }
     let mut p: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
-    let mut selfTime = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = p.borrow(); __ptr_value.as_ref().unwrap().gc_fractional_mark_time.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = now; let __tmp_y = (*{ let __ptr_value = p.borrow(); __ptr_value.as_ref().unwrap().gc_mark_worker_start_time.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x + __tmp_y })));
+    let mut selfTime = Arc::new(Mutex::new(Some({
+        let __tmp_x = (*{ let __ptr_value = p.borrow(); __ptr_value.as_ref().unwrap().gc_fractional_mark_time.clone() }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = ({ let __tmp_x = now; let __tmp_y = (*{ let __ptr_value = p.borrow(); __ptr_value.as_ref().unwrap().gc_mark_worker_start_time.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+        __tmp_x + __tmp_y
+    })));
 
         // Add some slack to the utilization goal so that the
         // fractional worker isn't behind again the instant it exits.
-    return { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*selfTime.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = { let __tmp_x = 1.2; let __tmp_y = (*{ let __field = (*gcController.lock().unwrap().as_ref().unwrap()).fractional_utilization_goal.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x > __tmp_y };
+    return {
+        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*selfTime.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+        let __tmp_y = { let __tmp_x = 1.2; let __tmp_y = (*{ let __field = (*gcController.lock().unwrap().as_ref().unwrap()).fractional_utilization_goal.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+        __tmp_x > __tmp_y
+    };
 }
 
 /// gcStart starts the GC. It transitions from _GCoff to _GCmark (if
@@ -2516,8 +2532,16 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
     { let new_val = now; *(*work.lock().unwrap().as_ref().unwrap()).t_end.lock().unwrap() = Some(new_val); };
     internal_runtime_atomic::store64((*memstats.lock().unwrap().as_ref().unwrap()).last_gc_unix.clone(), Arc::new(Mutex::new(Some((*unixNow.lock().unwrap().as_ref().unwrap()) as u64))));
     internal_runtime_atomic::store64((*memstats.lock().unwrap().as_ref().unwrap()).last_gc_nanotime.clone(), Arc::new(Mutex::new(Some(now as u64))));
-    (*(*memstats.lock().unwrap().as_ref().unwrap()).pause_ns.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*memstats.lock().unwrap().as_ref().unwrap()).pause_ns.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize] = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).pause_n_s.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()).clone();
-    (*(*memstats.lock().unwrap().as_ref().unwrap()).pause_end.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*memstats.lock().unwrap().as_ref().unwrap()).pause_end.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize] = (*Arc::new(Mutex::new(Some((*unixNow.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()).clone();
+    (*(*memstats.lock().unwrap().as_ref().unwrap()).pause_ns.lock().unwrap().as_mut().unwrap())[({
+        let __tmp_x = (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some((*(*memstats.lock().unwrap().as_ref().unwrap()).pause_ns.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+        __tmp_x % __tmp_y
+    }) as usize] = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).pause_n_s.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()).clone();
+    (*(*memstats.lock().unwrap().as_ref().unwrap()).pause_end.lock().unwrap().as_mut().unwrap())[({
+        let __tmp_x = (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some((*(*memstats.lock().unwrap().as_ref().unwrap()).pause_end.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+        __tmp_x % __tmp_y
+    }) as usize] = (*Arc::new(Mutex::new(Some((*unixNow.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()).clone();
     { let __target = (*memstats.lock().unwrap().as_ref().unwrap()).pause_total_ns.clone(); let __rhs = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).pause_n_s.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         // Accumulate CPU stats.
@@ -2534,7 +2558,11 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         // Compute overall GC CPU utilization.
         // Omit idle marking time from the overall utilization here since it's "free".
     { let new_val = {
-        let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_total_time.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_idle_time.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+        let __tmp_x = (*Arc::new(Mutex::new(Some(({
+            let __tmp_x = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_total_time.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_idle_time.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        }) as f64))).lock().unwrap().as_ref().unwrap());
         let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).total_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap());
         __tmp_x / __tmp_y
     }; *(*memstats.lock().unwrap().as_ref().unwrap()).gc_cpu_fraction.lock().unwrap() = Some(new_val); };
@@ -2692,11 +2720,23 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
             eprint!("{}", __go_print_arg_0)
         };
         for (i, ns) in vec![
-            { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).stwprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_mark.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x * __tmp_y },
+            {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).stwprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_mark.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+                __tmp_x * __tmp_y
+            },
             (*(*gcController.lock().unwrap().as_ref().unwrap()).assist_time.lock().unwrap().as_mut().unwrap()).load(),
-            { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).dedicated_mark_time.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).fractional_mark_time.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y },
+            {
+                let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).dedicated_mark_time.lock().unwrap().as_mut().unwrap()).load();
+                let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).fractional_mark_time.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x + __tmp_y
+            },
             (*(*gcController.lock().unwrap().as_ref().unwrap()).idle_mark_time.lock().unwrap().as_mut().unwrap()).load(),
-            { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).stwprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_end.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_mark_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x * __tmp_y },
+            {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).stwprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_end.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_mark_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+                __tmp_x * __tmp_y
+            },
         ].iter().copied().enumerate() {
         if { let __tmp_x = i as i32; let __tmp_y = 2; __tmp_x == __tmp_y } || { let __tmp_x = i as i32; let __tmp_y = 3; __tmp_x == __tmp_y } {
                 // Separate mark time components with /.

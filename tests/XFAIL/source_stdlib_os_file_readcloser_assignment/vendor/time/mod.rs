@@ -4406,7 +4406,11 @@ impl Time {
     /// sec returns the time's seconds since Jan 1 year 1.
     pub fn sec(&self) -> i64 {
         if { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
-        return { let __tmp_x = WALL_TO_INTERNAL as i64; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x << __tmp_y }; let __tmp_y = ({ let __tmp_x = NSEC_SHIFT; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x >> __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+        return {
+            let __tmp_x = WALL_TO_INTERNAL as i64;
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x << __tmp_y }; let __tmp_y = ({ let __tmp_x = NSEC_SHIFT; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x >> __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        };
     }
         return (*self.ext.lock().unwrap().as_ref().unwrap());
     }
@@ -4422,7 +4426,11 @@ impl Time {
         let mut sec = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x << __tmp_y }; let __tmp_y = ({ let __tmp_x = NSEC_SHIFT; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x >> __tmp_y }) as i64)));
         let mut dsec = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
         if { let __tmp_x = 0 as i64; let __tmp_y = { let __v = (*dsec.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __v = (*dsec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as i64) << (33 as i64)) - (1 as i64)) as i64; __tmp_x <= __tmp_y } {
-        { let new_val = { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = NSEC_MASK as u64; __tmp_x & __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*dsec.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = NSEC_SHIFT; __tmp_x << __tmp_y }; __tmp_x | __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x | __tmp_y }; *self.wall.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = NSEC_MASK as u64; __tmp_x & __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*dsec.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = NSEC_SHIFT; __tmp_x << __tmp_y }; __tmp_x | __tmp_y };
+            let __tmp_y = HAS_MONOTONIC as u64;
+            __tmp_x | __tmp_y
+        }; *self.wall.lock().unwrap() = Some(new_val); };
         return;
     }
                 // Wall second now out of range for packed field.
@@ -4494,7 +4502,15 @@ impl Time {
 
     /// After reports whether the time instant t is after u.
     pub fn after(&self, u: Arc<Mutex<Option<Time>>>) -> bool {
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y };
+                let __tmp_y = HAS_MONOTONIC as u64;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        } {
         return { let __tmp_x = (*self.ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y };
     }
         let mut ts = self.sec();
@@ -4504,7 +4520,15 @@ impl Time {
 
     /// Before reports whether the time instant t is before u.
     pub fn before(&self, u: Arc<Mutex<Option<Time>>>) -> bool {
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y };
+                let __tmp_y = HAS_MONOTONIC as u64;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        } {
         return { let __tmp_x = (*self.ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
     }
         let mut ts = self.sec();
@@ -4516,7 +4540,15 @@ impl Time {
     /// if t is after u, it returns +1; if they're the same, it returns 0.
     pub fn compare(&self, u: Arc<Mutex<Option<Time>>>) -> i32 {
         let mut tc: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));let mut uc: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y };
+                let __tmp_y = HAS_MONOTONIC as u64;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        } {
         {
             let __tmp_0 = { let __selector_holder = self.ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
             let __tmp_1 = { let __selector_holder = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
@@ -4553,7 +4585,15 @@ impl Time {
     /// See the documentation on the Time type for the pitfalls of using == with
     /// Time values; most code should use Equal instead.
     pub fn equal(&self, u: Arc<Mutex<Option<Time>>>) -> bool {
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y };
+                let __tmp_y = HAS_MONOTONIC as u64;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        } {
         return { let __tmp_x = (*self.ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
     }
         return { let __tmp_x = self.sec(); let __tmp_y = (*u.lock().unwrap().as_ref().unwrap()).sec(); __tmp_x == __tmp_y } && { let __tmp_x = self.nsec(); let __tmp_y = (*u.lock().unwrap().as_ref().unwrap()).nsec(); __tmp_x == __tmp_y };
@@ -4736,7 +4776,15 @@ impl Time {
     /// will be returned.
     /// To compute t-d for a duration d, use t.Add(-d).
     pub fn sub(&self, u: Arc<Mutex<Option<Time>>>) -> Arc<Mutex<Option<Duration>>> {
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }; let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).wall.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y };
+                let __tmp_y = HAS_MONOTONIC as u64;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u64;
+            __tmp_x != __tmp_y
+        } {
         return sub_mono(Arc::new(Mutex::new(Some({ let __selector_holder = self.ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*u.lock().unwrap().as_ref().unwrap()).ext.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         let mut d = Arc::new(Mutex::new(Some({

@@ -251,7 +251,11 @@ impl crate::mheap::mspan {
         throw(Arc::new(Mutex::new(Some("mallocgc called without a P or outside bootstrapping".to_string()))));
     }
         if { let __tmp_x = { let __v = (*cap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = {
+            let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = ({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+            __tmp_x - __tmp_y
+        }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
         { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
@@ -374,7 +378,11 @@ impl writeUserArenaHeapBits {
                 // Fast path - just accumulate the bits.
                 // Too many bits to fit in this word. Write the current word
                 // out and move on to the next word.
-        let mut data = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.mask.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; __tmp_x | __tmp_y })));
+        let mut data = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*__self.mask.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y };
+            __tmp_x | __tmp_y
+        })));
         { let new_val = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }; *__self.mask.lock().unwrap() = Some(new_val); };
         { let __target = __self.valid.clone(); let __rhs = { let __tmp_x = { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Flush mask to the memory bitmap.
@@ -440,7 +448,11 @@ let mut zeros = Arc::new(Mutex::new(Some(__go_binary_8)));
         if { let __tmp_x = (*__self.valid.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
         let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
         { let __rhs = !({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = (*__self.mask.lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y }))));
+        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y };
+            let __tmp_y = (*__self.mask.lock().unwrap().as_ref().unwrap());
+            __tmp_x | __tmp_y
+        }))));
     }
                 // don't clear existing bits below "low"
                 // don't clear existing bits above "valid"

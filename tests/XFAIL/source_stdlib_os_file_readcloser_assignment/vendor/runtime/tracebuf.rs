@@ -959,7 +959,15 @@ impl traceBuf {
     ///
     ///go:nosplit
     pub fn available(&self, size: Arc<Mutex<Option<i32>>>) -> bool {
-        return { let __tmp_x = ({ let __tmp_x = 65504; let __tmp_y = ((*(*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone().lock().unwrap().as_ref().unwrap()) as i32); __tmp_x - __tmp_y } as i32); let __tmp_y = ({ let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x >= __tmp_y };
+        return {
+            let __tmp_x = ({
+                let __tmp_x = 65504;
+                let __tmp_y = ((*(*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone().lock().unwrap().as_ref().unwrap()) as i32);
+                __tmp_x - __tmp_y
+            } as i32);
+            let __tmp_y = ({ let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32);
+            __tmp_x >= __tmp_y
+        };
     }
 
     /// varintAt writes varint v at byte position pos in buf. This always
@@ -1018,7 +1026,11 @@ pub fn trace_buf_flush(buf_local: Arc<Mutex<Option<traceBuf>>>, gen: Arc<Mutex<O
         // quite difficult to preserve, and if we include the header we
         // force serializers to do more work. Nothing else actually needs
         // padding.
-    { let __recv = buf_local.clone(); let __recv_ptr: *mut traceBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut traceBuf }; let __result = unsafe { &mut *__recv_ptr }.varint_at(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*buf_local.lock().unwrap().as_mut().unwrap()).trace_buf_header.lock().unwrap().as_mut().unwrap()).len_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(({ let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).len_pos.lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x + __tmp_y }); __tmp_x - __tmp_y }) as u64)))); __result };
+    { let __recv = buf_local.clone(); let __recv_ptr: *mut traceBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut traceBuf }; let __result = unsafe { &mut *__recv_ptr }.varint_at(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*buf_local.lock().unwrap().as_mut().unwrap()).trace_buf_header.lock().unwrap().as_mut().unwrap()).len_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(({
+        let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = ({ let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).len_pos.lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x + __tmp_y });
+        __tmp_x - __tmp_y
+    }) as u64)))); __result };
     { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.push(buf_local.clone());
 
         // Notify the scheduler that there's work available and that the trace

@@ -59,7 +59,11 @@ pub(crate) fn __go_zero_globals() {
 /// It runs from the signal handler, so it's limited in what it can do.
 pub fn sigsend(s: Arc<Mutex<Option<u32>>>) -> bool {
     let mut bit = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as u32); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 31 as u32; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y })));
-    if { let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = 32; let __tmp_y = 1; __tmp_x * __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x >= __tmp_y } {
+    if {
+        let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = 32; let __tmp_y = 1; __tmp_x * __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+        __tmp_x >= __tmp_y
+    } {
         return false;
     }
 

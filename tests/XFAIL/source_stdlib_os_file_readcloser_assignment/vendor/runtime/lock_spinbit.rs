@@ -275,7 +275,11 @@ let mut next = Arc::new(Mutex::new(Some(__go_binary_8)));
         { let new_val = false; *weSpin.lock().unwrap() = Some(new_val); };
                 // We've pushed ourselves onto the stack of waiters. Wait.
         semasleep(Arc::new(Mutex::new(Some(-1 as i64))));
-        { let new_val = { let __tmp_x = { let __selector_holder = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_wait_list.lock().unwrap().as_ref().unwrap()).next.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y }; *atTail.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __selector_holder = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_wait_list.lock().unwrap().as_ref().unwrap()).next.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize))));
+            __tmp_x == __tmp_y
+        }; *atTail.lock().unwrap() = Some(new_val); };
         { let new_val = 0; *i.lock().unwrap() = Some(new_val); };
     }
 
@@ -430,7 +434,11 @@ pub fn unlock2_wake(l: GoPtr<crate::runtime2::mutex>) {
                 // Wake the M at the bottom of the stack of waiters. (This is
                 // O(N) with the number of waiters.)
         if { let __left_addr = wakem.addr(); let __right_addr = mp.addr(); let __eq = __left_addr == __right_addr; __eq } {
-        { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some((*(*(*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.m_wait_list.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MUTEX_M_MASK as usize; __tmp_x & ! __tmp_y }; *headM.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*(*(*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.m_wait_list.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = MUTEX_M_MASK as usize;
+            __tmp_x & ! __tmp_y
+        }; *headM.lock().unwrap() = Some(new_val); };
     }
 
         let mut next = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*headM.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*flags.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y })));

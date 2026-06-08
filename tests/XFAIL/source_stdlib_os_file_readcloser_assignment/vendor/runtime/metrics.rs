@@ -1483,7 +1483,11 @@ impl gcStatsAggregate {
         { let new_val = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_scan.lock().unwrap().as_mut().unwrap()).load(); *self.heap_scan.lock().unwrap() = Some(new_val); };
         { let new_val = (*(*gcController.lock().unwrap().as_ref().unwrap()).last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); *self.stack_scan.lock().unwrap() = Some(new_val); };
         { let new_val = (*(*gcController.lock().unwrap().as_ref().unwrap()).globals_scan.lock().unwrap().as_mut().unwrap()).load(); *self.globals_scan.lock().unwrap() = Some(new_val); };
-        { let new_val = { let __tmp_x = { let __tmp_x = (*self.heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.stack_scan.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *self.total_scan.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = (*self.heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.stack_scan.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_y = (*self.globals_scan.lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        }; *self.total_scan.lock().unwrap() = Some(new_val); };
     }
 }
 
@@ -1531,7 +1535,11 @@ impl metricValue {
         { let new_val = Arc::new(Mutex::new(Some(hist.addr()))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.pointer.lock().unwrap() = __moved_val; };
     }
         { let new_val = buckets.clone(); hist.with_mut(|__ptr_value| { __ptr_value.buckets = new_val; }); };
-        if { let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = ({ let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.buckets.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.counts.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
+            let __tmp_y = ({ let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = hist.with_mut(|__ptr_value| __ptr_value.buckets.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32);
+            __tmp_x != __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some(vec![0; ({ let __tmp_x = ((*buckets.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize]))); hist.with_mut(|__ptr_value| { __ptr_value.counts = new_val; }); };
     }
         hist.clone()

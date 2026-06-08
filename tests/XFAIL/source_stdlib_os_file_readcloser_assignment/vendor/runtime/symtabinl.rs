@@ -213,7 +213,11 @@ impl inlineUnwinder {
         return { let __owned = uf.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }
         let mut parentPc = Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = self.inl_tree.clone().borrow(); __seq.as_ref().unwrap()[((*{ let __field = (*uf.lock().unwrap().as_ref().unwrap()).index.clone(); __field }.lock().unwrap().as_ref().unwrap())) as usize].clone() }.parent_pc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        return { let __method_arg0 = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.f.lock().unwrap().as_ref().unwrap()).entry(); let __tmp_y = (*Arc::new(Mutex::new(Some((*parentPc.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))); self.resolve_internal(__method_arg0) };
+        return { let __method_arg0 = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*self.f.lock().unwrap().as_ref().unwrap()).entry();
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*parentPc.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        }))); self.resolve_internal(__method_arg0) };
     }
 
     /// isInlined returns whether uf is an inlined frame.

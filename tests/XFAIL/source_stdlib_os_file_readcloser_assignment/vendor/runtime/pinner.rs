@@ -233,11 +233,23 @@ impl pinState {
     ///
     ///go:nosplit
     pub fn is_pinned(&self) -> bool {
-        return { let __tmp_x = ({ let __tmp_x = (*self.byte_val.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.mask.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }); let __tmp_y = 0 as u8; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = ({ let __tmp_x = (*self.byte_val.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.mask.lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y });
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn is_multi_pinned(&self) -> bool {
-        return { let __tmp_x = ({ let __tmp_x = (*self.byte_val.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*self.mask.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }); let __tmp_y = 0 as u8; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = ({
+                let __tmp_x = (*self.byte_val.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = (*self.mask.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x << __tmp_y });
+                __tmp_x & __tmp_y
+            });
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn set_pinned(&self, val: Arc<Mutex<Option<bool>>>) {

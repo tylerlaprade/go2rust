@@ -914,7 +914,15 @@ impl scavengerState {
     }
         if { let __nil_target = self.should_stop.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Box::new(move || -> bool {
-        return { let __tmp_x = heap_retained(); let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).gc_percent_goal.lock().unwrap().as_mut().unwrap()).load(); __tmp_x <= __tmp_y } && { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).mapped_ready.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).memory_limit_goal.lock().unwrap().as_mut().unwrap()).load(); __tmp_x <= __tmp_y };
+        return {
+            let __tmp_x = heap_retained();
+            let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).gc_percent_goal.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x <= __tmp_y
+        } && {
+            let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).mapped_ready.lock().unwrap().as_mut().unwrap()).load();
+            let __tmp_y = (*(*scavenge.lock().unwrap().as_ref().unwrap()).memory_limit_goal.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x <= __tmp_y
+        };
     }) as Box<dyn FnMut() -> bool + Send + Sync>; *self.should_stop.lock().unwrap() = Some(new_val); };
     }
                 // If background scavenging is disabled or if there's no work to do just stop.
@@ -1069,7 +1077,11 @@ impl scavengerState {
                 // that small inaccuracy is in the noise.
         let mut cpuFraction = Arc::new(Mutex::new(Some({
             let __tmp_x = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v };
-            let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __f_holder = self.gomaxprocs.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y });
+            let __tmp_y = ({
+                let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y });
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __f_holder = self.gomaxprocs.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } as f64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            });
             __tmp_x / __tmp_y
         })));
                 // Update the critSleepRatio, adjusting until we reach our ideal fraction.
@@ -1419,7 +1431,11 @@ impl crate::mpallocbits::pallocData {
                 // Start by quickly skipping over blocks of non-free or scavenged pages.
         while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
                 // 1s are scavenged OR non-free => 0s are unscavenged AND free
-        let mut x = fill_aligned(Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut x = fill_aligned(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            __tmp_x | __tmp_y
+        }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
         if { let __tmp_x = x; let __tmp_y = !(0 as u64) as u64; __tmp_x != __tmp_y } {
         break
     }
@@ -1434,7 +1450,11 @@ impl crate::mpallocbits::pallocData {
                 // We have something in the 64-bit chunk at i, but it could
                 // extend further. Loop until we find the extent of it.
                 // 1s are scavenged OR non-free => 0s are unscavenged AND free
-        let mut x = fill_aligned(Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut x = fill_aligned(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            __tmp_x | __tmp_y
+        }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
         let mut z1 = Arc::new(Mutex::new(Some(internal_runtime_sys::leading_zeros64(Arc::new(Mutex::new(Some(!x)))) as u64)));
         let (mut run, mut end) = (Arc::new(Mutex::new(Some(0 as u64))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = 64 as u64; let __tmp_y = { let __v = (*z1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x + __tmp_y }))));
         if { let __tmp_x = { let __tmp_x = x; let __tmp_y = { let __v = (*z1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
@@ -1448,7 +1468,11 @@ impl crate::mpallocbits::pallocData {
         { let new_val = { let __tmp_x = 64 as u64; let __tmp_y = { let __v = (*z1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *run.lock().unwrap() = Some(new_val); };
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-        let mut x = fill_aligned(Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut x = fill_aligned(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            __tmp_x | __tmp_y
+        }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
         { let __rhs = (*Arc::new(Mutex::new(Some(internal_runtime_sys::leading_zeros64(Arc::new(Mutex::new(Some(x)))) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = run.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if { let __tmp_x = x; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
                 // The run stopped in this word.
@@ -1866,7 +1890,15 @@ impl piController {
                 // Update the controller's state.
         if { let __tmp_x = (*self.ti.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.0; __tmp_x != __tmp_y } && { let __tmp_x = (*self.tt.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.0; __tmp_x != __tmp_y } {
         { let __target = self.err_integral.clone(); let __rhs = {
-            let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.kp.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = (*self.ti.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*setpoint.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*input.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = ({
+                    let __tmp_x = { let __tmp_x = (*self.kp.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y };
+                    let __tmp_y = (*self.ti.lock().unwrap().as_ref().unwrap());
+                    __tmp_x / __tmp_y
+                });
+                let __tmp_y = ({ let __tmp_x = { let __v = (*setpoint.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*input.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y });
+                __tmp_x * __tmp_y
+            };
             let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.tt.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*output.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*rawOutput.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y };
             __tmp_x + __tmp_y
         }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -1893,7 +1925,11 @@ impl piController {
 
 /// heapRetained returns an estimate of the current heap RSS.
 pub fn heap_retained() -> u64 {
-    return { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_free.lock().unwrap().as_ref().unwrap()).load(); __tmp_x + __tmp_y };
+    return {
+        let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load();
+        let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_free.lock().unwrap().as_ref().unwrap()).load();
+        __tmp_x + __tmp_y
+    };
 }
 
 /// gcPaceScavenger updates the scavenger's pacing, particularly
@@ -1998,7 +2034,11 @@ pub fn print_scav_trace(releasedBg: Arc<Mutex<Option<usize>>>, releasedEager: Ar
             let __go_print_arg_4 = format!("{}", " KiB work (eager), ".to_string());
             let __go_print_arg_5 = format!("{}", { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 10; __tmp_x >> __tmp_y });
             let __go_print_arg_6 = format!("{}", " KiB now, ".to_string());
-            let __go_print_arg_7 = format!("{}", { let __tmp_x = ({ let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 100 as u64; __tmp_x * __tmp_y }); let __tmp_y = heap_retained(); __tmp_x / __tmp_y });
+            let __go_print_arg_7 = format!("{}", {
+                let __tmp_x = ({ let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 100 as u64; __tmp_x * __tmp_y });
+                let __tmp_y = heap_retained();
+                __tmp_x / __tmp_y
+            });
             let __go_print_arg_8 = format!("{}", "% util".to_string());
             eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
         };

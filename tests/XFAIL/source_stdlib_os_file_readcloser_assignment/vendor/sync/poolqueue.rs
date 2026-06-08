@@ -289,7 +289,11 @@ impl poolDequeue {
         let mut ptrs = (*self.head_tail.lock().unwrap().as_mut().unwrap()).load();
         let (mut head, mut tail) = self.unpack(Arc::new(StdMutex::new(Some(ptrs))));
         if {
-            let __tmp_x = { let __tmp_x = ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }); let __tmp_y = (((1 as u64) << (DEQUEUE_BITS as u64)) - (1 as u64)) as u32; __tmp_x & __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y });
+                let __tmp_y = (((1 as u64) << (DEQUEUE_BITS as u64)) - (1 as u64)) as u32;
+                __tmp_x & __tmp_y
+            };
             let __tmp_y = head;
             __tmp_x == __tmp_y
         } {
@@ -297,7 +301,11 @@ impl poolDequeue {
         return false;
     }
                 // Queue is full.
-        let mut slot: Option<GoSliceElemPtr<eface>> = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = head; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
+        let mut slot: Option<GoSliceElemPtr<eface>> = Some(GoSliceElemPtr::new(self.vals.clone(), ({
+            let __tmp_x = head;
+            let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x & __tmp_y
+        }) as usize));
                 // Check if the head slot has been released by popTail.
         let mut typ = sync_atomic::load_pointer((*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone());
         if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
@@ -339,7 +347,11 @@ impl poolDequeue {
         let mut ptrs2 = self.pack(Arc::new(StdMutex::new(Some(head))), Arc::new(StdMutex::new(Some(tail))));
         if (*self.head_tail.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(ptrs))), Arc::new(StdMutex::new(Some(ptrs2)))) {
                 // We successfully took back slot.
-        slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = head; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
+        slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({
+            let __tmp_x = head;
+            let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x & __tmp_y
+        }) as usize));
         break
     }
     }
@@ -378,7 +390,11 @@ impl poolDequeue {
         let mut ptrs2 = self.pack(Arc::new(StdMutex::new(Some(head))), Arc::new(StdMutex::new(Some({ let __tmp_x = tail; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
         if (*self.head_tail.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(ptrs))), Arc::new(StdMutex::new(Some(ptrs2)))) {
                 // Success.
-        slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
+        slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({
+            let __tmp_x = tail;
+            let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x & __tmp_y
+        }) as usize));
         break
     }
     }

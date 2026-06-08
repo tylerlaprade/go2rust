@@ -184,7 +184,11 @@ impl wbBuf {
     ///go:nowritebarrierrec
     ///go:nosplit
     pub fn get1(&mut self) -> GoPtr<[usize; 1]> {
-        if { let __tmp_x = { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         wb_buf_flush();
     }
         let mut p: GoPtr<[usize; 1]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __selector_holder = self.next.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
@@ -195,7 +199,11 @@ impl wbBuf {
     ///go:nowritebarrierrec
     ///go:nosplit
     pub fn get2(&mut self) -> GoPtr<[usize; 2]> {
-        if { let __tmp_x = { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         wb_buf_flush();
     }
         let mut p: GoPtr<[usize; 2]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __selector_holder = self.next.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
@@ -222,7 +230,11 @@ impl wbBuf {
 pub fn wb_buf_flush() {
         // Note: Every possible return from this function must reset
         // the buffer's next pointer to prevent buffer overflow.
-    if { let __tmp_x = (*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).dying.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
+    if {
+        let __tmp_x = (*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).dying.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = 0 as i32;
+        __tmp_x > __tmp_y
+    } {
                 // We're going down. Not much point in write barriers
                 // and this way we can allow write barriers in the
                 // panic path.

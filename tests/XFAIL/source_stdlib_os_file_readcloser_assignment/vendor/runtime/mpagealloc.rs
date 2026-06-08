@@ -1397,7 +1397,15 @@ impl pageAlloc {
                 // that summary. But as soon as we need to iterate beyond that summary
                 // in a level to find a large enough range, we'll stop narrowing.
         let firstFree_closure_clone = firstFree.clone(); let mut foundFree = Arc::new(Mutex::new(Some(Box::new(move |addr: Arc<Mutex<Option<offAddr>>>, size: Arc<Mutex<Option<usize>>>| {
-        if (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) && { let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result } {
+        if {
+            let __go_cond_0 = (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            if __go_cond_0 {
+                let __go_cond_1 = { let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let new_val = addr.lock().unwrap().as_ref().unwrap().clone(); *(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap() = Some(new_val); };
         { let new_val = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap() = __moved_val; };
     } else if !({ let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result } || (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) {
@@ -1735,7 +1743,11 @@ impl pageAlloc {
 
                 // If the searchAddr refers to a region which has a higher address than
                 // any known chunk, then we know we're out of memory.
-        if { let __tmp_x = (*chunk_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = (*chunk_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))).lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            __tmp_x >= __tmp_y
+        } {
         return (0, 0);
     }
 
@@ -1744,7 +1756,11 @@ impl pageAlloc {
         let mut searchAddr = { let __owned = minOffAddr.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         'found: {
             if {
-                let __tmp_x = { let __tmp_x = PALLOC_CHUNK_PAGES as u64; let __tmp_y = chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))); __tmp_x - __tmp_y };
+                let __tmp_x = {
+                    let __tmp_x = PALLOC_CHUNK_PAGES as u64;
+                    let __tmp_y = chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr()))));
+                    __tmp_x - __tmp_y
+                };
                 let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
                 __tmp_x >= __tmp_y
             } {

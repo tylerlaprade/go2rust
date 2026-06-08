@@ -1488,7 +1488,11 @@ impl bucket {
     }
         let mut data = add(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({
             let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<bucket>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            let __tmp_y = { let __tmp_x = (*self.nstk.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y };
+            let __tmp_y = {
+                let __tmp_x = (*self.nstk.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                __tmp_x * __tmp_y
+            };
             __tmp_x + __tmp_y
         }))));
         return GoPtr::raw({ let __ptr = data.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
@@ -1501,7 +1505,11 @@ impl bucket {
     }
         let mut data = add(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({
             let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<bucket>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            let __tmp_y = { let __tmp_x = (*self.nstk.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y };
+            let __tmp_y = {
+                let __tmp_x = (*self.nstk.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                __tmp_x * __tmp_y
+            };
             __tmp_x + __tmp_y
         }))));
         return GoPtr::raw({ let __ptr = data.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
@@ -1515,7 +1523,11 @@ impl lockTimer {
         if { let __tmp_x = { let __v = (*rate.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x != __tmp_y } && { let __tmp_x = { let __v = (*rate.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.time_rate.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         { let new_val = rate.lock().unwrap().as_ref().unwrap().clone(); *self.time_rate.lock().unwrap() = Some(new_val); };
     }
-        if { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.time_rate.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.time_rate.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y };
+            let __tmp_y = 0 as i64;
+            __tmp_x == __tmp_y
+        } {
         { let new_val = nanotime(); *self.time_start.lock().unwrap() = Some(new_val); };
     }
         if { let __tmp_x = { let __v = (*rate.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } && { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*rate.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x % __tmp_y }; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
@@ -1527,7 +1539,11 @@ impl lockTimer {
         let mut gp = getg();
         if { let __tmp_x = (*self.time_start.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
         let mut nowTime = nanotime();
-        (*(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_lock_profile.lock().unwrap().as_ref().unwrap()).wait_time.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = nowTime; let __tmp_y = (*self.time_start.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = (*self.time_rate.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))));
+        (*(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_lock_profile.lock().unwrap().as_ref().unwrap()).wait_time.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({
+            let __tmp_x = ({ let __tmp_x = nowTime; let __tmp_y = (*self.time_start.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+            let __tmp_y = (*self.time_rate.lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }))));
     }
         if { let __tmp_x = (*self.tick_start.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
         let mut nowTick = cputicks();
@@ -1551,7 +1567,11 @@ impl mLockProfile {
                 // We're experiencing contention while attempting to report contention.
                 // Make a note of its magnitude, but don't allow it to be the sole cause
                 // of another contention report.
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(l.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.pending.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(l.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*self.pending.lock().unwrap().as_ref().unwrap());
+            __tmp_x == __tmp_y
+        } {
                 // Optimization: we'd already planned to profile this same lock (though
                 // possibly from a different unlock site).
         { let __target = self.cycles.clone(); let __rhs = (*cycles.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -1590,12 +1610,24 @@ impl mLockProfile {
     ///
     ///go:nowritebarrierrec
     pub fn record_unlock(&mut self, l: GoPtr<crate::runtime2::mutex>) {
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(l.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.pending.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(l.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*self.pending.lock().unwrap().as_ref().unwrap());
+            __tmp_x == __tmp_y
+        } {
         self.capture_stack();
     }
         {
         let mut gp = getg();;
-        if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x == __tmp_y } && (*(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_lock_profile.lock().unwrap().as_ref().unwrap()).have_stack.lock().unwrap().as_ref().unwrap()) {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = (*(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).m_lock_profile.lock().unwrap().as_ref().unwrap()).have_stack.lock().unwrap().as_ref().unwrap());
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
             self.store();;
         }
     }
@@ -1653,7 +1685,11 @@ impl mLockProfile {
             GoPtr::local(gp_closure_clone.clone()),
             Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some((UNWIND_SILENT_ERRORS as u8 | UNWIND_JUMP_STACK as u8) as u8))))))),
         );
-        { let new_val = { let __tmp_x = 1; let __tmp_y = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = skip_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = prof_closure_clone.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __tmp_x + __tmp_y }; *nstk_closure_clone.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = 1;
+            let __tmp_y = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = skip_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = prof_closure_clone.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+            __tmp_x + __tmp_y
+        }; *nstk_closure_clone.lock().unwrap() = Some(new_val); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
         if { let __tmp_x = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = (({ let __len_target = { let __field = self.stack.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y } {
         (*self.stack.lock().unwrap().as_mut().unwrap())[({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = 0 as usize;
@@ -1879,7 +1915,11 @@ pub fn m_prof__flush() {
         return;
     }
 
-    let mut index = Arc::new(Mutex::new(Some({ let __tmp_x = cycle; let __tmp_y = (*Arc::new(Mutex::new(Some((*memRecord { active: Arc::new(Mutex::new(Some(Default::default()))), future: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }.future.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y })));
+    let mut index = Arc::new(Mutex::new(Some({
+        let __tmp_x = cycle;
+        let __tmp_y = (*Arc::new(Mutex::new(Some((*memRecord { active: Arc::new(Mutex::new(Some(Default::default()))), future: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }.future.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+        __tmp_x % __tmp_y
+    })));
     lock(GoPtr::local(profMemActiveLock.clone()));
     lock(GoPtr::array_elem(GoArrayElemPtr::new(profMemFutureLock.clone(), ({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)));
     m_prof__flush_locked(Arc::new(Mutex::new(Some({ let __arg_holder = index.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -2245,7 +2285,11 @@ pub fn do_record_goroutine_profile(gp1: GoPtr<crate::runtime2::g>, pcbuf: Arc<Mu
         throw(Arc::new(Mutex::new(Some("cannot read stack of running goroutine".to_string()))));
     }
 
-    let mut offset = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*(*goroutineProfile.lock().unwrap().as_ref().unwrap()).offset.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i64)))) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x - __tmp_y })));
+    let mut offset = Arc::new(Mutex::new(Some({
+        let __tmp_x = (*Arc::new(Mutex::new(Some((*(*goroutineProfile.lock().unwrap().as_ref().unwrap()).offset.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i64)))) as i32))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = 1;
+        __tmp_x - __tmp_y
+    })));
 
     if { let __tmp_x = ({ let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = (({ let __len_target = { let __field = (*goroutineProfile.lock().unwrap().as_ref().unwrap()).records.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x >= __tmp_y } {
                 // Should be impossible, but better to return a truncated profile than

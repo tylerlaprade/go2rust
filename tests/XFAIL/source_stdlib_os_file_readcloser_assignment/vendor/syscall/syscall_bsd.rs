@@ -107,7 +107,19 @@ impl crate::syscall_unix::SockaddrUnix {
     pub fn sockaddr(&mut self) -> (Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<crate::ztypes_darwin_arm64::_Socklen>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let mut name = Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let mut n = Arc::new(Mutex::new(Some((*name.lock().unwrap().as_ref().unwrap()).len() as i32)));
-        if { let __tmp_x = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 104; __tmp_x >= __tmp_y } || { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32);
+                let __tmp_y = 104;
+                __tmp_x >= __tmp_y
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y };
+                __go_cond_1
+            }
+        } {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(crate::ztypes_darwin_arm64::_Socklen(Arc::new(Mutex::new(Some(0 as u32))))))), Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::Errno(Arc::new(Mutex::new(Some(E_I_N_V_A_L as usize))))) as Box<dyn StdError + Send + Sync>))));
     }
         { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = 3; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u8))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*self.raw.lock().unwrap().as_ref().unwrap()).len.lock().unwrap() = __moved_val; };

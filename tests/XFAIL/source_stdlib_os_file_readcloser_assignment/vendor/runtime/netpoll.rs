@@ -732,7 +732,11 @@ impl pollDesc {
         if { let __tmp_x = (*self.wd.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         { let __rhs = POLL_EXPIRED_WRITE_DEADLINE as u32; let mut guard = info.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     }
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.fdseq.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = POLL_F_D_SEQ_MASK as usize; __tmp_x & __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = POLL_F_D_SEQ; __tmp_x << __tmp_y }; let mut guard = info.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.fdseq.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = POLL_F_D_SEQ_MASK as usize; __tmp_x & __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = POLL_F_D_SEQ;
+            __tmp_x << __tmp_y
+        }; let mut guard = info.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
                 // Set all of x except the pollEventErr bit.
         let mut x = (*self.atomic_info.lock().unwrap().as_mut().unwrap()).load();
         while !(*self.atomic_info.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(x))), Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x & __tmp_y }); let __tmp_y = { let __v = (*info.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y })))) {

@@ -304,7 +304,15 @@ impl RouteMessage {
         let mut family = Arc::new(Mutex::new(Some(A_F__U_N_S_P_E_C as u8)));
         let mut i = Arc::new(Mutex::new(Some(0 as u64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = R_T_A_X__M_A_X as u64; __tmp_x < __tmp_y } && { let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ((*minRoutingSockaddrLen.lock().unwrap().as_ref().unwrap()) as i32); __tmp_x >= __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = (*(*self.header.lock().unwrap().as_ref().unwrap()).addrs.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (1 as i32); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = (*(*self.header.lock().unwrap().as_ref().unwrap()).addrs.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = (1 as i32); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y });
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as i32;
+            __tmp_x == __tmp_y
+        } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
     }
         let mut rsa: GoPtr<crate::ztypes_darwin_arm64::RawSockaddr> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
@@ -392,7 +400,11 @@ impl RoutingMessage for RouteMessagePtr {
 impl InterfaceMessage {
     pub fn sockaddr(&self) -> (Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Sockaddr + Send + Sync>>>>>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let mut sas: Arc<Mutex<Option<[Arc<Mutex<Option<Box<dyn Sockaddr + Send + Sync>>>>; 8]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
-        if { let __tmp_x = { let __tmp_x = (*(*self.header.lock().unwrap().as_ref().unwrap()).addrs.lock().unwrap().as_ref().unwrap()); let __tmp_y = R_T_A__I_F_P as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*(*self.header.lock().unwrap().as_ref().unwrap()).addrs.lock().unwrap().as_ref().unwrap()); let __tmp_y = R_T_A__I_F_P as i32; __tmp_x & __tmp_y };
+            let __tmp_y = 0 as i32;
+            __tmp_x == __tmp_y
+        } {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
     }
         let (mut sa, mut err) = parse_sockaddr_link(Arc::new(Mutex::new(Some({ let __seq_holder = self.data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
@@ -461,7 +473,15 @@ impl InterfaceAddrMessage {
         let mut family = Arc::new(Mutex::new(Some(A_F__U_N_S_P_E_C as u8)));
         let mut i = Arc::new(Mutex::new(Some(0 as u64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = R_T_A_X__M_A_X as u64; __tmp_x < __tmp_y } && { let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ((*minRoutingSockaddrLen.lock().unwrap().as_ref().unwrap()) as i32); __tmp_x >= __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = (*(*self.header.lock().unwrap().as_ref().unwrap()).addrs.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (1 as i32); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = (*(*self.header.lock().unwrap().as_ref().unwrap()).addrs.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = (1 as i32); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y });
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as i32;
+            __tmp_x == __tmp_y
+        } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
     }
         let mut rsa: GoPtr<crate::ztypes_darwin_arm64::RawSockaddr> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
@@ -608,7 +628,11 @@ pub fn parse_link_layer_addr(mut b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<O
     type linkLayerAddr = AnonymousStruct1;
     let mut lla: GoPtr<linkLayerAddr> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     let mut l = Arc::new(Mutex::new(Some({
-        let __tmp_x = { let __tmp_x = { let __tmp_x = 4; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.nlen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.alen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+        let __tmp_x = {
+            let __tmp_x = { let __tmp_x = 4; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.nlen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.alen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        };
         let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.slen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
         __tmp_x + __tmp_y
     })));

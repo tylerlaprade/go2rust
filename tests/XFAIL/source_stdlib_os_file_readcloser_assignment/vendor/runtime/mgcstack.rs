@@ -443,7 +443,11 @@ impl stackScanState {
         { let new_val = 0; *{ let __ptr_value = buf_local.with_mut(|__ptr_value| { let __field = __ptr_value.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap() = Some(new_val); };
         *{ let __ptr_value = buf_local.with_mut(|__ptr_value| { let __field = __ptr_value.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().next.clone(); __field }); __ptr_value }.lock().unwrap() = None;
         { let new_val = buf_local.clone().borrow(); let __dst = head.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = new_val; };
-    } else if { let __tmp_x = ((*{ let __ptr_value = buf_local.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 252; __tmp_x == __tmp_y } {
+    } else if {
+        let __tmp_x = ((*{ let __ptr_value = buf_local.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32);
+        let __tmp_y = 252;
+        __tmp_x == __tmp_y
+    } {
         if { let __nil_target = self.free_buf.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         buf_local = GoPtr::local(self.free_buf.clone());
         *self.free_buf.lock().unwrap() = None;
@@ -538,7 +542,11 @@ impl stackScanState {
         } {
         throw(Arc::new(Mutex::new(Some("objects added out of order or overlapping".to_string()))));
     }
-        if { let __tmp_x = ((*{ let __ptr_value = x.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_object_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 63; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = ((*{ let __ptr_value = x.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_object_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32);
+            let __tmp_y = 63;
+            __tmp_x == __tmp_y
+        } {
                 // full buffer - allocate a new buffer, add to end of linked list
         let mut y: GoPtr<stackObjectBuf> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(getempty().addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = GoPtr::nil(); y.with_mut(|__ptr_value| { (*__ptr_value.stack_object_buf_hdr.lock().unwrap().as_mut().unwrap()).next = new_val; }); };
@@ -576,7 +584,11 @@ impl stackScanState {
         obj = { let __ptr_value = obj.borrow(); let __field_value = __ptr_value.as_ref().unwrap().left.clone(); __field_value };
         continue
     }
-        if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*{ let __ptr_value = obj.borrow(); __ptr_value.as_ref().unwrap().off.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = obj.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = { let __tmp_x = (*{ let __ptr_value = obj.borrow(); __ptr_value.as_ref().unwrap().off.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = obj.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            __tmp_x >= __tmp_y
+        } {
         obj = { let __ptr_value = obj.borrow(); let __field_value = __ptr_value.as_ref().unwrap().right.clone(); __field_value };
         continue
     }

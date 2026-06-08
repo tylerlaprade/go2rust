@@ -918,7 +918,31 @@ impl crate::tracebuf::traceWriter {
                         // but it still owns the P (it's not in _Psyscall yet). The goroutine entering
                         // _Gsyscall is the tracer's signal that the P its bound to is also in a syscall,
                         // so we need to emit a status that matches. See #64318.
-            if { let __left_addr = crate::runtime2::puintptr::ptr(&(*(*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = pp.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __ptr_field = (*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __tmp_x = { let __tmp_x = readgstatus((*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone()); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GSYSCALL as u32; __tmp_x == __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = { let __left_addr = crate::runtime2::puintptr::ptr(&(*(*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = pp.addr(); let __eq = __left_addr == __right_addr; __eq };
+                    if __go_cond_1 {
+                        let __go_cond_2 = { let __ptr_field = (*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() };
+                        __go_cond_2
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_0 {
+                    let __go_cond_3 = {
+                        let __tmp_x = {
+                            let __tmp_x = readgstatus((*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone());
+                            let __tmp_y = __GSCAN as u32;
+                            __tmp_x & ! __tmp_y
+                        };
+                        let __tmp_y = __GSYSCALL as u32;
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            } {
         { let new_val = traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_SYSCALL as u8)))); *status.lock().unwrap() = Some(new_val); };
     }
         } else if _switch_val == (__PSYSCALL as u32) {
@@ -996,7 +1020,11 @@ impl traceSchedResourceState {
 
     /// statusWasTraced returns true if the sched resource's status was already acquired for tracing.
     pub fn status_was_traced(&self, gen: Arc<Mutex<Option<usize>>>) -> bool {
-        return { let __tmp_x = { let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone() }.load(); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = { let __seq = { let __seq_holder = self.status_traced.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as usize; __tmp_x % __tmp_y }) as usize].clone() }.load();
+            let __tmp_y = 0 as u32;
+            __tmp_x != __tmp_y
+        };
     }
 
     /// setStatusTraced indicates that the resource's status was already traced, for example

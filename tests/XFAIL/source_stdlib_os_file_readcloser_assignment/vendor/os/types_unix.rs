@@ -156,7 +156,15 @@ impl io_fs::r#mod::FileInfo for fileStatPtr {
 }
 
 pub fn same_file_1(fs1: Arc<Mutex<Option<fileStat>>>, fs2: Arc<Mutex<Option<fileStat>>>) -> bool {
-    return { let __tmp_x = (*(*(*fs1.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).dev.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*fs2.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).dev.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = (*(*(*fs1.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).ino.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*fs2.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).ino.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+    return {
+        let __tmp_x = (*(*(*fs1.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).dev.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*(*(*fs2.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).dev.lock().unwrap().as_ref().unwrap());
+        __tmp_x == __tmp_y
+    } && {
+        let __tmp_x = (*(*(*fs1.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).ino.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*(*(*fs2.lock().unwrap().as_ref().unwrap()).sys.lock().unwrap().as_ref().unwrap()).ino.lock().unwrap().as_ref().unwrap());
+        __tmp_x == __tmp_y
+    };
 }
 
 impl GoValueClone for fileStat {

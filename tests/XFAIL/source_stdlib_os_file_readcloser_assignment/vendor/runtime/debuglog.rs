@@ -345,7 +345,11 @@ impl dloggerImpl {
     ///go:nosplit
     pub fn end(&mut self) {
                 // Fill in framing header.
-        let mut size = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*self.w.lock().unwrap().as_ref().unwrap()).write.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*self.w.lock().unwrap().as_ref().unwrap()).r.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+        let mut size = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*(*self.w.lock().unwrap().as_ref().unwrap()).write.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*(*self.w.lock().unwrap().as_ref().unwrap()).r.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        })));
         if !(*self.w.lock().unwrap().as_mut().unwrap()).write_frame_at(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*self.w.lock().unwrap().as_ref().unwrap()).r.lock().unwrap().as_ref().unwrap()).end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         throw(Arc::new(Mutex::new(Some("record too large".to_string()))));
     }
@@ -442,7 +446,11 @@ impl dloggerImpl {
         (*self.w.lock().unwrap().as_mut().unwrap()).uvarint(Arc::new(Mutex::new(Some(0 as u64))));
     } else {
         let mut v: GoPtr<crate::runtime2::eface> = eface_of(x.clone());
-        { let _switch_val = { let __tmp_x = { let __selector_holder = { let __ptr_value = { let __ptr_value = v.with_mut(|__ptr_value| __ptr_value._type.clone()); __ptr_value }.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y };
+        { let _switch_val = {
+    let __tmp_x = { let __selector_holder = { let __ptr_value = { let __ptr_value = v.with_mut(|__ptr_value| __ptr_value._type.clone()); __ptr_value }.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+    let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8))));
+    __tmp_x & __tmp_y
+};
     if _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::CHAN as u8))))) || _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::FUNC as u8))))) || _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::MAP as u8))))) || _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8))))) || _switch_val == (internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::UNSAFE_POINTER as u8))))) {
             (*self.w.lock().unwrap().as_mut().unwrap()).uvarint(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = v.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize as u64))));
         } else {
@@ -457,13 +465,41 @@ impl dloggerImpl {
     pub fn s(&self, x: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<dloggerImpl>>> {
         let mut strData = { let __go_unsafe_result: Arc<Mutex<Option<u8>>> = unimplemented!("unsafe.StringData requires unsafe intrinsic support"); __go_unsafe_result };
         let mut datap = firstmoduledata.clone();
-        if { let __tmp_x = ((*x.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 4; __tmp_x > __tmp_y } && { let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).etext.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).end.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = ((*x.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 4; __tmp_x > __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = {
+                        let __tmp_x = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).etext.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x <= __tmp_y
+                    };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).end.clone(); __field }.lock().unwrap().as_ref().unwrap());
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
                 // String constants are in the rodata section, which
                 // isn't recorded in moduledata. But it has to be
                 // somewhere between etext and end.
         (*self.w.lock().unwrap().as_mut().unwrap()).byte(Arc::new(Mutex::new(Some(DEBUG_LOG_CONST_STRING as u8))));
         (*self.w.lock().unwrap().as_mut().unwrap()).uvarint(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()).len() as u64))));
-        (*self.w.lock().unwrap().as_mut().unwrap()).uvarint(Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).etext.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as u64))));
+        (*self.w.lock().unwrap().as_mut().unwrap()).uvarint(Arc::new(Mutex::new(Some(({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&strData) as usize))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*{ let __field = (*datap.lock().unwrap().as_ref().unwrap()).etext.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        }) as u64))));
     } else {
         (*self.w.lock().unwrap().as_mut().unwrap()).byte(Arc::new(Mutex::new(Some(DEBUG_LOG_STRING as u8))));
                 // We can't use unsafe.Slice as it may panic, which isn't safe
@@ -518,11 +554,19 @@ impl debugLogWriter {
     pub fn ensure(&self, n: Arc<Mutex<Option<u64>>>) {
         while {
             let __tmp_x = { let __tmp_x = (*self.write.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
-            let __tmp_y = { let __tmp_x = (*(*self.r.lock().unwrap().as_ref().unwrap()).begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x + __tmp_y };
+            let __tmp_y = {
+                let __tmp_x = (*(*self.r.lock().unwrap().as_ref().unwrap()).begin.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+                __tmp_x + __tmp_y
+            };
             __tmp_x >= __tmp_y
         } {
                 // Consume record at begin.
-        if { let __tmp_x = (*self.r.lock().unwrap().as_mut().unwrap()).skip(); let __tmp_y = !(0 as u64) as u64; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.r.lock().unwrap().as_mut().unwrap()).skip();
+            let __tmp_y = !(0 as u64) as u64;
+            __tmp_x == __tmp_y
+        } {
                 // Wrapped around within a record.
                 //
                 // TODO(austin): It would be better to just
@@ -536,8 +580,16 @@ impl debugLogWriter {
 
     ///go:nosplit
     pub fn write_frame_at(&mut self, pos: Arc<Mutex<Option<u64>>>, size: Arc<Mutex<Option<u64>>>) -> bool {
-        (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize] = (*Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone();
-        (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone();
+        (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[({
+            let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize] = (*Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone();
+        (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[({
+            let __tmp_x = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x + __tmp_y });
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone();
         return { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0xFFFF as u64; __tmp_x <= __tmp_y };
     }
 
@@ -576,7 +628,11 @@ impl debugLogWriter {
         self.ensure(Arc::new(Mutex::new(Some(1 as u64))));
         let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.write.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let __target = self.write.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize] = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[({
+            let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize] = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
 
     ///go:nosplit
@@ -586,7 +642,11 @@ impl debugLogWriter {
         { let __target = self.write.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         while { let __tmp_x = ((*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut n = {
-            let _dst_start = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize;
+            let _dst_start = ({
+                let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+                __tmp_x % __tmp_y
+            }) as usize;
             let _dst_len = (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
             let _src = { let __copy_src_holder = x.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
             let _n = std::cmp::min(_dst_len, _src.len());
@@ -631,7 +691,11 @@ impl debugLogReader {
     ///go:nosplit
     pub fn skip(&mut self) -> u64 {
                 // Read size at pos.
-        if { let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_HEADER_SIZE as u64; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_HEADER_SIZE as u64; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         return !0 as u64;
     }
         let mut size = Arc::new(Mutex::new(Some({ let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.begin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); self.read_uint16_l_e_at(__method_arg0) } as u64)));
@@ -642,7 +706,11 @@ impl debugLogReader {
         { let new_val = DEBUG_LOG_SYNC_SIZE as u64; *size.lock().unwrap() = Some(new_val); };
     }
                 // Sync packet.
-        if { let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         return !0 as u64;
     }
         { let __target = self.begin.clone(); let __rhs = (*size.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -652,9 +720,17 @@ impl debugLogReader {
     ///go:nosplit
     pub fn read_uint16_l_e_at(&self, pos: Arc<Mutex<Option<u64>>>) -> u16 {
         return {
-            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize].clone() } as u16))).lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+                let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+                __tmp_x % __tmp_y
+            }) as usize].clone() } as u16))).lock().unwrap().as_ref().unwrap());
             let __tmp_y = {
-                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize].clone() } as u16))).lock().unwrap().as_ref().unwrap());
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+                    let __tmp_x = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x + __tmp_y });
+                    let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+                    __tmp_x % __tmp_y
+                }) as usize].clone() } as u16))).lock().unwrap().as_ref().unwrap());
                 let __tmp_y = 8;
                 __tmp_x << __tmp_y
             };
@@ -666,7 +742,11 @@ impl debugLogReader {
     pub fn read_uint64_l_e_at(&self, mut pos: Arc<Mutex<Option<u64>>>) -> u64 {
         let mut b: Arc<Mutex<Option<[u8; 8]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
         for i in 0..(({ let __range_holder = b.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        (*b.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize].clone() };
+        (*b.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize].clone() };
         { let mut guard = pos.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         return {
@@ -709,14 +789,22 @@ impl debugLogReader {
                 // Consume any sync records.
         let mut size = Arc::new(Mutex::new(Some(0 as u64)));
         while { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_HEADER_SIZE as u64; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_HEADER_SIZE as u64; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         return !0 as u64;
     }
         { let new_val = Arc::new(Mutex::new(Some({ let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.begin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); self.read_uint16_l_e_at(__method_arg0) } as u64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *size.lock().unwrap() = __moved_val; };
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         break
     }
-        if { let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_SYNC_SIZE as u64; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_SYNC_SIZE as u64; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         return !0 as u64;
     }
 
@@ -727,14 +815,22 @@ impl debugLogReader {
     }
                 // Sync packet.
                 // Peek tick delta.
-        if { let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
+            let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+            __tmp_x > __tmp_y
+        } {
         return !0 as u64;
     }
         let mut pos = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = DEBUG_LOG_HEADER_SIZE as u64; __tmp_x + __tmp_y })));
         let mut u: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
         let mut i = Arc::new(Mutex::new(Some(0 as u64)));
     loop {
-        let mut b = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize].clone() })));
+        let mut b = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize].clone() })));
         { let mut guard = pos.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u8; __tmp_x & ! __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let mut guard = u.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
         if { let __tmp_x = { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
@@ -770,7 +866,11 @@ impl debugLogReader {
         let mut u: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
         let mut i = Arc::new(Mutex::new(Some(0 as u64)));
     loop {
-        let mut b = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize].clone() })));
+        let mut b = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize].clone() })));
         { let __target = self.begin.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u8; __tmp_x & ! __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let mut guard = u.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
         if { let __tmp_x = { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
@@ -793,7 +893,11 @@ impl debugLogReader {
     }
 
     pub fn print_val(&mut self) -> bool {
-        let mut typ = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize].clone() })));
+        let mut typ = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize].clone() })));
         { let __target = self.begin.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         '__go_switch_1: loop {
         { let _switch_val = { let __v = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -829,7 +933,11 @@ impl debugLogReader {
         };
         } else if _switch_val == (DEBUG_LOG_STRING as u8) {
             let mut sl = self.uvarint();
-            if { let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = sl; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+            if {
+                let __tmp_x = { let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = sl; __tmp_x + __tmp_y };
+                let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap());
+                __tmp_x > __tmp_y
+            } {
         { let new_val = { let __selector_holder = self.end.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.begin.lock().unwrap() = Some(new_val); };
         {
             let __go_print_arg_0 = format!("{}", "<string length corrupted>".to_string());
@@ -838,7 +946,11 @@ impl debugLogReader {
         break '__go_switch_1
     }
             while { let __tmp_x = sl; let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
-        let mut b = Arc::new(Mutex::new(Some({ let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        let mut b = Arc::new(Mutex::new(Some({ let __seq_holder = (*self.data.lock().unwrap().as_ref().unwrap()).b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({
+            let __tmp_x = (*self.begin.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64;
+            __tmp_x % __tmp_y
+        }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
         if { let __tmp_x = (*Arc::new(Mutex::new(Some((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = sl; __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (sl) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); b = new_val; };
     }
@@ -971,7 +1083,11 @@ pub fn print_debug_log_impl() {
         let mut best: Arc<Mutex<Option<AnonymousStruct3>>> = Arc::new(Mutex::new(Some(Default::default())));
         { let new_val = !(0 as u64) as u64; *(*best.lock().unwrap().as_ref().unwrap()).tick.lock().unwrap() = Some(new_val); };
         for i in 0..(({ let __range_holder = state.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        if { let __tmp_x = (*{ let __seq = { let __seq_holder = state.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.next_tick.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*best.lock().unwrap().as_ref().unwrap()).tick.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*{ let __seq = { let __seq_holder = state.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.next_tick.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*{ let __field = (*best.lock().unwrap().as_ref().unwrap()).tick.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            __tmp_x < __tmp_y
+        } {
         { let new_val = { let __selector_holder = { let __seq = { let __seq_holder = state.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.next_tick.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*best.lock().unwrap().as_ref().unwrap()).tick.lock().unwrap() = Some(new_val); };
         { let new_val = i as i32; *(*best.lock().unwrap().as_ref().unwrap()).i.lock().unwrap() = Some(new_val); };
     }

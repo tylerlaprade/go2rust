@@ -486,7 +486,15 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         let mut prev = Arc::new(Mutex::new(Some(mToFlush_closure_clone.clone())));
         let mut mp = (*prev.lock().unwrap().as_mut().unwrap()).clone();
     while { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } {
-        if { let __tmp_x = { let __tmp_x = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).load();
+                let __tmp_y = 2 as usize;
+                __tmp_x % __tmp_y
+            };
+            let __tmp_y = 0 as usize;
+            __tmp_x != __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some((*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).link.clone()))).clone(); prev = new_val; };
         { let new_val = (*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).link.clone(); mp = new_val; };
         continue
@@ -787,7 +795,27 @@ pub fn trace_reader_available() -> Arc<Mutex<Option<crate::runtime2::g>>> {
         //
         // We also want to be careful not to schedule the reader if there's no
         // reason to.
-    if { let __tmp_x = (*(*trace.lock().unwrap().as_ref().unwrap()).flushed_gen.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*trace.lock().unwrap().as_ref().unwrap()).reader_gen.lock().unwrap().as_mut().unwrap()).load(); __tmp_x == __tmp_y } || (*(*trace.lock().unwrap().as_ref().unwrap()).work_available.lock().unwrap().as_ref().unwrap()).load() || (*(*trace.lock().unwrap().as_ref().unwrap()).shutdown.lock().unwrap().as_ref().unwrap()).load() {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __tmp_x = (*(*trace.lock().unwrap().as_ref().unwrap()).flushed_gen.lock().unwrap().as_mut().unwrap()).load();
+                let __tmp_y = (*(*trace.lock().unwrap().as_ref().unwrap()).reader_gen.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x == __tmp_y
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_2 = (*(*trace.lock().unwrap().as_ref().unwrap()).work_available.lock().unwrap().as_ref().unwrap()).load();
+                __go_cond_2
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_3 = (*(*trace.lock().unwrap().as_ref().unwrap()).shutdown.lock().unwrap().as_ref().unwrap()).load();
+            __go_cond_3
+        }
+    } {
         return (*(*trace.lock().unwrap().as_ref().unwrap()).reader.lock().unwrap().as_ref().unwrap()).load();
     }
     return Arc::new(Mutex::new(None));

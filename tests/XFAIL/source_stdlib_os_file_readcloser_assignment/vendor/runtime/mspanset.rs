@@ -765,7 +765,11 @@ impl spanSet {
     /// with other push and pop operations.
     pub fn push(&mut self, s: GoPtr<crate::mheap::mspan>) {
                 // Obtain our slot.
-        let mut cursor = Arc::new(Mutex::new(Some(({ let __tmp_x = headTailIndex::tail(&(*(*self.index.lock().unwrap().as_ref().unwrap()).inc_tail().lock().unwrap().as_ref().unwrap())); let __tmp_y = 1 as u32; __tmp_x - __tmp_y }) as usize)));
+        let mut cursor = Arc::new(Mutex::new(Some(({
+            let __tmp_x = headTailIndex::tail(&(*(*self.index.lock().unwrap().as_ref().unwrap()).inc_tail().lock().unwrap().as_ref().unwrap()));
+            let __tmp_y = 1 as u32;
+            __tmp_x - __tmp_y
+        }) as usize)));
         let (mut top, mut bottom) = (Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*cursor.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = SPAN_SET_BLOCK_ENTRIES as usize; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*cursor.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = SPAN_SET_BLOCK_ENTRIES as usize; __tmp_x % __tmp_y }))));
 
                 // Do we need to add a block?
@@ -982,7 +986,11 @@ impl spanSet {
         throw(Arc::new(Mutex::new(Some("attempt to clear non-empty span set".to_string()))));
     }
         let mut top = Arc::new(Mutex::new(Some({ let __tmp_x = head; let __tmp_y = SPAN_SET_BLOCK_ENTRIES as u32; __tmp_x / __tmp_y })));
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*top.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.spine_len.lock().unwrap().as_mut().unwrap()).load(); __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*top.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*self.spine_len.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x < __tmp_y
+        } {
                 // If the head catches up to the tail and the set is empty,
                 // we may not clean up the block containing the head and tail
                 // since it may be pushed into again. In order to avoid leaking

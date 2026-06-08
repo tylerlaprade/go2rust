@@ -415,7 +415,11 @@ impl stackObjectRecord {
                 // If you get a panic here due to a nil mod,
                 // you may have made a copy of a stackObjectRecord.
                 // You must use the original pointer.
-        let mut res = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*r#mod.lock().unwrap().as_ref().unwrap()).rodata.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.gcdataoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut res = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*{ let __field = (*r#mod.lock().unwrap().as_ref().unwrap()).rodata.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.gcdataoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         return ((*Arc::new(Mutex::new(Some({ let __selector_holder = self.ptr_bytes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()), GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some((*res.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) }));
     }
 }
@@ -730,7 +734,11 @@ pub fn stackfree(stk: Arc<Mutex<Option<stack>>>) {
     if { let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("stack not a power of 2".to_string()))));
     }
-    if { let __tmp_x = { let __tmp_x = (*{ let __field = (*stk.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*{ let __field = (*stk.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    if {
+        let __tmp_x = { let __tmp_x = (*{ let __field = (*stk.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
+        let __tmp_y = (*{ let __field = (*stk.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        __tmp_x < __tmp_y
+    } {
         throw(Arc::new(Mutex::new(Some("bad stack size".to_string()))));
     }
     if { let __tmp_x = STACK_DEBUG; let __tmp_y = 1; __tmp_x >= __tmp_y } {
@@ -778,7 +786,11 @@ pub fn stackfree(stk: Arc<Mutex<Option<stack>>>) {
         unlock(GoPtr::local((*{ let __seq = { let __seq_holder = stackpool.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.item.lock().unwrap().as_ref().unwrap()).mu.clone()));
     } else {
         let mut c: GoPtr<crate::mcache::mcache> = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().mcache.clone() }.clone();
-        if { let __tmp_x = (*{ let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.size.lock().unwrap().as_ref().unwrap()); let __tmp_y = __STACK_CACHE_SIZE as usize; __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = (*{ let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.size.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = __STACK_CACHE_SIZE as usize;
+            __tmp_x >= __tmp_y
+        } {
         stackcacherelease(c.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = order.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
         { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*(*{ let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.list.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *{ let __ptr = crate::mcache::gclinkptr::ptr(&(*x.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().next.clone() }.lock().unwrap() = Some(new_val); };
@@ -957,7 +969,27 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
     }
 
         // Adjust saved frame pointer if there is one.
-    if ({ let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_M_D64 as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_R_M64 as i32)))); __tmp_x == __tmp_y }) && { let __tmp_x = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).argp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).varp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_M_D64 as i32)))); __tmp_x == __tmp_y };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_2 = { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_R_M64 as i32)))); __tmp_x == __tmp_y };
+                __go_cond_2
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = {
+                let __tmp_x = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).argp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).varp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y };
+                let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
         if { let __tmp_x = STACK_DEBUG; let __tmp_y = 3; __tmp_x >= __tmp_y } {
         {
             let __go_print_arg_0 = format!("{}", "      saved bp\n".to_string());
@@ -1098,7 +1130,15 @@ pub fn adjustctxt(gp: GoPtr<crate::runtime2::g>, adjinfo: Arc<Mutex<Option<adjus
                 // On ARM64, the frame pointer is saved one word *below* the SP,
                 // which is not copied or adjusted in any frame. Do it explicitly
                 // here.
-        if { let __tmp_x = { let __v = (*oldfp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x - __tmp_y }; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __v = (*oldfp.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = {
+                let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = internal_goarch::PTR_SIZE as usize;
+                __tmp_x - __tmp_y
+            };
+            __tmp_x == __tmp_y
+        } {
         memmove(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some((*oldfp.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))));
         adjustpointer(adjinfo.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
@@ -1147,7 +1187,11 @@ pub fn findsghi(gp: GoPtr<crate::runtime2::g>, stk: Arc<Mutex<Option<stack>>>) -
     let mut sghi: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(0)));
     let mut sg = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.waiting.clone()); __ptr_value }.clone();
     while { let __nil_result = (*sg.lock().unwrap()).is_some(); __nil_result } {
-        let mut p = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*(*sg.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*sg.lock().unwrap().as_ref().unwrap()).c.lock().unwrap().as_ref().unwrap()).elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut p = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*(*sg.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*sg.lock().unwrap().as_ref().unwrap()).c.lock().unwrap().as_ref().unwrap()).elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         if { let __tmp_x = (*{ let __field = (*stk.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*stk.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*sghi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
         { let new_val = p.lock().unwrap().as_ref().unwrap().clone(); *sghi.lock().unwrap() = Some(new_val); };
     }
@@ -1240,13 +1284,21 @@ pub fn copystack(gp: GoPtr<crate::runtime2::g>, newsize: Arc<Mutex<Option<usize>
     if { let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("nil stackbase".to_string()))));
     }
-    let mut used = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+    let mut used = Arc::new(Mutex::new(Some({
+        let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap());
+        __tmp_x - __tmp_y
+    })));
 
         // Add just the difference to gcController.addScannableStack.
         // g0 stacks never move, so this will never account for them.
         // It's also fine if we have no P, addScannableStack can deal with
         // that case.
-    (*gcController.lock().unwrap().as_ref().unwrap()).add_scannable_stack(crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*newsize.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))));
+    (*gcController.lock().unwrap().as_ref().unwrap()).add_scannable_stack(crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some({
+        let __tmp_x = (*Arc::new(Mutex::new(Some((*newsize.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
+        __tmp_x - __tmp_y
+    }))));
 
         // allocate new stack
     let mut new = stackalloc(Arc::new(Mutex::new(Some((*newsize.lock().unwrap().as_ref().unwrap()) as u32))));
@@ -1285,7 +1337,19 @@ pub fn copystack(gp: GoPtr<crate::runtime2::g>, newsize: Arc<Mutex<Option<usize>
         // Adjust sudogs, synchronizing with channel ops if necessary.
     let mut ncopy = { let __owned = used.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     if !(*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().active_stack_chans.clone() }.lock().unwrap().as_ref().unwrap()) {
-        if { let __tmp_x = { let __v = (*newsize.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; __tmp_x < __tmp_y } && (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.parking_on_chan.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).load() {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __v = (*newsize.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                let __tmp_y = { let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y };
+                __tmp_x < __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.parking_on_chan.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).load();
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // It's not safe for someone to shrink this stack while we're actively
                 // parking on a channel, but it is safe to grow since we do that
                 // ourselves and explicitly don't want to synchronize with channels
@@ -1435,7 +1499,15 @@ pub fn shrinkstack(gp: GoPtr<crate::runtime2::g>) {
         // Check for self-shrinks while in a libcall. These may have
         // pointers into the stack disguised as uintptrs, but these
         // code paths should all be nosplit.
-    if { let __left_addr = gp.addr(); let __right_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = { let __left_addr = gp.addr(); let __right_addr = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; __eq };
+        if __go_cond_0 {
+            let __go_cond_1 = { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         throw(Arc::new(Mutex::new(Some("shrinking stack in libcall".to_string()))));
     }
 
@@ -1451,7 +1523,11 @@ pub fn shrinkstack(gp: GoPtr<crate::runtime2::g>) {
 
         // We're not allowed to shrink the gcBgMarkWorker
         // stack (see gcBgMarkWorker for explanation).
-    let mut oldsize = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+    let mut oldsize = Arc::new(Mutex::new(Some({
+        let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap());
+        __tmp_x - __tmp_y
+    })));
     let mut newsize = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*oldsize.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x / __tmp_y })));
 
         // Don't shrink the allocation below the minimum-sized stack
@@ -1465,9 +1541,21 @@ pub fn shrinkstack(gp: GoPtr<crate::runtime2::g>) {
         // current stack. The currently used stack includes everything
         // down to the SP plus the stack guard space that ensures
         // there's room for nosplit functions.
-    let mut avail = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+    let mut avail = Arc::new(Mutex::new(Some({
+        let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap());
+        __tmp_x - __tmp_y
+    })));
     {
-        let mut used = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = STACK_NOSPLIT as usize; __tmp_x + __tmp_y })));;
+        let mut used = Arc::new(Mutex::new(Some({
+            let __tmp_x = {
+                let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap());
+                __tmp_x - __tmp_y
+            };
+            let __tmp_y = STACK_NOSPLIT as usize;
+            __tmp_x + __tmp_y
+        })));;
         if { let __tmp_x = { let __v = (*used.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*avail.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4 as usize; __tmp_x / __tmp_y }; __tmp_x >= __tmp_y } {
             return;;
         }
