@@ -6947,6 +6947,40 @@ func trace(workProcs, mark, sweep, end, assist, dedicated, fractional, idle, ter
 	}
 }
 
+func TestConcurrentErrorStructLiteralReturnBreaksFieldsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type parseError struct {
+	layout string
+	value string
+	layoutElem string
+	valueElem string
+	message string
+}
+
+func (e *parseError) Error() string {
+	return e.message
+}
+
+func parse(b []byte) (int, error) {
+	go func() {}()
+	return 0, &parseError{"2006-01-02T15:04:05Z07:00", string(b), "15", string(b[len("2006-01-02T"):][:1]), ""}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "layout:") && strings.Contains(line, "value_elem:") {
+			t.Fatalf("large error struct literal should split fields across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "parseError {\n") {
+		t.Fatalf("large error struct literal should use multiline struct syntax:\n%s", rust)
+	}
+	if strings.Contains(rust, "..Default::default(),") {
+		t.Fatalf("struct update syntax must not keep a comma after the base expression:\n%s", rust)
+	}
+}
+
 func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -1533,7 +1533,13 @@ pub fn getitab(inter: GoPtr<internal_abi::r#type::InterfaceType>, typ: GoPtr<int
         return GoPtr::nil();
     }
         let mut name = { let __recv = to_r_type(GoPtr::local({ let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
-        std::panic::panic_any(Box::new(Arc::new(Mutex::new(Some(crate::error::TypeAssertionError { _interface: Default::default(), concrete: typ.clone(), asserted: { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone().clone(), missing_method: (*name.lock().unwrap().as_ref().unwrap()).name(), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>);
+        std::panic::panic_any(Box::new(Arc::new(Mutex::new(Some(crate::error::TypeAssertionError {
+            _interface: Default::default(),
+            concrete: typ.clone(),
+            asserted: { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone().clone(),
+            missing_method: (*name.lock().unwrap().as_ref().unwrap()).name(),
+            ..Default::default()
+        }))).clone()) as Box<dyn Any + Send + Sync>);
     }
 
     let mut m: GoPtr<internal_abi::iface::ITab> = GoPtr::nil();

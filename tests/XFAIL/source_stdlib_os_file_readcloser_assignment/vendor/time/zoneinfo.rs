@@ -957,7 +957,14 @@ pub fn fixed_zone(name: Arc<Mutex<Option<String>>>, offset: Arc<Mutex<Option<i32
 }
 
 pub fn fixed_zone_1(name: Arc<Mutex<Option<String>>>, offset: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Location>>> {
-    let mut l = Arc::new(Mutex::new(Some(Location { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), zone: Arc::new(Mutex::new(Some(vec![zone { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), offset: Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_d_s_t: Arc::new(Mutex::new(Some(false))), ..Default::default() }]))), tx: Arc::new(Mutex::new(Some(vec![zoneTrans { when: Arc::new(Mutex::new(Some(ALPHA as i64))), index: Arc::new(Mutex::new(Some(0 as u8))), isstd: Arc::new(Mutex::new(Some(false))), isutc: Arc::new(Mutex::new(Some(false))), ..Default::default() }]))), cache_start: Arc::new(Mutex::new(Some(ALPHA as i64))), cache_end: Arc::new(Mutex::new(Some(OMEGA as i64))), ..Default::default() })));
+    let mut l = Arc::new(Mutex::new(Some(Location {
+        name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        zone: Arc::new(Mutex::new(Some(vec![zone { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), offset: Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_d_s_t: Arc::new(Mutex::new(Some(false))), ..Default::default() }]))),
+        tx: Arc::new(Mutex::new(Some(vec![zoneTrans { when: Arc::new(Mutex::new(Some(ALPHA as i64))), index: Arc::new(Mutex::new(Some(0 as u8))), isstd: Arc::new(Mutex::new(Some(false))), isutc: Arc::new(Mutex::new(Some(false))), ..Default::default() }]))),
+        cache_start: Arc::new(Mutex::new(Some(ALPHA as i64))),
+        cache_end: Arc::new(Mutex::new(Some(OMEGA as i64))),
+        ..Default::default()
+    })));
     { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new((*l.lock().unwrap().as_ref().unwrap()).zone.clone(), (0) as usize)); (*l.lock().unwrap().as_mut().unwrap()).cache_zone = new_val; };
     return l.clone();
 }

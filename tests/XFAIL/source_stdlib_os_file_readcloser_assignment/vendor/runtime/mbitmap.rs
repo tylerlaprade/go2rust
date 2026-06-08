@@ -265,7 +265,13 @@ impl crate::mheap::mspan {
                 // Pull the allocation header from the first word of the object.
                 // Allow a nil type here for delayed zeroing. See mallocgc.
         let mut gcmask: GoPtr<u8> = get_g_c_mask(typ.clone());
-        Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))), typ: typ.clone(), ..Default::default() })))
+        Arc::new(Mutex::new(Some(typePointers {
+            elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))),
+            typ: typ.clone(),
+            ..Default::default()
+        })))
     }
 
     /// typePointersOfType is like typePointersOf, but assumes addr points to one or more
@@ -288,7 +294,13 @@ impl crate::mheap::mspan {
     }
                 // Since we have the type, pretend we have a header.
         let mut gcmask: GoPtr<u8> = get_g_c_mask(GoPtr::local(typ.clone()));
-        Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))), typ: GoPtr::local(typ.clone()), ..Default::default() })))
+        Arc::new(Mutex::new(Some(typePointers {
+            elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))),
+            typ: GoPtr::local(typ.clone()),
+            ..Default::default()
+        })))
     }
 
     /// objBase returns the base pointer for the object containing addr in span.

@@ -2052,7 +2052,13 @@ pub fn fill_aligned(mut x: Arc<Mutex<Option<u64>>>, m: Arc<Mutex<Option<u64>>>) 
 
 /// unpackScavChunkData unpacks a scavChunkData from a uint64.
 pub fn unpack_scav_chunk_data(sc: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<scavChunkData>>> {
-    Arc::new(Mutex::new(Some(scavChunkData { in_use: Arc::new(Mutex::new(Some((*sc.lock().unwrap().as_ref().unwrap()) as u16))), last_in_use: Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x >> __tmp_y }) as u16))).lock().unwrap().as_ref().unwrap()); let __tmp_y = SCAV_CHUNK_IN_USE_MASK as u16; __tmp_x & __tmp_y }))), gen: Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x >> __tmp_y }) as u32))), scav_chunk_flags: Arc::new(Mutex::new(Some(scavChunkFlags(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = 16; let __tmp_y = LOG_SCAV_CHUNK_IN_USE_MAX; __tmp_x + __tmp_y }); __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = SCAV_CHUNK_FLAGS_MASK as u8; __tmp_x & __tmp_y } as u8))))))), ..Default::default() })))
+    Arc::new(Mutex::new(Some(scavChunkData {
+        in_use: Arc::new(Mutex::new(Some((*sc.lock().unwrap().as_ref().unwrap()) as u16))),
+        last_in_use: Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x >> __tmp_y }) as u16))).lock().unwrap().as_ref().unwrap()); let __tmp_y = SCAV_CHUNK_IN_USE_MASK as u16; __tmp_x & __tmp_y }))),
+        gen: Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x >> __tmp_y }) as u32))),
+        scav_chunk_flags: Arc::new(Mutex::new(Some(scavChunkFlags(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = 16; let __tmp_y = LOG_SCAV_CHUNK_IN_USE_MAX; __tmp_x + __tmp_y }); __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = SCAV_CHUNK_FLAGS_MASK as u8; __tmp_x & __tmp_y } as u8))))))),
+        ..Default::default()
+    })))
 }
 
 #[derive(Clone)]

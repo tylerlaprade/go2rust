@@ -1287,7 +1287,15 @@ impl Frames {
                 // There are no cycles in implied virtual PCs (some number of frames were
                 // inlined, but that number is finite), so this unpacking cannot cause an infinite loop.
                 // Skip, because tracebackPCs (inside runtime.Callers) would too.
-        { let new_val = { let __append_target = self.frames.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Frame { p_c: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), func: f.clone(), function: func_name_for_print((*sf.lock().unwrap().as_ref().unwrap()).name()), entry: Arc::new(Mutex::new(Some(entry))), start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))), func_info: Arc::new(Mutex::new(Some({ let __arg_holder = funcInfo.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }); __append_target.clone() }; self.frames = new_val; };
+        { let new_val = { let __append_target = self.frames.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Frame {
+            p_c: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            func: f.clone(),
+            function: func_name_for_print((*sf.lock().unwrap().as_ref().unwrap()).name()),
+            entry: Arc::new(Mutex::new(Some(entry))),
+            start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))),
+            func_info: Arc::new(Mutex::new(Some({ let __arg_holder = funcInfo.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            ..Default::default()
+        }); __append_target.clone() }; self.frames = new_val; };
     }
                 // Find the next frame.
                 // We need to look for 2 frames so we know what
@@ -1627,7 +1635,15 @@ pub fn expand_cgo_frames(pc: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<Vec<
         // No useful information from symbolizer.
     let mut frames: Arc<Mutex<Option<Vec<Frame>>>> = Arc::new(Mutex::new(None));
     loop {
-        { let new_val = { let __append_target = frames.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Frame { p_c: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), func: GoPtr::nil(), function: gostring({ let __field = (*arg.lock().unwrap().as_ref().unwrap()).func_name.clone(); __field }), file: gostring({ let __field = (*arg.lock().unwrap().as_ref().unwrap()).file.clone(); __field }), line: Arc::new(Mutex::new(Some({ let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).lineno.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))), entry: Arc::new(Mutex::new(Some({ let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).entry.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }); __append_target.clone() }; frames = new_val; };
+        { let new_val = { let __append_target = frames.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Frame {
+            p_c: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            func: GoPtr::nil(),
+            function: gostring({ let __field = (*arg.lock().unwrap().as_ref().unwrap()).func_name.clone(); __field }),
+            file: gostring({ let __field = (*arg.lock().unwrap().as_ref().unwrap()).file.clone(); __field }),
+            line: Arc::new(Mutex::new(Some({ let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).lineno.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))),
+            entry: Arc::new(Mutex::new(Some({ let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).entry.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            ..Default::default()
+        }); __append_target.clone() }; frames = new_val; };
                 // funcInfo is zero, which implies !funcInfo.valid().
                 // That ensures that we use the File/Line info given here.
         if { let __tmp_x = (*{ let __field = (*arg.lock().unwrap().as_ref().unwrap()).more.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
@@ -1688,7 +1704,15 @@ pub fn func_for_p_c(pc: Arc<Mutex<Option<usize>>>) -> GoPtr<Func> {
     }
     let mut sf = (*u.lock().unwrap().as_ref().unwrap()).src_func(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let (mut file, mut line) = (*u.lock().unwrap().as_ref().unwrap()).file_line(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    let mut fi = Arc::new(Mutex::new(Some(funcinl { ones: Arc::new(Mutex::new(Some(!(0 as u32) as u32))), entry: Arc::new(Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap()).entry()))), name: (*sf.lock().unwrap().as_ref().unwrap()).name(), file: Arc::new(Mutex::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), line: Arc::new(Mutex::new(Some(line as i32))), start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
+    let mut fi = Arc::new(Mutex::new(Some(funcinl {
+        ones: Arc::new(Mutex::new(Some(!(0 as u32) as u32))),
+        entry: Arc::new(Mutex::new(Some((*f.lock().unwrap().as_ref().unwrap()).entry()))),
+        name: (*sf.lock().unwrap().as_ref().unwrap()).name(),
+        file: Arc::new(Mutex::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        line: Arc::new(Mutex::new(Some(line as i32))),
+        start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*sf.lock().unwrap().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        ..Default::default()
+    })));
         // entry of the real (the outermost) function.
     return GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fi) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
 }
