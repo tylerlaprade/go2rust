@@ -9083,6 +9083,27 @@ func (x *box) rotate(v int) int {
 	}
 }
 
+func TestGenericComparableMapRangeKeyStaysTypeParamValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func MapKeys[K comparable, V any](m map[K]V) []K {
+	r := make([]K, 0, len(m))
+	for k := range m {
+		r = append(r, k)
+	}
+	return r
+}
+`)
+
+	if strings.Contains(rust, "GoLocalPtrKey<K>") || strings.Contains(rust, "__range_key.value()") {
+		t.Fatalf("generic comparable map keys should range as K values, not pointer-key wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "BTreeMap<K, Rc<RefCell<Option<V>>>>") &&
+		!strings.Contains(rust, "BTreeMap<K, Arc<Mutex<Option<V>>>>") {
+		t.Fatalf("generic comparable map should use K directly as the Rust key type:\n%s", rust)
+	}
+}
+
 func TestCompoundAssignRangeIndexCastsToIntField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
