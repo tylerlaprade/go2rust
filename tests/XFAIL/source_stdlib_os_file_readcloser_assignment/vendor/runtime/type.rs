@@ -662,7 +662,10 @@ pub fn resolve_name_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: nameOff) ->
         };
         throw(Arc::new(Mutex::new(Some("runtime: name offset out of range".to_string()))));
     }
-        return Arc::new(Mutex::new(Some(internal_abi::r#type::Name { bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some((*res.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()), ..Default::default() })));
+        return Arc::new(Mutex::new(Some(internal_abi::r#type::Name {
+            bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some((*res.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()),
+            ..Default::default()
+        })));
     }
         { let new_val = (*md.lock().unwrap().as_ref().unwrap()).next.clone(); md = new_val; };
     }
@@ -693,7 +696,10 @@ pub fn resolve_name_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: nameOff) ->
     }
         throw(Arc::new(Mutex::new(Some("runtime: name offset base pointer out of range".to_string()))));
     }
-    return Arc::new(Mutex::new(Some(internal_abi::r#type::Name { bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = res.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(internal_abi::r#type::Name {
+        bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = res.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()),
+        ..Default::default()
+    })));
 }
 
 pub fn resolve_type_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: typeOff) -> GoPtr<internal_abi::r#type::Type> {

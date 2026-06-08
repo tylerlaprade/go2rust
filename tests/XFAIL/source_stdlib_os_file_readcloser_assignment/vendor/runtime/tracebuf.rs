@@ -281,7 +281,11 @@ impl crate::traceruntime::traceLocker {
     }
     }
                 // Checks that the invariants of this function are being upheld.
-        Arc::new(Mutex::new(Some(traceWriter { trace_locker: Arc::new(Mutex::new(Some(__self.clone()))), trace_buf: { let __seq = { let __seq_holder = (*(*__self.mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(TRACE_NO_EXPERIMENT as u8) as usize].clone().clone(), ..Default::default() })))
+        Arc::new(Mutex::new(Some(traceWriter {
+            trace_locker: Arc::new(Mutex::new(Some(__self.clone()))),
+            trace_buf: { let __seq = { let __seq_holder = (*(*__self.mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(TRACE_NO_EXPERIMENT as u8) as usize].clone().clone(),
+            ..Default::default()
+        })))
     }
 }
 

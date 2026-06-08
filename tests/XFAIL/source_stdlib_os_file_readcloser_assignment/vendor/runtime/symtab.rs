@@ -1997,7 +1997,11 @@ pub fn findfunc(pc: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<funcInfo>>> {
     }
 
     let mut funcoff = Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = (*datap.lock().unwrap().as_ref().unwrap()).ftab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.funcoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-    return Arc::new(Mutex::new(Some(funcInfo { _func: Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __v = (*funcoff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<_func>(unimplemented!("unsafe.Pointer conversion to _func")) } })).clone(), datap: datap.clone(), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(funcInfo {
+        _func: Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __v = (*funcoff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<_func>(unimplemented!("unsafe.Pointer conversion to _func")) } })).clone(),
+        datap: datap.clone(),
+        ..Default::default()
+    })));
 }
 
 /// pcvalueCacheKey returns the outermost index in a pcvalueCache to use for targetpc.
@@ -2529,10 +2533,14 @@ pub fn stackmapdata(stkmap: GoPtr<stackmap>, n: Arc<Mutex<Option<i32>>>) -> Arc<
     if { let __tmp_x = STACK_DEBUG; let __tmp_y = 0; __tmp_x > __tmp_y } && ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = stkmap.borrow(); __ptr_value.as_ref().unwrap().n.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y }) {
         throw(Arc::new(Mutex::new(Some("stackmapdata: index out of range".to_string()))));
     }
-    Arc::new(Mutex::new(Some(crate::stack::bitvector { n: Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = stkmap.with_mut(|__ptr_value| __ptr_value.nbit.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), bytedata: addb(
-        GoPtr::array_elem(GoArrayElemPtr::new({ let __ptr_value = stkmap.with_mut(|__ptr_value| __ptr_value.bytedata.clone()); __ptr_value }.clone(), (0) as usize)),
-        Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*{ let __ptr_value = stkmap.borrow(); __ptr_value.as_ref().unwrap().nbit.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 7 as i32; __tmp_x + __tmp_y }); let __tmp_y = 3; __tmp_x >> __tmp_y }); __tmp_x * __tmp_y }) as usize)))
-    ), ..Default::default() })))
+    Arc::new(Mutex::new(Some(crate::stack::bitvector {
+        n: Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = stkmap.with_mut(|__ptr_value| __ptr_value.nbit.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        bytedata: addb(
+            GoPtr::array_elem(GoArrayElemPtr::new({ let __ptr_value = stkmap.with_mut(|__ptr_value| __ptr_value.bytedata.clone()); __ptr_value }.clone(), (0) as usize)),
+            Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*{ let __ptr_value = stkmap.borrow(); __ptr_value.as_ref().unwrap().nbit.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 7 as i32; __tmp_x + __tmp_y }); let __tmp_y = 3; __tmp_x >> __tmp_y }); __tmp_x * __tmp_y }) as usize)))
+        ),
+        ..Default::default()
+    })))
 }
 
 pub(crate) fn __go_init_functions() {

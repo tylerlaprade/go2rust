@@ -275,7 +275,12 @@ impl traceMap {
 
     pub fn new_trace_map_node(&self, data: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>, hash: Arc<Mutex<Option<usize>>>, id: Arc<Mutex<Option<u64>>>) -> GoPtr<traceMapNode> {
                 // Create data array.
-        let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice { array: (*self.mem.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), len: Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i32))), cap: Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i32))), ..Default::default() })));
+        let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice {
+            array: (*self.mem.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))),
+            len: Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i32))),
+            cap: Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i32))),
+            ..Default::default()
+        })));
         memmove(
             Arc::new(Mutex::new(Some((*sl.lock().unwrap().as_ref().unwrap()).array.addr()))),
             Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),

@@ -7265,6 +7265,37 @@ func parse(b []byte) (int, error) {
 	}
 }
 
+func TestConcurrentStructLiteralAssignmentBreaksFieldsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type node byte
+
+type nodeSlice struct {
+	array *node
+	len int
+	cap int
+}
+
+func build(base, size, offset uintptr, elems int) nodeSlice {
+	go func() {}()
+	var sl nodeSlice
+	sl = nodeSlice{(*node)(unsafe.Pointer(base + size - offset)), elems, elems}
+	return sl
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let new_val = nodeSlice {") && strings.Contains(line, "array:") && strings.Contains(line, "cap:") {
+			t.Fatalf("complex struct literal assignment should split fields across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let new_val = nodeSlice {\n") {
+		t.Fatalf("complex struct literal assignment should use multiline struct syntax:\n%s", rust)
+	}
+}
+
 func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

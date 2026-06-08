@@ -230,10 +230,13 @@ impl name {
 
 impl rtype {
     pub fn name_off(&self, off: nameOff) -> Arc<Mutex<Option<internal_abi::r#type::Name>>> {
-        Arc::new(Mutex::new(Some(internal_abi::r#type::Name { bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = resolve_name_off(
-            Arc::new(Mutex::new(Some(self.r#type.addr()))),
-            Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))
-        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()), ..Default::default() })))
+        Arc::new(Mutex::new(Some(internal_abi::r#type::Name {
+            bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = resolve_name_off(
+                Arc::new(Mutex::new(Some(self.r#type.addr()))),
+                Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()),
+            ..Default::default()
+        })))
     }
 
     pub fn type_off(&self, off: typeOff) -> GoPtr<internal_abi::r#type::Type> {
@@ -647,10 +650,13 @@ pub fn pkg_path(n: Arc<Mutex<Option<internal_abi::r#type::Name>>>) -> Arc<Mutex<
         }
         Arc::new(Mutex::new(Some(_n as i32)))
     };
-    let mut pkgPathName = Arc::new(Mutex::new(Some(name { bytes: Arc::new(Mutex::new({ let __ptr = resolve_type_off(
-        Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).bytes.addr()))),
-        Arc::new(Mutex::new(Some({ let __arg_holder = nameOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
-    ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone(), ..Default::default() })));
+    let mut pkgPathName = Arc::new(Mutex::new(Some(name {
+        bytes: Arc::new(Mutex::new({ let __ptr = resolve_type_off(
+            Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).bytes.addr()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nameOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone(),
+        ..Default::default()
+    })));
     return (*pkgPathName.lock().unwrap().as_ref().unwrap()).name();
 }
 

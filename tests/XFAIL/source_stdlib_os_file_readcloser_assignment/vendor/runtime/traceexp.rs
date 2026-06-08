@@ -431,7 +431,12 @@ impl crate::traceruntime::traceLocker {
     /// expWriter returns a traceWriter that writes into the current M's stream for
     /// the given experiment.
     pub fn exp_writer(&self, exp: Arc<Mutex<Option<traceExperiment>>>) -> Arc<Mutex<Option<crate::tracebuf::traceWriter>>> {
-        Arc::new(Mutex::new(Some(traceWriter { trace_locker: Arc::new(Mutex::new(Some(self.clone()))), trace_buf: { let __seq = { let __seq_holder = (*(*self.mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*{ let __v = (*exp.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone().clone(), exp: Arc::new(Mutex::new(Some({ let __arg_holder = exp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
+        Arc::new(Mutex::new(Some(traceWriter {
+            trace_locker: Arc::new(Mutex::new(Some(self.clone()))),
+            trace_buf: { let __seq = { let __seq_holder = (*(*self.mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*{ let __v = (*exp.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone().clone(),
+            exp: Arc::new(Mutex::new(Some({ let __arg_holder = exp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            ..Default::default()
+        })))
     }
 }
 

@@ -3116,7 +3116,12 @@ pub fn cgo_context_p_cs(ctxt: Arc<Mutex<Option<usize>>>, buf_local: Arc<Mutex<Op
     }
         // We do not want to call into the scheduler when panicking
         // or when on the system stack.
-    let mut arg = Arc::new(Mutex::new(Some(cgoTracebackArg { context: Arc::new(Mutex::new(Some({ let __arg_holder = ctxt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), buf: Arc::new(Mutex::new({ let __ptr = noescape(Arc::new(Mutex::new(Some({ let __seq_holder = buf_local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<usize>(unimplemented!("unsafe.Pointer conversion to usize")) } })).clone(), max: Arc::new(Mutex::new(Some((*buf_local.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as usize))), ..Default::default() })));
+    let mut arg = Arc::new(Mutex::new(Some(cgoTracebackArg {
+        context: Arc::new(Mutex::new(Some({ let __arg_holder = ctxt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        buf: Arc::new(Mutex::new({ let __ptr = noescape(Arc::new(Mutex::new(Some({ let __seq_holder = buf_local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<usize>(unimplemented!("unsafe.Pointer conversion to usize")) } })).clone(),
+        max: Arc::new(Mutex::new(Some((*buf_local.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as usize))),
+        ..Default::default()
+    })));
     if MSANENABLED {
         msanwrite(
             Arc::new(Mutex::new(Some(Arc::as_ptr(&arg.clone()) as usize))),

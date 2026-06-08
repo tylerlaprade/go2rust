@@ -159,7 +159,12 @@ impl crate::mpagealloc::pageAlloc {
         throw(Arc::new(Mutex::new(Some("failed to reserve page summary memory".to_string()))));
     }
                 // Put this reservation into a slice.
-        let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice { array: GoPtr::local(Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()), len: Arc::new(Mutex::new(Some(0))), cap: Arc::new(Mutex::new(Some({ let __arg_holder = entries.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+        let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice {
+            array: GoPtr::local(Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()),
+            len: Arc::new(Mutex::new(Some(0))),
+            cap: Arc::new(Mutex::new(Some({ let __arg_holder = entries.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            ..Default::default()
+        })));
         (*self.summary.lock().unwrap().as_mut().unwrap())[(l) as usize] = { let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&sl.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Vec<pallocSum>>(unimplemented!("unsafe.Pointer conversion to Vec<pallocSum>")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v };
     } }
     }
@@ -397,7 +402,12 @@ impl crate::mgcscavenge::scavengeIndex {
         let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(((1 as usize) << (HEAP_ADDR_BITS as usize)) as usize))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = PALLOC_CHUNK_BYTES as usize; __tmp_x / __tmp_y })));
         let mut nbytes = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mgcscavenge::atomicScavChunkData>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y })));
         let mut r = sys_reserve(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some({ let __arg_holder = nbytes.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice { array: GoPtr::local(Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()), len: Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32))), cap: Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32))), ..Default::default() })));
+        let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice {
+            array: GoPtr::local(Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()),
+            len: Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32))),
+            cap: Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32))),
+            ..Default::default()
+        })));
         { let new_val = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&sl.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Vec<atomicScavChunkData>>(unimplemented!("unsafe.Pointer conversion to Vec<atomicScavChunkData>")) } })).clone(); self.chunks = new_val; };
         0
     }

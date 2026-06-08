@@ -9871,6 +9871,9 @@ func typesStructCompositeLiteralShouldUseMultiline(elts []ast.Expr, structUnder 
 	if !NeedsConcurrentWrapper() || structUnder == nil {
 		return false
 	}
+	if typesStructCompositeLiteralComplexPointerFieldsShouldUseMultiline(elts, structUnder) {
+		return true
+	}
 	if typesStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts, structUnder) {
 		return true
 	}
@@ -9907,6 +9910,83 @@ func typesStructCompositeLiteralShouldUseMultiline(elts []ast.Expr, structUnder 
 		}
 	}
 	return false
+}
+
+type structCompositeLiteralFieldValue struct {
+	value     ast.Expr
+	fieldExpr ast.Expr
+	fieldType types.Type
+}
+
+func structCompositeLiteralComplexPointerFieldsShouldUseMultiline(fields []structCompositeLiteralFieldValue) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	for _, field := range fields {
+		if field.value == nil {
+			continue
+		}
+		if !isPointerFieldExpr(field.fieldExpr) && !isPointerFieldType(field.fieldType) {
+			continue
+		}
+		if compositeLiteralElementIsComplex(field.value) {
+			return true
+		}
+	}
+	return false
+}
+
+func typesStructCompositeLiteralComplexPointerFieldsShouldUseMultiline(elts []ast.Expr, structUnder *types.Struct) bool {
+	if structUnder == nil {
+		return false
+	}
+	return structCompositeLiteralComplexPointerFieldsShouldUseMultiline(typesStructCompositeLiteralFieldValues(elts, structUnder))
+}
+
+func typesStructCompositeLiteralFieldValues(elts []ast.Expr, structUnder *types.Struct) []structCompositeLiteralFieldValue {
+	if structUnder == nil {
+		return nil
+	}
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+	if allPositional {
+		fields := make([]structCompositeLiteralFieldValue, 0, len(elts))
+		for i, elt := range elts {
+			if i >= structUnder.NumFields() {
+				break
+			}
+			fields = append(fields, structCompositeLiteralFieldValue{
+				value:     elt,
+				fieldType: structUnder.Field(i).Type(),
+			})
+		}
+		return fields
+	}
+	fields := make([]structCompositeLiteralFieldValue, 0, len(elts))
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		field := findTypesStructField(structUnder, key.Name)
+		if field == nil {
+			continue
+		}
+		fields = append(fields, structCompositeLiteralFieldValue{
+			value:     kv.Value,
+			fieldType: field.Type(),
+		})
+	}
+	return fields
 }
 
 func typesStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts []ast.Expr, structUnder *types.Struct) bool {
@@ -9986,6 +10066,9 @@ func localStructCompositeLiteralShouldUseMultiline(typeName string, elts []ast.E
 		return false
 	}
 	fields := localStructLiteralFieldEntries(sd.ASTType)
+	if structCompositeLiteralComplexPointerFieldsShouldUseMultiline(localStructCompositeLiteralFieldValues(elts, fields)) {
+		return true
+	}
 	allPositional := true
 	for _, elt := range elts {
 		if _, ok := elt.(*ast.KeyValueExpr); ok {
@@ -10024,6 +10107,53 @@ func localStructCompositeLiteralShouldUseMultiline(typeName string, elts []ast.E
 		}
 	}
 	return false
+}
+
+func localStructCompositeLiteralFieldValues(elts []ast.Expr, fields []localStructLiteralFieldEntry) []structCompositeLiteralFieldValue {
+	if len(fields) == 0 {
+		return nil
+	}
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+	if allPositional {
+		values := make([]structCompositeLiteralFieldValue, 0, len(elts))
+		for i, elt := range elts {
+			if i >= len(fields) {
+				break
+			}
+			values = append(values, structCompositeLiteralFieldValue{
+				value:     elt,
+				fieldExpr: fields[i].typ,
+			})
+		}
+		return values
+	}
+	values := make([]structCompositeLiteralFieldValue, 0, len(elts))
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		for _, field := range fields {
+			if field.name == key.Name {
+				values = append(values, structCompositeLiteralFieldValue{
+					value:     kv.Value,
+					fieldExpr: field.typ,
+				})
+				break
+			}
+		}
+	}
+	return values
 }
 
 type localStructLiteralFieldEntry struct {
