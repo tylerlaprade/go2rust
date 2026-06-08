@@ -1,8 +1,19 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{atomic_arm64::{and, and8, cas64, cas_rel, load, load64, load8, load_acq, load_acquintptr, loadp, or, or8, store, store64, store8, store_rel, store_reluintptr, storep_no_w_b, xadd, xadd64, xadduintptr, xchg, xchg64, xchguintptr}, stubs::{cas, casint32, casint64, casp1, casuintptr, loadint32, loadint64, loaduintptr, storeint32, storeint64, storeuintptr, xaddint32, xaddint64, xchgint32, xchgint64}};
+use crate::{
+    atomic_arm64::{and, and8, cas64, cas_rel, load, load64, load8, load_acq, load_acquintptr, loadp, or, or8, store, store64, store8, store_rel, store_reluintptr, storep_no_w_b, xadd, xadd64, xadduintptr, xchg, xchg64, xchguintptr},
+    stubs::{cas, casint32, casint64, casp1, casuintptr, loadint32, loadint64, loaduintptr, storeint32, storeint64, storeuintptr, xaddint32, xaddint64, xchgint32, xchgint64},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

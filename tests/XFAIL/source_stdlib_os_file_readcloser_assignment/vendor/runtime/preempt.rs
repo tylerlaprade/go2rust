@@ -1,8 +1,44 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{os_darwin::{osyield}, panic::{throw}, proc::{cas_g_from_preempted, casfrom__gscanstatus, castogscanstatus, dumpgstatus, gopreempt_m, preempt_park, readgstatus, ready}, r#extern::{G_O_A_R_C_H}, runtime1::{debug}, runtime2::{__GCOPYSTACK, __GDEAD, __GPREEMPTED, __GRUNNABLE, __GRUNNING, __GSCAN, __GSCANRUNNING, __GSYSCALL, __GWAITING, __PRUNNING, g, m, p, puintptr, stack}, signal_unix::{PREEMPT_M_SUPPORTED, preempt_m}, stack::{STACK_GUARD, STACK_NOSPLIT, STACK_PREEMPT}, stubs::{getg, mcall, procyield}, symtab::{findfunc, funcInfo, func_max_s_p_delta, funcdata, funcspdelta, pcdatavalue2, srcFunc}, symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder}, time_nofake::{nanotime}};
+use crate::{
+    os_darwin::{osyield},
+    panic::{throw},
+    proc::{cas_g_from_preempted, casfrom__gscanstatus, castogscanstatus, dumpgstatus, gopreempt_m, preempt_park, readgstatus, ready},
+    r#extern::{G_O_A_R_C_H},
+    runtime1::{debug},
+    runtime2::{__GCOPYSTACK, __GDEAD, __GPREEMPTED, __GRUNNABLE, __GRUNNING, __GSCAN, __GSCANRUNNING, __GSYSCALL, __GWAITING, __PRUNNING, g, m, p, puintptr, stack},
+    signal_unix::{PREEMPT_M_SUPPORTED, preempt_m},
+    stack::{STACK_GUARD, STACK_NOSPLIT, STACK_PREEMPT},
+    stubs::{getg, mcall, procyield},
+    symtab::{findfunc, funcInfo, func_max_s_p_delta, funcdata, funcspdelta, pcdatavalue2, srcFunc},
+    symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder},
+    time_nofake::{nanotime},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

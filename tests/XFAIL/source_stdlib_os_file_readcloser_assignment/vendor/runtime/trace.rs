@@ -1,8 +1,59 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_spinbit::{lock, unlock}, lockrank::{LOCK_RANK_WAKEABLE_SLEEP}, lockrank_off::{lock_init}, mem::{sys_free}, mgc::{AnonymousStruct12, __G_CMARK, __G_CMARKTERMINATION, gcMarkWorkerModeStrings, gcphase}, mstats::{memstats, sysMemStat}, os_darwin::{osyield}, panic::{throw}, preempt::{resume_g, suspendGState, suspend_g}, proc::{cas_g_to_waiting_for_suspend_g, casgstatus, for_each_g_race, for_each_p, readgstatus, worldsema}, profbuf::{profBuf}, race0::{RACEENABLED, raceacquire, racerelease}, runtime1::{acquirem, debug, releasem}, runtime2::{WAIT_REASON_TRACE_GOROUTINE_STATUS, WAIT_REASON_TRACE_PROC_STATUS, __GRUNNING, __GSCAN, __GWAITING, allm, allp, g, gomaxprocs, m, mutex, p, sched, waitReason}, sema::{semacquire, semrelease, semrelease1}, stubs::{getg, systemstack}, time::{timer}, time_nofake::{nanotime}, tracebuf::{traceBuf, traceBufQueue, traceWriter, trace_buf_flush, unsafe_trace_writer}, tracecpu::{trace_c_p_u_flush, trace_read_c_p_u, trace_stop_read_c_p_u}, traceevent::{traceArg}, traceruntime::{gTraceState, mTraceState, pTraceState, traceBlockReasonStrings, traceGoStopReasonStrings, traceLocker, trace_acquire, trace_enabled, trace_release}, tracestack::{traceStackTable, trace_stack}, tracestatus::{go_status_to_trace_go_status, traceGoStatus}, tracestring::{traceStringTable}, tracetime::{trace_frequency}, tracetype::{traceTypeTable}};
+use crate::{
+    lock_spinbit::{lock, unlock},
+    lockrank::{LOCK_RANK_WAKEABLE_SLEEP},
+    lockrank_off::{lock_init},
+    mem::{sys_free},
+    mgc::{AnonymousStruct12, __G_CMARK, __G_CMARKTERMINATION, gcMarkWorkerModeStrings, gcphase},
+    mstats::{memstats, sysMemStat},
+    os_darwin::{osyield},
+    panic::{throw},
+    preempt::{resume_g, suspendGState, suspend_g},
+    proc::{cas_g_to_waiting_for_suspend_g, casgstatus, for_each_g_race, for_each_p, readgstatus, worldsema},
+    profbuf::{profBuf},
+    race0::{RACEENABLED, raceacquire, racerelease},
+    runtime1::{acquirem, debug, releasem},
+    runtime2::{WAIT_REASON_TRACE_GOROUTINE_STATUS, WAIT_REASON_TRACE_PROC_STATUS, __GRUNNING, __GSCAN, __GWAITING, allm, allp, g, gomaxprocs, m, mutex, p, sched, waitReason},
+    sema::{semacquire, semrelease, semrelease1},
+    stubs::{getg, systemstack},
+    time::{timer},
+    time_nofake::{nanotime},
+    tracebuf::{traceBuf, traceBufQueue, traceWriter, trace_buf_flush, unsafe_trace_writer},
+    tracecpu::{trace_c_p_u_flush, trace_read_c_p_u, trace_stop_read_c_p_u},
+    traceevent::{traceArg},
+    traceruntime::{gTraceState, mTraceState, pTraceState, traceBlockReasonStrings, traceGoStopReasonStrings, traceLocker, trace_acquire, trace_enabled, trace_release},
+    tracestack::{traceStackTable, trace_stack},
+    tracestatus::{go_status_to_trace_go_status, traceGoStatus},
+    tracestring::{traceStringTable},
+    tracetime::{trace_frequency},
+    tracetype::{traceTypeTable},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

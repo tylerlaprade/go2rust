@@ -1,8 +1,22 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{dir::{DirEntry, READDIR_DIR_ENTRY, READDIR_NAME, readdirMode}, error::{PathError, is_not_exist}, file::{lstat_1}, file_unix::{new_unix_dirent}, types::{File, FileInfo, FileMode, MODE_CHAR_DEVICE, MODE_DEVICE, MODE_DIR, MODE_NAMED_PIPE, MODE_SOCKET, MODE_SYMLINK}};
+use crate::{
+    dir::{DirEntry, READDIR_DIR_ENTRY, READDIR_NAME, readdirMode},
+    error::{PathError, is_not_exist},
+    file::{lstat_1},
+    file_unix::{new_unix_dirent},
+    types::{File, FileInfo, FileMode, MODE_CHAR_DEVICE, MODE_DEVICE, MODE_DIR, MODE_NAMED_PIPE, MODE_SOCKET, MODE_SYMLINK},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

@@ -1,8 +1,42 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{malloc::{PAGE_SIZE}, mheap::{M_SPAN_IN_USE, mSpanState, mSpanStateBox, mspan, spanClass}, panic::{throw}, sizeclasses::{MIN_HEAP_ALIGN}, stack::{FIXED_STACK}, trace::{trace}, traceevent::{traceArg, traceEv, traceEventWriter}, traceexp::{TRACE_EV_GOROUTINE_STACK, TRACE_EV_GOROUTINE_STACK_ALLOC, TRACE_EV_GOROUTINE_STACK_FREE, TRACE_EV_HEAP_OBJECT, TRACE_EV_HEAP_OBJECT_ALLOC, TRACE_EV_HEAP_OBJECT_FREE, TRACE_EV_SPAN, TRACE_EV_SPAN_ALLOC, TRACE_EV_SPAN_FREE}, traceruntime::{traceLocker}, tracestatus::{TRACE_GO_RUNNING, TRACE_PROC_RUNNING, traceGoStatus, traceProcStatus}};
+use crate::{
+    malloc::{PAGE_SIZE},
+    mheap::{M_SPAN_IN_USE, mSpanState, mSpanStateBox, mspan, spanClass},
+    panic::{throw},
+    sizeclasses::{MIN_HEAP_ALIGN},
+    stack::{FIXED_STACK},
+    trace::{trace},
+    traceevent::{traceArg, traceEv, traceEventWriter},
+    traceexp::{TRACE_EV_GOROUTINE_STACK, TRACE_EV_GOROUTINE_STACK_ALLOC, TRACE_EV_GOROUTINE_STACK_FREE, TRACE_EV_HEAP_OBJECT, TRACE_EV_HEAP_OBJECT_ALLOC, TRACE_EV_HEAP_OBJECT_FREE, TRACE_EV_SPAN, TRACE_EV_SPAN_ALLOC, TRACE_EV_SPAN_FREE},
+    traceruntime::{traceLocker},
+    tracestatus::{TRACE_GO_RUNNING, TRACE_PROC_RUNNING, traceGoStatus, traceProcStatus},
+};
 
 use std::sync::{Arc, Mutex};
 

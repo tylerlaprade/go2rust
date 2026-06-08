@@ -1,8 +1,30 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{syscall_darwin::{SockaddrDatalink, getdirentries, nametomib}, syscall_unix::{Sockaddr, SockaddrInet4, SockaddrInet6, SockaddrUnix, clen, mmapper}, zerrors_darwin_arm64::{A_F__I_N_E_T, A_F__I_N_E_T6, A_F__L_I_N_K, A_F__U_N_I_X, E_A_F_N_O_S_U_P_P_O_R_T, E_C_O_N_N_A_B_O_R_T_E_D, E_I_N_V_A_L, E_I_O}, zsyscall_darwin_arm64::{accept_1, close, getcwd, mmap_1, munmap_1, recvmsg_1, sendmsg_1, sysctl_1}, ztypes_darwin_arm64::{Iovec, Msghdr, PATH_MAX, RawSockaddr, RawSockaddrAny, RawSockaddrDatalink, RawSockaddrInet4, RawSockaddrInet6, RawSockaddrUnix, SIZEOF_SOCKADDR_ANY, SIZEOF_SOCKADDR_DATALINK, SIZEOF_SOCKADDR_INET4, SIZEOF_SOCKADDR_INET6, SIZEOF_SOCKADDR_UNIX, _C_int, _Socklen}};
+use crate::{
+    syscall_darwin::{SockaddrDatalink, getdirentries, nametomib},
+    syscall_unix::{Sockaddr, SockaddrInet4, SockaddrInet6, SockaddrUnix, clen, mmapper},
+    zerrors_darwin_arm64::{A_F__I_N_E_T, A_F__I_N_E_T6, A_F__L_I_N_K, A_F__U_N_I_X, E_A_F_N_O_S_U_P_P_O_R_T, E_C_O_N_N_A_B_O_R_T_E_D, E_I_N_V_A_L, E_I_O},
+    zsyscall_darwin_arm64::{accept_1, close, getcwd, mmap_1, munmap_1, recvmsg_1, sendmsg_1, sysctl_1},
+    ztypes_darwin_arm64::{Iovec, Msghdr, PATH_MAX, RawSockaddr, RawSockaddrAny, RawSockaddrDatalink, RawSockaddrInet4, RawSockaddrInet6, RawSockaddrUnix, SIZEOF_SOCKADDR_ANY, SIZEOF_SOCKADDR_DATALINK, SIZEOF_SOCKADDR_INET4, SIZEOF_SOCKADDR_INET6, SIZEOF_SOCKADDR_UNIX, _C_int, _Socklen},
+};
 
 use std::any::Any;
 use std::collections::BTreeMap;

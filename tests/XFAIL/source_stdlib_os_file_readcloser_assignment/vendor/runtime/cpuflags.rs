@@ -1,6 +1,29 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
 pub(crate) const OFFSET_X86_HAS_A_V_X: usize = std::mem::offset_of!(internal_cpu::X86, has_a_v_x);
 pub(crate) const OFFSET_X86_HAS_A_V_X2: usize = std::mem::offset_of!(internal_cpu::X86, has_a_v_x2);

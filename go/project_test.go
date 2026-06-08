@@ -74,6 +74,27 @@ func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	}
 }
 
+func TestLongCrateItemImportsWrapAcrossLines(t *testing.T) {
+	items := []string{
+		"alpha::{AlphaOne, AlphaTwo, AlphaThree, AlphaFour, AlphaFive, AlphaSix}",
+		"beta::{BetaOne, BetaTwo, BetaThree, BetaFour, BetaFive, BetaSix}",
+		"gamma::{GammaOne, GammaTwo, GammaThree, GammaFour, GammaFive, GammaSix}",
+	}
+
+	got := prefixSiblingItemImports("// body\n", items)
+	if strings.Contains(got, "use crate::{alpha::{AlphaOne") {
+		t.Fatalf("long crate imports should not stay on one line:\n%s", got)
+	}
+	want := "use crate::{\n" +
+		"    alpha::{AlphaOne, AlphaTwo, AlphaThree, AlphaFour, AlphaFive, AlphaSix},\n" +
+		"    beta::{BetaOne, BetaTwo, BetaThree, BetaFour, BetaFive, BetaSix},\n" +
+		"    gamma::{GammaOne, GammaTwo, GammaThree, GammaFour, GammaFive, GammaSix},\n" +
+		"};\n\n// body\n"
+	if got != want {
+		t.Fatalf("long crate imports should wrap deterministically, got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestModuleImportPrefixesDoNotAddBlankLineForImportOnlyBody(t *testing.T) {
 	pg := &ProjectGenerator{useSharedStdlibStubCrate: true}
 	got := pg.prefixModuleImports("use std::any::Any;\n\n", "slices", []string{"iter", "slices"}, nil, nil, false)

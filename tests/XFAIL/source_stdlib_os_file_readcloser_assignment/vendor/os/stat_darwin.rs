@@ -1,8 +1,19 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{types::{FileMode, MODE_CHAR_DEVICE, MODE_DEVICE, MODE_DIR, MODE_NAMED_PIPE, MODE_SETGID, MODE_SETUID, MODE_SOCKET, MODE_STICKY, MODE_SYMLINK}, types_unix::{fileStat}};
+use crate::{
+    types::{FileMode, MODE_CHAR_DEVICE, MODE_DEVICE, MODE_DIR, MODE_NAMED_PIPE, MODE_SETGID, MODE_SETUID, MODE_SOCKET, MODE_STICKY, MODE_SYMLINK},
+    types_unix::{fileStat},
+};
 
 use std::sync::{Arc, Mutex};
 

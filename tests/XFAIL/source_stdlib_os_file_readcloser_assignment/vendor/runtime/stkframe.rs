@@ -1,8 +1,39 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{panic::{throw}, print::{hex}, r#extern::{G_O_A_R_C_H}, stack::{STACK_DEBUG, bitvector, stackObjectRecord}, stubs::{add, noescape}, symtab::{funcInfo, funcdata, funcname, pcdatavalue, stackmap, stackmapdata}, traceback::{USES_L_R}};
+use crate::{
+    panic::{throw},
+    print::{hex},
+    r#extern::{G_O_A_R_C_H},
+    stack::{STACK_DEBUG, bitvector, stackObjectRecord},
+    stubs::{add, noescape},
+    symtab::{funcInfo, funcdata, funcname, pcdatavalue, stackmap, stackmapdata},
+    traceback::{USES_L_R},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

@@ -1,8 +1,30 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{r#mod::{_zero, byte_ptr_from_string}, syscall_darwin::{raw_syscall_1, syscall6_1, syscall6_x, syscall_1}, syscall_darwin_arm64::{syscall_x}, syscall_unix::{Errno, errno_err}, ztypes_darwin_arm64::{Dirent, Msghdr, RawSockaddrAny, Rlimit, Stat_t, _C_int, _Socklen}};
+use crate::{
+    r#mod::{_zero, byte_ptr_from_string},
+    syscall_darwin::{raw_syscall_1, syscall6_1, syscall6_x, syscall_1},
+    syscall_darwin_arm64::{syscall_x},
+    syscall_unix::{Errno, errno_err},
+    ztypes_darwin_arm64::{Dirent, Msghdr, RawSockaddrAny, Rlimit, Stat_t, _C_int, _Socklen},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

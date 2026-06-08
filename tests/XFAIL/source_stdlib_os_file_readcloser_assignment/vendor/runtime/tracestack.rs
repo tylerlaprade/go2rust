@@ -1,8 +1,47 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{panic::{throw}, proc::{readgstatus}, runtime1::{debug}, runtime2::{__GSCAN, g, gobuf, m, muintptr, waitReason}, stubs::{getg, noescape}, stubs_arm64::{getfp}, symtab::{Frame, Frames, callers_frames, findfunc, funcInfo, funcdata, moduledata, srcFunc}, symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder}, trace::{trace}, traceback::{callers_1, elide_wrapper_calling, gStatusStrings, gcallers}, tracebuf::{TRACE_BYTES_PER_NUMBER, traceWriter, unsafe_trace_writer}, traceevent::{TRACE_EV_STACK, TRACE_EV_STACKS}, tracemap::{traceMap, traceMapNode}, tracestatus::{TRACE_GO_RUNNING, TRACE_GO_SYSCALL, go_status_to_trace_go_status, traceGoStatus}, tracestring::{traceStringTable}};
+use crate::{
+    panic::{throw},
+    proc::{readgstatus},
+    runtime1::{debug},
+    runtime2::{__GSCAN, g, gobuf, m, muintptr, waitReason},
+    stubs::{getg, noescape},
+    stubs_arm64::{getfp},
+    symtab::{Frame, Frames, callers_frames, findfunc, funcInfo, funcdata, moduledata, srcFunc},
+    symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder},
+    trace::{trace},
+    traceback::{callers_1, elide_wrapper_calling, gStatusStrings, gcallers},
+    tracebuf::{TRACE_BYTES_PER_NUMBER, traceWriter, unsafe_trace_writer},
+    traceevent::{TRACE_EV_STACK, TRACE_EV_STACKS},
+    tracemap::{traceMap, traceMapNode},
+    tracestatus::{TRACE_GO_RUNNING, TRACE_GO_SYSCALL, go_status_to_trace_go_status, traceGoStatus},
+    tracestring::{traceStringTable},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

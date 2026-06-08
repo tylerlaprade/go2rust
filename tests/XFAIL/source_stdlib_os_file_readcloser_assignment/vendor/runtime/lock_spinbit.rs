@@ -1,8 +1,43 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lockrank::{lockRank}, lockrank_off::{get_lock_rank, lock_with_rank, unlock_with_rank}, mbitmap::{MALLOC_HEADER_SIZE}, mprof::{lockTimer, mLockProfile}, os_darwin::{osyield, semacreate, semasleep, semawakeup}, panic::{throw}, proc::{m0}, rand::{cheaprandn}, runtime2::{g, m, muintptr, mutex, ncpu, sched}, stack::{STACK_PREEMPT}, stubs::{getg, procyield}};
+use crate::{
+    lockrank::{lockRank},
+    lockrank_off::{get_lock_rank, lock_with_rank, unlock_with_rank},
+    mbitmap::{MALLOC_HEADER_SIZE},
+    mprof::{lockTimer, mLockProfile},
+    os_darwin::{osyield, semacreate, semasleep, semawakeup},
+    panic::{throw},
+    proc::{m0},
+    rand::{cheaprandn},
+    runtime2::{g, m, muintptr, mutex, ncpu, sched},
+    stack::{STACK_PREEMPT},
+    stubs::{getg, procyield},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

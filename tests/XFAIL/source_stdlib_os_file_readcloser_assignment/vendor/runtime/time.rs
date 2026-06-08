@@ -1,8 +1,47 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{chan::{hchan, timerchandrain}, error::{plainError}, lock_spinbit::{lock, unlock}, lockrank::{LOCK_RANK_TIMER}, lockrank_off::{assert_lock_held, assert_world_stopped, assert_world_stopped_or_lock_held, lock_init}, netpoll::{netpollInited, netpoll_generic_init}, panic::{throw}, proc::{gopark, goready, wake_net_poller}, race0::{RACEENABLED, raceacquirectx, racegostart}, runtime1::{acquirem, debug, releasem}, runtime2::{WAIT_REASON_SLEEP, __GDEAD, __GRUNNING, allp, allpLock, eface, eface_of, g, m, mutex, p, puintptr}, stubs::{getg, systemstack}, synctest::{synctestGroup}, time_nofake::{nanotime}, traceruntime::{TRACE_BLOCK_SLEEP}};
+use crate::{
+    chan::{hchan, timerchandrain},
+    error::{plainError},
+    lock_spinbit::{lock, unlock},
+    lockrank::{LOCK_RANK_TIMER},
+    lockrank_off::{assert_lock_held, assert_world_stopped, assert_world_stopped_or_lock_held, lock_init},
+    netpoll::{netpollInited, netpoll_generic_init},
+    panic::{throw},
+    proc::{gopark, goready, wake_net_poller},
+    race0::{RACEENABLED, raceacquirectx, racegostart},
+    runtime1::{acquirem, debug, releasem},
+    runtime2::{WAIT_REASON_SLEEP, __GDEAD, __GRUNNING, allp, allpLock, eface, eface_of, g, m, mutex, p, puintptr},
+    stubs::{getg, systemstack},
+    synctest::{synctestGroup},
+    time_nofake::{nanotime},
+    traceruntime::{TRACE_BLOCK_SLEEP},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

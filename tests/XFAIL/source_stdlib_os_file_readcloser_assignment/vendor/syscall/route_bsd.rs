@@ -1,8 +1,30 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{syscall_bsd::{any_to_sockaddr}, syscall_darwin::{SockaddrDatalink}, syscall_unix::{DARWIN64_BIT, NETBSD32_BIT, Sockaddr, SockaddrInet4, SockaddrInet6}, zerrors_darwin_arm64::{A_F__I_N_E_T, A_F__I_N_E_T6, A_F__L_I_N_K, A_F__U_N_S_P_E_C, E_I_N_V_A_L, R_T_A_X__I_F_P, R_T_A_X__M_A_X, R_T_A__I_F_P}, ztypes_darwin_arm64::{IfMsghdr, IfaMsghdr, RawSockaddr, RawSockaddrAny, RawSockaddrDatalink, RawSockaddrInet4, RawSockaddrInet6, RtMsghdr, SIZEOF_PTR, SIZEOF_SOCKADDR_INET4, SIZEOF_SOCKADDR_INET6}};
+use crate::{
+    syscall_bsd::{any_to_sockaddr},
+    syscall_darwin::{SockaddrDatalink},
+    syscall_unix::{DARWIN64_BIT, NETBSD32_BIT, Sockaddr, SockaddrInet4, SockaddrInet6},
+    zerrors_darwin_arm64::{A_F__I_N_E_T, A_F__I_N_E_T6, A_F__L_I_N_K, A_F__U_N_S_P_E_C, E_I_N_V_A_L, R_T_A_X__I_F_P, R_T_A_X__M_A_X, R_T_A__I_F_P},
+    ztypes_darwin_arm64::{IfMsghdr, IfaMsghdr, RawSockaddr, RawSockaddrAny, RawSockaddrDatalink, RawSockaddrInet4, RawSockaddrInet6, RtMsghdr, SIZEOF_PTR, SIZEOF_SOCKADDR_INET4, SIZEOF_SOCKADDR_INET6},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

@@ -1,8 +1,42 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lockrank::{LOCK_RANK_SPAN_SET_SPINE}, lockrank_off::{lock_init}, malloc::{__PAGE_SIZE}, mgcsweep::{activeSweep, deduct_sweep_credit, sweep, sweepLocked, sweepLocker}, mheap::{mheap_, mspan, spanClass}, mspanset::{spanSet}, panic::{throw}, runtime2::{mutex}, sizeclasses::{class_to_allocnpages}, traceruntime::{traceLocker, trace_acquire, trace_release}};
+use crate::{
+    lockrank::{LOCK_RANK_SPAN_SET_SPINE},
+    lockrank_off::{lock_init},
+    malloc::{__PAGE_SIZE},
+    mgcsweep::{activeSweep, deduct_sweep_credit, sweep, sweepLocked, sweepLocker},
+    mheap::{mheap_, mspan, spanClass},
+    mspanset::{spanSet},
+    panic::{throw},
+    runtime2::{mutex},
+    sizeclasses::{class_to_allocnpages},
+    traceruntime::{traceLocker, trace_acquire, trace_release},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

@@ -1,8 +1,40 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{defs_darwin_arm64::{__E_I_N_T_R, __E_T_I_M_E_D_O_U_T, __E_V_F_I_L_T__R_E_A_D, __E_V_F_I_L_T__W_R_I_T_E, __E_V__E_O_F, __E_V__E_R_R_O_R, keventt, timespec}, netpoll::{netpollready, pollDesc}, netpoll_kqueue_event::{add_wakeup_event, is_wakeup, process_wakeup_event, wake_netpoll}, os_unix::{closeonexec}, panic::{throw}, proc::{gList}, sys_darwin::{kevent, kqueue}, tagptr::{taggedPointer}};
+use crate::{
+    defs_darwin_arm64::{__E_I_N_T_R, __E_T_I_M_E_D_O_U_T, __E_V_F_I_L_T__R_E_A_D, __E_V_F_I_L_T__W_R_I_T_E, __E_V__E_O_F, __E_V__E_R_R_O_R, keventt, timespec},
+    netpoll::{netpollready, pollDesc},
+    netpoll_kqueue_event::{add_wakeup_event, is_wakeup, process_wakeup_event, wake_netpoll},
+    os_unix::{closeonexec},
+    panic::{throw},
+    proc::{gList},
+    sys_darwin::{kevent, kqueue},
+    tagptr::{taggedPointer},
+};
 
 use std::sync::{Arc, Mutex};
 

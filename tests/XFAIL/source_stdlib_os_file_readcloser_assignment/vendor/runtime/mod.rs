@@ -1,8 +1,41 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_spinbit::{lock, unlock}, os_darwin_arm64::{cputicks}, panic::{panicking}, proc::{OS_HAS_LOW_RES_CLOCK_INT}, race0::{RACEENABLED, raceacquire, racereleasemerge}, runtime2::{g, m, mutex}, stubs::{getg}, time::{time_sleep}, time_nofake::{nanotime, write}};
+use crate::{
+    lock_spinbit::{lock, unlock},
+    os_darwin_arm64::{cputicks},
+    panic::{panicking},
+    proc::{OS_HAS_LOW_RES_CLOCK_INT},
+    race0::{RACEENABLED, raceacquire, racereleasemerge},
+    runtime2::{g, m, mutex},
+    stubs::{getg},
+    time::{time_sleep},
+    time_nofake::{nanotime, write},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

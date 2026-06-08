@@ -1,8 +1,40 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_sema::{noteclear, notesleep, notewakeup}, lock_spinbit::{lock, unlock}, lockrank::{lockRank}, lockrank_off::{acquire_lock_rank_and_m, get_lock_rank, lock_init, lock_with_rank_may_acquire, release_lock_rank_and_m}, note_other::{note}, panic::{throw}, runtime2::{g, m, muintptr, mutex}, stubs::{getg, systemstack}};
+use crate::{
+    lock_sema::{noteclear, notesleep, notewakeup},
+    lock_spinbit::{lock, unlock},
+    lockrank::{lockRank},
+    lockrank_off::{acquire_lock_rank_and_m, get_lock_rank, lock_init, lock_with_rank_may_acquire, release_lock_rank_and_m},
+    note_other::{note},
+    panic::{throw},
+    runtime2::{g, m, muintptr, mutex},
+    stubs::{getg, systemstack},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

@@ -1,8 +1,57 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{arena::{in_user_arena_chunk}, cgo::{cgo_yield, iscgo}, cgocall::{cgoCallers}, debuglog::{print_debug_log}, defs_darwin_arm64::{__B_U_S__A_D_R_E_R_R, __F_P_E__I_N_T_D_I_V, __F_P_E__I_N_T_O_V_F, __S_E_G_V__A_C_C_E_R_R, __S_E_G_V__M_A_P_E_R_R, __S_I_G_A_B_R_T, __S_I_G_B_U_S, __S_I_G_F_P_E, __S_I_G_I_L_L, __S_I_G_P_R_O_F, __S_I_G_Q_U_I_T, __S_I_G_S_E_G_V, __S_I_G_S_Y_S, __S_I_G_T_R_A_P, __S_I_G_U_R_G, __S_I_G_U_S_R1, siginfo, stackt}, error::{errorString}, malloc::{physPageSize}, mgc::{AnonymousStruct12}, os_darwin::{SIG_PER_THREAD_SYSCALL, __N_S_I_G, __S_I_G__S_E_T_M_A_S_K, __S_I_G__U_N_B_L_O_C_K, __S_S__D_I_S_A_B_L_E, osyield, run_per_thread_syscall, set_signalstack_s_p, setsig, sigaddset, sigdelset, signal_m, sigset, sigset_all, valid_s_i_g_p_r_o_f}, panic::{THROW_TYPE_RUNTIME, canpanic, is_abort_p_c, panicdivide, panicfloat, panicmem, panicmem_addr, panicoverflow, startpanic_m, throw, throwType}, preempt::{async_preempt, is_async_safe_point, want_async_preempt}, print::{hex}, proc::{dropm, execLock, extraMLength, mcount, needm, pendingPreemptSignals, readgstatus, sigprof}, r#extern::{G_O_O_S}, runtime1::{debug, gotraceback}, runtime2::{__GRUNNING, __GSCAN, __SIG_KILL, __SIG_NOTIFY, __SIG_PANIC, __SIG_THROW, __SIG_UNBLOCK, g, guintptr, isarchive, islibrary, m, stack}, security_issetugid::{is_secure_mode}, signal_arm64::{dumpregs}, signal_darwin::{sigtable}, signal_darwin_arm64::{sigctxt}, sigqueue::{signal_ignored, sigsend}, stack::{STACK_GUARD}, stubs::{getg, noescape, setg}, sys_darwin::{exit, raise, raiseproc, sigaltstack, sigprocmask, usleep}, traceback::{goroutineheader, traceback, tracebackothers, tracebacktrap}};
+use crate::{
+    arena::{in_user_arena_chunk},
+    cgo::{cgo_yield, iscgo},
+    cgocall::{cgoCallers},
+    debuglog::{print_debug_log},
+    defs_darwin_arm64::{__B_U_S__A_D_R_E_R_R, __F_P_E__I_N_T_D_I_V, __F_P_E__I_N_T_O_V_F, __S_E_G_V__A_C_C_E_R_R, __S_E_G_V__M_A_P_E_R_R, __S_I_G_A_B_R_T, __S_I_G_B_U_S, __S_I_G_F_P_E, __S_I_G_I_L_L, __S_I_G_P_R_O_F, __S_I_G_Q_U_I_T, __S_I_G_S_E_G_V, __S_I_G_S_Y_S, __S_I_G_T_R_A_P, __S_I_G_U_R_G, __S_I_G_U_S_R1, siginfo, stackt},
+    error::{errorString},
+    malloc::{physPageSize},
+    mgc::{AnonymousStruct12},
+    os_darwin::{SIG_PER_THREAD_SYSCALL, __N_S_I_G, __S_I_G__S_E_T_M_A_S_K, __S_I_G__U_N_B_L_O_C_K, __S_S__D_I_S_A_B_L_E, osyield, run_per_thread_syscall, set_signalstack_s_p, setsig, sigaddset, sigdelset, signal_m, sigset, sigset_all, valid_s_i_g_p_r_o_f},
+    panic::{THROW_TYPE_RUNTIME, canpanic, is_abort_p_c, panicdivide, panicfloat, panicmem, panicmem_addr, panicoverflow, startpanic_m, throw, throwType},
+    preempt::{async_preempt, is_async_safe_point, want_async_preempt},
+    print::{hex},
+    proc::{dropm, execLock, extraMLength, mcount, needm, pendingPreemptSignals, readgstatus, sigprof},
+    r#extern::{G_O_O_S},
+    runtime1::{debug, gotraceback},
+    runtime2::{__GRUNNING, __GSCAN, __SIG_KILL, __SIG_NOTIFY, __SIG_PANIC, __SIG_THROW, __SIG_UNBLOCK, g, guintptr, isarchive, islibrary, m, stack},
+    security_issetugid::{is_secure_mode},
+    signal_arm64::{dumpregs},
+    signal_darwin::{sigtable},
+    signal_darwin_arm64::{sigctxt},
+    sigqueue::{signal_ignored, sigsend},
+    stack::{STACK_GUARD},
+    stubs::{getg, noescape, setg},
+    sys_darwin::{exit, raise, raiseproc, sigaltstack, sigprocmask, usleep},
+    traceback::{goroutineheader, traceback, tracebackothers, tracebacktrap},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

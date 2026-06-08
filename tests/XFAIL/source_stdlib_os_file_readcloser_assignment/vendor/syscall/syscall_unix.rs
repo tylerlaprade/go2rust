@@ -1,8 +1,30 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{syscall_bsd::{any_to_sockaddr, recvmsg_raw, sendmsg_n_1}, time_nofake::{FAKETIME, faketime_write}, zerrors_darwin_arm64::{A_F__U_N_S_P_E_C, E_A_C_C_E_S, E_A_G_A_I_N, E_E_X_I_S_T, E_I_N_T_R, E_I_N_V_A_L, E_M_F_I_L_E, E_N_F_I_L_E, E_N_O_E_N_T, E_N_O_S_Y_S, E_N_O_T_E_M_P_T_Y, E_N_O_T_S_U_P, E_O_P_N_O_T_S_U_P_P, E_P_E_R_M, E_T_I_M_E_D_O_U_T, E_W_O_U_L_D_B_L_O_C_K, errors, signals}, zsyscall_darwin_arm64::{getsockopt, pread_1, pwrite_1, read_1, recvfrom_1, sendto_1, setsockopt, write_1}, ztypes_darwin_arm64::{IPMreq, IPv6Mreq, Linger, RawSockaddr, RawSockaddrAny, RawSockaddrInet4, RawSockaddrInet6, RawSockaddrUnix, SIZEOF_I_PV6_MREQ, SIZEOF_I_P_MREQ, SIZEOF_LINGER, SIZEOF_PTR, SIZEOF_SOCKADDR_ANY, _Socklen}};
+use crate::{
+    syscall_bsd::{any_to_sockaddr, recvmsg_raw, sendmsg_n_1},
+    time_nofake::{FAKETIME, faketime_write},
+    zerrors_darwin_arm64::{A_F__U_N_S_P_E_C, E_A_C_C_E_S, E_A_G_A_I_N, E_E_X_I_S_T, E_I_N_T_R, E_I_N_V_A_L, E_M_F_I_L_E, E_N_F_I_L_E, E_N_O_E_N_T, E_N_O_S_Y_S, E_N_O_T_E_M_P_T_Y, E_N_O_T_S_U_P, E_O_P_N_O_T_S_U_P_P, E_P_E_R_M, E_T_I_M_E_D_O_U_T, E_W_O_U_L_D_B_L_O_C_K, errors, signals},
+    zsyscall_darwin_arm64::{getsockopt, pread_1, pwrite_1, read_1, recvfrom_1, sendto_1, setsockopt, write_1},
+    ztypes_darwin_arm64::{IPMreq, IPv6Mreq, Linger, RawSockaddr, RawSockaddrAny, RawSockaddrInet4, RawSockaddrInet6, RawSockaddrUnix, SIZEOF_I_PV6_MREQ, SIZEOF_I_P_MREQ, SIZEOF_LINGER, SIZEOF_PTR, SIZEOF_SOCKADDR_ANY, _Socklen},
+};
 
 use std::any::Any;
 use std::cell::{RefCell};

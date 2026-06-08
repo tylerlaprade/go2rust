@@ -1,8 +1,52 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{arena::{in_user_arena_chunk}, cgo::{cgoAlwaysFalse}, iface::{assert_e2_i, assert_e2_i2}, lock_spinbit::{lock, unlock}, lockrank::{lockRank}, lockrank_off::{get_lock_rank, lock_with_rank_may_acquire}, malloc::{MAX_TINY_SIZE, mallocgc, persistentalloc, zerobase}, mbitmap::{MALLOC_HEADER_SIZE, find_object, heap_bits_in_span}, mgc::{__FIN_BLOCK_SIZE, __G_COFF, gcphase}, mheap::{addfinalizer, mspan, removefinalizer, spanClass}, mstats::{memstats, sysMemStat}, panic::{throw}, proc::{gopark}, r#type::{_type, functype, interfacetype, ptrtype, rtype, to_r_type}, race0::{RACEENABLED, racefingo}, runtime1::{debug}, runtime2::{WAIT_REASON_FINALIZER_WAIT, eface, eface_of, funcval, g, iface, mutex}, stubs::{align_up, getg, intArgRegs, reflectcall, systemstack}, symtab::{firstmoduledata, moduledata}, traceruntime::{TRACE_BLOCK_SYSTEM_GOROUTINE}};
+use crate::{
+    arena::{in_user_arena_chunk},
+    cgo::{cgoAlwaysFalse},
+    iface::{assert_e2_i, assert_e2_i2},
+    lock_spinbit::{lock, unlock},
+    lockrank::{lockRank},
+    lockrank_off::{get_lock_rank, lock_with_rank_may_acquire},
+    malloc::{MAX_TINY_SIZE, mallocgc, persistentalloc, zerobase},
+    mbitmap::{MALLOC_HEADER_SIZE, find_object, heap_bits_in_span},
+    mgc::{__FIN_BLOCK_SIZE, __G_COFF, gcphase},
+    mheap::{addfinalizer, mspan, removefinalizer, spanClass},
+    mstats::{memstats, sysMemStat},
+    panic::{throw},
+    proc::{gopark},
+    r#type::{_type, functype, interfacetype, ptrtype, rtype, to_r_type},
+    race0::{RACEENABLED, racefingo},
+    runtime1::{debug},
+    runtime2::{WAIT_REASON_FINALIZER_WAIT, eface, eface_of, funcval, g, iface, mutex},
+    stubs::{align_up, getg, intArgRegs, reflectcall, systemstack},
+    symtab::{firstmoduledata, moduledata},
+    traceruntime::{TRACE_BLOCK_SYSTEM_GOROUTINE},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

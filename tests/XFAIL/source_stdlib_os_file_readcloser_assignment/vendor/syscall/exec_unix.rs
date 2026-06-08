@@ -1,8 +1,29 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{exec_libc2::{SysProcAttr}, syscall_unix::{Errno}, zerrors_darwin_arm64::{F_D__C_L_O_E_X_E_C, F__G_E_T_F_L, F__S_E_T_F_D, F__S_E_T_F_L, O__N_O_N_B_L_O_C_K}, zsyscall_darwin_arm64::{fcntl}};
+use crate::{
+    exec_libc2::{SysProcAttr},
+    syscall_unix::{Errno},
+    zerrors_darwin_arm64::{F_D__C_L_O_E_X_E_C, F__G_E_T_F_L, F__S_E_T_F_D, F__S_E_T_F_L, O__N_O_N_B_L_O_C_K},
+    zsyscall_darwin_arm64::{fcntl},
+};
 
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};

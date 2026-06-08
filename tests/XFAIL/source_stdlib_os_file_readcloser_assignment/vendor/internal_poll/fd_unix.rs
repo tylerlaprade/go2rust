@@ -1,8 +1,29 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{fd::{err_closing}, fd_mutex::{fdMutex, runtime__semacquire, runtime__semrelease}, fd_poll_runtime::{pollDesc}, fd_posix::{ignoring_e_i_n_t_r}, fd_unixjs::{SysFile, dup_close_on_exec_old}, sys_cloexec::{accept}};
+use crate::{
+    fd::{err_closing},
+    fd_mutex::{fdMutex, runtime__semacquire, runtime__semrelease},
+    fd_poll_runtime::{pollDesc},
+    fd_posix::{ignoring_e_i_n_t_r},
+    fd_unixjs::{SysFile, dup_close_on_exec_old},
+    sys_cloexec::{accept},
+};
 
 use std::any::Any;
 use std::cell::{RefCell};

@@ -1,8 +1,51 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{alg::{read_unaligned64}, asan0::{ASANENABLED, asanwrite}, cgo::{iscgo}, cgocall::{cgoCallers, cgocall}, mfinal::{FING_RUNNING_FINALIZER, fingStatus}, msan0::{MSANENABLED, msanwrite}, panic::{THROW_TYPE_RUNTIME, panicking, throw, throwType}, print::{hex, hexdump_words}, proc::{for_each_g_race, readgstatus}, r#extern::{G_O_A_R_C_H, G_O_O_S}, runtime1::{gotraceback}, runtime2::{FRAMEPOINTER_ENABLED, WAIT_REASON_ZERO, __GCOPYSTACK, __GDEAD, __GIDLE, __GPREEMPTED, __GRUNNABLE, __GRUNNING, __GSCAN, __GSYSCALL, __GWAITING, ancestorInfo, g, goarm, gobuf, guintptr, m, muintptr, stack, waitReason}, stkframe::{stkframe}, string::{gostringnocopy}, stubs::{add, align_up, asmcgocall, getg, noescape, systemstack}, symtab::{findfunc, funcInfo, funcdata, funcline, funcname, funcspdelta, pcdatavalue, srcFunc}, symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder}, synctest::{synctestGroup}, time_nofake::{nanotime}};
+use crate::{
+    alg::{read_unaligned64},
+    asan0::{ASANENABLED, asanwrite},
+    cgo::{iscgo},
+    cgocall::{cgoCallers, cgocall},
+    mfinal::{FING_RUNNING_FINALIZER, fingStatus},
+    msan0::{MSANENABLED, msanwrite},
+    panic::{THROW_TYPE_RUNTIME, panicking, throw, throwType},
+    print::{hex, hexdump_words},
+    proc::{for_each_g_race, readgstatus},
+    r#extern::{G_O_A_R_C_H, G_O_O_S},
+    runtime1::{gotraceback},
+    runtime2::{FRAMEPOINTER_ENABLED, WAIT_REASON_ZERO, __GCOPYSTACK, __GDEAD, __GIDLE, __GPREEMPTED, __GRUNNABLE, __GRUNNING, __GSCAN, __GSYSCALL, __GWAITING, ancestorInfo, g, goarm, gobuf, guintptr, m, muintptr, stack, waitReason},
+    stkframe::{stkframe},
+    string::{gostringnocopy},
+    stubs::{add, align_up, asmcgocall, getg, noescape, systemstack},
+    symtab::{findfunc, funcInfo, funcdata, funcline, funcname, funcspdelta, pcdatavalue, srcFunc},
+    symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder},
+    synctest::{synctestGroup},
+    time_nofake::{nanotime},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

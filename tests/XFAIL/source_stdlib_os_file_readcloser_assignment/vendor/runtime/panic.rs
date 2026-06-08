@@ -1,8 +1,51 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{debuglog::{print_debug_log}, error::{errorAddressString, errorString, printindented}, lock_spinbit::{lock, unlock}, mfixalloc::{fixalloc}, mheap::{mheap_}, print::{hex, printlock, printunlock}, proc::{freezetheworld, readgstatus, schedtrace}, r#extern::{G_O_O_S}, r#mod::{godebugInc}, race0::{RACEENABLED, racereadpc}, runtime1::{acquirem, debug, gotraceback, releasem}, runtime2::{__GRUNNING, __GSCAN, _defer, _panic, g, gobuf, m, mutex, p, puintptr, savedOpenDeferState, sched, stack}, security_issetugid::{is_secure_mode}, signal_unix::{crash, signame}, stkframe::{stkframe}, stubs::{add, getg, gogo, mcall, noescape, systemstack}, symtab::{findfunc, funcInfo, funcdata}, sys_darwin::{exit}, traceback::{goroutineheader, traceback, tracebackothers, unwindFlags, unwinder}};
+use crate::{
+    debuglog::{print_debug_log},
+    error::{errorAddressString, errorString, printindented},
+    lock_spinbit::{lock, unlock},
+    mfixalloc::{fixalloc},
+    mheap::{mheap_},
+    print::{hex, printlock, printunlock},
+    proc::{freezetheworld, readgstatus, schedtrace},
+    r#extern::{G_O_O_S},
+    r#mod::{godebugInc},
+    race0::{RACEENABLED, racereadpc},
+    runtime1::{acquirem, debug, gotraceback, releasem},
+    runtime2::{__GRUNNING, __GSCAN, _defer, _panic, g, gobuf, m, mutex, p, puintptr, savedOpenDeferState, sched, stack},
+    security_issetugid::{is_secure_mode},
+    signal_unix::{crash, signame},
+    stkframe::{stkframe},
+    stubs::{add, getg, gogo, mcall, noescape, systemstack},
+    symtab::{findfunc, funcInfo, funcdata},
+    sys_darwin::{exit},
+    traceback::{goroutineheader, traceback, tracebackothers, unwindFlags, unwinder},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

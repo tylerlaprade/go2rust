@@ -1,8 +1,22 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{error::{ErrInvalid, PathError}, file_posix::{ignoring_e_i_n_t_r}, stat_darwin::{fill_file_stat_from_sys}, types::{File, FileInfo}, types_unix::{fileStat}};
+use crate::{
+    error::{ErrInvalid, PathError},
+    file_posix::{ignoring_e_i_n_t_r},
+    stat_darwin::{fill_file_stat_from_sys},
+    types::{File, FileInfo},
+    types_unix::{fileStat},
+};
 
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};

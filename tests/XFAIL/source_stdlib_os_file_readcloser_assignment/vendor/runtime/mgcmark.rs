@@ -1,8 +1,61 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lfstack::{lfstack}, lock_spinbit::{lock, unlock}, lockrank_off::{assert_world_stopped}, malloc::{PAGES_PER_ARENA}, mbitmap::{addb, find_object, markBits, typePointers}, mcache::{mcache}, mcheckmark::{set_checkmark, useCheckmark}, mfinal::{allfin, finalizer, finblock, finptrmask}, mgc::{AnonymousStruct7, DEBUG_SCAN_CONSERVATIVE, __DEBUG_G_C, __G_CMARKTERMINATION, gcBlackenEnabled, gc_mark_done, gc_mark_work_available, gcphase, poll_fractional_worker_exit, work, writeBarrier}, mgclimit::{LIMITER_EVENT_MARK_ASSIST, gcCPULimiter, limiterEvent, limiterEventType}, mgcpacer::{GC_ASSIST_TIME_SLACK, GC_CREDIT_SLACK, GC_OVER_ASSIST_WORK, gcController}, mgcstack::{STACK_TRACE_DEBUG, stackObject, stackObjectBuf, stackScanState, stackWorkBuf}, mgcwork::{gcWork, putempty, workbuf}, mheap::{M_SPAN_IN_USE, M_SPAN_MANUAL, __KIND_SPECIAL_CLEANUP, __KIND_SPECIAL_FINALIZER, __KIND_SPECIAL_WEAK_HANDLE, arenaIdx, heapArena, mSpanState, mSpanStateBox, mSpanStateNames, mheap_, mspan, page_index_of, spanClass, span_of, span_of_heap, span_of_unchecked, special, specialCleanup, specialWeakHandle, specialfinalizer}, mwbbuf::{wb_buf_flush}, panic::{throw}, preempt::{resume_g, suspendGState, suspend_g}, print::{hex, hexdump_words, printlock, printunlock}, proc::{all_gs_snapshot, cas_g_to_waiting_for_suspend_g, casgstatus, for_each_g_race, gList, gQueue, goparkunlock, gosched, injectglist, poll_work, readgstatus, ready}, runtime1::{debug}, runtime2::{AnonymousStruct29, WAIT_REASON_GARBAGE_COLLECTION_SCAN, WAIT_REASON_G_C_ASSIST_MARKING, WAIT_REASON_G_C_ASSIST_WAIT, __GDEAD, __GRUNNABLE, __GRUNNING, __GSCAN, __GSYSCALL, __GWAITING, _defer, _panic, allp, funcval, g, gobuf, guintptr, m, mutex, p, puintptr, sched, stack}, stack::{bitvector, is_shrink_stack_safe, shrinkstack, stackObjectRecord, stackfree}, stkframe::{stkframe}, stubs::{add, div_round_up, getg, systemstack}, symtab::{active_modules, funcInfo, funcname, moduledata}, synctest::{synctestGroup}, time_nofake::{nanotime}, traceback::{unwindFlags, unwinder}, traceruntime::{TRACE_BLOCK_G_C_MARK_ASSIST, traceLocker, trace_acquire, trace_release}};
+use crate::{
+    lfstack::{lfstack},
+    lock_spinbit::{lock, unlock},
+    lockrank_off::{assert_world_stopped},
+    malloc::{PAGES_PER_ARENA},
+    mbitmap::{addb, find_object, markBits, typePointers},
+    mcache::{mcache},
+    mcheckmark::{set_checkmark, useCheckmark},
+    mfinal::{allfin, finalizer, finblock, finptrmask},
+    mgc::{AnonymousStruct7, DEBUG_SCAN_CONSERVATIVE, __DEBUG_G_C, __G_CMARKTERMINATION, gcBlackenEnabled, gc_mark_done, gc_mark_work_available, gcphase, poll_fractional_worker_exit, work, writeBarrier},
+    mgclimit::{LIMITER_EVENT_MARK_ASSIST, gcCPULimiter, limiterEvent, limiterEventType},
+    mgcpacer::{GC_ASSIST_TIME_SLACK, GC_CREDIT_SLACK, GC_OVER_ASSIST_WORK, gcController},
+    mgcstack::{STACK_TRACE_DEBUG, stackObject, stackObjectBuf, stackScanState, stackWorkBuf},
+    mgcwork::{gcWork, putempty, workbuf},
+    mheap::{M_SPAN_IN_USE, M_SPAN_MANUAL, __KIND_SPECIAL_CLEANUP, __KIND_SPECIAL_FINALIZER, __KIND_SPECIAL_WEAK_HANDLE, arenaIdx, heapArena, mSpanState, mSpanStateBox, mSpanStateNames, mheap_, mspan, page_index_of, spanClass, span_of, span_of_heap, span_of_unchecked, special, specialCleanup, specialWeakHandle, specialfinalizer},
+    mwbbuf::{wb_buf_flush},
+    panic::{throw},
+    preempt::{resume_g, suspendGState, suspend_g},
+    print::{hex, hexdump_words, printlock, printunlock},
+    proc::{all_gs_snapshot, cas_g_to_waiting_for_suspend_g, casgstatus, for_each_g_race, gList, gQueue, goparkunlock, gosched, injectglist, poll_work, readgstatus, ready},
+    runtime1::{debug},
+    runtime2::{AnonymousStruct29, WAIT_REASON_GARBAGE_COLLECTION_SCAN, WAIT_REASON_G_C_ASSIST_MARKING, WAIT_REASON_G_C_ASSIST_WAIT, __GDEAD, __GRUNNABLE, __GRUNNING, __GSCAN, __GSYSCALL, __GWAITING, _defer, _panic, allp, funcval, g, gobuf, guintptr, m, mutex, p, puintptr, sched, stack},
+    stack::{bitvector, is_shrink_stack_safe, shrinkstack, stackObjectRecord, stackfree},
+    stkframe::{stkframe},
+    stubs::{add, div_round_up, getg, systemstack},
+    symtab::{active_modules, funcInfo, funcname, moduledata},
+    synctest::{synctestGroup},
+    time_nofake::{nanotime},
+    traceback::{unwindFlags, unwinder},
+    traceruntime::{TRACE_BLOCK_G_C_MARK_ASSIST, traceLocker, trace_acquire, trace_release},
+};
 
 use std::any::Any;
 use std::cell::{RefCell};

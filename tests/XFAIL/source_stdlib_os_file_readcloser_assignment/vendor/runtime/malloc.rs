@@ -1,8 +1,66 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{asan0::{ASANENABLED, asanpoison, asanunpoison}, error::{plainError}, fastlog2::{fastlog2}, lock_spinbit::{lock, unlock}, lockrank_off::{assert_lock_held}, mbitmap::{MALLOC_HEADER_SIZE, heap_bits_in_span, heap_set_type_large, heap_set_type_no_header, heap_set_type_small_header}, mcache::{gclinkptr, get_m_cache, mcache}, mem::{sys_alloc, sys_huge_page, sys_map, sys_no_huge_page, sys_reserve, sys_used}, mem_darwin::{sys_alloc_o_s, sys_free_o_s}, mem_nonsbrk::{IS_SBRK_PLATFORM, sys_reserve_aligned_sbrk}, mfinal::{lock_rank_may_queue_finalizer}, mfixalloc::{fixalloc}, mgc::{GC_TRIGGER_HEAP, __G_CMARKTERMINATION, gcBlackenEnabled, gcTrigger, gc_start, gcphase, writeBarrier}, mgcmark::{gc_assist_alloc, gcmarknewobject}, mgcpacer::{gcController}, mheap::{TINY_SPAN_CLASS, arenaHint, arenaIdx, arena_index, heapArena, make_span_class, mheap, mheap_, mspan, spanClass}, mpagealloc::{pageAlloc}, mprof::{MemProfileRate, m_prof__malloc}, msan0::{MSANENABLED, msanmalloc}, mstats::{memstats, sysMemStat}, panic::{throw}, print::{hex}, proc::{goschedguarded, inittrace}, r#extern::{G_O_O_S}, r#type::{_type}, race0::{RACEENABLED, racemalloc, racemapshadow}, rand::{cheaprandn}, runtime1::{acquirem, debug, releasem}, runtime2::{g, m, mutex, p, puintptr}, sizeclasses::{LARGE_SIZE_DIV, SMALL_SIZE_DIV, SMALL_SIZE_MAX, __MAX_SMALL_SIZE, __PAGE_SHIFT, class_to_size, size_to_class128, size_to_class8}, slice::{notInHeapSlice}, string::{MAX_INT64}, stubs::{add, align_up, div_round_up, getg, memclr_no_heap_pointers, publication_barrier, systemstack}, traceruntime::{traceLocker, trace_acquire, trace_alloc_free_enabled, trace_release}};
+use crate::{
+    asan0::{ASANENABLED, asanpoison, asanunpoison},
+    error::{plainError},
+    fastlog2::{fastlog2},
+    lock_spinbit::{lock, unlock},
+    lockrank_off::{assert_lock_held},
+    mbitmap::{MALLOC_HEADER_SIZE, heap_bits_in_span, heap_set_type_large, heap_set_type_no_header, heap_set_type_small_header},
+    mcache::{gclinkptr, get_m_cache, mcache},
+    mem::{sys_alloc, sys_huge_page, sys_map, sys_no_huge_page, sys_reserve, sys_used},
+    mem_darwin::{sys_alloc_o_s, sys_free_o_s},
+    mem_nonsbrk::{IS_SBRK_PLATFORM, sys_reserve_aligned_sbrk},
+    mfinal::{lock_rank_may_queue_finalizer},
+    mfixalloc::{fixalloc},
+    mgc::{GC_TRIGGER_HEAP, __G_CMARKTERMINATION, gcBlackenEnabled, gcTrigger, gc_start, gcphase, writeBarrier},
+    mgcmark::{gc_assist_alloc, gcmarknewobject},
+    mgcpacer::{gcController},
+    mheap::{TINY_SPAN_CLASS, arenaHint, arenaIdx, arena_index, heapArena, make_span_class, mheap, mheap_, mspan, spanClass},
+    mpagealloc::{pageAlloc},
+    mprof::{MemProfileRate, m_prof__malloc},
+    msan0::{MSANENABLED, msanmalloc},
+    mstats::{memstats, sysMemStat},
+    panic::{throw},
+    print::{hex},
+    proc::{goschedguarded, inittrace},
+    r#extern::{G_O_O_S},
+    r#type::{_type},
+    race0::{RACEENABLED, racemalloc, racemapshadow},
+    rand::{cheaprandn},
+    runtime1::{acquirem, debug, releasem},
+    runtime2::{g, m, mutex, p, puintptr},
+    sizeclasses::{LARGE_SIZE_DIV, SMALL_SIZE_DIV, SMALL_SIZE_MAX, __MAX_SMALL_SIZE, __PAGE_SHIFT, class_to_size, size_to_class128, size_to_class8},
+    slice::{notInHeapSlice},
+    string::{MAX_INT64},
+    stubs::{add, align_up, div_round_up, getg, memclr_no_heap_pointers, publication_barrier, systemstack},
+    traceruntime::{traceLocker, trace_acquire, trace_alloc_free_enabled, trace_release},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

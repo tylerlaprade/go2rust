@@ -1,8 +1,47 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{cgo::{iscgo}, defs_darwin_arm64::{__E_T_I_M_E_D_O_U_T, __P_T_H_R_E_A_D__C_R_E_A_T_E__D_E_T_A_C_H_E_D, __S_A__O_N_S_T_A_C_K, __S_A__R_E_S_T_A_R_T, __S_A__S_I_G_I_N_F_O, pthread, pthreadattr, pthreadcond, pthreadmutex, stackt, timespec, usigactiont}, malloc::{physPageSize}, note_other::{note}, panic::{throw}, proc::{FAILTHREADCREATE, malg}, r#extern::{G_O_A_R_C_H, G_O_O_S}, r#mod::{write_err_str}, retry::{retry_on_e_a_g_a_i_n}, runtime2::{g, m, stack}, signal_darwin_arm64::{sigctxt}, signal_unix::{minit_signal_mask, minit_signal_stack, set_thread_c_p_u_profiler_hz, sighandler, unminit_signals}, stubs::{getg}, sys_darwin::{exit, mlock, pthread_attr_getstacksize, pthread_attr_init, pthread_attr_setdetachstate, pthread_cond_init, pthread_cond_signal, pthread_cond_timedwait_relative_np, pthread_cond_wait, pthread_create, pthread_kill, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_unlock, pthread_self, sigaction, sigprocmask, usleep, usleep_no_g}, time_nofake::{nanotime, write}};
+use crate::{
+    cgo::{iscgo},
+    defs_darwin_arm64::{__E_T_I_M_E_D_O_U_T, __P_T_H_R_E_A_D__C_R_E_A_T_E__D_E_T_A_C_H_E_D, __S_A__O_N_S_T_A_C_K, __S_A__R_E_S_T_A_R_T, __S_A__S_I_G_I_N_F_O, pthread, pthreadattr, pthreadcond, pthreadmutex, stackt, timespec, usigactiont},
+    malloc::{physPageSize},
+    note_other::{note},
+    panic::{throw},
+    proc::{FAILTHREADCREATE, malg},
+    r#extern::{G_O_A_R_C_H, G_O_O_S},
+    r#mod::{write_err_str},
+    retry::{retry_on_e_a_g_a_i_n},
+    runtime2::{g, m, stack},
+    signal_darwin_arm64::{sigctxt},
+    signal_unix::{minit_signal_mask, minit_signal_stack, set_thread_c_p_u_profiler_hz, sighandler, unminit_signals},
+    stubs::{getg},
+    sys_darwin::{exit, mlock, pthread_attr_getstacksize, pthread_attr_init, pthread_attr_setdetachstate, pthread_cond_init, pthread_cond_signal, pthread_cond_timedwait_relative_np, pthread_cond_wait, pthread_create, pthread_kill, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_unlock, pthread_self, sigaction, sigprocmask, usleep, usleep_no_g},
+    time_nofake::{nanotime, write},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

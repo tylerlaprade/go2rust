@@ -1,8 +1,27 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_any_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{mutex::{Locker, Mutex}, runtime::{fatal, runtime__semacquire_r_w_mutex, runtime__semacquire_r_w_mutex_r, runtime__semrelease}};
+use crate::{
+    mutex::{Locker, Mutex},
+    runtime::{fatal, runtime__semacquire_r_w_mutex, runtime__semacquire_r_w_mutex_r, runtime__semrelease},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

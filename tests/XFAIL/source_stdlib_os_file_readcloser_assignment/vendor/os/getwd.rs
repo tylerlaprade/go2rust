@@ -1,8 +1,24 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{env::{getenv}, error::{new_syscall_error}, error_errno::{ERR_E_N_O_M_E_M, ERR_E_N_O_S_Y_S, ERR_E_R_A_N_G_E}, file_posix::{ignoring_e_i_n_t_r2}, file_unix::{open_dir_nolog}, stat_unix::{lstat_nolog, stat_nolog}, types::{File, FileInfo, same_file}};
+use crate::{
+    env::{getenv},
+    error::{new_syscall_error},
+    error_errno::{ERR_E_N_O_M_E_M, ERR_E_N_O_S_Y_S, ERR_E_R_A_N_G_E},
+    file_posix::{ignoring_e_i_n_t_r2},
+    file_unix::{open_dir_nolog},
+    stat_unix::{lstat_nolog, stat_nolog},
+    types::{File, FileInfo, same_file},
+};
 
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};

@@ -1,8 +1,35 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{defs_darwin_arm64::{__M_A_D_V__F_R_E_E__R_E_U_S_A_B_L_E, __M_A_D_V__F_R_E_E__R_E_U_S_E, __M_A_P__A_N_O_N, __M_A_P__F_I_X_E_D, __M_A_P__P_R_I_V_A_T_E, __P_R_O_T__N_O_N_E, __P_R_O_T__R_E_A_D, __P_R_O_T__W_R_I_T_E}, panic::{throw}, sys_darwin::{madvise, mmap, munmap}};
+use crate::{
+    defs_darwin_arm64::{__M_A_D_V__F_R_E_E__R_E_U_S_A_B_L_E, __M_A_D_V__F_R_E_E__R_E_U_S_E, __M_A_P__A_N_O_N, __M_A_P__F_I_X_E_D, __M_A_P__P_R_I_V_A_T_E, __P_R_O_T__N_O_N_E, __P_R_O_T__R_E_A_D, __P_R_O_T__W_R_I_T_E},
+    panic::{throw},
+    sys_darwin::{madvise, mmap, munmap},
+};
 
 use std::sync::{Arc, Mutex};
 

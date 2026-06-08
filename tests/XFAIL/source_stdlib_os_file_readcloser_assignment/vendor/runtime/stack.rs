@@ -1,8 +1,60 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{asan0::{ASANENABLED, asanpoison, asanunpoison}, chan::{hchan}, lock_spinbit::{lock, unlock}, lockrank::{LOCK_RANK_HCHAN_LEAF, LOCK_RANK_MHEAP}, lockrank_off::{lock_with_rank, lock_with_rank_may_acquire}, malloc::{HEAP_ADDR_BITS, MIN_LEGAL_POINTER, PAGE_SHIFT, __NUM_STACK_ORDERS, __STACK_CACHE_SIZE, physPageSize}, mbitmap::{addb}, mcache::{gclink, gclinkptr, mcache, stackfreelist}, mem::{sys_alloc, sys_fault, sys_free}, mgc::{__G_COFF, gcphase}, mgcpacer::{gcController}, mheap::{M_SPAN_MANUAL, SPAN_ALLOC_STACK, mSpanList, mSpanState, mSpanStateBox, mheap_, mspan, spanAllocType, span_of_unchecked}, msan0::{MSANENABLED, msanfree, msanmalloc}, mstats::{memstats, sysMemStat}, os_nonopenbsd::{os_stack_alloc, os_stack_free}, panic::{throw}, print::{hex}, proc::{readgstatus}, r#extern::{G_O_A_R_C_H}, race0::{RACEENABLED, racemalloc}, runtime1::{debug}, runtime2::{FRAMEPOINTER_ENABLED, __GRUNNING, __GSCAN, __GWAITING, _defer, _panic, allp, g, gobuf, m, mutex, p, puintptr, stack, sudog, waitReason}, sizeclasses::{__PAGE_SHIFT}, stkframe::{stkframe}, stubs::{add, align_up, getg, memclr_no_heap_pointers, memmove}, symtab::{findfunc, firstmoduledata, funcInfo, funcname, moduledata}, traceback::{unwindFlags, unwinder}, traceruntime::{traceLocker, trace_acquire, trace_alloc_free_enabled, trace_enabled, trace_release}};
+use crate::{
+    asan0::{ASANENABLED, asanpoison, asanunpoison},
+    chan::{hchan},
+    lock_spinbit::{lock, unlock},
+    lockrank::{LOCK_RANK_HCHAN_LEAF, LOCK_RANK_MHEAP},
+    lockrank_off::{lock_with_rank, lock_with_rank_may_acquire},
+    malloc::{HEAP_ADDR_BITS, MIN_LEGAL_POINTER, PAGE_SHIFT, __NUM_STACK_ORDERS, __STACK_CACHE_SIZE, physPageSize},
+    mbitmap::{addb},
+    mcache::{gclink, gclinkptr, mcache, stackfreelist},
+    mem::{sys_alloc, sys_fault, sys_free},
+    mgc::{__G_COFF, gcphase},
+    mgcpacer::{gcController},
+    mheap::{M_SPAN_MANUAL, SPAN_ALLOC_STACK, mSpanList, mSpanState, mSpanStateBox, mheap_, mspan, spanAllocType, span_of_unchecked},
+    msan0::{MSANENABLED, msanfree, msanmalloc},
+    mstats::{memstats, sysMemStat},
+    os_nonopenbsd::{os_stack_alloc, os_stack_free},
+    panic::{throw},
+    print::{hex},
+    proc::{readgstatus},
+    r#extern::{G_O_A_R_C_H},
+    race0::{RACEENABLED, racemalloc},
+    runtime1::{debug},
+    runtime2::{FRAMEPOINTER_ENABLED, __GRUNNING, __GSCAN, __GWAITING, _defer, _panic, allp, g, gobuf, m, mutex, p, puintptr, stack, sudog, waitReason},
+    sizeclasses::{__PAGE_SHIFT},
+    stkframe::{stkframe},
+    stubs::{add, align_up, getg, memclr_no_heap_pointers, memmove},
+    symtab::{findfunc, firstmoduledata, funcInfo, funcname, moduledata},
+    traceback::{unwindFlags, unwinder},
+    traceruntime::{traceLocker, trace_acquire, trace_alloc_free_enabled, trace_enabled, trace_release},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

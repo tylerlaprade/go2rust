@@ -1,8 +1,43 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lockrank_off::{assert_world_stopped}, malloc::{HEAP_ARENA_BYTES, persistentalloc}, mbitmap::{markBits}, mgc::{gc_mark_work_available}, mgcmark::{gc_dump_object}, mheap::{arenaIdx, arena_index, heapArena, mheap_}, mstats::{memstats, sysMemStat}, panic::{throw}, print::{hex, printlock}, runtime2::{g, m}, stubs::{getg}};
+use crate::{
+    lockrank_off::{assert_world_stopped},
+    malloc::{HEAP_ARENA_BYTES, persistentalloc},
+    mbitmap::{markBits},
+    mgc::{gc_mark_work_available},
+    mgcmark::{gc_dump_object},
+    mheap::{arenaIdx, arena_index, heapArena, mheap_},
+    mstats::{memstats, sysMemStat},
+    panic::{throw},
+    print::{hex, printlock},
+    runtime2::{g, m},
+    stubs::{getg},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

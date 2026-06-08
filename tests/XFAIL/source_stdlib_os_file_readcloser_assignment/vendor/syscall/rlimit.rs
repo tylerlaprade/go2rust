@@ -1,8 +1,29 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{rlimit_darwin::{adjust_file_limit}, zerrors_darwin_arm64::{R_L_I_M_I_T__N_O_F_I_L_E}, zsyscall_darwin_arm64::{getrlimit, setrlimit_1}, ztypes_darwin_arm64::{Rlimit}};
+use crate::{
+    rlimit_darwin::{adjust_file_limit},
+    zerrors_darwin_arm64::{R_L_I_M_I_T__N_O_F_I_L_E},
+    zsyscall_darwin_arm64::{getrlimit, setrlimit_1},
+    ztypes_darwin_arm64::{Rlimit},
+};
 
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};

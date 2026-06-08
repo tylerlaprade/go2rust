@@ -1,8 +1,25 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{dir::{DirEntry, readdirMode}, dir_darwin::{dirInfo}, error::{ErrClosed, PathError}, file_posix::{chmod_1}, file_unix::{epipecheck, new_file, open_file_nolog}, rawconn::{new_raw_conn, rawConn}, stat::{lstat, stat}, types::{File, FileInfo, FileMode, MODE_STICKY}};
+use crate::{
+    dir::{DirEntry, readdirMode},
+    dir_darwin::{dirInfo},
+    error::{ErrClosed, PathError},
+    file_posix::{chmod_1},
+    file_unix::{epipecheck, new_file, open_file_nolog},
+    rawconn::{new_raw_conn, rawConn},
+    stat::{lstat, stat},
+    types::{File, FileInfo, FileMode, MODE_STICKY},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

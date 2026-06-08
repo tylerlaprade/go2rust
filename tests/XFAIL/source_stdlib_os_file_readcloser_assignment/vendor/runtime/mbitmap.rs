@@ -1,8 +1,49 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{asan0::{ASANENABLED}, malloc::{DOUBLE_CHECK_MALLOC, PAGE_SIZE, notInHeap}, mgc::{writeBarrier}, mgcmark::{gc_dump_object}, mheap::{M_SPAN_IN_USE, M_SPAN_MANUAL, gcBits, mSpanState, mSpanStateBox, mspan, spanClass, span_of}, mwbbuf::{wbBuf}, panic::{throw}, print::{hex, printlock}, r#extern::{G_O_A_R_C_H}, r#type::{_type, get_g_c_mask, rtype, to_r_type}, rand::{cheaprand}, runtime1::{debug}, runtime2::{g, m, mutex, p, puintptr}, slice::{notInHeapSlice}, stack::{bitvector}, stubs::{add, align_down, align_up, div_round_up, getg}, symtab::{active_modules, moduledata}};
+use crate::{
+    asan0::{ASANENABLED},
+    malloc::{DOUBLE_CHECK_MALLOC, PAGE_SIZE, notInHeap},
+    mgc::{writeBarrier},
+    mgcmark::{gc_dump_object},
+    mheap::{M_SPAN_IN_USE, M_SPAN_MANUAL, gcBits, mSpanState, mSpanStateBox, mspan, spanClass, span_of},
+    mwbbuf::{wbBuf},
+    panic::{throw},
+    print::{hex, printlock},
+    r#extern::{G_O_A_R_C_H},
+    r#type::{_type, get_g_c_mask, rtype, to_r_type},
+    rand::{cheaprand},
+    runtime1::{debug},
+    runtime2::{g, m, mutex, p, puintptr},
+    slice::{notInHeapSlice},
+    stack::{bitvector},
+    stubs::{add, align_down, align_up, div_round_up, getg},
+    symtab::{active_modules, moduledata},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

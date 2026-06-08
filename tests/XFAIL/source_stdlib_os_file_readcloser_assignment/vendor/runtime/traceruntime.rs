@@ -1,8 +1,47 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_spinbit::{lock, unlock}, lockrank::{lockRank}, lockrank_off::{assert_lock_held, get_lock_rank, lock_with_rank_may_acquire}, mgc::{GC_MARK_WORKER_NOT_WORKER, gcMarkWorkerMode}, mgcpacer::{gcController}, panic::{throw}, proc::{stwReason}, runtime1::{acquirem, releasem}, runtime2::{g, m, mutex, p, puintptr, sched}, stubs::{getg, systemstack}, trace::{trace}, tracebuf::{traceBuf, traceWriter, trace_buf_flush}, traceevent::{TRACE_EV_GO_BLOCK, TRACE_EV_GO_CREATE, TRACE_EV_GO_CREATE_BLOCKED, TRACE_EV_GO_CREATE_SYSCALL, TRACE_EV_GO_DESTROY, TRACE_EV_GO_DESTROY_SYSCALL, TRACE_EV_GO_LABEL, TRACE_EV_GO_START, TRACE_EV_GO_STOP, TRACE_EV_GO_SWITCH, TRACE_EV_GO_SWITCH_DESTROY, TRACE_EV_GO_SYSCALL_BEGIN, TRACE_EV_GO_SYSCALL_END, TRACE_EV_GO_SYSCALL_END_BLOCKED, TRACE_EV_GO_UNBLOCK, TRACE_EV_G_C_ACTIVE, TRACE_EV_G_C_BEGIN, TRACE_EV_G_C_END, TRACE_EV_G_C_MARK_ASSIST_BEGIN, TRACE_EV_G_C_MARK_ASSIST_END, TRACE_EV_G_C_SWEEP_BEGIN, TRACE_EV_G_C_SWEEP_END, TRACE_EV_HEAP_ALLOC, TRACE_EV_HEAP_GOAL, TRACE_EV_PROCS_CHANGE, TRACE_EV_PROC_START, TRACE_EV_PROC_STEAL, TRACE_EV_PROC_STOP, TRACE_EV_S_T_W_BEGIN, TRACE_EV_S_T_W_END, traceArg, traceEv, traceEventWriter}, traceexp::{TRACE_NUM_EXPERIMENTS}, tracestatus::{TRACE_GO_BAD, TRACE_GO_RUNNABLE, TRACE_GO_RUNNING, TRACE_GO_SYSCALL, TRACE_GO_WAITING, TRACE_PROC_BAD, TRACE_PROC_IDLE, TRACE_PROC_RUNNING, TRACE_PROC_SYSCALL, TRACE_PROC_SYSCALL_ABANDONED, traceGoStatus, traceProcStatus, traceSchedResourceState}};
+use crate::{
+    lock_spinbit::{lock, unlock},
+    lockrank::{lockRank},
+    lockrank_off::{assert_lock_held, get_lock_rank, lock_with_rank_may_acquire},
+    mgc::{GC_MARK_WORKER_NOT_WORKER, gcMarkWorkerMode},
+    mgcpacer::{gcController},
+    panic::{throw},
+    proc::{stwReason},
+    runtime1::{acquirem, releasem},
+    runtime2::{g, m, mutex, p, puintptr, sched},
+    stubs::{getg, systemstack},
+    trace::{trace},
+    tracebuf::{traceBuf, traceWriter, trace_buf_flush},
+    traceevent::{TRACE_EV_GO_BLOCK, TRACE_EV_GO_CREATE, TRACE_EV_GO_CREATE_BLOCKED, TRACE_EV_GO_CREATE_SYSCALL, TRACE_EV_GO_DESTROY, TRACE_EV_GO_DESTROY_SYSCALL, TRACE_EV_GO_LABEL, TRACE_EV_GO_START, TRACE_EV_GO_STOP, TRACE_EV_GO_SWITCH, TRACE_EV_GO_SWITCH_DESTROY, TRACE_EV_GO_SYSCALL_BEGIN, TRACE_EV_GO_SYSCALL_END, TRACE_EV_GO_SYSCALL_END_BLOCKED, TRACE_EV_GO_UNBLOCK, TRACE_EV_G_C_ACTIVE, TRACE_EV_G_C_BEGIN, TRACE_EV_G_C_END, TRACE_EV_G_C_MARK_ASSIST_BEGIN, TRACE_EV_G_C_MARK_ASSIST_END, TRACE_EV_G_C_SWEEP_BEGIN, TRACE_EV_G_C_SWEEP_END, TRACE_EV_HEAP_ALLOC, TRACE_EV_HEAP_GOAL, TRACE_EV_PROCS_CHANGE, TRACE_EV_PROC_START, TRACE_EV_PROC_STEAL, TRACE_EV_PROC_STOP, TRACE_EV_S_T_W_BEGIN, TRACE_EV_S_T_W_END, traceArg, traceEv, traceEventWriter},
+    traceexp::{TRACE_NUM_EXPERIMENTS},
+    tracestatus::{TRACE_GO_BAD, TRACE_GO_RUNNABLE, TRACE_GO_RUNNING, TRACE_GO_SYSCALL, TRACE_GO_WAITING, TRACE_PROC_BAD, TRACE_PROC_IDLE, TRACE_PROC_RUNNING, TRACE_PROC_SYSCALL, TRACE_PROC_SYSCALL_ABANDONED, traceGoStatus, traceProcStatus, traceSchedResourceState},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

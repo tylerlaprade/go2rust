@@ -1,8 +1,48 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{error::{plainError}, lock_spinbit::{lock, unlock}, mbarrier::{typedmemclr, typedmemmove}, mbitmap::{type_bits_bulk_barrier}, mfinal::{keep_alive}, mprof::{blockevent, blockprofilerate}, os_darwin_arm64::{cputicks}, panic::{throw}, proc::{acquire_sudog, gopark, goready, release_sudog}, r#type::{_type}, race0::{RACEENABLED, raceacquire, raceacquireg, racereadpc, racerelease, racereleaseacquire, racereleaseacquireg, racereleaseg}, runtime2::{WAIT_REASON_CHAN_RECEIVE, WAIT_REASON_CHAN_RECEIVE_NIL_CHAN, WAIT_REASON_CHAN_SEND, WAIT_REASON_CHAN_SEND_NIL_CHAN, WAIT_REASON_SYNCTEST_CHAN_RECEIVE, WAIT_REASON_SYNCTEST_CHAN_SEND, g, mutex, sudog}, stubs::{add, getg, memmove}, synctest::{synctestGroup}, time::{block_timer_chan, timer, unblock_timer_chan}, traceruntime::{TRACE_BLOCK_CHAN_RECV, TRACE_BLOCK_CHAN_SEND, TRACE_BLOCK_FOREVER}};
+use crate::{
+    error::{plainError},
+    lock_spinbit::{lock, unlock},
+    mbarrier::{typedmemclr, typedmemmove},
+    mbitmap::{type_bits_bulk_barrier},
+    mfinal::{keep_alive},
+    mprof::{blockevent, blockprofilerate},
+    os_darwin_arm64::{cputicks},
+    panic::{throw},
+    proc::{acquire_sudog, gopark, goready, release_sudog},
+    r#type::{_type},
+    race0::{RACEENABLED, raceacquire, raceacquireg, racereadpc, racerelease, racereleaseacquire, racereleaseacquireg, racereleaseg},
+    runtime2::{WAIT_REASON_CHAN_RECEIVE, WAIT_REASON_CHAN_RECEIVE_NIL_CHAN, WAIT_REASON_CHAN_SEND, WAIT_REASON_CHAN_SEND_NIL_CHAN, WAIT_REASON_SYNCTEST_CHAN_RECEIVE, WAIT_REASON_SYNCTEST_CHAN_SEND, g, mutex, sudog},
+    stubs::{add, getg, memmove},
+    synctest::{synctestGroup},
+    time::{block_timer_chan, timer, unblock_timer_chan},
+    traceruntime::{TRACE_BLOCK_CHAN_RECV, TRACE_BLOCK_CHAN_SEND, TRACE_BLOCK_FOREVER},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

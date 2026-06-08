@@ -1,8 +1,52 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_spinbit::{lock, unlock}, lockrank_off::{STATIC_LOCK_RANKING, assert_lock_held}, malloc::{persistentalloc}, mem::{sys_alloc}, mheap::{setprofilebucket}, mstats::{memstats, sysMemStat}, os_darwin::{osyield}, os_darwin_arm64::{cputicks}, panic::{throw}, proc::{__lost_contended_runtime_lock, make_prof_stack, readgstatus}, rand::{cheaprand, cheaprand64}, runtime1::{acquirem, debug, releasem}, runtime2::{G_TRACKING_PERIOD, __GDEAD, __GRUNNING, g, gobuf, m, mutex, p, puintptr}, stubs::{add, getg, systemstack}, stubs_arm64::{getfp}, symtab::{findfunc, funcInfo, srcFunc}, symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder}, time_nofake::{nanotime}, traceback::{UNWIND_JUMP_STACK, UNWIND_SILENT_ERRORS, callers_1, elide_wrapper_calling, gcallers, is_system_goroutine, traceback_p_cs, unwindFlags, unwinder}, tracestack::{LOGICAL_STACK_SENTINEL, tracefpunwindoff}};
+use crate::{
+    lock_spinbit::{lock, unlock},
+    lockrank_off::{STATIC_LOCK_RANKING, assert_lock_held},
+    malloc::{persistentalloc},
+    mem::{sys_alloc},
+    mheap::{setprofilebucket},
+    mstats::{memstats, sysMemStat},
+    os_darwin::{osyield},
+    os_darwin_arm64::{cputicks},
+    panic::{throw},
+    proc::{__lost_contended_runtime_lock, make_prof_stack, readgstatus},
+    rand::{cheaprand, cheaprand64},
+    runtime1::{acquirem, debug, releasem},
+    runtime2::{G_TRACKING_PERIOD, __GDEAD, __GRUNNING, g, gobuf, m, mutex, p, puintptr},
+    stubs::{add, getg, systemstack},
+    stubs_arm64::{getfp},
+    symtab::{findfunc, funcInfo, srcFunc},
+    symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder},
+    time_nofake::{nanotime},
+    traceback::{UNWIND_JUMP_STACK, UNWIND_SILENT_ERRORS, callers_1, elide_wrapper_calling, gcallers, is_system_goroutine, traceback_p_cs, unwindFlags, unwinder},
+    tracestack::{LOGICAL_STACK_SENTINEL, tracefpunwindoff},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

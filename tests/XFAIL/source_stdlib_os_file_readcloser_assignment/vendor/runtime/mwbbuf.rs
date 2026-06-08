@@ -1,8 +1,41 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{malloc::{MIN_LEGAL_POINTER}, mbitmap::{find_object, markBits}, mcheckmark::{useCheckmark}, mgcmark::{shade}, mgcwork::{gcWork}, mheap::{heapArena, mspan, page_index_of, spanClass}, panic::{throw}, runtime2::{g, m, p, puintptr}, stubs::{getg, systemstack}};
+use crate::{
+    malloc::{MIN_LEGAL_POINTER},
+    mbitmap::{find_object, markBits},
+    mcheckmark::{useCheckmark},
+    mgcmark::{shade},
+    mgcwork::{gcWork},
+    mheap::{heapArena, mspan, page_index_of, spanClass},
+    panic::{throw},
+    runtime2::{g, m, p, puintptr},
+    stubs::{getg, systemstack},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

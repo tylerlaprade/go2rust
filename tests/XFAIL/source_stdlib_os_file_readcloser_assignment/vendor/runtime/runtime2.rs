@@ -1,8 +1,64 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{cgocall::{cgoCallers}, chan::{hchan}, coro::{coro}, debuglog_off::{dlogPerM}, histogram::{timeHistogram}, lfstack::{lfstack}, lock_spinbit::{mWaitList}, lockrank::{lockRank}, lockrank_off::{lockRankStruct}, malloc::{persistentAlloc}, mcache::{mcache}, mgc::{gcMarkWorkerMode}, mgclimit::{limiterEvent}, mgcwork::{gcWork}, mheap::{mspan}, mpagecache::{pageCache}, mprof::{goroutineProfileStateHolder, mLockProfile}, mwbbuf::{wbBuf}, nonwindows_stub::{winlibcall}, note_other::{note}, os_darwin::{mOS, sigset}, panic::{throwType}, pinner::{pinner}, proc::{gList, gQueue, pMask, sysmontick}, r#extern::{G_O_A_R_C_H}, r#type::{_type}, signal_unix::{gsignalStack}, stubs_arm64::{getfp}, symtab::{pcvalueCache}, synctest::{synctestGroup}, time::{timer, timers}, traceruntime::{gTraceState, mTraceState, pTraceState, traceBlockReason}};
+use crate::{
+    cgocall::{cgoCallers},
+    chan::{hchan},
+    coro::{coro},
+    debuglog_off::{dlogPerM},
+    histogram::{timeHistogram},
+    lfstack::{lfstack},
+    lock_spinbit::{mWaitList},
+    lockrank::{lockRank},
+    lockrank_off::{lockRankStruct},
+    malloc::{persistentAlloc},
+    mcache::{mcache},
+    mgc::{gcMarkWorkerMode},
+    mgclimit::{limiterEvent},
+    mgcwork::{gcWork},
+    mheap::{mspan},
+    mpagecache::{pageCache},
+    mprof::{goroutineProfileStateHolder, mLockProfile},
+    mwbbuf::{wbBuf},
+    nonwindows_stub::{winlibcall},
+    note_other::{note},
+    os_darwin::{mOS, sigset},
+    panic::{throwType},
+    pinner::{pinner},
+    proc::{gList, gQueue, pMask, sysmontick},
+    r#extern::{G_O_A_R_C_H},
+    r#type::{_type},
+    signal_unix::{gsignalStack},
+    stubs_arm64::{getfp},
+    symtab::{pcvalueCache},
+    synctest::{synctestGroup},
+    time::{timer, timers},
+    traceruntime::{gTraceState, mTraceState, pTraceState, traceBlockReason},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

@@ -1,8 +1,20 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{error::{ErrInvalid, PathError}, file_unix::{file, fix_long_path}, types::{File, FileMode, MODE_SETGID, MODE_SETUID, MODE_STICKY}};
+use crate::{
+    error::{ErrInvalid, PathError},
+    file_unix::{file, fix_long_path},
+    types::{File, FileMode, MODE_SETGID, MODE_SETUID, MODE_STICKY},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

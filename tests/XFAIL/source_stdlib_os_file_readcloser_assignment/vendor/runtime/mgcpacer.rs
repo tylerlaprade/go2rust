@@ -1,8 +1,48 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lockrank_off::{assert_world_stopped_or_lock_held}, mgc::{GC_MARK_WORKER_DEDICATED_MODE, GC_MARK_WORKER_FRACTIONAL_MODE, GC_MARK_WORKER_IDLE_MODE, GC_TRIGGER_TIME, SWEEP_MIN_HEAP_DISTANCE, __G_COFF, gcBgMarkWorkerNode, gcBlackenEnabled, gcMarkWorkerMode, gcTrigger, gcTriggerKind, gc_mark_work_available, gcphase, work}, mgclimit::{gcCPULimiter}, mgcscavenge::{gc_pace_scavenger}, mgcsweep::{gc_pace_sweeper, is_sweep_done}, mheap::{mheap_}, mstats::{sysMemStat}, panic::{throw}, print::{printlock, printunlock}, proc::{casgstatus, preemptone}, rand::{cheaprandn}, runtime1::{debug}, runtime2::{__GRUNNABLE, __GWAITING, __PRUNNING, allp, g, gcBgMarkWorkerPool, gomaxprocs, guintptr, lfnode, m, mutex, p, puintptr}, stubs::{getg}, time_nofake::{nanotime}, traceruntime::{traceLocker, trace_acquire, trace_release}};
+use crate::{
+    lockrank_off::{assert_world_stopped_or_lock_held},
+    mgc::{GC_MARK_WORKER_DEDICATED_MODE, GC_MARK_WORKER_FRACTIONAL_MODE, GC_MARK_WORKER_IDLE_MODE, GC_TRIGGER_TIME, SWEEP_MIN_HEAP_DISTANCE, __G_COFF, gcBgMarkWorkerNode, gcBlackenEnabled, gcMarkWorkerMode, gcTrigger, gcTriggerKind, gc_mark_work_available, gcphase, work},
+    mgclimit::{gcCPULimiter},
+    mgcscavenge::{gc_pace_scavenger},
+    mgcsweep::{gc_pace_sweeper, is_sweep_done},
+    mheap::{mheap_},
+    mstats::{sysMemStat},
+    panic::{throw},
+    print::{printlock, printunlock},
+    proc::{casgstatus, preemptone},
+    rand::{cheaprandn},
+    runtime1::{debug},
+    runtime2::{__GRUNNABLE, __GWAITING, __PRUNNING, allp, g, gcBgMarkWorkerPool, gomaxprocs, guintptr, lfnode, m, mutex, p, puintptr},
+    stubs::{getg},
+    time_nofake::{nanotime},
+    traceruntime::{traceLocker, trace_acquire, trace_release},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

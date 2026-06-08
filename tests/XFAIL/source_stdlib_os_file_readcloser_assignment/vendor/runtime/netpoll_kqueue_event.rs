@@ -1,8 +1,35 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{defs_darwin_arm64::{__E_I_N_T_R, __E_V_F_I_L_T__U_S_E_R, __E_V__A_D_D, __E_V__C_L_E_A_R, __N_O_T_E__T_R_I_G_G_E_R, keventt}, panic::{throw}, sys_darwin::{kevent}};
+use crate::{
+    defs_darwin_arm64::{__E_I_N_T_R, __E_V_F_I_L_T__U_S_E_R, __E_V__A_D_D, __E_V__C_L_E_A_R, __N_O_T_E__T_R_I_G_G_E_R, keventt},
+    panic::{throw},
+    sys_darwin::{kevent},
+};
 
 use std::sync::{Arc, Mutex};
 

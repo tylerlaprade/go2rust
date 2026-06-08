@@ -1,8 +1,31 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoLocalPtrKey,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{exec_unix::{execveDarwin}, r#mod::{byte_slice_from_string}, syscall_unix::{Errno, errno_err}, zerrors_darwin_arm64::{C_T_L__M_A_X_N_A_M_E, O__R_D_O_N_L_Y}, zsyscall_darwin_arm64::{close, closedir, execve, libc_dup2_trampoline, openat, readdir_r, seek, sysctl_1}, ztypes_darwin_arm64::{Dirent, RawSockaddrDatalink, _C_int}};
+use crate::{
+    exec_unix::{execveDarwin},
+    r#mod::{byte_slice_from_string},
+    syscall_unix::{Errno, errno_err},
+    zerrors_darwin_arm64::{C_T_L__M_A_X_N_A_M_E, O__R_D_O_N_L_Y},
+    zsyscall_darwin_arm64::{close, closedir, execve, libc_dup2_trampoline, openat, readdir_r, seek, sysctl_1},
+    ztypes_darwin_arm64::{Dirent, RawSockaddrDatalink, _C_int},
+};
 
 use std::any::Any;
 use std::cell::{RefCell};

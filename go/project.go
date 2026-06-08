@@ -569,6 +569,8 @@ func (pg *ProjectGenerator) moduleFilePath(filename, moduleName string) string {
 	return filepath.Join(filepath.Dir(filename), SanitizeRustModuleFileName(moduleName)+".rs")
 }
 
+const maxSingleLineCrateUseLen = 120
+
 // prefixDotImportedCrateUses emits a glob `use <crate>::*;` for every
 // dot-imported (`import . "path"`) source-mapped package, so the bare names a
 // dot import brings into Go scope resolve to the dependency crate's exports.
@@ -628,11 +630,27 @@ func prefixSiblingItemImports(rustCode string, itemNames []string) string {
 	if len(itemNames) == 0 {
 		return rustCode
 	}
-	importLine := "use crate::{" + strings.Join(itemNames, ", ") + "};\n"
+	importLine := formatCrateUse(itemNames)
 	if strings.TrimSpace(rustCode) == "" {
 		return importLine
 	}
 	return importLine + "\n" + rustCode
+}
+
+func formatCrateUse(names []string) string {
+	importLine := "use crate::{" + strings.Join(names, ", ") + "};\n"
+	if len(strings.TrimSuffix(importLine, "\n")) <= maxSingleLineCrateUseLen {
+		return importLine
+	}
+	var out strings.Builder
+	out.WriteString("use crate::{\n")
+	for _, name := range names {
+		out.WriteString("    ")
+		out.WriteString(name)
+		out.WriteString(",\n")
+	}
+	out.WriteString("};\n")
+	return out.String()
 }
 
 func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, typeInfo *TypeInfo) map[string][]string {
@@ -897,9 +915,9 @@ func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSha
 		return rustCode
 	}
 	if strings.TrimSpace(rustCode) == "" {
-		return "use crate::{" + strings.Join(names, ", ") + "};\n"
+		return formatCrateUse(names)
 	}
-	return "use crate::{" + strings.Join(names, ", ") + "};\n\n" + rustCode
+	return formatCrateUse(names) + "\n" + rustCode
 }
 
 func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker, siblingItemImports []string, usePreciseSiblingImports bool) string {

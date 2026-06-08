@@ -1,8 +1,27 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoByteSequence, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoByteSequence,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{format::{R_F_C3339_NANO, longDayNames, longMonthNames}, format_rfc3339::{parse_strict_r_f_c3339}, zoneinfo::{ALPHA, Local, Location, OMEGA, UTC, fixed_zone, localLoc, utcLoc, zone}};
+use crate::{
+    format::{R_F_C3339_NANO, longDayNames, longMonthNames},
+    format_rfc3339::{parse_strict_r_f_c3339},
+    zoneinfo::{ALPHA, Local, Location, OMEGA, UTC, fixed_zone, localLoc, utcLoc, zone},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;

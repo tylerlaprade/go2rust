@@ -1,8 +1,47 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_spinbit::{lock, unlock}, lockrank_off::{assert_lock_held}, mem::{sys_alloc}, mheap::{mspan}, mstats::{memstats, sysMemStat}, panic::{throw}, proc::{stwReason}, runtime2::{g, m, mutex, p}, stubs::{getg, systemstack}, trace::{trace}, traceevent::{TRACE_EV_EVENT_BATCH, TRACE_EV_EXPERIMENTAL_BATCH, traceArg, traceEv, traceEventWriter}, traceexp::{TRACE_NO_EXPERIMENT, traceExperiment}, traceruntime::{DEBUG_TRACE_REENTRANCY, mTraceState, traceBlockReason, traceGoStopReason, traceLocker}, tracestatus::{traceGoStatus, traceProcStatus}, tracetime::{traceTime, trace_clock_now}};
+use crate::{
+    lock_spinbit::{lock, unlock},
+    lockrank_off::{assert_lock_held},
+    mem::{sys_alloc},
+    mheap::{mspan},
+    mstats::{memstats, sysMemStat},
+    panic::{throw},
+    proc::{stwReason},
+    runtime2::{g, m, mutex, p},
+    stubs::{getg, systemstack},
+    trace::{trace},
+    traceevent::{TRACE_EV_EVENT_BATCH, TRACE_EV_EXPERIMENTAL_BATCH, traceArg, traceEv, traceEventWriter},
+    traceexp::{TRACE_NO_EXPERIMENT, traceExperiment},
+    traceruntime::{DEBUG_TRACE_REENTRANCY, mTraceState, traceBlockReason, traceGoStopReason, traceLocker},
+    tracestatus::{traceGoStatus, traceProcStatus},
+    tracetime::{traceTime, trace_clock_now},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

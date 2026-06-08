@@ -1,8 +1,44 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{lock_spinbit::{lock, unlock}, lockrank::{LOCK_RANK_NETPOLL_INIT, LOCK_RANK_POLL_CACHE, LOCK_RANK_POLL_DESC}, lockrank_off::{lock_init}, malloc::{persistentalloc}, mstats::{memstats, sysMemStat}, netpoll_kqueue::{netpollinit}, proc::{gList}, r#type::{_type}, runtime2::{eface, eface_of, g, mutex}, stubs::{add}, tagptr_64bit::{TAGGED_POINTER_BITS}, time::{timer}};
+use crate::{
+    lock_spinbit::{lock, unlock},
+    lockrank::{LOCK_RANK_NETPOLL_INIT, LOCK_RANK_POLL_CACHE, LOCK_RANK_POLL_DESC},
+    lockrank_off::{lock_init},
+    malloc::{persistentalloc},
+    mstats::{memstats, sysMemStat},
+    netpoll_kqueue::{netpollinit},
+    proc::{gList},
+    r#type::{_type},
+    runtime2::{eface, eface_of, g, mutex},
+    stubs::{add},
+    tagptr_64bit::{TAGGED_POINTER_BITS},
+    time::{timer},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

@@ -1,8 +1,42 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_map,
+    format_nested_pointer_slice,
+    format_nested_pointer_slice_wrapped,
+    format_nested_slice,
+    format_nested_slice_wrapped,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    format_slice_wrapped_values,
+    go_any_clone,
+    go_const_str_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::{atomic_pointer::{atomicstorep}, error::{errorString}, lock_spinbit::{lock, unlock}, mfinal::{keep_alive}, mfixalloc::{fixalloc}, mheap::{__KIND_SPECIAL_PIN_COUNTER, gcBits, mheap_, mspan, new_mark_bits, span_has_no_specials, span_has_specials, span_of_heap, special, specialPinCounter}, panic::{throw}, runtime1::{acquirem, releasem}, runtime2::{m, mutex}, stubs::{align_up, div_round_up, memmove, systemstack}};
+use crate::{
+    atomic_pointer::{atomicstorep},
+    error::{errorString},
+    lock_spinbit::{lock, unlock},
+    mfinal::{keep_alive},
+    mfixalloc::{fixalloc},
+    mheap::{__KIND_SPECIAL_PIN_COUNTER, gcBits, mheap_, mspan, new_mark_bits, span_has_no_specials, span_has_specials, span_of_heap, special, specialPinCounter},
+    panic::{throw},
+    runtime1::{acquirem, releasem},
+    runtime2::{m, mutex},
+    stubs::{align_up, div_round_up, memmove, systemstack},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};

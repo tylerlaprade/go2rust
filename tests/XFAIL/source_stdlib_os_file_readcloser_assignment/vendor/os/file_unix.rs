@@ -1,8 +1,27 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::{dir::{DirEntry, testingForceReadDirLstat}, dir_darwin::{dirInfo}, error::{ErrClosed, PathError, is_not_exist}, file::{O__C_R_E_A_T_E, O__R_D_O_N_L_Y, lstat_1, set_sticky_bit}, file_open_unix::{open_1}, file_posix::{ignoring_e_i_n_t_r, syscall_mode}, stat::{stat}, sticky_bsd::{SUPPORTS_CREATE_WITH_STICKY_BIT}, sys_unix::{SUPPORTS_CLOSE_ON_EXEC}, types::{File, FileInfo, FileMode, MODE_STICKY}};
+use crate::{
+    dir::{DirEntry, testingForceReadDirLstat},
+    dir_darwin::{dirInfo},
+    error::{ErrClosed, PathError, is_not_exist},
+    file::{O__C_R_E_A_T_E, O__R_D_O_N_L_Y, lstat_1, set_sticky_bit},
+    file_open_unix::{open_1},
+    file_posix::{ignoring_e_i_n_t_r, syscall_mode},
+    stat::{stat},
+    sticky_bsd::{SUPPORTS_CREATE_WITH_STICKY_BIT},
+    sys_unix::{SUPPORTS_CLOSE_ON_EXEC},
+    types::{File, FileInfo, FileMode, MODE_STICKY},
+};
 
 use std::any::Any;
 use std::error::Error as StdError;
