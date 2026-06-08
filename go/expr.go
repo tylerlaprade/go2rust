@@ -5886,6 +5886,13 @@ func rustBinaryOp(op token.Token) string {
 	return op.String()
 }
 
+func concurrentBinaryTempBlockShouldUseMultiline(expr *ast.BinaryExpr) bool {
+	if expr == nil || !NeedsConcurrentWrapper() || expr.Op == token.LAND || expr.Op == token.LOR {
+		return false
+	}
+	return countLogicalConditionOperandComplexity(expr) >= minStatementBuiltLogicalConditionOperandComplexity
+}
+
 func localInterfaceExpressionName(expr ast.Expr) (string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -12588,6 +12595,25 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeOperand(expr, other, isStringLit, needsUnwrap)
 			}
 
+			if concurrentBinaryTempBlockShouldUseMultiline(e) {
+				indent := currentLineIndent(out)
+				out.WriteString("{\n")
+				out.WriteString(indent)
+				out.WriteString("    let __tmp_x = ")
+				writeTempOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
+				out.WriteString(";\n")
+				out.WriteString(indent)
+				out.WriteString("    let __tmp_y = ")
+				writeTempOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
+				out.WriteString(";\n")
+				out.WriteString(indent)
+				out.WriteString("    __tmp_x ")
+				out.WriteString(rustBinaryOp(e.Op))
+				out.WriteString(" __tmp_y\n")
+				out.WriteString(indent)
+				out.WriteString("}")
+				return
+			}
 			out.WriteString("{ let __tmp_x = ")
 			writeTempOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
 			out.WriteString("; let __tmp_y = ")

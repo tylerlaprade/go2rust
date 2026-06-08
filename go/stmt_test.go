@@ -4669,6 +4669,14 @@ func overlaps(x *buf, s *state, addr uintptr) bool {
 	if !strings.Contains(rust, "let __go_cond_") {
 		t.Fatalf("complex two-part logical condition should build condition operands with statements:\n%s", rust)
 	}
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __go_cond_1 =") && strings.Contains(line, "let __tmp_x =") {
+			t.Fatalf("complex comparison condition temp should split its operands across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __go_cond_1 = {\n") {
+		t.Fatalf("complex comparison condition temp should use a multiline block:\n%s", rust)
+	}
 }
 
 func TestConcurrentFixedArrayCallArgumentBreaksComplexElementsAcrossLines(t *testing.T) {
