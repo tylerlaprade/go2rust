@@ -998,6 +998,11 @@ func render(name string) string {
 		!strings.Contains(rust, `__s.push_str(&format!("{}",`) {
 		t.Fatalf("long string concatenation should use a linear string builder shape:\n%s", rust)
 	}
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let mut __s = String::new()") && strings.Contains(line, "__s.push_str") {
+			t.Fatalf("long string concatenation builder should split pushes across lines:\n%s", rust)
+		}
+	}
 }
 
 func TestAppendStringSliceToStringSliceUsesBareString(t *testing.T) {

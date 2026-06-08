@@ -17408,13 +17408,20 @@ func writePairStringConcat(out *strings.Builder, left ast.Expr, right ast.Expr) 
 }
 
 func writeLinearStringConcat(out *strings.Builder, operands []ast.Expr) {
-	out.WriteString("{ let mut __s = String::new();")
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let mut __s = String::new();\n")
 	for _, operand := range operands {
-		out.WriteString(" __s.push_str(&format!(\"{}\", ")
+		out.WriteString(indent)
+		out.WriteString("    __s.push_str(&format!(\"{}\", ")
 		writeUnwrappedForFormat(out, operand)
-		out.WriteString("));")
+		out.WriteString("));\n")
 	}
-	out.WriteString(" __s }")
+	out.WriteString(indent)
+	out.WriteString("    __s\n")
+	out.WriteString(indent)
+	out.WriteString("}")
 }
 
 func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
