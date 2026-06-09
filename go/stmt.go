@@ -3349,19 +3349,6 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 	return transpiledNamedInterfaceTypeNameFromTypes(typ)
 }
 
-func writeTypedWrappedNone(out *strings.Builder, rustType string) {
-	trackWrapperImports()
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(None::<")
-		out.WriteString(rustType)
-		out.WriteString(">))")
-		return
-	}
-	out.WriteString("Rc::new(RefCell::new(None::<")
-	out.WriteString(rustType)
-	out.WriteString(">))")
-}
-
 // writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
 // case (named or anonymous). Go gives the case variable the case type, even when
 // the matched value is rewrapped from a statically known interface subject.
