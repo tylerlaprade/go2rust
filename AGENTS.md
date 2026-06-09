@@ -239,6 +239,7 @@ A continuous Codex loop may be committing to `master` in parallel with your sess
 
 ## Detailed Rules
 
+- [docs/orchestration.md](docs/orchestration.md): self-host orchestration philosophy — ground-truth checks before trusting history, the verification cost ladder, probe fixtures for cheap partial self-host checks, the one-compile-at-a-time resource budget, and the parallel-draft / serial-apply / verify-once engine.
 - [docs/rules/wrappers.md](docs/rules/wrappers.md): wrapped vs raw values, maps, slices, pointers, constants, ranges, interfaces, errors, and package globals.
 - [docs/rules/call-arguments.md](docs/rules/call-arguments.md): function/method argument wrapping, function values, variadics, external stubs, receivers, and nil.
 - [docs/rules/closure-capture.md](docs/rules/closure-capture.md): capture analysis, defer state, function literals, range captures, and closure-specific map access.
