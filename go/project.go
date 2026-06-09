@@ -794,6 +794,47 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 				return true
 			})
 		}
+		// recordImplementedInterfaceImports mirrors the structural trait-impl
+		// emission (transpile.go: `impl <Iface> for <Type>` for every package
+		// interface a declared type implements). Those impls reference the
+		// interface trait name, but the type's Go AST never names the interface
+		// (it satisfies it structurally), so collectReferences cannot see it.
+		// Without recording the interface here, a cross-module structural impl
+		// (e.g. sync's noCopy implementing the Locker trait declared in mutex.go)
+		// emits `impl Locker for noCopy` with no `use crate::mutex::Locker` -> E0405.
+		recordImplementedInterfaceImports := func(typeSpec *ast.TypeSpec) {
+			tn, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+			if !ok {
+				return
+			}
+			named, ok := tn.Type().(*types.Named)
+			if !ok {
+				return
+			}
+			// A type that is itself an interface gets no `impl Iface for T`.
+			if _, isIface := named.Underlying().(*types.Interface); isIface {
+				return
+			}
+			ptr := types.NewPointer(named)
+			for _, name := range pkgScope.Names() {
+				ifTn, ok := pkgScope.Lookup(name).(*types.TypeName)
+				if !ok || ifTn == tn {
+					continue
+				}
+				ifNamed, ok := ifTn.Type().(*types.Named)
+				if !ok {
+					continue
+				}
+				iface, ok := ifNamed.Underlying().(*types.Interface)
+				if !ok || iface.NumMethods() == 0 {
+					continue
+				}
+				iface.Complete()
+				if types.Implements(named, iface) || types.Implements(ptr, iface) {
+					recordObject(ifTn)
+				}
+			}
+		}
 		collectPromotedMethodSignatures := func(typeName string) {
 			structDef := structDefs[typeName]
 			if structDef == nil || len(structDef.EmbeddedTypes) == 0 {
@@ -834,6 +875,7 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 						}
 						collectReferences(typeSpec)
 						collectPromotedMethodSignatures(typeSpec.Name.Name)
+						recordImplementedInterfaceImports(typeSpec)
 					}
 				case token.CONST, token.VAR:
 					collectReferences(d)

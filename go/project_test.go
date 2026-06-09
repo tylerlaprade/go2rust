@@ -567,6 +567,59 @@ func Use() int {
 	}
 }
 
+// TestStructuralCrossFileInterfaceImplEmitsSiblingImport reproduces the
+// sync.Cond/Locker self-host bug: a type whose method set STRUCTURALLY
+// satisfies an interface declared in a sibling file gets `impl <Iface> for
+// <Type>` emitted in the type's module, but the sibling import for <Iface>
+// was not collected because the type's Go AST never names the interface.
+// The result is E0405 "cannot find trait Locker in this scope" at compile.
+func TestStructuralCrossFileInterfaceImplEmitsSiblingImport(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "mutex.go"), `package main
+
+type Locker interface {
+	Lock()
+	Unlock()
+}
+
+type Mutex struct{}
+
+func (Mutex) Lock()   {}
+func (Mutex) Unlock() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "cond.go"), `package main
+
+type noCopy struct{}
+
+func (noCopy) Lock()   {}
+func (noCopy) Unlock() {}
+
+func useNoCopy() noCopy { return noCopy{} }
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "mutex.go"),
+		filepath.Join(tempDir, "cond.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	condRS := mustReadFile(t, filepath.Join(tempDir, "cond.rs"))
+	if !strings.Contains(condRS, "impl Locker for noCopy") {
+		t.Fatalf("expected structural `impl Locker for noCopy` in cond.rs:\n%s", condRS)
+	}
+	// cond.go never names Locker in its AST, so the sibling import for the
+	// trait must be derived from the generated structural impl.
+	if !strings.Contains(condRS, "mutex::{") || !strings.Contains(condRS, "Locker") {
+		t.Fatalf("expected sibling import `use crate::mutex::{...Locker...}` in cond.rs:\n%s", condRS)
+	}
+}
+
 func TestImportedGenericSelectorCallEmitsInferredTypeArgs(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
