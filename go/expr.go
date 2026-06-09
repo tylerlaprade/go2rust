@@ -6114,6 +6114,16 @@ func writePointerDerefLocalInterfaceHandleClone(out *strings.Builder, expr ast.E
 	if expected != nil && !types.AssignableTo(ifaceType, expected) {
 		return false
 	}
+	if goPtrAddressExpressionPreferred(star.X) {
+		// The pointer lowers as GoPtr<Box<dyn Trait>> (see
+		// goTypesGoPtrElemTypeToRust); read the boxed interface value out of
+		// the GoPtr and rewrap it as the interface handle.
+		WriteWrapperOptionPrefix(out)
+		TranspileExpressionContext(out, star.X, LValue)
+		out.WriteString(".borrow()")
+		WriteWrapperOptionSuffix(out)
+		return true
+	}
 	TranspileExpressionContext(out, star.X, LValue)
 	out.WriteString(".clone()")
 	return true
@@ -11855,6 +11865,11 @@ func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.Co
 	}
 	structUnder, ok := coreUnderlyingType(typ).(*types.Struct)
 	if !ok || structUnder.NumFields() == 0 || !structUnder.Field(0).Anonymous() {
+		return false
+	}
+	// Bare sync embedded fields (GoMutex / source-mapped sync Mutex) have no
+	// wrapped handle whose address can key the embedded-owner registry.
+	if isGoSyncNamedType(types.Unalias(structUnder.Field(0).Type())) {
 		return false
 	}
 	structTypeName := typesStructLiteralName(typ, structUnder)

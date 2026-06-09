@@ -1858,6 +1858,29 @@ func writeFunctionTypeParamsWithParam(out *strings.Builder, fnType *ast.FuncType
 	out.WriteString(">")
 }
 
+// writeTypeSpecAliasTypeParams declares a generic type alias's parameters
+// (`pub type Seq<V> = ...` for `type Seq[V any] func(yield func(V) bool)`).
+// Bare names only: Rust does not enforce bounds on type aliases
+// (type_alias_bounds), and the alias body already wraps the parameter
+// wherever the underlying signature requires it.
+func writeTypeSpecAliasTypeParams(out *strings.Builder, typeSpec *ast.TypeSpec) {
+	if typeSpec == nil || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
+		return
+	}
+	var params []string
+	for _, field := range typeSpec.TypeParams.List {
+		for _, name := range field.Names {
+			params = append(params, RustTypeNameForUse(name.Name))
+		}
+	}
+	if len(params) == 0 {
+		return
+	}
+	out.WriteString("<")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(">")
+}
+
 func genericFunctionUsesDirectTypeParamValue(fn *ast.FuncDecl) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || fn == nil || fn.Type == nil {
@@ -5750,6 +5773,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Type alias: type A = B
 			out.WriteString("pub type ")
 			out.WriteString(rustTypeName)
+			writeTypeSpecAliasTypeParams(out, typeSpec)
 			out.WriteString(" = ")
 			if funcType, ok := t.(*ast.FuncType); ok {
 				out.WriteString(functionTypeSpecRustType(typeSpec, funcType))
@@ -5769,6 +5793,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Emit as a type alias to the callable shape, not a newtype struct
 			out.WriteString("pub type ")
 			out.WriteString(rustTypeName)
+			writeTypeSpecAliasTypeParams(out, typeSpec)
 			out.WriteString(" = ")
 			out.WriteString(functionTypeSpecRustType(typeSpec, t.(*ast.FuncType)))
 			out.WriteString(";\n")

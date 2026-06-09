@@ -5592,6 +5592,36 @@ func use() int {
 	}
 }
 
+func TestEmbeddedSyncMutexPointerLiteralSkipsEmbeddedOwnerRegistration(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type counter struct {
+	sync.Mutex
+	n int
+}
+
+func newCounter() *counter {
+	return &counter{n: 1}
+}
+
+func main() {
+	c := newCounter()
+	c.Lock()
+	c.n++
+	c.Unlock()
+}
+`)
+
+	if strings.Contains(rust, "go_register_embedded_owner") {
+		t.Fatalf("pointer literal with a bare embedded sync.Mutex field must not emit embedded-owner registration:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some(counter") {
+		t.Fatalf("pointer literal with a bare embedded sync.Mutex field should still wrap the struct literal:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerDerefNilComparisonUsesPointerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

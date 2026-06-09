@@ -7888,3 +7888,60 @@ func mustReadFile(t *testing.T, path string) string {
 	}
 	return string(data)
 }
+
+func TestAtomicPointerInterfaceElemStaysBareTraitObject(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "sync/atomic"
+
+type Iface interface {
+	M() int
+}
+
+var ptr atomic.Pointer[Iface]
+
+func Get() Iface {
+	v := ptr.Load()
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
+func main() {
+	_ = Get()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	// The atomic.Pointer[Iface] instantiation renders its type argument as the
+	// bare trait object (GoAtomicPointer<Box<dyn Iface ...>>), so load() yields
+	// GoPtr<Box<dyn Iface ...>>. The Load-result annotation must use the same
+	// single-wrapped payload, not the collection-element wrapped form.
+	for _, doubleWrap := range []string{
+		"GoPtr<Arc<Mutex<Option<Box<dyn Iface",
+		"GoPtr<Rc<RefCell<Option<Box<dyn Iface",
+	} {
+		if strings.Contains(mainRS, doubleWrap) {
+			t.Fatalf("GoPtr of a named interface must use the bare trait object payload, found %q:\n%s", doubleWrap, mainRS)
+		}
+	}
+	if !strings.Contains(mainRS, "GoPtr<Box<dyn Iface") {
+		t.Fatalf("atomic.Pointer[Iface].Load result should lower as GoPtr<Box<dyn Iface ...>>, got:\n%s", mainRS)
+	}
+	// `return *v` must read the pointee out of the GoPtr and rewrap it as the
+	// interface handle; cloning the GoPtr enum mismatches the return type.
+	if !strings.Contains(mainRS, "v.borrow()") {
+		t.Fatalf("deref of a GoPtr-to-interface should read the pointee via .borrow() and rewrap, got:\n%s", mainRS)
+	}
+}

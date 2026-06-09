@@ -3991,3 +3991,32 @@ func use() {
 		t.Fatalf("promoted source-mapped sync.Mutex methods should delegate to the generated field value:\n%s", rust)
 	}
 }
+
+func TestGenericFunctionTypeDeclEmitsTypeParams(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "seq.go", `package seqlib
+
+type Seq[V any] func(yield func(V) bool)
+
+type Seq2[K, V any] func(yield func(K, V) bool)
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"seqlib": "seqlib"})
+
+	// stdlib iter's Seq/Seq2 shape: the alias body expands the signature and
+	// references the type params, so the declaration must declare them
+	// (`pub type Seq = ...V...` is E0412/E0425 "cannot find type V").
+	if !strings.Contains(rust, "pub type Seq<V> = ") {
+		t.Fatalf("generic named function type must declare its type params (want `pub type Seq<V> = ...`):\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub type Seq2<K, V> = ") {
+		t.Fatalf("generic named function type must declare all type params (want `pub type Seq2<K, V> = ...`):\n%s", rust)
+	}
+}

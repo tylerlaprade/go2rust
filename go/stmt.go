@@ -2279,6 +2279,10 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 				if !ok || ident.Name == "_" {
 					continue
 				}
+				if info, ok := sliceElemPtrResultInfoForCall(call, i); ok {
+					registerSliceElemPtrVar(ident.Name, info.elemRustType)
+					continue
+				}
 				if info, ok := arrayElemPtrResultInfoForCall(call, i); ok {
 					registerArrayElemPtrVar(ident.Name, info)
 					continue
@@ -6945,8 +6949,10 @@ func writeMultilineTupleReassignment(out *strings.Builder, s *ast.AssignStmt) bo
 		var line strings.Builder
 		tmpName := fmt.Sprintf("__tmp_%d", i)
 		if !writeTupleSliceElemPtrFieldAssignmentFromTemp(&line, lhs, tmpName, call, i) {
-			if !writeTupleGoPtrAssignmentFromTemp(&line, lhs, tmpName, call, i) {
-				writeTupleAssignmentFromTemp(&line, lhs, tmpName, callResultIsBareScalar(call, i))
+			if !writeTupleSliceElemPtrVarAssignmentFromTemp(&line, lhs, tmpName, call, i) {
+				if !writeTupleGoPtrAssignmentFromTemp(&line, lhs, tmpName, call, i) {
+					writeTupleAssignmentFromTemp(&line, lhs, tmpName, callResultIsBareScalar(call, i))
+				}
 			}
 		}
 		writeIndentedTupleAssignmentText(out, line.String(), indent+"    ")
@@ -11748,6 +11754,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							tmpBareScalar := false
 							if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 								if writeTupleSliceElemPtrFieldAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
+									continue
+								}
+								if writeTupleSliceElemPtrVarAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
 									continue
 								}
 								if writeTupleGoPtrAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {

@@ -1789,6 +1789,20 @@ func goTypesCollectionElemTypeToRust(t types.Type) string {
 	return goTypesTypeToRust(t)
 }
 
+// goTypesGoPtrElemTypeToRust renders the type parameter T of GoPtr<T> for a
+// pointer's pointee type. Unlike collection elements, GoPtr::Local already
+// supplies the Arc<Mutex<Option<T>>> slot, so a transpiled named interface
+// stays the bare trait object — the same shape goTypesTypeToRust gives the
+// type argument of a generic instantiation such as atomic.Pointer[Iface].
+// Wrapping it here would double-wrap the payload and disagree with every
+// instantiated GoPtr<T> producer (E0308 on each conversion arm).
+func goTypesGoPtrElemTypeToRust(t types.Type) string {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+		return goTypesTypeToRust(t)
+	}
+	return goTypesCollectionElemTypeToRust(t)
+}
+
 func goTypesChannelElemTypeToRust(t types.Type) string {
 	if isGoErrorType(t) {
 		TrackImport("Error")

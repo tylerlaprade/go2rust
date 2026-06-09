@@ -1322,7 +1322,7 @@ func goPtrArrayFieldElemRustType(info goPtrArrayFieldInfo) string {
 
 func goPtrResultElemRustType(info goPtrResultInfo) string {
 	if info.elemType != nil {
-		return goTypesCollectionElemTypeToRust(coreType(info.elemType))
+		return goTypesGoPtrElemTypeToRust(coreType(info.elemType))
 	}
 	return info.elemRustType
 }
@@ -4711,6 +4711,13 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 				}
 				rhs := assignmentRHSForLHS(n, i)
 				if rhs == nil {
+					if info, ok := sliceElemPtrTupleCallResultInfo(n, i); ok && info.elemRustType == elemRustType {
+						candidates[obj] = &sliceElemPtrCandidate{
+							elemRustType: elemRustType,
+							valid:        true,
+							sawSliceAddr: true,
+						}
+					}
 					continue
 				}
 				rhsOk, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs)
@@ -4750,7 +4757,11 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 				}
 				rhs := assignmentRHSForLHS(n, i)
 				if rhs == nil {
-					state.valid = false
+					if info, ok := sliceElemPtrTupleCallResultInfo(n, i); ok && info.elemRustType == state.elemRustType {
+						state.sawSliceAddr = true
+					} else {
+						state.valid = false
+					}
 					continue
 				}
 				ok, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs)
@@ -5165,7 +5176,7 @@ func goPtrInfoForPointerType(typ types.Type) (goPtrResultInfo, bool) {
 		return goPtrResultInfo{elemRustType: "GoPtr<" + goPtrResultElemRustType(inner) + ">"}, true
 	}
 	elem := coreType(ptr.Elem())
-	return goPtrResultInfo{elemRustType: goTypesCollectionElemTypeToRust(elem), elemType: elem}, true
+	return goPtrResultInfo{elemRustType: goTypesGoPtrElemTypeToRust(elem), elemType: elem}, true
 }
 
 func methodNeedsGoPtrReceiverAlias(fn *ast.FuncDecl) (goPtrResultInfo, bool) {
@@ -5682,6 +5693,17 @@ func assignmentRHSForLHS(stmt *ast.AssignStmt, lhsIndex int) ast.Expr {
 		return stmt.Rhs[0]
 	}
 	return nil
+}
+
+func sliceElemPtrTupleCallResultInfo(stmt *ast.AssignStmt, lhsIndex int) (sliceElemPtrReturnInfo, bool) {
+	if stmt == nil || len(stmt.Rhs) != 1 || len(stmt.Lhs) < 2 {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	call, ok := unwrapParens(stmt.Rhs[0]).(*ast.CallExpr)
+	if !ok {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	return sliceElemPtrResultInfoForCall(call, lhsIndex)
 }
 
 func isSliceElemPtrAssignmentValue(expr ast.Expr) (bool, bool) {
@@ -6512,6 +6534,27 @@ func writeTupleSliceElemPtrFieldAssignmentFromTemp(out *strings.Builder, lhs ast
 		return true
 	}
 	return false
+}
+
+func writeTupleSliceElemPtrVarAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string, call *ast.CallExpr, resultIndex int) bool {
+	ident, ok := unwrapParens(lhs).(*ast.Ident)
+	if !ok || ident.Name == "_" || call == nil {
+		return false
+	}
+	info, ok := sliceElemPtrVarInfo(ident.Name)
+	if !ok {
+		return false
+	}
+	resultInfo, ok := sliceElemPtrResultInfoForCall(call, resultIndex)
+	if !ok || info.RustType != "Option<GoSliceElemPtr<"+resultInfo.elemRustType+">>" {
+		return false
+	}
+	out.WriteString(" ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(" = ")
+	out.WriteString(tmpName)
+	out.WriteString(".clone();")
+	return true
 }
 
 func writeTupleGoPtrAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string, call *ast.CallExpr, resultIndex int) bool {

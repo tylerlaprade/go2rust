@@ -4312,6 +4312,40 @@ func pick(bucket []entry, ok bool) (*entry, bool) {
 	}
 }
 
+func TestSliceElemPointerTupleAssignIntoDeclaredPointerVar(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func first(values []byte) (*byte, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	return &values[0], nil
+}
+
+func consume(values []byte) (err error) {
+	var p *byte
+	p, err = first(values)
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return nil
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "let mut p: Option<GoSliceElemPtr<u8>> = None;") {
+		t.Fatalf("pointer var assigned from a slice-element tuple result should use the slice element pointer shape:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p = __tmp_0.clone();") {
+		t.Fatalf("tuple reassignment should copy the slice element pointer slot directly:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut p: Rc<RefCell<Option<u8>>>") || strings.Contains(rust, "let mut p: Arc<Mutex<Option<u8>>>") {
+		t.Fatalf("pointer var assigned from a slice-element tuple result should not keep the default pointer handle:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerLocalReturnUsesSliceElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
