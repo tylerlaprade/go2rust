@@ -1576,6 +1576,42 @@ fallback:
 	}
 }
 
+func TestSwitchCaseBodyGotoPlanHandlesNestedGotos(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scan(kind int, values []int) int {
+	switch kind {
+	case 1:
+	reswitch:
+		for _, v := range values {
+			if v < 0 {
+				goto reswitch
+			}
+			if v == 0 {
+				goto done
+			}
+		}
+		return 1
+
+	done:
+		return 2
+	}
+	return 3
+}
+`)
+
+	if strings.Contains(rust, "TODO: unsupported goto reswitch") ||
+		strings.Contains(rust, "TODO: unsupported goto done") {
+		t.Fatalf("switch case body goto planner should lower nested gotos to case-local labels:\n%s", rust)
+	}
+	if !strings.Contains(rust, "'reswitch: loop {") || !strings.Contains(rust, "continue 'reswitch;") {
+		t.Fatalf("case-local backward goto should continue the emitted reswitch loop label:\n%s", rust)
+	}
+	if !strings.Contains(rust, "'done: {") || !strings.Contains(rust, "break 'done;") {
+		t.Fatalf("case-local forward goto should break to the emitted done label block:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
