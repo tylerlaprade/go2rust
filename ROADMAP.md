@@ -272,6 +272,25 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust is moving from build-only self-transpile to behavioral self-hosting.
 
+#### Current gates and next work
+
+- Verified 2026-08-05: `./go_test.sh -run '^$'` passes, while the full
+  `./go_test.sh` reports 34 failing Go tests. The test command and failing test
+  names are the source of truth. Restore this gate before trusting broader
+  self-host results; classify each failure as a translator regression or a
+  stale assertion and fix the implementation or test on that evidence.
+- The last checked-in broad `go/types` probe reached zero probe-relative Rust
+  compile errors in `46d49140`. That result does not cover the full API or prove
+  behavior. After the Go unit gate is green, widen or rerun the source-stdlib
+  probe, run the full self-host cargo check, then run the behavior suite.
+- The type-information cleanup still has live syntax fallback paths:
+  `writeNoTypeInfoSelectorStdlibInterfacePrintArg`,
+  `writeConstExpressionForExpectedTypeExpr`, and
+  `writeConstExpressionForSyntaxPeer`, plus other `*FromSyntax` helpers found by
+  search. Probe each path before deleting it. Once emission no longer relies on
+  these fallbacks, make `project.go` return `NewTypeInfo` errors instead of
+  printing a warning and continuing.
+
 - ✅ Broad self-transpile cargo check passes for the generated dependency crates and the root `go` crate under `TMPDIR=/private/tmp CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 RUSTFLAGS=-Awarnings`. Recent fixed blockers include package-global pointer field selectors and direct dereferences, package-global map and slice snapshots into locals, owned map-range keys reused after map assignments, owned map-range string keys passed to calls or stored as map values before later reuse, function parameters forwarded to function/method parameters, pointer range values returned as handles, `strings.Builder.String` returns in concurrent mode, stdlib-interface slice range call/assignment/type-switch/assertion/nil-comparison/indexed-assertion/short-declaration/nil-append/slice-literal-reference paths, stdlib-interface slice literal conversion context, reference-style range short declarations, imported named-integer struct field bitmasks, stdlib selector string comparisons in concurrent mode, `strings.Builder.WriteString` dynamic concatenation arguments, Builder methods on short-declared `strings.Builder{}` values, reflect.StructTag(string).Get conversions, pointer-receiver method values returned or assigned as `func` values, dynamic stdlib string helper args built from `string(filepath.Separator)`-style untyped rune constants, package string constants used as `map[string]...` keys, ranged stdlib-interface map keys reinserted into `map[types.Object]...`, scalar wrapped map-range values copied into another map, wrapped string map-range values inserted as owned map keys, function-typed map literal values, string-range runes passed to `rune` parameters or compared with integer constants, range indexes passed to Go `int` call parameters, assigned to Go `int` locals, or compared with Go `int` peers, address-of composite literal pointer call arguments, pointer type-assertion call arguments, handle-shaped map value lookup/range/return/call-argument paths, method slice literal arguments, pointer receiver value copies, and default source-transpiled `unicode` package cargo-check coverage fixed (updated 2026-06-01)
 - ✅ Source-transpiled `go/types.Config.Check` now passes through direct Config.Check fixtures, allowing the custom external subprocess bridge to retire instead of being moved or extended (types_config_check_bridge expanded; source_stdlib_go_types_check_manual_ast_decl and source_stdlib_go_parser_types_check_bridge_arg added, 2026-06-05)
 - ✅ Source-transpiled `go/types.Checker.Files` now passes through a direct `types.NewChecker(...).Files` fixture, allowing the custom external `Checker.Files` panic shim to retire instead of being extended (source_stdlib_go_types_checker_files added, 2026-06-05)

@@ -16,7 +16,8 @@ cosmetic line-length shaving on a fixture unrelated to the critical path.
 
 Session start checklist:
 
-- `go build ./go` — is HEAD even green?
+- `./go_test.sh -run '^$'` — does the Go package compile? (`go build ./go`
+  tries to write a `go` binary over the existing `go/` directory.)
 - One cheap probe (below) — what is the *measured* frontier right now?
 - `git log --oneline -30` — read commit subjects *skeptically*; ask what the
   measured deltas were, not what the messages claim.
@@ -121,18 +122,18 @@ The critical path is whatever the probe says blocks the dependency closure
 toward `go/types` — fix that, even when it's a grind, and measure every batch
 with the same probe so "progress" can't be gamed by switching instruments.
 
-Known traps where naive local fixes have repeatedly regressed (see the
-architecture synthesis and memory notes): the seven near-duplicate
-"keeps-handle" type switches, parallel-assign temp shapes, and anything where
-producer and consumer derive a value's wrapper shape independently. These need
-the shared-predicate refactor, not another conditional. Cross-crate structural
-interfaces (the `positioner` cluster) are orphan-rule-constrained — verify any
-adapter design against *real generated code* before building it.
+Known traps where naive local fixes have repeatedly regressed: the
+near-duplicate "keeps-handle" paths in `go/stmt.go`, parallel-assignment temp
+shapes, and any path where producer and consumer derive a value's wrapper shape
+independently. The checked-in tests around `tempHoldsWrappedValue` and
+`positioner` are the evidence. Prefer one shared predicate over another local
+condition. Cross-crate structural interfaces are constrained by Rust's orphan
+rule, so verify any adapter against real generated code before building it.
 
 ## 7. Documentation duty
 
-Each session: update this doc only for durable *method* changes; record
-session-specific state (current frontier, in-flight clusters) in commit
-messages and working notes, not here. Per AGENTS.md, git history is the ledger
-for error-count deltas — put old → new counts in commit messages, with the
-probe named so the numbers are comparable.
+Each session: update this doc only for durable *method* changes. Put current
+frontiers and unfinished work in `ROADMAP.md`; put measured deltas in commit
+messages, with the probe named so the numbers are comparable. Keep throwaway
+working notes out of persistent agent memory and delete them when the session
+ends.
