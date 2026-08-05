@@ -15,6 +15,9 @@
 - Update `README.md` when adding support for new Go syntax features.
 - Update `ROADMAP.md` after implementing features or making phase progress.
 - Commit granularly. Code, generated snapshots, README/ROADMAP updates, and XFAIL auto-promotions belong together only when they describe the same passing feature.
+- Shared writers can move `HEAD`. Recheck it before any amend; prefer a new
+  scoped commit or a SHA-keyed rebase when the target commit is no longer
+  `HEAD`.
 
 ## Core Model
 
