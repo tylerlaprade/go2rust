@@ -304,6 +304,9 @@ func TestPressureGuardScriptOwnsAvailableMemoryDetection(t *testing.T) {
 		`detect_available_memory_bytes()`,
 		`/MemAvailable/`,
 		`vm_stat`,
+		`/Pages inactive:/`,
+		`/Pages purgeable:/`,
+		`(free_pages + inactive_pages + speculative_pages + purgeable_pages) * page_size`,
 		`memory_pressure`,
 		`System-wide memory free percentage:`,
 		`available memory is ${available_mb} MiB`,
@@ -317,6 +320,20 @@ func TestPressureGuardScriptOwnsAvailableMemoryDetection(t *testing.T) {
 	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
 	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
 		t.Fatalf("pressure_guard.sh should prefer vm_stat over memory_pressure for current macOS pressure")
+	}
+}
+
+func TestLaneUsesSharedAvailableMemoryDetection(t *testing.T) {
+	data, err := os.ReadFile("../lane.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(lane.sh) error = %v", err)
+	}
+	script := string(data)
+	if !strings.Contains(script, `"$REPO/pressure_guard.sh" --available-bytes`) {
+		t.Fatalf("lane.sh should get available memory from pressure_guard.sh")
+	}
+	if strings.Contains(script, `vm_stat`) {
+		t.Fatalf("lane.sh should not keep a second macOS available-memory calculation")
 	}
 }
 

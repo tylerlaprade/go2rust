@@ -39,13 +39,21 @@ detect_available_memory_bytes() {
                 free_pages = $3
                 gsub(/[^0-9]/, "", free_pages)
             }
+            /Pages inactive:/ {
+                inactive_pages = $3
+                gsub(/[^0-9]/, "", inactive_pages)
+            }
             /Pages speculative:/ {
                 speculative_pages = $3
                 gsub(/[^0-9]/, "", speculative_pages)
             }
+            /Pages purgeable:/ {
+                purgeable_pages = $3
+                gsub(/[^0-9]/, "", purgeable_pages)
+            }
             END {
                 if (page_size > 0) {
-                    printf "%.0f\n", (free_pages + speculative_pages) * page_size
+                    printf "%.0f\n", (free_pages + inactive_pages + speculative_pages + purgeable_pages) * page_size
                 }
             }
         '

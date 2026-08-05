@@ -2,8 +2,8 @@
 # lane.sh — serialized, memory-guarded, INCREMENTAL self-host verification lane.
 #
 # Why this exists: the 8GB box can run exactly ONE cargo build at a time, and the
-# repo's pressure_guard counts only free+speculative pages (it under-reports real
-# available memory on macOS, refusing valid runs / killing builds at 2s). This lane:
+# shared pressure guard counts free, inactive, speculative, and purgeable pages
+# on macOS. This lane:
 #   - serializes ALL heavy work via flock (only one build machine-wide at a time)
 #   - uses an accurate MemAvailable-style metric (free+inactive+speculative+purgeable)
 #   - keeps a PERSISTENT workspace + GOCACHE + CARGO_HOME + CARGO_TARGET_DIR so
@@ -29,13 +29,12 @@ STACK="go/types,go/ast,go/token,go/scanner,go/parser,go/constant,go/internal/typ
 mkdir -p "$LANE_DIR"
 
 avail_mb() {
-  vm_stat 2>/dev/null | awk '
-    /page size of/ { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+$/) ps=$i }
-    /Pages free/        { gsub(/\./,"",$3); f=$3 }
-    /Pages inactive/    { gsub(/\./,"",$3); ia=$3 }
-    /Pages speculative/ { gsub(/\./,"",$3); s=$3 }
-    /Pages purgeable/   { gsub(/\./,"",$3); p=$3 }
-    END { if (ps>0) printf "%.0f\n", (f+ia+s+p)*ps/1048576; else print 999999 }'
+  local available_bytes
+  available_bytes=$("$REPO/pressure_guard.sh" --available-bytes)
+  case "$available_bytes" in
+    ''|*[!0-9]*) echo 999999 ;;
+    *) echo $((available_bytes / 1048576)) ;;
+  esac
 }
 
 cmd="${1:-}"; shift || true
