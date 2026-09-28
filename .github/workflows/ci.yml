@@ -12,6 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install current ShellCheck
+        run: |
+          /home/linuxbrew/.linuxbrew/bin/brew install shellcheck
+          echo /home/linuxbrew/.linuxbrew/bin >>"$GITHUB_PATH"
+
       - name: Fetch shared ShellCheck policy
         run: curl -fsSL -o "$HOME/.shellcheckrc" https://raw.githubusercontent.com/tylerlaprade/dotfiles/master/.shellcheckrc
 
