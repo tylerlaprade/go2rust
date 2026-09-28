@@ -7,6 +7,17 @@ on:
     branches: [master]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch shared ShellCheck policy
+        run: curl -fsSL -o "$HOME/.shellcheckrc" https://raw.githubusercontent.com/tylerlaprade/dotfiles/master/.shellcheckrc
+
+      - name: Run ShellCheck
+        run: git ls-files -z '*.sh' '*.bats' | xargs -0 shellcheck
+
   test:
     runs-on: ubuntu-latest
     steps:
