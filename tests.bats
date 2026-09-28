@@ -5,12 +5,12 @@ setup_file() {
     # find tests -name "Cargo.toml" -type f -delete 2>/dev/null || true
     # find tests -name "Cargo.lock" -type f -delete 2>/dev/null || true
 
-    if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
-        if [ ! -x "$GO2RUST_TEST_BINARY" ]; then
+    if [[ -n "${GO2RUST_TEST_BINARY:-}" ]]; then
+        if [[ ! -x "$GO2RUST_TEST_BINARY" ]]; then
             echo "GO2RUST_TEST_BINARY is not executable: $GO2RUST_TEST_BINARY"
             return 1
         fi
-    elif [ "${GO2RUST_TEST_BINARY_READY:-}" != "1" ]; then
+    elif [[ "${GO2RUST_TEST_BINARY_READY:-}" != "1" ]]; then
         go build -o go2rust ./go
     fi
 }
@@ -40,15 +40,12 @@ run_with_prefix() {
     rm -f "$stdout_file" "$stderr_file"
     
     # Return the original exit code
-    return $exit_code
+    return "$exit_code"
 }
 
 cargo_run_quiet() {
-    local -a cargo_offline_args=()
-    if [ -n "${GO2RUST_CARGO_OFFLINE_ARGS:-}" ]; then
-        # shellcheck disable=SC2206
-        cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})
-    fi
+    local -a cargo_offline_args
+    read -r -a cargo_offline_args <<< "${GO2RUST_CARGO_OFFLINE_ARGS:-}"
     run_with_prefix cargo "${cargo_offline_args[@]}" run --quiet
 }
 
@@ -71,7 +68,7 @@ version = "0.1.0"
 edition = "2021"
 CARGO_EOF
 
-    if [ -n "$input_file" ]; then
+    if [[ -n "$input_file" ]]; then
         if (cd "$temp_dir" && cargo_run_quiet < "$input_file"); then
             exit_code=0
         else
@@ -86,7 +83,7 @@ CARGO_EOF
     fi
 
     rm -rf "$temp_dir"
-    return $exit_code
+    return "$exit_code"
 }
 
 # Simple comparison function
@@ -95,26 +92,31 @@ compare_outputs() {
     local rust_output="$2"
     
     # Simple string comparison
-    if [ "$go_output" = "$rust_output" ]; then
+    if [[ "$go_output" = "$rust_output" ]]; then
         return 0
     else
         return 1
     fi
 }
 
+indent_lines() {
+    local text="$1"
+    echo "  ${text//$'\n'/$'\n  '}"
+}
+
 fixture_config_value() {
     local test_dir="$1"
     local key="$2"
     local config_file="$test_dir/.go2rust.toml"
-    [ -f "$config_file" ] || return 0
-    grep "^$key" "$config_file" | cut -d'"' -f2
+    [[ -f "$config_file" ]] || return 0
+    awk -F'"' -v key="$key" 'index($0, key) == 1 { print $2 }' "$config_file"
 }
 
 fixture_timeout() {
     local test_dir="$1"
     local configured_timeout
     configured_timeout=$(fixture_config_value "$test_dir" "test_timeout")
-    if [ -n "$configured_timeout" ]; then
+    if [[ -n "$configured_timeout" ]]; then
         echo "$configured_timeout"
     else
         echo "${TEST_TIMEOUT:-60s}"
@@ -123,7 +125,7 @@ fixture_timeout() {
 
 note_fixture_phase() {
     local phase="$1"
-    [ -n "${GO2RUST_TEST_PHASE_FILE:-}" ] || return 0
+    [[ -n "${GO2RUST_TEST_PHASE_FILE:-}" ]] || return 0
     printf "%s\n" "$phase" > "$GO2RUST_TEST_PHASE_FILE"
 }
 
@@ -132,18 +134,20 @@ report_fixture_timeout() {
     local phase_file="$2"
     local detail_file="$3"
     local phase=""
-    if [ -r "$phase_file" ]; then
+    if [[ -r "$phase_file" ]]; then
         phase=$(cat "$phase_file" 2>/dev/null || true)
     fi
-    if [ -n "$phase" ]; then
+    if [[ -n "$phase" ]]; then
         echo "Test timed out after $timeout (last phase: $phase)"
     else
         echo "Test timed out after $timeout"
     fi
-    if [ -s "$detail_file" ]; then
+    if [[ -s "$detail_file" ]]; then
         local tail_lines="${GO2RUST_TEST_TIMEOUT_TAIL_LINES:-20}"
         echo "Last phase output:"
-        tail -n "$tail_lines" "$detail_file" | sed "s/^/  /"
+        local detail_tail
+        detail_tail=$(tail -n "$tail_lines" "$detail_file")
+        indent_lines "$detail_tail"
     fi
 }
 
@@ -154,29 +158,25 @@ run_transpile_and_compare() {
     local go_output="$2"
     
     # Check for test-specific configuration
-    local external_mode=""
-    local source_stdlib_packages=""
-    if [ -f "$test_dir/.go2rust.toml" ]; then
-        # Simple parsing - look for known config lines
-        external_mode=$(grep "^external_packages" "$test_dir/.go2rust.toml" | cut -d'"' -f2)
-        source_stdlib_packages=$(grep "^source_stdlib_packages" "$test_dir/.go2rust.toml" | cut -d'"' -f2)
-    fi
+    local external_mode
+    external_mode=$(fixture_config_value "$test_dir" "external_packages")
+    local source_stdlib_packages
+    source_stdlib_packages=$(fixture_config_value "$test_dir" "source_stdlib_packages")
 
     # Build transpile command with appropriate flags
     local transpiler="${GO2RUST_TEST_BINARY:-./go2rust}"
     local -a transpile_args=()
-    if [ -n "$external_mode" ]; then
+    if [[ -n "$external_mode" ]]; then
         transpile_args+=("--external-packages=$external_mode")
     fi
-    if [ -n "$source_stdlib_packages" ]; then
+    if [[ -n "$source_stdlib_packages" ]]; then
         transpile_args+=("--source-stdlib-packages=$source_stdlib_packages")
     fi
     local transpile_output
     note_fixture_phase "transpiling"
-    transpile_output=$("$transpiler" "${transpile_args[@]}" "$test_dir" 2>&1)
-    if [ $? -ne 0 ]; then
+    if ! transpile_output=$("$transpiler" "${transpile_args[@]}" "$test_dir" 2>&1); then
         echo "Transpilation failed:"
-        echo "$transpile_output" | sed "s/^/  /"
+        indent_lines "$transpile_output"
         return 1
     fi
 
@@ -185,7 +185,7 @@ run_transpile_and_compare() {
     # fixtures that document a specific lowering decision (e.g., bare
     # scalar return types). Without that file, generated Rust is allowed
     # to drift freely between runs.
-    if [ -f "$test_dir/expected_main.rs" ]; then
+    if [[ -f "$test_dir/expected_main.rs" ]]; then
         local diff_root="${GO2RUST_TEST_TMP:-${TMPDIR:-/tmp}}"
         mkdir -p "$diff_root"
         local diff_file
@@ -193,14 +193,14 @@ run_transpile_and_compare() {
         if ! diff -u "$test_dir/expected_main.rs" "$test_dir/main.rs" > "$diff_file" 2>&1; then
             echo ""
             echo "Generated Rust does not match expected_main.rs:"
-            cat "$diff_file" | sed "s/^/  /"
+            sed "s/^/  /" "$diff_file"
             rm -f "$diff_file"
             return 1
         fi
         rm -f "$diff_file"
     fi
 
-    if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then
+    if [[ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]]; then
         return 0
     fi
 
@@ -210,10 +210,10 @@ run_transpile_and_compare() {
     # -C debuginfo=0: No debug symbols (smaller binary, faster linking)
     local cargo_target_dir
     local remove_cargo_target=false
-    if [ -n "${GO2RUST_TEST_CARGO_TARGET_DIR:-}" ]; then
+    if [[ -n "${GO2RUST_TEST_CARGO_TARGET_DIR:-}" ]]; then
         cargo_target_dir="$GO2RUST_TEST_CARGO_TARGET_DIR"
         mkdir -p "$cargo_target_dir"
-    elif [ -n "${GO2RUST_TEST_TMP:-}" ]; then
+    elif [[ -n "${GO2RUST_TEST_TMP:-}" ]]; then
         cargo_target_dir="$GO2RUST_TEST_TMP/cargo-target"
         mkdir -p "$cargo_target_dir"
     else
@@ -222,15 +222,12 @@ run_transpile_and_compare() {
         remove_cargo_target=true
     fi
 
-    local -a cargo_offline_args=()
-    if [ -n "${GO2RUST_CARGO_OFFLINE_ARGS:-}" ]; then
-        # shellcheck disable=SC2206
-        cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})
-    fi
+    local -a cargo_offline_args
+    read -r -a cargo_offline_args <<< "${GO2RUST_CARGO_OFFLINE_ARGS:-}"
 
     local cargo_output_file="${GO2RUST_TEST_PHASE_DETAIL_FILE:-}"
     local remove_cargo_output_file=false
-    if [ -z "$cargo_output_file" ]; then
+    if [[ -z "$cargo_output_file" ]]; then
         cargo_output_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX")
         remove_cargo_output_file=true
     fi
@@ -244,14 +241,14 @@ run_transpile_and_compare() {
         cargo_build_exit_code=$?
     fi
 
-    if [ $cargo_build_exit_code -ne 0 ]; then
-        if [ "$remove_cargo_target" = true ]; then
+    if [[ "$cargo_build_exit_code" -ne 0 ]]; then
+        if [[ "$remove_cargo_target" = true ]]; then
             rm -rf "$cargo_target_dir"
         fi
         echo ""
         echo "Rust compilation failed:"
-        cat "$cargo_output_file" | sed "s/^/  /"
-        if [ "$remove_cargo_output_file" = true ]; then
+        sed "s/^/  /" "$cargo_output_file"
+        if [[ "$remove_cargo_output_file" = true ]]; then
             rm -f "$cargo_output_file"
         fi
         return 1
@@ -268,20 +265,20 @@ run_transpile_and_compare() {
     fi
     rust_output=$(cat "$cargo_output_file")
 
-    if [ "$remove_cargo_target" = true ]; then
+    if [[ "$remove_cargo_target" = true ]]; then
         rm -rf "$cargo_target_dir"
     fi
     
-    if [ $rust_exit_code -ne 0 ]; then
+    if [[ "$rust_exit_code" -ne 0 ]]; then
         echo ""
         echo "Rust execution failed:"
-        echo "$rust_output" | sed "s/^/  /"
-        if [ "$remove_cargo_output_file" = true ]; then
+        indent_lines "$rust_output"
+        if [[ "$remove_cargo_output_file" = true ]]; then
             rm -f "$cargo_output_file"
         fi
         return 1
     fi
-    if [ "$remove_cargo_output_file" = true ]; then
+    if [[ "$remove_cargo_output_file" = true ]]; then
         rm -f "$cargo_output_file"
     fi
     
@@ -311,6 +308,8 @@ run_test() {
     export -f run_transpile_and_compare
     export -f compare_outputs
     export -f note_fixture_phase
+    export -f fixture_config_value
+    export -f indent_lines
 
     local phase_file
     phase_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX")
@@ -318,73 +317,14 @@ run_test() {
     phase_detail_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX")
 
     # Run the entire test with timeout
-    # shellcheck disable=SC2016
     local exit_code=0
-    if timeout -k "$kill_after" "$timeout" bash -c '
-        test_dir="$1"
-        phase_file="$2"
-        export GO2RUST_TEST_PHASE_FILE="$phase_file"
-        export GO2RUST_TEST_PHASE_DETAIL_FILE="$3"
-        note_fixture_phase "allocating temp workspace"
-        test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
-        echo "$$" > "$test_tmp_root/go2rust-test.pid"
-        trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
-        export GO2RUST_TEST_TMP="$test_tmp_root"
-
-        if [ -f "$test_dir/go.mod" ]; then
-            note_fixture_phase "go mod download"
-            mod_download_output=$(cd "$test_dir" && go mod download 2>&1)
-            mod_download_exit_code=$?
-            if [ $mod_download_exit_code -ne 0 ]; then
-                echo "Go module download failed:"
-                echo "$mod_download_output"
-                exit 1
-            fi
-        fi
-        
-        # Run Go version
-        note_fixture_phase "go run"
-        go_output=$(cd "$test_dir" && go run . 2>&1)
-        go_exit_code=$?
-        
-        if [ $go_exit_code -ne 0 ]; then
-            echo "Go compilation/execution failed:"
-            echo "$go_output"
-            exit 1
-        fi
-        
-        # Check if expected output exists and compare
-        expected_file="$test_dir/expected_output.txt"
-        if [ -f "$expected_file" ]; then
-            expected_output=$(cat "$expected_file")
-            if [ "$go_output" != "$expected_output" ]; then
-                echo ""
-                echo "ERROR: Go output doesn'"'"'t match expected (non-deterministic?):"
-                echo ""
-                echo "Expected output:"
-                echo "$expected_output"
-                echo ""
-                echo "Actual Go output:"
-                echo "$go_output"
-                echo ""
-                echo "This likely means the Go test produces non-deterministic output."
-                echo "Please update the test to ensure deterministic output (e.g., sort map keys before iteration)."
-                exit 1
-            fi
-        else
-            # Save the Go output as expected for future runs
-            echo "$go_output" > "$expected_file"
-        fi
-        
-        # Use the shared helper for transpilation and comparison
-        run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir" "$phase_file" "$phase_detail_file"; then
+    if timeout -k "$kill_after" "$timeout" bash tests/support/run_fixture.sh "$test_dir" "$phase_file" "$phase_detail_file"; then
         exit_code=0
     else
         exit_code=$?
     fi
-    if [ $exit_code -ne 0 ]; then
-        if [ $exit_code -eq 124 ]; then
+    if [[ "$exit_code" -ne 0 ]]; then
+        if [[ "$exit_code" -eq 124 ]]; then
             report_fixture_timeout "$timeout" "$phase_file" "$phase_detail_file"
         fi
         rm -f "$phase_file" "$phase_detail_file"
@@ -407,6 +347,8 @@ run_xfail_test() {
     export -f run_transpile_and_compare
     export -f compare_outputs
     export -f note_fixture_phase
+    export -f fixture_config_value
+    export -f indent_lines
 
     local phase_file
     phase_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX")
@@ -414,78 +356,16 @@ run_xfail_test() {
     phase_detail_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-cargo-output.XXXXXX")
     
     # Run the entire test with timeout
-    # shellcheck disable=SC2016
     local exit_code=0
-    if timeout -k "$kill_after" "$timeout" bash -c '
-        test_dir="$1"
-        test_name="$2"
-        phase_file="$3"
-        phase_detail_file="$4"
-        export GO2RUST_TEST_PHASE_FILE="$phase_file"
-        export GO2RUST_TEST_PHASE_DETAIL_FILE="$phase_detail_file"
-        note_fixture_phase "allocating temp workspace"
-        test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
-        echo "$$" > "$test_tmp_root/go2rust-test.pid"
-        trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
-        export GO2RUST_TEST_TMP="$test_tmp_root"
-        
-        # Build Go version
-        note_fixture_phase "go build"
-        go_build_output=$(cd "$test_dir" && go build -o "$test_name" . 2>&1)
-        if [ $? -ne 0 ]; then
-            echo "ERROR: XFAIL test '"'"'$test_name'"'"' does not compile:"
-            echo "$go_build_output"
-            exit 2
-        fi
-        
-        # Run Go binary
-        note_fixture_phase "go run"
-        go_output=$(cd "$test_dir" && ./"$test_name" 2>&1)
-        go_exit_code=$?
-        
-        # Clean up Go binary
-        rm -f "$test_dir/$test_name"
-        
-        if [ $go_exit_code -ne 0 ]; then
-            echo "Go execution failed:"
-            echo "$go_output"
-            exit 2
-        fi
-        
-        # Check if expected output exists and compare
-        expected_file="$test_dir/expected_output.txt"
-        if [ -f "$expected_file" ]; then
-            expected_output=$(cat "$expected_file")
-            if [ "$go_output" != "$expected_output" ]; then
-                echo ""
-                echo "ERROR: Go output doesn'"'"'t match expected (non-deterministic?):"
-                echo ""
-                echo "Expected output:"
-                echo "$expected_output"
-                echo ""
-                echo "Actual Go output:"
-                echo "$go_output"
-                echo ""
-                echo "This likely means the Go test produces non-deterministic output."
-                echo "Please update the test to ensure deterministic output (e.g., sort map keys before iteration)."
-                exit 2
-            fi
-        else
-            # Save the Go output as expected for future runs
-            echo "$go_output" > "$expected_file"
-        fi
-        
-        # Use the shared helper for transpilation and comparison
-        run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir" "$test_name" "$phase_file" "$phase_detail_file"; then
+    if timeout -k "$kill_after" "$timeout" bash tests/support/run_xfail_fixture.sh "$test_dir" "$test_name" "$phase_file" "$phase_detail_file"; then
         exit_code=0
     else
         exit_code=$?
     fi
-    if [ $exit_code -ne 0 ]; then
-        if [ $exit_code -eq 124 ]; then
+    if [[ "$exit_code" -ne 0 ]]; then
+        if [[ "$exit_code" -eq 124 ]]; then
             report_fixture_timeout "$timeout" "$phase_file" "$phase_detail_file"
-        elif [ $exit_code -eq 2 ]; then
+        elif [[ "$exit_code" -eq 2 ]]; then
             # Compilation failure or other problem in the Go code itself- this is a real error for XFAIL tests
             rm -f "$phase_file" "$phase_detail_file"
             return 1
@@ -493,13 +373,13 @@ run_xfail_test() {
         rm -f "$phase_file" "$phase_detail_file"
         # Other failures are expected for XFAIL
         # But if we're running specific tests (not all tests), fail so we see the output
-        if [ "$SHOW_XFAIL_ERRORS" = "true" ]; then
+        if [[ "${SHOW_XFAIL_ERRORS:-false}" = "true" ]]; then
             return 1
         fi
         return 0
     else
         rm -f "$phase_file" "$phase_detail_file"
-        if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then
+        if [[ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]]; then
             return 0
         fi
         # Test passed - promote it!

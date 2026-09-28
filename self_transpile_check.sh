@@ -54,7 +54,7 @@ cargo_check=false
 behavior_suite=false
 packages=()
 
-while [ "$#" -gt 0 ]; do
+while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --cargo-check)
             cargo_check=true
@@ -65,7 +65,7 @@ while [ "$#" -gt 0 ]; do
             shift
             ;;
         --package|-p)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --package requires a crate name" >&2
                 exit 2
             fi
@@ -88,7 +88,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 tmp_root="${TMPDIR:-/private/tmp}"
 
 cleanup_stale_self_workspaces() {
-    [ "${GO2RUST_SELF_CLEAN_STALE:-1}" = "0" ] && return
+    [[ "${GO2RUST_SELF_CLEAN_STALE:-1}" = "0" ]] && return
     "$repo_root/cleanup.sh" --age-minutes "${GO2RUST_SELF_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 }
 
@@ -123,7 +123,7 @@ enforce_available_memory_floor() {
 }
 
 cleanup_stale_self_workspaces
-if [ "$cargo_check" = true ] || [ "$behavior_suite" = true ]; then
+if [[ "$cargo_check" = true ]] || [[ "$behavior_suite" = true ]]; then
     SELF_PRESSURE_MIN_ENV=GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB
     SELF_PRESSURE_DEFAULT_MIN_MB=2048
     SELF_PRESSURE_LABEL="self-transpile Cargo validation"
@@ -150,7 +150,7 @@ echo "$$" > "$work/self_transpile_check.pid"
 
 cleanup() {
     status=$?
-    if [ "$keep" = "1" ]; then
+    if [[ "$keep" = "1" ]]; then
         echo "Preserved self-transpile workspace: $work" >&2
     else
         rm -rf "$work"
@@ -198,9 +198,9 @@ run_self_with_pressure_monitor go build -o "$work/go2rust" "$repo_root/go"
     run_self_with_pressure_monitor ./go2rust go
 )
 
-if [ "$cargo_check" = true ]; then
+if [[ "$cargo_check" = true ]]; then
     export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$work/cargo-target}"
-    if [ "${#packages[@]}" -eq 0 ]; then
+    if [[ "${#packages[@]}" -eq 0 ]]; then
         (
             cd "$work/go"
             run_self_with_pressure_monitor cargo "${cargo_offline_args[@]}" check --workspace --message-format=short
@@ -215,7 +215,7 @@ if [ "$cargo_check" = true ]; then
     fi
 fi
 
-if [ "$behavior_suite" = true ]; then
+if [[ "$behavior_suite" = true ]]; then
     export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$work/cargo-target}"
     (
         cd "$work/go"
@@ -236,13 +236,9 @@ if [ "$behavior_suite" = true ]; then
 
     (
         cd "$suite"
-        behavior_tests=()
-        if [ -n "${GO2RUST_BEHAVIOR_TESTS:-}" ]; then
-            # shellcheck disable=SC2206
-            behavior_tests=(${GO2RUST_BEHAVIOR_TESTS})
-        fi
+        read -r -a behavior_tests <<< "${GO2RUST_BEHAVIOR_TESTS:-}"
         behavior_args=(-t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}")
-        if [ -n "${GO2RUST_BEHAVIOR_JOBS:-}" ]; then
+        if [[ -n "${GO2RUST_BEHAVIOR_JOBS:-}" ]]; then
             behavior_args=(-n "$GO2RUST_BEHAVIOR_JOBS" "${behavior_args[@]}")
         fi
         export GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go"

@@ -50,11 +50,11 @@ invoked_without_args=false
 top_temp_count="${GO2RUST_CLEANUP_TOP_TEMP_COUNT:-0}"
 top_code_count="${GO2RUST_CLEANUP_TOP_CODE_COUNT:-0}"
 
-if [ "$#" -eq 0 ]; then
+if [[ "$#" -eq 0 ]]; then
     invoked_without_args=true
 fi
 
-while [ "$#" -gt 0 ]; do
+while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --dry-run)
             dry_run=true
@@ -90,7 +90,7 @@ while [ "$#" -gt 0 ]; do
             shift
             ;;
         --age-minutes)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --age-minutes requires a value" >&2
                 exit 2
             fi
@@ -99,7 +99,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --top-temp)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --top-temp requires a value" >&2
                 exit 2
             fi
@@ -107,7 +107,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --top-code)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --top-code requires a value" >&2
                 exit 2
             fi
@@ -130,36 +130,30 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-case "$age_minutes" in
-    ''|*[!0-9]*)
-        echo "error: --age-minutes must be a non-negative integer" >&2
-        exit 2
-        ;;
-esac
+if [[ ! "$age_minutes" =~ ^[0-9]+$ ]]; then
+    echo "error: --age-minutes must be a non-negative integer" >&2
+    exit 2
+fi
 
-case "$top_temp_count" in
-    ''|*[!0-9]*)
-        echo "error: --top-temp must be a non-negative integer" >&2
-        exit 2
-        ;;
-esac
+if [[ ! "$top_temp_count" =~ ^[0-9]+$ ]]; then
+    echo "error: --top-temp must be a non-negative integer" >&2
+    exit 2
+fi
 
-case "$top_code_count" in
-    ''|*[!0-9]*)
-        echo "error: --top-code must be a non-negative integer" >&2
-        exit 2
-        ;;
-esac
+if [[ ! "$top_code_count" =~ ^[0-9]+$ ]]; then
+    echo "error: --top-code must be a non-negative integer" >&2
+    exit 2
+fi
 
-if [ "$pressure" = true ] && [ "$age_minutes_explicit" = false ]; then
+if [[ "$pressure" = true ]] && [[ "$age_minutes_explicit" = false ]]; then
 	age_minutes=0
 fi
 
-if [ "$pressure" = true ] && [ "$top_temp_count" -eq 0 ] && [ "$top_code_count" -eq 0 ]; then
+if [[ "$pressure" = true ]] && [[ "$top_temp_count" -eq 0 ]] && [[ "$top_code_count" -eq 0 ]]; then
 	quick=true
 fi
 
-if [ "$invoked_without_args" = true ]; then
+if [[ "$invoked_without_args" = true ]]; then
 	pressure=true
 	quick=true
 	summary=true
@@ -208,14 +202,14 @@ vm_stat_pages_for_label() {
 format_pages_kib() {
     local pages="$1"
     local page_size="$2"
-    [ -n "$pages" ] || pages=0
+    [[ -n "$pages" ]] || pages=0
     format_kib "$((pages * page_size / 1024))"
 }
 
 process_snapshot_from_aux() {
     local snapshot
     snapshot=$(ps auxww 2>/dev/null || true)
-    [ -n "$snapshot" ] || return 0
+    [[ -n "$snapshot" ]] || return 0
     printf '%s\n' "$snapshot" | awk '
         NR == 1 {
             printf "%5s %5s %5s %5s %6s %s\n", "PID", "PPID", "%CPU", "%MEM", "RSS", "COMMAND"
@@ -234,41 +228,41 @@ process_snapshot_from_aux() {
 process_snapshot_by_cpu() {
     local snapshot
     snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null || true)
-    if [ -n "$snapshot" ]; then
+    if [[ -n "$snapshot" ]]; then
         printf '%s\n' "$snapshot"
         return
     fi
     snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,comm -r 2>/dev/null || true)
-    if [ -n "$snapshot" ]; then
+    if [[ -n "$snapshot" ]]; then
         printf '%s\n' "$snapshot"
         return
     fi
-    process_snapshot_from_aux || true
+    process_snapshot_from_aux
 }
 
 process_snapshot_by_memory() {
     local snapshot
     snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,command -m 2>/dev/null || true)
-    if [ -n "$snapshot" ]; then
+    if [[ -n "$snapshot" ]]; then
         printf '%s\n' "$snapshot"
         return
     fi
     snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,comm -m 2>/dev/null || true)
-    if [ -n "$snapshot" ]; then
+    if [[ -n "$snapshot" ]]; then
         printf '%s\n' "$snapshot"
         return
     fi
-    process_snapshot_from_aux || true
+    process_snapshot_from_aux
 }
 
 process_listing_error_suffix() {
     local error
     error=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>&1 >/dev/null || true)
-    if [ -z "$error" ]; then
+    if [[ -z "$error" ]]; then
         error=$(ps auxww 2>&1 >/dev/null || true)
     fi
     error=$(printf '%s' "$error" | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/^ //; s/ $//')
-    if [ -n "$error" ]; then
+    if [[ -n "$error" ]]; then
         printf ' (ps: %s)' "$error"
     fi
 }
@@ -276,13 +270,20 @@ process_listing_error_suffix() {
 print_size_row() {
     local label="$1"
     local path="$2"
-    [ -e "$path" ] || return 0
+    [[ -e "$path" ]] || return 0
 
     local size_kib
     size_kib=$(path_size_kib "$path")
-    [ -n "$size_kib" ] || return 0
+    [[ -n "$size_kib" ]] || return 0
 
-    printf "%8s  %s\n" "$(format_kib "$size_kib")" "$label"
+    local size_label
+    size_label=$(format_kib "$size_kib")
+    printf "%8s  %s\n" "$size_label" "$label"
+}
+
+print_home_size_row() {
+    local home_path="${HOME:-}/$1"
+    print_size_row "${home_path/#"${HOME:-}"/\~}" "$home_path"
 }
 
 print_disk_hotspots() {
@@ -291,35 +292,37 @@ print_disk_hotspots() {
     print_size_row "repo" "$repo_root"
     print_size_row "TMPDIR" "${TMPDIR:-/tmp}"
     print_size_row "/private/tmp" "/private/tmp"
-    if [ "$quick" = true ]; then
+    if [[ "$quick" = true ]]; then
         echo "Skipped wider home and Code scans in quick mode."
         return
     fi
-    print_size_row "~/Code" "${HOME:-}/Code"
-    print_size_row "~/Library/Caches" "${HOME:-}/Library/Caches"
-    print_size_row "~/Library/Developer" "${HOME:-}/Library/Developer"
-    print_size_row "~/Library/Application Support" "${HOME:-}/Library/Application Support"
-    print_size_row "~/Pictures" "${HOME:-}/Pictures"
-    print_size_row "~/.cargo" "${HOME:-}/.cargo"
+    print_home_size_row "Code"
+    print_home_size_row "Library/Caches"
+    print_home_size_row "Library/Developer"
+    print_home_size_row "Library/Application Support"
+    print_home_size_row "Pictures"
+    print_home_size_row ".cargo"
 }
 
 print_size_rows_from_paths() {
     local rows="$1"
-    if [ -z "$rows" ]; then
+    if [[ -z "$rows" ]]; then
         echo "none found"
         return
     fi
 
     while IFS=$'\t' read -r size_kib path; do
-        printf "%8s  %s\n" "$(format_kib "$size_kib")" "$path"
+        local size_label
+        size_label=$(format_kib "$size_kib")
+        printf "%8s  %s\n" "$size_label" "$path"
     done <<< "$rows"
 }
 
 print_top_code_paths() {
-    [ "$top_code_count" -gt 0 ] || return 0
+    [[ "$top_code_count" -gt 0 ]] || return 0
 
     local code_root="${HOME:-}/Code"
-    [ -d "$code_root" ] || return 0
+    [[ -d "$code_root" ]] || return 0
 
     echo
     echo "Largest Code workspaces:"
@@ -329,9 +332,9 @@ print_top_code_paths() {
         while IFS= read -r path; do
             local size_kib
             size_kib=$(path_size_kib "$path")
-            [ -n "$size_kib" ] || continue
+            [[ -n "$size_kib" ]] || continue
             printf '%s\t%s\n' "$size_kib" "$path"
-        done < <(find "$code_root" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null) |
+        done < <(find "$code_root" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null || true) |
             sort -nr | awk -v limit="$top_code_count" 'NR <= limit'
     )
     print_size_rows_from_paths "$rows"
@@ -342,7 +345,7 @@ print_top_code_paths() {
         while IFS= read -r path; do
             local size_kib
             size_kib=$(path_size_kib "$path")
-            [ -n "$size_kib" ] || continue
+            [[ -n "$size_kib" ]] || continue
             printf '%s\t%s\n' "$size_kib" "$path"
         done < <(find "$code_root" -mindepth 2 -maxdepth 4 -type d \( \
             -name target -o \
@@ -350,35 +353,29 @@ print_top_code_paths() {
             -name node_modules -o \
             -name .next -o \
             -name dist \
-        \) -prune -print 2>/dev/null) |
+        \) -prune -print 2>/dev/null || true) |
             sort -nr | awk -v limit="$top_code_count" 'NR <= limit'
     )
     print_size_rows_from_paths "$rows"
 }
 
 print_top_temp_paths() {
-    [ "$top_temp_count" -gt 0 ] || return 0
+    [[ "$top_temp_count" -gt 0 ]] || return 0
 
     echo
     echo "Largest temp paths:"
 
     local rows
     rows=$(
-        local seen_roots=""
         for root in "${tmp_roots[@]}"; do
-            [ -n "$root" ] || continue
-            case ":$seen_roots:" in
-                *":$root:"*) continue ;;
-            esac
-            seen_roots="$seen_roots:$root"
-            [ -d "$root" ] || continue
+            [[ -d "$root" ]] || continue
 
             while IFS= read -r path; do
                 local size_kib
                 size_kib=$(path_size_kib "$path")
-                [ -n "$size_kib" ] || continue
+                [[ -n "$size_kib" ]] || continue
                 printf '%s\t%s\n' "$size_kib" "$path"
-            done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) -print 2>/dev/null)
+            done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) -print 2>/dev/null || true)
         done | sort -nr | awk -v limit="$top_temp_count" 'NR <= limit'
     )
 
@@ -388,16 +385,16 @@ print_top_temp_paths() {
 remove_path() {
     local path="$1"
     local size=""
-    if [ "$show_sizes" = true ]; then
+    if [[ "$show_sizes" = true ]]; then
         local size_kib
         size_kib=$(path_size_kib "$path")
-        if [ -n "$size_kib" ]; then
+        if [[ -n "$size_kib" ]]; then
             total_kib=$((total_kib + size_kib))
             size=" ($(format_kib "$size_kib"))"
         fi
     fi
     candidate_count=$((candidate_count + 1))
-    if [ "$dry_run" = true ]; then
+    if [[ "$dry_run" = true ]]; then
         echo "would remove: $path$size"
     else
         echo "removing: $path$size"
@@ -407,11 +404,11 @@ remove_path() {
 
 pid_is_active() {
     local pid_file="$1"
-    [ -f "$pid_file" ] || return 1
+    [[ -f "$pid_file" ]] || return 1
 
     local pid
     pid=$(cat "$pid_file" 2>/dev/null || true)
-    [ -n "$pid" ] || return 1
+    [[ -n "$pid" ]] || return 1
     kill -0 "$pid" 2>/dev/null
 }
 
@@ -422,7 +419,7 @@ pid_command() {
 
 print_pressure_report() {
     echo "Cleanup script: $repo_root/cleanup.sh"
-    if [ "$quick" = true ]; then
+    if [[ "$quick" = true ]]; then
         echo "Mode: quick pressure summary; no files will be removed."
     else
         echo "Mode: pressure summary; no files will be removed."
@@ -436,12 +433,10 @@ print_pressure_report() {
 
     echo
     echo "Memory:"
-    if [ -n "$vm_stat_snapshot" ]; then
+    if [[ -n "$vm_stat_snapshot" ]]; then
         local page_size
         page_size=$(printf '%s\n' "$vm_stat_snapshot" | awk -F'of | bytes' '/page size of/ { print $2; exit }')
-        case "$page_size" in
-            ''|*[!0-9]*) page_size=4096 ;;
-        esac
+        [[ "$page_size" =~ ^[0-9]+$ ]] || page_size=4096
 
         local free_pages speculative_pages compressed_pages compressor_pages pageouts swapouts
         free_pages=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pages free")
@@ -451,9 +446,14 @@ print_pressure_report() {
         pageouts=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pageouts")
         swapouts=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Swapouts")
 
-        echo "Free: $(format_pages_kib "$free_pages" "$page_size")"
-        echo "Speculative: $(format_pages_kib "$speculative_pages" "$page_size")"
-        echo "Compressed: $(format_pages_kib "$compressed_pages" "$page_size") stored / $(format_pages_kib "$compressor_pages" "$page_size") occupied"
+        local free_size speculative_size compressed_size compressor_size
+        free_size=$(format_pages_kib "$free_pages" "$page_size")
+        speculative_size=$(format_pages_kib "$speculative_pages" "$page_size")
+        compressed_size=$(format_pages_kib "$compressed_pages" "$page_size")
+        compressor_size=$(format_pages_kib "$compressor_pages" "$page_size")
+        echo "Free: $free_size"
+        echo "Speculative: $speculative_size"
+        echo "Compressed: $compressed_size stored / $compressor_size occupied"
         echo "Pageouts: ${pageouts:-0} page(s)"
         echo "Swapouts: ${swapouts:-0} page(s)"
     else
@@ -467,13 +467,13 @@ print_pressure_report() {
     process_mem_snapshot=$(process_snapshot_by_memory)
 
     local process_error_suffix=""
-    if [ -z "$process_cpu_snapshot" ] || [ -z "$process_mem_snapshot" ]; then
+    if [[ -z "$process_cpu_snapshot" ]] || [[ -z "$process_mem_snapshot" ]]; then
         process_error_suffix=$(process_listing_error_suffix)
     fi
 
     echo
     echo "Process group summary:"
-    if [ -n "$process_cpu_snapshot" ]; then
+    if [[ -n "$process_cpu_snapshot" ]]; then
         printf '%s\n' "$process_cpu_snapshot" | awk -v repo_root="$repo_root" '
             NR == 1 {
                 next
@@ -551,7 +551,7 @@ print_pressure_report() {
 
     echo
     echo "Top CPU processes:"
-    if [ -n "$process_cpu_snapshot" ]; then
+    if [[ -n "$process_cpu_snapshot" ]]; then
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR <= 15'
     else
         echo "unavailable: process listing was denied or returned no data$process_error_suffix"
@@ -559,7 +559,7 @@ print_pressure_report() {
 
     echo
     echo "Top memory processes:"
-    if [ -n "$process_mem_snapshot" ]; then
+    if [[ -n "$process_mem_snapshot" ]]; then
         printf '%s\n' "$process_mem_snapshot" | awk 'NR <= 15'
     else
         echo "unavailable: process listing was denied or returned no data$process_error_suffix"
@@ -585,10 +585,10 @@ print_pressure_report() {
             }
         ' |
         awk 'NR <= 25')
-    if [ -n "$validation_processes" ]; then
+    if [[ -n "$validation_processes" ]]; then
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1'
         printf '%s\n' "$validation_processes"
-    elif [ -n "$process_cpu_snapshot" ]; then
+    elif [[ -n "$process_cpu_snapshot" ]]; then
         echo "none found"
     else
         echo "none found, or process listing was denied$process_error_suffix"
@@ -619,10 +619,10 @@ print_pressure_report() {
             }
         ' |
         awk 'NR <= 25')
-    if [ -n "$compiler_processes" ]; then
-        printf "%-20s %s\n" "Scope" "$(printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1')"
+    if [[ -n "$compiler_processes" ]]; then
+        printf "%-20s %s\n" "Scope" "${process_cpu_snapshot%%$'\n'*}"
         printf '%s\n' "$compiler_processes"
-    elif [ -n "$process_cpu_snapshot" ]; then
+    elif [[ -n "$process_cpu_snapshot" ]]; then
         echo "none found"
     else
         echo "none found, or process listing was denied$process_error_suffix"
@@ -637,12 +637,12 @@ print_pressure_report() {
 
 active_pid_from_file() {
     local pid_file="$1"
-    [ -f "$pid_file" ] || return 1
+    [[ -f "$pid_file" ]] || return 0
 
     local pid
     pid=$(cat "$pid_file" 2>/dev/null || true)
-    [ -n "$pid" ] || return 1
-    kill -0 "$pid" 2>/dev/null || return 1
+    [[ -n "$pid" ]] || return 0
+    kill -0 "$pid" 2>/dev/null || return 0
     printf '%s\n' "$pid"
 }
 
@@ -651,10 +651,10 @@ report_active_path() {
     local pid_name="$2"
     local pid="$3"
     local size=""
-    if [ "$show_sizes" = true ]; then
+    if [[ "$show_sizes" = true ]]; then
         local size_kib
         size_kib=$(path_size_kib "$path")
-        if [ -n "$size_kib" ]; then
+        if [[ -n "$size_kib" ]]; then
             active_kib=$((active_kib + size_kib))
             size=" ($(format_kib "$size_kib"))"
         fi
@@ -663,7 +663,7 @@ report_active_path() {
 
     local command
     command=$(pid_command "$pid")
-    if [ -n "$command" ]; then
+    if [[ -n "$command" ]]; then
         echo "active: $path$size (pid $pid via $pid_name: $command)"
     else
         echo "active: $path$size (pid $pid via $pid_name)"
@@ -675,9 +675,9 @@ maybe_remove_temp_dir() {
 
     for pid_name in self_transpile_check.pid go2rust-test.pid go2rust-vet.pid pid; do
         local active_pid
-        active_pid=$(active_pid_from_file "$dir/$pid_name" || true)
-        if [ -n "$active_pid" ]; then
-            if [ "$show_active" = true ]; then
+        active_pid=$(active_pid_from_file "$dir/$pid_name")
+        if [[ -n "$active_pid" ]]; then
+            if [[ "$show_active" = true ]]; then
                 report_active_path "$dir" "$pid_name" "$active_pid"
             fi
             return
@@ -689,10 +689,10 @@ maybe_remove_temp_dir() {
 
 cleanup_temp_root() {
     local root="$1"
-    [ -d "$root" ] || return 0
+    [[ -d "$root" ]] || return 0
 
     local -a age_args=()
-    if [ "$age_minutes" -gt 0 ]; then
+    if [[ "$age_minutes" -gt 0 ]]; then
         age_args=(-mmin +"$age_minutes")
     fi
 
@@ -726,7 +726,7 @@ cleanup_temp_root() {
         -name 'go2rust-*-debug' -o \
         -name 'go2rust-rust-work.*' -o \
         -name 'go2rust-*' \
-    \) -print 2>/dev/null)
+    \) -print 2>/dev/null || true)
 
     while IFS= read -r file; do
         remove_path "$file"
@@ -741,32 +741,31 @@ cleanup_temp_root() {
         -name 'go2rust-rust-diff.*' -o \
         -name 'go2rust-stdout.*' -o \
         -name 'go2rust-stderr.*' \
-    \) -print 2>/dev/null)
+    \) -print 2>/dev/null || true)
 }
 
 cleanup_ignored_test_locks() {
     local tests_root="$repo_root/tests"
-    [ -d "$tests_root" ] || return 0
+    [[ -d "$tests_root" ]] || return 0
 
     while IFS= read -r path; do
-        local rel="${path#$repo_root/}"
+        local rel="${path#"$repo_root"/}"
         if git -C "$repo_root" ls-files --error-unmatch "$rel" >/dev/null 2>&1; then
             continue
         fi
         if git -C "$repo_root" check-ignore -q -- "$rel"; then
             remove_path "$path"
         fi
-    done < <(find "$tests_root" -type f -name Cargo.lock -print 2>/dev/null)
+    done < <(find "$tests_root" -type f -name Cargo.lock -print 2>/dev/null || true)
 }
 
 tmp_roots=()
+tmp_root_list=":"
 add_tmp_root() {
-    local root="$1"
-    [ -n "$root" ] || return 0
-    case "$root" in
-        */) root="${root%/}" ;;
-    esac
-    [ -n "$root" ] || return 0
+    local root="${1%/}"
+    [[ -n "$root" ]] || return 0
+    [[ "$tmp_root_list" != *":$root:"* ]] || return 0
+    tmp_root_list="$tmp_root_list$root:"
     tmp_roots+=("$root")
 }
 
@@ -774,38 +773,34 @@ add_tmp_root "${TMPDIR:-}"
 add_tmp_root "/tmp"
 add_tmp_root "/private/tmp"
 
-if [ "$pressure" = true ]; then
+if [[ "$pressure" = true ]]; then
     print_pressure_report
     echo "Cleanup candidates:"
 fi
 
-if [ "$remove_repo_artifacts" = true ]; then
+if [[ "$remove_repo_artifacts" = true ]]; then
     for path in "$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go" "$repo_root/target"; do
-        if [ -e "$path" ] && ! git -C "$repo_root" ls-files --error-unmatch "${path#$repo_root/}" >/dev/null 2>&1; then
+        if [[ -e "$path" ]] && ! git -C "$repo_root" ls-files --error-unmatch "${path#"$repo_root"/}" >/dev/null 2>&1; then
             remove_path "$path"
         fi
     done
     cleanup_ignored_test_locks
 fi
 
-seen_roots=""
 for root in "${tmp_roots[@]}"; do
-    [ -n "$root" ] || continue
-    case ":$seen_roots:" in
-        *":$root:"*) continue ;;
-    esac
-    seen_roots="$seen_roots:$root"
     cleanup_temp_root "$root"
 done
 
-if [ "$summary" = true ]; then
-    echo "Total reclaimable: $(format_kib "$total_kib") across $candidate_count path(s)"
-    if [ "$show_active" = true ]; then
-        echo "Active skipped: $(format_kib "$active_kib") across $active_count path(s)"
+if [[ "$summary" = true ]]; then
+    total_size=$(format_kib "$total_kib")
+    echo "Total reclaimable: $total_size across $candidate_count path(s)"
+    if [[ "$show_active" = true ]]; then
+        active_size=$(format_kib "$active_kib")
+        echo "Active skipped: $active_size across $active_count path(s)"
     fi
-elif [ "$candidate_count" -eq 0 ]; then
+elif [[ "$candidate_count" -eq 0 ]]; then
     echo "No cleanup candidates found."
-    if [ "$invoked_without_args" = true ]; then
+    if [[ "$invoked_without_args" = true ]]; then
         echo "For disk/memory/process diagnostics, run: ./cleanup.sh --pressure --keep-repo-artifacts"
     fi
 fi

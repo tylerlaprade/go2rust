@@ -21,7 +21,7 @@ Examples:
 EOF
 }
 
-if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+if [[ "${1:-}" = "-h" ]] || [[ "${1:-}" = "--help" ]]; then
     usage
     exit 0
 fi
@@ -31,8 +31,8 @@ GO_TEST_GOCACHE_DIR=""
 
 cleanup() {
     status=$?
-    if [ -n "$GO_TEST_GOCACHE_DIR" ]; then
-        if [ "${KEEP_GO2RUST_GO_TEST_CACHE:-0}" = "1" ]; then
+    if [[ -n "$GO_TEST_GOCACHE_DIR" ]]; then
+        if [[ "${KEEP_GO2RUST_GO_TEST_CACHE:-0}" = "1" ]]; then
             echo "Preserved Go test cache: $GO_TEST_GOCACHE_DIR" >&2
         else
             rm -rf "$GO_TEST_GOCACHE_DIR"
@@ -42,7 +42,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [ "${GO2RUST_GO_TEST_CLEAN_STALE:-1}" != "0" ]; then
+if [[ "${GO2RUST_GO_TEST_CLEAN_STALE:-1}" != "0" ]]; then
     "$repo_root/cleanup.sh" --age-minutes "${GO2RUST_GO_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 fi
 
@@ -58,7 +58,7 @@ enforce_available_memory_floor() {
 cd "$repo_root"
 enforce_available_memory_floor
 
-if [ -z "${GOCACHE:-}" ]; then
+if [[ -z "${GOCACHE:-}" ]]; then
     GO_TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
     echo "$$" > "$GO_TEST_GOCACHE_DIR/go2rust-test.pid"
     export GOCACHE="$GO_TEST_GOCACHE_DIR"

@@ -71,8 +71,8 @@ func TestCleanupScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
 		`pid_is_active()`,
 		`active_pid_from_file()`,
 		`maybe_remove_temp_dir()`,
-		`active_pid=$(active_pid_from_file "$dir/$pid_name" || true)`,
-		`if [ -n "$active_pid" ]; then`,
+		`active_pid=$(active_pid_from_file "$dir/$pid_name")`,
+		`if [[ -n "$active_pid" ]]; then`,
 		`while IFS= read -r dir; do`,
 		`maybe_remove_temp_dir "$dir"`,
 		`self_transpile_check.pid`,
@@ -98,9 +98,8 @@ func TestCleanupScriptStaleSweepScansCanonicalTempRoots(t *testing.T) {
 		`add_tmp_root "${TMPDIR:-}"`,
 		`add_tmp_root "/tmp"`,
 		`add_tmp_root "/private/tmp"`,
-		`case "$root" in`,
-		`*/) root="${root%/}" ;;`,
-		`case ":$seen_roots:" in`,
+		`local root="${1%/}"`,
+		`[[ "$tmp_root_list" != *":$root:"* ]] || return 0`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh stale-temp sweep should scan canonical temp roots; missing %q", want)
@@ -150,8 +149,8 @@ func TestTestScriptDefaultsGoCacheToTemp(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`TEST_GOCACHE_DIR=""`,
-		`[ -n "$TEST_GOCACHE_DIR" ] && rm -rf "$TEST_GOCACHE_DIR"`,
-		`if [ -z "${GOCACHE:-}" ]; then`,
+		`[[ -n "$TEST_GOCACHE_DIR" ]] && rm -rf "$TEST_GOCACHE_DIR"`,
+		`if [[ -z "${GOCACHE:-}" ]]; then`,
 		`TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")`,
 		`export GOCACHE="$TEST_GOCACHE_DIR"`,
 	} {
@@ -168,7 +167,7 @@ func TestTestScriptHelpExitsBeforeGeneratedFiles(t *testing.T) {
 	}
 	script := string(data)
 	parseIndex := strings.Index(script, "# Parse command line arguments before acquiring the test lock")
-	helpExitIndex := strings.Index(script, `if [ "$HELP" = true ]; then`)
+	helpExitIndex := strings.Index(script, `if [[ "$HELP" = true ]]; then`)
 	lockIndex := strings.Index(script, "# Single-instance lock")
 	generateIndex := strings.Index(script, "# Generate test cases and update the GENERATED TESTS section in tests.bats")
 	if parseIndex < 0 || helpExitIndex < 0 || lockIndex < 0 || generateIndex < 0 {
@@ -243,7 +242,7 @@ func TestGoTestScriptUsesOwnedTempGoCache(t *testing.T) {
 		`GO_TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")`,
 		`echo "$$" > "$GO_TEST_GOCACHE_DIR/go2rust-test.pid"`,
 		`export GOCACHE="$GO_TEST_GOCACHE_DIR"`,
-		`[ -n "$GO_TEST_GOCACHE_DIR" ]`,
+		`[[ -n "$GO_TEST_GOCACHE_DIR" ]]`,
 		`rm -rf "$GO_TEST_GOCACHE_DIR"`,
 		`go test ./go "$@"`,
 	} {
@@ -300,7 +299,7 @@ func TestPressureGuardScriptOwnsAvailableMemoryDetection(t *testing.T) {
 		`--min-env`,
 		`--default-min-mb`,
 		`--skip-env`,
-		`truthy_env()`,
+		`"${!skip_env:-}" =~ ^(1|true|TRUE|yes|YES)$`,
 		`detect_available_memory_bytes()`,
 		`/MemAvailable/`,
 		`vm_stat`,
@@ -509,7 +508,7 @@ func TestTestScriptTranspileOnlySkipsCargoPressureGuard(t *testing.T) {
 		`TRANSPILE_ONLY=true`,
 		`export GO2RUST_TEST_TRANSPILE_ONLY=1`,
 		`Transpile-only mode: skipping fixture Cargo build/run.`,
-		`if [ "$TRANSPILE_ONLY" = true ]; then`,
+		`if [[ "$TRANSPILE_ONLY" = true ]]; then`,
 		`GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB`,
 		`enforce_fixture_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`,
 		`enforce_fixture_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
@@ -598,7 +597,7 @@ func TestFixtureCargoUsesCachedOfflineMode(t *testing.T) {
 	}
 	for _, want := range []string{
 		`cargo_run_quiet()`,
-		`cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})`,
+		`read -r -a cargo_offline_args <<< "${GO2RUST_CARGO_OFFLINE_ARGS:-}"`,
 		`run_with_prefix cargo "${cargo_offline_args[@]}" run --quiet`,
 		`cargo "${cargo_offline_args[@]}" run --quiet`,
 	} {
@@ -639,11 +638,7 @@ func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
 }
 
 func TestBatsMarksPerTestTempRootOwner(t *testing.T) {
-	data, err := os.ReadFile("../tests.bats")
-	if err != nil {
-		t.Fatalf("ReadFile(tests.bats) error = %v", err)
-	}
-	script := string(data)
+	script := readBatsWithFixtureRunners(t)
 	for _, want := range []string{
 		`test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")`,
 		`echo "$$" > "$test_tmp_root/go2rust-test.pid"`,
@@ -662,7 +657,7 @@ func TestBatsTranspileOnlySkipsCargoWithoutXfailPromotion(t *testing.T) {
 	}
 	script := string(data)
 	for _, want := range []string{
-		`if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then`,
+		`if [[ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]]; then`,
 		`return 0`,
 		`note_fixture_phase "cargo build"`,
 		`Promoting XFAIL test`,
@@ -672,7 +667,7 @@ func TestBatsTranspileOnlySkipsCargoWithoutXfailPromotion(t *testing.T) {
 		}
 	}
 
-	transpileOnlyIndex := strings.Index(script, `if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then`)
+	transpileOnlyIndex := strings.Index(script, `if [[ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]]; then`)
 	cargoBuildIndex := strings.Index(script, `note_fixture_phase "cargo build"`)
 	if transpileOnlyIndex < 0 || cargoBuildIndex < 0 || transpileOnlyIndex > cargoBuildIndex {
 		t.Fatalf("tests.bats should return from run_transpile_and_compare before Cargo in transpile-only mode")
@@ -682,7 +677,7 @@ func TestBatsTranspileOnlySkipsCargoWithoutXfailPromotion(t *testing.T) {
 	if promotionIndex < 0 {
 		t.Fatalf("tests.bats should still contain the normal XFAIL promotion path")
 	}
-	xfailGuardIndex := strings.LastIndex(script[:promotionIndex], `if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then`)
+	xfailGuardIndex := strings.LastIndex(script[:promotionIndex], `if [[ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]]; then`)
 	if xfailGuardIndex < 0 {
 		t.Fatalf("tests.bats should guard XFAIL promotion in transpile-only mode")
 	}
@@ -718,7 +713,7 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`go2rust-*`,
 		`self_transpile_check.pid`,
 		`go2rust-test.pid`,
-		`if [ "$age_minutes" -gt 0 ]; then`,
+		`if [[ "$age_minutes" -gt 0 ]]; then`,
 		`age_args=(-mmin +"$age_minutes")`,
 		`"$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go" "$repo_root/target"`,
 		`cleanup_ignored_test_locks()`,
@@ -745,7 +740,7 @@ func TestCleanupSummaryCanReportActiveTempRoots(t *testing.T) {
 		`report_active_path()`,
 		`pid_command()`,
 		`active: $path$size (pid $pid via $pid_name`,
-		`Active skipped: $(format_kib "$active_kib") across $active_count path(s)`,
+		`echo "Active skipped: $active_size across $active_count path(s)"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should report active marked temp roots; missing %q", want)
@@ -763,8 +758,7 @@ func TestCleanupScriptScansCanonicalTempRoots(t *testing.T) {
 		`add_tmp_root "${TMPDIR:-}"`,
 		`add_tmp_root "/tmp"`,
 		`add_tmp_root "/private/tmp"`,
-		`case "$root" in`,
-		`*/) root="${root%/}" ;;`,
+		`local root="${1%/}"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should scan canonical temp roots; missing %q", want)
@@ -804,7 +798,7 @@ func TestCleanupScriptCanSummarizeReclaimableSpace(t *testing.T) {
 		`dry_run=true`,
 		`show_sizes=true`,
 		`total_kib=$((total_kib + size_kib))`,
-		`Total reclaimable: $(format_kib "$total_kib") across $candidate_count path(s)`,
+		`echo "Total reclaimable: $total_size across $candidate_count path(s)"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should summarize reclaimable artifact space; missing %q", want)
@@ -819,7 +813,7 @@ func TestCleanupScriptReportsPlainNoOp(t *testing.T) {
 	}
 	script := string(data)
 	for _, want := range []string{
-		`elif [ "$candidate_count" -eq 0 ]; then`,
+		`elif [[ "$candidate_count" -eq 0 ]]; then`,
 		`echo "No cleanup candidates found."`,
 	} {
 		if !strings.Contains(script, want) {
@@ -836,7 +830,7 @@ func TestCleanupScriptDefaultsToPressureSummary(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`With no arguments, print quick pressure diagnostics and cleanup candidates`,
-		`if [ "$invoked_without_args" = true ]; then`,
+		`if [[ "$invoked_without_args" = true ]]; then`,
 		`pressure=true`,
 		`quick=true`,
 		`dry_run=true`,
@@ -910,7 +904,7 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`echo "Memory:"`,
 		`vm_stat`,
 		`vm_stat_pages_for_label()`,
-		`echo "Compressed: $(format_pages_kib "$compressed_pages" "$page_size") stored / $(format_pages_kib "$compressor_pages" "$page_size") occupied"`,
+		`echo "Compressed: $compressed_size stored / $compressor_size occupied"`,
 		`ps -axo pid,ppid,%cpu,%mem,rss,comm -r`,
 		`ps -axo pid,ppid,%mem,%cpu,rss,comm -m`,
 		`rust_or_cargo = command ~ /(^|[[:space:]\/])(rustc|cargo)([[:space:]]|$)/`,
@@ -923,7 +917,7 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`echo "Top memory processes:"`,
 		`echo "Active go2rust validation processes:"`,
 		`echo "Active compiler/validation processes:"`,
-		`elif [ -n "$process_cpu_snapshot" ]; then`,
+		`elif [[ -n "$process_cpu_snapshot" ]]; then`,
 		`echo "none found"`,
 		`go_test = command ~ /(^|[[:space:]\/])go([[:space:]]|$)/ && command ~ /[[:space:]]test([[:space:]]|$)/`,
 		`fixture_or_bats = command ~ /(^|[[:space:]])(\.\/)?(test|go_test|go_vet|self_transpile_check)\.sh([[:space:]]|$)/`,
@@ -933,7 +927,7 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`echo "Largest Code build artifacts:"`,
 		`echo "Largest temp paths:"`,
 		`Cleanup candidates:`,
-		`Active skipped: $(format_kib "$active_kib") across $active_count path(s)`,
+		`echo "Active skipped: $active_size across $active_count path(s)"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh pressure report should expose %q", want)
@@ -941,12 +935,22 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 	}
 }
 
-func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
-	data, err := os.ReadFile("../tests.bats")
-	if err != nil {
-		t.Fatalf("ReadFile(tests.bats) error = %v", err)
+func readBatsWithFixtureRunners(t *testing.T) string {
+	t.Helper()
+	var combined strings.Builder
+	for _, path := range []string{"../tests.bats", "../tests/support/run_fixture.sh", "../tests/support/run_xfail_fixture.sh"} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile(%s) error = %v", path, err)
+		}
+		combined.Write(data)
+		combined.WriteString("\n")
 	}
-	script := string(data)
+	return combined.String()
+}
+
+func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
+	script := readBatsWithFixtureRunners(t)
 	if !strings.Contains(script, `TEST_TIMEOUT_KILL_AFTER`) {
 		t.Fatalf("tests.bats should expose a kill-after timeout for child processes")
 	}
@@ -954,10 +958,10 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 		!strings.Contains(script, `fixture_config_value "$test_dir" "test_timeout"`) {
 		t.Fatalf("tests.bats should support fixture-specific timeouts from .go2rust.toml")
 	}
-	if count := strings.Count(script, `timeout -k "$kill_after" "$timeout" bash -c`); count != 2 {
+	if count := strings.Count(script, `timeout -k "$kill_after" "$timeout" bash tests/support/`); count != 2 {
 		t.Fatalf("tests.bats should use timeout -k for run_test and run_xfail_test; got %d uses", count)
 	}
-	if strings.Contains(script, `if ! timeout -k "$kill_after" "$timeout" bash -c`) {
+	if strings.Contains(script, `if ! timeout -k "$kill_after" "$timeout" bash`) {
 		t.Fatalf("tests.bats should capture timeout's exit status before branching")
 	}
 	if count := strings.Count(script, "local exit_code=0\n    if timeout -k"); count != 2 {
@@ -966,7 +970,7 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 	if count := strings.Count(script, "else\n        exit_code=$?\n    fi"); count != 2 {
 		t.Fatalf("tests.bats should preserve timeout exit status in run_test and run_xfail_test; got %d captures", count)
 	}
-	if count := strings.Count(script, `if [ $exit_code -eq 124 ]; then`); count != 2 {
+	if count := strings.Count(script, `if [[ "$exit_code" -eq 124 ]]; then`); count != 2 {
 		t.Fatalf("tests.bats should report timeout exit status in run_test and run_xfail_test; got %d checks", count)
 	}
 	for _, want := range []string{

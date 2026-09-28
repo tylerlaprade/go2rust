@@ -7,11 +7,11 @@ TEMP_FILE=""
 BUILT_TEST_BINARY_DIR=""
 TEST_GOCACHE_DIR=""
 _test_sh_cleanup() {
-    [ -n "$LOCK_DIR" ] && rm -rf "$LOCK_DIR"
-    [ -n "$SHARD_DIR" ] && rm -rf "$SHARD_DIR"
-    [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE" "$TEMP_FILE.bak"
-    [ -n "$BUILT_TEST_BINARY_DIR" ] && rm -rf "$BUILT_TEST_BINARY_DIR"
-    [ -n "$TEST_GOCACHE_DIR" ] && rm -rf "$TEST_GOCACHE_DIR"
+    [[ -n "$LOCK_DIR" ]] && rm -rf "$LOCK_DIR"
+    [[ -n "$SHARD_DIR" ]] && rm -rf "$SHARD_DIR"
+    [[ -n "$TEMP_FILE" ]] && rm -f "$TEMP_FILE" "$TEMP_FILE.bak"
+    [[ -n "$BUILT_TEST_BINARY_DIR" ]] && rm -rf "$BUILT_TEST_BINARY_DIR"
+    [[ -n "$TEST_GOCACHE_DIR" ]] && rm -rf "$TEST_GOCACHE_DIR"
 }
 trap _test_sh_cleanup EXIT
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -31,7 +31,7 @@ TEST_NAMES=()
 i=1
 skip_next=false
 for arg in "$@"; do
-    if [ "$skip_next" = true ]; then
+    if [[ "$skip_next" = true ]]; then
         skip_next=false
         i=$((i+1))
         continue
@@ -82,6 +82,10 @@ for arg in "$@"; do
             ;;
         *)
             # Not a flag, assume it's a test name
+            if [[ ! "$arg" =~ ^[A-Za-z0-9_-]+$ ]]; then
+                echo "Invalid test name: $arg (expected a fixture directory name)"
+                exit 1
+            fi
             TEST_NAMES+=("$arg")
             ;;
     esac
@@ -89,7 +93,7 @@ for arg in "$@"; do
 done
 
 # Show help if requested
-if [ "$HELP" = true ]; then
+if [[ "$HELP" = true ]]; then
     echo ""
     echo "Usage: $0 [options] [test_names...]"
     echo ""
@@ -131,7 +135,7 @@ enforce_fixture_memory_floor() {
         --hint "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_TEST_SKIP_PRESSURE_GUARD=1 to force the run." || exit $?
 }
 
-if [ "$TRANSPILE_ONLY" = true ]; then
+if [[ "$TRANSPILE_ONLY" = true ]]; then
     enforce_fixture_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"
     PRESSURE_RUN_MIN_ENV=GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB
     PRESSURE_RUN_DEFAULT_MIN_MB=256
@@ -159,8 +163,8 @@ run_with_pressure_monitor() {
 LOCK_DIR="${TMPDIR:-/tmp}/go2rust-test-sh.lock"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     holder=""
-    [ -r "$LOCK_DIR/pid" ] && holder=$(cat "$LOCK_DIR/pid" 2>/dev/null)
-    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+    [[ -r "$LOCK_DIR/pid" ]] && holder=$(cat "$LOCK_DIR/pid" 2>/dev/null)
+    if [[ -n "$holder" ]] && kill -0 "$holder" 2>/dev/null; then
         echo "Error: another ./test.sh is running (pid $holder). Wait for it to finish or kill it." >&2
         LOCK_DIR=""
         exit 1
@@ -176,7 +180,7 @@ fi
 echo $$ > "$LOCK_DIR/pid"
 
 cleanup_stale_test_artifacts() {
-    [ "${GO2RUST_TEST_CLEAN_STALE:-1}" = "0" ] && return
+    [[ "${GO2RUST_TEST_CLEAN_STALE:-1}" = "0" ]] && return
     "$SCRIPT_DIR/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 }
 
@@ -189,33 +193,25 @@ cleanup_stale_test_artifacts() {
 TEMP_FILE=$(mktemp "${TMPDIR:-/tmp}/go2rust-tests-list.XXXXXX")
 temp_file="$TEMP_FILE"
 
-# Generate test cases for directories containing main.go
-for dir in $(find tests -maxdepth 1 -type d ! -name tests ! -name XFAIL | sort); do
-    if [ -f "$dir/main.go" ]; then
-        test_name=$(basename "$dir")
-
+append_generated_tests() {
+    local fixture_root="$1"
+    local name_prefix="$2"
+    local runner="$3"
+    local LC_COLLATE=C
+    local dir
+    for dir in "$fixture_root"/*; do
+        [[ -f "$dir/main.go" ]] || continue
         cat >> "$temp_file" << EOF
-@test "$test_name" {
-    run_test "$dir"
+@test "$name_prefix${dir##*/}" {
+    $runner "$dir"
 }
 
 EOF
-    fi
-done
-
-# Generate XFAIL test cases (run and expect to fail)
-for xfail_dir in $(find tests/XFAIL -maxdepth 1 -type d ! -name XFAIL | sort); do
-    if [ -f "$xfail_dir/main.go" ]; then
-        test_name=$(basename "$xfail_dir")
-
-        cat >> "$temp_file" << EOF
-@test "XFAIL: $test_name" {
-    run_xfail_test "$xfail_dir"
+    done
 }
 
-EOF
-    fi
-done
+append_generated_tests tests "" run_test
+append_generated_tests tests/XFAIL "XFAIL: " run_xfail_test
 
 # Remove trailing newline
 sed -i.bak '$ { /^$/ d; }' "$temp_file" && rm "$temp_file.bak"
@@ -241,7 +237,8 @@ mv tests.bats.new tests.bats
 rm "$temp_file"
 TEMP_FILE=""
 
-echo "Updated tests.bats with $(grep -c '^@test' tests.bats) tests"
+generated_test_count=$(grep -c '^@test' tests.bats)
+echo "Updated tests.bats with $generated_test_count tests"
 
 # Run tests
 if ! command -v bats >/dev/null 2>&1; then
@@ -252,10 +249,10 @@ fi
 
 # Check if we're running specific XFAIL tests
 SHOW_XFAIL_ERRORS=false
-if [ ${#TEST_NAMES[@]} -gt 0 ]; then
+if [[ ${#TEST_NAMES[@]} -gt 0 ]]; then
     # Check if any of the requested tests are XFAIL
     for test_name in "${TEST_NAMES[@]}"; do
-        if [ -d "tests/XFAIL/$test_name" ]; then
+        if [[ -d "tests/XFAIL/$test_name" ]]; then
             SHOW_XFAIL_ERRORS=true
             break
         fi
@@ -297,20 +294,18 @@ case "${GO2RUST_CARGO_OFFLINE:-auto}" in
 esac
 export GO2RUST_CARGO_OFFLINE_ARGS
 
-case "$LOW_MEMORY" in
-    1|true|TRUE|yes|YES)
-        JOBS=1
-        JOBS_REASON="low-memory mode"
-        ;;
-esac
+if [[ "$LOW_MEMORY" =~ ^(1|true|TRUE|yes|YES)$ ]]; then
+    JOBS=1
+    JOBS_REASON="low-memory mode"
+fi
 
-if [ -z "${GOCACHE:-}" ]; then
+if [[ -z "${GOCACHE:-}" ]]; then
     TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
     echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"
     export GOCACHE="$TEST_GOCACHE_DIR"
 fi
 
-if [ "$TRANSPILE_ONLY" = true ]; then
+if [[ "$TRANSPILE_ONLY" = true ]]; then
     export GO2RUST_TEST_TRANSPILE_ONLY=1
 fi
 
@@ -318,12 +313,12 @@ fi
 # file-level, so sharded runs would otherwise race multiple setup_file builds
 # against the same ./go2rust output path. GO2RUST_TEST_BINARY lets the same
 # suite validate a self-transpiled Rust binary without changing test behavior.
-if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
+if [[ -n "${GO2RUST_TEST_BINARY:-}" ]]; then
     case "$GO2RUST_TEST_BINARY" in
         /*) ;;
         *) GO2RUST_TEST_BINARY="$(pwd)/$GO2RUST_TEST_BINARY" ;;
     esac
-    if [ ! -x "$GO2RUST_TEST_BINARY" ]; then
+    if [[ ! -x "$GO2RUST_TEST_BINARY" ]]; then
         echo "Error: GO2RUST_TEST_BINARY is not executable: $GO2RUST_TEST_BINARY"
         exit 1
     fi
@@ -340,34 +335,34 @@ fi
 export GO2RUST_TEST_BINARY_READY=1
 
 # Set default job count if not specified
-if [ -z "$JOBS" ]; then
+if [[ -z "$JOBS" ]]; then
     # Detect CPU cores but leave some headroom for Rust's memory usage
     CORES=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
     # Use 75% of cores (minimum 2) to avoid memory pressure from Rust compilation
     JOBS=$(( CORES * 3 / 4 ))
-    [ $JOBS -lt 2 ] && JOBS=2
+    [[ "$JOBS" -lt 2 ]] && JOBS=2
 
     MEM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || awk '/MemTotal/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null || echo 0)
     MEMORY_PER_JOB_GB="${GO2RUST_TEST_MEMORY_PER_JOB_GB:-4}"
-    case "$MEM_BYTES" in ''|*[!0-9]*) MEM_BYTES=0 ;; esac
-    case "$MEMORY_PER_JOB_GB" in ''|*[!0-9]*) MEMORY_PER_JOB_GB=0 ;; esac
-    if [ "$MEMORY_PER_JOB_GB" -gt 0 ]; then
+    [[ "$MEM_BYTES" =~ ^[0-9]+$ ]] || MEM_BYTES=0
+    [[ "$MEMORY_PER_JOB_GB" =~ ^[0-9]+$ ]] || MEMORY_PER_JOB_GB=0
+    if [[ "$MEMORY_PER_JOB_GB" -gt 0 ]]; then
         BYTES_PER_JOB=$(( MEMORY_PER_JOB_GB * 1024 * 1024 * 1024 ))
-        if [ "$MEM_BYTES" -gt 0 ]; then
+        if [[ "$MEM_BYTES" -gt 0 ]]; then
             MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))
-            [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
-            if [ "$JOBS" -gt "$MEM_JOBS" ]; then
+            [[ "$MEM_JOBS" -lt 1 ]] && MEM_JOBS=1
+            if [[ "$JOBS" -gt "$MEM_JOBS" ]]; then
                 JOBS=$MEM_JOBS
                 JOBS_REASON="total memory cap (${MEMORY_PER_JOB_GB} GiB/job)"
             fi
         fi
 
         AVAILABLE_MEM_BYTES=$("$SCRIPT_DIR/pressure_guard.sh" --available-bytes 2>/dev/null || true)
-        case "$AVAILABLE_MEM_BYTES" in ''|*[!0-9]*) AVAILABLE_MEM_BYTES=0 ;; esac
-        if [ "$AVAILABLE_MEM_BYTES" -gt 0 ]; then
+        [[ "$AVAILABLE_MEM_BYTES" =~ ^[0-9]+$ ]] || AVAILABLE_MEM_BYTES=0
+        if [[ "$AVAILABLE_MEM_BYTES" -gt 0 ]]; then
             AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))
-            [ "$AVAILABLE_MEM_JOBS" -lt 1 ] && AVAILABLE_MEM_JOBS=1
-            if [ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ]; then
+            [[ "$AVAILABLE_MEM_JOBS" -lt 1 ]] && AVAILABLE_MEM_JOBS=1
+            if [[ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ]]; then
                 JOBS=$AVAILABLE_MEM_JOBS
                 AVAILABLE_MEM_GB=$(( AVAILABLE_MEM_BYTES / 1024 / 1024 / 1024 ))
                 JOBS_REASON="available memory cap (${AVAILABLE_MEM_GB} GiB free, ${MEMORY_PER_JOB_GB} GiB/job)"
@@ -375,16 +370,16 @@ if [ -z "$JOBS" ]; then
         fi
     fi
     JOBS_MAX="${GO2RUST_TEST_JOBS_MAX:-}"
-    case "$JOBS_MAX" in ''|*[!0-9]*) JOBS_MAX=0 ;; esac
-    if [ "$JOBS_MAX" -gt 0 ]; then
-        if [ "$JOBS" -gt "$JOBS_MAX" ]; then
+    [[ "$JOBS_MAX" =~ ^[0-9]+$ ]] || JOBS_MAX=0
+    if [[ "$JOBS_MAX" -gt 0 ]]; then
+        if [[ "$JOBS" -gt "$JOBS_MAX" ]]; then
             JOBS=$JOBS_MAX
             JOBS_REASON="GO2RUST_TEST_JOBS_MAX=$JOBS_MAX"
         fi
     fi
 fi
 
-if [ "$JOBS" -gt 1 ] && ! command -v parallel >/dev/null 2>&1; then
+if [[ "$JOBS" -gt 1 ]] && ! command -v parallel >/dev/null 2>&1; then
     echo "GNU parallel is not installed; running tests sequentially."
     JOBS=1
     JOBS_REASON="GNU parallel is not installed"
@@ -445,6 +440,15 @@ create_bats_shards() {
     done
 }
 
+tap_test_name() {
+    local line="$1"
+    if [[ "$line" =~ ^(not )?ok\ [0-9]*\ (.*)$ ]]; then
+        echo "${BASH_REMATCH[2]}"
+    else
+        echo "$line"
+    fi
+}
+
 # Function to colorize test output
 colorize_output() {
     local in_failure=false
@@ -452,13 +456,13 @@ colorize_output() {
         if [[ "$line" =~ ^"not ok " ]]; then
             # Start of failing test - red X
             local test_name
-            test_name=$(echo "$line" | sed 's/^not ok [0-9]* //')
+            test_name=$(tap_test_name "$line")
             # Extract timing if present
             if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
                 test_name="${BASH_REMATCH[1]}"
                 timing_ms="${BASH_REMATCH[2]%ms}"
                 timing_s=$(awk "BEGIN {printf \"%.1f\", $timing_ms/1000}")
-                if [ "$VERBOSE" = true ]; then
+                if [[ "$VERBOSE" = true ]]; then
                     echo -e "\033[31m✗ $test_name\033[0m \033[90m(${timing_s}s)\033[0m"
                 else
                     echo -e "\033[31m✗ $test_name\033[0m"
@@ -469,9 +473,9 @@ colorize_output() {
             in_failure=true
         elif [[ "$line" =~ ^"ok " ]] && [[ "$line" =~ " XFAIL:" ]]; then
             # XFAIL tests - yellow ⚠ (only show if verbose)
-            if [ "$VERBOSE" = true ]; then
+            if [[ "$VERBOSE" = true ]]; then
                 local test_name
-                test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
+                test_name=$(tap_test_name "$line")
                 # Extract timing if present
                 if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
                     test_name="${BASH_REMATCH[1]}"
@@ -486,13 +490,13 @@ colorize_output() {
         elif [[ "$line" =~ ^"ok " ]]; then
             # Passing test - green checkmark
             local test_name
-            test_name=$(echo "$line" | sed 's/^ok [0-9]* //')
+            test_name=$(tap_test_name "$line")
             # Extract timing if present
             if [[ "$test_name" =~ (.+)" in "([0-9]+ms) ]]; then
                 test_name="${BASH_REMATCH[1]}"
                 timing_ms="${BASH_REMATCH[2]%ms}"
                 timing_s=$(awk "BEGIN {printf \"%.1f\", $timing_ms/1000}")
-                if [ "$VERBOSE" = true ]; then
+                if [[ "$VERBOSE" = true ]]; then
                     echo -e "\033[32m✓\033[0m $test_name \033[90m(${timing_s}s)\033[0m"
                 else
                     echo -e "\033[32m✓\033[0m $test_name"
@@ -501,7 +505,7 @@ colorize_output() {
                 echo -e "\033[32m✓\033[0m $test_name"
             fi
             in_failure=false
-        elif [[ "$line" =~ ^"#" ]] && [ "$in_failure" = true ]; then
+        elif [[ "$line" =~ ^"#" ]] && [[ "$in_failure" = true ]]; then
             # Error details from failed test - red
             echo -e "\033[31m$line\033[0m"
         elif [[ "$line" =~ ^[0-9]+\.\.[0-9]+ ]]; then
@@ -509,7 +513,7 @@ colorize_output() {
             echo "$line"
         else
             # Other output - only show if verbose or if it's an error
-            if [ "$VERBOSE" = true ] || [ "$in_failure" = true ]; then
+            if [[ "$VERBOSE" = true ]] || [[ "$in_failure" = true ]]; then
                 echo "$line"
             fi
         fi
@@ -522,16 +526,14 @@ export TEST_TIMEOUT_KILL_AFTER="${TEST_TIMEOUT_KILL_AFTER:-5s}"
 
 # Build filter pattern if specific tests requested
 FILTER_PATTERN=""
-if [ ${#TEST_NAMES[@]} -gt 0 ]; then
+if [[ ${#TEST_NAMES[@]} -gt 0 ]]; then
     # Build a regex pattern that matches any of the test names
     FILTER_PATTERN="("
     for i in "${!TEST_NAMES[@]}"; do
-        if [ "$i" -gt 0 ]; then
+        if [[ "$i" -gt 0 ]]; then
             FILTER_PATTERN+="|"
         fi
-        # Escape special regex characters and handle both regular and XFAIL tests
-        escaped_name=$(echo "${TEST_NAMES[$i]}" | sed 's/[[\.*^$()+?{|]/\\&/g')
-        FILTER_PATTERN+="^${escaped_name}$|^XFAIL: ${escaped_name}$"
+        FILTER_PATTERN+="^${TEST_NAMES[$i]}$|^XFAIL: ${TEST_NAMES[$i]}$"
     done
     FILTER_PATTERN+=")"
     echo "Running tests matching: ${TEST_NAMES[*]}"
@@ -544,8 +546,8 @@ START_TIME=$(date +%s)
 BATS_ARGS=(-T --tap)
 BATS_TARGETS=(tests.bats)
 SHARD_DIR=""
-if [ "$JOBS" -eq 1 ]; then
-    if [ -n "$JOBS_REASON" ]; then
+if [[ "$JOBS" -eq 1 ]]; then
+    if [[ -n "$JOBS_REASON" ]]; then
         echo "Running tests sequentially ($JOBS_REASON; default timeout: $TIMEOUT per test)..."
     else
         echo "Running tests sequentially (default timeout: $TIMEOUT per test)..."
@@ -559,12 +561,12 @@ else
     BATS_TARGETS=("$SHARD_DIR"/tests-shard-*.bats)
 fi
 
-if [ "$TRANSPILE_ONLY" = true ]; then
+if [[ "$TRANSPILE_ONLY" = true ]]; then
     echo "Transpile-only mode: skipping fixture Cargo build/run."
 fi
 
 # Add filter if specified
-if [ -n "$FILTER_PATTERN" ]; then
+if [[ -n "$FILTER_PATTERN" ]]; then
     BATS_ARGS+=(--filter "$FILTER_PATTERN")
 fi
 
@@ -586,15 +588,15 @@ TOTAL_TIME=$((END_TIME - START_TIME))
 echo -e "\033[90mTotal time: ${TOTAL_TIME}s\033[0m"
 
 # Count all test types from the captured output
-PASSING=$(echo "$TEST_OUTPUT" | grep "^ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
-FAILING=$(echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | wc -l | tr -d ' ')
+PASSING=$(awk '/^ok / && !/XFAIL/ { count++ } END { print count + 0 }' <<< "$TEST_OUTPUT")
+FAILING=$(awk '/^not ok / && !/XFAIL/ { count++ } END { print count + 0 }' <<< "$TEST_OUTPUT")
 # Only count XFAIL tests from actual test result lines (ok or not ok), not error messages
-XFAIL_TOTAL=$(echo "$TEST_OUTPUT" | grep -E "^(ok |not ok )" | grep "XFAIL" | wc -l | tr -d ' ')
+XFAIL_TOTAL=$(awk '/^(ok |not ok )/ && /XFAIL/ { count++ } END { print count + 0 }' <<< "$TEST_OUTPUT")
 TOTAL=$((PASSING + FAILING + XFAIL_TOTAL))
 
-if [ "$TOTAL" -eq 0 ]; then
+if [[ "$TOTAL" -eq 0 ]]; then
     echo -e "\033[31m✗ No test results were reported.\033[0m"
-    if [ -n "$TEST_OUTPUT" ]; then
+    if [[ -n "$TEST_OUTPUT" ]]; then
         echo "$TEST_OUTPUT"
     fi
     exit 1
@@ -602,17 +604,19 @@ fi
 
 # Display with colors and symbols
 echo -e "\033[32m✓ Passing: $PASSING/$TOTAL\033[0m"
-if [ "$FAILING" -gt 0 ]; then
+if [[ "$FAILING" -gt 0 ]]; then
     echo -e "\033[31m✗ Failing: $FAILING/$TOTAL\033[0m"
 fi
 echo -e "\033[33m⚠ XFAIL: $XFAIL_TOTAL/$TOTAL\033[0m"
 
-if [ "$FAILING" -gt 0 ]; then
+if [[ "$FAILING" -gt 0 ]]; then
     echo ""
     echo -e "\033[31mFailed tests:\033[0m"
-    echo "$TEST_OUTPUT" | grep "^not ok " | grep -v "XFAIL" | while IFS= read -r line; do
-        echo -e "\033[31m  - $(echo "$line" | sed 's/^not ok [0-9]* //')\033[0m"
-    done
+    while IFS= read -r line; do
+        [[ "$line" =~ ^"not ok " ]] && [[ "$line" != *XFAIL* ]] || continue
+        failed_test_name=$(tap_test_name "$line")
+        echo -e "\033[31m  - $failed_test_name\033[0m"
+    done <<< "$TEST_OUTPUT"
 fi
 
 exit "$BATS_STATUS"

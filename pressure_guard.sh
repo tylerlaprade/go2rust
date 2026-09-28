@@ -24,7 +24,7 @@ EOF
 }
 
 detect_available_memory_bytes() {
-    if [ -r /proc/meminfo ]; then
+    if [[ -r /proc/meminfo ]]; then
         awk '/MemAvailable/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null
         return
     fi
@@ -79,20 +79,6 @@ detect_available_memory_bytes() {
     fi
 }
 
-truthy_env() {
-    local name="$1"
-    [ -n "$name" ] || return 1
-    local value="${!name:-}"
-    case "$value" in
-        1|true|TRUE|yes|YES)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
 available_only=false
 min_env=""
 default_min_mb=""
@@ -102,14 +88,14 @@ skip_env=""
 label="work"
 hint="Run ./cleanup.sh --pressure --quick to inspect current pressure."
 
-while [ "$#" -gt 0 ]; do
+while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --available-bytes)
             available_only=true
             shift
             ;;
         --min-env)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --min-env requires a value" >&2
                 exit 2
             fi
@@ -117,7 +103,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --default-min-mb)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --default-min-mb requires a value" >&2
                 exit 2
             fi
@@ -125,7 +111,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --min-mb)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --min-mb requires a value" >&2
                 exit 2
             fi
@@ -134,7 +120,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --label)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --label requires a value" >&2
                 exit 2
             fi
@@ -142,7 +128,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --skip-env)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --skip-env requires a value" >&2
                 exit 2
             fi
@@ -150,7 +136,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --hint)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --hint requires a value" >&2
                 exit 2
             fi
@@ -169,42 +155,38 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-if [ "$available_only" = true ]; then
+if [[ "$available_only" = true ]]; then
     detect_available_memory_bytes
     exit 0
 fi
 
-if truthy_env "$skip_env"; then
+if [[ -n "$skip_env" && "${!skip_env:-}" =~ ^(1|true|TRUE|yes|YES)$ ]]; then
     exit 0
 fi
 
-if [ -n "$min_env" ]; then
+if [[ -n "$min_env" ]]; then
     min_mb="${!min_env:-$default_min_mb}"
     min_desc="$min_env"
 fi
 
-case "$min_mb" in
-    ''|*[!0-9]*)
-        if [ -n "$min_env" ]; then
-            echo "error: $min_env must be a non-negative integer" >&2
-        else
-            echo "error: --min-mb must be a non-negative integer" >&2
-        fi
-        exit 2
-        ;;
-esac
+if [[ ! "$min_mb" =~ ^[0-9]+$ ]]; then
+    if [[ -n "$min_env" ]]; then
+        echo "error: $min_env must be a non-negative integer" >&2
+    else
+        echo "error: --min-mb must be a non-negative integer" >&2
+    fi
+    exit 2
+fi
 
-[ "$min_mb" -eq 0 ] && exit 0
+[[ "$min_mb" -eq 0 ]] && exit 0
 
 available_bytes=$(detect_available_memory_bytes)
-case "$available_bytes" in
-    ''|*[!0-9]*)
-        exit 0
-        ;;
-esac
+if [[ ! "$available_bytes" =~ ^[0-9]+$ ]]; then
+    exit 0
+fi
 
 min_bytes=$(( min_mb * 1024 * 1024 ))
-if [ "$available_bytes" -lt "$min_bytes" ]; then
+if [[ "$available_bytes" -lt "$min_bytes" ]]; then
     available_mb=$(( available_bytes / 1024 / 1024 ))
     echo "Error: available memory is ${available_mb} MiB, below ${min_desc}=${min_mb} MiB." >&2
     echo "Refusing to start $label while the machine is under memory pressure." >&2

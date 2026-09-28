@@ -31,24 +31,10 @@ label="work"
 interval_seconds="${GO2RUST_PRESSURE_RUN_INTERVAL_SECONDS:-2}"
 command_args=()
 
-truthy_env() {
-    local name="$1"
-    [ -n "$name" ] || return 1
-    local value="${!name:-}"
-    case "$value" in
-        1|true|TRUE|yes|YES)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-while [ "$#" -gt 0 ]; do
+while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --min-env)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --min-env requires a value" >&2
                 exit 2
             fi
@@ -56,7 +42,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --default-min-mb)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --default-min-mb requires a value" >&2
                 exit 2
             fi
@@ -64,7 +50,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --min-mb)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --min-mb requires a value" >&2
                 exit 2
             fi
@@ -73,7 +59,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --label)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --label requires a value" >&2
                 exit 2
             fi
@@ -81,7 +67,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --skip-env)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --skip-env requires a value" >&2
                 exit 2
             fi
@@ -89,7 +75,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         --interval-seconds)
-            if [ "$#" -lt 2 ]; then
+            if [[ "$#" -lt 2 ]]; then
                 echo "error: --interval-seconds requires a value" >&2
                 exit 2
             fi
@@ -113,50 +99,42 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-if [ "${#command_args[@]}" -eq 0 ]; then
+if [[ "${#command_args[@]}" -eq 0 ]]; then
     echo "error: missing command after --" >&2
     usage >&2
     exit 2
 fi
 
-if truthy_env "$skip_env"; then
+if [[ -n "$skip_env" && "${!skip_env:-}" =~ ^(1|true|TRUE|yes|YES)$ ]]; then
     exec "${command_args[@]}"
 fi
 
-if [ -n "$min_env" ]; then
+if [[ -n "$min_env" ]]; then
     min_mb="${!min_env:-$default_min_mb}"
     min_desc="$min_env"
 fi
 
-case "$min_mb" in
-    ''|*[!0-9]*)
-        if [ -n "$min_env" ]; then
-            echo "error: $min_env must be a non-negative integer" >&2
-        else
-            echo "error: --min-mb must be a non-negative integer" >&2
-        fi
-        exit 2
-        ;;
-esac
+if [[ ! "$min_mb" =~ ^[0-9]+$ ]]; then
+    if [[ -n "$min_env" ]]; then
+        echo "error: $min_env must be a non-negative integer" >&2
+    else
+        echo "error: --min-mb must be a non-negative integer" >&2
+    fi
+    exit 2
+fi
 
-case "$interval_seconds" in
-    ''|*[!0-9]*)
-        echo "error: --interval-seconds must be a positive integer" >&2
-        exit 2
-        ;;
-esac
-if [ "$interval_seconds" -eq 0 ]; then
+if [[ ! "$interval_seconds" =~ ^[0-9]+$ ]] || [[ "$interval_seconds" -eq 0 ]]; then
     echo "error: --interval-seconds must be a positive integer" >&2
     exit 2
 fi
 
-[ "$min_mb" -eq 0 ] && exec "${command_args[@]}"
+[[ "$min_mb" -eq 0 ]] && exec "${command_args[@]}"
 
 min_bytes=$((min_mb * 1024 * 1024))
 pressure_status_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-pressure-run.XXXXXX")
 
 cleanup_status_file() {
-    [ -n "${pressure_status_file:-}" ] && rm -f "$pressure_status_file"
+    [[ -n "${pressure_status_file:-}" ]] && rm -f "$pressure_status_file"
 }
 trap cleanup_status_file EXIT
 
@@ -164,7 +142,7 @@ terminate_tree() {
     local pid="$1"
     local child
     while IFS= read -r child; do
-        [ -n "$child" ] || continue
+        [[ -n "$child" ]] || continue
         terminate_tree "$child"
     done < <(ps -o pid= -P "$pid" 2>/dev/null || true)
     kill -TERM "$pid" 2>/dev/null || true
@@ -174,7 +152,7 @@ kill_tree() {
     local pid="$1"
     local child
     while IFS= read -r child; do
-        [ -n "$child" ] || continue
+        [[ -n "$child" ]] || continue
         kill_tree "$child"
     done < <(ps -o pid= -P "$pid" 2>/dev/null || true)
     kill -KILL "$pid" 2>/dev/null || true
@@ -188,8 +166,8 @@ child_pid=""
 monitor_pid=""
 
 cleanup_child() {
-    [ -n "$monitor_pid" ] && kill "$monitor_pid" 2>/dev/null || true
-    [ -n "$child_pid" ] || return
+    [[ -n "$monitor_pid" ]] && kill "$monitor_pid" 2>/dev/null || true
+    [[ -n "$child_pid" ]] || return
     kill -0 "$child_pid" 2>/dev/null || return
     terminate_tree "$child_pid"
 }
@@ -200,25 +178,19 @@ trap 'cleanup_child; exit 143' TERM
 monitor_pressure() {
     while kill -0 "$child_pid" 2>/dev/null; do
         available_bytes=$(available_memory_bytes)
-        case "$available_bytes" in
-            ''|*[!0-9]*)
-                ;;
-            *)
-                if [ "$available_bytes" -lt "$min_bytes" ]; then
-                    available_mb=$((available_bytes / 1024 / 1024))
-                    echo "Error: available memory is ${available_mb} MiB, below ${min_desc}=${min_mb} MiB." >&2
-                    echo "Terminating $label to prevent deeper memory pressure." >&2
-                    echo "Run ./cleanup.sh --pressure --quick to inspect current pressure." >&2
-                    echo pressure > "$pressure_status_file"
-                    terminate_tree "$child_pid"
-                    sleep 2
-                    if kill -0 "$child_pid" 2>/dev/null; then
-                        kill_tree "$child_pid"
-                    fi
-                    return
-                fi
-                ;;
-        esac
+        if [[ "$available_bytes" =~ ^[0-9]+$ ]] && [[ "$available_bytes" -lt "$min_bytes" ]]; then
+            available_mb=$((available_bytes / 1024 / 1024))
+            echo "Error: available memory is ${available_mb} MiB, below ${min_desc}=${min_mb} MiB." >&2
+            echo "Terminating $label to prevent deeper memory pressure." >&2
+            echo "Run ./cleanup.sh --pressure --quick to inspect current pressure." >&2
+            echo pressure > "$pressure_status_file"
+            terminate_tree "$child_pid"
+            sleep 2
+            if kill -0 "$child_pid" 2>/dev/null; then
+                kill_tree "$child_pid"
+            fi
+            return
+        fi
         sleep "$interval_seconds"
     done
 }
@@ -236,7 +208,7 @@ set -e
 kill "$monitor_pid" 2>/dev/null || true
 wait "$monitor_pid" 2>/dev/null || true
 
-if [ "$(cat "$pressure_status_file" 2>/dev/null || true)" = "pressure" ]; then
+if [[ "$(cat "$pressure_status_file" 2>/dev/null || true)" = "pressure" ]]; then
     exit 137
 fi
 exit "$status"
