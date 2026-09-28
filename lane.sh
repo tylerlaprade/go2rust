@@ -20,7 +20,6 @@ set -euo pipefail
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 LANE_DIR="${GO2RUST_LANE_DIR:-/tmp/go2rust-lane}"
 WORK="$LANE_DIR/ws"
-LOCK="$LANE_DIR/lane.lock"
 LOG="$LANE_DIR/last.cargo.json"
 FLOOR_MB="${GO2RUST_LANE_FLOOR_MB:-250}"   # kill build if accurate-avail drops below this
 # go/types self-host stack (the keystone). Full self-host uses the bigger default set.
@@ -41,7 +40,7 @@ cmd="${1:-}"; shift || true
 CRATE="go_types"
 PACKAGES="$STACK"
 PROBE_DIR=""
-while [ "$#" -gt 0 ]; do
+while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --crate)    CRATE="$2"; shift 2;;
     --packages) PACKAGES="$2"; shift 2;;
@@ -50,23 +49,23 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ "$cmd" = "avail" ]; then avail_mb; exit 0; fi
+if [[ "$cmd" = "avail" ]]; then avail_mb; exit 0; fi
 
 # --- memory watchdog: kill the whole process tree if accurate-avail dips below floor
-terminate_tree() { local pid="$1" c; while IFS= read -r c; do [ -n "$c" ] && terminate_tree "$c"; done < <(ps -o pid= -P "$pid" 2>/dev/null||true); kill -TERM "$pid" 2>/dev/null||true; }
+terminate_tree() { local pid="$1" c; while IFS= read -r c; do [[ -n "$c" ]] && terminate_tree "$c"; done < <(ps -o pid= -P "$pid" 2>/dev/null||true); kill -TERM "$pid" 2>/dev/null||true; }
 guarded() {
   local label="$1"; shift
   local a; a=$(avail_mb)
-  if [ "$a" -lt "$FLOOR_MB" ]; then echo "lane: REFUSING $label — avail ${a}MB < floor ${FLOOR_MB}MB" >&2; return 137; fi
+  if [[ "$a" -lt "$FLOOR_MB" ]]; then echo "lane: REFUSING $label — avail ${a}MB < floor ${FLOOR_MB}MB" >&2; return 137; fi
   "$@" & local cpid=$!
   ( while kill -0 "$cpid" 2>/dev/null; do
       local av; av=$(avail_mb)
-      if [ "$av" -lt "$FLOOR_MB" ]; then echo "lane: KILLING $label — avail ${av}MB < floor ${FLOOR_MB}MB" >&2; terminate_tree "$cpid"; sleep 2; kill -KILL "$cpid" 2>/dev/null||true; break; fi
+      if [[ "$av" -lt "$FLOOR_MB" ]]; then echo "lane: KILLING $label — avail ${av}MB < floor ${FLOOR_MB}MB" >&2; terminate_tree "$cpid"; sleep 2; kill -KILL "$cpid" 2>/dev/null||true; break; fi
       sleep 3
     done ) & local wpid=$!
   local st=0; wait "$cpid" || st=$?
   kill "$wpid" 2>/dev/null||true; wait "$wpid" 2>/dev/null||true
-  return $st
+  return "$st"
 }
 
 histogram() {
@@ -95,8 +94,15 @@ print("BY_FILE(top15):"); [print(f"  {n:4} {f}") for f,n in files.most_common(15
 PY
 }
 
+cargo_check_json() {
+  local scope=(-p "$CRATE")
+  if [[ "$CRATE" = all ]]; then scope=(--workspace); fi
+  cargo check "${scope[@]}" --keep-going --message-format=json > "$LOG" 2>/dev/null || true
+}
+
 run() {
-  echo "lane: avail=$(avail_mb)MB floor=${FLOOR_MB}MB  work=$WORK target=$LANE_DIR/cargo-target" >&2
+  local available_mb; available_mb=$(avail_mb)
+  echo "lane: avail=${available_mb}MB floor=${FLOOR_MB}MB  work=$WORK target=$LANE_DIR/cargo-target" >&2
   export GOCACHE="$LANE_DIR/go-build-cache"
   export CARGO_HOME="$LANE_DIR/cargo-home"
   export CARGO_TARGET_DIR="$LANE_DIR/cargo-target"
@@ -109,42 +115,42 @@ run() {
   cp "$REPO/go.mod" "$REPO/go.sum" "$WORK/" 2>/dev/null || true
 
   echo "lane: building go2rust (from repo, incremental GOCACHE) ..." >&2
-  guarded "go build" go build -o "$WORK/go2rust" "$REPO/go" || return $?
+  guarded "go build" go build -o "$WORK/go2rust" "$REPO/go"
 
   # --- PROBE mode: transpile ONLY a tiny self-contained fixture (+ the stdlib it
   #     reaches), NOT all of go2rust+x/tools. Reachability bounds the generated
   #     go_types to what the probe touches -> cheap partial check.
-  if [ "$cmd" = "probe" ]; then
-    [ -n "$PROBE_DIR" ] && [ -d "$PROBE_DIR" ] || { echo "lane: probe needs an existing fixture dir" >&2; return 2; }
+  if [[ "$cmd" = "probe" ]]; then
+    [[ -n "$PROBE_DIR" ]] && [[ -d "$PROBE_DIR" ]] || { echo "lane: probe needs an existing fixture dir" >&2; return 2; }
     local pkgs; pkgs=$(grep '^source_stdlib_packages' "$PROBE_DIR/.go2rust.toml" 2>/dev/null | cut -d'"' -f2)
     local pdir="$WORK/probe"
     rm -rf "$pdir"; cp -R "$PROBE_DIR" "$pdir"
     echo "lane: transpiling probe $(basename "$PROBE_DIR") (source-stdlib: ${pkgs:-none}) ..." >&2
-    ( cd "$pdir" && guarded "transpile" "$WORK/go2rust" ${pkgs:+--source-stdlib-packages="$pkgs"} . ) || return $?
+    ( cd "$pdir" && guarded "transpile" "$WORK/go2rust" ${pkgs:+--source-stdlib-packages="$pkgs"} . )
     echo "lane: cargo check -p $CRATE (partial) ..." >&2
-    ( cd "$pdir" && guarded "cargo" bash -c "cargo check $([ \"$CRATE\" = all ] && echo --workspace || echo \"-p $CRATE\") --keep-going --message-format=json > '$LOG' 2>/dev/null; true" )
+    ( cd "$pdir" && guarded "cargo" cargo_check_json )
     histogram; return 0
   fi
 
-  if [ "$cmd" = "transpile-only" ] || [ "$cmd" = "baseline" ] || [ "$cmd" = "check" ]; then
+  if [[ "$cmd" = "transpile-only" ]] || [[ "$cmd" = "baseline" ]] || [[ "$cmd" = "check" ]]; then
     echo "lane: transpiling self-host stack ..." >&2
     rm -rf "$WORK/go"
     cp -R "$REPO/go" "$WORK/go"
-    ( cd "$WORK" && guarded "transpile" ./go2rust go ) || return $?
+    ( cd "$WORK" && guarded "transpile" ./go2rust go )
   fi
-  [ "$cmd" = "transpile-only" ] && { echo "lane: transpile OK"; return 0; }
+  [[ "$cmd" = "transpile-only" ]] && { echo "lane: transpile OK"; return 0; }
 
   echo "lane: cargo check -p $CRATE ..." >&2
-  ( cd "$WORK/go" && guarded "cargo" bash -c "cargo check $([ \"$CRATE\" = all ] && echo --workspace || echo \"-p $CRATE\") --keep-going --message-format=json > '$LOG' 2>/dev/null; true" )
+  ( cd "$WORK/go" && guarded "cargo" cargo_check_json )
   histogram
 }
 
 # portable lock (macOS has no flock): atomic mkdir + stale-PID reclaim
 LOCKDIR="$LANE_DIR/lane.lock.d"
 while ! mkdir "$LOCKDIR" 2>/dev/null; do
-  if [ -f "$LOCKDIR/pid" ]; then
+  if [[ -f "$LOCKDIR/pid" ]]; then
     holder=$(cat "$LOCKDIR/pid" 2>/dev/null || true)
-    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
+    if [[ -n "$holder" ]] && ! kill -0 "$holder" 2>/dev/null; then
       echo "lane: reclaiming stale lock from dead pid $holder" >&2; rm -rf "$LOCKDIR"; continue
     fi
   fi
