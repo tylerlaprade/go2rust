@@ -166,7 +166,9 @@ child_pid=""
 monitor_pid=""
 
 cleanup_child() {
-    [[ -n "$monitor_pid" ]] && kill "$monitor_pid" 2>/dev/null || true
+    if [[ -n "$monitor_pid" ]]; then
+        kill "$monitor_pid" 2>/dev/null || true
+    fi
     [[ -n "$child_pid" ]] || return
     kill -0 "$child_pid" 2>/dev/null || return
     terminate_tree "$child_pid"

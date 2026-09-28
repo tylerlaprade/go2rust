@@ -121,7 +121,7 @@ run() {
   #     reaches), NOT all of go2rust+x/tools. Reachability bounds the generated
   #     go_types to what the probe touches -> cheap partial check.
   if [[ "$cmd" = "probe" ]]; then
-    [[ -n "$PROBE_DIR" ]] && [[ -d "$PROBE_DIR" ]] || { echo "lane: probe needs an existing fixture dir" >&2; return 2; }
+    if [[ -z "$PROBE_DIR" ]] || [[ ! -d "$PROBE_DIR" ]]; then echo "lane: probe needs an existing fixture dir" >&2; return 2; fi
     local pkgs; pkgs=$(grep '^source_stdlib_packages' "$PROBE_DIR/.go2rust.toml" 2>/dev/null | cut -d'"' -f2)
     local pdir="$WORK/probe"
     rm -rf "$pdir"; cp -R "$PROBE_DIR" "$pdir"

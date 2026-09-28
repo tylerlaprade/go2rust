@@ -613,9 +613,10 @@ if [[ "$FAILING" -gt 0 ]]; then
     echo ""
     echo -e "\033[31mFailed tests:\033[0m"
     while IFS= read -r line; do
-        [[ "$line" =~ ^"not ok " ]] && [[ "$line" != *XFAIL* ]] || continue
-        failed_test_name=$(tap_test_name "$line")
-        echo -e "\033[31m  - $failed_test_name\033[0m"
+        if [[ "$line" =~ ^"not ok " ]] && [[ "$line" != *XFAIL* ]]; then
+            failed_test_name=$(tap_test_name "$line")
+            echo -e "\033[31m  - $failed_test_name\033[0m"
+        fi
     done <<< "$TEST_OUTPUT"
 fi
 
