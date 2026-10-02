@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The runner's preinstalled ShellCheck is older than the Homebrew release used locally and disagrees with it.
       - name: Install current ShellCheck
         run: |
           /home/linuxbrew/.linuxbrew/bin/brew install shellcheck
