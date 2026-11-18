@@ -111,7 +111,8 @@ source_stdlib_io_copy internal/cpu
 source_stdlib_io_copy internal/sync
 source_stdlib_io_copy sync
 source_stdlib_io_copy sync/atomic
-source_stdlib_os_file_readcloser_assignment os
+source_stdlib_os_file_readcloser_assignment io+deps
+source_stdlib_os_file_readcloser_assignment os+deps
 source_stdlib_parser_decl_cross_package internal/bytealg
 source_stdlib_parser_decl_cross_package internal/cpu
 source_stdlib_strconv_unquote internal/bytealg

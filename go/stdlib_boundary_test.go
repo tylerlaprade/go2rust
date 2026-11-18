@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -46,7 +47,9 @@ func TestStdlibBoundaryTierRules(t *testing.T) {
 		{name: "policy native wins without signals", path: "sync", want: stdlibTierNative},
 		{name: "policy native with signals", path: "sync/atomic", signals: asm, want: stdlibTierNative},
 		{name: "listed hook", path: "math/rand", signals: hook("runtime_rand"), want: stdlibTierSourceWithHooks},
-		{name: "prefix hook", path: "go/types", signals: hook("badlinkname_Checker_infer"), want: stdlibTierSourceWithHooks},
+		{name: "hook names are exact, not prefixes", path: "go/types", signals: hook("badlinkname_Checker_other"), want: stdlibTierSourceWithHooks, wantError: "outside its hook list"},
+		{name: "a method does not match a function hook", path: "math/rand", signals: hook("Rand.runtime_rand"), want: stdlibTierSourceWithHooks, wantError: "outside its hook list"},
+		{name: "declaration-only hook", path: "go/types", signals: hook("badlinkname_Checker_infer"), want: stdlibTierSourceWithHooks},
 		{name: "hooks gone means source", path: "math/big", want: stdlibTierSource},
 		{name: "assembly allowed when policy says so", path: "math", signals: stdlibRuntimeSignals{AsmFiles: []string{"floor_asm.s"}, BodylessFuncs: []string{"archFloor"}}, want: stdlibTierSourceWithHooks},
 		{name: "internal override to hooks", path: "go/internal/srcimporter", signals: hook("setUsesCgo"), want: stdlibTierSourceWithHooks},
@@ -85,7 +88,13 @@ func noBody(x int) int
 
 func (r recv) method()
 
+func (r *recv) ptrMethod()
+
+func (g *generic[T]) genericMethod()
+
 type recv struct{}
+
+type generic[T any] struct{}
 `
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "p.go", src, parser.SkipObjectResolution)
@@ -96,7 +105,7 @@ type recv struct{}
 	if want := []string{"a_amd64.s", "b_arm64.s"}; strings.Join(got.AsmFiles, ",") != strings.Join(want, ",") {
 		t.Errorf("AsmFiles = %v, want %v", got.AsmFiles, want)
 	}
-	if want := []string{"method", "noBody"}; strings.Join(got.BodylessFuncs, ",") != strings.Join(want, ",") {
+	if want := []string{"generic.genericMethod", "noBody", "recv.method", "recv.ptrMethod"}; strings.Join(got.BodylessFuncs, ",") != strings.Join(want, ",") {
 		t.Errorf("BodylessFuncs = %v, want %v", got.BodylessFuncs, want)
 	}
 	if !got.UsesCgo {
@@ -139,13 +148,18 @@ type stdlibBoundaryListedPackage struct {
 	ImportPath string
 	Dir        string
 	Standard   bool
+	Incomplete bool
 	GoFiles    []string
 	CgoFiles   []string
 	SFiles     []string
+	Imports    []string
+	Error      *struct{ Err string }
 }
 
 // listStdlibBoundaryPackages runs `go list` with the self-host build tags and
-// returns the standard-library packages among the results.
+// returns the standard-library packages among the results. Any package the go
+// tool could not load completely fails the test: classifying partial file
+// lists would report a package as clean when it is not.
 func listStdlibBoundaryPackages(t *testing.T, args ...string) []stdlibBoundaryListedPackage {
 	t.Helper()
 	cmdArgs := append([]string{"list", "-e", "-json", "-tags=" + stdlibBoundaryBuildTags}, args...)
@@ -172,9 +186,19 @@ func listStdlibBoundaryPackages(t *testing.T, args ...string) []stdlibBoundaryLi
 		} else if err != nil {
 			t.Fatalf("decode go list output: %v", err)
 		}
-		if pkg.Standard && pkg.Dir != "" {
-			listed = append(listed, pkg)
+		if pkg.Error != nil {
+			t.Fatalf("go %s: package %s did not load: %s", strings.Join(cmdArgs, " "), pkg.ImportPath, pkg.Error.Err)
 		}
+		if pkg.Incomplete {
+			t.Fatalf("go %s: package %s is incomplete (it or a dependency has errors)", strings.Join(cmdArgs, " "), pkg.ImportPath)
+		}
+		if !pkg.Standard {
+			continue
+		}
+		if pkg.Dir == "" {
+			t.Fatalf("go %s: standard-library package %s has no source directory", strings.Join(cmdArgs, " "), pkg.ImportPath)
+		}
+		listed = append(listed, pkg)
 	}
 	sort.Slice(listed, func(i, j int) bool { return listed[i].ImportPath < listed[j].ImportPath })
 	return listed
@@ -277,9 +301,9 @@ var stdlibBoundaryFixtureOptInPattern = regexp.MustCompile(`(?m)^\s*source_stdli
 
 const stdlibBoundaryFixtureBaselinePath = "testdata/stdlib_boundary_fixture_baseline.txt"
 
-// stdlibBoundaryFixtureOptIns returns, per fixture name, the standard-library
-// packages the fixture names in source_stdlib_packages. Wildcard patterns are
-// skipped: they name no single package.
+// stdlibBoundaryFixtureOptIns returns, per fixture name, the tokens of the
+// fixture's source_stdlib_packages setting exactly as written, split the way
+// the loader splits them.
 func stdlibBoundaryFixtureOptIns(t *testing.T) map[string][]string {
 	t.Helper()
 	optIns := make(map[string][]string)
@@ -301,83 +325,172 @@ func stdlibBoundaryFixtureOptIns(t *testing.T) map[string][]string {
 				continue
 			}
 			fixture := filepath.Base(filepath.Dir(path))
-			for _, pattern := range strings.FieldsFunc(string(match[1]), func(r rune) bool {
+			for _, token := range strings.FieldsFunc(string(match[1]), func(r rune) bool {
 				return r == ',' || r == ';' || r == ':' || r == ' ' || r == '\t' || r == '\n'
 			}) {
-				pattern = strings.TrimSuffix(strings.TrimSpace(pattern), "+deps")
-				if pattern == "" || pattern == "all" || pattern == "std" || strings.HasSuffix(pattern, "/...") {
-					continue
+				if token = strings.TrimSpace(token); token != "" {
+					optIns[fixture] = append(optIns[fixture], token)
 				}
-				optIns[fixture] = append(optIns[fixture], pattern)
 			}
 		}
 	}
 	return optIns
 }
 
+// stdlibBoundaryExpandOptIn returns the standard-library packages one
+// source_stdlib_packages token lets the loader source-transpile, and whether
+// the token is broad (a wildcard or a +deps expansion) rather than one named
+// package.
+//
+// It mirrors the loader: sourceStdlibPackagePatternMatchesWithMode decides
+// which packages a pattern names, +deps follows standard-library imports
+// transitively, and isSourceTranspilableStdlibPackage is the loader's own
+// filter, so the result shrinks by itself once the loader enforces the
+// boundary. A wildcard is read as every package it can match, which is the
+// most the loader could select.
+func stdlibBoundaryExpandOptIn(token string, std map[string]stdlibBoundaryListedPackage) (pkgs []string, broad bool) {
+	pattern := strings.TrimSuffix(token, "+deps")
+	deps := pattern != token
+	if pattern == "" {
+		return nil, false
+	}
+	wildcard := pattern == "all" || pattern == "std" || strings.HasSuffix(pattern, "/...")
+
+	selected := make(map[string]bool)
+	var queue []string
+	add := func(path string) {
+		if _, ok := std[path]; !ok || selected[path] || !isSourceTranspilableStdlibPackage(path) {
+			return
+		}
+		selected[path] = true
+		queue = append(queue, path)
+	}
+	for path := range std {
+		if sourceStdlibPackagePatternMatches(path, pattern) {
+			add(path)
+		}
+	}
+	if deps {
+		for len(queue) > 0 {
+			path := queue[0]
+			queue = queue[1:]
+			for _, imp := range std[path].Imports {
+				add(imp)
+			}
+		}
+	}
+	for path := range selected {
+		pkgs = append(pkgs, path)
+	}
+	sort.Strings(pkgs)
+	return pkgs, deps || wildcard
+}
+
+func TestStdlibBoundaryExpandOptIn(t *testing.T) {
+	std := map[string]stdlibBoundaryListedPackage{
+		"a":        {ImportPath: "a", Imports: []string{"a/sub", "runtime", "unsafe", "C"}},
+		"a/sub":    {ImportPath: "a/sub", Imports: []string{"leaf"}},
+		"ab":       {ImportPath: "ab"},
+		"leaf":     {ImportPath: "leaf"},
+		"runtime":  {ImportPath: "runtime", Imports: []string{"hidden"}},
+		"hidden":   {ImportPath: "hidden"},
+		"unsafe":   {ImportPath: "unsafe"},
+		"other":    {ImportPath: "other"},
+		"other/in": {ImportPath: "other/in"},
+	}
+	cases := []struct {
+		token     string
+		want      string
+		wantBroad bool
+	}{
+		{token: "a", want: "a"},
+		{token: "missing", want: ""},
+		// The loader never source-transpiles runtime or unsafe, and does not
+		// follow imports through them.
+		{token: "runtime", want: ""},
+		{token: "a+deps", want: "a,a/sub,leaf", wantBroad: true},
+		{token: "a/...", want: "a,a/sub", wantBroad: true},
+		{token: "a/...+deps", want: "a,a/sub,leaf", wantBroad: true},
+		{token: "other/...", want: "other,other/in", wantBroad: true},
+		{token: "all", want: "a,a/sub,ab,hidden,leaf,other,other/in", wantBroad: true},
+		{token: "std", want: "a,a/sub,ab,hidden,leaf,other,other/in", wantBroad: true},
+		{token: "+deps", want: ""},
+	}
+	for _, tc := range cases {
+		got, broad := stdlibBoundaryExpandOptIn(tc.token, std)
+		if strings.Join(got, ",") != tc.want {
+			t.Errorf("expand %q = %v, want %s", tc.token, got, tc.want)
+		}
+		if broad != tc.wantBroad {
+			t.Errorf("expand %q broad = %v, want %v", tc.token, broad, tc.wantBroad)
+		}
+	}
+}
+
 // TestStdlibBoundaryFixtureRatchet stops fixtures from source-transpiling
 // more native-tier packages while the existing ones are migrated.
 //
-// The baseline lists every (fixture, native-tier package) pair that exists
-// today. A pair outside the baseline fails the test. A baseline line whose
-// pair is gone also fails, so the file only shrinks. When it is empty, delete
-// it together with this test and let the loader enforce the boundary.
+// The baseline holds one line per offending opt-in, "<fixture> <token>":
 //
-// Set GO2RUST_UPDATE_STDLIB_BOUNDARY_BASELINE=1 to rewrite the baseline after
-// removing native-tier packages from a fixture.
+//   - a token that names one native-tier package, or
+//   - a broad token (a wildcard or +deps) whose expansion reaches at least one
+//     native-tier package. The token is recorded as written, because the
+//     packages it reaches change with the platform and the Go version.
+//
+// An offending opt-in outside the baseline fails the test. A baseline line
+// that no longer applies also fails, so the file only shrinks. When it is
+// empty, delete it together with this test and let the loader enforce the
+// boundary.
+//
+// GO2RUST_UPDATE_STDLIB_BOUNDARY_BASELINE=1 prunes the baseline: it drops the
+// lines that no longer apply. It never adds a line.
 func TestStdlibBoundaryFixtureRatchet(t *testing.T) {
 	optIns := stdlibBoundaryFixtureOptIns(t)
 	if len(optIns) == 0 {
 		t.Fatalf("found no fixture with source_stdlib_packages; the fixture glob is wrong")
 	}
 
-	named := make(map[string]bool)
-	for _, pkgs := range optIns {
-		for _, pkg := range pkgs {
-			named[pkg] = true
-		}
+	std := make(map[string]stdlibBoundaryListedPackage)
+	for _, pkg := range listStdlibBoundaryPackages(t, "std") {
+		std[pkg.ImportPath] = pkg
 	}
-	var patterns []string
-	for pkg := range named {
-		patterns = append(patterns, pkg)
-	}
-	sort.Strings(patterns)
 
+	// Classify lazily: only packages some fixture can reach are parsed.
 	tiers := make(map[string]stdlibTier)
-	for _, pkg := range listStdlibBoundaryPackages(t, patterns...) {
-		// A policy error still yields the safest tier, and the closure test
-		// reports the error itself.
-		tier, _ := stdlibBoundaryTier(pkg.ImportPath, stdlibBoundarySignalsForListedPackage(t, pkg))
-		tiers[pkg.ImportPath] = tier
-	}
-	// Packages the installed toolchain cannot list for this platform still
-	// count when they are native by path.
-	for _, pkg := range patterns {
-		if _, ok := tiers[pkg]; !ok && isRuntimeImplementationStdlibPath(pkg) {
-			tiers[pkg] = stdlibTierNative
+	tierOf := func(path string) stdlibTier {
+		if tier, ok := tiers[path]; ok {
+			return tier
 		}
+		tier, err := stdlibBoundaryTier(path, stdlibBoundarySignalsForListedPackage(t, std[path]))
+		if err != nil {
+			// The closure test only covers go2rust's own dependencies. A
+			// fixture can opt into a package outside them, so an undecided
+			// package or an unlisted hook has to fail here too.
+			t.Errorf("a fixture opts into a package that needs a boundary decision: %v", err)
+		}
+		tiers[path] = tier
+		return tier
 	}
 
-	var current []string
-	for fixture, pkgs := range optIns {
-		for _, pkg := range pkgs {
-			if tiers[pkg] == stdlibTierNative {
-				current = append(current, fixture+" "+pkg)
+	current := make(map[string][]string)
+	for fixture, tokens := range optIns {
+		for _, token := range tokens {
+			pkgs, broad := stdlibBoundaryExpandOptIn(token, std)
+			var native []string
+			for _, pkg := range pkgs {
+				if tierOf(pkg) == stdlibTierNative {
+					native = append(native, pkg)
+				}
+			}
+			if len(native) == 0 {
+				continue
+			}
+			if broad {
+				current[fixture+" "+token] = native
+			} else {
+				current[fixture+" "+pkgs[0]] = native
 			}
 		}
-	}
-	sort.Strings(current)
-
-	if os.Getenv("GO2RUST_UPDATE_STDLIB_BOUNDARY_BASELINE") == "1" {
-		content := strings.Join(current, "\n")
-		if content != "" {
-			content += "\n"
-		}
-		if err := os.WriteFile(stdlibBoundaryFixtureBaselinePath, []byte(content), 0o644); err != nil {
-			t.Fatalf("write %s: %v", stdlibBoundaryFixtureBaselinePath, err)
-		}
-		t.Logf("rewrote %s with %d entries", stdlibBoundaryFixtureBaselinePath, len(current))
-		return
 	}
 
 	baselineBytes, err := os.ReadFile(stdlibBoundaryFixtureBaselinePath)
@@ -391,21 +504,51 @@ func TestStdlibBoundaryFixtureRatchet(t *testing.T) {
 		}
 	}
 
-	seen := make(map[string]bool, len(current))
-	for _, entry := range current {
-		seen[entry] = true
+	var added []string
+	for entry := range current {
 		if !baseline[entry] {
-			fields := strings.Fields(entry)
-			t.Errorf("fixture %s source-transpiles native-tier package %s. Native-tier packages are provided in hand-written Rust, not transpiled; remove it from source_stdlib_packages. See docs/stdlib_boundary.md.", fields[0], fields[1])
+			added = append(added, entry)
 		}
 	}
-	var stale []string
+	sort.Strings(added)
+	for _, entry := range added {
+		fixture, token, _ := strings.Cut(entry, " ")
+		native := current[entry]
+		if len(native) == 1 && native[0] == token {
+			t.Errorf("fixture %s source-transpiles native-tier package %s. Native-tier packages are provided in hand-written Rust, not transpiled; remove it from source_stdlib_packages. See docs/stdlib_boundary.md.", fixture, token)
+			continue
+		}
+		shown := native
+		more := ""
+		if len(shown) > 6 {
+			more = " and " + strconv.Itoa(len(shown)-6) + " more"
+			shown = shown[:6]
+		}
+		t.Errorf("fixture %s opts into %q, which makes the loader source-transpile native-tier packages: %s%s. Name the source-tier packages it needs explicitly instead. See docs/stdlib_boundary.md.", fixture, token, strings.Join(shown, ", "), more)
+	}
+
+	var kept, stale []string
 	for entry := range baseline {
-		if !seen[entry] {
+		if _, ok := current[entry]; ok {
+			kept = append(kept, entry)
+		} else {
 			stale = append(stale, entry)
 		}
 	}
+	sort.Strings(kept)
 	sort.Strings(stale)
+
+	if os.Getenv("GO2RUST_UPDATE_STDLIB_BOUNDARY_BASELINE") == "1" {
+		content := strings.Join(kept, "\n")
+		if content != "" {
+			content += "\n"
+		}
+		if err := os.WriteFile(stdlibBoundaryFixtureBaselinePath, []byte(content), 0o644); err != nil {
+			t.Fatalf("write %s: %v", stdlibBoundaryFixtureBaselinePath, err)
+		}
+		t.Logf("pruned %d stale entries from %s; %d remain", len(stale), stdlibBoundaryFixtureBaselinePath, len(kept))
+		return
+	}
 	for _, entry := range stale {
 		t.Errorf("baseline entry %q no longer applies; delete it from go/%s (or rerun with GO2RUST_UPDATE_STDLIB_BOUNDARY_BASELINE=1)", entry, stdlibBoundaryFixtureBaselinePath)
 	}

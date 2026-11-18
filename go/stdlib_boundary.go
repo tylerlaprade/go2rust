@@ -56,7 +56,8 @@ type stdlibRuntimeSignals struct {
 	AsmFiles []string
 	// BodylessFuncs are functions declared in Go without a body. Their
 	// implementation comes from assembly, from the compiler, or from another
-	// package through //go:linkname.
+	// package through //go:linkname. A method is recorded as "Recv.Name", so
+	// it can never be mistaken for a package-level function of the same name.
 	BodylessFuncs []string
 	// UsesCgo is set when a file imports "C".
 	UsesCgo bool
@@ -108,7 +109,7 @@ func collectStdlibRuntimeSignals(otherFiles []string, files []*ast.File) stdlibR
 			if !ok || fn.Body != nil || fn.Name == nil {
 				continue
 			}
-			signals.BodylessFuncs = append(signals.BodylessFuncs, fn.Name.Name)
+			signals.BodylessFuncs = append(signals.BodylessFuncs, stdlibBoundaryFuncName(fn))
 		}
 	}
 	sort.Strings(signals.AsmFiles)
@@ -116,12 +117,40 @@ func collectStdlibRuntimeSignals(otherFiles []string, files []*ast.File) stdlibR
 	return signals
 }
 
+// stdlibBoundaryFuncName names a declaration the way hook lists do: "Name"
+// for a package-level function and "Recv.Name" for a method.
+func stdlibBoundaryFuncName(fn *ast.FuncDecl) string {
+	if fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return fn.Name.Name
+	}
+	recv := fn.Recv.List[0].Type
+	for {
+		switch t := recv.(type) {
+		case *ast.StarExpr:
+			recv = t.X
+			continue
+		case *ast.ParenExpr:
+			recv = t.X
+			continue
+		case *ast.IndexExpr:
+			recv = t.X
+			continue
+		case *ast.IndexListExpr:
+			recv = t.X
+			continue
+		case *ast.Ident:
+			return t.Name + "." + fn.Name.Name
+		}
+		return "?." + fn.Name.Name
+	}
+}
+
 // stdlibBoundaryDecision is a reviewed decision for one package.
 type stdlibBoundaryDecision struct {
 	tier stdlibTier
-	// hooks lists the bodyless functions a source+hooks package may declare.
-	// A trailing * matches any suffix. A bodyless function outside this list
-	// is an error, so a Go upgrade cannot add a runtime dependency unnoticed.
+	// hooks lists, by exact name, the bodyless functions a source+hooks
+	// package may declare. A bodyless function outside this list is an error,
+	// so a Go upgrade cannot add a runtime dependency unnoticed.
 	hooks []string
 	// asm records that the package ships assembly accelerators behind its
 	// hooks. Without it, an assembly file in a source+hooks package is an
@@ -138,7 +167,8 @@ type stdlibBoundaryDecision struct {
 // that. Packages without signals are source and need no entry.
 //
 // Entries cover Go 1.24 through 1.27 with -tags=purego on linux, darwin and
-// windows. TestStdlibBoundaryCoversSelfHostClosure reports what a newer
+// windows, for amd64 and arm64. Hook names are exact, so another architecture
+// or a newer toolchain can add names that need review. TestStdlibBoundaryCoversSelfHostClosure reports what a newer
 // toolchain adds.
 var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 	// Native: the package is the runtime or OS interface itself.
@@ -160,18 +190,18 @@ var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 	"crypto/rand":                 {tier: stdlibTierSourceWithHooks, hooks: []string{"fatal"}, reason: "runtime fatal error"},
 	"crypto/subtle":               {tier: stdlibTierSourceWithHooks, hooks: []string{"setDITDisabled", "setDITEnabled"}, reason: "data-independent-timing switch supplied by the runtime (Go 1.26+)"},
 	"go/internal/srcimporter":     {tier: stdlibTierSourceWithHooks, hooks: []string{"setUsesCgo"}, reason: "one function implemented in go/types"},
-	"go/types":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"badlinkname_*"}, reason: "linkname declarations kept for outside callers; never called"},
-	"hash/crc32":                  {tier: stdlibTierSourceWithHooks, hooks: []string{"castagnoli*", "ieee*"}, asm: true, reason: "CPU accelerators; the generic Go path is complete"},
+	"go/types":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"badlinkname_Checker_infer"}, reason: "linkname declarations kept for outside callers; never called"},
+	"hash/crc32":                  {tier: stdlibTierSourceWithHooks, hooks: []string{"castagnoliSSE42", "castagnoliSSE42Triple", "castagnoliUpdate", "ieeeCLMUL", "ieeeUpdate"}, asm: true, reason: "CPU accelerators; the generic Go path is complete"},
 	"hash/maphash":                {tier: stdlibTierSourceWithHooks, hooks: []string{"runtime_memhash", "runtime_rand"}, reason: "runtime hash and random seed (Go 1.27+)"},
 	"iter":                        {tier: stdlibTierSourceWithHooks, hooks: []string{"coroswitch", "newcoro"}, reason: "runtime coroutines behind iter.Pull"},
 	"maps":                        {tier: stdlibTierSourceWithHooks, hooks: []string{"clone"}, reason: "runtime map clone"},
-	"math":                        {tier: stdlibTierSourceWithHooks, hooks: []string{"arch*"}, asm: true, reason: "CPU accelerators; the generic Go path is complete"},
+	"math":                        {tier: stdlibTierSourceWithHooks, hooks: []string{"archCeil", "archExp", "archExp2", "archFloor", "archHypot", "archLog", "archMax", "archMin", "archModf", "archTrunc"}, asm: true, reason: "CPU accelerators; the generic Go path is complete"},
 	"math/big":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"addMulVVW", "addMulVVWW", "addVV", "addVW", "lshVU", "mulAddVWW", "rshVU", "shlVU", "shrVU", "subVV", "subVW"}, asm: true, reason: "arithmetic kernels; -tags=math_big_pure_go selects the Go versions and removes every hook"},
 	"math/rand":                   {tier: stdlibTierSourceWithHooks, hooks: []string{"runtime_rand"}, reason: "runtime random seed"},
 	"math/rand/v2":                {tier: stdlibTierSourceWithHooks, hooks: []string{"runtime_rand"}, reason: "runtime random seed"},
 	"mime/multipart":              {tier: stdlibTierSourceWithHooks, hooks: []string{"readMIMEHeader"}, reason: "one function implemented in net/textproto"},
-	"net/http":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"bad*", "readMIMEHeader"}, reason: "linkname declarations kept for outside callers, never called; one function implemented in net/textproto (Go 1.27+)"},
-	"net/url":                     {tier: stdlibTierSourceWithHooks, hooks: []string{"bad*"}, reason: "linkname declarations kept for outside callers; never called"},
+	"net/http":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"badRoundTrip", "badServeHTTP", "readMIMEHeader"}, reason: "linkname declarations kept for outside callers, never called; one function implemented in net/textproto (Go 1.27+)"},
+	"net/url":                     {tier: stdlibTierSourceWithHooks, hooks: []string{"badSetPath"}, reason: "linkname declarations kept for outside callers; never called"},
 	"testing/cryptotest":          {tier: stdlibTierSourceWithHooks, hooks: []string{"randSetTestingReader", "testingCheckParallel"}, reason: "functions implemented in crypto/internal/rand and testing (Go 1.26+)"},
 	"testing/synctest":            {tier: stdlibTierSourceWithHooks, hooks: []string{"testingSynctestTest"}, reason: "one function implemented in testing (Go 1.25+)"},
 	"time":                        {tier: stdlibTierSourceWithHooks, hooks: []string{"Sleep", "newTimer", "now", "resetTimer", "runtimeIsBubbled", "runtimeNano", "runtimeNow", "stopTimer"}, reason: "runtime clock and timers; formatting, parsing and arithmetic are ordinary Go"},
@@ -254,12 +284,6 @@ func checkStdlibBoundaryHooks(importPath string, decision stdlibBoundaryDecision
 
 func stdlibBoundaryHookListed(hooks []string, name string) bool {
 	for _, hook := range hooks {
-		if strings.HasSuffix(hook, "*") {
-			if strings.HasPrefix(name, strings.TrimSuffix(hook, "*")) {
-				return true
-			}
-			continue
-		}
 		if hook == name {
 			return true
 		}
