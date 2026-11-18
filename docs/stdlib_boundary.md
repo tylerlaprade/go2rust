@@ -49,17 +49,30 @@ numbers. The source tier stays under the "transpile, don't bridge" rules in
 
 ## How a package gets its tier
 
+The rules apply in this order. The first one that matches decides.
+
 1. `runtime`, `runtime/...`, `internal/runtime/...` and `unsafe` are native.
-2. Otherwise, look at the mechanical signals for the current build
-   configuration: assembly files, functions declared without a body, and cgo.
-3. No signals: the package is **source**.
+2. A package with an entry in `stdlibBoundaryPolicy` gets the entry's tier.
+   A native entry holds whatever the signals say, so `os` is native even on a
+   build where it shows none. A source+hooks entry is checked against the
+   signals: every bodyless function must be in its hook list. If the build
+   leaves no signals at all, the package is plain source.
+3. A package with no signals is **source**. The signals are mechanical, read
+   for the current build configuration: assembly files, functions declared
+   without a body, and cgo.
 4. Signals in an `internal/` or `vendor/` package: **native** by default.
-5. Signals in a public package: the package needs a reviewed entry in
-   `stdlibBoundaryPolicy`. Until it has one, classification returns an error.
+5. Signals in a public package with no policy entry: classification returns an
+   error. The package needs a reviewed decision.
 
 The policy table holds the decisions that signals cannot make alone. Each
-entry carries a reason. A source+hooks entry lists the exact functions that may
-lack a body. A function outside that list is an error.
+entry carries a reason. A source+hooks entry lists, by exact name, the
+functions that may lack a body. A function outside that list is an error, and
+a bodyless method is recorded as `Recv.Name` so it cannot pass as a function
+of the same name.
+
+Signals are read with `-tags=purego`, the self-host default. Hook lists cover
+amd64 and arm64. Another architecture can declare accelerators under other
+names, and the closure test will ask for a decision when it does.
 
 ## What this looks like for go2rust itself
 
@@ -148,17 +161,32 @@ excludes only `runtime` and `unsafe`, so a fixture that opts in can still
 source-transpile `sync/atomic` or `internal/bytealg`.
 
 Until the loader enforces the boundary, `TestStdlibBoundaryFixtureRatchet`
-holds the line. `go/testdata/stdlib_boundary_fixture_baseline.txt` lists every
-fixture that names a native-tier package in `source_stdlib_packages`. A new
-pair fails the test. A line whose pair is gone also fails, so the file can only
-shrink. After removing native-tier packages from a fixture, refresh it with:
+holds the line. `go/testdata/stdlib_boundary_fixture_baseline.txt` has one line
+per offending opt-in in a fixture's `source_stdlib_packages`:
+
+- a token that names one native-tier package, such as `sync/atomic`, or
+- a broad token, such as `os+deps` or `os/...`, whose expansion reaches at
+  least one native-tier package. The token is recorded as written, because the
+  packages it reaches change with the platform and the Go version.
+
+The test expands each token the way the loader does: `+deps` follows
+standard-library imports transitively, and the loader's own
+`isSourceTranspilableStdlibPackage` filters the result. A wildcard is read as
+every package it can match, which is the most the loader could select.
+
+An offending opt-in outside the baseline fails the test. A baseline line that
+no longer applies also fails, so the file can only shrink. After removing
+native-tier packages from a fixture, prune the baseline with:
 
 ```sh
 GO2RUST_UPDATE_STDLIB_BOUNDARY_BASELINE=1 ./go_test.sh -run TestStdlibBoundaryFixtureRatchet
 ```
 
-The ratchet covers packages a fixture names explicitly. It does not see
-packages pulled in by `+deps` expansion; loader enforcement closes that gap.
+Pruning only drops lines. It never adds one, so a change that removes one
+opt-in and adds another still fails until the new one is gone.
+
+A fixture can also opt into a package outside go2rust's own dependencies. If
+that package needs a boundary decision, the ratchet reports it.
 
 ## When Go is upgraded
 
