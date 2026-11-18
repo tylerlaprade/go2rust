@@ -1447,6 +1447,10 @@ run_xfail_test() {
     run_test "tests/map_comma_ok_bool_default"
 }
 
+@test "map_converted_numeric" {
+    run_test "tests/map_converted_numeric"
+}
+
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
 }

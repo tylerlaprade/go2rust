@@ -10931,6 +10931,17 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		out.WriteString(".clone()")
 		return
 	}
+	// A conversion to a basic numeric type already creates the map element's
+	// value handle. Named types and interface elements have their own layout.
+	if basic, ok := types.Unalias(valueType).(*types.Basic); ok && basic.Info()&(types.IsInteger|types.IsFloat) != 0 {
+		if call, ok := unwrapParens(value).(*ast.CallExpr); ok {
+			info := GetTypeInfo()
+			if info != nil && info.IsTypeConversion(call) && typeConversionEmitsWrappedValue(call) {
+				TranspileExpression(out, call)
+				return
+			}
+		}
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
