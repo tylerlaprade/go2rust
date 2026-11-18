@@ -401,6 +401,13 @@ func isSourceTranspilableStdlibPackage(importPath string) bool {
 	// through os, but transpiling runtime pulls in compiler intrinsics and
 	// assembly-backed declarations instead of moving user-visible stdlib
 	// packages toward bridge retirement.
+	//
+	// These two are the narrowest case of the stdlib boundary. The full
+	// native tier is defined by stdlibBoundaryTier in stdlib_boundary.go; see
+	// docs/stdlib_boundary.md. This function does not consult it yet, so the
+	// loader still source-transpiles other native-tier packages when a
+	// fixture opts in. TestStdlibBoundaryFixtureRatchet holds that set fixed
+	// until the loader enforces the boundary.
 	return importPath != "unsafe" && importPath != "runtime"
 }
 
