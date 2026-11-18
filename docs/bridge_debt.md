@@ -12,6 +12,15 @@ non-source-mapped user-program calls; it is not a precedent for self-hosting
 source-stdlib work. Any new or widened mapping added because a source-transpiled
 stdlib package cannot compile or run belongs here.
 
+Scope: this registry covers **source-tier** packages only. Hand-written Rust
+for a native-tier package (`runtime`, `unsafe`, `sync`, `sync/atomic`,
+`syscall`, `reflect`, `os`, and the runtime-bound `internal/*` packages) is the
+permanent implementation, not debt, and needs no row. The tier of a package is
+decided by `stdlibBoundaryTier` in `go/stdlib_boundary.go`; see
+[stdlib_boundary.md](stdlib_boundary.md). Existing rows that describe a
+native-tier surface stay until that surface is reviewed against the rules for
+native code and then leave the registry.
+
 Every `// TEMPORARY:` comment in `go/external_type_stubs.go` MUST have a row
 here. The Go test `TestBridgeDebtRegistryCoversAllShims` (in
 `go/external_type_stubs_test.go`) compares that historical subset and fails CI
