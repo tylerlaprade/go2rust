@@ -4,23 +4,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 
-thread_local! {
-    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
-}
-
-// Runs format one level further inside the value being printed.
-fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
-    struct Depth;
-    impl Drop for Depth {
-        fn drop(&mut self) {
-            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
-        }
-    }
-    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    format()
-}
-
 fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
@@ -41,6 +24,12 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
+    format_any(value)
+}
+
 #[derive(Clone, Default)]
 pub struct entry {
     pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
@@ -57,7 +46,7 @@ impl entry {
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", match self.value.lock().unwrap().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
+        let __go_fmt_0 = format!("{}", match self.value.lock().unwrap().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }

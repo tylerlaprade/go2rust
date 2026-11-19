@@ -5,23 +5,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-
-thread_local! {
-    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
-}
-
-// Runs format one level further inside the value being printed.
-fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
-    struct Depth;
-    impl Drop for Depth {
-        fn drop(&mut self) {
-            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
-        }
-    }
-    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    format()
-}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -108,6 +91,12 @@ fn format_any(value: &dyn Any) -> String {
     } else {
         "<unknown>".to_string()
     }
+}
+
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any(value)
 }
 
 /// Named struct with anonymous struct field
@@ -560,7 +549,7 @@ impl Default for AnonymousStruct9 {
 impl std::fmt::Display for AnonymousStruct9 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.key.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

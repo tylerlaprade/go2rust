@@ -21,17 +21,26 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		}
 	case *types.Pointer:
 		if anyFormatTypeIsLocalStruct(t.Elem()) {
-			// go_format_any_pointer expands the pointee only at the top
-			// level. A pointer reached while another is being expanded is
-			// printed as its address, as Go does, so a value that points
-			// back to itself does not print forever. The nil check below
-			// that level must not wait for the handle: the expansion that
-			// is in progress may be holding it.
 			var expr strings.Builder
+			if typeHasGoStringMethod(t) || isConcreteGoErrorValue(t) {
+				// Go prints a pointer that has a String or Error method
+				// through that method, wherever the pointer sits. The
+				// pointee's Display calls the method.
+				expr.WriteString("match (*v")
+				WriteBorrowMethod(&expr, false)
+				expr.WriteString(`).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }`)
+				return anyFormatArm{expr: expr.String()}, true
+			}
+			// go_format_any_pointer expands the pointee only when the
+			// pointer is the value being printed. Inside another value it
+			// prints the address, as Go does, so a value that points back
+			// to itself does not print forever. The nil check there must
+			// not wait for the handle: the expansion that reached it may be
+			// holding it.
 			if NeedsConcurrentWrapper() {
-				expr.WriteString("go_format_any_pointer(Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v")
+				expr.WriteString("go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v")
 			} else {
-				expr.WriteString("go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v")
+				expr.WriteString("go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v")
 			}
 			WriteBorrowMethod(&expr, false)
 			expr.WriteString(`).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })`)

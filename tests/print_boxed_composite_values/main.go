@@ -23,6 +23,18 @@ type Node struct {
 
 func render(v interface{}) string { return fmt.Sprintf("%v", v) }
 
+// Label prints itself by printing another value. That is a print call of its
+// own: the pointer it prints is at the top level of that call, wherever the
+// Label sits in the value being printed.
+type Label struct{ X int }
+
+func (l Label) String() string { return render(&Point{X: l.X}) }
+
+// Missing does the same from its Error method.
+type Missing struct{ Line int }
+
+func (m Missing) Error() string { return "missing at " + render(&Point{X: m.Line}) }
+
 // shape describes text around the addresses in it, which change from run to
 // run: whether it starts with prefix, and how many addresses it holds.
 func shape(text, prefix string) string {
@@ -125,4 +137,27 @@ func main() {
 	fmt.Println(Report{})
 	show(Report{})
 	show(Report{Err: fmt.Errorf("reported")})
+
+	// A String or Error method that prints starts a print call of its own.
+	// The pointer it prints is expanded, however deep the value with the
+	// method sits: in a field, behind a pointer, in a slice, in an error field.
+	fmt.Println(Label{7})
+	show(Label{7})
+	fmt.Println(Node{Name: "row", Next: Label{7}})
+	show(Node{Name: "row", Next: Label{7}})
+	show(&Node{Name: "row", Next: Label{7}})
+	labels := []interface{}{Label{8}, &Point{2, 3}, 1}
+	fmt.Println("slice:", shape(fmt.Sprintf("%v", labels), "[&{8 0} 0x"))
+	fmt.Println(labels...)
+	fmt.Println(Outcome{Value: 4, Err: Missing{9}})
+	show(Node{Name: "outer", Next: Outcome{Value: 5, Err: Missing{9}}})
+
+	// A pointer to a type with a String or Error method prints through the
+	// method, at the top level and inside another value. A nil one is <nil>.
+	show(&Status{404})
+	show(Node{Name: "n", Next: &Status{5}})
+	show(&NotFound{"y"})
+	var noStatus *Status
+	show(noStatus)
+	show(Node{Name: "n", Next: noStatus})
 }

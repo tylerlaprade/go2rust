@@ -4,35 +4,27 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 
-thread_local! {
-    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
-}
-
-// Runs format one level further inside the value being printed.
-fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
-    struct Depth;
-    impl Drop for Depth {
-        fn drop(&mut self) {
-            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
-        }
+// Go expands a pointer to a struct only when the pointer is the value being
+// printed. Inside a struct or a slice it prints the address. That is also
+// what keeps a value that points back to itself from printing forever.
+fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    if !nested {
+        return expand();
     }
-    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    format()
-}
-
-// Go expands a pointer to a struct only at the top level of the value being
-// printed. Inside a struct, a slice or another pointer it prints the address.
-// That is also what keeps a value that points back to itself from printing
-// forever.
-fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
-    if GO_FORMAT_ANY_DEPTH.with(|depth| depth.get()) > 0 {
-        return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
-    }
-    go_format_any_nested(expand)
+    if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
 }
 
 fn format_any(value: &(dyn Any + Send + Sync)) -> String {
+    format_any_at(value, false)
+}
+
+// Prints a value held inside the one being printed: a struct's interface
+// field, an element of a []interface{}.
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
+    format_any_at(value, true)
+}
+
+fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -48,12 +40,34 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Node>>>>() {
-        go_format_any_pointer(Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+        go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Point>>>>() {
+        go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Label>() {
+        format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Node>() {
         format!("{}", v)
     } else {
         "<unknown>".to_string()
     }
+}
+
+fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>, format_value: fn(&(dyn Any + Send + Sync)) -> String) -> String {
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| format_value(v.as_ref())).collect();
+        formatted.join(" ")
+    } else {
+        String::new()
+    }
+}
+
+fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    format!("[{}]", format_any_slice_values(slice, format_any_nested))
+}
+
+fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    format_any_slice_values(slice, format_any)
 }
 
 struct GoChannel<T> {
@@ -236,11 +250,82 @@ impl Default for Node {
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", match self.next.lock().unwrap().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.next.lock().unwrap().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
+
+#[derive(Debug, Clone)]
+pub struct Point {
+    pub x: Arc<Mutex<Option<i32>>>,
+}
+
+impl Point {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Point {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            x: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+/// Label prints itself by printing another value. That is a print call of its
+/// own, so the pointer it prints is expanded wherever the Label sits.
+#[derive(Debug, Clone)]
+pub struct Label {
+    pub x: Arc<Mutex<Option<i32>>>,
+}
+
+impl Label {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Label {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            x: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Label {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
+impl Label {
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>))))
+    }
+}
 
 pub fn render(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
     Arc::new(Mutex::new(Some(format!("{}", format_any(v.lock().unwrap().as_ref().unwrap().as_ref())))))
@@ -284,4 +369,21 @@ fn main() {
     let mut text = render(Arc::new(Mutex::new(Some(Box::new(Node { name: Arc::new(Mutex::new(Some("holder".to_string()))), next: Arc::new(Mutex::new(Some(Box::new(tail.clone()) as Box<dyn Any + Send + Sync>))), ..Default::default() }) as Box<dyn Any + Send + Sync>))));
     println!("{} {} {}", format!("{}", "struct holding a pointer:".to_string()), format!("{}", (*shape(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("{holder 0x".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", Node { name: Arc::new(Mutex::new(Some("end".to_string()))), ..Default::default() }));
+
+    println!("{}", format!("{}", Node { name: Arc::new(Mutex::new(Some("row".to_string()))), next: Arc::new(Mutex::new(Some(Box::new(Label { x: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Any + Send + Sync>))), ..Default::default() }));
+    println!("{}", format!("{}", (*render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("row".to_string()))), next: Arc::new(Mutex::new(Some(Box::new(Label { x: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Any + Send + Sync>))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
+
+        // The elements of a slice are inside it. Spread into a print call they
+        // are its arguments, and a pointer among them is expanded.
+    let mut labels: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>> = Arc::new(Mutex::new(None));
+    { let new_val = { let __append_target = labels.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![
+        Box::new(Label { x: Arc::new(Mutex::new(Some(8))), ..Default::default() }) as Box<dyn Any + Send + Sync>,
+        Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>,
+        Box::new(1) as Box<dyn Any + Send + Sync>,
+    ]); __append_target.clone() }; labels = new_val; };
+    println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", (*shape(
+        Arc::new(Mutex::new(Some(format!("{}", format_any_slice(&labels))))),
+        Arc::new(Mutex::new(Some("[&{8} 0x".to_string())))
+    ).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format_any_variadic(&labels));
 }

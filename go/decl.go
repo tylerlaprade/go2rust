@@ -210,13 +210,13 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		if f.isInterface {
 			// A nil interface field prints as <nil>. The zero value of a
 			// struct has one, so this is the common case, not a corner.
-			// The value in the field is one level inside the struct, where
-			// Go prints a pointer as its address.
+			// The value in the field is inside the struct, where Go prints
+			// a pointer as its address. format_any_nested knows that.
 			NeedFormatAnyNested()
 			out.WriteString("match self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => \"<nil>\".to_string() }")
+			out.WriteString(".as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => \"<nil>\".to_string() }")
 		} else if f.isError {
 			// The same for an error field: nil until something fails.
 			out.WriteString("match self.")

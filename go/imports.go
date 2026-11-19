@@ -281,9 +281,6 @@ func (ht *HelperTracker) GenerateHelpers() string {
 			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
 		}
 	}
-	if needsFormatAnyPointer || ht.needsFormatAnyNested || ht.needsFormatAnySlice {
-		generateAnyDepthTracker(&result)
-	}
 	if needsFormatAnyPointer {
 		generateAnyPointerFormatter(&result)
 	}
@@ -313,11 +310,14 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsFormatAny {
-		generateAnyFormatter(&result, ht.anyFormatArms)
+		// format_any_slice prints its elements as nested values, and only a
+		// pointer case makes that differ from format_any.
+		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && ht.needsFormatAnySlice)
+		generateAnyFormatter(&result, ht.anyFormatArms, needsFormatAnyPointer, needsNestedEntry)
 	}
 
 	if ht.needsFormatAnySlice {
-		generateAnySliceFormatter(&result)
+		generateAnySliceFormatter(&result, needsFormatAnyPointer)
 	}
 
 	if ht.needsAnyEq {
@@ -614,7 +614,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("format_any_slice", "format_any_variadic")
 	}
 	if ht.needsFormatAnyNested {
-		add("go_format_any_nested")
+		add("format_any_nested")
 	}
 	if ht.needsAnyEq {
 		add("go_any_eq")
@@ -1011,58 +1011,53 @@ impl std::fmt::Display for GoAnyPtrKey {
 `)
 }
 
-// generateAnyDepthTracker emits the count of how deep the printer is inside
-// the value being printed, and go_format_any_nested, which every place that
-// prints a value held inside another one goes through: a struct's interface
-// field, an element of a []interface{}. Go's printer keeps the same count.
-func generateAnyDepthTracker(out *strings.Builder) {
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	out.WriteString(`
-thread_local! {
-    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
-}
-
-// Runs format one level further inside the value being printed.
-` + visibility + `fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
-    struct Depth;
-    impl Drop for Depth {
-        fn drop(&mut self) {
-            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
-        }
-    }
-    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    format()
-}
-`)
-}
-
 // generateAnyPointerFormatter emits go_format_any_pointer, which format_any
 // uses to print a pointer to a struct held in an interface.
 func generateAnyPointerFormatter(out *strings.Builder) {
 	out.WriteString(`
-// Go expands a pointer to a struct only at the top level of the value being
-// printed. Inside a struct, a slice or another pointer it prints the address.
-// That is also what keeps a value that points back to itself from printing
-// forever.
-fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
-    if GO_FORMAT_ANY_DEPTH.with(|depth| depth.get()) > 0 {
-        return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
+// Go expands a pointer to a struct only when the pointer is the value being
+// printed. Inside a struct or a slice it prints the address. That is also
+// what keeps a value that points back to itself from printing forever.
+fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    if !nested {
+        return expand();
     }
-    go_format_any_nested(expand)
+    if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
 }
 `)
 }
 
-func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm) {
+// generateAnyFormatter emits format_any, which prints the value an interface
+// holds, and format_any_nested when nestedEntry asks for it. format_any is
+// for a value that is itself an argument of a print call. format_any_nested
+// is for a value held inside the one being printed: a struct's interface
+// field, an element of a []interface{}.
+//
+// The two differ only for a pointer to a struct, so the distinction is
+// generated only when pointerArms says the program boxes one. Each place
+// that prints says which of the two it is, and nothing is remembered between
+// calls: a String or Error method that prints starts at the top level again,
+// as it does in Go.
+func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm, pointerArms bool, nestedEntry bool) {
 	TrackImport("Any")
+	valueType := "&dyn Any"
 	if NeedsConcurrentWrapper() {
-		out.WriteString("\nfn format_any(value: &(dyn Any + Send + Sync)) -> String {\n")
+		valueType = "&(dyn Any + Send + Sync)"
+	}
+	if pointerArms {
+		out.WriteString("\nfn format_any(value: " + valueType + ") -> String {\n")
+		out.WriteString("    format_any_at(value, false)\n")
+		out.WriteString("}\n")
+		if nestedEntry {
+			out.WriteString("\n// Prints a value held inside the one being printed: a struct's interface\n")
+			out.WriteString("// field, an element of a []interface{}.\n")
+			out.WriteString("fn format_any_nested(value: " + valueType + ") -> String {\n")
+			out.WriteString("    format_any_at(value, true)\n")
+			out.WriteString("}\n")
+		}
+		out.WriteString("\nfn format_any_at(value: " + valueType + ", nested: bool) -> String {\n")
 	} else {
-		out.WriteString("\nfn format_any(value: &dyn Any) -> String {\n")
+		out.WriteString("\nfn format_any(value: " + valueType + ") -> String {\n")
 	}
 	out.WriteString("    if let Some(v) = value.downcast_ref::<i32>() {\n")
 	out.WriteString("        v.to_string()\n")
@@ -1096,6 +1091,13 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 	out.WriteString("        \"<unknown>\".to_string()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+	if !pointerArms && nestedEntry {
+		out.WriteString("\n// Prints a value held inside the one being printed. Nothing this program\n")
+		out.WriteString("// puts in an interface prints differently there.\n")
+		out.WriteString("fn format_any_nested(value: " + valueType + ") -> String {\n")
+		out.WriteString("    format_any(value)\n")
+		out.WriteString("}\n")
+	}
 }
 
 func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
@@ -1784,54 +1786,52 @@ fn go_integer_sub_one<T: GoInteger>(value: T) -> T {
 `)
 }
 
-func generateAnySliceFormatter(out *strings.Builder) {
+// generateAnySliceFormatter emits the printers for a []interface{}:
+// format_any_slice for the slice as a value, and format_any_variadic for a
+// slice spread into the arguments of a print call. The elements of the first
+// are inside the slice and the elements of the second are arguments, which
+// matters only when nestedElements says format_any tells the two apart.
+func generateAnySliceFormatter(out *strings.Builder, nestedElements bool) {
+	TrackImport("Any")
+	sliceType := "&Rc<RefCell<Option<Vec<Box<dyn Any>>>>>"
+	valueType := "&dyn Any"
+	guard := "slice.borrow()"
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		TrackImport("Any")
-		out.WriteString(`
-fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
-        formatted.join(" ")
-    } else {
-        String::new()
-    }
-}
-
-fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
-    go_format_any_nested(|| format!("[{}]", format_any_slice_values(slice)))
-}
-
-fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
-    format_any_slice_values(slice)
-}
-`)
+		sliceType = "&Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>"
+		valueType = "&(dyn Any + Send + Sync)"
+		guard = "slice.lock().unwrap()"
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		TrackImport("Any")
-		out.WriteString(`
-fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    let guard = slice.borrow();
+	}
+	valuesParams, formatValue, nestedArg, topLevelArg := "", "format_any", "", ""
+	if nestedElements {
+		valuesParams = ", format_value: fn(" + valueType + ") -> String"
+		formatValue = "format_value"
+		nestedArg = ", format_any_nested"
+		topLevelArg = ", format_any"
+	}
+	out.WriteString(`
+fn format_any_slice_values(slice: ` + sliceType + valuesParams + `) -> String {
+    let guard = ` + guard + `;
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        let formatted: Vec<String> = s.iter().map(|v| ` + formatValue + `(v.as_ref())).collect();
         formatted.join(" ")
     } else {
         String::new()
     }
 }
 
-fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    go_format_any_nested(|| format!("[{}]", format_any_slice_values(slice)))
+fn format_any_slice(slice: ` + sliceType + `) -> String {
+    format!("[{}]", format_any_slice_values(slice` + nestedArg + `))
 }
 
-fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    format_any_slice_values(slice)
+fn format_any_variadic(slice: ` + sliceType + `) -> String {
+    format_any_slice_values(slice` + topLevelArg + `)
 }
 `)
-	}
 }
 
 func generateGoChannelHelper(out *strings.Builder) {
