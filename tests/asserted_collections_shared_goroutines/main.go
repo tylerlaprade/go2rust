@@ -8,6 +8,8 @@ package main
 
 import "fmt"
 
+type Numbers []int
+
 func main() {
 	done := make(chan bool)
 	go func() { done <- true }()
@@ -32,6 +34,13 @@ func main() {
 	items := list.([]int)
 	items[0] = 10
 	fmt.Println(list.([]int)[0], len(items))
+
+	// A var of another slice type is a value of that type made from the
+	// asserted slice.
+	var typed Numbers = list.([]int)
+	var plain []int = list.([]int)
+	plain[1] = 20
+	fmt.Println(len(typed), list.([]int)[1])
 
 	var names any = []string{"x"}
 	ns := names.([]string)

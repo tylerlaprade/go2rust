@@ -537,3 +537,26 @@ func main() {
 		t.Logf("generated Rust:\n%s", rust)
 	}
 }
+
+// "var n Numbers = x.([]int)" declares a Numbers, not the asserted []int:
+// the initializer must build the Numbers value, not hand over the []int
+// handle the interface holds.
+func TestAssertedSliceIntoVarOfAnotherSliceTypeBuildsThatType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Numbers []int
+
+func main() {
+	var x any = []int{1}
+	var n Numbers = x.([]int)
+	var s []int = x.([]int)
+	_, _ = n, s
+}
+`)
+	if !strings.Contains(rust, "let mut n: Rc<RefCell<Option<Numbers>>> = Rc::new(RefCell::new(Some(Numbers(") {
+		t.Fatalf("var n Numbers should be built as a Numbers value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut s: Rc<RefCell<Option<Vec<i32>>>> = ({ let val = x.clone();") {
+		t.Fatalf("var s []int should keep the interface's slice handle:\n%s", rust)
+	}
+}

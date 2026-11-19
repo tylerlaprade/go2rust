@@ -4584,6 +4584,23 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	return true
 }
 
+// varSpecHasTypeOfValue reports whether the i-th name of a var spec has the
+// type of its value: the spec names no type, or names the value's own type.
+// "var n Numbers = x.([]int)" does not: n is a Numbers built from the
+// []int, not the []int itself.
+func varSpecHasTypeOfValue(valueSpec *ast.ValueSpec, i int) bool {
+	if valueSpec.Type == nil {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || i >= len(valueSpec.Names) || i >= len(valueSpec.Values) {
+		return false
+	}
+	obj := typeInfo.info.Defs[valueSpec.Names[i]]
+	valueType := typeInfo.GetType(valueSpec.Values[i])
+	return obj != nil && valueType != nil && types.Identical(obj.Type(), valueType)
+}
+
 func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil || !isPackageGlobalIdent(ident) {
 		return false
@@ -13585,7 +13602,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										writeInterfaceBoxedValue(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
-									} else if writeAnyHandleAssertionHandle(out, valueSpec.Values[i]) {
+									} else if varSpecHasTypeOfValue(valueSpec, i) && writeAnyHandleAssertionHandle(out, valueSpec.Values[i]) {
 										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
