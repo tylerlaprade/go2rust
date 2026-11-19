@@ -24,6 +24,7 @@ type TranspileSession struct {
 
 // PackageState holds package-scoped registries that should be shared across files.
 type PackageState struct {
+	FunctionLocalInterfaces       map[string]*ast.InterfaceType
 	FunctionSignatures            map[string]*FunctionSignature
 	FunctionNameOverrides         map[string]string
 	FunctionBoundKinds            map[*ast.FuncDecl]genericMethodBoundKind

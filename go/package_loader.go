@@ -1057,6 +1057,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	if pkgCtx != nil {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
 	}
+	pkgState.FunctionLocalInterfaces = packageAnalysis.packageFunctionLocalInterfaces()
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	pkgState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.Syntax))

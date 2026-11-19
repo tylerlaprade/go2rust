@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -188,6 +189,7 @@ type transpileFileAnalysis struct {
 	pointerComparablePointees     map[string]bool
 	localInterfaceEqualityTypes   map[string]bool
 	localInterfaceMapKeyTypes     map[string]bool
+	ambiguousLocalInterfaces      map[string]bool
 	functionLocalInterfaces       map[string]*ast.InterfaceType
 	importedInterfaceImpls        map[string]map[string]*types.Interface
 	importedPointerInterfaceImpls map[string]map[string]*types.Interface
@@ -203,6 +205,7 @@ func newTranspileFileAnalysis() *transpileFileAnalysis {
 		pointerComparablePointees:     make(map[string]bool),
 		localInterfaceEqualityTypes:   make(map[string]bool),
 		localInterfaceMapKeyTypes:     make(map[string]bool),
+		ambiguousLocalInterfaces:      make(map[string]bool),
 		functionLocalInterfaces:       make(map[string]*ast.InterfaceType),
 		importedInterfaceImpls:        make(map[string]map[string]*types.Interface),
 		importedPointerInterfaceImpls: make(map[string]map[string]*types.Interface),
@@ -434,6 +437,16 @@ func (analysis *transpileFileAnalysis) inspectReturnStmt(ret *ast.ReturnStmt, fn
 	}
 }
 
+func (analysis *transpileFileAnalysis) packageFunctionLocalInterfaces() map[string]*ast.InterfaceType {
+	result := make(map[string]*ast.InterfaceType)
+	for name, iface := range analysis.functionLocalInterfaces {
+		if !analysis.ambiguousLocalInterfaces[name] {
+			result[name] = iface
+		}
+	}
+	return result
+}
+
 func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDecl) {
 	if genDecl.Tok != token.TYPE {
 		return
@@ -444,7 +457,12 @@ func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDe
 			continue
 		}
 		if iface, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-			analysis.functionLocalInterfaces[typeSpec.Name.Name] = iface
+			name := typeSpec.Name.Name
+			if _, exists := analysis.functionLocalInterfaces[name]; exists {
+				// Distinct declarations cannot share one package-wide Rust trait.
+				analysis.ambiguousLocalInterfaces[name] = true
+			}
+			analysis.functionLocalInterfaces[name] = iface
 		}
 	}
 }
@@ -3373,6 +3391,18 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			registerStructTypeSpecDef(t.spec, structType)
 		}
 	}
+	// Trait implementations belong with the concrete type, including when
+	// the trait was hoisted from a function in a sibling file.
+	implLocalInterfaces := localFunctionInterfaces
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.FunctionLocalInterfaces) > 0 {
+		implLocalInterfaces = maps.Clone(localFunctionInterfaces)
+		for name, decl := range ctx.Package.FunctionLocalInterfaces {
+			if interfaces[name] == nil && typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Scope().Lookup(name) == nil {
+				interfaces[name] = decl
+				implLocalInterfaces[name] = decl
+			}
+		}
+	}
 	markComparableInterfaceImplementorStructs(types, interfaces)
 	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
@@ -3457,7 +3487,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	ifaceNames := packageLocalInterfaceNames(interfaces)
 	slices.Sort(ifaceNames)
-	implInterfaces := resolveImplInterfaces(ifaceNames, localFunctionInterfaces, typeInfo)
+	implInterfaces := resolveImplInterfaces(ifaceNames, implLocalInterfaces, typeInfo)
 	for _, t := range types {
 		typeName := t.spec.Name.Name
 		if typesWithImpls[typeName] {

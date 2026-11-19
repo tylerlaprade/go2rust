@@ -318,6 +318,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	if packageImports != nil {
 		SetPackageImports(packageImports)
 	}
+	packageState.FunctionLocalInterfaces = packageAnalysis.packageFunctionLocalInterfaces()
 	packageState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	packageState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
@@ -671,11 +672,37 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 	pkgScope := typeInfo.pkg.Scope()
 	objectModules := make(map[types.Object]string)
 	objectRustNames := make(map[types.Object]string)
-	for ident, obj := range typeInfo.info.Defs {
-		if ident == nil || obj == nil || obj.Parent() != pkgScope || obj.Pkg() != typeInfo.pkg {
+	traitObjects := make(map[*types.TypeName]*types.Interface)
+	ctx := GetTranspileContext()
+	for _, obj := range typeInfo.info.Defs {
+		if obj == nil || obj.Pkg() != typeInfo.pkg {
 			continue
 		}
+		local := obj.Parent() != pkgScope
+		tn, _ := obj.(*types.TypeName)
+		var iface *types.Interface
+		if tn != nil {
+			if named, ok := tn.Type().(*types.Named); ok {
+				iface, _ = named.Underlying().(*types.Interface)
+			}
+		}
+		if local {
+			if iface == nil || ctx == nil || ctx.Package == nil || pkgScope.Lookup(obj.Name()) != nil {
+				continue
+			}
+			decl := ctx.Package.FunctionLocalInterfaces[obj.Name()]
+			if decl == nil || typeInfo.GetType(decl) != iface {
+				continue
+			}
+		}
+		if iface != nil && !iface.Empty() {
+			traitObjects[tn] = iface
+		}
 		moduleName := moduleNameForObjectPos(files, moduleNamesByIndex, obj.Pos())
+		if moduleName == "" && local {
+			// main.go emits hoisted traits at the Rust crate root.
+			moduleName = "crate"
+		}
 		if moduleName == "" {
 			continue
 		}
@@ -816,20 +843,7 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 				return
 			}
 			ptr := types.NewPointer(named)
-			for _, name := range pkgScope.Names() {
-				ifTn, ok := pkgScope.Lookup(name).(*types.TypeName)
-				if !ok || ifTn == tn {
-					continue
-				}
-				ifNamed, ok := ifTn.Type().(*types.Named)
-				if !ok {
-					continue
-				}
-				iface, ok := ifNamed.Underlying().(*types.Interface)
-				if !ok || iface.NumMethods() == 0 {
-					continue
-				}
-				iface.Complete()
+			for ifTn, iface := range traitObjects {
 				if types.Implements(named, iface) || types.Implements(ptr, iface) {
 					recordObject(ifTn)
 				}
@@ -908,7 +922,11 @@ func siblingImportSpecs(neededByModule map[string]map[string]bool) []string {
 			itemNames = append(itemNames, itemName)
 		}
 		sort.Strings(itemNames)
-		specs = append(specs, moduleName+"::{"+strings.Join(itemNames, ", ")+"}")
+		if moduleName == "crate" {
+			specs = append(specs, itemNames...)
+		} else {
+			specs = append(specs, moduleName+"::{"+strings.Join(itemNames, ", ")+"}")
+		}
 	}
 	return specs
 }
