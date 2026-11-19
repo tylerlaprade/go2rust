@@ -215,16 +215,16 @@ func TestStoringAndReadingAStructCopiesIt(t *testing.T) {
 	rust := transpileTypedRegression(t, structStoreProgram)
 
 	for what, want := range map[string]string{
-		"s[0] = p":               "[(0) as usize] = (*p.borrow().as_ref().unwrap()).__go_value_clone();",
+		"s[0] = p":               "let __rhs = (*p.borrow().as_ref().unwrap()).__go_value_clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs;",
 		`m["a"] = p`:             "let __map_value = { let __owned = p.borrow().as_ref().unwrap().__go_value_clone();",
 		`got := m["a"]`:          ".map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone())",
 		"var shape Shape = r":    "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>",
 		"c := *q":                "let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));",
 		"d = *q":                 "{ let new_val = { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone(); *d.borrow_mut() = Some(new_val); }",
 		"e = s[0]":               "{ let new_val = (*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); *e.borrow_mut() = Some(new_val); }",
-		"append(dst, s...)":      ".iter().map(|__go_elem| __go_elem.__go_value_clone()))",
+		"append(dst, s...)":      ".iter().map(|__go_elem| __go_elem.__go_value_clone()).collect();",
 		"copy(copied, s)":        "(*copied.borrow_mut().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();",
-		"append(dst, names...)":  ".unwrap_or_default() }.iter().cloned())",
+		"append(dst, names...)":  ".unwrap_or_default() }.iter().cloned().collect();",
 		"copy(moreNames, names)": "(*moreNames.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();",
 	} {
 		if !strings.Contains(rust, want) {
@@ -441,7 +441,7 @@ func main() {
 		"a named slice variable": held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
 		"a named slice field":    held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
 		"a package variable":     held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0;",
-		"an indexed target":      held + " (*dst.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0.borrow_mut().take().unwrap_or_default();",
+		"an indexed target":      held + " { let __idx = (0) as usize; (*dst.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0.borrow_mut().take().unwrap_or_default(); }",
 		"a plain local slice":    "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; local = __tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {

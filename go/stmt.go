@@ -989,9 +989,11 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 		return true
 	}
 
+	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
+	// the 1, and did not compile.
 	out.WriteString("{ let __idx = ")
-	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; ")
 	writeIndexedSequenceMutationGuard(out, indexExpr.X)
 	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
 	writeIndexedCurrentElementValue(out, elemType)
@@ -1693,15 +1695,33 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 		return false
 	}
 
-	out.WriteString("(*")
-	TranspileExpressionContext(out, innerIndex.X, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
+	// Both indexes and the value are evaluated before the outer sequence is
+	// locked for writing: "grid[i][j] = grid[k][l]" reads the same grid.
+	//
+	// Go evaluates the outer sequence before its indexes. That shows when
+	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
+	// handle is then taken first and held, not locked.
+	holdsSequence := expressionCallsOrReceives(innerIndex.X)
+	out.WriteString("{ ")
+	if holdsSequence {
+		out.WriteString("let __seq = ")
+		TranspileExpressionContext(out, innerIndex.X, LValue)
+		out.WriteString(".clone(); ")
+	}
+	out.WriteString("let __outer_idx = ")
 	writeExpressionAsUsize(out, innerIndex.Index)
-	out.WriteString("][")
+	out.WriteString("; let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
+	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
+	out.WriteString("; (*")
+	if holdsSequence {
+		out.WriteString("__seq")
+	} else {
+		TranspileExpressionContext(out, innerIndex.X, LValue)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[__outer_idx][__idx] = __rhs; }")
 	return true
 }
 
@@ -7151,18 +7171,36 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	if writeGoPtrPointedArrayAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle) {
 		return true
 	}
-	out.WriteString(" (*")
-	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-		writeNamedSliceInnerHandleClone(out, subj)
+	// The index is evaluated before the sequence is locked for writing:
+	// "s[len(s)-1], x = a, b" reads the sequence in its index. A sequence
+	// that calls a function is evaluated before its index, as in Go: its
+	// handle is taken first and held.
+	holdsSequence := expressionCallsOrReceives(indexExpr.X)
+	writeSequenceHandle := func() {
+		if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+			writeNamedSliceInnerHandleClone(out, subj)
+		} else {
+			TranspileExpressionContext(out, indexExpr.X, LValue)
+		}
+	}
+	out.WriteString(" { ")
+	if holdsSequence {
+		out.WriteString("let __seq = ")
+		writeSequenceHandle()
+		out.WriteString(".clone(); ")
+	}
+	out.WriteString("let __idx = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; (*")
+	if holdsSequence {
+		out.WriteString("__seq")
 	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
+		writeSequenceHandle()
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
+	out.WriteString(".as_mut().unwrap())[__idx] = ")
 	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-	out.WriteString(";")
+	out.WriteString("; }")
 	return true
 }
 
@@ -8082,6 +8120,48 @@ func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
 	out.WriteString(" }")
 }
 
+// expressionCallsOrReceives reports whether evaluating expr calls a function
+// or receives from a channel, so that evaluating it one more time, or one
+// time less, changes what the program does.
+func expressionCallsOrReceives(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.CallExpr:
+			found = true
+		case *ast.UnaryExpr:
+			if n.Op == token.ARROW {
+				found = true
+			}
+		case *ast.FuncLit:
+			return false
+		}
+		return !found
+	})
+	return found
+}
+
+// mapOperandHandleCanBeHeld reports whether the map operand of "m[k] op= v"
+// is a handle that can be cloned and held while the key and the operand are
+// evaluated. A package-level variable is not: it is a static that owns its
+// map, and cloning it copies the map. Without type information there is no
+// telling a package-level variable of another package from a field.
+func mapOperandHandleCanBeHeld(mapExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	switch operand := unwrapParens(mapExpr).(type) {
+	case *ast.Ident:
+		return !isPackageGlobalIdent(operand)
+	case *ast.SelectorExpr:
+		if variable, ok := typeInfo.info.Uses[operand.Sel].(*types.Var); ok && !variable.IsField() {
+			return false
+		}
+	}
+	return true
+}
+
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
 	typeInfo := GetTypeInfo()
 	defaultValue := "Default::default()"
@@ -8091,11 +8171,37 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
 	}
 
-	out.WriteString("{ let mut __map_guard = ")
-	writeMapHandleForOp(out, indexExpr.X)
-	WriteBorrowMethod(out, true)
-	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
+	// The key and the operand are evaluated before the map is locked for
+	// writing. Either may read the map ("m[a] += m[b]"), and a read under the
+	// write lock panics, or hangs in a program with goroutines.
+	//
+	// Go evaluates the map operand first, so its handle is taken before the
+	// key and the operand, without locking it. A package-level map has no
+	// handle to take: it is written in place, and naming it calls nothing.
+	holdsMapHandle := mapOperandHandleCanBeHeld(indexExpr.X)
+	out.WriteString("{ ")
+	if holdsMapHandle {
+		out.WriteString("let __map_holder = ")
+		writeMapHandleCloneForOp(out, indexExpr.X)
+		out.WriteString("; ")
+	}
+	out.WriteString("let __key = ")
 	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
+	out.WriteString("; ")
+	operandIsRHS := op != token.INC && op != token.DEC && rhs != nil
+	if operandIsRHS {
+		out.WriteString("let __rhs = ")
+		TranspileExpression(out, rhs)
+		out.WriteString("; ")
+	}
+	out.WriteString("let mut __map_guard = ")
+	if holdsMapHandle {
+		out.WriteString("__map_holder")
+	} else {
+		writeMapHandleForOp(out, indexExpr.X)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key")
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -8132,8 +8238,8 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString(" ")
 	if op == token.INC || op == token.DEC {
 		out.WriteString("1")
-	} else if rhs != nil {
-		TranspileExpression(out, rhs)
+	} else if operandIsRHS {
+		out.WriteString("__rhs")
 	} else {
 		out.WriteString("0")
 	}
@@ -8705,8 +8811,8 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
 	out.WriteString("{ let __idx = ")
-	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; let __rhs = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let __rhs = ")
 	writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
 	out.WriteString("; ")
 	writeIndexedSequenceMutationGuard(out, indexExpr.X)
@@ -12307,7 +12413,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Nested slice element assignment emitted by helper.
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
 									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {
-										TranspileExpression(out, call)
+										// "x[i] = append(x[i], v)" is written as the append
+										// alone, which evaluates i once. Go evaluates the i
+										// of the target as well, and first; that shows when
+										// i calls a function.
+										if expressionCallsOrReceives(indexExpr.Index) {
+											out.WriteString("{ let _ = ")
+											writeExpressionAsUsize(out, indexExpr.Index)
+											out.WriteString("; ")
+											TranspileExpression(out, call)
+											out.WriteString("; }")
+										} else {
+											TranspileExpression(out, call)
+										}
 									} else {
 										out.WriteString("(*")
 										TranspileExpressionContext(out, indexExpr.X, LValue)
@@ -12318,20 +12436,37 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, call)
 									}
 								} else {
-									out.WriteString("(*")
-									if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-										writeNamedSliceInnerHandleClone(out, subj)
-										WriteBorrowMethod(out, true)
-									} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
-										writeNamedArrayInnerHandleClone(out, subj)
-										WriteBorrowMethod(out, true)
-									} else {
-										TranspileExpressionContext(out, indexExpr.X, LValue)
-										WriteBorrowMethod(out, true)
+									// The index and the value are evaluated before the
+									// sequence is locked for writing. Either may read the
+									// sequence ("s[len(s)-1] = x", "s[0] = s[1]"), and a
+									// read under the write lock panics, or hangs in a
+									// program with goroutines.
+									//
+									// Go evaluates the sequence operand before the
+									// index. That shows when the operand calls a
+									// function ("rows()[i()] = v()"), so its handle is
+									// then taken first and held, not locked. An operand
+									// that calls something is never a package-level
+									// variable, which has no handle to take.
+									holdsSequence := expressionCallsOrReceives(indexExpr.X)
+									writeSequenceHandle := func() {
+										if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+											writeNamedSliceInnerHandleClone(out, subj)
+										} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
+											writeNamedArrayInnerHandleClone(out, subj)
+										} else {
+											TranspileExpressionContext(out, indexExpr.X, LValue)
+										}
 									}
-									out.WriteString(".as_mut().unwrap())[")
+									out.WriteString("{ ")
+									if holdsSequence {
+										out.WriteString("let __seq = ")
+										writeSequenceHandle()
+										out.WriteString(".clone(); ")
+									}
+									out.WriteString("let __idx = ")
 									writeExpressionAsUsize(out, indexExpr.Index)
-									out.WriteString("] = ")
+									out.WriteString("; let __rhs = ")
 
 									var elemType types.Type
 									if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -12352,6 +12487,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 									}
+
+									out.WriteString("; (*")
+									if holdsSequence {
+										out.WriteString("__seq")
+									} else {
+										writeSequenceHandle()
+									}
+									WriteBorrowMethod(out, true)
+									out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
 								}
 							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
 								// Collection field on an indexed struct element mutates that element in place.

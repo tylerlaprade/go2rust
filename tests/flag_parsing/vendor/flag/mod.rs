@@ -4398,7 +4398,7 @@ impl FlagSet {
         {
         let (mut isZero, mut err) = is_zero_value(flag.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*flag.lock().unwrap().as_ref().unwrap()).def_value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            { let __append_target = isZeroValueErrs_closure_clone.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }); __append_target.clone() };;
+            { let __append_target = isZeroValueErrs_closure_clone.clone(); let __append_value = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };;
         } else if !isZero {
         {
         let (_, mut ok) = ({
@@ -5101,7 +5101,7 @@ pub fn sort_flags(flags: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Flag
     let mut result: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Flag>>>>>>> = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None)); ((*flags.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
     let mut i = Arc::new(Mutex::new(Some(0)));
     for (_, f) in { let __range_holder = flags.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        (*result.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = f.clone();
+        { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = f.clone(); (*result.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     { let __cmp_holder = Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<Flag>>>, b: Arc<Mutex<Option<Flag>>>| -> i32 {

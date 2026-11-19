@@ -4227,10 +4227,10 @@ func Use() []*Item {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "push((*new_item()") {
+	if strings.Contains(mainRS, "let __append_value = (*new_item()") {
 		t.Fatalf("append of pointer-returning call should keep the pointer handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "push(new_item())") {
+	if !strings.Contains(mainRS, "let __append_value = new_item();") {
 		t.Fatalf("append of pointer-returning call should push the returned handle, got:\n%s", mainRS)
 	}
 }

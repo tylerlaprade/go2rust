@@ -786,7 +786,7 @@ impl File {
                 false
             }
         } {
-            { let new_val = { let __append_target = self.lines.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*offset.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; self.lines = new_val; };;
+            { let new_val = { let __append_target = self.lines.clone(); let __append_value = (*offset.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.lines = new_val; };;
         }
     }
         self.mutex.unlock();
@@ -935,7 +935,7 @@ impl File {
         let mut line = Arc::new(Mutex::new(Some(0)));
         { let __range_holder = content.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (offset, b) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-        { let new_val = { let __append_target = lines.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*line.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; lines = new_val; };
+        { let new_val = { let __append_target = lines.clone(); let __append_value = (*line.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; lines = new_val; };
     }
         { let new_val = -1; *line.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = b; let __tmp_y = ('\n' as i32) as u8; __tmp_x == __tmp_y } {
@@ -1032,13 +1032,13 @@ impl File {
                 false
             }
         } {
-            { let new_val = { let __append_target = self.infos.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(lineInfo {
+            { let new_val = { let __append_target = self.infos.clone(); let __append_value = lineInfo {
                 offset: Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
                 filename: Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
                 line: Arc::new(Mutex::new(Some({ let __arg_holder = line.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
                 column: Arc::new(Mutex::new(Some({ let __arg_holder = column.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
                 ..Default::default()
-            }); __append_target.clone() }; self.infos = new_val; };;
+            }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.infos = new_val; };;
         }
     }
         self.mutex.unlock();
@@ -1254,7 +1254,7 @@ impl FileSet {
     }
                         // add the file to the file set
             { let new_val = base.lock().unwrap().as_ref().unwrap().clone(); *self.base.lock().unwrap() = Some(new_val); };
-            { let new_val = { let __append_target = self.files.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(f.clone()); __append_target.clone() }; self.files = new_val; };
+            { let new_val = { let __append_target = self.files.clone(); let __append_value = f.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.files = new_val; };
             (*self.last.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(f.clone()));
             {
         // Execute deferred functions

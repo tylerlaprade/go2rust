@@ -12,7 +12,7 @@ fn main() {
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new())));
     for (pkgPath, _) in { let __range_holder = src.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         if keep(Rc::new(RefCell::new(Some(pkgPath.clone())))) {
-        { let new_val = { let __append_target = paths.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(pkgPath.clone()); __append_target.clone() }; paths = new_val; };
+        { let new_val = { let __append_target = paths.clone(); let __append_value = pkgPath.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; paths = new_val; };
     }
         let (mut name, mut ok) = { let __map_holder = src.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&pkgPath)) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(String::new()))), false) } };
         if ok {

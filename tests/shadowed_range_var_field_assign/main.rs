@@ -169,7 +169,7 @@ pub fn process(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
     if !ok {
         return;
     }
-    { let new_val = { let __append_target = (*d.borrow().as_ref().unwrap()).items.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(99); __append_target.clone() }; (*d.borrow_mut().as_mut().unwrap()).items = new_val; };
+    { let new_val = { let __append_target = (*d.borrow().as_ref().unwrap()).items.clone(); let __append_value = 99; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; (*d.borrow_mut().as_mut().unwrap()).items = new_val; };
 }
 
 fn main() {

@@ -1,18 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::atob::*;
-use crate::atoc::*;
-use crate::atof::*;
-use crate::atoi::*;
-use crate::bytealg::*;
-use crate::ctoa::*;
-use crate::decimal::*;
-use crate::eisel_lemire::*;
-use crate::ftoaryu::*;
-use crate::isprint::*;
-use crate::itoa::*;
-use crate::quote::*;
-
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -26,28 +13,37 @@ pub struct floatInfo {
 
 impl floatInfo {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mantbits: { let __guard = self.mantbits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, expbits: { let __guard = self.expbits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bias: { let __guard = self.bias.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mantbits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.expbits.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.bias.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mantbits: __go_clone_0_0,
+            expbits: __go_clone_1_0,
+            bias: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for floatInfo {
     fn default() -> Self {
-        Self { mantbits: Arc::new(Mutex::new(Some(0))), expbits: Arc::new(Mutex::new(Some(0))), bias: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            mantbits: __go_default_0_0,
+            expbits: __go_default_1_0,
+            bias: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for floatInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.mantbits.lock().unwrap().as_ref().unwrap()), (*self.expbits.lock().unwrap().as_ref().unwrap()), (*self.bias.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for floatInfo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.mantbits.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.expbits.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.bias.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
