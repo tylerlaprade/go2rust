@@ -350,6 +350,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	packageAnalysis := analyzeTranspileFiles(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = packageAnalysis.comparableStructTypes
+	pkgState.FunctionLocalInterfaces = packageAnalysis.packageFunctionLocalInterfaces()
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	pkgState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.ASTFiles))

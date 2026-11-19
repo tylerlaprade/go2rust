@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -183,11 +184,13 @@ type StructDef struct {
 var structDefs = make(map[string]*StructDef)
 
 type transpileFileAnalysis struct {
+	structDecls                   []*ast.TypeSpec
 	comparableStructTypes         map[string]bool
 	mapKeyStructTypes             map[string]bool
 	pointerComparablePointees     map[string]bool
 	localInterfaceEqualityTypes   map[string]bool
 	localInterfaceMapKeyTypes     map[string]bool
+	ambiguousLocalInterfaces      map[string]bool
 	functionLocalInterfaces       map[string]*ast.InterfaceType
 	importedInterfaceImpls        map[string]map[string]*types.Interface
 	importedPointerInterfaceImpls map[string]map[string]*types.Interface
@@ -203,6 +206,7 @@ func newTranspileFileAnalysis() *transpileFileAnalysis {
 		pointerComparablePointees:     make(map[string]bool),
 		localInterfaceEqualityTypes:   make(map[string]bool),
 		localInterfaceMapKeyTypes:     make(map[string]bool),
+		ambiguousLocalInterfaces:      make(map[string]bool),
 		functionLocalInterfaces:       make(map[string]*ast.InterfaceType),
 		importedInterfaceImpls:        make(map[string]map[string]*types.Interface),
 		importedPointerInterfaceImpls: make(map[string]map[string]*types.Interface),
@@ -343,6 +347,15 @@ func enclosingFuncType(stack []ast.Node) *ast.FuncType {
 }
 
 func (analysis *transpileFileAnalysis) inspectPackageGenDecl(genDecl *ast.GenDecl, typeInfo *TypeInfo) {
+	if genDecl.Tok == token.TYPE {
+		for _, spec := range genDecl.Specs {
+			ts := spec.(*ast.TypeSpec)
+			if _, ok := ts.Type.(*ast.StructType); ok {
+				analysis.structDecls = append(analysis.structDecls, ts)
+			}
+		}
+		return
+	}
 	if genDecl.Tok != token.VAR || typeInfo == nil || typeInfo.info == nil {
 		return
 	}
@@ -434,6 +447,16 @@ func (analysis *transpileFileAnalysis) inspectReturnStmt(ret *ast.ReturnStmt, fn
 	}
 }
 
+func (analysis *transpileFileAnalysis) packageFunctionLocalInterfaces() map[string]*ast.InterfaceType {
+	result := make(map[string]*ast.InterfaceType)
+	for name, iface := range analysis.functionLocalInterfaces {
+		if !analysis.ambiguousLocalInterfaces[name] {
+			result[name] = iface
+		}
+	}
+	return result
+}
+
 func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDecl) {
 	if genDecl.Tok != token.TYPE {
 		return
@@ -444,7 +467,12 @@ func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDe
 			continue
 		}
 		if iface, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-			analysis.functionLocalInterfaces[typeSpec.Name.Name] = iface
+			name := typeSpec.Name.Name
+			if _, exists := analysis.functionLocalInterfaces[name]; exists {
+				// Distinct declarations cannot share one package-wide Rust trait.
+				analysis.ambiguousLocalInterfaces[name] = true
+			}
+			analysis.functionLocalInterfaces[name] = iface
 		}
 	}
 }
@@ -993,29 +1021,48 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 	}
 }
 
-func markComparableInterfaceImplementorStructs(typeDecls []struct {
-	spec *ast.TypeSpec
-	decl *ast.GenDecl
-}, methods map[string][]*ast.FuncDecl, interfaces map[string]*ast.InterfaceType) {
-	if NeedsConcurrentWrapper() {
+// Struct and array fields participate in Go value equality. Pointer fields
+// compare by identity and do not require equality on the pointed-to type.
+func markComparableValueFields(result map[string]bool, typ types.Type, pkg *types.Package, seen map[types.Type]bool) {
+	typ = types.Unalias(typ)
+	if seen[typ] {
+		return
+	}
+	seen[typ] = true
+	switch t := typ.Underlying().(type) {
+	case *types.Array:
+		markComparableValueFields(result, t.Elem(), pkg, seen)
+	case *types.Struct:
+		if named, ok := typ.(*types.Named); ok {
+			if named.Obj().Pkg() != pkg {
+				return
+			}
+			result[named.Obj().Name()] = true
+		}
+		for i := 0; i < t.NumFields(); i++ {
+			markComparableValueFields(result, t.Field(i).Type(), pkg, seen)
+		}
+	}
+}
+
+func markComparableInterfaceImplementorStructs(result map[string]bool, structs []*ast.TypeSpec, interfaces map[string]*ast.InterfaceType) {
+	if NeedsConcurrentWrapper() || len(interfaces) == 0 {
 		return
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return
 	}
-	for _, decl := range typeDecls {
-		structType, isStruct := decl.spec.Type.(*ast.StructType)
-		if !isStruct || structHasTraitField(structType) {
-			continue
-		}
-		obj, ok := typeInfo.info.Defs[decl.spec.Name].(*types.TypeName)
-		if !ok || obj == nil || obj.Type() == nil || !types.Comparable(obj.Type()) {
+	seen := make(map[types.Type]bool)
+	for _, spec := range structs {
+		obj, ok := typeInfo.info.Defs[spec.Name].(*types.TypeName)
+		if !ok || !types.Comparable(obj.Type()) || structHasTraitField(spec.Type.(*ast.StructType)) {
 			continue
 		}
 		for _, ifaceType := range interfaces {
-			if implementsInterface(methods[decl.spec.Name.Name], ifaceType) {
-				comparableStructTypes[decl.spec.Name.Name] = true
+			iface, ok := typeInfo.GetType(ifaceType).(*types.Interface)
+			if ok && types.Implements(obj.Type(), iface) {
+				markComparableValueFields(result, obj.Type(), obj.Pkg(), seen)
 				break
 			}
 		}
@@ -1142,9 +1189,10 @@ type externalLocalInterfaceArg struct {
 }
 
 type localInterfaceAssertionCandidate struct {
-	rustType string
-	external bool
-	typ      types.Type
+	pointerAdapter string
+	rustType       string
+	external       bool
+	typ            types.Type
 }
 
 type anonymousInterfaceAssertionTrait struct {
@@ -1572,6 +1620,31 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 		return "", nil, nil, nil, false
 	}
 	candidates := localInterfaceAssertionCandidates(ifaceType, sourceType)
+	// Empty interfaces store pointers as raw shared handles. The named trait
+	// uses a forwarding wrapper around that same handle.
+	if isEmptyInterfaceType(sourceType) {
+		for _, candidate := range candidates {
+			if candidate.external {
+				continue
+			}
+			elem := candidate.typ
+			if ptr, ok := elem.(*types.Pointer); ok {
+				elem = ptr.Elem()
+			}
+			local, ok := elem.(*types.Named)
+			if !ok {
+				continue
+			}
+			if _, ok := local.Underlying().(*types.Struct); !ok {
+				continue
+			}
+			ptr := types.NewPointer(local)
+			candidates = append(candidates, localInterfaceAssertionCandidate{
+				typ: ptr, rustType: goTypesTypeToRust(ptr),
+				pointerAdapter: pointerLocalInterfaceWrapperNameForUse(local.Obj().Name(), ifaceName),
+			})
+		}
+	}
 	return ifaceName, ifaceType, sourceType, candidates, true
 }
 
@@ -1665,6 +1738,22 @@ func currentPackageNamedType(typeName string) (*types.Named, bool) {
 	}
 	named, ok := types.Unalias(obj.Type()).(*types.Named)
 	return named, ok
+}
+
+func resolveImplInterfaces(names []string, functionLocal map[string]*ast.InterfaceType, typeInfo *TypeInfo) map[string]*types.Interface {
+	// Function-local interfaces are emitted as Rust traits too. Resolve these
+	// at their declaration, since package scope cannot see them.
+	implInterfaces := make(map[string]*types.Interface, len(names))
+	for _, name := range names {
+		if decl := functionLocal[name]; decl != nil {
+			if iface, ok := typeInfo.GetType(decl).(*types.Interface); ok && !iface.Empty() {
+				implInterfaces[name] = iface
+			}
+		} else {
+			implInterfaces[name] = localInterfaceTypesByName(name)
+		}
+	}
+	return implInterfaces
 }
 
 func currentPackageTypeImplementsInterface(typeName string, iface *types.Interface) bool {
@@ -3025,32 +3114,6 @@ func getReceiverType(expr ast.Expr) string {
 	return "Unknown"
 }
 
-// implementsInterface checks if a type implements all methods of an interface
-func implementsInterface(typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) bool {
-	// Check each interface method
-	for _, method := range iface.Methods.List {
-		if len(method.Names) == 0 {
-			continue
-		}
-		methodName := method.Names[0].Name
-
-		// Check if the type has this method
-		found := false
-		for _, typeMethod := range typeMethods {
-			if typeMethod.Name.Name == methodName {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return false
-		}
-	}
-
-	return true
-}
-
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker, map[string]bool) {
 	return TranspileWithMapping(file, fileSet, typeInfo, nil)
 }
@@ -3382,7 +3445,19 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			registerStructTypeSpecDef(t.spec, structType)
 		}
 	}
-	markComparableInterfaceImplementorStructs(types, methods, interfaces)
+	// Trait implementations belong with the concrete type, including when
+	// the trait was hoisted from a function in a sibling file.
+	implLocalInterfaces := localFunctionInterfaces
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.FunctionLocalInterfaces) > 0 {
+		implLocalInterfaces = maps.Clone(localFunctionInterfaces)
+		for name, decl := range ctx.Package.FunctionLocalInterfaces {
+			if interfaces[name] == nil && typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Scope().Lookup(name) == nil {
+				interfaces[name] = decl
+				implLocalInterfaces[name] = decl
+			}
+		}
+	}
+	markComparableInterfaceImplementorStructs(comparableStructTypes, fileAnalysis.structDecls, interfaces)
 	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
@@ -3464,7 +3539,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 
-	ifaceNamesForDeclaredTypes := packageLocalInterfaceNames(interfaces)
+	ifaceNames := packageLocalInterfaceNames(interfaces)
+	slices.Sort(ifaceNames)
+	implInterfaces := resolveImplInterfaces(ifaceNames, implLocalInterfaces, typeInfo)
 	for _, t := range types {
 		typeName := t.spec.Name.Name
 		if typesWithImpls[typeName] {
@@ -3473,11 +3550,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if _, iface := localInterfaceNamedTypeByName(typeName); iface != nil {
 			continue
 		}
-		for _, ifaceName := range ifaceNamesForDeclaredTypes {
+		for _, ifaceName := range ifaceNames {
 			if prunedTypeNames[ifaceName] || localInterfaceTypeIsPruned(ifaceName) {
 				continue
 			}
-			if currentPackageTypeImplementsInterface(typeName, localInterfaceTypesByName(ifaceName)) {
+			if currentPackageTypeImplementsInterface(typeName, implInterfaces[ifaceName]) {
 				typeNames = append(typeNames, typeName)
 				typesWithImpls[typeName] = true
 				break
@@ -3606,20 +3683,17 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			// a concrete type in one file (circle.go) implements an interface
 			// declared in another (shape.go), exactly like go/types' Basic/Signature/
 			// ... implementing the Type interface from type.go. The loop body resolves
-			// each name through the package scope (localInterfaceTypesByName) and only
+			// each name through its Go declaration and only
 			// emits an impl when currentPackageTypeImplementsInterface holds. The impl
 			// belongs with the concrete type declaration; files that only add methods
 			// emit inherent impl blocks but must not duplicate trait impls.
-			// Sort interface names for deterministic output.
-			ifaceNames := packageLocalInterfaceNames(interfaces)
-			slices.Sort(ifaceNames)
 			pointerWrapperEmitted := false
 
 			for _, ifaceName := range ifaceNames {
 				if prunedTypeNames[ifaceName] || localInterfaceTypeIsPruned(ifaceName) {
 					continue
 				}
-				ifaceType := localInterfaceTypesByName(ifaceName)
+				ifaceType := implInterfaces[ifaceName]
 				if !currentPackageTypeImplementsInterface(typeName, ifaceType) {
 					continue
 				}

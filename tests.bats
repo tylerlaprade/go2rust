@@ -2019,6 +2019,10 @@ run_xfail_test() {
     run_test "tests/printf_width_decimal"
 }
 
+@test "promoted_interface_nested_comparison" {
+    run_test "tests/promoted_interface_nested_comparison"
+}
+
 @test "promoted_pointer_index_field_assign" {
     run_test "tests/promoted_pointer_index_field_assign"
 }
