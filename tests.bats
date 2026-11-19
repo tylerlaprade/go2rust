@@ -431,6 +431,14 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_boxed_reference_types" {
+    run_test "tests/any_boxed_reference_types"
+}
+
+@test "any_boxed_types_in_second_file" {
+    run_test "tests/any_boxed_types_in_second_file"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }
@@ -955,12 +963,36 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_copy_and_identity" {
+    run_test "tests/error_copy_and_identity"
+}
+
+@test "error_copy_and_identity_goroutines" {
+    run_test "tests/error_copy_and_identity_goroutines"
+}
+
+@test "error_custom_type_in_interface" {
+    run_test "tests/error_custom_type_in_interface"
+}
+
+@test "error_custom_type_in_interface_goroutines" {
+    run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
 @test "error_field_return" {
     run_test "tests/error_field_return"
 }
 
 @test "error_handling" {
     run_test "tests/error_handling"
+}
+
+@test "error_in_interface_value" {
+    run_test "tests/error_in_interface_value"
+}
+
+@test "error_in_interface_value_goroutines" {
+    run_test "tests/error_in_interface_value_goroutines"
 }
 
 @test "error_map_values" {
@@ -1189,6 +1221,22 @@ run_xfail_test() {
 
 @test "generic_pointer_interface_type_arg" {
     run_test "tests/generic_pointer_interface_type_arg"
+}
+
+@test "generic_struct_pointer_receiver" {
+    run_test "tests/generic_struct_pointer_receiver"
+}
+
+@test "generic_struct_pointer_receiver_goroutines" {
+    run_test "tests/generic_struct_pointer_receiver_goroutines"
+}
+
+@test "getter_returns_copy" {
+    run_test "tests/getter_returns_copy"
+}
+
+@test "getter_returns_copy_goroutines" {
+    run_test "tests/getter_returns_copy_goroutines"
 }
 
 @test "global_fixed_array" {
@@ -1451,8 +1499,24 @@ run_xfail_test() {
     run_test "tests/make_slice_zero_len_capacity"
 }
 
+@test "map_comma_ok_assignment_targets" {
+    run_test "tests/map_comma_ok_assignment_targets"
+}
+
+@test "map_comma_ok_assignment_targets_goroutines" {
+    run_test "tests/map_comma_ok_assignment_targets_goroutines"
+}
+
 @test "map_comma_ok_bool_default" {
     run_test "tests/map_comma_ok_bool_default"
+}
+
+@test "map_comma_ok_value_copy" {
+    run_test "tests/map_comma_ok_value_copy"
+}
+
+@test "map_comma_ok_value_copy_goroutines" {
+    run_test "tests/map_comma_ok_value_copy_goroutines"
 }
 
 @test "map_len_value_assignment" {
@@ -1623,6 +1687,14 @@ run_xfail_test() {
     run_test "tests/mutex_guard_method_call"
 }
 
+@test "named_array_value_copy" {
+    run_test "tests/named_array_value_copy"
+}
+
+@test "named_array_value_copy_goroutines" {
+    run_test "tests/named_array_value_copy_goroutines"
+}
+
 @test "named_const_method_call" {
     run_test "tests/named_const_method_call"
 }
@@ -1781,6 +1853,10 @@ run_xfail_test() {
 
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
+}
+
+@test "package_any_value_from_caller" {
+    run_test "tests/package_any_value_from_caller"
 }
 
 @test "package_const_lowercase_condition" {
@@ -2019,8 +2095,40 @@ run_xfail_test() {
     run_test "tests/positional_struct_nil_slice_field"
 }
 
+@test "print_boxed_composite_values" {
+    run_test "tests/print_boxed_composite_values"
+}
+
+@test "print_interface_value_twice_goroutines" {
+    run_test "tests/print_interface_value_twice_goroutines"
+}
+
+@test "print_nil_error_and_pointer" {
+    run_test "tests/print_nil_error_and_pointer"
+}
+
+@test "print_nil_error_and_pointer_goroutines" {
+    run_test "tests/print_nil_error_and_pointer_goroutines"
+}
+
+@test "print_self_referencing_value_goroutines" {
+    run_test "tests/print_self_referencing_value_goroutines"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
+}
+
+@test "printf_runtime_format" {
+    run_test "tests/printf_runtime_format"
+}
+
+@test "printf_runtime_format_goroutines" {
+    run_test "tests/printf_runtime_format_goroutines"
+}
+
+@test "printf_runtime_format_table" {
+    run_test "tests/printf_runtime_format_table"
 }
 
 @test "printf_width_decimal" {
@@ -2771,12 +2879,44 @@ run_xfail_test() {
     run_test "tests/struct_named_integer_map_key"
 }
 
+@test "struct_pointer_identity" {
+    run_test "tests/struct_pointer_identity"
+}
+
+@test "struct_pointer_identity_goroutines" {
+    run_test "tests/struct_pointer_identity_goroutines"
+}
+
 @test "struct_pointer_slice_format" {
     run_test "tests/struct_pointer_slice_format"
 }
 
+@test "struct_range_copy" {
+    run_test "tests/struct_range_copy"
+}
+
+@test "struct_range_copy_goroutines" {
+    run_test "tests/struct_range_copy_goroutines"
+}
+
 @test "struct_tags_reflection" {
     run_test "tests/struct_tags_reflection"
+}
+
+@test "struct_value_copy" {
+    run_test "tests/struct_value_copy"
+}
+
+@test "struct_value_copy_goroutines" {
+    run_test "tests/struct_value_copy_goroutines"
+}
+
+@test "struct_value_copy_stored" {
+    run_test "tests/struct_value_copy_stored"
+}
+
+@test "struct_value_copy_stored_goroutines" {
+    run_test "tests/struct_value_copy_stored_goroutines"
 }
 
 @test "struct_zero_value_fields" {
@@ -3065,6 +3205,10 @@ run_xfail_test() {
 
 @test "XFAIL: parallel_assign_receiver_value_field_swap" {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
+}
+
+@test "XFAIL: slice_shared_with_package_variable_or_element" {
+    run_xfail_test "tests/XFAIL/slice_shared_with_package_variable_or_element"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {

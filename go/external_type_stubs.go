@@ -603,7 +603,7 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 			return
 		}
 		TrackImport("Error")
-		fn.ReturnTypes = []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustStdErrorBoxType())}
+		fn.ReturnTypes = []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustErrorPayloadType())}
 	case "io":
 		if sel.Sel.Name != "MultiWriter" {
 			return
@@ -1196,6 +1196,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatNestedPointerSliceWrapped = dst.needsFormatNestedPointerSliceWrapped || src.needsFormatNestedPointerSliceWrapped
 	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
+	dst.needsFormatAnyNested = dst.needsFormatAnyNested || src.needsFormatAnyNested
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
@@ -1210,6 +1211,24 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 			dst.anyCloneTypes[rustType] = true
 		}
 	}
+	if len(src.anyFormatArms) > 0 {
+		if dst.anyFormatArms == nil {
+			dst.anyFormatArms = make(map[string]anyFormatArm)
+		}
+		for rustType, arm := range src.anyFormatArms {
+			dst.anyFormatArms[rustType] = arm
+		}
+	}
+	if len(src.anyTypeNames) > 0 {
+		if dst.anyTypeNames == nil {
+			dst.anyTypeNames = make(map[string]string)
+		}
+		for rustType, goName := range src.anyTypeNames {
+			if existing, seen := dst.anyTypeNames[rustType]; !seen || goName < existing {
+				dst.anyTypeNames[rustType] = goName
+			}
+		}
+	}
 	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
@@ -1218,6 +1237,8 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoOnce = dst.needsGoOnce || src.needsGoOnce
 	dst.needsGoAtomicPointer = dst.needsGoAtomicPointer || src.needsGoAtomicPointer
 	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
+	dst.needsGoSprintf = dst.needsGoSprintf || src.needsGoSprintf
+	dst.needsGoSprintfSpread = dst.needsGoSprintfSpread || src.needsGoSprintfSpread
 	dst.needsBase64 = dst.needsBase64 || src.needsBase64
 	dst.needsSha256 = dst.needsSha256 || src.needsSha256
 	dst.needsHexFormat = dst.needsHexFormat || src.needsHexFormat
@@ -1372,13 +1393,11 @@ func writeJsonSupportHelpers(out *strings.Builder) {
 	innerWrapper := externalStubInnerWrapperType()
 	borrow := ".borrow()"
 	borrowMut := ".borrow_mut()"
-	errorInnerType := "Box<dyn StdError>"
-	errorDynSuffix := ""
+	errorInnerType := externalStubErrorInnerType()
+	errorFromMessage := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "message")
 	if NeedsConcurrentWrapper() {
 		borrow = ".lock().unwrap()"
 		borrowMut = ".lock().unwrap()"
-		errorInnerType = "Box<dyn StdError + Send + Sync>"
-		errorDynSuffix = " + Send + Sync"
 	}
 	errorType := wrappedExternalStubType(errorInnerType)
 	fmt.Fprintf(out, `pub use serde_json;
@@ -1400,7 +1419,7 @@ fn go_json_no_error() -> %s {
 }
 
 fn go_json_error(message: String) -> %s {
-    %s::new(%s::new(Some(Box::<dyn StdError%s>::from(message))))
+    %s::new(%s::new(Some(%s)))
 }
 
 pub fn go_json_expected(value: &serde_json::Value, want: &str) -> String {
@@ -1580,7 +1599,7 @@ where
     }
 }
 
-`, errorType, outerWrapper, innerWrapper, errorType, outerWrapper, innerWrapper, errorDynSuffix, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, borrowMut, borrowMut)
+`, errorType, outerWrapper, innerWrapper, errorType, outerWrapper, innerWrapper, errorFromMessage, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, borrowMut, borrowMut)
 }
 
 // TEMPORARY: hand-written Rust shim for encoding/json.Decoder.
@@ -1886,10 +1905,7 @@ func externalStubBorrowExpr(expr string) string {
 }
 
 func externalStubErrorInnerType() string {
-	if NeedsConcurrentWrapper() {
-		return "Box<dyn StdError + Send + Sync>"
-	}
-	return "Box<dyn StdError>"
+	return rustErrorPayloadTypeFor("StdError", NeedsConcurrentWrapper())
 }
 
 // TEMPORARY: hand-written Rust shim for io.Writer trait bridging.
@@ -2310,7 +2326,7 @@ func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, method
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
-	errorTrait := strings.TrimSuffix(strings.TrimPrefix(errorInnerType, "Box<"), ">")
+	errorFromMessage := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "message")
 	out.WriteString(`}
 
 impl std::fmt::Display for exec_Cmd {
@@ -2354,7 +2370,7 @@ impl exec_Cmd {
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
-`, errorType, wrappedExternalStubExpr(errorInnerType, fmt.Sprintf("Box::<%s>::from(message)", errorTrait)), externalStubBorrowExpr("self.args"))
+`, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
             if !dir.is_empty() {
@@ -3175,10 +3191,7 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
 func writeOsErrorHelpers(out *strings.Builder) {
-	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
-	if NeedsConcurrentWrapper() {
-		errorType = wrappedExternalStubType("Box<dyn std::error::Error + Send + Sync>")
-	}
+	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
 	fmt.Fprintf(out, `    type GoError = %s;
 
     fn no_error() -> GoError {
@@ -3186,10 +3199,10 @@ func writeOsErrorHelpers(out *strings.Builder) {
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        %s::new(%s::new(Some(Box::new(err))))
+        %s::new(%s::new(Some(%s)))
     }
 
-`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
 // PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
@@ -3562,10 +3575,7 @@ func writeGoBytesArgTrait(out *strings.Builder) {
 
 // PERMANENT: not scaffold — filepath error helpers map to std::io::Error, OS-tied.
 func writeFilepathErrorHelpers(out *strings.Builder) {
-	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
-	if NeedsConcurrentWrapper() {
-		errorType = wrappedExternalStubType("Box<dyn std::error::Error + Send + Sync>")
-	}
+	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
 	fmt.Fprintf(out, `    type GoError = %s;
 
     fn no_error() -> GoError {
@@ -3573,14 +3583,14 @@ func writeFilepathErrorHelpers(out *strings.Builder) {
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        %s::new(%s::new(Some(Box::new(err))))
+        %s::new(%s::new(Some(%s)))
     }
 
     fn normalize_path(path: PathBuf) -> String {
         path.components().collect::<PathBuf>().to_string_lossy().into_owned()
     }
 
-`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
 // PERMANENT: not scaffold — filepath.Abs requires CWD resolution, OS-tied.
@@ -3977,13 +3987,8 @@ func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString(" {\n        (")
 	writeExternalStubDefaultValue(out, fn.ReturnTypes[0])
 	out.WriteString(", ")
-	errorTrait := "dyn std::error::Error"
-	errorType := "Box<dyn std::error::Error>"
-	if NeedsConcurrentWrapper() {
-		errorTrait = "dyn std::error::Error + Send + Sync"
-		errorType = "Box<dyn std::error::Error + Send + Sync>"
-	}
-	out.WriteString(wrappedExternalStubExpr(errorType, fmt.Sprintf("Box::<%s>::from(\"executable file not found\")", errorTrait)))
+	errorType := rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())
+	out.WriteString(wrappedExternalStubExpr(errorType, rustErrorFromTextFor("std::error::Error", NeedsConcurrentWrapper(), "\"executable file not found\"")))
 	out.WriteString(")\n    }\n")
 }
 
@@ -4059,7 +4064,7 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	wrappedPrefix := outerWrapper + "<" + innerWrapper + "<Option<"
 	if strings.HasPrefix(rustType, wrappedPrefix) && strings.HasSuffix(rustType, ">>>") {
 		innerType := strings.TrimSuffix(strings.TrimPrefix(rustType, wrappedPrefix), ">>>")
-		if strings.HasPrefix(innerType, "Box<dyn StdError") || strings.HasPrefix(innerType, "Box<dyn std::error::Error") || strings.HasPrefix(innerType, "Box<dyn Any") || strings.HasPrefix(innerType, "Box<dyn std::any::Any") {
+		if rustTypeStartsWithErrorPayload(innerType) || strings.HasPrefix(innerType, "Box<dyn Any") || strings.HasPrefix(innerType, "Box<dyn std::any::Any") {
 			out.WriteString(outerWrapper)
 			out.WriteString("::new(")
 			out.WriteString(innerWrapper)

@@ -120,13 +120,13 @@ impl std::fmt::Display for serializedFileSet {
 
 impl crate::position::FileSet {
     /// Read calls decode to deserialize a file set into s; s must not be nil.
-    pub fn read(&mut self, decode: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn read(&mut self, decode: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         let mut ss: Arc<Mutex<Option<serializedFileSet>>> = Arc::new(Mutex::new(Some(Default::default())));
         {
         let mut err = {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
                 let mut __f_guard = decode.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
@@ -134,7 +134,7 @@ impl crate::position::FileSet {
             )
         };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            return err.clone();;
+            return { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };;
         }
     }
         self.mutex.lock();
@@ -160,7 +160,7 @@ impl crate::position::FileSet {
     }
 
     /// Write calls encode to serialize the file set s.
-    pub fn write(&self, encode: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn write(&self, encode: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         let mut ss: Arc<Mutex<Option<serializedFileSet>>> = Arc::new(Mutex::new(Some(Default::default())));
         self.mutex.lock();
         { let new_val = { let __selector_holder = self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*ss.lock().unwrap().as_ref().unwrap()).base.lock().unwrap() = Some(new_val); };
@@ -180,9 +180,9 @@ impl crate::position::FileSet {
         { let new_val = files.clone(); (*ss.lock().unwrap().as_mut().unwrap()).files = new_val; };
         self.mutex.unlock();
         return {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
                 let mut __f_guard = encode.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(

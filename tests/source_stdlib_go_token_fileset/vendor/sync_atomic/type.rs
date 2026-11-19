@@ -81,7 +81,11 @@ impl<T: Any + Send + Sync + 'static> Pointer<T> {
 
 impl<T: Any + Send + Sync + 'static> Clone for Pointer<T> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            __blank_0_0: self.__blank_0_0.clone(),
+            __blank_1_0: self.__blank_1_0.clone(),
+            v: self.v.clone(),
+        }
     }
 }
 

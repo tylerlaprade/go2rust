@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::{r#mod::{index_byte}};
 
@@ -456,20 +456,20 @@ impl Ord for readOp {
 }
 
 
-pub static ErrTooLarge: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Box<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub static ErrTooLarge: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static errNegativeRead: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Box<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static errNegativeRead: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static errUnreadByte: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Box<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static errUnreadByte: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
     *ErrTooLarge.lock().unwrap() = None;
     *errNegativeRead.lock().unwrap() = None;
     *errUnreadByte.lock().unwrap() = None;
-    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: too large".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *ErrTooLarge.lock().unwrap() = new_val; }
-    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: reader returned negative count from Read".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errNegativeRead.lock().unwrap() = new_val; }
-    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: UnreadByte: previous operation was not a successful read".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errUnreadByte.lock().unwrap() = new_val; }
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: too large".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *ErrTooLarge.lock().unwrap() = new_val; }
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: reader returned negative count from Read".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *errNegativeRead.lock().unwrap() = new_val; }
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: UnreadByte: previous operation was not a successful read".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *errUnreadByte.lock().unwrap() = new_val; }
 }
 
 
@@ -481,17 +481,17 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_0() {
-    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: too large".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *ErrTooLarge.lock().unwrap() = new_val; }
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: too large".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *ErrTooLarge.lock().unwrap() = new_val; }
 }
 
 
 pub(crate) fn __go_init_order_1() {
-    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: reader returned negative count from Read".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errNegativeRead.lock().unwrap() = new_val; }
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: reader returned negative count from Read".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *errNegativeRead.lock().unwrap() = new_val; }
 }
 
 
 pub(crate) fn __go_init_order_2() {
-    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: UnreadByte: previous operation was not a successful read".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errUnreadByte.lock().unwrap() = new_val; }
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: UnreadByte: previous operation was not a successful read".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *errUnreadByte.lock().unwrap() = new_val; }
 }
 
 
@@ -731,7 +731,7 @@ impl Buffer {
             Arc::new(Mutex::new(Some(_n as i32)))
         };
     } else if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __tmp_x = i32::MAX; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; __tmp_x > __tmp_y } {
-        std::panic::panic_any({ let __err_holder = ErrTooLarge.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+        std::panic::panic_any({ let __err_holder = ErrTooLarge.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
     } else {
         { let new_val = grow_slice(
             Arc::new(Mutex::new(Some({
@@ -807,9 +807,9 @@ impl Buffer {
     /// Write appends the contents of p to the buffer, growing the buffer as
     /// needed. The return value n is the length of p; err is always nil. If the
     /// buffer becomes too large, Write will panic with [ErrTooLarge].
-    pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         let (mut m, mut ok) = self.try_grow_by_reslice(Arc::new(Mutex::new(Some((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))));
@@ -834,9 +834,9 @@ impl Buffer {
     /// WriteString appends the contents of s to the buffer, growing the buffer as
     /// needed. The return value n is the length of s; err is always nil. If the
     /// buffer becomes too large, WriteString will panic with [ErrTooLarge].
-    pub fn write_string(&mut self, s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string(&mut self, s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         let (mut m, mut ok) = self.try_grow_by_reslice(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).len() as i32))));
@@ -862,9 +862,9 @@ impl Buffer {
     /// the buffer as needed. The return value n is the number of bytes read. Any
     /// error except io.EOF encountered during the read is also returned. If the
     /// buffer becomes too large, ReadFrom will panic with [ErrTooLarge].
-    pub fn read_from(&mut self, r: Arc<Mutex<Option<io_Reader>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_from(&mut self, r: Arc<Mutex<Option<io_Reader>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         loop {
@@ -900,7 +900,7 @@ impl Buffer {
             _v
         }))));
         if { let __tmp_x = m; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        std::panic::panic_any({ let __err_holder = errNegativeRead.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+        std::panic::panic_any({ let __err_holder = errNegativeRead.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
     }
 
         { let new_val = Arc::new(Mutex::new(Some({
@@ -919,12 +919,12 @@ impl Buffer {
             _v
         }))); self.buf = new_val; };
         { let __rhs = (*Arc::new(Mutex::new(Some(m as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        if { let __left = e.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
+        if { let __left = e.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq } {
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(None)));
     }
                 // e is EOF, so return nil explicitly
         if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, e.clone());
+        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __err_source = e.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
     }
     }
@@ -933,9 +933,9 @@ impl Buffer {
     /// The return value n is the number of bytes written; it always fits into an
     /// int, but it is int64 to match the [io.WriterTo] interface. Any error
     /// encountered during the write is also returned.
-    pub fn write_to(&mut self, w: Arc<Mutex<Option<io_Writer>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_to(&mut self, w: Arc<Mutex<Option<io_Writer>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         {
@@ -962,10 +962,10 @@ impl Buffer {
             { let __target = self.off.clone(); let __rhs = m; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
             { let new_val = Arc::new(Mutex::new(Some(m as i64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *n.lock().unwrap() = __moved_val; };;
             if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, e.clone());
+        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __err_source = e.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     };
             if { let __tmp_x = m; let __tmp_y = nBytes; __tmp_x != __tmp_y } {
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __return_value_1 = io::ErrShortWrite().clone(); __return_value_1 });
+        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __return_value_1 = { let __err_source = { let __field = io::ErrShortWrite().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; __return_value_1 });
     };
         }
     }
@@ -980,7 +980,7 @@ impl Buffer {
     /// The returned error is always nil, but is included to match [bufio.Writer]'s
     /// WriteByte. If the buffer becomes too large, WriteByte will panic with
     /// [ErrTooLarge].
-    pub fn write_byte(&mut self, c: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn write_byte(&mut self, c: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         let (mut m, mut ok) = self.try_grow_by_reslice(Arc::new(Mutex::new(Some(1))));
         if !ok {
@@ -994,9 +994,9 @@ impl Buffer {
     /// buffer, returning its length and an error, which is always nil but is
     /// included to match [bufio.Writer]'s WriteRune. The buffer is grown as needed;
     /// if it becomes too large, WriteRune will panic with [ErrTooLarge].
-    pub fn write_rune(&mut self, r: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_rune(&mut self, r: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
                 // Compare as uint32 to correctly handle negative runes.
         if { let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = unicode_utf8::RUNE_SELF as u32; __tmp_x < __tmp_y } {
@@ -1033,9 +1033,9 @@ impl Buffer {
     /// is drained. The return value n is the number of bytes read. If the
     /// buffer has no data to return, err is [io.EOF] (unless len(p) is zero);
     /// otherwise it is nil.
-    pub fn read(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         if self.empty() {
@@ -1044,7 +1044,7 @@ impl Buffer {
         if { let __tmp_x = ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return (0, Arc::new(Mutex::new(None)));
     }
-        return (0, { let __return_value_1 = io::EOF().clone(); __return_value_1 });
+        return (0, { let __return_value_1 = { let __err_source = { let __field = io::EOF().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; __return_value_1 });
     }
                 // Buffer is empty, reset to recover space.
         { let new_val = {
@@ -1110,11 +1110,11 @@ impl Buffer {
 
     /// ReadByte reads and returns the next byte from the buffer.
     /// If no byte is available, it returns error [io.EOF].
-    pub fn read_byte(&mut self) -> (u8, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_byte(&mut self) -> (u8, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         if self.empty() {
                 // Buffer is empty, reset to recover space.
         self.reset();
-        return (0, { let __return_value_1 = io::EOF().clone(); __return_value_1 });
+        return (0, { let __return_value_1 = { let __err_source = { let __field = io::EOF().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; __return_value_1 });
     }
                 // Buffer is empty, reset to recover space.
         let mut c = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() })));
@@ -1128,15 +1128,15 @@ impl Buffer {
     /// If no bytes are available, the error returned is io.EOF.
     /// If the bytes are an erroneous UTF-8 encoding, it
     /// consumes one byte and returns U+FFFD, 1.
-    pub fn read_rune(&mut self) -> (i32, i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_rune(&mut self) -> (i32, i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut size: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         if self.empty() {
                 // Buffer is empty, reset to recover space.
         self.reset();
-        return (0, 0, { let __return_value_2 = io::EOF().clone(); __return_value_2 });
+        return (0, 0, { let __return_value_2 = { let __err_source = { let __field = io::EOF().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; __return_value_2 });
     }
                 // Buffer is empty, reset to recover space.
         let mut c = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() })));
@@ -1174,13 +1174,13 @@ impl Buffer {
     /// not a successful [Buffer.ReadRune], UnreadRune returns an error.  (In this regard
     /// it is stricter than [Buffer.UnreadByte], which will unread the last byte
     /// from any read operation.)
-    pub fn unread_rune(&mut self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn unread_rune(&mut self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         if {
             let __tmp_x = { let __selector_holder = self.last_read.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
             let __tmp_y = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8))));
             __tmp_x <= __tmp_y
         } {
-        return Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bytes.Buffer: UnreadRune: previous operation was not a successful ReadRune".to_string()))));
+        return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bytes.Buffer: UnreadRune: previous operation was not a successful ReadRune".to_string())))));
     }
         if {
             let __tmp_x = (*self.off.lock().unwrap().as_ref().unwrap());
@@ -1197,13 +1197,13 @@ impl Buffer {
     /// read operation that read at least one byte. If a write has happened since
     /// the last read, if the last read returned an error, or if the read read zero
     /// bytes, UnreadByte returns an error.
-    pub fn unread_byte(&mut self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn unread_byte(&mut self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         if {
             let __tmp_x = { let __selector_holder = self.last_read.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
             let __tmp_y = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8))));
             __tmp_x == __tmp_y
         } {
-        return errUnreadByte.clone();
+        return { let __err_source = errUnreadByte.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
     }
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_INVALID as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.off.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } {
@@ -1218,21 +1218,21 @@ impl Buffer {
     /// it returns the data read before the error and the error itself (often [io.EOF]).
     /// ReadBytes returns err != nil if and only if the returned data does not end in
     /// delim.
-    pub fn read_bytes(&mut self, delim: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_bytes(&mut self, delim: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut line: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         let (mut slice, __tmp_1) = self.read_slice(Arc::new(Mutex::new(Some({ let __arg_holder = delim.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
                 // return a copy of slice. The buffer's backing array may
                 // be overwritten by later calls.
         { let new_val = { let __append_target = line.clone(); let __append_values: Vec<_> = { let __slice_holder = slice.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; line = new_val; };
-        return (line.clone(), err.clone());
+        return (line.clone(), { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
 
     /// readSlice is like ReadBytes but returns a reference to internal buffer data.
-    pub fn read_slice(&mut self, delim: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_slice(&mut self, delim: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut line: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         let mut i = index_byte(
             Arc::new(Mutex::new(Some({
@@ -1255,7 +1255,7 @@ impl Buffer {
         let mut end = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.off.lock().unwrap().as_ref().unwrap()); let __tmp_y = i; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y })));
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = ({ let __len_target = { let __field = self.buf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *end.lock().unwrap() = Some(new_val); };
-        { let __rhs_holder = io::EOF().clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = io::EOF().clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
     }
         { let new_val = Arc::new(Mutex::new(Some({
             let __seq_holder = self.buf.clone();
@@ -1274,7 +1274,7 @@ impl Buffer {
         }))); line = new_val; };
         { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *self.off.lock().unwrap() = Some(new_val); };
         { let new_val = readOp(Arc::new(Mutex::new(Some(OP_READ as i8)))); *self.last_read.lock().unwrap() = Some(new_val); };
-        return (line.clone(), err.clone());
+        return (line.clone(), { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
 
     /// ReadString reads until the first occurrence of delim in the input,
@@ -1283,14 +1283,14 @@ impl Buffer {
     /// it returns the data read before the error and the error itself (often [io.EOF]).
     /// ReadString returns err != nil if and only if the returned data does not end
     /// in delim.
-    pub fn read_string(&mut self, delim: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_string(&mut self, delim: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut line: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         let (mut slice, __tmp_1) = self.read_slice(Arc::new(Mutex::new(Some({ let __arg_holder = delim.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         return (
             Arc::new(Mutex::new(Some(String::from_utf8((*slice.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
-            err.clone()
+            { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }
         );
     }
 }
@@ -1306,7 +1306,7 @@ pub fn grow_slice(b: Arc<Mutex<Option<Vec<u8>>>>, n: Arc<Mutex<Option<i32>>>) ->
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         if { let __nil_result = (*go_recover().lock().unwrap()).is_some(); __nil_result } {
-        std::panic::panic_any({ let __err_holder = ErrTooLarge.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+        std::panic::panic_any({ let __err_holder = ErrTooLarge.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));

@@ -9,6 +9,7 @@ use crate::{
     GoSliceElemPtr,
     GoSliceElemRef,
     format_any,
+    format_any_nested,
     format_slice,
     format_slice_values,
     format_slice_wrapped,
@@ -156,7 +157,7 @@ impl Default for poolLocalInternal {
 
 impl std::fmt::Display for poolLocalInternal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.private.lock().unwrap().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.private.lock().unwrap().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         let __go_fmt_1 = format!("{}", (*self.shared.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }

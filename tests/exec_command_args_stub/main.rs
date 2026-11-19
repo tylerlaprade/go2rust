@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug, Clone, Default)]
 pub struct exec_Cmd {
     pub args: Arc<Mutex<Option<Vec<String>>>>,
+    pub env: Arc<Mutex<Option<Vec<String>>>>,
 }
 
 impl std::fmt::Display for exec_Cmd {
@@ -13,13 +14,21 @@ impl std::fmt::Display for exec_Cmd {
 }
 
 impl exec_Cmd {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+	    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+	        None
+	    }
+
+	    pub fn environ(&self) -> Arc<Mutex<Option<Vec<String>>>> {
+        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
+        if let Some(cmd_env) = self.env.lock().unwrap().as_ref() {
+            env.extend(cmd_env.iter().cloned());
+        }
+        Arc::new(Mutex::new(Some::<Vec<String>>(env)))
     }
 
-    fn __go_error(message: String) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(Box::<dyn StdError + Send + Sync>::from(message))))
-    }
+    fn __go_error(message: String) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+	        Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(message)))))
+	    }
 
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
         let args = self.args.lock().unwrap().as_ref().cloned().unwrap_or_default();
@@ -28,17 +37,24 @@ impl exec_Cmd {
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
+        if let Some(env) = self.env.lock().unwrap().as_ref() {
+            for item in env {
+                if let Some((key, value)) = item.split_once('=') {
+                    command.env(key, value);
+                }
+            }
+        }
         command.output()
     }
 
     fn __go_write_output(&self, output: &std::process::Output) {
     }
 
-    pub fn output(&self) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn output(&self) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         match self.__go_run_output() {
             Ok(output) => {
                 let err = if output.status.success() {
-                    Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+                    Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
                 } else {
                     Self::__go_error(format!("exit status {}", output.status))
                 };
@@ -48,16 +64,16 @@ impl exec_Cmd {
         }
     }
 
-    pub fn run(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn run(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         self.start()
     }
 
-    pub fn start(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn start(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         match self.__go_run_output() {
             Ok(output) => {
                 self.__go_write_output(&output);
                 if output.status.success() {
-                    Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+                    Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
                 } else {
                     Self::__go_error(format!("exit status {}", output.status))
                 }
@@ -66,8 +82,8 @@ impl exec_Cmd {
         }
     }
 
-    pub fn wait(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn wait(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 }
 

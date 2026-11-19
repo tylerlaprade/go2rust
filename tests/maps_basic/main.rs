@@ -46,7 +46,7 @@ fn main() {
     println!("{} {}", format!("{}", "Colors map:".to_string()), format!("{}", format_map(&colors)));
 
         // Check if key exists
-    let (mut age, mut exists) = { let __map_holder = ages.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"Alice".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Rc::new(RefCell::new(Some(0))), false) } };
+    let (mut age, mut exists) = { let __map_holder = ages.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"Alice".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };
     if exists {
         println!("{} {}", format!("{}", "Alice's age:".to_string()), format!("{}", { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }));
     }

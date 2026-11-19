@@ -737,7 +737,7 @@ impl cmp::r#mod::Ordered for Pos {
 impl File {
     /// Name returns the file name of file f as registered with AddFile.
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        return self.name.clone();
+        return Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     /// Base returns the base offset of file f as registered with AddFile.

@@ -47,7 +47,7 @@ impl scanner_ErrorList {
 }
 
 
-pub fn describe(mut err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn describe(mut err: Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     {
     let _ts_subject = err.clone();
     let _ts_guard = _ts_subject.borrow();
@@ -60,7 +60,7 @@ pub fn describe(mut err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
         println!("{}", format!("{}", (*(*item.borrow().as_ref().unwrap()).msg.borrow().as_ref().unwrap()).clone()));
     } };
     } else {
-        let err = err.clone();
+        let err = _ts_subject.clone();
         drop(_ts_guard);
         println!("{}", format!("{}", "other".to_string()));;
     }
@@ -68,6 +68,6 @@ pub fn describe(mut err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
 }
 
 fn main() {
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
-    describe(err.clone());
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    describe({ let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) });
 }

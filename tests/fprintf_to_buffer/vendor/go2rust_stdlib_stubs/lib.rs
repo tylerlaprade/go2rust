@@ -54,11 +54,6 @@ pub struct GoAnyTypeMetadata {
     pub elem_comparable: bool,
 }
 
-pub struct GoAnyMetadataBox {
-    pub value: Box<dyn Any + Send + Sync>,
-    pub metadata: GoAnyTypeMetadata,
-}
-
 fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
@@ -81,9 +76,13 @@ pub fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'st
     go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
 }
 
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
 pub fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
-    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
-    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any + Send + Sync>, metadata }) as Box<dyn Any + Send + Sync>
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any + Send + Sync>
 }
 
 pub fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
@@ -91,9 +90,6 @@ pub fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'s
 }
 
 pub fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
-    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
-        return Some(__boxed.metadata);
-    }
     go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
@@ -192,7 +188,7 @@ impl io_Reader {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
-    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("io_Reader.read bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
@@ -256,7 +252,7 @@ impl io_Writer {
         panic!("io_Writer.__go_write_bytes bridge: unsupported concrete receiver; transpile io source instead - see AGENTS.md and docs/bridge_debt.md#io-writer-trait-bridging")
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -266,7 +262,7 @@ impl io_Writer {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -311,11 +307,11 @@ impl Ord for io_Writer {
 
 pub mod io {
     use super::*;
-    pub fn EOF() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn EOF() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn ErrShortWrite() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn ErrShortWrite() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 }

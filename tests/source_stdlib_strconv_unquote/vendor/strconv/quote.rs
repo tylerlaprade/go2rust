@@ -52,20 +52,20 @@ pub fn unhex(b: Arc<Mutex<Option<u8>>>) -> (i32, bool) {
 /// If set to a single quote, it permits the sequence \' and disallows unescaped '.
 /// If set to a double quote, it permits \" and disallows unescaped ".
 /// If set to zero, it does not permit either escape and allows both quote characters to appear unescaped.
-pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u8>>>) -> (i32, bool, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u8>>>) -> (i32, bool, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut value: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut multibyte: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
     let mut tail: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         // easy cases
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
     let mut c = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] })));
     if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && ({ let __tmp_x = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('\'' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('"' as i32) as u8; __tmp_x == __tmp_y }) {
-            { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+            { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
             return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
         } else if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = unicode_utf8::RUNE_SELF as u8; __tmp_x >= __tmp_y } {
             let (mut r, mut size) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -86,7 +86,7 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
 
         // hard case: c is backslash
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x <= __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
     let mut c = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] })));
@@ -121,14 +121,14 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
     }
             let mut v: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
             if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x < __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
             let mut j = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         let (mut x, mut ok) = unhex(Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }))));
         if !ok {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
         { let new_val = { let __tmp_x = { let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x << __tmp_y }; let __tmp_y = x; __tmp_x | __tmp_y }; *v.lock().unwrap() = Some(new_val); };
@@ -142,7 +142,7 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
     }
                         // single-byte string, possibly not UTF-8
             if !unicode_utf8::valid_rune(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
             { let new_val = v.lock().unwrap().as_ref().unwrap().clone(); *value.lock().unwrap() = Some(new_val); };
@@ -150,7 +150,7 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
         } else if _switch_val == (('0' as i32) as u8) || _switch_val == (('1' as i32) as u8) || _switch_val == (('2' as i32) as u8) || _switch_val == (('3' as i32) as u8) || _switch_val == (('4' as i32) as u8) || _switch_val == (('5' as i32) as u8) || _switch_val == (('6' as i32) as u8) || _switch_val == (('7' as i32) as u8) {
             let mut v = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*c.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ('0' as i32); __tmp_x - __tmp_y })));
             if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
             let mut j = Arc::new(Mutex::new(Some(0)));
@@ -161,7 +161,7 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
             __tmp_x - __tmp_y
         })));
         if { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7 as i32; __tmp_x > __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
         { let new_val = { let __tmp_x = ({ let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x << __tmp_y }); let __tmp_y = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }; *v.lock().unwrap() = Some(new_val); };
@@ -169,7 +169,7 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
     }
             { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
             if { let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 255 as i32; __tmp_x > __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
             { let new_val = v.lock().unwrap().as_ref().unwrap().clone(); *value.lock().unwrap() = Some(new_val); };
@@ -177,12 +177,12 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
             { let new_val = ('\\' as i32); *value.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (('\'' as i32) as u8) || _switch_val == (('"' as i32) as u8) {
             if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
-        { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
             { let new_val = Arc::new(Mutex::new(Some((*c.lock().unwrap().as_ref().unwrap()) as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *value.lock().unwrap() = __moved_val; };
         } else {
-            { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+            { let __rhs_holder = ErrSyntax.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
             return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
         }
     };
@@ -200,26 +200,26 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
 /// character literal; Unquote returns the corresponding
 /// one-character string. For an empty character literal
 /// Unquote returns the empty string.)
-pub fn unquote(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+pub fn unquote(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let (mut out, mut rem, mut err) = unquote_1(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))));
     if { let __tmp_x = ((*rem.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        return (Arc::new(Mutex::new(Some("".to_string()))), ErrSyntax.clone());
+        return (Arc::new(Mutex::new(Some("".to_string()))), { let __err_source = ErrSyntax.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
-    return ({ let __owned = out.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, err.clone());
+    return ({ let __owned = out.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
 }
 
 /// unquote parses a quoted string at the start of the input,
 /// returning the parsed prefix, the remaining suffix, and any parse errors.
 /// If unescape is true, the parsed prefix is unescaped,
 /// otherwise the input prefix is provided verbatim.
-pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Option<bool>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Option<bool>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut out: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     let mut rem: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         // Determine the quote form and optimistically find the terminating quote.
     if { let __tmp_x = ((*r#in.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y } {
-        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = r#in.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ErrSyntax.clone());
+        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = r#in.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __err_source = ErrSyntax.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
     let mut quote = Arc::new(Mutex::new(Some({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] })));
     let mut end = index(
@@ -227,7 +227,7 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
         Arc::new(Mutex::new(Some({ let __arg_holder = quote.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
     );
     if { let __tmp_x = end; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = r#in.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ErrSyntax.clone());
+        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = r#in.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __err_source = ErrSyntax.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
     { let __rhs = 2; end = end + __rhs; };
 
@@ -340,7 +340,7 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
                 __go_cond_1
             }
         } {
-        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = in0.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ErrSyntax.clone());
+        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = in0.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __err_source = ErrSyntax.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
         { let new_val = rem.lock().unwrap().as_ref().unwrap().clone(); *r#in.lock().unwrap() = Some(new_val); };
 
@@ -376,7 +376,7 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
                     false
                 }
             }) {
-        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = in0.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ErrSyntax.clone());
+        return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = in0.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __err_source = ErrSyntax.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }
             { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *r#in.lock().unwrap() = __moved_val; };
             if { let __v = (*unescape.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -392,7 +392,7 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
                 Arc::new(Mutex::new(None))
             );
         } else {
-            return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = r#in.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ErrSyntax.clone());
+            return (Arc::new(Mutex::new(Some("".to_string()))), { let __owned = r#in.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __err_source = ErrSyntax.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
         }
     }
 }
