@@ -48,7 +48,7 @@ Compare a run of your branch with a run of master:
 
 It lists every test whose outcome changed and exits 1 if a test that passed on master no longer passes. A translator change should not make that list grow.
 
-Both runs have to cover the same tests. If the new file lacks tests the old one has, because the run was interrupted or used a narrower `--match`, the comparison says so and exits 2. It does not report the missing tests as unbroken.
+Both runs have to cover the same tests. If either file has a test the other lacks, because a run was interrupted or used a narrower `--match`, or if either file is empty, the comparison says so and exits 2. It does not report a test it saw on one side only as unbroken.
 
 ## Picking work from it
 

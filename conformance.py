@@ -242,25 +242,33 @@ def report(path):
 def compare(old_path, new_path):
     """Print what changed from old to new.
 
-    Returns 2 when new lacks tests that old has: that is an interrupted or
-    narrower run, and its missing tests cannot be called unbroken. Returns 1
-    when a test that passed in old does not pass in new. Returns 0 otherwise.
+    Returns 2 when the two files do not cover the same tests, or cover none:
+    one side is an interrupted or narrower run, and a test that is on one side
+    only cannot be called unbroken. Returns 1 when a test that passed in old
+    does not pass in new. Returns 0 otherwise.
     """
     old, new = load(old_path), load(new_path)
-    missing = sorted(set(old) - set(new))
-    added = sorted(set(new) - set(old))
-    if missing:
-        passed = [test for test in missing if old[test]["outcome"] == "pass"]
-        print(f"incomplete comparison: {len(missing)} of {len(old)} tests in {old_path} "
-              f"are missing from {new_path}, {len(passed)} of which passed")
+    if not old or not new:
+        for path, results in ((old_path, old), (new_path, new)):
+            if not results:
+                print(f"incomplete comparison: {path} has no results")
+        return 2
+    one_sided = False
+    for have_path, have, lack_path, lack in ((old_path, old, new_path, new), (new_path, new, old_path, old)):
+        missing = sorted(set(have) - set(lack))
+        if not missing:
+            continue
+        one_sided = True
+        passed = [test for test in missing if have[test]["outcome"] == "pass"]
+        print(f"incomplete comparison: {len(missing)} of {len(have)} tests in {have_path} "
+              f"are missing from {lack_path}, {len(passed)} of which passed")
         for test in missing[:10]:
             print(f"  {test}")
         if len(missing) > 10:
             print(f"  ... and {len(missing) - 10} more")
+    if one_sided:
         print("run both sides over the same tests (same --match, no --limit, not interrupted)")
         return 2
-    if added:
-        print(f"{len(added)} tests are only in {new_path}; they are not compared")
     broke, fixed, moved = [], [], []
     for test in sorted(set(old) & set(new)):
         before, after = old[test]["outcome"], new[test]["outcome"]
@@ -292,7 +300,7 @@ def main():
     parser.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"),
                         help="list the tests whose outcome differs between two results files; "
                              "exits 1 if a test that passed in OLD does not pass in NEW, "
-                             "2 if NEW lacks tests that OLD has")
+                             "2 if the two files do not cover the same tests")
     parser.add_argument("--transpiler", help="path to the go2rust binary")
     parser.add_argument("--goroot-test", default=None, help="defaults to $(go env GOROOT)/test")
     parser.add_argument("--work", help="scratch directory (created; reused between runs)")
