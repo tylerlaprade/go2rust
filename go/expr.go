@@ -6246,8 +6246,11 @@ func writeSelectorNilComparison(out *strings.Builder, expr ast.Expr, op token.To
 		return false
 	}
 	out.WriteString("{ let __nil_target = ")
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone(); let __nil_result = (*__nil_target")
+	if !writeSourceMappedPackageGlobalPointerHandleClone(out, expr) {
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __nil_result = (*__nil_target")
 	WriteBorrowMethod(out, false)
 	out.WriteString(").")
 	if op == token.EQL {
@@ -6508,7 +6511,7 @@ func writePointerConcreteInterfaceHandle(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
-	if writeSourceMappedPackageGlobalPointerScopedClone(out, expr) {
+	if writeSourceMappedPackageGlobalPointerHandleClone(out, expr) {
 		return
 	}
 	if sel, ok := expr.(*ast.SelectorExpr); ok && isPackageVarSelector(sel) {
@@ -12052,6 +12055,9 @@ func writeSourceMappedPackageVarSelector(out *strings.Builder, sel *ast.Selector
 		return false
 	}
 	if ctx == RValue {
+		if writeSourceMappedPackageGlobalPointerHandleClone(out, sel) {
+			return true
+		}
 		out.WriteString("(*")
 	}
 	out.WriteString(crateName)

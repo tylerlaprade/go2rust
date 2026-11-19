@@ -7317,6 +7317,10 @@ func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, 
 	if !ok || rhsIdent.Name != "nil" {
 		return false
 	}
+	if crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(lhs)); ok {
+		fmt.Fprintf(out, "%s::__go_clear_global_%s()", crateName, globalName)
+		return true
+	}
 	lhsIdent, ok := packageGlobalPointerIdent(unwrapParens(lhs))
 	if !ok {
 		return false
@@ -8858,6 +8862,10 @@ func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpNam
 		out.WriteString(" /* ERROR: Type information required for parallel nil assignment target */ unimplemented!(\"type info required for parallel nil assignment target\");")
 		return true
 	}
+	if _, _, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(lhs)); ok {
+		fmt.Fprintf(out, " %s();", tmpName)
+		return true
+	}
 	if sel, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
 		out.WriteString(" ")
 		writePointerHandleAssignmentTargetFromValueName(out, sel, tmpName+".clone()")
@@ -8910,6 +8918,12 @@ func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.
 }
 
 func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(rhs) == types.Typ[types.UntypedNil] {
+		if crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(lhs)); ok {
+			fmt.Fprintf(out, "%s::__go_clear_global_%s", crateName, globalName)
+			return
+		}
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && currentReceiverRustAliasIsPointerHandle && isCurrentReceiverIdent(ident) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(rhs) == types.Typ[types.UntypedNil] {
 			// The receiver alias stores a pointer handle, so the temporary
