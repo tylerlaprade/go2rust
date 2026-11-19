@@ -45,7 +45,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct GoSliceElemPtr<T: Clone> {
+pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
 }
@@ -60,9 +60,114 @@ pub struct GoSliceElemMutRef<T: Clone> {
     value: Option<T>,
 }
 
+pub trait GoArrayElemBacking<T: Clone + 'static, const N: usize> {
+    fn borrow_at(&self, index: usize) -> Option<T>;
+    fn assign_at(&self, index: usize, value: Option<T>);
+    fn identity_at(&self, index: usize) -> (*const (), usize);
+}
+
 #[derive(Clone)]
-pub struct GoArrayElemPtr<T: Clone, const N: usize> {
+pub struct GoDirectArrayElemBacking<T: Clone + 'static, const N: usize> {
     array: Rc<RefCell<Option<[T; N]>>>,
+}
+
+impl<T: Clone + 'static, const N: usize> GoArrayElemBacking<T, N> for GoDirectArrayElemBacking<T, N> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let guard = self.array.borrow();
+        guard.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            if let Some(values) = self.array.borrow_mut().as_mut() {
+                values[index] = value;
+            }
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (Rc::as_ptr(&self.array) as *const (), index)
+    }
+}
+
+#[derive(Clone)]
+pub struct GoNestedArrayElemBacking<T: Clone + 'static, const N: usize, const OUT: usize> {
+    outer: Rc<RefCell<Option<[[T; N]; OUT]>>>,
+    outer_index: usize,
+}
+
+impl<T: Clone + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoNestedArrayElemBacking<T, N, OUT> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let guard = self.outer.borrow();
+        guard.as_ref().and_then(|values| values.get(self.outer_index)).and_then(|inner| inner.get(index)).cloned()
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            if let Some(values) = self.outer.borrow_mut().as_mut() {
+                values[self.outer_index][index] = value;
+            }
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (Rc::as_ptr(&self.outer) as *const (), self.outer_index.wrapping_mul(N).wrapping_add(index))
+    }
+}
+
+#[derive(Clone)]
+pub struct GoArrayElemFromElemBacking<T: Clone + 'static, const N: usize, const OUT: usize> {
+    parent: GoArrayElemPtr<[T; N], OUT>,
+}
+
+impl<T: Clone + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoArrayElemFromElemBacking<T, N, OUT> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let inner = self.parent.borrow();
+        inner.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            let mut inner = self.parent.borrow_mut();
+            if let Some(values) = inner.as_mut() {
+                values[index] = value;
+            }
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        let (base, outer_index) = self.parent.identity();
+        (base, outer_index.wrapping_mul(N).wrapping_add(index))
+    }
+}
+
+#[derive(Clone)]
+pub struct GoArrayElemFromGoPtrBacking<T: Clone + 'static, const N: usize> {
+    parent: GoPtr<[T; N]>,
+}
+
+impl<T: Clone + 'static, const N: usize> GoArrayElemBacking<T, N> for GoArrayElemFromGoPtrBacking<T, N> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let inner = self.parent.borrow();
+        inner.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            self.parent.with_mut(|values| {
+                values[index] = value;
+            });
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (self.parent.addr() as *const (), index)
+    }
+}
+
+#[derive(Clone)]
+pub struct GoArrayElemPtr<T: Clone + 'static, const N: usize> {
+    backing: Rc<dyn GoArrayElemBacking<T, N>>,
     index: usize,
 }
 
@@ -70,13 +175,13 @@ pub struct GoArrayElemRef<T: Clone> {
     value: Option<T>,
 }
 
-pub struct GoArrayElemMutRef<T: Clone, const N: usize> {
-    array: Rc<RefCell<Option<[T; N]>>>,
+pub struct GoArrayElemMutRef<T: Clone + 'static, const N: usize> {
+    backing: Rc<dyn GoArrayElemBacking<T, N>>,
     index: usize,
     value: Option<T>,
 }
 
-impl<T: Clone> GoSliceElemPtr<T> {
+impl<T> GoSliceElemPtr<T> {
     pub fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
     }
@@ -88,7 +193,9 @@ impl<T: Clone> GoSliceElemPtr<T> {
     pub fn index(&self) -> usize {
         self.index
     }
+}
 
+impl<T: Clone> GoSliceElemPtr<T> {
     pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.borrow();
         GoSliceElemRef {
@@ -106,25 +213,58 @@ impl<T: Clone> GoSliceElemPtr<T> {
     }
 }
 
-impl<T: Clone, const N: usize> GoArrayElemPtr<T, N> {
+impl<T: Clone + 'static, const N: usize> GoArrayElemPtr<T, N> {
     pub fn new(array: Rc<RefCell<Option<[T; N]>>>, index: usize) -> Self {
-        GoArrayElemPtr { array, index }
+        GoArrayElemPtr {
+            backing: Rc::new(GoDirectArrayElemBacking { array }),
+            index,
+        }
+    }
+
+    pub fn nested<const OUT: usize>(outer: Rc<RefCell<Option<[[T; N]; OUT]>>>, outer_index: usize, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Rc::new(GoNestedArrayElemBacking { outer, outer_index }),
+            index,
+        }
+    }
+
+    pub fn from_array_elem<const OUT: usize>(parent: GoArrayElemPtr<[T; N], OUT>, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Rc::new(GoArrayElemFromElemBacking { parent }),
+            index,
+        }
+    }
+
+    pub fn from_go_ptr(parent: GoPtr<[T; N]>, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Rc::new(GoArrayElemFromGoPtrBacking { parent }),
+            index,
+        }
     }
 
     pub fn borrow(&self) -> GoArrayElemRef<T> {
-        let guard = self.array.borrow();
         GoArrayElemRef {
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+            value: self.backing.borrow_at(self.index),
         }
     }
 
     pub fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
-        let guard = self.array.borrow();
         GoArrayElemMutRef {
-            array: self.array.clone(),
+            backing: self.backing.clone(),
             index: self.index,
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+            value: self.backing.borrow_at(self.index),
         }
+    }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
+        let result = f(&mut value);
+        self.backing.assign_at(self.index, Some(value));
+        result
+    }
+
+    pub fn identity(&self) -> (*const (), usize) {
+        self.backing.identity_at(self.index)
     }
 }
 
@@ -168,7 +308,7 @@ impl<T: Clone> std::ops::Deref for GoArrayElemRef<T> {
     }
 }
 
-impl<T: Clone, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
+impl<T: Clone + 'static, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
     type Target = Option<T>;
 
     fn deref(&self) -> &Self::Target {
@@ -176,32 +316,99 @@ impl<T: Clone, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
     }
 }
 
-impl<T: Clone, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
+impl<T: Clone + 'static, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }
 }
 
-impl<T: Clone, const N: usize> Drop for GoArrayElemMutRef<T, N> {
+impl<T: Clone + 'static, const N: usize> Drop for GoArrayElemMutRef<T, N> {
     fn drop(&mut self) {
-        if let Some(value) = self.value.clone() {
-            if let Some(values) = self.array.borrow_mut().as_mut() {
-                values[self.index] = value;
-            }
+        self.backing.assign_at(self.index, self.value.clone());
+    }
+}
+
+pub trait GoArrayElemPtrDyn<T: 'static> {
+    fn borrow_dyn(&self) -> Option<T>;
+    fn assign_dyn(&self, value: Option<T>);
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T));
+    fn identity_dyn(&self) -> (*const (), usize);
+}
+
+pub struct GoForeignArrayElemPtrDyn<T: 'static> {
+    borrow: Rc<dyn Fn() -> Option<T>>,
+    assign: Rc<dyn Fn(Option<T>)>,
+    with_mut: Rc<dyn Fn(&mut dyn FnMut(&mut T))>,
+    identity: Rc<dyn Fn() -> (*const (), usize)>,
+}
+
+impl<T: 'static> GoArrayElemPtrDyn<T> for GoForeignArrayElemPtrDyn<T> {
+    fn borrow_dyn(&self) -> Option<T> {
+        (self.borrow)()
+    }
+
+    fn assign_dyn(&self, value: Option<T>) {
+        (self.assign)(value)
+    }
+
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
+        (self.with_mut)(f)
+    }
+
+    fn identity_dyn(&self) -> (*const (), usize) {
+        (self.identity)()
+    }
+}
+
+impl<T: Clone + 'static, const N: usize> GoArrayElemPtrDyn<T> for GoArrayElemPtr<T, N> {
+    fn borrow_dyn(&self) -> Option<T> {
+        (*self.borrow()).clone()
+    }
+
+    fn assign_dyn(&self, value: Option<T>) {
+        *self.borrow_mut() = value;
+    }
+
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
+        self.with_mut(|value| f(value));
+    }
+
+    fn identity_dyn(&self) -> (*const (), usize) {
+        self.identity()
+    }
+}
+
+pub enum GoPtr<T: 'static> {
+    Nil,
+    Raw(usize),
+    Local(Rc<RefCell<Option<T>>>),
+    SliceElem(GoSliceElemPtr<T>),
+    ArrayElem(Rc<dyn GoArrayElemPtrDyn<T>>),
+}
+
+impl<T: 'static> Clone for GoPtr<T> {
+    fn clone(&self) -> Self {
+        match self {
+            GoPtr::Nil => GoPtr::Nil,
+            GoPtr::Raw(addr) => GoPtr::Raw(*addr),
+            GoPtr::Local(value) => GoPtr::Local(value.clone()),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
 }
 
-#[derive(Clone)]
-pub enum GoPtr<T: Clone> {
-    Nil,
-    Local(Rc<RefCell<Option<T>>>),
-    SliceElem(GoSliceElemPtr<T>),
-}
-
-impl<T: Clone> GoPtr<T> {
+impl<T: 'static> GoPtr<T> {
     pub fn nil() -> Self {
         GoPtr::Nil
+    }
+
+    pub fn raw(addr: usize) -> Self {
+        if addr == 0 {
+            GoPtr::Nil
+        } else {
+            GoPtr::Raw(addr)
+        }
     }
 
     pub fn local(value: Rc<RefCell<Option<T>>>) -> Self {
@@ -223,30 +430,131 @@ impl<T: Clone> GoPtr<T> {
         }
     }
 
-    pub fn is_nil(&self) -> bool {
-        match self {
-            GoPtr::Nil => true,
-            GoPtr::Local(value) => value.borrow().is_none(),
-            GoPtr::SliceElem(value) => value.borrow().is_none(),
+    pub fn array_elem<const N: usize>(value: GoArrayElemPtr<T, N>) -> Self
+    where
+        T: Clone,
+    {
+        GoPtr::ArrayElem(Rc::new(value))
+    }
+
+    pub fn array_elem_opt<const N: usize>(value: Option<GoArrayElemPtr<T, N>>) -> Self
+    where
+        T: Clone,
+    {
+        match value {
+            Some(value) => GoPtr::ArrayElem(Rc::new(value)),
+            None => GoPtr::Nil,
         }
     }
 
-    pub fn borrow(&self) -> Option<T> {
+    pub fn array_elem_foreign(
+        borrow: Rc<dyn Fn() -> Option<T>>,
+        assign: Rc<dyn Fn(Option<T>)>,
+        with_mut: Rc<dyn Fn(&mut dyn FnMut(&mut T))>,
+        identity: Rc<dyn Fn() -> (*const (), usize)>,
+    ) -> Self {
+        GoPtr::ArrayElem(Rc::new(GoForeignArrayElemPtrDyn {
+            borrow,
+            assign,
+            with_mut,
+            identity,
+        }))
+    }
+
+    pub fn is_nil(&self) -> bool {
         match self {
-            GoPtr::Nil => None,
-            GoPtr::Local(value) => (*value.borrow()).clone(),
-            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
+            GoPtr::Nil => true,
+            GoPtr::Raw(addr) => *addr == 0,
+            GoPtr::Local(value) => value.borrow().is_none(),
+            GoPtr::SliceElem(value) => {
+                let guard = value.slice.borrow();
+                guard.as_ref().and_then(|values| values.get(value.index)).is_none()
+            }
+            GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
+        }
+    }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        match self {
+            GoPtr::Nil => panic!("nil pointer dereference"),
+            GoPtr::Raw(_) => panic!("raw unsafe pointer mutable borrow requires unsafe pointee support"),
+            GoPtr::Local(slot) => {
+                let mut guard = slot.borrow_mut();
+                f(guard.as_mut().unwrap())
+            }
+            GoPtr::SliceElem(slot) => {
+                let mut guard = slot.slice.borrow_mut();
+                let values = guard.as_mut().expect("nil pointer dereference");
+                f(values.get_mut(slot.index).expect("nil pointer dereference"))
+            }
+            GoPtr::ArrayElem(slot) => {
+                let mut result = None;
+                let mut callback = Some(f);
+                slot.with_mut_dyn(&mut |value| {
+                    let f = callback.take().expect("array element pointer mutable borrow called twice");
+                    result = Some(f(value));
+                });
+                result.expect("nil pointer dereference")
+            }
+        }
+    }
+
+    pub fn ptr_eq(left: &Self, right: &Self) -> bool {
+        match (left, right) {
+            (GoPtr::Nil, GoPtr::Nil) => true,
+            (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
+            (GoPtr::Local(left), GoPtr::Local(right)) => Rc::ptr_eq(left, right),
+            (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
+                Rc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+            }
+            (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
+            _ => false,
+        }
+    }
+
+    pub fn addr(&self) -> usize {
+        match self {
+            GoPtr::Nil => 0,
+            GoPtr::Raw(addr) => *addr,
+            GoPtr::Local(value) => Rc::as_ptr(value) as usize,
+            GoPtr::SliceElem(value) => (Rc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::ArrayElem(value) => {
+                let (base, index) = value.identity_dyn();
+                (base as usize).wrapping_add(index)
+            }
         }
     }
 }
 
-impl<T: Clone> Default for GoPtr<T> {
+impl<T: Clone + 'static> GoPtr<T> {
+    pub fn borrow(&self) -> Option<T> {
+        match self {
+            GoPtr::Nil => None,
+            GoPtr::Raw(_) => panic!("raw unsafe pointer dereference requires unsafe pointee support"),
+            GoPtr::Local(value) => (*value.borrow()).clone(),
+            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
+            GoPtr::ArrayElem(value) => value.borrow_dyn(),
+        }
+    }
+
+    pub fn assign(&self, value: Option<T>) {
+        match self {
+            GoPtr::Nil => panic!("nil pointer dereference"),
+            GoPtr::Raw(_) => panic!("raw unsafe pointer assignment requires unsafe pointee support"),
+            GoPtr::Local(slot) => *slot.borrow_mut() = value,
+            GoPtr::SliceElem(slot) => *slot.borrow_mut() = value,
+            GoPtr::ArrayElem(slot) => slot.assign_dyn(value),
+        }
+    }
+}
+
+impl<T: 'static> Default for GoPtr<T> {
     fn default() -> Self {
         GoPtr::Nil
     }
 }
 
-impl<T: Clone> std::fmt::Debug for GoPtr<T> {
+impl<T: 'static> std::fmt::Debug for GoPtr<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_nil() {
             write!(f, "<nil>")
@@ -263,20 +571,27 @@ pub struct Point {
 
 impl Point {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Point {
     fn default() -> Self {
-        Self { x: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            x: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.x.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

@@ -328,9 +328,9 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"fn go_format_is_text(value: &dyn Any) -> bool {",
-		"|| value.is::<Status>()",
-		"|| value.is::<Rc<RefCell<Option<Status>>>>()",
+		"fn go_format_is_text(__value: &dyn Any) -> bool {",
+		"|| __value.is::<Status>()",
+		"|| __value.is::<Rc<RefCell<Option<Status>>>>()",
 		"StdError>>>>>()",
 		"if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {",
 		// What is left stops the program; it does not print an approximation.
@@ -344,9 +344,40 @@ func main() {
 	}
 	for _, unwanted := range []string{
 		"value.is::<Point>()",
+		"__value.is::<Point>()",
 	} {
 		if strings.Contains(rust, unwanted) {
 			t.Fatalf("found %q in:\n%s", unwanted, rust)
+		}
+	}
+}
+
+// The crate root imports every package-level variable and constant of the Go
+// package, and Rust does not let a parameter or a local be the name of one.
+// The run-time format helpers have many locals, so they live in a module of
+// their own that imports only what it uses. A package with "var prefix", as
+// go/scanner has, used to stop the generated crate from compiling.
+func TestRuntimeFormatHelpersCannotClashWithPackageLevelNames(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+var prefix = "line "
+
+func main() {
+	f := "%s%d\n"
+	fmt.Printf(f, prefix, 1)
+}
+`)
+
+	for _, want := range []string{
+		"fn go_format_is_text(__value: &dyn Any) -> bool {",
+		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text};",
+		"\npub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
+		"}\nuse __go_runtime_format::go_sprintf;\n",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
 		}
 	}
 }

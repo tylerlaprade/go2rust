@@ -9,15 +9,15 @@ pub fn boxed_int_o_k(v: Rc<RefCell<Option<i32>>>) -> bool {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<i32>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(0))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(0))), false)
         }
     });
-    return (*ok.borrow().as_ref().unwrap());
+    ok
 }
 
 fn main() {

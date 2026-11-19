@@ -194,11 +194,11 @@ fn main() {
     let mut p = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
 
     let mut s = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))), ..Default::default() }])));
-    (*s.borrow_mut().as_mut().unwrap())[(0) as usize] = (*p.borrow().as_ref().unwrap()).__go_value_clone();
+    { let __idx = (0) as usize; let __rhs = (*p.borrow().as_ref().unwrap()).__go_value_clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let new_val = 2; *(*p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "stored in a slice".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*p.borrow().as_ref().unwrap())));
 
-    { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*p.borrow().as_ref().unwrap()).__go_value_clone()); __append_target.clone() }; s = new_val; };
+    { let new_val = { let __append_target = s.clone(); let __append_value = (*p.borrow().as_ref().unwrap()).__go_value_clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; s = new_val; };
     { let new_val = 3; *(*p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "appended".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*p.borrow().as_ref().unwrap())));
 
@@ -220,7 +220,7 @@ fn main() {
     println!("{} {} {}", format!("{}", "assigned to a field".to_string()), format!("{}", (*l.borrow().as_ref().unwrap())), format!("{}", (*p.borrow().as_ref().unwrap())));
 
     let mut arr = Rc::new(RefCell::new(Some([Default::default(), Default::default()])));
-    (*arr.borrow_mut().as_mut().unwrap())[(0) as usize] = (*p.borrow().as_ref().unwrap()).__go_value_clone();
+    { let __idx = (0) as usize; let __rhs = (*p.borrow().as_ref().unwrap()).__go_value_clone(); (*arr.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let new_val = 7; *(*p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "stored in an array".to_string()), format!("{}", (*arr.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*p.borrow().as_ref().unwrap())));
 
@@ -245,7 +245,7 @@ fn main() {
     println!("{} {} {}", format!("{}", "assigned from an element".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*e.borrow().as_ref().unwrap())));
 
     let mut list = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    let mut spread = { let __append_target = Rc::new(RefCell::new(Some(Vec::<Point>::new()))).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone())); __append_target.clone() };
+    let mut spread = { let __append_target = Rc::new(RefCell::new(Some(Vec::<Point>::new()))).clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
     { let new_val = 400; *(*spread.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice copied with append".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*spread.borrow().as_ref().unwrap())[(0) as usize].clone()));
 
@@ -261,7 +261,7 @@ fn main() {
     { let new_val = 500; *(*copied.borrow().as_ref().unwrap())[(1) as usize].clone().y.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice copied with copy".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*list.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*copied.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
-    let mut grown = { let __append_target = spread.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone())); __append_target.clone() };
+    let mut grown = { let __append_target = spread.clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
     { let new_val = 600; *(*grown.borrow().as_ref().unwrap())[(2) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice appended to another".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*grown.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", (*grown.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

@@ -156,7 +156,8 @@ pub struct Encoder {
 
 impl Encoder {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

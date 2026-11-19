@@ -158,20 +158,32 @@ pub struct pair {
 
 impl pair {
     pub fn __go_value_clone(&self) -> Self {
-        Self { left: { let __guard = self.left.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, right: { let __guard = self.right.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.left.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.right.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            left: __go_clone_0_0,
+            right: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for pair {
     fn default() -> Self {
-        Self { left: Arc::new(Mutex::new(Some(String::new()))), right: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            left: __go_default_0_0,
+            right: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for pair {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.left.lock().unwrap().as_ref().unwrap()), (*self.right.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.left.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.right.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

@@ -71,7 +71,7 @@ impl Names {
     }
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&name); };
     } }
-        return Rc::new(RefCell::new(Some(out.borrow().as_ref().unwrap().clone())));
+        return { let __owned = out.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     }
 }
 

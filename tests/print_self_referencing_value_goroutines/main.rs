@@ -328,7 +328,7 @@ impl Label {
 }
 
 pub fn render(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some(format!("{}", format_any(v.lock().unwrap().as_ref().unwrap().as_ref())))))
+    Arc::new(Mutex::new(Some(format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }))))
 }
 
 /// shape describes text around the addresses in it, which change from run to
@@ -353,7 +353,7 @@ fn main() {
         Arc::new(Mutex::new(Some("&{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(
-        Arc::new(Mutex::new(Some(format!("{}", format!("&{}", (*r#loop.lock().unwrap().as_ref().unwrap())))))),
+        Arc::new(Mutex::new(Some(format!("{}", { let __text = match r#loop.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })))),
         Arc::new(Mutex::new(Some("&{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "struct value, boxed:".to_string()), format!("{}", (*shape(
@@ -376,11 +376,11 @@ fn main() {
         // The elements of a slice are inside it. Spread into a print call they
         // are its arguments, and a pointer among them is expanded.
     let mut labels: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>> = Arc::new(Mutex::new(None));
-    { let new_val = { let __append_target = labels.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![
+    { let new_val = { let __append_target = labels.clone(); let __append_values = vec![
         Box::new(Label { x: Arc::new(Mutex::new(Some(8))), ..Default::default() }) as Box<dyn Any + Send + Sync>,
         Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>,
         Box::new(1) as Box<dyn Any + Send + Sync>,
-    ]); __append_target.clone() }; labels = new_val; };
+    ]; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; labels = new_val; };
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", (*shape(
         Arc::new(Mutex::new(Some(format!("{}", format_any_slice(&labels))))),
         Arc::new(Mutex::new(Some("[&{8} 0x".to_string())))

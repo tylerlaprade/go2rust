@@ -279,6 +279,13 @@ go2rust is moving from build-only self-transpile to behavioral self-hosting.
   names are the source of truth. Restore this gate before trusting broader
   self-host results; classify each failure as a translator regression or a
   stale assertion and fix the implementation or test on that evidence.
+- The stdlib boundary is defined in `go/stdlib_boundary.go` and
+  [docs/stdlib_boundary.md](docs/stdlib_boundary.md): source-tier packages are
+  transpiled, native-tier packages are hand-written Rust. The loader does not
+  enforce it yet. Next: make `isSourceTranspilableStdlibPackage` consult the
+  boundary, move the fixtures listed in
+  `go/testdata/stdlib_boundary_fixture_baseline.txt` off native-tier source
+  transpilation, and give the native tier a real Rust home.
 - The last checked-in broad `go/types` probe reached zero probe-relative Rust
   compile errors in `46d49140`. That result does not cover the full API or prove
   behavior. After the Go unit gate is green, widen or rerun the source-stdlib

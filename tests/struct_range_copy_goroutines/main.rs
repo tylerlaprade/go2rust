@@ -255,7 +255,7 @@ fn main() {
     let mut kept: Arc<Mutex<Option<Vec<Point>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
         let e = &e.__go_value_clone();
-        { let new_val = { let __append_target = kept.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*e).__go_value_clone()); __append_target.clone() }; kept = new_val; };
+        { let new_val = { let __append_target = kept.clone(); let __append_value = (*e).__go_value_clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; kept = new_val; };
     } }
     { let new_val = 7; *{ let __seq = { let __seq_holder = kept.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "range variable appended".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq = { let __seq_holder = kept.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
