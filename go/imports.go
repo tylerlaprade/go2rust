@@ -1711,11 +1711,9 @@ func generateGoByteSequence(out *strings.Builder) {
 pub trait GoByteSequence: Clone {
     fn go_len(&self) -> usize;
     fn go_byte(&self, index: usize) -> u8;
-    fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String;
+    fn go_slice(&self, start: usize, end: Option<usize>) -> Self;
 
-    fn go_to_string(&self) -> String {
-        self.go_slice_to_string(0, None)
-    }
+    fn go_to_string(&self) -> String;
 }
 
 impl GoByteSequence for String {
@@ -1727,7 +1725,7 @@ impl GoByteSequence for String {
         self.as_bytes()[index]
     }
 
-    fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String {
+    fn go_slice(&self, start: usize, end: Option<usize>) -> Self {
         let end = end.unwrap_or_else(|| self.len());
         self[start..end].to_string()
     }
@@ -1746,9 +1744,9 @@ impl GoByteSequence for Vec<u8> {
         self[index]
     }
 
-    fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String {
+    fn go_slice(&self, start: usize, end: Option<usize>) -> Self {
         let end = end.unwrap_or_else(|| self.len());
-        String::from_utf8(self[start..end].to_vec()).unwrap()
+        self[start..end].to_vec()
     }
 
     fn go_to_string(&self) -> String {

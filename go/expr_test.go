@@ -8044,7 +8044,7 @@ func fingerprint[T string | []byte](s T, sep T) (uint32, string) {
 	if !strings.Contains(rust, ".go_byte(") {
 		t.Fatalf("indexing string/byte-slice type parameter should use byte-sequence trait byte access:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".go_slice_to_string(") {
+	if !strings.Contains(rust, ".go_slice(") || !strings.Contains(rust, ".go_to_string()") {
 		t.Fatalf("string conversion of a string/byte-slice type-parameter slice should use byte-sequence trait conversion:\n%s", rust)
 	}
 	body := rust[strings.Index(rust, "pub fn fingerprint"):]
