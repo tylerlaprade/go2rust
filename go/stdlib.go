@@ -477,6 +477,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if ident, ok := arg.(*ast.Ident); ok {
 				// For identifiers, just use the name directly (it's already wrapped)
 				out.WriteString(RustIdentForUse(ident))
+			} else if writeAnyHandleAssertionHandle(out, arg) {
+				// A map asserted out of an interface: the handle it holds.
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -539,7 +541,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString(")")
 			} else {
 				out.WriteString("format_slice(&")
-				TranspileExpression(out, arg)
+				if !writeAnyHandleAssertionHandle(out, arg) {
+					TranspileExpression(out, arg)
+				}
 				out.WriteString(")")
 			}
 			return

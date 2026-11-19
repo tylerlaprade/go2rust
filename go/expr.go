@@ -9137,6 +9137,39 @@ func functionAssertionAnyHandleTarget(e *ast.TypeAssertExpr) (handleType string,
 	return handleType, goTypesTypeToRust(sig), sig.Params().Len(), true
 }
 
+// writeAnyHandleAssertionHandle writes "x.([]int)" or "x.(map[K]V)", where x
+// is an interface{}, as the handle the interface value holds, for a new
+// variable that keeps it. A map or slice taken out of an interface shares its
+// data with the one that was put in, so after "y := x.(map[string]int)",
+// "y["k"] = 1" changes the map x holds and every other name for it. The value
+// writeAnyHandleAssertionExpectBareValue gives is a copy, which is right only
+// where the result is used and dropped.
+func writeAnyHandleAssertionHandle(out *strings.Builder, expr ast.Expr) bool {
+	e, ok := unwrapParens(expr).(*ast.TypeAssertExpr)
+	if !ok {
+		return false
+	}
+	handleType, _, ok := typeAssertionAnyHandleTarget(e)
+	if !ok {
+		return false
+	}
+	if _, isElement := anySliceElementAssertionSource(e.X); isElement {
+		return false
+	}
+	out.WriteString("({ let val = ")
+	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpressionContext(out, e.X, LValue)
+	}
+	out.WriteString(".clone(); let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; if let Some(ref any_val) = *guard { any_val.downcast_ref::<")
+	out.WriteString(handleType)
+	out.WriteString(">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })")
+	return true
+}
+
 // writeAnyHandleAssertionExpectBareValue downcasts receiver to the boxed
 // handle and yields an owned copy of what the handle holds, which is the bare
 // value single-value slice and map assertions hand to their consumers. A nil
@@ -15253,6 +15286,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.TypeAssertExpr:
 		// Handle type assertions like value.(Type)
 		// Type assertions work on interface{} values (Box<dyn Any>)
+		if ctx == LValue && writeAnyHandleAssertionHandle(out, e) {
+			// Where the handle is wanted, as in len(x.([]int)) or
+			// x.(map[string]int)["k"], it is the one the interface holds.
+			return
+		}
 		if e.Type != nil {
 			if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
 				writeStaticallyKnownInterfaceAssertionValue(out, e, ifaceName)

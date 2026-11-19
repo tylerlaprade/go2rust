@@ -13120,6 +13120,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Existing named-interface values are already represented by a handle.
 											} else if writeEmptyInterfaceHandleClone(out, rhs) {
 												// Existing interface values are already represented by a handle.
+											} else if writeAnyHandleAssertionHandle(out, rhs) {
+												// A slice or map taken out of an interface value shares its data with it.
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {
 												// Existing error values are already represented by a handle.
 											} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
@@ -13558,6 +13560,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										writeInterfaceBoxedValue(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
+									} else if writeAnyHandleAssertionHandle(out, valueSpec.Values[i]) {
+										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
 											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {

@@ -498,3 +498,41 @@ func main() {
 		t.Logf("generated Rust:\n%s", rust)
 	}
 }
+
+// A map or slice taken out of an interface{} shares its data with the one
+// that was put in. A new variable takes the handle the interface value holds,
+// in a short declaration and in a var declaration, and so does a use that
+// needs a handle, such as len(x.(map[string]int)) or printing x.([]int).
+func TestAssertedMapOrSliceSharesTheInterfaceValuesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var counts any = map[string]int{"a": 1}
+	m := counts.(map[string]int)
+	m["b"] = 2
+	var c = counts.(map[string]int)
+	c["x"] = 7
+	fmt.Println(len(counts.(map[string]int)))
+	var list any = []int{1}
+	fmt.Println(list.([]int))
+}
+`)
+
+	const mapHandle = "Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>"
+	shared := "({ let val = counts.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + mapHandle + ">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })"
+	for what, want := range map[string]string{
+		"a short declaration": "let mut m = " + shared + ";",
+		"a var declaration":   "let mut c = " + shared + ";",
+		"len of an assertion": shared,
+		"printing a slice":    "format_slice(&({ let val = list.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect(\"type assertion failed\").clone() }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}

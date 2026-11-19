@@ -507,6 +507,14 @@ run_xfail_test() {
     run_test "tests/arrays_basic"
 }
 
+@test "asserted_collections_shared" {
+    run_test "tests/asserted_collections_shared"
+}
+
+@test "asserted_collections_shared_goroutines" {
+    run_test "tests/asserted_collections_shared_goroutines"
+}
+
 @test "atomic_operations" {
     run_test "tests/atomic_operations"
 }
