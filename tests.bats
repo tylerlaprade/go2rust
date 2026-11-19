@@ -2107,6 +2107,10 @@ run_xfail_test() {
     run_test "tests/range_over_integer"
 }
 
+@test "range_over_slice_bounds" {
+    run_test "tests/range_over_slice_bounds"
+}
+
 @test "range_over_slice_field" {
     run_test "tests/range_over_slice_field"
 }

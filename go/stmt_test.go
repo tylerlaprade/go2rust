@@ -7763,27 +7763,6 @@ func scan() {
 	}
 }
 
-func TestRangeKeyOnlyOverSlicedArrayExpressionWrapsLengthBlock(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
-
-func sum(n int) int {
-	var stk [4]int
-	total := 0
-	for i := range stk[:n] {
-		total += i
-	}
-	return total
-}
-`)
-
-	if strings.Contains(rust, " in 0..{ let __seq =") {
-		t.Fatalf("key-only range over sliced array expression should parenthesize the length block:\n%s", rust)
-	}
-	if !strings.Contains(rust, " in 0..({ let __seq =") {
-		t.Fatalf("expected parenthesized range length block:\n%s", rust)
-	}
-}
-
 func TestConcurrentRangeOverComplexSliceLiteralBreaksVecAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
@@ -9330,34 +9309,6 @@ func (s *scanner) advance() {
 	}
 	if !strings.Contains(rust, "let __rhs = (rdOffset as i32);") {
 		t.Fatalf("compound assignment to int field should cast usize range index to i32:\n%s", rust)
-	}
-}
-
-func TestRangeOverSliceExpressionBindsFieldBoundBeforeIterator(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
-
-type scanner struct {
-	rdOffset int
-	src []byte
-}
-
-func (s *scanner) advance() {
-	for rdOffset, b := range s.src[s.rdOffset:] {
-		if b == ' ' {
-			s.rdOffset += rdOffset
-			break
-		}
-	}
-}
-`)
-
-	if strings.Contains(rust, "__seq[(*self.rd_offset.clone().lock().unwrap().as_ref().unwrap()) as usize..]") ||
-		strings.Contains(rust, "__seq[(*self.rd_offset.clone().borrow().as_ref().unwrap()) as usize..]") {
-		t.Fatalf("slice range should not keep the field-bound borrow in the iterator expression:\n%s", rust)
-	}
-	if !strings.Contains(rust, "let __low = (*self.rd_offset.clone()") ||
-		!strings.Contains(rust, "__seq[__low..].to_vec()") {
-		t.Fatalf("slice range should bind the field bound before slicing:\n%s", rust)
 	}
 }
 
