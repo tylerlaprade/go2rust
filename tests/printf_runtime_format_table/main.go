@@ -115,6 +115,102 @@ func main() {
 	show("%+v", sprintf("%+v", "hello"))
 	show("%+v", sprintf("%+v", 42))
 
+	// Zero padding and a precision count digits, and 0x, 0b or 0o comes on
+	// top of them. The 0 that # puts before an octal number is not added to
+	// a number that already starts with one. A precision of zero prints
+	// nothing for zero.
+	prefixFormats := []string{
+		"%#08x", "%#08X", "%#08b", "%#08o", "%08O", "%#8x|", "%#-8x|", "%#-08x|", "%#.3o", "%#.1o",
+		"%#.3x", "%#8.3x|", "%+08d", "% 08d", "%+.0d|", "%#.0x|", "%5.0d|", "%#o", "%#b", "%O",
+		"%#O", "%#.3O", "%#08O",
+	}
+	prefixValues := []int{0, 7, 8, -42, 255}
+	for _, format := range prefixFormats {
+		for _, value := range prefixValues {
+			show(format, sprintf(format, value))
+		}
+	}
+
+	// A width or a precision from an argument can be any integer type.
+	show("%*d|", sprintf("%*d|", uint32(6), 42))
+	show("%*d|", sprintf("%*d|", int8(-6), 42))
+	show("%*d|", sprintf("%*d|", int64(6), 42))
+	show("%*d|", sprintf("%*d|", uint64(6), 42))
+	show("%*d|", sprintf("%*d|", int16(6), 42))
+	show("%.*f", sprintf("%.*f", uint8(2), 3.14159))
+	show("%.*f", sprintf("%.*f", uint(3), 3.14159))
+	show("%*d|", sprintf("%*d|", 2.5, 42))
+
+	// %+q writes characters outside ASCII as escapes.
+	show("%+q", sprintf("%+q", "é"))
+	show("%+q", sprintf("%+q", "a\tb☺"))
+	show("%+q", sprintf("%+q", "😀"))
+	show("%+q", sprintf("%+q", "plain"))
+	show("%+q", sprintf("%+q", 'é'))
+	show("%+q", sprintf("%+q", 'x'))
+	show("%+q", sprintf("%+q", '😀'))
+	show("%q", sprintf("%q", "é☺"))
+	show("%#U", sprintf("%#U", '\''))
+	show("%#U", sprintf("%#U", '\\'))
+
+	// Zero padding applies to a character, a quoted character, a bool and
+	// the name of a type as it does to a string.
+	show("%05c|%05q|%-05c|%05U", sprintf("%05c|%05q|%-05c|%05U", 65, 65, 65, 65))
+	show("%05c|%05q", sprintf("%05c|%05q", 'é', 'é'))
+	show("%05T|%05t", sprintf("%05T|%05t", 65, true))
+
+	// %q writes a character that cannot be seen as an escape.
+	show("%q", sprintf("%q", "zero\u200bwidth"))
+	show("%q", sprintf("%q", "soft\u00adhyphen"))
+	show("%q", sprintf("%q", "\ufeffmark"))
+	show("%q", sprintf("%q", "no\u00a0break"))
+	show("%q", sprintf("%q", '\u200b'))
+	show("%#v", sprintf("%#v", "zero\u200bwidth"))
+	show("%#U", sprintf("%#U", '\u200b'))
+	show("%#U", sprintf("%#U", ' '))
+
+	// %q writes a byte that is not UTF-8 as an escape too.
+	broken := []byte{0xff, 0x41, 0xc3, 0xa9}
+	show("%q", sprintf("%q", broken))
+	show("%+q", sprintf("%+q", broken))
+	show("%x", sprintf("%x", broken))
+	show("%#q", sprintf("%#q", broken))
+	show("%.1q", sprintf("%.1q", broken))
+	show("%.3q", sprintf("%.3q", broken))
+	show("%12q|", sprintf("%12q|", broken))
+
+	// A precision is applied before %#q chooses its quotes, so a byte that
+	// is cut off has no say in them.
+	show("%#.1q", sprintf("%#.1q", []byte{0x41, 0xff}))
+	show("%#.1q", sprintf("%#.1q", []byte{0x41, 0x42}))
+	show("%#.2q", sprintf("%#.2q", []byte{0x41, 0xff}))
+	show("%.2s|", sprintf("%.2s|", []byte{0x41, 0x42, 0xff}))
+	show("%.3q", sprintf("%.3q", []byte{0xe2, 0x82, 0x41, 0x42}))
+
+	// %#q writes a raw string unless the text has a backquote, an ASCII
+	// control character other than tab, or a byte order mark.
+	show("%#q", sprintf("%#q", "\ufeffmark"))
+	show("%#q", sprintf("%#q", "next\u0085line"))
+	show("%#q", sprintf("%#q", "del\x7f"))
+	show("%#q", sprintf("%#q", "zero\u200bwidth"))
+
+	// A precision above four gives %U more digits.
+	show("%.8U|%.2U|%#.6U|%10.6U|", sprintf("%.8U|%.2U|%#.6U|%10.6U|", 65, 65, 65, 65))
+
+	// Infinity keeps its sign and is never padded with zeros. NaN has no
+	// sign unless a flag asks for one.
+	var zero float64
+	edges := []float64{1 / zero, -1 / zero, zero / zero}
+	edgeFormats := []string{
+		"%f", "%+f", "% f", "%+ f", "%8.2f|", "%-8.2f|", "%08.2f|", "% 08.2f|", "%v", "%+v", "%g",
+		"%e", "%E", "%G", "%.0f",
+	}
+	for _, format := range edgeFormats {
+		for _, value := range edges {
+			show(format, sprintf(format, value))
+		}
+	}
+
 	// A []byte prints as text with %s, %q and %x, and as numbers with %v.
 	data := []byte("Hello")
 	show("%s", sprintf("%s", data))
@@ -126,4 +222,29 @@ func main() {
 	show("%s", sprintf("%s", []byte("direct")))
 	show("%10s|", sprintf("%10s|", data))
 	show("%.2s", sprintf("%.2s", data))
+
+	// A verb that does not print a []byte as text is applied to each byte.
+	pair := []byte{1, 2}
+	show("%d", sprintf("%d", data))
+	show("%c", sprintf("%c", data))
+	show("%5v", sprintf("%5v", pair))
+	show("%03d|%-4d|%+d", sprintf("%03d|%-4d|%+d", pair, pair, pair))
+	show("%o %b %U", sprintf("%o %b %U", []byte{8}, []byte{5}, []byte{65}))
+	show("%t", sprintf("%t", pair))
+	show("%w", sprintf("%w", pair))
+	show("%v|%d", sprintf("%v|%d", []byte{}, []byte{}))
+
+	// When a verb does not fit, fmt writes the value as %v would, with the
+	// width, the precision and the flags of the verb.
+	show("%05t", sprintf("%05t", []byte{1, 42}))
+	show("%.3t", sprintf("%.3t", []byte{1, 42}))
+	show("%+t|%-4t|", sprintf("%+t|%-4t|", []byte{1, 42}, []byte{1, 42}))
+	show("%05t", sprintf("%05t", 42))
+	show("%+t", sprintf("%+t", 5))
+	show("%5s|", sprintf("%5s|", 5))
+	show("%-5d|", sprintf("%-5d|", "x"))
+	show("%.1d", sprintf("%.1d", "abc"))
+	show("%8.2d|", sprintf("%8.2d|", 2.5))
+	show("%6d|", sprintf("%6d|", true))
+	show("%5d", sprintf("%5d", 1, 2))
 }

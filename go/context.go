@@ -987,7 +987,7 @@ func RegisterOpaqueErrorAnyPayload() {
 	expr.WriteString("match (*v")
 	WriteBorrowMethod(&expr, false)
 	expr.WriteString(`).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }`)
-	arm := anyFormatArm{expr: expr.String()}
+	arm := anyFormatArm{expr: expr.String(), text: true}
 	helpers.anyFormatArms[rustType] = arm
 	// The handle is the same type in every package, so the package that
 	// receives the error can carry the same cases.

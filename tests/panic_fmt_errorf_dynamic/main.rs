@@ -44,6 +44,12 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     std::any::type_name_of_val(val)
 }
 
+// Whether value has a String or an Error method. fmt prints such a value as
+// the one text the method returns.
+fn go_format_is_text(value: &dyn Any) -> bool {
+    false
+}
+
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
 struct GoFormatSpec {
@@ -90,10 +96,26 @@ fn go_format_sign(spec: &GoFormatSpec, negative: bool) -> &'static str {
     }
 }
 
-// Quotes text the way strconv.Quote does, with quote as the delimiter.
-fn go_format_quote(text: &str, quote: char) -> String {
-    let mut out = String::new();
-    out.push(quote);
+// Whether strconv.IsPrint prints c as it is: a letter, mark, number,
+// punctuation, symbol or the ASCII space. Rust's standard library has no
+// table of Unicode categories, so this knows the control characters, the
+// other spaces, the format characters in common use (the soft hyphen, the
+// zero-width and direction marks, the byte order mark) and the private-use
+// areas. It does not know which code points are unassigned.
+fn go_format_is_print(c: char) -> bool {
+    if c == ' ' {
+        return true;
+    }
+    if c.is_control() || c.is_whitespace() {
+        return false;
+    }
+    !matches!(c as u32, 0xad | 0x600..=0x605 | 0x61c | 0x6dd | 0x70f | 0x8e2 | 0x180e | 0x200b..=0x200f | 0x202a..=0x202e | 0x2060..=0x206f | 0xfeff | 0xfff9..=0xfffb | 0xe000..=0xf8ff | 0xe0001 | 0xe0020..=0xe007f | 0xf0000..=0xffffd | 0x100000..=0x10fffd)
+}
+
+// Writes text the way strconv.Quote writes the inside of a quoted string,
+// with quote as the delimiter. ascii is the + flag: every character outside
+// ASCII is written as an escape.
+fn go_format_escape(out: &mut String, text: &str, quote: char, ascii: bool) {
     for c in text.chars() {
         match c {
             '\u{7}' => out.push_str("\\a"),
@@ -109,7 +131,7 @@ fn go_format_quote(text: &str, quote: char) -> String {
                 out.push(c);
             }
             c if (c as u32) < 0x20 || c == '\u{7f}' => out.push_str(&format!("\\x{:02x}", c as u32)),
-            c if c.is_control() || (c.is_whitespace() && c != ' ') => {
+            c if !go_format_is_print(c) || (ascii && !c.is_ascii()) => {
                 if (c as u32) < 0x10000 {
                     out.push_str(&format!("\\u{:04x}", c as u32));
                 } else {
@@ -119,6 +141,12 @@ fn go_format_quote(text: &str, quote: char) -> String {
             c => out.push(c),
         }
     }
+}
+
+fn go_format_quote(text: &str, quote: char, ascii: bool) -> String {
+    let mut out = String::new();
+    out.push(quote);
+    go_format_escape(&mut out, text, quote, ascii);
     out.push(quote);
     out
 }
@@ -126,25 +154,26 @@ fn go_format_quote(text: &str, quote: char) -> String {
 fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<String> {
     let negative = value < 0;
     let magnitude = value.unsigned_abs();
-    let (mut digits, prefix) = match verb {
-        'd' | 'v' => (magnitude.to_string(), ""),
-        'b' => (format!("{:b}", magnitude), if spec.sharp { "0b" } else { "" }),
-        'o' => (format!("{:o}", magnitude), if spec.sharp && magnitude != 0 { "0" } else { "" }),
-        'O' => (format!("{:o}", magnitude), "0o"),
-        'x' => (format!("{:x}", magnitude), if spec.sharp { "0x" } else { "" }),
-        'X' => (format!("{:X}", magnitude), if spec.sharp { "0X" } else { "" }),
+    let mut digits = match verb {
+        'd' | 'v' => magnitude.to_string(),
+        'b' => format!("{:b}", magnitude),
+        'o' | 'O' => format!("{:o}", magnitude),
+        'x' => format!("{:x}", magnitude),
+        'X' => format!("{:X}", magnitude),
         'c' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
-            return Some(go_format_pad(spec, c.to_string(), 0, false));
+            return Some(go_format_pad(spec, c.to_string(), 0, true));
         }
         'q' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
-            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\''), 0, false));
+            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\'', spec.plus), 0, true));
         }
         'U' => {
-            let mut text = format!("U+{:04X}", value as u64);
+            // A precision above four asks for more digits.
+            let digits = spec.precision.filter(|precision| *precision > 4).unwrap_or(4);
+            let mut text = format!("U+{:0digits$X}", value as u64, digits = digits);
             if spec.sharp {
-                if let Some(c) = u32::try_from(value).ok().and_then(char::from_u32).filter(|c| !c.is_control()) {
+                if let Some(c) = u32::try_from(value).ok().and_then(char::from_u32).filter(|c| go_format_is_print(*c)) {
                     text.push_str(&format!(" '{}'", c));
                 }
             }
@@ -152,17 +181,31 @@ fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<Str
         }
         _ => return None,
     };
-    if let Some(precision) = spec.precision {
-        if precision == 0 && magnitude == 0 {
-            digits.clear();
-        }
-        if digits.len() < precision {
-            digits = "0".repeat(precision - digits.len()) + &digits;
-        }
-    }
     let sign = go_format_sign(spec, negative);
-    let text = format!("{}{}{}", sign, prefix, digits);
-    Some(go_format_pad(spec, text, sign.len() + prefix.len(), spec.precision.is_none()))
+    // A precision and zero padding both ask for a least number of digits.
+    // The sign is counted in the width of zero padding; 0x, 0b and 0o are
+    // not, they come on top.
+    let least_digits = match spec.precision {
+        // Zero with a precision of zero prints nothing but the padding.
+        Some(0) if magnitude == 0 => return Some(go_format_pad(&GoFormatSpec { zero: false, ..*spec }, String::new(), 0, false)),
+        Some(precision) => precision,
+        None if spec.zero && !spec.minus => spec.width.unwrap_or(0).saturating_sub(sign.len()),
+        None => 0,
+    };
+    if digits.len() < least_digits {
+        digits = "0".repeat(least_digits - digits.len()) + &digits;
+    }
+    // The 0 that # puts before an octal number is only added to one that
+    // does not start with a 0 already. %#O has it as well, after its 0o.
+    let octal_zero = if spec.sharp && matches!(verb, 'o' | 'O') && !digits.starts_with('0') { "0" } else { "" };
+    let prefix = match verb {
+        'b' if spec.sharp => "0b",
+        'O' => "0o",
+        'x' if spec.sharp => "0x",
+        'X' if spec.sharp => "0X",
+        _ => "",
+    };
+    Some(go_format_pad(spec, format!("{}{}{}{}", sign, prefix, octal_zero, digits), 0, false))
 }
 
 // The digits of a float and the power of ten of the first one, from Rust's
@@ -230,6 +273,11 @@ fn go_format_float_magnitude(verb: char, precision: Option<usize>, shortest: &st
 }
 
 fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> Option<String> {
+    // fmt also writes a float in binary (%b) and in hex (%x). Neither is
+    // done here.
+    if matches!(verb, 'b' | 'x' | 'X') {
+        panic!("go2rust: %{} of a float is not supported in a format that is only known at run time", verb);
+    }
     if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
         return None;
     }
@@ -242,7 +290,9 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     }
     let negative = value.is_sign_negative();
     if value.is_infinite() {
-        return Some(go_format_pad(spec, format!("{}Inf", if negative { "-" } else { "+" }), 0, false));
+        // +Inf keeps its sign, unless the space flag asks for a space there.
+        let sign = if negative { "-" } else if spec.space && !spec.plus { " " } else { "+" };
+        return Some(go_format_pad(spec, format!("{}Inf", sign), 0, false));
     }
     let magnitude = value.abs();
     // A float32 keeps the digits of the float32, not of the float64 it was
@@ -287,10 +337,13 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
     let formatted = match verb {
         's' | 'v' => truncated,
         'q' => {
-            if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
+            // strconv.CanBackquote: no backquote, no ASCII control character
+            // but tab, and no byte order mark.
+            let raw = truncated.chars().all(|c| if c.is_ascii() { (c >= ' ' || c == '\t') && c != '\u{60}' && c != '\u{7f}' } else { c != '\u{feff}' });
+            if spec.sharp && raw {
                 format!("\u{60}{}\u{60}", truncated)
             } else {
-                go_format_quote(&truncated, '"')
+                go_format_quote(&truncated, '"', spec.plus)
             }
         }
         _ => return None,
@@ -300,10 +353,55 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
 
 // A []byte prints as text for the verbs that print a string.
 fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<String> {
-    match verb {
-        'x' | 'X' => Some(go_format_hex(spec, verb, bytes)),
-        's' | 'q' => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
-        _ => None,
+    if matches!(verb, 'x' | 'X') {
+        return Some(go_format_hex(spec, verb, bytes));
+    }
+    if !matches!(verb, 's' | 'q') {
+        return None;
+    }
+    // A precision counts characters, and a byte that is not UTF-8 counts as
+    // one. It is applied first: what is cut off has no say in how the rest
+    // is written.
+    let mut kept = bytes.len();
+    if let Some(precision) = spec.precision {
+        let (mut count, mut end) = (0, 0);
+        'chunks: for chunk in bytes.utf8_chunks() {
+            for c in chunk.valid().chars() {
+                if count == precision {
+                    break 'chunks;
+                }
+                count += 1;
+                end += c.len_utf8();
+            }
+            for _ in chunk.invalid() {
+                if count == precision {
+                    break 'chunks;
+                }
+                count += 1;
+                end += 1;
+            }
+        }
+        kept = end;
+    }
+    let bytes = &bytes[..kept];
+    let spec = &GoFormatSpec { precision: None, ..*spec };
+    match std::str::from_utf8(bytes) {
+        Ok(text) => go_format_string(spec, verb, text),
+        // %q writes a byte that is not UTF-8 as an escape.
+        Err(_) if verb == 'q' => {
+            let mut quoted = String::from("\"");
+            for chunk in bytes.utf8_chunks() {
+                go_format_escape(&mut quoted, chunk.valid(), '"', spec.plus);
+                for byte in chunk.invalid() {
+                    quoted.push_str(&format!("\\x{:02x}", byte));
+                }
+            }
+            quoted.push('"');
+            Some(go_format_pad(spec, quoted, 0, true))
+        }
+        // %s would have to write the byte as it is, and the result is a Rust
+        // String, which cannot hold it.
+        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
     }
 }
 
@@ -311,7 +409,7 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
 // the argument's type, which fmt reports in the output.
 fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Option<String> {
     if verb == 'T' {
-        return Some(go_format_pad(spec, __go_type_name(value).to_string(), 0, false));
+        return Some(go_format_pad(spec, __go_type_name(value).to_string(), 0, true));
     }
     if verb == 'p' {
         panic!("go2rust: %p is not supported in a format that is only known at run time");
@@ -358,16 +456,34 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
         let guard = v.borrow();
-        if let Some(text) = go_format_bytes(spec, verb, guard.as_deref().unwrap_or(&[])) {
+        let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
+        if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
         }
+        // Any other verb is applied to each byte, between brackets. A verb
+        // that does not fit a number is reported for each byte. %#v writes
+        // the slice as Go source, which is not done here.
+        if !sharp_v {
+            let items: Vec<String> = bytes.iter().map(|byte| go_format_integer(&basic, verb, *byte as i128).unwrap_or_else(|| format!("%!{}(uint8={})", verb, go_format_integer(&basic, 'd', *byte as i128).unwrap_or_default()))).collect();
+            return Some(format!("[{}]", items.join(" ")));
+        }
     }
-    // Anything else prints as Println prints it. That is right for an error,
-    // a value with a String method, and %v of a struct, slice, map or pointer.
-    // fmt applies other verbs and flags to each field or element, which is
-    // not done here.
-    if (verb == 'v' && !plus_v && !sharp_v) || verb == 's' {
-        return Some(go_format_pad(spec, format_any(value), 0, false));
+    // A value with a String or an Error method is the text that method
+    // returns, for the verbs that print a string.
+    if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
+        return go_format_string(&basic, verb, &format_any(value));
+    }
+    // Any other value prints as Println prints it, for a plain %v. fmt
+    // applies a width, a precision, a flag or another verb to each field or
+    // element, which is not done here. nil is one text.
+    if verb == 'v' && !plus_v && !sharp_v {
+        let text = format_any(value);
+        if text == "<nil>" {
+            return Some(go_format_pad(spec, text, 0, true));
+        }
+        if spec.width.is_none() && spec.precision.is_none() && !spec.space {
+            return Some(text);
+        }
     }
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
 }
@@ -382,9 +498,18 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
             None => return Err(()),
         };
         *next += 1;
-        let value = arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied());
+        // fmt takes any integer type here.
+        let mut value: Option<i128> = None;
+        macro_rules! integer {
+            ($($t:ty),*) => {
+                $(if let Some(v) = arg.downcast_ref::<$t>() {
+                    value = Some(*v as i128);
+                })*
+            };
+        }
+        integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
         return match value {
-            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value)),
+            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value as i64)),
             _ => Err(()),
         };
     }
@@ -396,10 +521,39 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
     Ok(value.filter(|value| *value <= 1_000_000))
 }
 
+// Whether value is of a type that go_format_argument formats itself.
+fn go_format_is_basic(value: &dyn Any) -> bool {
+    macro_rules! is_one_of {
+        ($($t:ty),*) => { false $(|| value.is::<$t>())* };
+    }
+    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Rc<RefCell<Option<Vec<u8>>>>)
+}
+
 // An argument as fmt names it when it does not fit the format: type=value.
-fn go_format_typed_value(value: &dyn Any) -> String {
-    let text = go_format_argument(&GoFormatSpec::default(), 'v', value).unwrap_or_default();
+// The value is written as %v writes it, with the width, the precision and
+// the flags of the verb that did not fit.
+fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+    let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
+}
+
+// The verb that writes value as %v does and leaves the flags as they are.
+// %v itself would read + and # as %+v and %#v.
+fn go_format_plain_verb(value: &dyn Any) -> char {
+    macro_rules! is_one_of {
+        ($($t:ty),*) => { false $(|| value.is::<$t>())* };
+    }
+    if is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize) {
+        'd'
+    } else if is_one_of!(f32, f64) {
+        'g'
+    } else if value.is::<bool>() {
+        't'
+    } else if is_one_of!(String, &str) {
+        's'
+    } else {
+        'v'
+    }
 }
 
 // fmt.Sprintf for a format that is only known when the program runs. A
@@ -468,14 +622,17 @@ fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
             }
         };
         next += 1;
-        let verb = if verb == 'w' && wraps { 'v' } else { verb };
+        // In fmt.Errorf %w prints an error as %v does. A number, a string, a
+        // bool or a []byte is not an error, and fmt reports the verb: once
+        // for a scalar, and for each byte of a []byte.
+        let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(arg.as_ref()))),
+            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
         }
     }
     if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(arg.as_ref())).collect();
+        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
         out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
     }
     out

@@ -210,6 +210,10 @@ type anyFormatArm struct {
 	needsFormatSlice bool
 	// needsFormatPointer says expr calls go_format_any_pointer.
 	needsFormatPointer bool
+	// text says the value has a String or an Error method. fmt prints such a
+	// value as the one text the method returns, so a width, a precision, %q
+	// and %x apply to that text and not to the fields of the value.
+	text bool
 }
 
 var generatingPublicHelpers bool
@@ -398,7 +402,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoSprintf {
-		generateGoSprintf(&result, ht.needsGoSprintfSpread)
+		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
 	}
 
 	if ht.needsBase64 {
