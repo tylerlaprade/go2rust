@@ -8966,11 +8966,11 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
-	if syntaxKeepsHandle {
+	typeInfo := GetTypeInfo()
+	if syntaxKeepsHandle && typeInfo == nil {
 		out.WriteString("Default::default()")
 		return
 	}
-	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		out.WriteString("/* ERROR: Type information required for map comma-ok zero value */ unimplemented!(\"type info required for map comma-ok zero value\")")
 		return
@@ -8981,8 +8981,12 @@ func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr,
 		out.WriteString("/* ERROR: Map value type required for map comma-ok zero value */ unimplemented!(\"map value type required for map comma-ok zero value\")")
 		return
 	}
+	if syntaxKeepsHandle {
+		writeMapLookupHandleZero(out, valueType, zeroValueForTypesType(valueType))
+		return
+	}
 	if mapValueTypeKeepsHandle(valueType) {
-		out.WriteString("Default::default()")
+		writeMapLookupHandleZero(out, valueType, zeroValueForTypesType(valueType))
 		return
 	}
 
