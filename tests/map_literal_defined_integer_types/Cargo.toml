@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_mapliteral_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "map_literal_defined_integer_types"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_literal_defined_integer_types"
+path = "main.rs"
+
+[dependencies]
+example_com_mapliteral_dep = { path = "vendor/example_com_mapliteral_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
