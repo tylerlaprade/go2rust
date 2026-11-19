@@ -181,6 +181,10 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			return true
 		}
+		// A nil check on the left can emit a block that scopes its borrow.
+		if left, ok := e.X.(*ast.BinaryExpr); ok && isRightNilComparison(left) {
+			return true
+		}
 		// Whatever the operator, the LHS is emitted first; if it would
 		// produce a leading `{`, the binary expression inherits the
 		// parsing ambiguity.
