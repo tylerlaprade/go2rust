@@ -21171,43 +21171,60 @@ func writeElemPtrCallResultFieldMethodCall(out *strings.Builder, fieldSel *ast.S
 	return true
 }
 
-func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr, sel *ast.SelectorExpr, call *ast.CallExpr, nilHelper string) bool {
 	if _, ok := sliceElemPtrFieldInfoForSelector(fieldSel); !ok {
 		return false
 	}
 	out.WriteString("{ let __recv_field = ")
 	TranspileExpressionContext(out, fieldSel, LValue)
-	out.WriteString(".clone()")
+	out.WriteString(".clone(); ")
+	var args strings.Builder
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	if !writeMethodCallArguments(&args, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				args.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(&args, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(&args, sel, call, arg, i)
+			}
+		}
+	}
+	if nilHelper != "" {
+		out.WriteString("if __recv_field.is_nil() { ")
+		out.WriteString(nilHelper)
+		out.WriteString("(")
+		WriteWrappedNone(out)
+		if args.Len() > 0 {
+			out.WriteString(", ")
+			out.WriteString(args.String())
+		}
+		out.WriteString(") } else { ")
+	}
 	needsMut := methodCallNeedsMutableReceiver(sel)
 	if needsMut {
-		out.WriteString("; let __result = __recv_field.with_mut(|__recv_value| __recv_value.")
+		out.WriteString("let __result = __recv_field.with_mut(|__recv_value| __recv_value.")
 	} else {
-		out.WriteString("; let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
+		out.WriteString("let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
 	}
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 
-	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
-	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
-	if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
-		for i, arg := range call.Args {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
-			} else if bareArgumentMethodCall {
-				writeBareMethodCallArgument(out, sel, arg, i)
-			} else {
-				writeRegularMethodCallArgument(out, sel, call, arg, i)
-			}
-		}
-	}
+	out.WriteString(args.String())
 	if needsMut {
-		out.WriteString(")); __result }")
+		out.WriteString(")); __result")
 	} else {
-		out.WriteString("); __result }")
+		out.WriteString("); __result")
 	}
+	if nilHelper != "" {
+		out.WriteString(" }")
+	}
+	out.WriteString(" }")
 	return true
 }
 
@@ -21826,7 +21843,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if writeElemPtrCallResultFieldMethodCall(out, fieldSel, sel, call) {
 				return
 			}
-			if writeGoPtrFieldMethodCall(out, fieldSel, sel, call) {
+			if writeGoPtrFieldMethodCall(out, fieldSel, sel, call, "") {
 				return
 			}
 			isBareSyncFieldMethodCall := false

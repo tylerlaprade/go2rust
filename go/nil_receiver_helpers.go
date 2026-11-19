@@ -191,8 +191,8 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 	}
 	// Slice-element pointer fields use GoPtr and have their own method dispatcher.
 	if field, ok := unwrapParens(sel.X).(*ast.SelectorExpr); ok {
-		if _, ok := sliceElemPtrFieldInfoForSelector(field); ok {
-			return false
+		if writeGoPtrFieldMethodCall(out, field, sel, call, helper.name) {
+			return true
 		}
 	}
 	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !currentReceiverRustAliasIsPointerHandle {

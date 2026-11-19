@@ -584,13 +584,38 @@ impl Node {
     }
         return (*self.value.borrow().as_ref().unwrap());
     }
+
+    pub fn add(&mut self, delta: Rc<RefCell<Option<i32>>>) -> i32 {
+        if false {
+        return -((*delta.borrow().as_ref().unwrap()));
+    }
+        { let __target = self.value.clone(); let __rhs = (*delta.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        return (*self.value.borrow().as_ref().unwrap());
+    }
+}
+
+pub fn delta() -> i32 {
+    println!("{}", format!("{}", "delta".to_string()));
+    3
 }
 
 fn main() {
     let mut nodes = Rc::new(RefCell::new(Some(vec![Node { value: Rc::new(RefCell::new(Some(9))), ..Default::default() }])));
     let mut h = Rc::new(RefCell::new(Some(Holder { ..Default::default() })));
+    println!("{}", format!("{}", { let __recv_field = (*h.borrow().as_ref().unwrap()).current.clone(); if __recv_field.is_nil() { __go_nil_recv_node_get(Rc::new(RefCell::new(None))) } else { let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).get(); __result } }));
+    println!("{}", format!("{}", { let __recv_field = (*h.borrow().as_ref().unwrap()).current.clone(); if __recv_field.is_nil() { __go_nil_recv_node_add(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(delta())))) } else { let __result = __recv_field.with_mut(|__recv_value| __recv_value.add(Rc::new(RefCell::new(Some(delta()))))); __result } }));
     { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(nodes.clone(), (0) as usize)); (*h.borrow_mut().as_mut().unwrap()).current = new_val; };
-    println!("{}", format!("{}", { let __recv_field = (*h.borrow().as_ref().unwrap()).current.clone(); let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).get(); __result }));
+    println!("{}", format!("{}", { let __recv_field = (*h.borrow().as_ref().unwrap()).current.clone(); if __recv_field.is_nil() { __go_nil_recv_node_get(Rc::new(RefCell::new(None))) } else { let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).get(); __result } }));
+    println!("{}", format!("{}", { let __recv_field = (*h.borrow().as_ref().unwrap()).current.clone(); if __recv_field.is_nil() { __go_nil_recv_node_add(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(delta())))) } else { let __result = __recv_field.with_mut(|__recv_value| __recv_value.add(Rc::new(RefCell::new(Some(delta()))))); __result } }));
+    println!("{}", format!("{}", (*(*nodes.borrow().as_ref().unwrap())[(0) as usize].clone().value.borrow().as_ref().unwrap())));
+}
+
+pub fn __go_nil_recv_node_add(n: Rc<RefCell<Option<Node>>>, delta: Rc<RefCell<Option<i32>>>) -> i32 {
+    if { let __nil_result = (*n.borrow()).is_none(); __nil_result } {
+        return -((*delta.borrow().as_ref().unwrap()));
+    }
+    { let __target = (*n.borrow().as_ref().unwrap()).value.clone(); let __rhs = (*delta.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    return (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
 }
 
 pub fn __go_nil_recv_node_get(n: Rc<RefCell<Option<Node>>>) -> i32 {
