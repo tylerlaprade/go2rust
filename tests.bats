@@ -1167,6 +1167,10 @@ run_xfail_test() {
     run_test "tests/generic_any_method_value_copy"
 }
 
+@test "generic_byte_sequence_slice" {
+    run_test "tests/generic_byte_sequence_slice"
+}
+
 @test "generic_comparable_pointer_identity" {
     run_test "tests/generic_comparable_pointer_identity"
 }
@@ -3029,6 +3033,10 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
+}
+
+@test "XFAIL: generic_byte_sequence_slice_alias" {
+    run_xfail_test "tests/XFAIL/generic_byte_sequence_slice_alias"
 }
 
 @test "XFAIL: generic_type_param_method_call" {
