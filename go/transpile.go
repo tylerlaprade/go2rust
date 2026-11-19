@@ -1523,6 +1523,19 @@ func sourceMappedPointerWrapperAvailableForInterface(named *types.Named, expecte
 	if !ok || expectedNamed.Obj() == nil || expectedNamed.Obj().Pkg() == nil {
 		return false
 	}
+	// The interface may belong to the package being translated, which then
+	// writes the impl for the pointer newtype itself (see
+	// externalLocalInterfaceImpls): go/types implements its positioner for
+	// *ast.CallExpr and the other go/ast nodes it passes around. The value
+	// boxed must be that newtype, the pointer, as in Go.
+	if typeInfo := GetTypeInfo(); typeInfo != nil && expectedNamed.Obj().Pkg() == typeInfo.pkg {
+		ctx := GetTranspileContext()
+		if ctx == nil || ctx.Package == nil {
+			return false
+		}
+		impl, ok := ctx.Package.ExternalLocalInterfaceImpls[expectedNamed.Obj().Name()][sourceMappedPointerWrapperTypeName(named)]
+		return ok && impl.sourcePointerWrapper
+	}
 	importsInterfacePackage := expectedNamed.Obj().Pkg() == concretePkg
 	for _, importedPkg := range concretePkg.Imports() {
 		if importedPkg == expectedNamed.Obj().Pkg() {

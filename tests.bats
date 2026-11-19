@@ -2615,6 +2615,14 @@ run_xfail_test() {
     run_test "tests/source_stdlib_path_filepath_isabs"
 }
 
+@test "source_stdlib_pointer_as_local_interface" {
+    run_test "tests/source_stdlib_pointer_as_local_interface"
+}
+
+@test "source_stdlib_pointer_as_local_interface_goroutines" {
+    run_test "tests/source_stdlib_pointer_as_local_interface_goroutines"
+}
+
 @test "source_stdlib_strconv_unquote" {
     run_test "tests/source_stdlib_strconv_unquote"
 }
