@@ -15,6 +15,13 @@ func main() {
 	var ok bool
 	function, ok = functions["k"]
 	fmt.Println("function", ok, function("new ") == "new function", functions["k"]("map ") == "map function", &function == functionPointer)
+	for i := 0; i < 100000; i++ {
+		function, ok = functions["k"]
+		if !ok {
+			panic("function disappeared during repeated map reads")
+		}
+	}
+	fmt.Println("function repeated", function("new ") == "new function", functions["k"]("map ") == "map function", &function == functionPointer)
 	function, ok = functions["missing"]
 	fmt.Println("function missing", ok, function == nil, functions["k"]("map ") == "map function", &function == functionPointer)
 

@@ -6341,6 +6341,26 @@ func relookup(m map[string]int) bool {
 	}
 }
 
+func TestMapCommaOkFunctionAssignmentDoesNotRewriteEntry(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func lookup(m map[string]func(int) int) {
+	f := func(v int) int { return v }
+	var ok bool
+	f, ok = m["key"]
+	_, _ = f, ok
+}
+`)
+
+	if strings.Contains(rust, "__entry.take()") || strings.Contains(rust, "*v.borrow_mut() = Some(") {
+		t.Fatalf("function map lookup should not replace the entry with another forwarding closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __target_callable = v.clone()") ||
+		!strings.Contains(rust, "Box::new(move |__arg0|") {
+		t.Fatalf("function map lookup should build one independent target cell forwarding to the stored callable:\n%s", rust)
+	}
+}
+
 func TestMapAssignmentWrapsBareBoolValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

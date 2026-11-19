@@ -8851,6 +8851,45 @@ func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) 
 	}
 }
 
+// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" can replace
+// the target's Rust handle directly. This is the existing slice/map lowering:
+// it preserves shared backing storage but does not yet model a separately
+// addressable Go slice/map header (tracked by DEV-36).
+func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	switch target := lhs.(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isPackageGlobalIdent(target) {
+			return false
+		}
+		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
+			return false
+		}
+		if currentCaptureRenames != nil {
+			if _, captured := currentCaptureRenames[target.Name]; captured {
+				return false
+			}
+		}
+	case *ast.SelectorExpr:
+	default:
+		return false
+	}
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Slice:
+		return isPlainSliceExpression(lhs)
+	case *types.Map:
+		return typeInfo.IsMap(lhs) && !isNamedMapExpression(lhs)
+	}
+	return false
+}
+
 // mapCommaOkValueNeedsOwnCell reports whether a comma-ok map read must copy the
 // value into a fresh variable cell. Map entries and Go variables are distinct
 // locations even when their values are represented by Rust handles. Returning
@@ -8870,7 +8909,7 @@ func mapCommaOkValueNeedsOwnCell(indexExpr *ast.IndexExpr) bool {
 		return true
 	}
 	switch types.Unalias(valueType).Underlying().(type) {
-	case *types.Slice, *types.Map, *types.Signature, *types.Interface:
+	case *types.Signature, *types.Interface:
 		return true
 	}
 	return false
@@ -8885,10 +8924,6 @@ func mapCommaOkValueIsChannel(indexExpr *ast.IndexExpr) bool {
 	return mapValueTypeIsChannel(valueType)
 }
 
-// mapCommaOkValueIsSliceOrMap reports whether the values of the map read by
-// indexExpr are slices or maps, of a named type or not. The map's cell for
-// such a value can be cloned: the clone of a named slice shares its backing
-// array, as a copied slice header does in Go.
 func mapCommaOkValueIsSliceOrMap(indexExpr *ast.IndexExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -8976,10 +9011,9 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 
 // writeMapCommaOkFunctionValueCopy duplicates a function value without
 // sharing its variable cell. Rust trait-object closures are not Clone, so the
-// original callable is moved into a shared cell and both the map entry and the
-// result receive independent forwarding closures. Reassigning either variable
-// then leaves the other alone, while both copies retain Go's shared closure
-// environment.
+// result receives an independent forwarding closure around the map entry's
+// callable cell. The entry itself is never rewritten: repeated reads therefore
+// stay flat instead of accumulating a recursively nested proxy chain.
 func writeMapCommaOkFunctionValueCopy(out *strings.Builder, sig *types.Signature) {
 	boxType := signatureToBoxDynFn(sig)
 	var args []string
@@ -8998,21 +9032,11 @@ func writeMapCommaOkFunctionValueCopy(out *strings.Builder, sig *types.Signature
 		out.WriteString(boxType)
 	}
 
-	out.WriteString("{ let __original = { let mut __entry = v")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __entry.take() }; match __original { None => Default::default(), Some(__original) => { let __shared = ")
-	WriteWrapperPrefix(out)
-	out.WriteString("__original")
-	WriteWrapperSuffix(out)
-	out.WriteString("; let __map_callable = __shared.clone(); *v")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(")
-	writeProxy("__map_callable")
-	out.WriteString("); let __target_callable = __shared.clone(); ")
+	out.WriteString("{ let __target_callable = v.clone(); ")
 	WriteWrapperPrefix(out)
 	writeProxy("__target_callable")
 	WriteWrapperSuffix(out)
-	out.WriteString(" } } }")
+	out.WriteString(" }")
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
@@ -12160,7 +12184,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// therefore get a fresh Rust cell instead of aliasing the map
 				// entry's cell. This is also required for assignments through a
 				// variable whose address has already escaped.
+				takesOverHandle := s.Tok != token.DEFINE && mapCommaOkAssignTakesOverHandle(s.Lhs[0], indexExpr)
 				heldInOwnCell := !valueDiscarded && mapCommaOkValueNeedsOwnCell(indexExpr)
+				if s.Tok != token.DEFINE && !valueDiscarded && !takesOverHandle && mapCommaOkValueIsSliceOrMap(indexExpr) {
+					heldInOwnCell = true
+				}
 				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueDiscarded, heldInOwnCell)
 				out.WriteString(", ")
 				out.WriteString("true")
@@ -12176,7 +12204,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					registerBareShortDecl(s.Lhs[1])
 				} else {
 					out.WriteString(";")
-					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					if takesOverHandle {
+						out.WriteString(" ")
+						writePointerHandleAssignmentTargetFromValueName(out, s.Lhs[0], "__tmp_0")
+					} else {
+						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					}
 					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
 					out.WriteString(" }")
 				}
