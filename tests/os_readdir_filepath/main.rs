@@ -3,11 +3,11 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    internal_filepathlite::__go_init_all();
-    internal_stringslite::__go_init_all();
-    path_filepath::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_filepathlite::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::path_filepath::__go_init_all();
 
     let (mut entries, mut err) = os::read_dir("data".to_string());
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {

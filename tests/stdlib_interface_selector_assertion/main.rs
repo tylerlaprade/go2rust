@@ -11,21 +11,20 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { out: self.out.clone(), err: self.err.clone() }
+        let __go_clone_0_0 = self.out.clone();
+        let __go_clone_1_0 = self.err.clone();
+        Self {
+            out: __go_clone_0_0,
+            err: __go_clone_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.out.lock().unwrap().as_ref().unwrap()), (*self.err.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for holder {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.out.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.err.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

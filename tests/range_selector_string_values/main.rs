@@ -51,29 +51,39 @@ pub struct Command {
 
 impl Command {
     pub fn __go_value_clone(&self) -> Self {
-        Self { args: self.args.clone() }
+        let __go_clone_0_0 = self.args.clone();
+        Self {
+            args: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Command {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.args))
+        let __go_fmt_0 = format!("{}", format_slice(&self.args));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 pub fn quote(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", "<".to_string(), (*s.borrow().as_ref().unwrap())), ">".to_string()))))
+    Rc::new(RefCell::new(Some({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", "<".to_string()));
+        __s.push_str(&format!("{}", (*s.borrow().as_ref().unwrap())));
+        __s.push_str(&format!("{}", ">".to_string()));
+        __s
+    })))
 }
 
 pub fn debug(cmd: Rc<RefCell<Option<Command>>>) -> Rc<RefCell<Option<String>>> {
     let mut args: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     { let __range_holder = (*cmd.borrow().as_ref().unwrap()).args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
         let mut quoted = quote(Rc::new(RefCell::new(Some(arg.clone()))));
-        if (*Rc::new(RefCell::new(Some({ let __s = &((*quoted.borrow().as_ref().unwrap()).clone()); __s[(1) as usize..(((*quoted.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize].to_string() }))).borrow().as_ref().unwrap()).clone() != (*arg).clone() || (*Rc::new(RefCell::new(Some({ let __s = (*arg).clone(); let __arg = " ".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()) {
-        { let new_val = { let __append_target = args.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*quoted.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; args = new_val; };
+        if (*Rc::new(RefCell::new(Some({ let __s = &((*quoted.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (((*quoted.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()).clone() != (*arg).clone() || (*Rc::new(RefCell::new(Some({ let __s = (*arg).clone(); let __arg = " ".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()) {
+        { let new_val = { let __append_target = args.clone(); let __append_value = (*quoted.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; args = new_val; };
     } else {
-        { let new_val = { let __append_target = args.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*arg).clone()); __append_target.clone() }; args = new_val; };
+        { let new_val = { let __append_target = args.clone(); let __append_value = (*arg).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; args = new_val; };
     }
     } }
     return Rc::new(RefCell::new(Some({ let __parts = (*args.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " ".to_string(); __parts.join(&__sep) })));

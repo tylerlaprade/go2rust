@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::cell::{RefCell};
+use std::fmt::{Display};
 use std::rc::{Rc};
 
 fn __go_next_external_interface_id() -> usize {
@@ -90,19 +91,19 @@ fn main() {
     }
     if false {
         let (mut withRhs, mut ok) = ({
-        let val = Rc::new(RefCell::new(Some(Box::new((*alias.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)));
+        let val = Rc::new(RefCell::new(Some(Box::new(alias.clone()) as Box<dyn Any>))).clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<types_Alias>() {
-                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface1>))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface1>))), true)
             } else {
-                (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), false)
         }
     });
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
         println!("{}", format!("{}", format!("{}", (*((*withRhs.borrow().as_ref().unwrap()).rhs()).borrow().as_ref().unwrap()))));
     }
     }

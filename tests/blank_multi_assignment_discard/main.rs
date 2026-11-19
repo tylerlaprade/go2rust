@@ -32,7 +32,11 @@ pub fn next() -> i32 {
 
 fn main() {
     __go_init_all();
-    { let __tmp_0 = next(); let __tmp_1 = next(); let __tmp_2 = next(); };
+    {
+        let __tmp_0 = next();
+        let __tmp_1 = next();
+        let __tmp_2 = next();
+    };
     println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
 }
 

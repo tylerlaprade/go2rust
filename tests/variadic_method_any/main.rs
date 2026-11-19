@@ -9,7 +9,8 @@ pub struct logger {
 
 impl logger {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

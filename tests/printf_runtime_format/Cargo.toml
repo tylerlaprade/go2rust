@@ -1,0 +1,8 @@
+[package]
+name = "printf_runtime_format"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_runtime_format"
+path = "main.rs"

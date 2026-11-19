@@ -13,7 +13,9 @@ impl Display for Pos {
 
 impl PartialEq for Pos {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -25,7 +27,9 @@ impl PartialEq<i32> for Pos {
 
 impl PartialOrd for Pos {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -86,6 +90,76 @@ impl std::ops::Sub<Pos> for i32 {
     type Output = Pos;
     fn sub(self, other: Pos) -> Pos {
         Pos(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Pos {
+    type Output = Pos;
+    fn mul(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Pos {
+    type Output = Pos;
+    fn mul(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Pos> for i32 {
+    type Output = Pos;
+    fn mul(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Pos {
+    type Output = Pos;
+    fn div(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Pos {
+    type Output = Pos;
+    fn div(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Pos> for i32 {
+    type Output = Pos;
+    fn div(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Pos {
+    type Output = Pos;
+    fn neg(self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Pos {
+    type Output = Pos;
+    fn rem(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Pos {
+    type Output = Pos;
+    fn rem(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Pos> for i32 {
+    type Output = Pos;
+    fn rem(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -318,20 +392,32 @@ pub struct Span {
 
 impl Span {
     pub fn __go_value_clone(&self) -> Self {
-        Self { start: { let __guard = self.start.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, end: { let __guard = self.end.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.start.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.end.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            start: __go_clone_0_0,
+            end: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Span {
     fn default() -> Self {
-        Self { start: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0))))))), end: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0))))))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0)))))));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0)))))));
+        Self {
+            start: __go_default_0_0,
+            end: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Span {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.start.borrow().as_ref().unwrap()), (*self.end.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.start.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.end.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -343,29 +429,36 @@ pub struct Comment {
 
 impl Comment {
     pub fn __go_value_clone(&self) -> Self {
-        Self { slash: { let __guard = self.slash.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.slash.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            slash: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Comment {
     fn default() -> Self {
-        Self { slash: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0))))))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0)))))));
+        Self {
+            slash: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Comment {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.slash.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.slash.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 fn main() {
     let mut spans = Rc::new(RefCell::new(Some(vec![Span { start: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(10 as i32))))))), end: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(20 as i32))))))), ..Default::default() }, Span { start: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(30 as i32))))))), end: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(40 as i32))))))), ..Default::default() }])));
-    let mut c = Rc::new(RefCell::new(Some(Comment { slash: Rc::new(RefCell::new(Some(Default::default()))) })));
-    for i in 0..({ let __range_holder = spans.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
-        { let new_val = (*(*spans.borrow().as_ref().unwrap())[(i) as usize].clone().start.borrow().as_ref().unwrap()).clone() - Pos(Rc::new(RefCell::new(Some(1 as i32)))); *(*c.borrow().as_ref().unwrap()).slash.borrow_mut() = Some(new_val); };
+    let mut c = Rc::new(RefCell::new(Some(Comment { slash: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0))))))) })));
+    for i in 0..(({ let __range_holder = spans.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        { let new_val = Pos(Rc::new(RefCell::new(Some(((*(*(*spans.borrow().as_ref().unwrap())[(i) as usize].clone().start.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 1))))); *(*c.borrow().as_ref().unwrap()).slash.borrow_mut() = Some(new_val); };
         println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).slash.borrow().as_ref().unwrap()).clone()));
     }
 }

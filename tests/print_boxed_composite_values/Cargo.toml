@@ -1,0 +1,8 @@
+[package]
+name = "print_boxed_composite_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_boxed_composite_values"
+path = "main.rs"

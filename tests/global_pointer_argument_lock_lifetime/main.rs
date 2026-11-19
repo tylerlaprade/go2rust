@@ -185,20 +185,27 @@ pub struct entry {
 
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for entry {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -210,13 +217,17 @@ pub struct scope {
 
 impl scope {
     pub fn __go_value_clone(&self) -> Self {
-        Self { elems: self.elems.clone() }
+        let __go_clone_0_0 = self.elems.clone();
+        Self {
+            elems: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for scope {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.elems))
+        let __go_fmt_0 = format!("{}", format_map(&self.elems));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -231,7 +242,13 @@ fn __go_init_globals() {
 
 impl scope {
     pub fn lookup(&self, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<entry>>> {
-        if { let __left = { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __right = (*global.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+            let __right = (*global.lock().unwrap().as_ref().unwrap()).clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         return Arc::new(Mutex::new(None));
     }
         { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }
@@ -239,8 +256,8 @@ impl scope {
 
     pub fn insert(&mut self, obj: Arc<Mutex<Option<entry>>>) -> Arc<Mutex<Option<entry>>> {
         {
-        let mut alt = self.lookup({ let __field = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); __field });;
-        if (*alt.lock().unwrap()).is_some() {
+        let mut alt = self.lookup(Arc::new(Mutex::new(Some({ let __selector_holder = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
+        if { let __nil_result = (*alt.lock().unwrap()).is_some(); __nil_result } {
             return alt.clone();;
         }
     }

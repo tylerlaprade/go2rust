@@ -9,20 +9,27 @@ pub struct lexer {
 
 impl lexer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pos: { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            pos: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for lexer {
     fn default() -> Self {
-        Self { pos: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            pos: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for lexer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.pos.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pos.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -46,6 +53,12 @@ impl lexer {
 fn main() {
     let mut l = Rc::new(RefCell::new(Some(lexer { pos: Rc::new(RefCell::new(Some(0))) })));
     let mut r = (*l.borrow().as_ref().unwrap()).scan();
-    eprintln!("{}", format!("{}", r));
-    eprintln!("{}", format!("{}", (*(*l.borrow().as_ref().unwrap()).pos.borrow().as_ref().unwrap())));
+    {
+            let __go_print_arg_0 = format!("{}", r);
+            eprintln!("{}", __go_print_arg_0)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", (*(*l.borrow().as_ref().unwrap()).pos.borrow().as_ref().unwrap()));
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

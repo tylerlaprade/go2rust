@@ -1,0 +1,8 @@
+[package]
+name = "slice_shared_with_package_variable_or_element"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_shared_with_package_variable_or_element"
+path = "main.rs"

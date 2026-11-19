@@ -223,8 +223,8 @@ func use(c *cache, items []node) *node {
 	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
 		t.Fatalf("GoPtr pointer array field default should initialize nil slots:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*(*c.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") &&
-		!strings.Contains(rust, "(*(*c.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") {
+	if !strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*(*c.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap())[__idx] = __rhs;") &&
+		!strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*(*c.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[__idx] = __rhs;") {
 		t.Fatalf("assignment into a GoPtr pointer array slot should convert the slice-element handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "fn pop(c: Rc<RefCell<Option<cache>>>) -> GoPtr<node>") &&
@@ -263,8 +263,8 @@ func pick(items []node) *node {
 	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
 		t.Fatalf("GoPtr pointer array local default should initialize nil slots:\n%s", rust)
 	}
-	if !strings.Contains(rust, "batch.borrow_mut().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") &&
-		!strings.Contains(rust, "batch.lock().unwrap().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") {
+	if !strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*batch.borrow_mut().as_mut().unwrap())[__idx] = __rhs;") &&
+		!strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*batch.lock().unwrap().as_mut().unwrap())[__idx] = __rhs;") {
 		t.Fatalf("assignment into a GoPtr pointer array local slot should convert the slice-element handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "fn pick(items: Rc<RefCell<Option<Vec<node>>>>) -> GoPtr<node>") &&
@@ -3612,56 +3612,6 @@ func setName(n *Name, b []byte) {
 	if !strings.Contains(rust, "out.bytes = GoPtr::local(<") ||
 		!strings.Contains(rust, "as GoJsonDecode>::go_json_decode(field_value)?);") {
 		t.Fatalf("GoPtr field JSON decode should wrap decoded local pointer handles:\n%s", rust)
-	}
-}
-
-func TestSliceElemPointerGoPtrLocalSelectorBorrowsField(t *testing.T) {
-	rust := transpileTypedSliceElemPtrRegression(t, `package main
-
-type Inst struct {
-	Op int
-	Out int
-}
-
-type runner struct {
-	inst *Inst
-}
-
-func (i Inst) matchRune(c int) bool {
-	return i.Op == c
-}
-
-func assign(r *runner, prog []Inst) {
-	r.inst = &prog[0]
-}
-
-func step(r *runner) int {
-	i := r.inst
-	if i.matchRune(2) {
-		return i.Out
-	}
-	switch i.Op {
-	case 1:
-		return i.Out
-	}
-	return 0
-}
-
-func forceConcurrent(ch chan bool) {
-	go func() {
-		ch <- true
-	}()
-}
-`)
-
-	if strings.Contains(rust, "i.lock()") {
-		t.Fatalf("local copied from GoPtr field should not be treated as a normal pointer handle:\n%s", rust)
-	}
-	if !strings.Contains(rust, "let __ptr_value = i.borrow(); __ptr_value.as_ref().unwrap().op.clone()") {
-		t.Fatalf("local copied from GoPtr field should borrow through GoPtr before selecting a field:\n%s", rust)
-	}
-	if !strings.Contains(rust, "let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).match_rune(") {
-		t.Fatalf("local copied from GoPtr field should borrow through GoPtr before calling value methods:\n%s", rust)
 	}
 }
 

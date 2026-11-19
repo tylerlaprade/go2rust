@@ -1,0 +1,5 @@
+nested field through a closure 2
+direct field through a closure 1
+array of structs through a closure 5
+returned receiver 50 60
+copy 50 60 5 7 8 9

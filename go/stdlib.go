@@ -338,11 +338,22 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 
 func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 	NeedFormatAny()
-	out.WriteString("format_any(")
-	if writeBareAnyPayloadRef(out, arg) {
+	var payload strings.Builder
+	if writeBareAnyPayloadRef(&payload, arg) {
+		out.WriteString("format_any(")
+		out.WriteString(payload.String())
 		out.WriteString(")")
 		return
 	}
+	// The argument reads the variable through its handle. In a program with
+	// goroutines that is a lock, and it is held until the statement ends
+	// unless the argument is a block of its own. Without the block, a
+	// statement that prints the same variable twice waits on itself forever.
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __text = ")
+		defer out.WriteString("; __text }")
+	}
+	out.WriteString("format_any(")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
@@ -464,14 +475,16 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			TrackImport("Ord")
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
-				// For identifiers, just use the name directly (it's already wrapped)
-				out.WriteString(RustIdentForUse(ident))
+				writeCollectionFormatHandleIdent(out, ident)
 			} else {
 				TranspileExpression(out, arg)
 			}
 			out.WriteString(")")
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
+			if writeNestedBasicSlicePrintArg(out, arg, argType) {
+				return
+			}
 			// Check if it's a slice of interface{}
 			elemType := typeInfo.GetSliceElemType(arg)
 			if elemType != nil {
@@ -520,7 +533,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					return
 				}
 				out.WriteString("format_slice(&")
-				out.WriteString(RustIdentForUse(ident))
+				writeCollectionFormatHandleIdent(out, ident)
 				out.WriteString(")")
 			} else if formatSliceArgumentIsBareValue(arg) {
 				out.WriteString("format_slice_values(&")
@@ -548,7 +561,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					out.WriteString("format!(\"{:p}\", self)")
 					return
 				}
-				out.WriteString("format!(\"&{}\", (*")
+				out.WriteString(printValueOrNilStart)
 				if ident, ok := arg.(*ast.Ident); ok {
 					out.WriteString(RustIdentForUse(ident))
 				} else if sel, ok := arg.(*ast.SelectorExpr); ok {
@@ -556,8 +569,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				} else {
 					TranspileExpression(out, arg)
 				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()))")
+				writePrintValueOrNil(out, pointerPrintFormat(ptr))
 				return
 			}
 		}
@@ -777,15 +789,42 @@ func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Typ
 	if !isGoErrorType(argType) {
 		return false
 	}
-	out.WriteString("format!(\"{}\", (*")
+	out.WriteString(printValueOrNilStart)
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 	} else {
 		TranspileExpressionContext(out, arg, LValue)
 	}
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()))")
+	writePrintValueOrNil(out, "{}")
 	return true
+}
+
+// writePrintValueOrNil finishes the printing of a handle that may hold nil:
+// an error or a pointer. The value prints with format, and nil prints as
+// <nil>, which is what Go prints for either. The caller has written
+// printValueOrNilStart and the handle.
+//
+// The match is a statement of its own so that the handle is released before
+// the next argument of the print call is evaluated. Two arguments may be the
+// same handle, and a locked handle cannot be taken twice.
+func writePrintValueOrNil(out *strings.Builder, format string) {
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__value) => format!(\"")
+	out.WriteString(format)
+	out.WriteString("\", __value), None => \"<nil>\".to_string() }; __text }")
+}
+
+const printValueOrNilStart = "{ let __text = match "
+
+// pointerPrintFormat is how fmt prints a pointer to a struct that is not nil.
+// A pointer whose type has a String or Error method prints through the
+// method, and the pointee's Display calls it. Any other prints as & and the
+// struct.
+func pointerPrintFormat(ptr *types.Pointer) string {
+	if typeHasGoStringMethod(ptr) || isConcreteGoErrorValue(ptr) {
+		return "{}"
+	}
+	return "&{}"
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
@@ -1141,13 +1180,39 @@ func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string)
 }
 
 func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
+	// A variable of concrete type has the same %T on every run, so name it
+	// here instead of probing the value at run time. Naming a variable has no
+	// side effects to preserve, and a nil slice, map or pointer has nothing
+	// to probe.
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(ident); typ != nil && !types.IsInterface(typ) {
+				if goName, ok := goDynamicTypeName(typ); ok {
+					out.WriteString(strconv.Quote(goName))
+					return
+				}
+			}
+		}
+	}
 	NeedGoTypeName()
-	out.WriteString(goTypeNameHelperRustName)
-	out.WriteString("(")
-	if writeBareAnyPayloadRef(out, arg) {
+	var payload strings.Builder
+	if writeBareAnyPayloadRef(&payload, arg) {
+		out.WriteString(goTypeNameHelperRustName)
+		out.WriteString("(")
+		out.WriteString(payload.String())
 		out.WriteString(")")
 		return
 	}
+	// As in writeFormatAnyPrintArg: the argument reads the variable through
+	// its handle, and in a program with goroutines the lock has to end with
+	// the argument. "%T: %v" of one variable would wait on itself otherwise.
+	// The name is a &'static str, so it outlives the lock.
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __type_name = ")
+		defer out.WriteString("; __type_name }")
+	}
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(")
 	if ident, ok := arg.(*ast.Ident); ok {
 		if isVarBare(ident.Name) {
 			out.WriteString(ident.Name)
@@ -1238,10 +1303,10 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
-	writeFmtMacroCall(out, "print!", call, 0, TranspileExpression)
+	writeFmtMacroCall(out, "print!", call, 0)
 }
 
-func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int, dynamicFormatArg func(*strings.Builder, ast.Expr)) {
+func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int) {
 	out.WriteString(macro)
 	out.WriteString("(")
 
@@ -1252,9 +1317,9 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	if len(call.Args) > formatArgIndex {
-		if lit, ok := call.Args[formatArgIndex].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1265,7 +1330,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 		} else {
 			out.WriteString("\"{}\"")
 			out.WriteString(", ")
-			dynamicFormatArg(out, call.Args[formatArgIndex])
+			writeRuntimeFormatCall(out, call.Args[formatArgIndex], call.Args[formatArgIndex+1:], call.Ellipsis.IsValid(), false)
 			out.WriteString(")")
 			return
 		}
@@ -1384,7 +1449,7 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
 		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
-			writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+			writeFmtMacroCall(out, "format!", call, 1)
 		})
 		return
 	}
@@ -1401,7 +1466,7 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	if isOsStderr(call.Args[0]) {
 		macro = "eprint!"
 	}
-	writeFmtMacroCall(out, macro, call, 1, TranspileExpression)
+	writeFmtMacroCall(out, macro, call, 1)
 }
 
 func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
@@ -1487,7 +1552,7 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	errorInner := externalStubErrorInnerType()
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+	writeFmtMacroCall(out, "format!", call, 1)
 	out.WriteString("; let __n = __s.len() as i32; (*")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, false)
@@ -1505,7 +1570,7 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+	writeFmtMacroCall(out, "format!", call, 1)
 	out.WriteString("; ")
 	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
 		out.WriteString("(*")
@@ -1542,6 +1607,47 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 		return !selectorRValueReturnsWrappedHandle(arg)
 	}
 	return false
+}
+
+func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	outer, ok := types.Unalias(argType).(*types.Slice)
+	if !ok {
+		return false
+	}
+	row, ok := types.Unalias(outer.Elem()).(*types.Slice)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(row.Elem()).(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false
+	}
+
+	arg = unwrapParens(arg)
+	NeedFormatNestedSlice()
+	if ident, ok := arg.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		out.WriteString("{ let __rows = ")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => \"[]\".to_string() } }")
+		return true
+	}
+	bare := formatSliceArgumentIsBareValue(arg)
+	if bare {
+		out.WriteString("{ let __formatted = format_nested_slice_values(&")
+	} else {
+		out.WriteString("format_nested_slice(&")
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpression(out, arg)
+	}
+	out.WriteString(")")
+	if bare {
+		out.WriteString("; __formatted }")
+	}
+	return true
 }
 
 func writeTrackedRangeSlicePrintArg(out *strings.Builder, arg ast.Expr) bool {
@@ -1708,7 +1814,7 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 		}
 		out.WriteString(wrappedHelper)
 		out.WriteString("(&")
-		out.WriteString(RustIdentForUse(ident))
+		writeCollectionFormatHandleIdent(out, ident)
 		out.WriteString(")")
 		return
 	}
@@ -1725,6 +1831,17 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 	out.WriteString(")")
 }
 
+func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString(RustIdentForUse(ident))
+	if isPackageGlobalIdent(ident) {
+		// Single-threaded package globals use GoGlobal rather than the ordinary
+		// Rc<RefCell<Option<T>>> collection handle. Cloning produces the handle
+		// expected by the formatter. In concurrent mode the global dereferences
+		// to Arc<Mutex<Option<T>>>, whose clone is the same shared handle.
+		out.WriteString(".clone()")
+	}
+}
+
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	// fmt.Sprintf returns a string, which needs to be wrapped
 	WriteWrapperPrefix(out)
@@ -1739,9 +1856,9 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
-		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1752,7 +1869,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			out.WriteString("\"{}\"")
 			out.WriteString(", ")
-			writeOwnedStringStdlibArg(out, call.Args[0])
+			writeRuntimeFormatCall(out, call.Args[0], call.Args[1:], call.Ellipsis.IsValid(), false)
 			out.WriteString(")")
 			WriteWrapperSuffix(out)
 			return
@@ -1781,11 +1898,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(format!")
-	}
+	out.WriteString(rustErrorFromTextStart() + "format!")
 	out.WriteString("(")
 
 	var skipIndices []int
@@ -1797,9 +1910,9 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
-		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1810,7 +1923,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			literalFormat = true
 		} else {
 			out.WriteString("\"{}\", ")
-			writeOwnedStringStdlibArg(out, call.Args[0])
+			writeRuntimeFormatCall(out, call.Args[0], call.Args[1:], call.Ellipsis.IsValid(), true)
 		}
 
 		// Rest of the arguments
@@ -1832,16 +1945,13 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")))))")
+	out.WriteString(")" + rustErrorFromTextEnd())
+	WriteWrapperSuffix(out)
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn std::error::Error + Send + Sync>::from(")
-	} else {
-		out.WriteString("Box::<dyn std::error::Error>::from(")
-	}
+	out.WriteString(rustErrorFromTextStart())
 
 	if len(call.Args) > 0 {
 		// The argument is the error message
@@ -1854,7 +1964,8 @@ func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString("))))")
+	out.WriteString(rustErrorFromTextEnd())
+	WriteWrapperSuffix(out)
 }
 
 func transpileFlagString(out *strings.Builder, call *ast.CallExpr) {
@@ -1892,11 +2003,7 @@ func transpileOsCreate(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(e)")
-	}
+	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(") } }")
 }
@@ -1913,11 +2020,7 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 	writeTypedErrorNone(out)
 	out.WriteString(", Err(e) => ")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(e)")
-	}
+	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(" } }")
 }
@@ -3268,11 +3371,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		TrackImport("Error")
 		out.WriteString("Err(_) => (0 as i32, ")
 		WriteWrapperPrefix(out)
-		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
-		} else {
-			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
-		}
+		out.WriteString(rustErrorFromText("format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)") + ")))) } }")
 	}
 }
 
@@ -3290,11 +3389,7 @@ func transpileStrconvParseBool(out *strings.Builder, call *ast.CallExpr) {
 		TrackImport("Error")
 		out.WriteString("_ => (false, ")
 		WriteWrapperPrefix(out)
-		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)))))) } }")
-		} else {
-			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)))))) } }")
-		}
+		out.WriteString(rustErrorFromText("format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)") + ")))) } }")
 	}
 }
 
@@ -3413,11 +3508,7 @@ func transpileBase64DecodeString(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(e)")
-	}
+	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(") } }")
 }
@@ -4321,12 +4412,12 @@ func writeTypedErrorNone(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString("Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))")
+		out.WriteString("Arc::new(Mutex::new(" + rustNoErrorPayload() + "))")
 		return
 	}
 	TrackImport("Rc")
 	TrackImport("RefCell")
-	out.WriteString("Rc::new(RefCell::new(None::<Box<dyn StdError>>))")
+	out.WriteString("Rc::new(RefCell::new(" + rustNoErrorPayload() + "))")
 }
 
 func transpileUrlParse(out *strings.Builder, call *ast.CallExpr) {
@@ -4611,21 +4702,23 @@ func appendExtendShouldUseMultiline(args []ast.Expr) bool {
 	return false
 }
 
-func writeAppendExtendElements(out *strings.Builder, args []ast.Expr, writeAppendElement func(ast.Expr)) {
+// writeAppendElementsVec writes the appended values of "append(s, a, b)" as
+// one vec![...].
+func writeAppendElementsVec(out *strings.Builder, args []ast.Expr, writeAppendElement func(ast.Expr)) {
 	if !appendExtendShouldUseMultiline(args) {
-		out.WriteString(".extend(vec![")
+		out.WriteString("vec![")
 		for i, arg := range args {
 			if i > 0 {
 				out.WriteString(", ")
 			}
 			writeAppendElement(arg)
 		}
-		out.WriteString("])")
+		out.WriteString("]")
 		return
 	}
 
 	indent := currentLineIndent(out)
-	out.WriteString(".extend(vec![\n")
+	out.WriteString("vec![\n")
 	for _, arg := range args {
 		out.WriteString(indent)
 		out.WriteString("    ")
@@ -4633,7 +4726,7 @@ func writeAppendExtendElements(out *strings.Builder, args []ast.Expr, writeAppen
 		out.WriteString(",\n")
 	}
 	out.WriteString(indent)
-	out.WriteString("])")
+	out.WriteString("]")
 }
 
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
@@ -4806,14 +4899,40 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if typ := typeInfo.GetType(expr); typ != nil {
 					if _, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
 						TranspileExpression(out, expr)
-						out.WriteString(".iter().cloned()")
+						out.WriteString(goElementCopyIter(expr))
 						return
 					}
 				}
 			} else {
 				writeSliceCloneOrEmpty(out, expr)
-				out.WriteString(".iter().cloned()")
+				out.WriteString(goElementCopyIter(expr))
 			}
+		}
+		// writeAppendedValues evaluates what is appended into a local and
+		// returns the call that adds it to the target. It runs before the
+		// target is locked for writing: the values may read the target
+		// ("append(s, s[0])", "append(s, len(s))", "append(s, s...)"), and a
+		// read under the write lock panics, or hangs in a program with
+		// goroutines.
+		writeAppendedValues := func() string {
+			if call.Ellipsis.IsValid() {
+				// Slice expansion: append(dst, src...) → extend from src.
+				// Go also permits append([]byte, string...), which expands bytes.
+				out.WriteString("let __append_values: Vec<_> = ")
+				writeAppendExpansionSource(call.Args[1])
+				out.WriteString(".collect(); ")
+				return ".extend(__append_values)"
+			}
+			if len(call.Args) == 2 {
+				out.WriteString("let __append_value = ")
+				writeAppendElement(call.Args[1])
+				out.WriteString("; ")
+				return ".push(__append_value)"
+			}
+			out.WriteString("let __append_values = ")
+			writeAppendElementsVec(out, call.Args[1:], writeAppendElement)
+			out.WriteString("; ")
+			return ".extend(__append_values)"
 		}
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
 			if !appendCallReturnsBareIndexedSlice(call) {
@@ -4823,31 +4942,21 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, indexExpr.X, LValue)
 				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap())[")
-				writeExpressionAsUsize(out, indexExpr.Index)
-				out.WriteString("]")
+				out.WriteString(".as_mut().unwrap())[__append_idx]")
 			}
 			writeReadTarget := func() {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, indexExpr.X, LValue)
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())[")
-				writeExpressionAsUsize(out, indexExpr.Index)
-				out.WriteString("]")
+				out.WriteString(".as_ref().unwrap())[__append_idx]")
 			}
-			out.WriteString("{ ")
+			// Go's order: the index of the target, then the appended values.
+			out.WriteString("{ let __append_idx = ")
+			writeExpressionAsUsize(out, indexExpr.Index)
+			out.WriteString("; ")
+			store := writeAppendedValues()
 			writeMutableTarget()
-			if call.Ellipsis.IsValid() {
-				out.WriteString(".extend(")
-				writeAppendExpansionSource(call.Args[1])
-				out.WriteString(")")
-			} else if len(call.Args) == 2 {
-				out.WriteString(".push(")
-				writeAppendElement(call.Args[1])
-				out.WriteString(")")
-			} else {
-				writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
-			}
+			out.WriteString(store)
 			out.WriteString("; ")
 			writeReadTarget()
 			out.WriteString(".clone() }")
@@ -4873,6 +4982,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				writeMapHandleForOp(out, indexExpr.X)
 				out.WriteString(".clone()")
 			}
+			// Go's order: the map and the key of the target, then the
+			// appended values. The lookup lets go of the map before the
+			// values are evaluated, and __slice is locked only after them.
 			out.WriteString("{ let __slice = { let __map_holder = ")
 			writeMapHandleClone()
 			out.WriteString("; let __map_guard = __map_holder")
@@ -4881,20 +4993,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
 			out.WriteString(").cloned().unwrap_or_else(|| ")
 			WriteWrappedNone(out)
-			out.WriteString(") }; (*__slice")
+			out.WriteString(") }; ")
+			store := writeAppendedValues()
+			out.WriteString("(*__slice")
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new)")
-			if call.Ellipsis.IsValid() {
-				out.WriteString(".extend(")
-				writeAppendExpansionSource(call.Args[1])
-				out.WriteString(")")
-			} else if len(call.Args) == 2 {
-				out.WriteString(".push(")
-				writeAppendElement(call.Args[1])
-				out.WriteString(")")
-			} else {
-				writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
-			}
+			out.WriteString(store)
 			out.WriteString("; __slice.clone() }")
 			return true
 		}
@@ -4908,37 +5012,17 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		if indexExpr, ok := call.Args[0].(*ast.IndexExpr); ok && writeIndexedSliceAppend(indexExpr) {
 			return
 		}
-		writeAppendTargetMutationPrefix := func() {
-			out.WriteString("{ let __append_target = ")
-			writeAppendTarget(call.Args[0])
-			out.WriteString(".clone(); (*__append_target")
-			WriteBorrowMethod(out, true)
-			out.WriteString(").get_or_insert_with(Vec::new)")
-		}
-		writeAppendTargetMutationSuffix := func() {
-			out.WriteString("; __append_target.clone() }")
-		}
-		if call.Ellipsis.IsValid() {
-			// Slice expansion: append(dst, src...) → extend from src.
-			// Go also permits append([]byte, string...), which expands bytes.
-			writeAppendTargetMutationPrefix()
-			out.WriteString(".extend(")
-			writeAppendExpansionSource(call.Args[1])
-			out.WriteString(")")
-			writeAppendTargetMutationSuffix()
-		} else if len(call.Args) == 2 {
-			// Single element append
-			writeAppendTargetMutationPrefix()
-			out.WriteString(".push(")
-			writeAppendElement(call.Args[1])
-			out.WriteString(")")
-			writeAppendTargetMutationSuffix()
-		} else {
-			// Multiple elements, use extend
-			writeAppendTargetMutationPrefix()
-			writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
-			writeAppendTargetMutationSuffix()
-		}
+		// The target expression is evaluated first, as in Go, then the
+		// values, and only then is the target locked.
+		out.WriteString("{ let __append_target = ")
+		writeAppendTarget(call.Args[0])
+		out.WriteString(".clone(); ")
+		store := writeAppendedValues()
+		out.WriteString("(*__append_target")
+		WriteBorrowMethod(out, true)
+		out.WriteString(").get_or_insert_with(Vec::new)")
+		out.WriteString(store)
+		out.WriteString("; __append_target.clone() }")
 	}
 }
 
@@ -4992,11 +5076,14 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			writeNamedSliceInnerHandleClone(out, call.Args[1])
 			out.WriteString("; let __src_guard = __src")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values.iter().cloned()); }; ")
+			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values")
+			out.WriteString(goElementCopyIter(call.Args[1]))
+			out.WriteString("); }; ")
 		} else {
 			out.WriteString("__values.extend(")
 			TranspileExpression(out, call.Args[1])
-			out.WriteString(".iter().cloned()); ")
+			out.WriteString(goElementCopyIter(call.Args[1]))
+			out.WriteString("); ")
 		}
 	} else if len(call.Args) == 2 {
 		out.WriteString("__values.push(")
@@ -5571,7 +5658,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			WriteBorrowMethod(out, false)
 			out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) };\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
-			writeCopyLoop(out, innerIndent, func() {
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 				out.WriteString("(*_dst_holder")
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap())[_i]")
@@ -5595,7 +5682,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			writeCopySourceValue(out, call.Args[1], srcIsString)
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
-			writeCopyLoop(out, innerIndent, func() {
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, dstSlice.X, LValue)
 				WriteBorrowMethod(out, true)
@@ -5616,7 +5703,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			writeCopySourceValue(out, call.Args[1], srcIsString)
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst.len()")
-			writeCopyLoop(out, innerIndent, func() {
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 				out.WriteString("_dst[_i]")
 			})
 			finishCopyBlock(out, indent, innerIndent)
@@ -5633,7 +5720,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		writeCopyDestination(out, call.Args[0], false)
 		out.WriteString(".len(), _src.len());\n")
 		// Destination needs mutable borrow for assignment.
-		writeCopyLoop(out, innerIndent, func() {
+		writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 			writeCopyDestination(out, call.Args[0], true)
 			out.WriteString("[_i]")
 		})
@@ -5672,7 +5759,7 @@ func writeCopyNamedSliceDestinationSlice(out *strings.Builder, dstSlice *ast.Sli
 	writeCopySourceValue(out, src, srcIsString)
 	out.WriteString(";\n")
 	writeCopyCountLine(out, innerIndent, "_dst_len")
-	writeCopyLoop(out, innerIndent, func() {
+	writeCopyLoop(out, innerIndent, copySourceElementCopy(src, srcIsString), func() {
 		out.WriteString("(*_dst_holder")
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())[_dst_start + _i]")
@@ -5694,13 +5781,35 @@ func writeCopyCountLine(out *strings.Builder, innerIndent string, dstLen string)
 	out.WriteString(", _src.len());\n")
 }
 
-func writeCopyLoop(out *strings.Builder, innerIndent string, writeDestination func()) {
+// copySourceElementCopy returns what follows "_src[_i]" to give the
+// destination of copy(dst, src) its own copy of one element, or "" when the
+// type checker has no type for src. The bytes of a string source are plain
+// values.
+func copySourceElementCopy(src ast.Expr, srcIsString bool) string {
+	if srcIsString {
+		return ".clone()"
+	}
+	copyCall, known := elementGoValueCopyCall(src)
+	if !known {
+		return ""
+	}
+	return copyCall
+}
+
+func writeCopyLoop(out *strings.Builder, innerIndent string, elementCopy string, writeDestination func()) {
 	out.WriteString(innerIndent)
 	out.WriteString("for _i in 0.._n {\n")
 	out.WriteString(innerIndent)
 	out.WriteString("    ")
 	writeDestination()
-	out.WriteString(" = _src[_i].clone();\n")
+	if elementCopy == "" {
+		out.WriteString(" = ")
+		out.WriteString(goValueCopyNeedsTypeInfo)
+	} else {
+		out.WriteString(" = _src[_i]")
+		out.WriteString(elementCopy)
+	}
+	out.WriteString(";\n")
 	out.WriteString(innerIndent)
 	out.WriteString("}\n")
 }
@@ -6238,12 +6347,7 @@ where
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s
-            .as_ref()
-            .iter()
-            .map(|inner| format_slice_values(inner.as_ref()))
-            .collect();
-        format!("[{}]", formatted.join(" "))
+        format_nested_slice_values(s.as_ref())
     } else {
         "[]".to_string()
     }
@@ -6260,18 +6364,22 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s
-            .as_ref()
-            .iter()
-            .map(|inner| format_slice_values(inner.as_ref()))
-            .collect();
-        format!("[{}]", formatted.join(" "))
+        format_nested_slice_values(s.as_ref())
     } else {
         "[]".to_string()
     }
 }
 `)
 	}
+	out.WriteString(`fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+where
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    format!("[{}]", formatted.join(" "))
+}
+`)
 }
 
 // generateNestedSliceWrappedFormatter emits format_nested_slice_wrapped, the
@@ -6470,8 +6578,8 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 			if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 				if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "fmt" && (sel.Sel.Name == "Errorf" || sel.Sel.Name == "Sprintf") {
 					if len(callExpr.Args) > 0 {
-						if lit, ok := callExpr.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							format := convertFormatString(lit.Value)
+						if literal, ok := expandedFormat(callExpr, 0); ok {
+							format := convertFormatString(literal)
 							out.WriteString(format)
 							for i := 1; i < len(callExpr.Args); i++ {
 								out.WriteString(", ")
@@ -6479,7 +6587,7 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 							}
 						} else {
 							out.WriteString("\"{}\", ")
-							writeOwnedStringStdlibArg(out, callExpr.Args[0])
+							writeRuntimeFormatCall(out, callExpr.Args[0], callExpr.Args[1:], callExpr.Ellipsis.IsValid(), sel.Sel.Name == "Errorf")
 						}
 					}
 				} else {

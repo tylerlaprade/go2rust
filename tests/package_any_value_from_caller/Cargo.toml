@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_anyfromcaller_logger",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_any_value_from_caller"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_any_value_from_caller"
+path = "main.rs"
+
+[dependencies]
+example_com_anyfromcaller_logger = { path = "vendor/example_com_anyfromcaller_logger" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

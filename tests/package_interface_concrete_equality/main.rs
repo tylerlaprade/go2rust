@@ -11,9 +11,9 @@ pub fn init_concurrency() {
 }
 
 fn main() {
-    example_com_ifaceeq_event::__go_init_all();
-    example_com_ifaceeq_keys::__go_init_all();
-    example_com_ifaceeq_label::__go_init_all();
+    ::example_com_ifaceeq_event::__go_init_all();
+    ::example_com_ifaceeq_keys::__go_init_all();
+    ::example_com_ifaceeq_label::__go_init_all();
 
     __go_init_all();
     init_concurrency();

@@ -13,20 +13,27 @@ pub struct item {
 
 impl item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for item {
     fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -83,12 +90,21 @@ fn __go_init_0() {
 
 fn main() {
     __go_init_all();
-    let mut a = { let __f_holder = (*handlers.borrow().as_ref().unwrap()).get(&"inc".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) };
-    let mut b = { let __f_holder = (*handlers.borrow().as_ref().unwrap()).get(&"twice".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5)))) };
-    let mut c = { let __f_holder = (*ptrHandlers.borrow().as_ref().unwrap()).get(&"read".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<item>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<item>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })))) };
-    eprintln!("{}", format!("{}", a));
-    eprintln!("{}", format!("{}", b));
-    eprintln!("{}", format!("{}", c));
+    let mut a = { let __f_holder = { let __map_holder = handlers.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"inc".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) };
+    let mut b = { let __f_holder = { let __map_holder = handlers.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"twice".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5)))) };
+    let mut c = { let __f_holder = { let __map_holder = ptrHandlers.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"read".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<item>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<item>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })))) };
+    {
+            let __go_print_arg_0 = format!("{}", a);
+            eprintln!("{}", __go_print_arg_0)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", b);
+            eprintln!("{}", __go_print_arg_0)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", c);
+            eprintln!("{}", __go_print_arg_0)
+        };
 }
 
 pub(crate) fn __go_init_all() {

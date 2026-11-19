@@ -157,20 +157,27 @@ pub struct Params {
 
 impl Params {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Params {
     fn default() -> Self {
-        Self { n: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Params {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -192,7 +199,7 @@ pub fn total(p: Arc<Mutex<Option<Params>>>) -> i32 {
         {
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }; __tmp_x < __tmp_y } {
-        { let __rhs = { let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone())))); __result }; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = { let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
@@ -209,6 +216,6 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut p = Arc::new(Mutex::new(Some(Params { n: Arc::new(Mutex::new(Some(3 as i32))), ..Default::default() })));
+    let mut p = Arc::new(Mutex::new(Some(Params { n: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
     println!("{}", format!("{}", total(p.clone())));
 }

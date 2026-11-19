@@ -200,20 +200,37 @@ pub struct source {
 
 impl source {
     pub fn __go_value_clone(&self) -> Self {
-        Self { dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, a: self.a.clone(), b: self.b.clone() }
+        let __go_clone_0_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.a.clone();
+        let __go_clone_2_0 = self.b.clone();
+        Self {
+            dir: __go_clone_0_0,
+            a: __go_clone_1_0,
+            b: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for source {
     fn default() -> Self {
-        Self { dir: Arc::new(Mutex::new(Some(String::new()))), a: Arc::new(Mutex::new(None)), b: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            dir: __go_default_0_0,
+            a: __go_default_1_0,
+            b: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for source {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.dir.lock().unwrap().as_ref().unwrap()), format_slice(&self.a), format_slice(&self.b))
+        let __go_fmt_0 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.a));
+        let __go_fmt_2 = format!("{}", format_slice(&self.b));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -226,13 +243,20 @@ pub struct result {
 
 impl result {
     pub fn __go_value_clone(&self) -> Self {
-        Self { first: self.first.clone(), second: self.second.clone() }
+        let __go_clone_0_0 = self.first.clone();
+        let __go_clone_1_0 = self.second.clone();
+        Self {
+            first: __go_clone_0_0,
+            second: __go_clone_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for result {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.first), format_slice(&self.second))
+        let __go_fmt_0 = format!("{}", format_slice(&self.first));
+        let __go_fmt_1 = format!("{}", format_slice(&self.second));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -241,7 +265,13 @@ pub fn join(dir: Arc<Mutex<Option<String>>>, groups: Arc<Mutex<Option<Vec<Vec<St
     let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
         for name in group.iter() {
-        { let new_val = { let __append_target = out.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(format!("{}{}", format!("{}{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v }, "/".to_string()), name)); __append_target.clone() }; out = new_val; };
+        { let new_val = { let __append_target = out.clone(); let __append_value = {
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", "/".to_string()));
+            __s.push_str(&format!("{}", name));
+            __s
+        }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; out = new_val; };
     }
     } }
     return out.clone();
@@ -250,10 +280,15 @@ pub fn join(dir: Arc<Mutex<Option<String>>>, groups: Arc<Mutex<Option<Vec<Vec<St
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
-        let mut src = Arc::new(Mutex::new(Some(source { dir: Arc::new(Mutex::new(Some("root".to_string()))), a: Arc::new(Mutex::new(Some(vec!["a".to_string()]))), b: Arc::new(Mutex::new(Some(vec!["b".to_string()]))), ..Default::default() })));;
-        let mut res = Arc::new(Mutex::new(Some(result { first: join({ let __field = (*src.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }, Arc::new(Mutex::new(Some(vec![{ let __slice_holder = (*src.lock().unwrap().as_ref().unwrap()).a.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }])))), second: join({ let __field = (*src.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }, Arc::new(Mutex::new(Some(vec![{ let __slice_holder = (*src.lock().unwrap().as_ref().unwrap()).b.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }])))), ..Default::default() })));;
-        println!("{}", format!("{}", { let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).first.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));;
-        println!("{}", format!("{}", { let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).second.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));;
+        let mut src = Arc::new(Mutex::new(Some(source {
+            dir: Arc::new(Mutex::new(Some("root".to_string()))),
+            a: Arc::new(Mutex::new(Some(vec!["a".to_string()]))),
+            b: Arc::new(Mutex::new(Some(vec!["b".to_string()]))),
+            ..Default::default()
+        })));;
+        let mut res = Arc::new(Mutex::new(Some(result { first: join(Arc::new(Mutex::new(Some({ let __selector_holder = (*src.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(vec![{ let __slice_holder = (*src.lock().unwrap().as_ref().unwrap()).a.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }])))), second: join(Arc::new(Mutex::new(Some({ let __selector_holder = (*src.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(vec![{ let __slice_holder = (*src.lock().unwrap().as_ref().unwrap()).b.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }])))), ..Default::default() })));;
+        println!("{}", format!("{}", { let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).first.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));;
+        println!("{}", format!("{}", { let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).second.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));;
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();

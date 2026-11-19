@@ -9,20 +9,27 @@ pub struct counter {
 
 impl counter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for counter {
     fn default() -> Self {
-        Self { n: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -51,7 +58,7 @@ fn main() {
     }
 
     let mut methodSum = Rc::new(RefCell::new(Some(0)));
-    let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(4 as i32))), ..Default::default() })));
+    let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
     for i in 0..((*c.borrow().as_ref().unwrap()).len()) {
         { let __rhs = i; let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
