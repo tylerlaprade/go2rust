@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""Run Go's own `// run` language tests through go2rust and compare with Go.
+
+The Go distribution ships its language conformance tests in $GOROOT/test.
+A file whose first line is exactly `// run` is a self-contained program that
+must build, run and exit 0. Its README says the directory exists partly
+because the tests are "also applicable to gccgo and other Go tool chains",
+which is what go2rust is.
+
+For each such file this script records what Go does (stdout, stderr, exit
+status), transpiles the file, builds the Rust, runs it, and files the result
+under one outcome:
+
+  pass             same stdout, same stderr, exit 0
+  stderr-mismatch  same stdout and exit 0, different stderr
+  output-mismatch  different stdout
+  run-fail         Rust program exited non-zero (usually a panic)
+  run-timeout      Rust program did not finish
+  compile-fail     cargo build failed
+  transpile-fail   go2rust exited non-zero or timed out
+  skip-go          Go itself did not build, run cleanly, or finish
+
+Nothing is written into the repository.
+
+  # run everything (about six minutes on two cores) and print a summary
+  go build -o /tmp/go2rust ./go
+  ./conformance.py --transpiler /tmp/go2rust --work /tmp/conf --out /tmp/conf/new.jsonl
+
+  # summarize a saved run again
+  ./conformance.py --report /tmp/conf/new.jsonl
+
+  # what changed between two runs: the check to make before a pull request
+  ./conformance.py --compare /tmp/conf/master.jsonl /tmp/conf/new.jsonl
+"""
+import argparse
+import concurrent.futures
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+
+ERROR_CODE = re.compile(r"^error(\[(E\d+)\])?: (.*)$", re.M)
+
+
+def run(cmd, cwd, timeout, env=None):
+    start = time.time()
+    try:
+        proc = subprocess.run(
+            cmd, cwd=cwd, env=env, timeout=timeout,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        return proc.returncode, proc.stdout, proc.stderr, time.time() - start
+    except subprocess.TimeoutExpired as exc:
+        return None, exc.stdout or b"", exc.stderr or b"", time.time() - start
+
+
+def select_tests(root, pattern):
+    tests = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames.sort()
+        for name in sorted(filenames):
+            if not name.endswith(".go"):
+                continue
+            path = os.path.join(dirpath, name)
+            try:
+                with open(path, "rb") as handle:
+                    first = handle.readline().decode("utf-8", "replace").rstrip("\n")
+            except OSError:
+                continue
+            if first != "// run":
+                continue
+            rel = os.path.relpath(path, root)
+            if pattern and not re.search(pattern, rel):
+                continue
+            tests.append(rel)
+    return tests
+
+
+def cargo_bin_name(workdir):
+    with open(os.path.join(workdir, "Cargo.toml"), encoding="utf-8") as handle:
+        match = re.search(r'^name\s*=\s*"([^"]+)"', handle.read(), re.M)
+    return match.group(1) if match else "transpiled"
+
+
+def first_error(stderr_text):
+    match = ERROR_CODE.search(stderr_text)
+    if not match:
+        lines = [line for line in stderr_text.splitlines() if line.strip()]
+        return "", (lines[-1] if lines else "")[:200]
+    return match.group(2) or "", match.group(3)[:200]
+
+
+def run_one(rel, args, worker_dir):
+    src = os.path.join(args.goroot_test, rel)
+    slug = re.sub(r"[^A-Za-z0-9_]", "_", rel[:-3])
+    workdir = os.path.join(worker_dir, "t_" + slug)
+    shutil.rmtree(workdir, ignore_errors=True)
+    os.makedirs(workdir)
+    shutil.copy(src, os.path.join(workdir, "main.go"))
+    result = {"test": rel}
+
+    go_env = dict(os.environ, GOCACHE=args.gocache, GOFLAGS="")
+    code, go_out, go_err, took = run(["go", "run", "main.go"], workdir, args.go_timeout, go_env)
+    result["go_seconds"] = round(took, 2)
+    if code != 0:
+        result["outcome"] = "skip-go"
+        result["detail"] = "timeout" if code is None else go_err.decode("utf-8", "replace").strip().splitlines()[-1:][0:1]
+        shutil.rmtree(workdir, ignore_errors=True)
+        return result
+
+    code, _, err, took = run([args.transpiler, workdir], workdir, args.transpile_timeout, go_env)
+    result["transpile_seconds"] = round(took, 2)
+    if code != 0 or not os.path.exists(os.path.join(workdir, "main.rs")):
+        result["outcome"] = "transpile-fail"
+        text = err.decode("utf-8", "replace").strip()
+        result["detail"] = "timeout" if code is None else (text.splitlines()[-1][:200] if text else "no output")
+        shutil.rmtree(workdir, ignore_errors=True)
+        return result
+
+    target = os.path.join(worker_dir, "target")
+    cargo_env = dict(
+        os.environ, CARGO_TARGET_DIR=target,
+        RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0",
+    )
+    code, _, err, took = run(["cargo", "build", "--quiet", "--offline"], workdir, args.build_timeout, cargo_env)
+    result["build_seconds"] = round(took, 2)
+    if code != 0:
+        text = err.decode("utf-8", "replace")
+        result["outcome"] = "compile-fail"
+        if code is None:
+            result["detail"] = "timeout"
+        else:
+            result["error_code"], result["detail"] = first_error(text)
+            result["error_count"] = len(ERROR_CODE.findall(text))
+        shutil.rmtree(workdir, ignore_errors=True)
+        return result
+
+    binary = os.path.join(target, "debug", cargo_bin_name(workdir))
+    code, rust_out, rust_err, took = run([binary], workdir, args.run_timeout)
+    result["run_seconds"] = round(took, 2)
+    if code is None:
+        result["outcome"] = "run-timeout"
+    elif code != 0:
+        result["outcome"] = "run-fail"
+        text = rust_err.decode("utf-8", "replace")
+        panic = [line for line in text.splitlines() if "panicked at" in line]
+        following = text.split("panicked at", 1)[1].splitlines()[1:2] if panic else []
+        result["detail"] = (following[0] if following else (text.strip().splitlines() or [""])[-1])[:200]
+    elif rust_out != go_out:
+        result["outcome"] = "output-mismatch"
+    elif rust_err != go_err:
+        result["outcome"] = "stderr-mismatch"
+    else:
+        result["outcome"] = "pass"
+    if args.keep and result["outcome"] != "pass":
+        return result
+    shutil.rmtree(workdir, ignore_errors=True)
+    return result
+
+
+OUTCOMES = [
+    "pass", "stderr-mismatch", "output-mismatch", "run-fail", "run-timeout",
+    "compile-fail", "transpile-fail", "skip-go",
+]
+
+
+def load(path):
+    with open(path, encoding="utf-8") as handle:
+        return {row["test"]: row for row in map(json.loads, handle) if row}
+
+
+def report(path):
+    rows = load(path)
+    counts = {name: 0 for name in OUTCOMES}
+    by_dir = {}
+    for row in rows.values():
+        counts[row["outcome"]] = counts.get(row["outcome"], 0) + 1
+        top = row["test"].split("/")[0] if "/" in row["test"] else "(top level)"
+        entry = by_dir.setdefault(top, [0, 0])
+        if row["outcome"] != "skip-go":
+            entry[1] += 1
+            entry[0] += row["outcome"] == "pass"
+    runnable = len(rows) - counts["skip-go"]
+    print(f"{len(rows)} tests, {runnable} that Go itself runs cleanly")
+    for name in OUTCOMES:
+        if counts.get(name):
+            share = f"{100 * counts[name] / runnable:5.1f}%" if name != "skip-go" and runnable else "      "
+            print(f"  {name:16} {counts[name]:4}  {share}")
+    print("by directory (pass / runnable):")
+    for top, (passed, total) in sorted(by_dir.items(), key=lambda item: -item[1][1]):
+        if total:
+            print(f"  {top:14} {passed:4} / {total:4}  {100 * passed / total:5.1f}%")
+    codes = {}
+    for row in rows.values():
+        if row["outcome"] == "compile-fail":
+            code = row.get("error_code") or "syntax"
+            codes[code] = codes.get(code, 0) + 1
+    if codes:
+        top_codes = sorted(codes.items(), key=lambda item: -item[1])[:8]
+        print("compile-fail by first rustc error: " + ", ".join(f"{code} {n}" for code, n in top_codes))
+
+
+def compare(old_path, new_path):
+    old, new = load(old_path), load(new_path)
+    broke, fixed, moved = [], [], []
+    for test in sorted(set(old) & set(new)):
+        before, after = old[test]["outcome"], new[test]["outcome"]
+        if before == after:
+            continue
+        if before == "pass":
+            broke.append((test, after, new[test].get("detail", "")))
+        elif after == "pass":
+            fixed.append((test, before))
+        else:
+            moved.append((test, before, after))
+    print(f"pass: {sum(r['outcome'] == 'pass' for r in old.values())} -> "
+          f"{sum(r['outcome'] == 'pass' for r in new.values())}")
+    print(f"no longer pass: {len(broke)}")
+    for test, after, detail in broke:
+        print(f"  {test}: {after} {str(detail)[:100]}")
+    print(f"newly pass: {len(fixed)}")
+    for test, before in fixed:
+        print(f"  {test} (was {before})")
+    print(f"changed between two failing outcomes: {len(moved)}")
+    for test, before, after in moved:
+        print(f"  {test}: {before} -> {after}")
+    return 1 if broke else 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--report", metavar="RESULTS", help="summarize a saved results file and exit")
+    parser.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"),
+                        help="list the tests whose outcome differs between two results files; "
+                             "exits 1 if a test that passed in OLD does not pass in NEW")
+    parser.add_argument("--transpiler", help="path to the go2rust binary")
+    parser.add_argument("--goroot-test", default=None, help="defaults to $(go env GOROOT)/test")
+    parser.add_argument("--work", help="scratch directory (created; reused between runs)")
+    parser.add_argument("--out", help="results file, one JSON object per line")
+    parser.add_argument("--gocache", default=os.environ.get("GOCACHE", ""))
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--match", default="", help="only tests whose path matches this regular expression")
+    parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--keep", action="store_true", help="keep the work directory of each test that does not pass")
+    parser.add_argument("--go-timeout", type=float, default=30)
+    parser.add_argument("--transpile-timeout", type=float, default=30)
+    parser.add_argument("--build-timeout", type=float, default=120)
+    parser.add_argument("--run-timeout", type=float, default=20)
+    args = parser.parse_args()
+
+    if args.report:
+        report(args.report)
+        return 0
+    if args.compare:
+        return compare(*args.compare)
+    if not (args.transpiler and args.work and args.out):
+        parser.error("--transpiler, --work and --out are required to run the tests")
+
+    if not args.goroot_test:
+        goroot = subprocess.check_output(["go", "env", "GOROOT"], text=True).strip()
+        args.goroot_test = os.path.join(goroot, "test")
+    if not args.gocache:
+        args.gocache = os.path.join(args.work, "gocache")
+    args.transpiler = os.path.abspath(args.transpiler)
+    os.makedirs(args.work, exist_ok=True)
+
+    tests = select_tests(args.goroot_test, args.match)
+    if args.limit:
+        tests = tests[: args.limit]
+    print(f"{len(tests)} run tests selected from {args.goroot_test}", flush=True)
+
+    worker_dirs = {}
+    lock = threading.Lock()
+
+    def worker_dir():
+        ident = threading.get_ident()
+        with lock:
+            if ident not in worker_dirs:
+                path = os.path.join(args.work, f"worker{len(worker_dirs)}")
+                os.makedirs(path, exist_ok=True)
+                worker_dirs[ident] = path
+            return worker_dirs[ident]
+
+    counts = {}
+    start = time.time()
+    with open(args.out, "w", encoding="utf-8") as out, \
+            concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        futures = [pool.submit(lambda rel=rel: run_one(rel, args, worker_dir())) for rel in tests]
+        for index, future in enumerate(concurrent.futures.as_completed(futures), 1):
+            result = future.result()
+            counts[result["outcome"]] = counts.get(result["outcome"], 0) + 1
+            out.write(json.dumps(result, sort_keys=True) + "\n")
+            out.flush()
+            if index % 25 == 0 or index == len(tests):
+                summary = " ".join(f"{name}={counts[name]}" for name in sorted(counts))
+                print(f"[{index}/{len(tests)} {time.time() - start:.0f}s] {summary}", flush=True)
+    print()
+    report(args.out)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
