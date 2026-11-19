@@ -3220,7 +3220,8 @@ func main() {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard);") {
+	// The elements are structs, so each loop value is Go's copy of its element.
+	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
 		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
@@ -4226,10 +4227,10 @@ func Use() []*Item {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "push((*new_item()") {
+	if strings.Contains(mainRS, "let __append_value = (*new_item()") {
 		t.Fatalf("append of pointer-returning call should keep the pointer handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "push(new_item())") {
+	if !strings.Contains(mainRS, "let __append_value = new_item();") {
 		t.Fatalf("append of pointer-returning call should push the returned handle, got:\n%s", mainRS)
 	}
 }
@@ -4461,7 +4462,8 @@ func start() {
 	if strings.Contains(mainRS, "let new_val = self.first_err.clone(); *err.lock().unwrap() = Some(new_val);") {
 		t.Fatalf("*error assignment should store the error option value, not the handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__err_guard.take()") {
+	// The value is a copy: the field keeps its error.
+	if !strings.Contains(mainRS, "let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value") {
 		t.Fatalf("*error assignment should extract an error option from the RHS handle, got:\n%s", mainRS)
 	}
 }
@@ -4497,7 +4499,7 @@ func start() {
 	if strings.Contains(mainRS, "Option<Option<Box<dyn StdError") {
 		t.Fatalf("*error should use the same error handle shape as an error variable, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>)") {
+	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>)") {
 		t.Fatalf("*error parameter should accept the error handle shape, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "self.handle(err.clone())") {

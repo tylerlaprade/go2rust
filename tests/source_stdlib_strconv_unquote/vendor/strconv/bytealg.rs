@@ -1,18 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::atob::*;
-use crate::atoc::*;
-use crate::atof::*;
-use crate::atoi::*;
-use crate::ctoa::*;
-use crate::decimal::*;
-use crate::eisel_lemire::*;
-use crate::ftoa::*;
-use crate::ftoaryu::*;
-use crate::isprint::*;
-use crate::itoa::*;
-use crate::quote::*;
-
 use std::sync::{Arc, Mutex};
 
 /// index returns the index of the first instance of c in s, or -1 if missing.

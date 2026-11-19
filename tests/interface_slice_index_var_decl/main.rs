@@ -12,7 +12,7 @@ pub trait Spec: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Spec> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_spec()
+        Spec::__go_clone_box_spec(self.as_ref())
     }
 }
 
@@ -23,33 +23,40 @@ pub struct Concrete {
 
 impl Concrete {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Concrete {
     fn default() -> Self {
-        Self { n: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Concrete {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl Concrete {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.n.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.n.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
 impl Spec for Concrete {
     fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.n.clone();
+        Concrete::name(self)
     }
     fn __go_clone_box_spec(&self) -> Box<dyn Spec> {
         Box::new(self.clone()) as Box<dyn Spec>
@@ -60,6 +67,37 @@ impl Spec for Concrete {
     fn __go_eq_spec(&self, other: &dyn Spec) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Concrete>() {
             self == __other
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct ConcretePtr(pub Rc<RefCell<Option<Concrete>>>);
+
+impl std::fmt::Display for ConcretePtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Spec for ConcretePtr {
+    fn name(&self) -> Rc<RefCell<Option<String>>> {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        Concrete::name(__recv)
+    }
+    fn __go_clone_box_spec(&self) -> Box<dyn Spec> {
+        Box::new(self.clone()) as Box<dyn Spec>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_spec(&self, other: &dyn Spec) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<ConcretePtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
         } else {
             false
         }

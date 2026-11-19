@@ -17,7 +17,9 @@ impl Display for Pos {
 
 impl PartialEq for Pos {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -29,7 +31,9 @@ impl PartialEq<i32> for Pos {
 
 impl PartialOrd for Pos {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -90,6 +94,76 @@ impl std::ops::Sub<Pos> for i32 {
     type Output = Pos;
     fn sub(self, other: Pos) -> Pos {
         Pos(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Pos {
+    type Output = Pos;
+    fn mul(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Pos {
+    type Output = Pos;
+    fn mul(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Pos> for i32 {
+    type Output = Pos;
+    fn mul(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Pos {
+    type Output = Pos;
+    fn div(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Pos {
+    type Output = Pos;
+    fn div(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Pos> for i32 {
+    type Output = Pos;
+    fn div(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Pos {
+    type Output = Pos;
+    fn neg(self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Pos {
+    type Output = Pos;
+    fn rem(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Pos {
+    type Output = Pos;
+    fn rem(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Pos> for i32 {
+    type Output = Pos;
+    fn rem(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -323,20 +397,37 @@ pub struct Ident {
 
 impl Ident {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name_pos: { let __guard = self.name_pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, obj: self.obj.clone() }
+        let __go_clone_0_0 = { let __guard = self.name_pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.obj.clone();
+        Self {
+            name_pos: __go_clone_0_0,
+            name: __go_clone_1_0,
+            obj: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Ident {
     fn default() -> Self {
-        Self { name_pos: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0))))))), name: Rc::new(RefCell::new(Some(String::new()))), obj: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0)))))));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(None));
+        Self {
+            name_pos: __go_default_0_0,
+            name: __go_default_1_0,
+            obj: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name_pos.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()), (*self.obj.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name_pos.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.obj.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

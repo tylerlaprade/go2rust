@@ -1,5 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -10,31 +11,27 @@ pub struct Decoder {
 
 impl Decoder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Decoder {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Decoder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Decoder {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Value") {
-            out.value = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -46,31 +43,27 @@ pub struct PkgDecoder {
 
 impl PkgDecoder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for PkgDecoder {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            base: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for PkgDecoder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.base.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for PkgDecoder {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Base") {
-            out.base = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -86,7 +79,9 @@ impl Display for Index {
 
 impl PartialEq for Index {
     fn eq(&self, other: &Self) -> bool {
-        self.0.lock().unwrap().as_ref().unwrap() == other.0.lock().unwrap().as_ref().unwrap()
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -98,7 +93,9 @@ impl PartialEq<i32> for Index {
 
 impl PartialOrd for Index {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -159,6 +156,76 @@ impl std::ops::Sub<Index> for i32 {
     type Output = Index;
     fn sub(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Index {
+    type Output = Index;
+    fn mul(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Index {
+    type Output = Index;
+    fn mul(self, other: i32) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Index> for i32 {
+    type Output = Index;
+    fn mul(self, other: Index) -> Index {
+        Index(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Index {
+    type Output = Index;
+    fn div(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Index {
+    type Output = Index;
+    fn div(self, other: i32) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Index> for i32 {
+    type Output = Index;
+    fn div(self, other: Index) -> Index {
+        Index(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Index {
+    type Output = Index;
+    fn neg(self) -> Index {
+        Index(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Index {
+    type Output = Index;
+    fn rem(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Index {
+    type Output = Index;
+    fn rem(self, other: i32) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Index> for i32 {
+    type Output = Index;
+    fn rem(self, other: Index) -> Index {
+        Index(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
@@ -409,5 +476,18 @@ impl PkgDecoder {
     pub fn retire_decoder(&self, d: Arc<Mutex<Option<Decoder>>>) {
         let _ = self;
         let _ = (*d.lock().unwrap().as_ref().unwrap());
+    }
+}
+
+impl GoValueClone for Decoder {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for PkgDecoder {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
     }
 }

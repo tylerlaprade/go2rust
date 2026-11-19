@@ -1,0 +1,15 @@
+method 1
+returned receiver 2
+closure over receiver 12
+defer over receiver 113
+method value 114
+pointer parameter 1114
+stored receiver 1115
+address of variable 1
+pointer method on a variable 2
+slice element field [{a 10} {b 3}]
+range by index [{a 20} {b 6}]
+address of slice element [{a 20} {b 99}]
+array element [{a 10} {b 20}]
+map of pointers {a 5}
+interface holding a pointer 3

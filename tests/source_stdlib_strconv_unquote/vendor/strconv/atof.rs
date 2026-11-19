@@ -1,20 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::atob::*;
-use crate::atoc::*;
-use crate::atoi::*;
-use crate::bytealg::*;
-use crate::ctoa::*;
-use crate::decimal::*;
-use crate::eisel_lemire::*;
-use crate::ftoa::*;
-use crate::ftoaryu::*;
-use crate::isprint::*;
-use crate::itoa::*;
-use crate::quote::*;
-
-use std::sync::{Arc, Mutex};
-
 pub(crate) const FN_PARSE_FLOAT: &'static str = "ParseFloat";
 
 
@@ -33,9 +18,64 @@ fn __go_init_globals() {
     *float64pow10.lock().unwrap() = Some(vec![]);
     *float32pow10.lock().unwrap() = Some(vec![]);
     *optimize.lock().unwrap() = Some(true);
-    *powtab.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![1, 3, 6, 9, 13, 16, 19, 23, 26]))).lock().unwrap().as_ref().unwrap()).clone());
-    *float64pow10.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22]))).lock().unwrap().as_ref().unwrap()).clone());
-    *float32pow10.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<i32>::with_capacity(9);
+        __go_slice.push(1);
+        __go_slice.push(3);
+        __go_slice.push(6);
+        __go_slice.push(9);
+        __go_slice.push(13);
+        __go_slice.push(16);
+        __go_slice.push(19);
+        __go_slice.push(23);
+        __go_slice.push(26);
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *powtab.lock().unwrap() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<f64>::with_capacity(23);
+        __go_slice.push(1e0);
+        __go_slice.push(1e1);
+        __go_slice.push(1e2);
+        __go_slice.push(1e3);
+        __go_slice.push(1e4);
+        __go_slice.push(1e5);
+        __go_slice.push(1e6);
+        __go_slice.push(1e7);
+        __go_slice.push(1e8);
+        __go_slice.push(1e9);
+        __go_slice.push(1e10);
+        __go_slice.push(1e11);
+        __go_slice.push(1e12);
+        __go_slice.push(1e13);
+        __go_slice.push(1e14);
+        __go_slice.push(1e15);
+        __go_slice.push(1e16);
+        __go_slice.push(1e17);
+        __go_slice.push(1e18);
+        __go_slice.push(1e19);
+        __go_slice.push(1e20);
+        __go_slice.push(1e21);
+        __go_slice.push(1e22);
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *float64pow10.lock().unwrap() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<f32>::with_capacity(11);
+        __go_slice.push(1e0);
+        __go_slice.push(1e1);
+        __go_slice.push(1e2);
+        __go_slice.push(1e3);
+        __go_slice.push(1e4);
+        __go_slice.push(1e5);
+        __go_slice.push(1e6);
+        __go_slice.push(1e7);
+        __go_slice.push(1e8);
+        __go_slice.push(1e9);
+        __go_slice.push(1e10);
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *float32pow10.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
@@ -53,17 +93,72 @@ pub(crate) fn __go_init_order_0() {
 
 
 pub(crate) fn __go_init_order_1() {
-    *powtab.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![1, 3, 6, 9, 13, 16, 19, 23, 26]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<i32>::with_capacity(9);
+        __go_slice.push(1);
+        __go_slice.push(3);
+        __go_slice.push(6);
+        __go_slice.push(9);
+        __go_slice.push(13);
+        __go_slice.push(16);
+        __go_slice.push(19);
+        __go_slice.push(23);
+        __go_slice.push(26);
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *powtab.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
 pub(crate) fn __go_init_order_2() {
-    *float64pow10.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<f64>::with_capacity(23);
+        __go_slice.push(1e0);
+        __go_slice.push(1e1);
+        __go_slice.push(1e2);
+        __go_slice.push(1e3);
+        __go_slice.push(1e4);
+        __go_slice.push(1e5);
+        __go_slice.push(1e6);
+        __go_slice.push(1e7);
+        __go_slice.push(1e8);
+        __go_slice.push(1e9);
+        __go_slice.push(1e10);
+        __go_slice.push(1e11);
+        __go_slice.push(1e12);
+        __go_slice.push(1e13);
+        __go_slice.push(1e14);
+        __go_slice.push(1e15);
+        __go_slice.push(1e16);
+        __go_slice.push(1e17);
+        __go_slice.push(1e18);
+        __go_slice.push(1e19);
+        __go_slice.push(1e20);
+        __go_slice.push(1e21);
+        __go_slice.push(1e22);
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *float64pow10.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
 pub(crate) fn __go_init_order_3() {
-    *float32pow10.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<f32>::with_capacity(11);
+        __go_slice.push(1e0);
+        __go_slice.push(1e1);
+        __go_slice.push(1e2);
+        __go_slice.push(1e3);
+        __go_slice.push(1e4);
+        __go_slice.push(1e5);
+        __go_slice.push(1e6);
+        __go_slice.push(1e7);
+        __go_slice.push(1e8);
+        __go_slice.push(1e9);
+        __go_slice.push(1e10);
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *float32pow10.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 

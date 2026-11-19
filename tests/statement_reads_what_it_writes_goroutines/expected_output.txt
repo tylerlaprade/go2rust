@@ -1,0 +1,19 @@
+started
+index reads the slice [1 2 5]
+value reads the slice [2 2 5]
+index is an element [2 7 5]
+compound, increment, swap [5 8 9]
+index reads the slice in an increment, a compound assignment and a swap [5 2 1]
+slice of slices 3 5
+struct element 1
+through a pointer to an array [1 2 1]
+strings [a a!]
+array [1 2 1]
+slice in a field [9 9]
+map map[a:3 b:2 c:5]
+append reads the slice [1 2 1 3 2 1]
+append the slice to itself [1 2 1 3 2 1 1 2 1 3 2 1] 12
+append a part of the slice 14 2 1
+append to a field [9 9 9 9]
+append what a function read from the slice 14
+append to a slice in a map [1 1 2]

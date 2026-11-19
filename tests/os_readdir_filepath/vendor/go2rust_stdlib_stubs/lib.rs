@@ -81,205 +81,6 @@ fn __go_next_external_interface_id() -> usize {
     NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
-pub use serde_json;
-
-pub trait GoJsonInputArg {
-    fn into_go_json_bytes(self) -> Vec<u8>;
-}
-
-pub trait GoJsonDecode: Sized {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String>;
-}
-
-pub trait GoJsonDecodeTarget {
-    fn assign_go_json(self, value: &serde_json::Value) -> Result<(), String>;
-}
-
-fn go_json_no_error() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-    Arc::new(Mutex::new(None))
-}
-
-fn go_json_error(message: String) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(message))))
-}
-
-pub fn go_json_expected(value: &serde_json::Value, want: &str) -> String {
-    format!("expected {}, got {}", want, value)
-}
-
-impl GoJsonInputArg for Vec<u8> {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self
-    }
-}
-
-impl GoJsonInputArg for String {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.into_bytes()
-    }
-}
-
-impl<'a> GoJsonInputArg for &'a str {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.as_bytes().to_vec()
-    }
-}
-
-impl<T> GoJsonInputArg for Arc<Mutex<Option<T>>>
-where
-    T: GoJsonInputArg + Clone,
-{
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.lock().unwrap().as_ref().cloned().map(|value| value.into_go_json_bytes()).unwrap_or_default()
-    }
-}
-
-impl GoJsonDecode for String {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_str().map(|value| value.to_string()).ok_or_else(|| go_json_expected(value, "string"))
-    }
-}
-
-impl GoJsonDecode for bool {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_bool().ok_or_else(|| go_json_expected(value, "bool"))
-    }
-}
-
-impl GoJsonDecode for i32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().map(|value| value as i32).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for i16 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().map(|value| value as i16).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for i8 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().map(|value| value as i8).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for i64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u8 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as u8).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u16 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as u16).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as u32).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for usize {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as usize).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for f64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_f64().ok_or_else(|| go_json_expected(value, "number"))
-    }
-}
-
-impl GoJsonDecode for f32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_f64().map(|value| value as f32).ok_or_else(|| go_json_expected(value, "number"))
-    }
-}
-
-impl<T> GoJsonDecode for Vec<T>
-where
-    T: GoJsonDecode,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
-        array.iter().map(T::go_json_decode).collect()
-    }
-}
-
-impl<T, const N: usize> GoJsonDecode for [T; N]
-where
-    T: GoJsonDecode + Default,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
-        if array.len() != N {
-            return Err(format!("expected array of length {}, got {}", N, array.len()));
-        }
-        let mut out = std::array::from_fn(|_| T::default());
-        for (index, item) in array.iter().enumerate() {
-            out[index] = T::go_json_decode(item)?;
-        }
-        Ok(out)
-    }
-}
-
-impl<V> GoJsonDecode for BTreeMap<String, V>
-where
-    V: GoJsonDecode,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = BTreeMap::new();
-        for (key, value) in object {
-            out.insert(key.clone(), V::go_json_decode(value)?);
-        }
-        Ok(out)
-    }
-}
-
-impl<T> GoJsonDecode for Arc<Mutex<Option<T>>>
-where
-    T: GoJsonDecode,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        if value.is_null() {
-            Ok(Arc::new(Mutex::new(None)))
-        } else {
-            Ok(Arc::new(Mutex::new(Some(T::go_json_decode(value)?))))
-        }
-    }
-}
-
-impl<T> GoJsonDecodeTarget for Arc<Mutex<Option<T>>>
-where
-    T: GoJsonDecode,
-{
-    fn assign_go_json(self, value: &serde_json::Value) -> Result<(), String> {
-        if value.is_null() {
-            *self.lock().unwrap() = None;
-        } else {
-            *self.lock().unwrap() = Some(T::go_json_decode(value)?);
-        }
-        Ok(())
-    }
-}
-
 
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -382,19 +183,12 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
-        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        self.__go_read_all()
-    }
-
-    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn close(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -404,10 +198,10 @@ impl os_File {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -420,14 +214,14 @@ impl os_File {
         let bytes = value.into_bytes();
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
         } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
@@ -450,19 +244,19 @@ impl os_File {
                 }
             }
         }
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 }
 
 
 pub mod fs {
     use super::*;
-    pub fn SkipAll() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn SkipAll() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn SkipDir() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn SkipDir() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 }
 
@@ -499,20 +293,20 @@ pub mod os {
         }
     }
 
-    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
+    type GoError = Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>;
 
     fn no_error() -> GoError {
         Arc::new(Mutex::new(None))
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        Arc::new(Mutex::new(Some(Box::new(err))))
+        Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
     pub const PATH_LIST_SEPARATOR: i32 = 58;
     pub const PATH_SEPARATOR: i32 = 47;
 
-    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::symlink_metadata(&path) {
             Ok(metadata) => {
@@ -523,7 +317,7 @@ pub mod os {
         }
     }
 
-    pub fn read_dir<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<fs_DirEntry>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_dir<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<fs_DirEntry>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         let entries = match std::fs::read_dir(&path) {
             Ok(entries) => entries,
@@ -544,7 +338,7 @@ pub mod os {
         (Arc::new(Mutex::new(Some::<Vec<fs_DirEntry>>(result))), no_error())
     }
 
-    pub fn stat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn stat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::metadata(&path) {
             Ok(metadata) => {

@@ -1,10 +1,19 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+};
 
-use crate::doc::*;
-use crate::doc_64::*;
-use crate::value::*;
+use crate::{
+    doc::{add_int32, add_uint32, and_int32, and_uint32, compare_and_swap_int32, compare_and_swap_pointer, compare_and_swap_uint32, load_int32, load_pointer, load_uint32, or_int32, or_uint32, store_int32, store_pointer, store_uint32, swap_int32, swap_pointer, swap_uint32},
+    doc_64::{add_uint64, and_uint64, compare_and_swap_uint64, load_uint64, or_uint64, store_uint64, swap_uint64},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -20,69 +29,86 @@ pub struct Bool {
 
 impl Bool {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            v: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Bool {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            v: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Bool {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.v.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Bool {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.v.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
 
 /// A Pointer is an atomic pointer of type *T. The zero value is a nil *T.
-pub struct Pointer<T: Any + Clone + Send + Sync + 'static> {
+pub struct Pointer<T: Any + Send + Sync + 'static> {
     pub __blank_0_0: Arc<Mutex<Option<[Arc<Mutex<Option<T>>>; 0]>>>,
     pub __blank_1_0: Arc<Mutex<Option<noCopy>>>,
     pub v: Arc<Mutex<Option<GoPtr<T>>>>,
 }
 
-impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
+impl<T: Any + Send + Sync + 'static> Pointer<T> {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_1_0: { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            __blank_1_0: __go_clone_1_0,
+            v: __go_clone_2_0,
+        }
     }
 }
 
-impl<T: Any + Clone + Send + Sync + 'static> Clone for Pointer<T> {
+impl<T: Any + Send + Sync + 'static> Clone for Pointer<T> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            __blank_0_0: self.__blank_0_0.clone(),
+            __blank_1_0: self.__blank_1_0.clone(),
+            v: self.v.clone(),
+        }
     }
 }
 
 
-impl<T: Any + Clone + Send + Sync + 'static> Default for Pointer<T> {
+impl<T: Any + Send + Sync + 'static> Default for Pointer<T> {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), __blank_1_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            v: __go_default_2_0,
+        }
     }
 }
 
-impl<T: Any + Clone + Send + Sync + 'static> std::fmt::Display for Pointer<T> {
+impl<T: Any + Send + Sync + 'static> std::fmt::Display for Pointer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", "[]", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.v.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
-    }
-}
-
-impl<T: Any + Clone + Send + Sync + 'static> GoJsonDecode for Pointer<T> {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", "[]");
+        let __go_fmt_1 = format!("{}", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", { let __guard = self.v.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -96,28 +122,32 @@ pub struct Int32 {
 
 impl Int32 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            v: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Int32 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            v: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Int32 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.v.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Int32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.v.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -131,28 +161,32 @@ pub struct Uint32 {
 
 impl Uint32 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            v: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Uint32 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            v: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Uint32 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.v.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Uint32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.v.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -167,28 +201,37 @@ pub struct Uint64 {
 
 impl Uint64 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_1_0: { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            __blank_1_0: __go_clone_1_0,
+            v: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Uint64 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(noCopy::default()))), __blank_1_0: Arc::new(Mutex::new(Some(align64::default()))), v: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(align64::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            __blank_1_0: __go_default_1_0,
+            v: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Uint64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), (*self.v.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Uint64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.v.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -206,21 +249,14 @@ pub struct noCopy {
 
 impl noCopy {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
 impl std::fmt::Display for noCopy {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for noCopy {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -234,21 +270,14 @@ pub struct align64 {
 
 impl align64 {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
 impl std::fmt::Display for align64 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for align64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -261,25 +290,40 @@ impl Bool {
 
     /// Store atomically stores val into x.
     pub fn store(&self, val: Arc<Mutex<Option<bool>>>) {
-        store_uint32(self.v.clone(), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))));
+        store_uint32(
+            self.v.clone(),
+            Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))
+        );
     }
 
     /// Swap atomically stores new into x and returns the previous value.
     pub fn swap(&self, new: Arc<Mutex<Option<bool>>>) -> bool {
     let mut old: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        return { let __tmp_x = swap_uint32(self.v.clone(), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))); let __tmp_y = 0 as u32; __tmp_x != __tmp_y };
+        return {
+            let __tmp_x =
+                swap_uint32(
+                    self.v.clone(),
+                    Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))
+                );
+            let __tmp_y = 0 as u32;
+            __tmp_x != __tmp_y
+        };
     }
 
     /// CompareAndSwap executes the compare-and-swap operation for the boolean value x.
     pub fn compare_and_swap(&self, old: Arc<Mutex<Option<bool>>>, new: Arc<Mutex<Option<bool>>>) -> bool {
     let mut swapped: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        compare_and_swap_uint32(self.v.clone(), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))))
+        compare_and_swap_uint32(
+            self.v.clone(),
+            Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))),
+            Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))
+        )
     }
 }
 
-impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
+impl<T: Any + Send + Sync + 'static> Pointer<T> {
     /// Load atomically loads and returns the value stored in x.
     pub fn load(&self) -> GoPtr<T> {
         let __guard = self.v.lock().unwrap();
@@ -508,7 +552,7 @@ impl GoValueClone for Bool {
 }
 
 
-impl<T: Any + Clone + Send + Sync + 'static> GoValueClone for Pointer<T> {
+impl<T: Any + Send + Sync + 'static> GoValueClone for Pointer<T> {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

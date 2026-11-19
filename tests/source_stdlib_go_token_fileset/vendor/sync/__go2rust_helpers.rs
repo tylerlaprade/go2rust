@@ -65,6 +65,12 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
+    format_any(value)
+}
+
 fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
     let left_guard = left.lock().unwrap();
     let right_guard = right.lock().unwrap();
@@ -168,26 +174,8 @@ fn go_resume_unrecovered_panic() {
     }
 }
 
-fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
-    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
-}
-
-fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
-    let registry = go_embedded_owner_registry().lock().unwrap();
-    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
-    owner
-        .downcast_ref::<Arc<Mutex<Option<T>>>>()
-        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
-        .clone()
-}
-
 #[derive(Clone)]
-pub struct GoSliceElemPtr<T: Clone> {
+pub struct GoSliceElemPtr<T> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
 }
@@ -284,6 +272,30 @@ impl<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> GoArray
 }
 
 #[derive(Clone)]
+pub struct GoArrayElemFromGoPtrBacking<T: Clone + Send + Sync + 'static, const N: usize> {
+    parent: GoPtr<[T; N]>,
+}
+
+impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemBacking<T, N> for GoArrayElemFromGoPtrBacking<T, N> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let inner = self.parent.borrow();
+        inner.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            self.parent.with_mut(|values| {
+                values[index] = value;
+            });
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (self.parent.addr() as *const (), index)
+    }
+}
+
+#[derive(Clone)]
 pub struct GoArrayElemPtr<T: Clone + Send + Sync + 'static, const N: usize> {
     backing: Arc<dyn GoArrayElemBacking<T, N> + Send + Sync>,
     index: usize,
@@ -299,7 +311,7 @@ pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
     value: Option<T>,
 }
 
-impl<T: Clone> GoSliceElemPtr<T> {
+impl<T> GoSliceElemPtr<T> {
     pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
     }
@@ -311,7 +323,9 @@ impl<T: Clone> GoSliceElemPtr<T> {
     pub fn index(&self) -> usize {
         self.index
     }
+}
 
+impl<T: Clone> GoSliceElemPtr<T> {
     pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemRef {
@@ -351,6 +365,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
         }
     }
 
+    pub fn from_go_ptr(parent: GoPtr<[T; N]>, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Arc::new(GoArrayElemFromGoPtrBacking { parent }),
+            index,
+        }
+    }
+
     pub fn borrow(&self) -> GoArrayElemRef<T> {
         GoArrayElemRef {
             value: self.backing.borrow_at(self.index),
@@ -363,6 +384,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
             index: self.index,
             value: self.backing.borrow_at(self.index),
         }
+    }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
+        let result = f(&mut value);
+        self.backing.assign_at(self.index, Some(value));
+        result
     }
 
     pub fn identity(&self) -> (*const (), usize) {
@@ -430,10 +458,36 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> Drop for GoArrayElemMutRe
     }
 }
 
-pub trait GoArrayElemPtrDyn<T: Clone + Send + Sync + 'static>: Send + Sync {
+pub trait GoArrayElemPtrDyn<T: Send + Sync + 'static>: Send + Sync {
     fn borrow_dyn(&self) -> Option<T>;
     fn assign_dyn(&self, value: Option<T>);
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T));
     fn identity_dyn(&self) -> (*const (), usize);
+}
+
+pub struct GoForeignArrayElemPtrDyn<T: Send + Sync + 'static> {
+    borrow: Arc<dyn Fn() -> Option<T> + Send + Sync>,
+    assign: Arc<dyn Fn(Option<T>) + Send + Sync>,
+    with_mut: Arc<dyn Fn(&mut dyn FnMut(&mut T)) + Send + Sync>,
+    identity: Arc<dyn Fn() -> (*const (), usize) + Send + Sync>,
+}
+
+impl<T: Send + Sync + 'static> GoArrayElemPtrDyn<T> for GoForeignArrayElemPtrDyn<T> {
+    fn borrow_dyn(&self) -> Option<T> {
+        (self.borrow)()
+    }
+
+    fn assign_dyn(&self, value: Option<T>) {
+        (self.assign)(value)
+    }
+
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
+        (self.with_mut)(f)
+    }
+
+    fn identity_dyn(&self) -> (*const (), usize) {
+        (self.identity)()
+    }
 }
 
 impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtrDyn<T> for GoArrayElemPtr<T, N> {
@@ -445,13 +499,16 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtrDyn<T> for 
         *self.borrow_mut() = value;
     }
 
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
+        self.with_mut(|value| f(value));
+    }
+
     fn identity_dyn(&self) -> (*const (), usize) {
         self.identity()
     }
 }
 
-#[derive(Clone)]
-pub enum GoPtr<T: Clone + Send + Sync + 'static> {
+pub enum GoPtr<T: Send + Sync + 'static> {
     Nil,
     Raw(usize),
     Local(Arc<Mutex<Option<T>>>),
@@ -459,7 +516,19 @@ pub enum GoPtr<T: Clone + Send + Sync + 'static> {
     ArrayElem(Arc<dyn GoArrayElemPtrDyn<T> + Send + Sync>),
 }
 
-impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
+impl<T: Send + Sync + 'static> Clone for GoPtr<T> {
+    fn clone(&self) -> Self {
+        match self {
+            GoPtr::Nil => GoPtr::Nil,
+            GoPtr::Raw(addr) => GoPtr::Raw(*addr),
+            GoPtr::Local(value) => GoPtr::Local(value.clone()),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
+        }
+    }
+}
+
+impl<T: Send + Sync + 'static> GoPtr<T> {
     pub fn nil() -> Self {
         GoPtr::Nil
     }
@@ -491,15 +560,35 @@ impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
         }
     }
 
-    pub fn array_elem<const N: usize>(value: GoArrayElemPtr<T, N>) -> Self {
+    pub fn array_elem<const N: usize>(value: GoArrayElemPtr<T, N>) -> Self
+    where
+        T: Clone,
+    {
         GoPtr::ArrayElem(Arc::new(value))
     }
 
-    pub fn array_elem_opt<const N: usize>(value: Option<GoArrayElemPtr<T, N>>) -> Self {
+    pub fn array_elem_opt<const N: usize>(value: Option<GoArrayElemPtr<T, N>>) -> Self
+    where
+        T: Clone,
+    {
         match value {
             Some(value) => GoPtr::ArrayElem(Arc::new(value)),
             None => GoPtr::Nil,
         }
+    }
+
+    pub fn array_elem_foreign(
+        borrow: Arc<dyn Fn() -> Option<T> + Send + Sync>,
+        assign: Arc<dyn Fn(Option<T>) + Send + Sync>,
+        with_mut: Arc<dyn Fn(&mut dyn FnMut(&mut T)) + Send + Sync>,
+        identity: Arc<dyn Fn() -> (*const (), usize) + Send + Sync>,
+    ) -> Self {
+        GoPtr::ArrayElem(Arc::new(GoForeignArrayElemPtrDyn {
+            borrow,
+            assign,
+            with_mut,
+            identity,
+        }))
     }
 
     pub fn is_nil(&self) -> bool {
@@ -507,28 +596,11 @@ impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
             GoPtr::Nil => true,
             GoPtr::Raw(addr) => *addr == 0,
             GoPtr::Local(value) => value.lock().unwrap().is_none(),
-            GoPtr::SliceElem(value) => value.borrow().is_none(),
-            GoPtr::ArrayElem(value) => value.borrow_dyn().is_none(),
-        }
-    }
-
-    pub fn borrow(&self) -> Option<T> {
-        match self {
-            GoPtr::Nil => None,
-            GoPtr::Raw(_) => panic!("raw unsafe pointer dereference requires unsafe pointee support"),
-            GoPtr::Local(value) => (*value.lock().unwrap()).clone(),
-            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
-            GoPtr::ArrayElem(value) => value.borrow_dyn(),
-        }
-    }
-
-    pub fn assign(&self, value: Option<T>) {
-        match self {
-            GoPtr::Nil => panic!("nil pointer dereference"),
-            GoPtr::Raw(_) => panic!("raw unsafe pointer assignment requires unsafe pointee support"),
-            GoPtr::Local(slot) => *slot.lock().unwrap() = value,
-            GoPtr::SliceElem(slot) => *slot.borrow_mut() = value,
-            GoPtr::ArrayElem(slot) => slot.assign_dyn(value),
+            GoPtr::SliceElem(value) => {
+                let guard = value.slice.lock().unwrap();
+                guard.as_ref().and_then(|values| values.get(value.index)).is_none()
+            }
+            GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
         }
     }
 
@@ -541,14 +613,18 @@ impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
                 f(guard.as_mut().unwrap())
             }
             GoPtr::SliceElem(slot) => {
-                let mut guard = slot.borrow_mut();
-                f(guard.as_mut().unwrap())
+                let mut guard = slot.slice.lock().unwrap();
+                let values = guard.as_mut().expect("nil pointer dereference");
+                f(values.get_mut(slot.index).expect("nil pointer dereference"))
             }
             GoPtr::ArrayElem(slot) => {
-                let mut value = slot.borrow_dyn().expect("nil pointer dereference");
-                let result = f(&mut value);
-                slot.assign_dyn(Some(value));
-                result
+                let mut result = None;
+                let mut callback = Some(f);
+                slot.with_mut_dyn(&mut |value| {
+                    let f = callback.take().expect("array element pointer mutable borrow called twice");
+                    result = Some(f(value));
+                });
+                result.expect("nil pointer dereference")
             }
         }
     }
@@ -580,13 +656,35 @@ impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
     }
 }
 
-impl<T: Clone + Send + Sync + 'static> Default for GoPtr<T> {
+impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
+    pub fn borrow(&self) -> Option<T> {
+        match self {
+            GoPtr::Nil => None,
+            GoPtr::Raw(_) => panic!("raw unsafe pointer dereference requires unsafe pointee support"),
+            GoPtr::Local(value) => (*value.lock().unwrap()).clone(),
+            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
+            GoPtr::ArrayElem(value) => value.borrow_dyn(),
+        }
+    }
+
+    pub fn assign(&self, value: Option<T>) {
+        match self {
+            GoPtr::Nil => panic!("nil pointer dereference"),
+            GoPtr::Raw(_) => panic!("raw unsafe pointer assignment requires unsafe pointee support"),
+            GoPtr::Local(slot) => *slot.lock().unwrap() = value,
+            GoPtr::SliceElem(slot) => *slot.borrow_mut() = value,
+            GoPtr::ArrayElem(slot) => slot.assign_dyn(value),
+        }
+    }
+}
+
+impl<T: Send + Sync + 'static> Default for GoPtr<T> {
     fn default() -> Self {
         GoPtr::Nil
     }
 }
 
-impl<T: Clone + Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
+impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_nil() {
             write!(f, "<nil>")
