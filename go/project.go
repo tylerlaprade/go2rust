@@ -323,6 +323,16 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
 	registerPackageTypeFactsFromFiles(astFiles)
+	if len(astFiles) > 1 {
+		// A nested value may be declared in a different file from the implementor.
+		interfaces := collectPackageInterfaceDecls(astFiles)
+		for name, iface := range packageState.FunctionLocalInterfaces {
+			if interfaces[name] == nil {
+				interfaces[name] = iface
+			}
+		}
+		markComparableInterfaceImplementorStructs(packageState.ComparableStructTypes, packageAnalysis.structDecls, interfaces)
+	}
 	registerFunctionSignaturesFromFiles(astFiles)
 	registerSliceElemPtrFactsFromFiles(astFiles)
 	packageState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(astFiles))

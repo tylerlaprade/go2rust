@@ -184,6 +184,7 @@ type StructDef struct {
 var structDefs = make(map[string]*StructDef)
 
 type transpileFileAnalysis struct {
+	structDecls                   []*ast.TypeSpec
 	comparableStructTypes         map[string]bool
 	mapKeyStructTypes             map[string]bool
 	pointerComparablePointees     map[string]bool
@@ -346,6 +347,15 @@ func enclosingFuncType(stack []ast.Node) *ast.FuncType {
 }
 
 func (analysis *transpileFileAnalysis) inspectPackageGenDecl(genDecl *ast.GenDecl, typeInfo *TypeInfo) {
+	if genDecl.Tok == token.TYPE {
+		for _, spec := range genDecl.Specs {
+			ts := spec.(*ast.TypeSpec)
+			if _, ok := ts.Type.(*ast.StructType); ok {
+				analysis.structDecls = append(analysis.structDecls, ts)
+			}
+		}
+		return
+	}
 	if genDecl.Tok != token.VAR || typeInfo == nil || typeInfo.info == nil {
 		return
 	}
@@ -1011,30 +1021,48 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 	}
 }
 
-func markComparableInterfaceImplementorStructs(typeDecls []struct {
-	spec *ast.TypeSpec
-	decl *ast.GenDecl
-}, interfaces map[string]*ast.InterfaceType) {
-	if NeedsConcurrentWrapper() {
+// Struct and array fields participate in Go value equality. Pointer fields
+// compare by identity and do not require equality on the pointed-to type.
+func markComparableValueFields(result map[string]bool, typ types.Type, pkg *types.Package, seen map[types.Type]bool) {
+	typ = types.Unalias(typ)
+	if seen[typ] {
+		return
+	}
+	seen[typ] = true
+	switch t := typ.Underlying().(type) {
+	case *types.Array:
+		markComparableValueFields(result, t.Elem(), pkg, seen)
+	case *types.Struct:
+		if named, ok := typ.(*types.Named); ok {
+			if named.Obj().Pkg() != pkg {
+				return
+			}
+			result[named.Obj().Name()] = true
+		}
+		for i := 0; i < t.NumFields(); i++ {
+			markComparableValueFields(result, t.Field(i).Type(), pkg, seen)
+		}
+	}
+}
+
+func markComparableInterfaceImplementorStructs(result map[string]bool, structs []*ast.TypeSpec, interfaces map[string]*ast.InterfaceType) {
+	if NeedsConcurrentWrapper() || len(interfaces) == 0 {
 		return
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return
 	}
-	for _, decl := range typeDecls {
-		structType, isStruct := decl.spec.Type.(*ast.StructType)
-		if !isStruct || structHasTraitField(structType) {
-			continue
-		}
-		obj, ok := typeInfo.info.Defs[decl.spec.Name].(*types.TypeName)
-		if !ok || obj == nil || obj.Type() == nil || !types.Comparable(obj.Type()) {
+	seen := make(map[types.Type]bool)
+	for _, spec := range structs {
+		obj, ok := typeInfo.info.Defs[spec.Name].(*types.TypeName)
+		if !ok || !types.Comparable(obj.Type()) || structHasTraitField(spec.Type.(*ast.StructType)) {
 			continue
 		}
 		for _, ifaceType := range interfaces {
 			iface, ok := typeInfo.GetType(ifaceType).(*types.Interface)
 			if ok && types.Implements(obj.Type(), iface) {
-				comparableStructTypes[decl.spec.Name.Name] = true
+				markComparableValueFields(result, obj.Type(), obj.Pkg(), seen)
 				break
 			}
 		}
@@ -3429,7 +3457,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			}
 		}
 	}
-	markComparableInterfaceImplementorStructs(types, interfaces)
+	markComparableInterfaceImplementorStructs(comparableStructTypes, fileAnalysis.structDecls, interfaces)
 	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls

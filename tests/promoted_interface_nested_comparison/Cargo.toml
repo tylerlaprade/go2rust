@@ -1,0 +1,8 @@
+[package]
+name = "promoted_interface_nested_comparison"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "promoted_interface_nested_comparison"
+path = "main.rs"
