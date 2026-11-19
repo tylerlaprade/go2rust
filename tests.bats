@@ -2123,6 +2123,14 @@ run_xfail_test() {
     run_test "tests/print_interface_value_twice_goroutines"
 }
 
+@test "print_nested_slice" {
+    run_test "tests/print_nested_slice"
+}
+
+@test "print_nested_slice_goroutines" {
+    run_test "tests/print_nested_slice_goroutines"
+}
+
 @test "print_nil_error_and_pointer" {
     run_test "tests/print_nil_error_and_pointer"
 }
