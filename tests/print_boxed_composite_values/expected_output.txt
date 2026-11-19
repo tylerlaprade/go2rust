@@ -44,3 +44,17 @@ slice holding a pointer: true 1 true
 {<nil>}
 {<nil>}
 {reported}
+&{7 0}
+&{7 0}
+{row &{7 0}}
+{row &{7 0}}
+&{row &{7 0}}
+slice: true 1
+&{8 0} &{2 3} 1
+{4 missing at &{9 0}}
+{outer {5 missing at &{9 0}}}
+status 404
+{n status 5}
+y not found
+<nil>
+{n <nil>}

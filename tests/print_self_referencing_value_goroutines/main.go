@@ -13,6 +13,14 @@ type Node struct {
 
 func render(v interface{}) string { return fmt.Sprintf("%v", v) }
 
+type Point struct{ X int }
+
+// Label prints itself by printing another value. That is a print call of its
+// own, so the pointer it prints is expanded wherever the Label sits.
+type Label struct{ X int }
+
+func (l Label) String() string { return render(&Point{X: l.X}) }
+
 // shape describes text around the addresses in it, which change from run to
 // run: whether it starts with prefix, and how many addresses it holds.
 func shape(text, prefix string) string {
@@ -37,4 +45,14 @@ func main() {
 	text := render(Node{Name: "holder", Next: tail})
 	fmt.Println("struct holding a pointer:", shape(text, "{holder 0x"), strings.Contains(text, "tail"))
 	fmt.Println(Node{Name: "end"})
+
+	fmt.Println(Node{Name: "row", Next: Label{7}})
+	fmt.Println(render(&Node{Name: "row", Next: Label{7}}))
+
+	// The elements of a slice are inside it. Spread into a print call they
+	// are its arguments, and a pointer among them is expanded.
+	var labels []interface{}
+	labels = append(labels, Label{8}, &Point{2}, 1)
+	fmt.Println("slice:", shape(fmt.Sprintf("%v", labels), "[&{8} 0x"))
+	fmt.Println(labels...)
 }

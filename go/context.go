@@ -839,8 +839,8 @@ func NeedFormatAny() {
 	}
 }
 
-// NeedFormatAnyNested marks that a value held inside another one is printed
-// through format_any, so the printer has to know it is below the top level.
+// NeedFormatAnyNested marks that a value held inside another one is printed,
+// which goes through format_any_nested.
 func NeedFormatAnyNested() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnyNested = true

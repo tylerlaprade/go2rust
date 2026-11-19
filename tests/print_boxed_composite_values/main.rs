@@ -7,32 +7,14 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 
-thread_local! {
-    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
-}
-
-// Runs format one level further inside the value being printed.
-fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
-    struct Depth;
-    impl Drop for Depth {
-        fn drop(&mut self) {
-            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
-        }
+// Go expands a pointer to a struct only when the pointer is the value being
+// printed. Inside a struct or a slice it prints the address. That is also
+// what keeps a value that points back to itself from printing forever.
+fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    if !nested {
+        return expand();
     }
-    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    format()
-}
-
-// Go expands a pointer to a struct only at the top level of the value being
-// printed. Inside a struct, a slice or another pointer it prints the address.
-// That is also what keeps a value that points back to itself from printing
-// forever.
-fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
-    if GO_FORMAT_ANY_DEPTH.with(|depth| depth.get()) > 0 {
-        return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
-    }
-    go_format_any_nested(expand)
+    if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
 }
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
@@ -103,6 +85,16 @@ where
 }
 
 fn format_any(value: &dyn Any) -> String {
+    format_any_at(value, false)
+}
+
+// Prints a value held inside the one being printed: a struct's interface
+// field, an element of a []interface{}.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any_at(value, true)
+}
+
+fn format_any_at(value: &dyn Any, nested: bool) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -117,6 +109,8 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Label>() {
+        format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Node>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<NotFound>() {
@@ -132,9 +126,13 @@ fn format_any(value: &dyn Any) -> String {
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>>() {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Node>>>>() {
-        go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+        go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<NotFound>>>>() {
+        match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() {
-        go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+        go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Status>>>>() {
+        match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<Point>>>>>() {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() {
@@ -154,10 +152,10 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
-fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, format_value: fn(&dyn Any) -> String) -> String {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        let formatted: Vec<String> = s.iter().map(|v| format_value(v.as_ref())).collect();
         formatted.join(" ")
     } else {
         String::new()
@@ -165,11 +163,11 @@ fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> St
 }
 
 fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    go_format_any_nested(|| format!("[{}]", format_any_slice_values(slice)))
+    format!("[{}]", format_any_slice_values(slice, format_any_nested))
 }
 
 fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    format_any_slice_values(slice)
+    format_any_slice_values(slice, format_any)
 }
 
 fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
@@ -189,6 +187,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Label>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Node>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<NotFound>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Outcome>() { return Box::new(v.clone()) as Box<dyn Any>; }
@@ -197,7 +196,9 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Node>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<NotFound>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Status>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<Point>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<bool>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
@@ -342,8 +343,74 @@ impl Default for Node {
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", match self.next.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.next.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
+/// Label prints itself by printing another value. That is a print call of its
+/// own: the pointer it prints is at the top level of that call, wherever the
+/// Label sits in the value being printed.
+#[derive(Debug, Clone)]
+pub struct Label {
+    pub x: Rc<RefCell<Option<i32>>>,
+}
+
+impl Label {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Label {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            x: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Label {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
+    }
+}
+
+
+/// Missing does the same from its Error method.
+#[derive(Debug, Clone)]
+pub struct Missing {
+    pub line: Rc<RefCell<Option<i32>>>,
+}
+
+impl Missing {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.line.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            line: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Missing {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            line: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Missing {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
     }
 }
 
@@ -427,6 +494,21 @@ impl NotFound {
 }
 
 impl StdError for NotFound {}
+
+
+impl Label {
+    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
+        render(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any>))))
+    }
+}
+
+impl Missing {
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(format!("{}{}", "missing at ".to_string(), (*render(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())))))
+    }
+}
+
+impl StdError for Missing {}
 
 
 pub fn render(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
@@ -524,4 +606,27 @@ fn main() {
     println!("{}", format!("{}", Report { err: Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Report { err: Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Report { err: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("reported"))))), ..Default::default() }) as Box<dyn Any>))));
+
+        // A String or Error method that prints starts a print call of its own.
+        // The pointer it prints is expanded, however deep the value with the
+        // method sits: in a field, behind a pointer, in a slice, in an error field.
+    println!("{}", format!("{}", Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))));
+    println!("{}", format!("{}", Node { name: Rc::new(RefCell::new(Some("row".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("row".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("row".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>))));
+    let mut labels = Rc::new(RefCell::new(Some(vec![Box::new(Label { x: Rc::new(RefCell::new(Some(8))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])));
+    println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", format_any_slice(&labels))))), Rc::new(RefCell::new(Some("[&{8 0} 0x".to_string())))).borrow().as_ref().unwrap())));
+    println!("{}", format_any_variadic(&labels));
+    println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(4))), err: Rc::new(RefCell::new(Some(Box::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Box<dyn StdError>))), ..Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("outer".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(5))), err: Rc::new(RefCell::new(Some(Box::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Box<dyn StdError>))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
+
+        // A pointer to a type with a String or Error method prints through the
+        // method, at the top level and inside another value. A nil one is <nil>.
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Status { code: Rc::new(RefCell::new(Some(404))), ..Default::default() }))).clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("n".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Status { code: Rc::new(RefCell::new(Some(5))), ..Default::default() }))).clone()) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(NotFound { name: Rc::new(RefCell::new(Some("y".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any>))));
+    let mut noStatus: Rc<RefCell<Option<Status>>> = Rc::new(RefCell::new(None));
+    show(Rc::new(RefCell::new(Some(Box::new(noStatus.clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("n".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(noStatus.clone()) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
 }
