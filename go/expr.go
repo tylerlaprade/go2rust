@@ -7164,6 +7164,19 @@ func currentReceiverRustName() string {
 	return "self"
 }
 
+func writePointerDerefValueCopy(out *strings.Builder, expr, pointer ast.Expr) {
+	out.WriteString("{ let __v = (*")
+	TranspileExpressionContext(out, pointer, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	if expressionNeedsGoValueClone(expr) {
+		out.WriteString(".__go_value_clone()")
+	} else {
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; __v }")
+}
+
 func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target ast.Expr) bool {
 	ident, ok := target.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) {
@@ -13191,10 +13204,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeGoPtrFieldDerefRead(out, e.X) {
 					break
 				}
-				out.WriteString("{ let __v = (*")
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone(); __v }")
+				writePointerDerefValueCopy(out, e, e.X)
 				break
 			}
 			out.WriteString("(*")
@@ -13295,10 +13305,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeUnsafePointerInterfaceDerefValue(out, e) {
 				break
 			}
-			out.WriteString("{ let __v = (*")
-			TranspileExpressionContext(out, e.X, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone(); __v }")
+			writePointerDerefValueCopy(out, e, e.X)
 			break
 		}
 		out.WriteString("(*")

@@ -1747,6 +1747,14 @@ run_xfail_test() {
     run_test "tests/nil_basic"
 }
 
+@test "nil_list_len" {
+    run_test "tests/nil_list_len"
+}
+
+@test "nil_list_len_concurrent" {
+    run_test "tests/nil_list_len_concurrent"
+}
+
 @test "non_blocking_channels" {
     run_test "tests/non_blocking_channels"
 }
