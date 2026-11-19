@@ -2586,6 +2586,10 @@ func writeNamedArrayNestedInnerPeels(out *strings.Builder, named *types.Named) {
 }
 
 func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	return writeNamedSliceInnerHandleCloneWithNilSlot(out, expr, false)
+}
+
+func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.Expr, allowNilSlot bool) bool {
 	if _, _, ok := namedSliceTypeForExpr(expr); !ok {
 		return false
 	}
@@ -2619,10 +2623,21 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
-	out.WriteString("{ let __named_slice = (*")
-	TranspileExpressionContext(out, expr, LValue)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).0.clone(); __named_slice }")
+	if allowNilSlot {
+		// A nil assignment can clear the outer slot. For nil comparison,
+		// this represents the same value as a named slice with a nil handle.
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
+		WriteWrappedNone(out)
+		out.WriteString("); __named_slice }")
+	} else {
+		out.WriteString("{ let __named_slice = (*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).0.clone(); __named_slice }")
+	}
 	return true
 }
 
@@ -6218,6 +6233,27 @@ func writeWrappedHandleNilComparison(out *strings.Builder, expr ast.Expr, op tok
 		out.WriteString("is_some()")
 	}
 	out.WriteString("; __nil_result }")
+}
+
+func writeNamedSliceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	if !isNamedSliceExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __slice_holder = ")
+	writeNamedSliceInnerHandleCloneWithNilSlot(out, expr, true)
+	out.WriteString("; let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__slice_guard).")
+	if op == token.EQL {
+		out.WriteString("is_none()")
+	} else {
+		out.WriteString("is_some()")
+	}
+	out.WriteString(" }")
+	return true
 }
 
 func writeNamedMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
@@ -11184,6 +11220,21 @@ func mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath string, expectedFieldType ty
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	if lit, ok := value.(*ast.CompositeLit); ok && lit.Type == nil {
+		if named, sliceType, ok := namedSliceTypeFromType(valueType); ok {
+			// The map stores the defined slice in its own cell. The slice
+			// payload still needs its inner handle, as in an explicit literal.
+			WriteWrapperPrefix(out)
+			out.WriteString(goTypesNamedTypeToRust(named))
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
+			writeBareSliceCompositeLiteral(out, lit, sliceType)
+			WriteWrapperSuffix(out)
+			out.WriteString(")")
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
 	if isGoErrorMapValueType(valueExpr, valueType) && writeGoErrorHandleValue(out, value) {
 		return
 	}
@@ -11220,9 +11271,25 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		out.WriteString(".clone()")
 		return
 	}
+	// A conversion to a basic value type already emits the element's handle.
+	if basic, ok := types.Unalias(valueType).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+		if call, ok := unwrapParens(value).(*ast.CallExpr); ok {
+			info := GetTypeInfo()
+			if info.GetType(call) == nil || info.GetType(call.Fun) == nil {
+				out.WriteString(`unimplemented!("type info required for map element call")`)
+				return
+			}
+			if info.IsTypeConversion(call) && typeConversionEmitsWrappedValue(call) {
+				TranspileExpression(out, call)
+				return
+			}
+		}
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
+	} else if valueType != nil && writeConstExpressionForExpectedNamedInteger(out, value, valueType) {
+		// The map cell holds the defined integer type.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
 	} else {
@@ -11334,6 +11401,9 @@ func typesStructFieldOwnerPackagePath(field *types.Var, structType types.Type) s
 
 func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
 	if writeStringValueForExpectedBasicType(out, key, keyType) {
+		return true
+	}
+	if writeLenCapCallArgumentForExpectedType(out, key, keyType) {
 		return true
 	}
 	if writeStdlibInterfaceMapKeyValue(out, key, keyType) {
@@ -11793,9 +11863,26 @@ func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValu
 	writeMapLookupValueWithHandle(out, valueType, defaultValue, false)
 }
 
+// A defined slice is represented by a named wrapper around the ordinary slice
+// handle. Map storage adds its own value cell around that wrapper. A missing
+// lookup therefore needs a present outer cell containing the named slice's nil
+// zero value; Default on the outer cell would instead leave it empty, so a
+// later len/index operation would unwrap None and panic.
+func writeMapLookupHandleZero(out *strings.Builder, valueType types.Type, defaultValue string) {
+	if _, _, ok := namedSliceTypeFromType(valueType); ok {
+		WriteWrapperPrefix(out)
+		out.WriteString(defaultValue)
+		WriteWrapperSuffix(out)
+		return
+	}
+	out.WriteString("Default::default()")
+}
+
 func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, defaultValue string, syntaxKeepsHandle bool) {
 	if syntaxKeepsHandle || mapValueTypeKeepsHandle(valueType) {
-		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
+		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| ")
+		writeMapLookupHandleZero(out, valueType, defaultValue)
+		out.WriteString(")")
 		return
 	}
 	if valueType == nil {
@@ -13667,6 +13754,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeLocalInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeNamedSliceNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeNamedMapNilComparison(out, e.X, e.Op) {
@@ -16909,6 +16999,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	// A local or imported alias denotes the same basic type as its target.
+	if basic, ok := types.Unalias(GetTypeInfo().GetType(call.Fun)).(*types.Basic); ok {
+		targetType = basic.Name()
+	}
 	// Map Go types to Rust types and handle the conversion
 	rustType := ""
 	needsCast := true
@@ -18062,6 +18156,9 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 		return false
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && call != nil && typeInfo.IsTypeConversion(call) {
+		if basic, ok := types.Unalias(typeInfo.GetType(call.Fun)).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+			return true
+		}
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(call)); ok {
 			return true
 		}
@@ -23046,27 +23143,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)
-				// Check if parameter expects float but arg is integer literal
-				isFloatParam := false
-				if paramField := ParamFieldForArg(funcSig, i); paramField != nil {
-					if paramIdent, ok := paramField.Type.(*ast.Ident); ok {
-						if paramIdent.Name == "float64" || paramIdent.Name == "float32" {
-							isFloatParam = true
-						}
-					}
-				}
 				if writeCopySelectorFieldArgumentValue(out, arg) {
 					// Field selectors passed by value copy the field contents, not the wrapper handle.
-				} else if isFloatParam {
-					// Capture expression to check if float suffix is needed
-					var argBuf strings.Builder
-					TranspileExpression(&argBuf, arg)
-					argStr := argBuf.String()
-					out.WriteString(argStr)
-					// Only add .0 if the expression is a pure integer (no decimal)
-					if !strings.Contains(argStr, ".") && !strings.Contains(argStr, "as f") {
-						out.WriteString(".0")
-					}
 				} else if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
 				} else if expectedArgType == nil && writeConstExpressionForTypeInfoType(out, arg) {
