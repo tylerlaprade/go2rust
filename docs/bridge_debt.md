@@ -197,10 +197,10 @@ in the first place.
   `tests/external_stub_closure_capture/`,
   `tests/embedded_external_method_promotion/`,
   `tests/XFAIL/flag_writer_output/` source-maps `flag` and demonstrates the
-  remaining boundary directly: `flag.FlagSet.Parse` writes its parse error
-  through a user-defined `io.Writer`, emits the unexpanded `-%s`, and then
-  panics in `io_Writer.__go_write_bytes` before the writer receives the
-  message,
+  remaining boundary directly: `flag.FlagSet.failf` emits the unexpanded
+  `-%s` parse error to stdout, then `default_usage` tries to send the usage
+  heading through the user-defined `io.Writer` and panics in
+  `io_Writer.__go_write_bytes` before the writer receives it,
   `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`,
   `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`,
   `go/stdlib_test.go:TestSourceMappedBytesBufferToExternalIoWriterIsLoud`,
