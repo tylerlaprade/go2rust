@@ -55,7 +55,7 @@ pub fn tail<S: GoByteSequence + Clone + 'static>(s: Rc<RefCell<Option<S>>>) -> R
 fn main() {
     let mut data = Rc::new(RefCell::new(Some(vec![10 as u8, 20 as u8, 30 as u8])));
     let mut view = tail::<Vec<u8>>(Rc::new(RefCell::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    (*view.borrow_mut().as_mut().unwrap())[(0) as usize] = 99 as u8;
+    { let __idx = (0) as usize; let __rhs = 99 as u8; (*view.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     {
             let __go_print_arg_0 = format!("{}", (*data.borrow().as_ref().unwrap())[(1) as usize].clone());
             let __go_print_arg_1 = format!("{}", (*view.borrow().as_ref().unwrap())[(0) as usize].clone());
