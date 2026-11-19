@@ -9,20 +9,27 @@ pub struct Module {
 
 impl Module {
     pub fn __go_value_clone(&self) -> Self {
-        Self { path: { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            path: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Module {
     fn default() -> Self {
-        Self { path: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            path: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.path.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.path.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -34,20 +41,27 @@ pub struct Source {
 
 impl Source {
     pub fn __go_value_clone(&self) -> Self {
-        Self { module: { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        Self {
+            module: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Source {
     fn default() -> Self {
-        Self { module: Rc::new(RefCell::new(Some(Module::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Module::default())));
+        Self {
+            module: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Source {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.module.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.module.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -59,20 +73,27 @@ pub struct Dest {
 
 impl Dest {
     pub fn __go_value_clone(&self) -> Self {
-        Self { module: { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        Self {
+            module: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Dest {
     fn default() -> Self {
-        Self { module: Rc::new(RefCell::new(Some(Module::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Module::default())));
+        Self {
+            module: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Dest {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.module.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.module.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

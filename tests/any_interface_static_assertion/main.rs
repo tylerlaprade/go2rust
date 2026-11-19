@@ -10,45 +10,52 @@ pub struct person {
 
 impl person {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for person {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for person {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl person {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
 pub fn asserted_name(p: Rc<RefCell<Option<person>>>) -> Rc<RefCell<Option<String>>> {
     let (mut named, mut ok) = ({
-        let val = Rc::new(RefCell::new(Some(Box::new((*p.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)));
+        let val = Rc::new(RefCell::new(Some(Box::new((*p.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>))).clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<person>() {
-                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface1>))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface1>))), true)
             } else {
-                (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), false)
         }
     });
-    if (*ok.borrow().as_ref().unwrap()) {
+    if ok {
         return (*named.borrow().as_ref().unwrap()).name();
     }
     Rc::new(RefCell::new(Some("missing".to_string())))
