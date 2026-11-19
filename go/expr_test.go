@@ -10072,3 +10072,38 @@ func packageName(file *ast.File) string {
 		t.Fatalf("selector chain should still access the Name fields:\n%s", rust)
 	}
 }
+
+// A range variable over a slice is a reference into the slice, and a map key
+// is a bare value. Putting either in an interface{} takes an owned copy; it
+// used to box the reference, which does not live long enough, or move the
+// key, which a second use then could not have.
+func TestRangeVariableIsCopiedIntoAnInterfaceValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func show(args ...any) { fmt.Println(args...) }
+
+func main() {
+	for _, dir := range []string{"a"} {
+		var x any = dir
+		show(dir, x)
+	}
+	for k := range map[string]int{"k": 1} {
+		show(k, k)
+	}
+}
+`)
+
+	for _, want := range []string{
+		"Box::new((*dir).clone()) as Box<dyn Any>",
+		"Box::new(k.clone()) as Box<dyn Any>, Box::new(k.clone()) as Box<dyn Any>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Box::new(dir) as") {
+		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
+	}
+}

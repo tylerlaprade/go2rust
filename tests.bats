@@ -2335,6 +2335,14 @@ run_xfail_test() {
     run_test "tests/range_string_value_reassign"
 }
 
+@test "range_variable_in_interface" {
+    run_test "tests/range_variable_in_interface"
+}
+
+@test "range_variable_in_interface_goroutines" {
+    run_test "tests/range_variable_in_interface_goroutines"
+}
+
 @test "range_wrapped_call_and_array_pointer" {
     run_test "tests/range_wrapped_call_and_array_pointer"
 }
