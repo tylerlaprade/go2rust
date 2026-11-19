@@ -8851,9 +8851,11 @@ func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) 
 	}
 }
 
-// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" makes the
-// existing slice or map variable or field v the same slice or map as the
-// entry by replacing its handle, as the plain "v = m[k]" does.
+// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" can replace
+// the target's Rust handle directly. Besides slices and maps, function and
+// interface values (including error) are represented by a handle which is
+// also the Go value. Rebinding that handle leaves the map's value cell intact;
+// moving its contents into the target would empty the map entry.
 func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -8885,8 +8887,19 @@ func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) boo
 		return isPlainSliceExpression(lhs)
 	case *types.Map:
 		return typeInfo.IsMap(lhs) && !isNamedMapExpression(lhs)
+	case *types.Signature, *types.Interface:
+		return true
 	}
 	return false
+}
+
+func mapCommaOkValueIsChannel(indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	return mapValueTypeIsChannel(valueType)
 }
 
 // mapCommaOkValueIsSliceOrMap reports whether the values of the map read by
@@ -8933,6 +8946,15 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 		out.WriteString("__held")
 		WriteWrapperOptionSuffix(out)
 		out.WriteString(" }")
+		return
+	}
+	if mapCommaOkValueIsChannel(indexExpr) {
+		// Map elements live in cells, but a channel local is the bare GoChannel
+		// handle. Copy that handle out of the element's cell; returning v.clone()
+		// would return the cell itself and does not type-check at the target.
+		out.WriteString("v")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().clone()")
 		return
 	}
 	if syntaxKeepsHandle {
@@ -12125,8 +12147,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString(" ")
 						writePointerHandleAssignmentTargetFromValueName(out, s.Lhs[0], "__tmp_0")
 					} else {
-						// A function, interface, error or channel value is
-						// still moved out of the map's handle here (DEV-58).
 						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
 					}
 					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)

@@ -326,6 +326,56 @@ func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
 	}
 }
 
+func TestMapCommaOkAssignmentKeepsHandleValuesInTheMap(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type message string
+func (m message) Error() string { return string(m) }
+
+func main() {
+	functions := map[string]func() string{"k": func() string { return "function" }}
+	var function func() string
+	var ok bool
+	function, ok = functions["k"]
+
+	interfaces := map[string]any{"k": "interface"}
+	var iface any
+	iface, ok = interfaces["k"]
+
+	errorsByName := map[string]error{"k": message("error")}
+	var err error
+	err, ok = errorsByName["k"]
+
+	channels := map[string]chan int{"k": make(chan int, 1)}
+	channel := make(chan int)
+	channel, ok = channels["k"]
+	still := channels["k"]
+	_, _, _, _, _, _ = function, iface, err, channel, still, ok
+}
+`)
+
+	for what, want := range map[string]string{
+		"function handle":  "function = __tmp_0;",
+		"interface handle": "iface = __tmp_0;",
+		"error handle":     "err = __tmp_0;",
+		"channel value":    "Some(v) => (v.borrow().as_ref().unwrap().clone(), true)",
+		"channel map read": ".map(|__v| { let __guard = __v.borrow(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q in:\n%s", what, want, rust)
+		}
+	}
+	for _, moved := range []string{
+		"*function.borrow_mut() = __moved_tmp_0",
+		"*iface.borrow_mut() = __moved_tmp_0",
+		"*err.borrow_mut() = __moved_tmp_0",
+	} {
+		if strings.Contains(rust, moved) {
+			t.Errorf("map value was moved out through %q in:\n%s", moved, rust)
+		}
+	}
+}
+
 // An element sent on a channel is a copy of the element.
 func TestSendingASliceElementCopiesIt(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main

@@ -1503,6 +1503,14 @@ run_xfail_test() {
     run_test "tests/make_slice_zero_len_capacity"
 }
 
+@test "map_comma_ok_assignment_handle_values" {
+    run_test "tests/map_comma_ok_assignment_handle_values"
+}
+
+@test "map_comma_ok_assignment_handle_values_goroutines" {
+    run_test "tests/map_comma_ok_assignment_handle_values_goroutines"
+}
+
 @test "map_comma_ok_assignment_targets" {
     run_test "tests/map_comma_ok_assignment_targets"
 }
