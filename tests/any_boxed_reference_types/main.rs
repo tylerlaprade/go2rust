@@ -130,6 +130,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<f64>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
@@ -163,6 +164,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() { return "map[string]bool" }
     if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return "map[string]int" }
     if val.is::<Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>>() { return "func() int" }
+    if val.is::<Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>>() { return "func(int) int" }
     if val.is::<Rc<RefCell<Option<Point>>>>() { return "*main.Point" }
     if val.is::<Rc<RefCell<Option<Vec<String>>>>>() { return "[]string" }
     if val.is::<Rc<RefCell<Option<Vec<f64>>>>>() { return "[]float64" }
@@ -793,10 +795,12 @@ fn main() {
     let mut boxedScale: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(scale.clone()) as Box<dyn Any>)));
     println!("{} {}", format!("{}", "call defined func:".to_string()), format!("{}", ({
         let __f_holder = { let val = boxedScale.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Scale>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
-        let mut __f_guard = __f_holder.borrow_mut();
-        let __f: &mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = __f_guard.as_mut().expect("call of nil function");
-        let __f_result = (*__f)(Rc::new(RefCell::new(Some(4))));
-        __f_result
+        (|__f_arg0| {
+            let mut __f_guard = __f_holder.borrow_mut();
+            let __f: &mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = __f_guard.as_mut().expect("call of nil function");
+            let __f_result = (*__f)(__f_arg0);
+            __f_result
+        })(Rc::new(RefCell::new(Some(4))))
     })));
     let mut calls = Rc::new(RefCell::new(Some(0)));
     let mut calls_closure_clone = calls.clone(); let mut counter: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
@@ -805,18 +809,83 @@ fn main() {
     }) as Box<dyn FnMut() -> i32>))).clone()) as Box<dyn Any>)));
     ({
         let __f_holder = { let val = counter.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
-        let mut __f_guard = __f_holder.borrow_mut();
-        let __f: &mut Box<dyn FnMut() -> i32> = __f_guard.as_mut().expect("call of nil function");
-        let __f_result = (*__f)();
-        __f_result
+        (|| {
+            let mut __f_guard = __f_holder.borrow_mut();
+            let __f: &mut Box<dyn FnMut() -> i32> = __f_guard.as_mut().expect("call of nil function");
+            let __f_result = (*__f)();
+            __f_result
+        })()
     });
     println!("{} {} {}", format!("{}", "call func:".to_string()), format!("{}", ({
         let __f_holder = { let val = counter.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
-        let mut __f_guard = __f_holder.borrow_mut();
-        let __f: &mut Box<dyn FnMut() -> i32> = __f_guard.as_mut().expect("call of nil function");
-        let __f_result = (*__f)();
-        __f_result
+        (|| {
+            let mut __f_guard = __f_holder.borrow_mut();
+            let __f: &mut Box<dyn FnMut() -> i32> = __f_guard.as_mut().expect("call of nil function");
+            let __f_result = (*__f)();
+            __f_result
+        })()
     })), format!("{}", { let __v = (*calls.borrow().as_ref().unwrap()).clone(); __v }));
+
+        // An argument may itself call the same boxed function. Go finishes the
+        // inner call before the outer one starts.
+    let mut step: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<i32>>>| -> i32 {
+        println!("{} {}", format!("{}", "step".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
+        (*n.borrow().as_ref().unwrap()) + 1
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>))).clone()) as Box<dyn Any>)));
+    println!("{} {}", format!("{}", "nested call:".to_string()), format!("{}", ({
+        let __f_holder = { let val = step.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
+        (|__f_arg0| {
+            let mut __f_guard = __f_holder.borrow_mut();
+            let __f: &mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = __f_guard.as_mut().expect("call of nil function");
+            let __f_result = (*__f)(__f_arg0);
+            __f_result
+        })(Rc::new(RefCell::new(Some(({
+        let __f_holder = { let val = step.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
+        (|__f_arg0| {
+            let mut __f_guard = __f_holder.borrow_mut();
+            let __f: &mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = __f_guard.as_mut().expect("call of nil function");
+            let __f_result = (*__f)(__f_arg0);
+            __f_result
+        })(Rc::new(RefCell::new(Some(1))))
+    })))))
+    })));
+
+        // An element of a slice of slices, and the loop variable over one, is
+        // still a []int when it is put in an interface. So is a map's value.
+    let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1], vec![2, 3]])));
+    println!("{} {}", format!("{}", "element:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*matrix.borrow().as_ref().unwrap())[(1) as usize].clone().clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for row in __range_values.iter() {
+        println!("{} {}", format!("{}", "range value:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*row).clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    } }
+    let mut firstRow: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*matrix.borrow().as_ref().unwrap())[(0) as usize].clone().clone())))) as Box<dyn Any>)));
+    {
+        let (mut row, mut ok) = ({
+        let val = firstRow.clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
+                (typed_val.clone(), true)
+            } else {
+                (Rc::new(RefCell::new(None::<Vec<i32>>)), false)
+            }
+        } else {
+            (Rc::new(RefCell::new(None::<Vec<i32>>)), false)
+        }
+    });;
+        if ok {
+            println!("{} {}", format!("{}", "asserted element:".to_string()), format!("{}", (*row.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));;
+        }
+    }
+    let mut rowsByName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i32>>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(vec![4, 5, 6]))))]))));
+    println!("{} {}", format!("{}", "slice in map:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new({ let __map_holder = rowsByName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    for (_, value) in { let __range_holder = rowsByName.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        println!("{} {}", format!("{}", "slice in map, range value:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(value.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    }
+    let mut tables = Rc::new(RefCell::new(Some(vec![BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1)))), ("b".to_string(), Rc::new(RefCell::new(Some(2))))])])));
+    println!("{} {}", format!("{}", "slice of maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*tables.borrow().as_ref().unwrap())[(0) as usize].clone().clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    { let __range_holder = tables.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for table in __range_values.iter() {
+        println!("{} {}", format!("{}", "range over maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*table).clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    } }
 
         // %T names the dynamic type, and the static type of a typed variable.
     println!("{} {} {} {}", format!("{}", "dynamic:".to_string()), format!("{}", (*type_name(Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", (*type_name(Rc::new(RefCell::new(Some(Box::new(names.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", (*type_name(Rc::new(RefCell::new(Some(Box::new(counts.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));

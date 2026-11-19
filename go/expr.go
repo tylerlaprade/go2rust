@@ -8888,9 +8888,59 @@ func writeAnyHandleBoxInnerValue(out *strings.Builder, expr ast.Expr) bool {
 	if typ == nil || !anyBoxedConcreteValueKeepsHandle(typ) {
 		return false
 	}
+	if anyBoxedCollectionExprIsBare(expr, typ) {
+		// Not every slice or map expression has a handle to clone. An
+		// element of a [][]int or of a []map[string]int, and the loop
+		// variable ranging over one, is a bare value. Put it in a new
+		// handle, as a call does when it passes the same expression to a
+		// []int parameter, so the box always holds the handle the
+		// assertions look for.
+		WriteWrapperPrefix(out)
+		if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
+			writeOwnedRangeValue(out, ident)
+		} else {
+			TranspileExpressionContext(out, expr, LValue)
+			out.WriteString(".clone()")
+		}
+		WriteWrapperSuffix(out)
+		return true
+	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone()")
 	return true
+}
+
+// anyBoxedCollectionExprIsBare reports whether expr, a slice or map that
+// keeps its handle when boxed, is one of the expressions that has no handle:
+// an element of a slice or array (collections are stored bare as elements),
+// or a loop variable that ranges over such elements.
+func anyBoxedCollectionExprIsBare(expr ast.Expr, typ types.Type) bool {
+	switch types.Unalias(typ).(type) {
+	case *types.Slice, *types.Map:
+	default:
+		return false
+	}
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		varType, isRangeVar := rangeLoopVars[e.Name]
+		return isRangeVar && !identShadowsRangeVar(e) && !isWrappedRangeVarType(varType)
+	case *ast.IndexExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return false
+		}
+		container := typeInfo.GetType(e.X)
+		if container == nil {
+			return false
+		}
+		switch c := types.Unalias(container).Underlying().(type) {
+		case *types.Slice:
+			return arraySliceElementExpectedStoresBareCollection(c.Elem())
+		case *types.Array:
+			return arraySliceElementExpectedStoresBareCollection(c.Elem())
+		}
+	}
+	return false
 }
 
 // anyBoxedConcreteValueKeepsHandle reports whether boxing a value of type typ
@@ -8976,24 +9026,24 @@ func typeAssertionAnyHandleTarget(e *ast.TypeAssertExpr) (handleType string, bar
 // functionAssertionAnyHandleTarget reports the boxed handle type and the
 // callable it holds for a type assertion that takes a function value back out
 // of an empty interface.
-func functionAssertionAnyHandleTarget(e *ast.TypeAssertExpr) (handleType string, boxType string, ok bool) {
+func functionAssertionAnyHandleTarget(e *ast.TypeAssertExpr) (handleType string, boxType string, paramCount int, ok bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || e == nil || e.Type == nil || !isEmptyInterfaceValueExpr(e.X) {
-		return "", "", false
+		return "", "", 0, false
 	}
 	target := typeInfo.GetType(e.Type)
 	if target == nil {
-		return "", "", false
+		return "", "", 0, false
 	}
 	sig, isFunc := types.Unalias(target).Underlying().(*types.Signature)
 	if !isFunc {
-		return "", "", false
+		return "", "", 0, false
 	}
 	handleType, ok = anyBoxedHandleRustType(target)
 	if !ok {
-		return "", "", false
+		return "", "", 0, false
 	}
-	return handleType, goTypesTypeToRust(sig), true
+	return handleType, goTypesTypeToRust(sig), sig.Params().Len(), true
 }
 
 // writeAnyHandleAssertionExpectBareValue downcasts receiver to the boxed
@@ -23192,13 +23242,16 @@ func typeAssertionEmitsBareFunctionValue(expr ast.Expr) bool {
 // asserted out of an interface and returns the text that closes it once the
 // caller has written the argument list.
 func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAssertExpr) string {
-	if handleType, boxType, ok := functionAssertionAnyHandleTarget(e); ok {
-		// A function value sits in the box as its handle. Take the handle
-		// out first so the interface is no longer borrowed while the
-		// function runs, then call through the handle's own guard. The
-		// guard is held for the whole call: a function that calls itself
-		// through the same handle stops with a borrow error instead of
-		// running with two mutable references to one closure.
+	if handleType, boxType, paramCount, ok := functionAssertionAnyHandleTarget(e); ok {
+		// A function value sits in the box as its handle. The order is
+		// Go's: take the handle out of the interface, evaluate the
+		// arguments, then call. The call goes through a closure so that Rust
+		// evaluates the arguments before the closure body takes the handle's
+		// guard; an argument that calls the same function, as in
+		// f.(func(int) int)(f.(func(int) int)(1)), has finished by then.
+		// The guard is held for the whole call: a function that calls
+		// itself through the same handle stops with a borrow error instead
+		// of running with two mutable references to one closure.
 		out.WriteString("({\n")
 		out.WriteString("        let __f_holder = { let val = ")
 		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
@@ -23211,16 +23264,28 @@ func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAsser
 		out.WriteString("; match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<")
 		out.WriteString(handleType)
 		out.WriteString(">().expect(\"type assertion failed\").clone(), None => panic!(\"type assertion on nil interface\") } };\n")
-		out.WriteString("        let mut __f_guard = __f_holder")
+		params := make([]string, paramCount)
+		for i := range params {
+			params[i] = fmt.Sprintf("__f_arg%d", i)
+		}
+		paramList := strings.Join(params, ", ")
+		out.WriteString("        (|")
+		out.WriteString(paramList)
+		out.WriteString("| {\n")
+		out.WriteString("            let mut __f_guard = __f_holder")
 		WriteBorrowMethod(out, true)
 		out.WriteString(";\n")
-		out.WriteString("        let __f: &mut ")
+		out.WriteString("            let __f: &mut ")
 		out.WriteString(boxType)
 		out.WriteString(" = __f_guard.as_mut().expect(\"call of nil function\");\n")
 		// Bind the result before the block ends so the guard outlives every
 		// temporary of the call expression.
-		out.WriteString("        let __f_result = (*__f)")
-		return ";\n        __f_result\n    })"
+		out.WriteString("            let __f_result = (*__f)(")
+		out.WriteString(paramList)
+		out.WriteString(");\n")
+		out.WriteString("            __f_result\n")
+		out.WriteString("        })")
+		return "\n    })"
 	}
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")

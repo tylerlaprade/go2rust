@@ -245,6 +245,36 @@ func main() {
 	counter.(func() int)()
 	fmt.Println("call func:", counter.(func() int)(), calls)
 
+	// An argument may itself call the same boxed function. Go finishes the
+	// inner call before the outer one starts.
+	var step interface{} = func(n int) int {
+		fmt.Println("step", n)
+		return n + 1
+	}
+	fmt.Println("nested call:", step.(func(int) int)(step.(func(int) int)(1)))
+
+	// An element of a slice of slices, and the loop variable over one, is
+	// still a []int when it is put in an interface. So is a map's value.
+	matrix := [][]int{{1}, {2, 3}}
+	fmt.Println("element:", classify(matrix[1]))
+	for _, row := range matrix {
+		fmt.Println("range value:", classify(row))
+	}
+	var firstRow interface{} = matrix[0]
+	if row, ok := firstRow.([]int); ok {
+		fmt.Println("asserted element:", len(row))
+	}
+	rowsByName := map[string][]int{"k": {4, 5, 6}}
+	fmt.Println("slice in map:", classify(rowsByName["k"]))
+	for _, value := range rowsByName {
+		fmt.Println("slice in map, range value:", classify(value))
+	}
+	tables := []map[string]int{{"a": 1, "b": 2}}
+	fmt.Println("slice of maps:", classify(tables[0]))
+	for _, table := range tables {
+		fmt.Println("range over maps:", classify(table))
+	}
+
 	// %T names the dynamic type, and the static type of a typed variable.
 	fmt.Println("dynamic:", typeName(xs), typeName(names), typeName(counts))
 	fmt.Println("dynamic:", typeName(p), typeName(pv), typeName([]float64{1}))
