@@ -3,6 +3,10 @@ count 1 of 2
 name=x ok=true
 7-z
 value: 42
+k=1
+k|1
+1 and two
+2 arguments
    42|42   |00042|+42|ff|FF|10|101|A|'A'|U+0041
 go|        go|go        |go|"go"|676f
 2.5|2.500000|2.50|   2.500|1.234568e+05|1e+21

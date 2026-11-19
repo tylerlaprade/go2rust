@@ -115,6 +115,43 @@ func main() {
 	show("%+v", sprintf("%+v", "hello"))
 	show("%+v", sprintf("%+v", 42))
 
+	// Zero padding and a precision count digits, and 0x, 0b or 0o comes on
+	// top of them. The 0 that # puts before an octal number is not added to
+	// a number that already starts with one. A precision of zero prints
+	// nothing for zero.
+	prefixFormats := []string{
+		"%#08x", "%#08X", "%#08b", "%#08o", "%08O", "%#8x|", "%#-8x|", "%#-08x|", "%#.3o", "%#.1o",
+		"%#.3x", "%#8.3x|", "%+08d", "% 08d", "%+.0d|", "%#.0x|", "%5.0d|", "%#o", "%#b", "%O",
+	}
+	prefixValues := []int{0, 7, -42, 255}
+	for _, format := range prefixFormats {
+		for _, value := range prefixValues {
+			show(format, sprintf(format, value))
+		}
+	}
+
+	// A width or a precision from an argument can be any integer type.
+	show("%*d|", sprintf("%*d|", uint32(6), 42))
+	show("%*d|", sprintf("%*d|", int8(-6), 42))
+	show("%*d|", sprintf("%*d|", int64(6), 42))
+	show("%*d|", sprintf("%*d|", uint64(6), 42))
+	show("%*d|", sprintf("%*d|", int16(6), 42))
+	show("%.*f", sprintf("%.*f", uint8(2), 3.14159))
+	show("%.*f", sprintf("%.*f", uint(3), 3.14159))
+	show("%*d|", sprintf("%*d|", 2.5, 42))
+
+	// %+q writes characters outside ASCII as escapes.
+	show("%+q", sprintf("%+q", "é"))
+	show("%+q", sprintf("%+q", "a\tb☺"))
+	show("%+q", sprintf("%+q", "😀"))
+	show("%+q", sprintf("%+q", "plain"))
+	show("%+q", sprintf("%+q", 'é'))
+	show("%+q", sprintf("%+q", 'x'))
+	show("%+q", sprintf("%+q", '😀'))
+	show("%q", sprintf("%q", "é☺"))
+	show("%#U", sprintf("%#U", '\''))
+	show("%#U", sprintf("%#U", '\\'))
+
 	// A []byte prints as text with %s, %q and %x, and as numbers with %v.
 	data := []byte("Hello")
 	show("%s", sprintf("%s", data))

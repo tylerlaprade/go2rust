@@ -135,8 +135,9 @@ fn go_format_sign(spec: &GoFormatSpec, negative: bool) -> &'static str {
     }
 }
 
-// Quotes text the way strconv.Quote does, with quote as the delimiter.
-fn go_format_quote(text: &str, quote: char) -> String {
+// Quotes text the way strconv.Quote does, with quote as the delimiter. ascii
+// is the + flag: every character outside ASCII is written as an escape.
+fn go_format_quote(text: &str, quote: char, ascii: bool) -> String {
     let mut out = String::new();
     out.push(quote);
     for c in text.chars() {
@@ -154,7 +155,7 @@ fn go_format_quote(text: &str, quote: char) -> String {
                 out.push(c);
             }
             c if (c as u32) < 0x20 || c == '\u{7f}' => out.push_str(&format!("\\x{:02x}", c as u32)),
-            c if c.is_control() || (c.is_whitespace() && c != ' ') => {
+            c if c.is_control() || (c.is_whitespace() && c != ' ') || (ascii && !c.is_ascii()) => {
                 if (c as u32) < 0x10000 {
                     out.push_str(&format!("\\u{:04x}", c as u32));
                 } else {
@@ -171,20 +172,19 @@ fn go_format_quote(text: &str, quote: char) -> String {
 fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<String> {
     let negative = value < 0;
     let magnitude = value.unsigned_abs();
-    let (mut digits, prefix) = match verb {
-        'd' | 'v' => (magnitude.to_string(), ""),
-        'b' => (format!("{:b}", magnitude), if spec.sharp { "0b" } else { "" }),
-        'o' => (format!("{:o}", magnitude), if spec.sharp && magnitude != 0 { "0" } else { "" }),
-        'O' => (format!("{:o}", magnitude), "0o"),
-        'x' => (format!("{:x}", magnitude), if spec.sharp { "0x" } else { "" }),
-        'X' => (format!("{:X}", magnitude), if spec.sharp { "0X" } else { "" }),
+    let mut digits = match verb {
+        'd' | 'v' => magnitude.to_string(),
+        'b' => format!("{:b}", magnitude),
+        'o' | 'O' => format!("{:o}", magnitude),
+        'x' => format!("{:x}", magnitude),
+        'X' => format!("{:X}", magnitude),
         'c' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
             return Some(go_format_pad(spec, c.to_string(), 0, false));
         }
         'q' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
-            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\''), 0, false));
+            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\'', spec.plus), 0, false));
         }
         'U' => {
             let mut text = format!("U+{:04X}", value as u64);
@@ -197,17 +197,30 @@ fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<Str
         }
         _ => return None,
     };
-    if let Some(precision) = spec.precision {
-        if precision == 0 && magnitude == 0 {
-            digits.clear();
-        }
-        if digits.len() < precision {
-            digits = "0".repeat(precision - digits.len()) + &digits;
-        }
-    }
     let sign = go_format_sign(spec, negative);
-    let text = format!("{}{}{}", sign, prefix, digits);
-    Some(go_format_pad(spec, text, sign.len() + prefix.len(), spec.precision.is_none()))
+    // A precision and zero padding both ask for a least number of digits.
+    // The sign is counted in the width of zero padding; 0x, 0b and 0o are
+    // not, they come on top.
+    let least_digits = match spec.precision {
+        // Zero with a precision of zero prints nothing but the padding.
+        Some(0) if magnitude == 0 => return Some(go_format_pad(&GoFormatSpec { zero: false, ..*spec }, String::new(), 0, false)),
+        Some(precision) => precision,
+        None if spec.zero && !spec.minus => spec.width.unwrap_or(0).saturating_sub(sign.len()),
+        None => 0,
+    };
+    if digits.len() < least_digits {
+        digits = "0".repeat(least_digits - digits.len()) + &digits;
+    }
+    let prefix = match verb {
+        'b' if spec.sharp => "0b",
+        // The 0 of %#o is only added to a number that does not start with one.
+        'o' if spec.sharp && !digits.starts_with('0') => "0",
+        'O' => "0o",
+        'x' if spec.sharp => "0x",
+        'X' if spec.sharp => "0X",
+        _ => "",
+    };
+    Some(go_format_pad(spec, format!("{}{}{}", sign, prefix, digits), 0, false))
 }
 
 // The digits of a float and the power of ten of the first one, from Rust's
@@ -335,7 +348,7 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
             if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
                 format!("\u{60}{}\u{60}", truncated)
             } else {
-                go_format_quote(&truncated, '"')
+                go_format_quote(&truncated, '"', spec.plus)
             }
         }
         _ => return None,
@@ -427,9 +440,18 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
             None => return Err(()),
         };
         *next += 1;
-        let value = arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied());
+        // fmt takes any integer type here.
+        let mut value: Option<i128> = None;
+        macro_rules! integer {
+            ($($t:ty),*) => {
+                $(if let Some(v) = arg.downcast_ref::<$t>() {
+                    value = Some(*v as i128);
+                })*
+            };
+        }
+        integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
         return match value {
-            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value)),
+            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value as i64)),
             _ => Err(()),
         };
     }
@@ -638,6 +660,40 @@ fn main() {
     show(Rc::new(RefCell::new(Some("%#10v|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#10v|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("hi".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("hello".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>])))));
+
+        // Zero padding and a precision count digits, and 0x, 0b or 0o comes on
+        // top of them. The 0 that # puts before an octal number is not added to
+        // a number that already starts with one. A precision of zero prints
+        // nothing for zero.
+    let mut prefixFormats = Rc::new(RefCell::new(Some(vec!["%#08x".to_string(), "%#08X".to_string(), "%#08b".to_string(), "%#08o".to_string(), "%08O".to_string(), "%#8x|".to_string(), "%#-8x|".to_string(), "%#-08x|".to_string(), "%#.3o".to_string(), "%#.1o".to_string(), "%#.3x".to_string(), "%#8.3x|".to_string(), "%+08d".to_string(), "% 08d".to_string(), "%+.0d|".to_string(), "%#.0x|".to_string(), "%5.0d|".to_string(), "%#o".to_string(), "%#b".to_string(), "%O".to_string()])));
+    let mut prefixValues = Rc::new(RefCell::new(Some(vec![0, 7, -42, 255])));
+    { let __range_holder = prefixFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = prefixValues.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
+    } }
+    } }
+
+        // A width or a precision from an argument can be any integer type.
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as u32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(6) as i8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as i16))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(2 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(3 as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+
+        // %+q writes characters outside ASCII as escapes.
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{e9}".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("a\tb\u{263a}".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{1f600}".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("plain".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{e9}' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('x' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{1f600}' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{e9}\u{263a}".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\'' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\\' as i32)) as Box<dyn Any>])))));
 
         // A []byte prints as text with %s, %q and %x, and as numbers with %v.
     let mut data = Rc::new(RefCell::new(Some(("Hello".to_string()).as_bytes().to_vec())));

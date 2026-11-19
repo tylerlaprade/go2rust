@@ -91,8 +91,9 @@ fn go_format_sign(spec: &GoFormatSpec, negative: bool) -> &'static str {
     }
 }
 
-// Quotes text the way strconv.Quote does, with quote as the delimiter.
-fn go_format_quote(text: &str, quote: char) -> String {
+// Quotes text the way strconv.Quote does, with quote as the delimiter. ascii
+// is the + flag: every character outside ASCII is written as an escape.
+fn go_format_quote(text: &str, quote: char, ascii: bool) -> String {
     let mut out = String::new();
     out.push(quote);
     for c in text.chars() {
@@ -110,7 +111,7 @@ fn go_format_quote(text: &str, quote: char) -> String {
                 out.push(c);
             }
             c if (c as u32) < 0x20 || c == '\u{7f}' => out.push_str(&format!("\\x{:02x}", c as u32)),
-            c if c.is_control() || (c.is_whitespace() && c != ' ') => {
+            c if c.is_control() || (c.is_whitespace() && c != ' ') || (ascii && !c.is_ascii()) => {
                 if (c as u32) < 0x10000 {
                     out.push_str(&format!("\\u{:04x}", c as u32));
                 } else {
@@ -127,20 +128,19 @@ fn go_format_quote(text: &str, quote: char) -> String {
 fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<String> {
     let negative = value < 0;
     let magnitude = value.unsigned_abs();
-    let (mut digits, prefix) = match verb {
-        'd' | 'v' => (magnitude.to_string(), ""),
-        'b' => (format!("{:b}", magnitude), if spec.sharp { "0b" } else { "" }),
-        'o' => (format!("{:o}", magnitude), if spec.sharp && magnitude != 0 { "0" } else { "" }),
-        'O' => (format!("{:o}", magnitude), "0o"),
-        'x' => (format!("{:x}", magnitude), if spec.sharp { "0x" } else { "" }),
-        'X' => (format!("{:X}", magnitude), if spec.sharp { "0X" } else { "" }),
+    let mut digits = match verb {
+        'd' | 'v' => magnitude.to_string(),
+        'b' => format!("{:b}", magnitude),
+        'o' | 'O' => format!("{:o}", magnitude),
+        'x' => format!("{:x}", magnitude),
+        'X' => format!("{:X}", magnitude),
         'c' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
             return Some(go_format_pad(spec, c.to_string(), 0, false));
         }
         'q' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
-            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\''), 0, false));
+            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\'', spec.plus), 0, false));
         }
         'U' => {
             let mut text = format!("U+{:04X}", value as u64);
@@ -153,17 +153,30 @@ fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<Str
         }
         _ => return None,
     };
-    if let Some(precision) = spec.precision {
-        if precision == 0 && magnitude == 0 {
-            digits.clear();
-        }
-        if digits.len() < precision {
-            digits = "0".repeat(precision - digits.len()) + &digits;
-        }
-    }
     let sign = go_format_sign(spec, negative);
-    let text = format!("{}{}{}", sign, prefix, digits);
-    Some(go_format_pad(spec, text, sign.len() + prefix.len(), spec.precision.is_none()))
+    // A precision and zero padding both ask for a least number of digits.
+    // The sign is counted in the width of zero padding; 0x, 0b and 0o are
+    // not, they come on top.
+    let least_digits = match spec.precision {
+        // Zero with a precision of zero prints nothing but the padding.
+        Some(0) if magnitude == 0 => return Some(go_format_pad(&GoFormatSpec { zero: false, ..*spec }, String::new(), 0, false)),
+        Some(precision) => precision,
+        None if spec.zero && !spec.minus => spec.width.unwrap_or(0).saturating_sub(sign.len()),
+        None => 0,
+    };
+    if digits.len() < least_digits {
+        digits = "0".repeat(least_digits - digits.len()) + &digits;
+    }
+    let prefix = match verb {
+        'b' if spec.sharp => "0b",
+        // The 0 of %#o is only added to a number that does not start with one.
+        'o' if spec.sharp && !digits.starts_with('0') => "0",
+        'O' => "0o",
+        'x' if spec.sharp => "0x",
+        'X' if spec.sharp => "0X",
+        _ => "",
+    };
+    Some(go_format_pad(spec, format!("{}{}{}", sign, prefix, digits), 0, false))
 }
 
 // The digits of a float and the power of ten of the first one, from Rust's
@@ -291,7 +304,7 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
             if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
                 format!("\u{60}{}\u{60}", truncated)
             } else {
-                go_format_quote(&truncated, '"')
+                go_format_quote(&truncated, '"', spec.plus)
             }
         }
         _ => return None,
@@ -383,9 +396,18 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
             None => return Err(()),
         };
         *next += 1;
-        let value = arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied());
+        // fmt takes any integer type here.
+        let mut value: Option<i128> = None;
+        macro_rules! integer {
+            ($($t:ty),*) => {
+                $(if let Some(v) = arg.downcast_ref::<$t>() {
+                    value = Some(*v as i128);
+                })*
+            };
+        }
+        integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
         return match value {
-            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value)),
+            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value as i64)),
             _ => Err(()),
         };
     }

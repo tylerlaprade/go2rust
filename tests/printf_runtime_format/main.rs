@@ -250,8 +250,9 @@ fn go_format_sign(spec: &GoFormatSpec, negative: bool) -> &'static str {
     }
 }
 
-// Quotes text the way strconv.Quote does, with quote as the delimiter.
-fn go_format_quote(text: &str, quote: char) -> String {
+// Quotes text the way strconv.Quote does, with quote as the delimiter. ascii
+// is the + flag: every character outside ASCII is written as an escape.
+fn go_format_quote(text: &str, quote: char, ascii: bool) -> String {
     let mut out = String::new();
     out.push(quote);
     for c in text.chars() {
@@ -269,7 +270,7 @@ fn go_format_quote(text: &str, quote: char) -> String {
                 out.push(c);
             }
             c if (c as u32) < 0x20 || c == '\u{7f}' => out.push_str(&format!("\\x{:02x}", c as u32)),
-            c if c.is_control() || (c.is_whitespace() && c != ' ') => {
+            c if c.is_control() || (c.is_whitespace() && c != ' ') || (ascii && !c.is_ascii()) => {
                 if (c as u32) < 0x10000 {
                     out.push_str(&format!("\\u{:04x}", c as u32));
                 } else {
@@ -286,20 +287,19 @@ fn go_format_quote(text: &str, quote: char) -> String {
 fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<String> {
     let negative = value < 0;
     let magnitude = value.unsigned_abs();
-    let (mut digits, prefix) = match verb {
-        'd' | 'v' => (magnitude.to_string(), ""),
-        'b' => (format!("{:b}", magnitude), if spec.sharp { "0b" } else { "" }),
-        'o' => (format!("{:o}", magnitude), if spec.sharp && magnitude != 0 { "0" } else { "" }),
-        'O' => (format!("{:o}", magnitude), "0o"),
-        'x' => (format!("{:x}", magnitude), if spec.sharp { "0x" } else { "" }),
-        'X' => (format!("{:X}", magnitude), if spec.sharp { "0X" } else { "" }),
+    let mut digits = match verb {
+        'd' | 'v' => magnitude.to_string(),
+        'b' => format!("{:b}", magnitude),
+        'o' | 'O' => format!("{:o}", magnitude),
+        'x' => format!("{:x}", magnitude),
+        'X' => format!("{:X}", magnitude),
         'c' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
             return Some(go_format_pad(spec, c.to_string(), 0, false));
         }
         'q' => {
             let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
-            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\''), 0, false));
+            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\'', spec.plus), 0, false));
         }
         'U' => {
             let mut text = format!("U+{:04X}", value as u64);
@@ -312,17 +312,30 @@ fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<Str
         }
         _ => return None,
     };
-    if let Some(precision) = spec.precision {
-        if precision == 0 && magnitude == 0 {
-            digits.clear();
-        }
-        if digits.len() < precision {
-            digits = "0".repeat(precision - digits.len()) + &digits;
-        }
-    }
     let sign = go_format_sign(spec, negative);
-    let text = format!("{}{}{}", sign, prefix, digits);
-    Some(go_format_pad(spec, text, sign.len() + prefix.len(), spec.precision.is_none()))
+    // A precision and zero padding both ask for a least number of digits.
+    // The sign is counted in the width of zero padding; 0x, 0b and 0o are
+    // not, they come on top.
+    let least_digits = match spec.precision {
+        // Zero with a precision of zero prints nothing but the padding.
+        Some(0) if magnitude == 0 => return Some(go_format_pad(&GoFormatSpec { zero: false, ..*spec }, String::new(), 0, false)),
+        Some(precision) => precision,
+        None if spec.zero && !spec.minus => spec.width.unwrap_or(0).saturating_sub(sign.len()),
+        None => 0,
+    };
+    if digits.len() < least_digits {
+        digits = "0".repeat(least_digits - digits.len()) + &digits;
+    }
+    let prefix = match verb {
+        'b' if spec.sharp => "0b",
+        // The 0 of %#o is only added to a number that does not start with one.
+        'o' if spec.sharp && !digits.starts_with('0') => "0",
+        'O' => "0o",
+        'x' if spec.sharp => "0x",
+        'X' if spec.sharp => "0X",
+        _ => "",
+    };
+    Some(go_format_pad(spec, format!("{}{}{}", sign, prefix, digits), 0, false))
 }
 
 // The digits of a float and the power of ten of the first one, from Rust's
@@ -450,7 +463,7 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
             if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
                 format!("\u{60}{}\u{60}", truncated)
             } else {
-                go_format_quote(&truncated, '"')
+                go_format_quote(&truncated, '"', spec.plus)
             }
         }
         _ => return None,
@@ -542,9 +555,18 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
             None => return Err(()),
         };
         *next += 1;
-        let value = arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied());
+        // fmt takes any integer type here.
+        let mut value: Option<i128> = None;
+        macro_rules! integer {
+            ($($t:ty),*) => {
+                $(if let Some(v) = arg.downcast_ref::<$t>() {
+                    value = Some(*v as i128);
+                })*
+            };
+        }
+        integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
         return match value {
-            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value)),
+            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value as i64)),
             _ => Err(()),
         };
     }
@@ -757,6 +779,9 @@ impl os_SyscallError {
 }
 
 
+pub(crate) const PAIR_LAYOUT: &'static str = "%v=%v\n";
+
+
 #[derive(Debug, Clone)]
 pub struct Point {
     pub x: Rc<RefCell<Option<i32>>>,
@@ -846,6 +871,24 @@ pub fn errorf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<B
     Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, true))))))
 }
 
+/// showPair passes its arguments on as a list to a format that is known when
+/// the program is translated: a constant, and one written out in the call.
+pub fn show_pair(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
+    print!("{}", go_sprintf_spread(&PAIR_LAYOUT, &args, false));
+    let mut text = Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&"%v|%v".to_string(), &args, false)))));
+    println!("{}", format!("{}", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v }));
+}
+
+/// later formats inside a closure. The closure holds the format and the
+/// arguments, and the arguments are used again after it is made.
+pub fn later(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
+    let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&(*format_closure_clone.borrow().as_ref().unwrap()).clone(), &args_closure_clone, false)))))
+    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>)));
+    println!("{}", format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = build.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", "arguments".to_string()));
+}
+
 pub fn pick(named: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
     if (*named.borrow().as_ref().unwrap()) {
         return Rc::new(RefCell::new(Some("name=%s ok=%v\n".to_string())));
@@ -860,6 +903,9 @@ fn main() {
     println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d-%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
     let mut f = Rc::new(RefCell::new(Some("value: %d\n".to_string())));
     print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42) as Box<dyn Any>], false));
+
+    show_pair(Rc::new(RefCell::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>]))));
+    later(Rc::new(RefCell::new(Some("%d and %s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>]))));
 
         // Verbs, flags, width and precision.
     logf(Rc::new(RefCell::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(255) as Box<dyn Any>, Box::new(255) as Box<dyn Any>, Box::new(8) as Box<dyn Any>, Box::new(5) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>]))));

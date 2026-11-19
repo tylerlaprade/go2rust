@@ -27,6 +27,26 @@ func errorf(format string, args ...interface{}) error {
 	return fmt.Errorf(format, args...)
 }
 
+const pairLayout = "%v=%v\n"
+
+// showPair passes its arguments on as a list to a format that is known when
+// the program is translated: a constant, and one written out in the call.
+func showPair(args ...interface{}) {
+	fmt.Printf(pairLayout, args...)
+	text := fmt.Sprintf("%v|%v", args...)
+	fmt.Println(text)
+}
+
+// later formats inside a closure. The closure holds the format and the
+// arguments, and the arguments are used again after it is made.
+func later(format string, args ...interface{}) {
+	build := func() string {
+		return fmt.Sprintf(format, args...)
+	}
+	fmt.Println(build())
+	fmt.Println(len(args), "arguments")
+}
+
 func pick(named bool) string {
 	if named {
 		return "name=%s ok=%v\n"
@@ -46,6 +66,9 @@ func main() {
 	fmt.Println(sprintf("%d-%s", 7, "z"))
 	f := "value: %d\n"
 	fmt.Printf(f, 42)
+
+	showPair("k", 1)
+	later("%d and %s", 1, "two")
 
 	// Verbs, flags, width and precision.
 	logf("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U", 42, 42, 42, 42, 255, 255, 8, 5, 65, 65, 65)

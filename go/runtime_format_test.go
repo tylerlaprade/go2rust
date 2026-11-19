@@ -216,3 +216,85 @@ func main() {
 		t.Fatalf("want the Arc handle of a []byte:\n%s", locked)
 	}
 }
+
+// f(format, args...) cannot be expanded while translating even when the
+// format is known then: the number of arguments and their types are only
+// known when the call runs. It used to pass the slice as one argument of a
+// Rust format macro, which did not compile.
+func TestSpreadArgumentsGoToTheRuntimeFormatterWhateverTheFormat(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+const layout = "%v=%v\n"
+
+func showPair(args ...interface{}) {
+	fmt.Printf(layout, args...)
+	text := fmt.Sprintf("%v|%v", args...)
+	fmt.Println(text)
+	fmt.Fprintf(os.Stdout, "%v+%v\n", args...)
+	err := fmt.Errorf("%v/%v", args...)
+	fmt.Println(err)
+}
+
+func main() {
+	showPair("k", 1)
+	fmt.Printf(layout, "direct", 2)
+}
+`)
+
+	for _, want := range []string{
+		`print!("{}", go_sprintf_spread(&`,
+		`go_sprintf_spread(&"%v|%v".to_string(), &args, false)`,
+		`go_sprintf_spread(&"%v+%v\n".to_string(), &args, false)`,
+		`go_sprintf_spread(&"%v/%v".to_string(), &args, true)`,
+		// Without a spread the constant format is still expanded.
+		`print!("{}={}\n", "direct"`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		`format_any_slice(&args)`,
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("the slice must not be one argument of a format macro, found %q in:\n%s", unwanted, rust)
+		}
+	}
+}
+
+// A closure gets its own clone of each variable it captures, under another
+// name. The spread slice has to be that clone, or the closure takes the
+// variable itself and the function cannot use it afterwards.
+func TestSpreadSliceInAClosureIsTheCapturedClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func later(format string, args ...interface{}) {
+	build := func() string {
+		return fmt.Sprintf(format, args...)
+	}
+	fmt.Println(build())
+	fmt.Println(len(args))
+}
+
+func main() {
+	later("%d and %s", 1, "two")
+}
+`)
+
+	if !strings.Contains(rust, "let args_closure_clone = args.clone();") {
+		t.Fatalf("the closure should capture a clone of args:\n%s", rust)
+	}
+	if !strings.Contains(rust, "&args_closure_clone, false)") {
+		t.Fatalf("the formatter should receive the captured clone:\n%s", rust)
+	}
+	if strings.Contains(rust, ", &args, false)") {
+		t.Fatalf("the closure must not use the outer variable:\n%s", rust)
+	}
+}

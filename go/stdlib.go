@@ -1266,7 +1266,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	if len(call.Args) > formatArgIndex {
-		if literal, ok := translationTimeFormat(call.Args[formatArgIndex]); ok {
+		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
@@ -1753,7 +1753,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
-		if literal, ok := translationTimeFormat(call.Args[0]); ok {
+		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
@@ -1811,7 +1811,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
-		if literal, ok := translationTimeFormat(call.Args[0]); ok {
+		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
@@ -6484,7 +6484,7 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 			if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 				if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "fmt" && (sel.Sel.Name == "Errorf" || sel.Sel.Name == "Sprintf") {
 					if len(callExpr.Args) > 0 {
-						if literal, ok := translationTimeFormat(callExpr.Args[0]); ok {
+						if literal, ok := expandedFormat(callExpr, 0); ok {
 							format := convertFormatString(literal)
 							out.WriteString(format)
 							for i := 1; i < len(callExpr.Args); i++ {
