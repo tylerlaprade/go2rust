@@ -21,7 +21,7 @@ go build -o /tmp/go2rust ./go
 ./conformance.py --transpiler /tmp/go2rust --work /tmp/conf --out /tmp/conf/new.jsonl
 ```
 
-Nothing is written into the repository. The scratch directory holds one test at a time per job, plus the Go build cache, and stays at a few hundred megabytes. `--match REGEX` limits the run to matching paths, for example `--match '^ken/'`. `--keep` leaves the generated Rust of each test that does not pass in the scratch directory.
+Nothing is written into the repository. The scratch directory holds one test at a time per job, plus the Go build cache, and stays at a few hundred megabytes. `--match REGEX` limits the run to matching paths, for example `--match '^ken/'`. `--keep` leaves the Go source and the generated Rust of each test that does not pass in the scratch directory, whichever step it stopped at; the path is in the result's `kept` field. Use one scratch directory per run: two runs sharing one would overwrite each other.
 
 Each test ends in one outcome:
 
@@ -47,6 +47,8 @@ Compare a run of your branch with a run of master:
 ```
 
 It lists every test whose outcome changed and exits 1 if a test that passed on master no longer passes. A translator change should not make that list grow.
+
+Both runs have to cover the same tests. If the new file lacks tests the old one has, because the run was interrupted or used a narrower `--match`, the comparison says so and exits 2. It does not report the missing tests as unbroken.
 
 ## Picking work from it
 

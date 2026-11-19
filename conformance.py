@@ -39,6 +39,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -48,15 +49,26 @@ ERROR_CODE = re.compile(r"^error(\[(E\d+)\])?: (.*)$", re.M)
 
 
 def run(cmd, cwd, timeout, env=None):
+    """Run cmd and return (exit status or None on timeout, stdout, stderr, seconds).
+
+    The command gets its own process group, and a timeout kills the whole
+    group: cargo's rustc and a test's own children would otherwise outlive it.
+    """
     start = time.time()
+    proc = subprocess.Popen(
+        cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
     try:
-        proc = subprocess.run(
-            cmd, cwd=cwd, env=env, timeout=timeout,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        )
-        return proc.returncode, proc.stdout, proc.stderr, time.time() - start
-    except subprocess.TimeoutExpired as exc:
-        return None, exc.stdout or b"", exc.stderr or b"", time.time() - start
+        out, err = proc.communicate(timeout=timeout)
+        return proc.returncode, out, err, time.time() - start
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        out, err = proc.communicate()
+        return None, out or b"", err or b"", time.time() - start
 
 
 def select_tests(root, pattern):
@@ -69,12 +81,12 @@ def select_tests(root, pattern):
             path = os.path.join(dirpath, name)
             try:
                 with open(path, "rb") as handle:
-                    first = handle.readline().decode("utf-8", "replace").rstrip("\n")
+                    first = handle.readline().decode("utf-8", "replace").rstrip("\r\n")
             except OSError:
                 continue
             if first != "// run":
                 continue
-            rel = os.path.relpath(path, root)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
             if pattern and not re.search(pattern, rel):
                 continue
             tests.append(rel)
@@ -96,13 +108,28 @@ def first_error(stderr_text):
 
 
 def run_one(rel, args, worker_dir):
-    src = os.path.join(args.goroot_test, rel)
     slug = re.sub(r"[^A-Za-z0-9_]", "_", rel[:-3])
     workdir = os.path.join(worker_dir, "t_" + slug)
     shutil.rmtree(workdir, ignore_errors=True)
     os.makedirs(workdir)
-    shutil.copy(src, os.path.join(workdir, "main.go"))
     result = {"test": rel}
+    try:
+        classify(rel, args, workdir, result)
+    finally:
+        # --keep leaves the Go source and the generated Rust of every test
+        # that did not pass, whichever step it stopped at. The build output is
+        # large and can be rebuilt, so it goes either way.
+        if args.keep and result.get("outcome") not in ("pass", "skip-go"):
+            shutil.rmtree(os.path.join(workdir, "target"), ignore_errors=True)
+            result["kept"] = workdir
+        else:
+            shutil.rmtree(workdir, ignore_errors=True)
+    return result
+
+
+def classify(rel, args, workdir, result):
+    """Run one test in workdir and record its outcome in result."""
+    shutil.copy(os.path.join(args.goroot_test, rel), os.path.join(workdir, "main.go"))
 
     # Build to a file in the work directory, then run it. `go run` would keep
     # a copy of every executable in the build cache, a few megabytes per test.
@@ -118,8 +145,7 @@ def run_one(rel, args, worker_dir):
         result["outcome"] = "skip-go"
         lines = go_err.decode("utf-8", "replace").strip().splitlines()
         result["detail"] = "timeout" if code is None else (lines[-1][:200] if lines else f"exit {code}")
-        shutil.rmtree(workdir, ignore_errors=True)
-        return result
+        return
     os.remove(go_binary)
 
     code, _, err, took = run([args.transpiler, workdir], workdir, args.transpile_timeout, go_env)
@@ -128,8 +154,7 @@ def run_one(rel, args, worker_dir):
         result["outcome"] = "transpile-fail"
         text = err.decode("utf-8", "replace").strip()
         result["detail"] = "timeout" if code is None else (text.splitlines()[-1][:200] if text else "no output")
-        shutil.rmtree(workdir, ignore_errors=True)
-        return result
+        return
 
     # Each program is its own crate with no dependencies, so a shared target
     # directory saves nothing and grows by a few megabytes per test. Keep the
@@ -139,18 +164,19 @@ def run_one(rel, args, worker_dir):
         os.environ, CARGO_TARGET_DIR=target, CARGO_INCREMENTAL="0",
         RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0",
     )
+    # A cross-compilation target would move the binary out of target/debug.
+    cargo_env.pop("CARGO_BUILD_TARGET", None)
     code, _, err, took = run(["cargo", "build", "--quiet", "--offline"], workdir, args.build_timeout, cargo_env)
     result["build_seconds"] = round(took, 2)
     if code != 0:
         text = err.decode("utf-8", "replace")
         result["outcome"] = "compile-fail"
         if code is None:
-            result["detail"] = "timeout"
+            result["error_code"], result["detail"] = "timeout", "timeout"
         else:
             result["error_code"], result["detail"] = first_error(text)
             result["error_count"] = len(ERROR_CODE.findall(text))
-        shutil.rmtree(workdir, ignore_errors=True)
-        return result
+        return
 
     binary = os.path.join(target, "debug", cargo_bin_name(workdir))
     code, rust_out, rust_err, took = run([binary], workdir, args.run_timeout)
@@ -169,10 +195,6 @@ def run_one(rel, args, worker_dir):
         result["outcome"] = "stderr-mismatch"
     else:
         result["outcome"] = "pass"
-    if args.keep and result["outcome"] != "pass":
-        return result
-    shutil.rmtree(workdir, ignore_errors=True)
-    return result
 
 
 OUTCOMES = [
@@ -218,7 +240,27 @@ def report(path):
 
 
 def compare(old_path, new_path):
+    """Print what changed from old to new.
+
+    Returns 2 when new lacks tests that old has: that is an interrupted or
+    narrower run, and its missing tests cannot be called unbroken. Returns 1
+    when a test that passed in old does not pass in new. Returns 0 otherwise.
+    """
     old, new = load(old_path), load(new_path)
+    missing = sorted(set(old) - set(new))
+    added = sorted(set(new) - set(old))
+    if missing:
+        passed = [test for test in missing if old[test]["outcome"] == "pass"]
+        print(f"incomplete comparison: {len(missing)} of {len(old)} tests in {old_path} "
+              f"are missing from {new_path}, {len(passed)} of which passed")
+        for test in missing[:10]:
+            print(f"  {test}")
+        if len(missing) > 10:
+            print(f"  ... and {len(missing) - 10} more")
+        print("run both sides over the same tests (same --match, no --limit, not interrupted)")
+        return 2
+    if added:
+        print(f"{len(added)} tests are only in {new_path}; they are not compared")
     broke, fixed, moved = [], [], []
     for test in sorted(set(old) & set(new)):
         before, after = old[test]["outcome"], new[test]["outcome"]
@@ -249,7 +291,8 @@ def main():
     parser.add_argument("--report", metavar="RESULTS", help="summarize a saved results file and exit")
     parser.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"),
                         help="list the tests whose outcome differs between two results files; "
-                             "exits 1 if a test that passed in OLD does not pass in NEW")
+                             "exits 1 if a test that passed in OLD does not pass in NEW, "
+                             "2 if NEW lacks tests that OLD has")
     parser.add_argument("--transpiler", help="path to the go2rust binary")
     parser.add_argument("--goroot-test", default=None, help="defaults to $(go env GOROOT)/test")
     parser.add_argument("--work", help="scratch directory (created; reused between runs)")
@@ -276,14 +319,21 @@ def main():
     if not args.goroot_test:
         goroot = subprocess.check_output(["go", "env", "GOROOT"], text=True).strip()
         args.goroot_test = os.path.join(goroot, "test")
-    if not args.gocache:
-        args.gocache = os.path.join(args.work, "gocache")
+    # Every command runs inside a test's own directory, so every path it is
+    # given has to be absolute.
+    args.work = os.path.abspath(args.work)
+    args.gocache = os.path.abspath(args.gocache) if args.gocache else os.path.join(args.work, "gocache")
     args.transpiler = os.path.abspath(args.transpiler)
+    args.goroot_test = os.path.abspath(args.goroot_test)
+    if not os.path.isdir(args.goroot_test):
+        parser.error(f"no such directory: {args.goroot_test}")
     os.makedirs(args.work, exist_ok=True)
 
     tests = select_tests(args.goroot_test, args.match)
     if args.limit:
         tests = tests[: args.limit]
+    if not tests:
+        parser.error(f"no `// run` tests selected from {args.goroot_test}")
     print(f"{len(tests)} run tests selected from {args.goroot_test}", flush=True)
 
     worker_dirs = {}
@@ -299,18 +349,27 @@ def main():
             return worker_dirs[ident]
 
     counts = {}
+    results = []
     start = time.time()
+    # Rows are written as tests finish, so an interrupted run leaves what it
+    # had; --compare then reports the tests that are missing.
     with open(args.out, "w", encoding="utf-8") as out, \
             concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = [pool.submit(lambda rel=rel: run_one(rel, args, worker_dir())) for rel in tests]
         for index, future in enumerate(concurrent.futures.as_completed(futures), 1):
             result = future.result()
+            results.append(result)
             counts[result["outcome"]] = counts.get(result["outcome"], 0) + 1
             out.write(json.dumps(result, sort_keys=True) + "\n")
             out.flush()
             if index % 25 == 0 or index == len(tests):
                 summary = " ".join(f"{name}={counts[name]}" for name in sorted(counts))
                 print(f"[{index}/{len(tests)} {time.time() - start:.0f}s] {summary}", flush=True)
+    # A finished run is rewritten in test order, so two runs of the same
+    # translator produce the same file.
+    with open(args.out, "w", encoding="utf-8") as out:
+        for result in sorted(results, key=lambda row: row["test"]):
+            out.write(json.dumps(result, sort_keys=True) + "\n")
     print()
     report(args.out)
     return 0
