@@ -2347,6 +2347,10 @@ run_xfail_test() {
     run_test "tests/slice_elem_pointer_short_decl"
 }
 
+@test "slice_element_pointer_field_receiver" {
+    run_test "tests/slice_element_pointer_field_receiver"
+}
+
 @test "slice_expr_call_argument" {
     run_test "tests/slice_expr_call_argument"
 }
