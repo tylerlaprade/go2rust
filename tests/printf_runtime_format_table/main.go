@@ -122,8 +122,9 @@ func main() {
 	prefixFormats := []string{
 		"%#08x", "%#08X", "%#08b", "%#08o", "%08O", "%#8x|", "%#-8x|", "%#-08x|", "%#.3o", "%#.1o",
 		"%#.3x", "%#8.3x|", "%+08d", "% 08d", "%+.0d|", "%#.0x|", "%5.0d|", "%#o", "%#b", "%O",
+		"%#O", "%#.3O", "%#08O",
 	}
-	prefixValues := []int{0, 7, -42, 255}
+	prefixValues := []int{0, 7, 8, -42, 255}
 	for _, format := range prefixFormats {
 		for _, value := range prefixValues {
 			show(format, sprintf(format, value))
@@ -151,6 +152,32 @@ func main() {
 	show("%q", sprintf("%q", "é☺"))
 	show("%#U", sprintf("%#U", '\''))
 	show("%#U", sprintf("%#U", '\\'))
+
+	// Zero padding applies to a character, a quoted character, a bool and
+	// the name of a type as it does to a string.
+	show("%05c|%05q|%-05c|%05U", sprintf("%05c|%05q|%-05c|%05U", 65, 65, 65, 65))
+	show("%05c|%05q", sprintf("%05c|%05q", 'é', 'é'))
+	show("%05T|%05t", sprintf("%05T|%05t", 65, true))
+
+	// %q writes a character that cannot be seen as an escape.
+	show("%q", sprintf("%q", "zero\u200bwidth"))
+	show("%q", sprintf("%q", "soft\u00adhyphen"))
+	show("%q", sprintf("%q", "\ufeffmark"))
+	show("%q", sprintf("%q", "no\u00a0break"))
+	show("%q", sprintf("%q", '\u200b'))
+	show("%#v", sprintf("%#v", "zero\u200bwidth"))
+	show("%#U", sprintf("%#U", '\u200b'))
+	show("%#U", sprintf("%#U", ' '))
+
+	// %q writes a byte that is not UTF-8 as an escape too.
+	broken := []byte{0xff, 0x41, 0xc3, 0xa9}
+	show("%q", sprintf("%q", broken))
+	show("%+q", sprintf("%+q", broken))
+	show("%x", sprintf("%x", broken))
+	show("%#q", sprintf("%#q", broken))
+	show("%.1q", sprintf("%.1q", broken))
+	show("%.3q", sprintf("%.3q", broken))
+	show("%12q|", sprintf("%12q|", broken))
 
 	// A []byte prints as text with %s, %q and %x, and as numbers with %v.
 	data := []byte("Hello")
