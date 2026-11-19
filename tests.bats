@@ -1547,6 +1547,14 @@ run_xfail_test() {
     run_test "tests/map_pointer_value_literal_assignment"
 }
 
+@test "map_range_independent_values" {
+    run_test "tests/map_range_independent_values"
+}
+
+@test "map_range_independent_values_goroutines" {
+    run_test "tests/map_range_independent_values_goroutines"
+}
+
 @test "map_range_key_comma_ok" {
     run_test "tests/map_range_key_comma_ok"
 }

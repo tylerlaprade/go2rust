@@ -11929,13 +11929,12 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 		return true
 	}
 	if isWrappedRangeVarType(varType) {
-		if copyCall, known := rangeVarGoValueCopyCall(ident); known && copyCall != ".clone()" {
-			// The range variable is the cell of a struct, as for the values
-			// of a map. Its owned value is Go's copy of what the cell holds.
+		if typ := rangeVarGoType(ident); typ != nil && !mapValueTypeKeepsHandle(typ) {
+			// Read the value out of the range variable's storage cell.
 			out.WriteString(name)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()")
-			out.WriteString(copyCall)
+			out.WriteString(goValueCopyCallForType(typ))
 			return true
 		}
 		if strings.HasPrefix(varType, "&") {
@@ -22077,18 +22076,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Check if this variable is wrapped (not a range var, not a constant, not bare)
 				typeInfo := GetTypeInfo()
 				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-					needsUnwrap = typeInfo != nil && (typeInfo.IsPointer(ident) || isWrappedRangeVarType(varType) && isStdlibNamedInterfaceValueType(typeInfo.GetType(ident)))
-					if !needsUnwrap && typeInfo != nil && isWrappedRangeVarType(varType) {
-						if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(ident)); ok {
-							needsUnwrap = true
-						} else if _, ok := types.Unalias(typeInfo.GetType(ident)).(*types.TypeParam); ok {
-							// Range var whose type is a type parameter: the value
-							// is wrapped (Rc/Arc<...<T>>) and the called method is
-							// a trait method on the bound interface, so unwrap to
-							// &T to dispatch it (calling on the handle is E0599).
-							needsUnwrap = true
-						}
-					}
+					// Map range values are held in an independent variable cell.
+					// Method dispatch must therefore unwrap that cell for every Go
+					// value type, including named scalars and structs. Restricting
+					// this to pointer/interface values emitted `p.inc()` on the
+					// Rc/Arc wrapper for `for _, p := range map[string]Point`.
+					// Channel range values keep their older `channel_val` marker,
+					// so use their Go type as well: a received `*Point` is already
+					// a pointer handle and its method dispatch must unwrap it.
+					needsUnwrap = isWrappedRangeVarType(varType) || (typeInfo != nil && typeInfo.IsPointer(ident))
 				} else {
 					if !isLocalConstantIdent(ident) {
 						if isFunctionTypeAliasValue(ident) {

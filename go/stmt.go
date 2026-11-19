@@ -7769,13 +7769,23 @@ func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, valu
 	out.WriteString(";\n")
 }
 
-// writeMapRangeValueIterationCopy makes the value variable of a range over a
-// map of structs Go's copy of the map's value, at the start of the
-// iteration. The loop binds the variable to the map's own cell for that
-// value; without this "v.X = 1" in the loop writes into the map.
+// writeMapRangeValueIterationCopy gives the value variable of a range over a
+// map its own variable cell at the start of the iteration. The map snapshot
+// stores handles to the map's value cells, but Go copies every map value into
+// an independent loop variable: scalar assignments must not replace the map
+// entry, while slice, map, pointer, and channel values still copy their inner
+// handles and therefore retain Go's reference semantics.
 func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type, value ast.Expr) {
 	ident, ok := value.(*ast.Ident)
 	if !ok || ident.Name == "_" {
+		return
+	}
+	// The map already stores reference-shaped values as their Go handle. A
+	// map snapshot clones that handle, which is the range variable's Go value
+	// for mutations through a slice, map, pointer, channel, function or
+	// interface. Wrapping the pointee instead would deep-copy slices and maps,
+	// lose pointer identity, and panic while trying to unwrap a nil pointer.
+	if mapValueTypeKeepsHandle(valueType) {
 		return
 	}
 	name := RustLocalIdent(ident.Name)
@@ -7790,9 +7800,6 @@ func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type,
 		return
 	}
 	copyCall := goValueCopyCallForType(valueType)
-	if copyCall == ".clone()" {
-		return
-	}
 	out.WriteString("        let ")
 	out.WriteString(name)
 	out.WriteString(" = ")
@@ -7803,6 +7810,19 @@ func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type,
 	out.WriteString(copyCall)
 	WriteWrapperSuffix(out)
 	out.WriteString(";\n")
+
+	// The pattern binding above is a range value (and was registered as a
+	// bare binding), but the shadow is an ordinary wrapped Go variable. Keep
+	// VarTable in sync so assignment lowering writes through the fresh cell
+	// instead of trying to replace the Rc/Arc binding with a bare value.
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(ident.Name, &VarInfo{
+			WrapLevel: WrapFull,
+			RustType:  goTypesCollectionElemTypeToRust(valueType),
+			Source:    SourceRangeVal,
+			GoType:    valueType,
+		})
+	}
 }
 
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
@@ -8453,7 +8473,7 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
-		_, isRangeVar := rangeLoopVars[ident.Name]
+		rangeType, isRangeVar := rangeLoopVars[ident.Name]
 		isLocalConst := isLocalConstantIdent(ident)
 		varName := rustIdentForUseWithCapture(ident)
 		if isRangeVar && rangeLoopVarIsUsize(ident.Name) && expected != nil {
@@ -8478,6 +8498,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 				return
 			}
 			out.WriteString(rustConstName(ident.Name))
+			return
+		}
+		if isRangeVar && isWrappedRangeVarType(rangeType) && !identShadowsRangeVar(ident) && writeOwnedRangeValue(out, ident) {
 			return
 		}
 		if isVarBare(ident.Name) {
