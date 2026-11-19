@@ -43,6 +43,17 @@ shared slice: 99
 shared pointer: 70
 call defined func: 40
 call func: 2 2
+step 1
+step 2
+nested call: 3
+element: []int len 2
+range value: []int len 1
+range value: []int len 2
+asserted element: 1
+slice in map: []int len 3
+slice in map, range value: []int len 3
+slice of maps: map len 2
+range over maps: map len 2
 dynamic: []int []string map[string]int
 dynamic: *main.Point main.Point []float64
 dynamic: int string bool float64
