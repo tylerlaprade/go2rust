@@ -143,14 +143,14 @@ impl crate::position::FileSet {
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = (({ let __len_target = { let __field = (*ss.lock().unwrap().as_ref().unwrap()).files.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y } {
         let mut f: Option<GoSliceElemPtr<serializedFile>> = Some(GoSliceElemPtr::new((*ss.lock().unwrap().as_ref().unwrap()).files.clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
-        (*files.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = Arc::new(Mutex::new(Some(File {
+        { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = Arc::new(Mutex::new(Some(File {
             name: Arc::new(Mutex::new(Some({ let __selector_holder = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             base: Arc::new(Mutex::new(Some({ let __selector_holder = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             size: Arc::new(Mutex::new(Some({ let __selector_holder = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             lines: { let __field = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).lines.clone(); __field },
             infos: { let __field = (*f.as_ref().unwrap().borrow().as_ref().unwrap()).infos.clone(); __field },
             ..Default::default()
-        })));
+        }))); (*files.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let new_val = files.clone(); self.files = new_val; };
@@ -167,14 +167,14 @@ impl crate::position::FileSet {
         let mut files: Arc<Mutex<Option<Vec<serializedFile>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); (({ let __len_target = { let __field = self.files.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize])));
         { let __range_holder = self.files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, f) in __range_values.iter().enumerate() {
         (*f.lock().unwrap().as_ref().unwrap()).mutex.lock();
-        (*files.lock().unwrap().as_mut().unwrap())[(i) as usize] = serializedFile {
+        { let __idx = (i) as usize; let __rhs = serializedFile {
             name: Arc::new(Mutex::new(Some({ let __selector_holder = (*f.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             base: Arc::new(Mutex::new(Some({ let __selector_holder = (*f.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             size: Arc::new(Mutex::new(Some({ let __selector_holder = (*f.lock().unwrap().as_ref().unwrap()).size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
-            lines: { let __append_target = Arc::new(Mutex::new(None)).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = (*f.lock().unwrap().as_ref().unwrap()).lines.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() },
-            infos: { let __append_target = Arc::new(Mutex::new(None)).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = (*f.lock().unwrap().as_ref().unwrap()).infos.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() },
+            lines: { let __append_target = Arc::new(Mutex::new(None)).clone(); let __append_values: Vec<_> = { let __slice_holder = (*f.lock().unwrap().as_ref().unwrap()).lines.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() },
+            infos: { let __append_target = Arc::new(Mutex::new(None)).clone(); let __append_values: Vec<_> = { let __slice_holder = (*f.lock().unwrap().as_ref().unwrap()).infos.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() },
             ..Default::default()
-        };
+        }; (*files.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         (*f.lock().unwrap().as_ref().unwrap()).mutex.unlock();
     } }
         { let new_val = files.clone(); (*ss.lock().unwrap().as_mut().unwrap()).files = new_val; };

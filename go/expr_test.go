@@ -1155,10 +1155,10 @@ func substrings(s string, beg int, end int) []string {
 }
 `)
 
-	if strings.Contains(rust, ".push(Rc::new(") || strings.Contains(rust, ".push(Arc::new(") {
+	if strings.Contains(rust, "let __append_value = Rc::new(") || strings.Contains(rust, "let __append_value = Arc::new(") {
 		t.Fatalf("append string slice to []string should not push a wrapped String handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push({ let __s = &(") || !strings.Contains(rust, "].to_string() }") {
+	if !strings.Contains(rust, "let __append_value = { let __s = &(") || !strings.Contains(rust, "].to_string() }") {
 		t.Fatalf("append string slice to []string should push the bare String value:\n%s", rust)
 	}
 }
@@ -1455,11 +1455,11 @@ func (p *Pool) add() {
 }
 `)
 
-	if strings.Contains(rust, ".push(self.clone())") {
+	if strings.Contains(rust, "let __append_value = self.clone();") {
 		t.Fatalf("current pointer receiver appended to pointer slice should not push the bare receiver value:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(Rc::new(RefCell::new(Some(self.clone()))))") &&
-		!strings.Contains(rust, ".push(Arc::new(Mutex::new(Some(self.clone()))))") {
+	if !strings.Contains(rust, "let __append_value = Rc::new(RefCell::new(Some(self.clone())));") &&
+		!strings.Contains(rust, "let __append_value = Arc::new(Mutex::new(Some(self.clone())));") {
 		t.Fatalf("current pointer receiver appended to pointer slice should wrap self in a pointer handle:\n%s", rust)
 	}
 }
@@ -1491,7 +1491,7 @@ func Nodes() []Node {
 	if strings.Contains(rust, "(*make_node()") {
 		t.Fatalf("append of local interface call result should not unwrap the interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(make_node())") && !strings.Contains(rust, ".push(make_node().clone())") {
+	if !strings.Contains(rust, "let __append_value = make_node();") && !strings.Contains(rust, "let __append_value = make_node().clone();") {
 		t.Fatalf("append of local interface call result should store the returned handle:\n%s", rust)
 	}
 }
@@ -1566,12 +1566,12 @@ func add(list []any, n int) []any {
 }
 `)
 
-	if strings.Contains(rust, ".push((*n.borrow().as_ref().unwrap()).clone())") ||
-		strings.Contains(rust, ".push((*n.lock().unwrap().as_ref().unwrap()).clone())") {
+	if strings.Contains(rust, "let __append_value = (*n.borrow().as_ref().unwrap()).clone();") ||
+		strings.Contains(rust, "let __append_value = (*n.lock().unwrap().as_ref().unwrap()).clone();") {
 		t.Fatalf("append of concrete value to []any should not push the concrete value directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(Box::new((*n.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") &&
-		!strings.Contains(rust, ".push(Box::new((*n.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any") {
+	if !strings.Contains(rust, "let __append_value = Box::new((*n.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") &&
+		!strings.Contains(rust, "let __append_value = Box::new((*n.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any") {
 		t.Fatalf("append of concrete value to []any should box the concrete value:\n%s", rust)
 	}
 }
@@ -1698,7 +1698,7 @@ func add(valueStart []int, steps []string) []int {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, ".push((*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") {
+	if !strings.Contains(rust, "let __append_value = (*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") {
 		t.Fatalf("append len() to []int should cast usize length to Go int:\n%s", rust)
 	}
 }
@@ -1731,10 +1731,10 @@ func indexes(values []string) []int {
 }
 `)
 
-	if strings.Contains(rust, ".push(i)") {
+	if strings.Contains(rust, "let __append_value = i;") {
 		t.Fatalf("append range index to []int should not push usize directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(i as i32)") {
+	if !strings.Contains(rust, "let __append_value = i as i32;") {
 		t.Fatalf("append range index to []int should cast usize to Go int:\n%s", rust)
 	}
 }
@@ -1751,10 +1751,10 @@ func runes(s string) []rune {
 }
 `)
 
-	if strings.Contains(rust, ".push(c)") {
+	if strings.Contains(rust, "let __append_value = c;") {
 		t.Fatalf("append string range rune to []rune should not push Rust char directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(c as i32)") {
+	if !strings.Contains(rust, "let __append_value = c as i32;") {
 		t.Fatalf("append string range rune to []rune should cast char to Go rune:\n%s", rust)
 	}
 }
@@ -1801,10 +1801,10 @@ func encode(b []byte, version byte, sec int64, nsec int32, offsetMin int16) []by
 }
 `)
 
-	if strings.Contains(rust, ".extend(vec![(*version") {
+	if strings.Contains(rust, "let __append_values = vec![(*version") {
 		t.Fatalf("multi-element append should not inline every element in one vec expression:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".extend(vec![\n") {
+	if !strings.Contains(rust, "let __append_values = vec![\n") {
 		t.Fatalf("multi-element append should break extend vec elements across lines:\n%s", rust)
 	}
 }
@@ -1819,10 +1819,10 @@ func encode(b []byte, u uint) []byte {
 }
 `)
 
-	if strings.Contains(rust, ".extend(vec![{ let __f_ptr") {
+	if strings.Contains(rust, "let __append_values = vec![{ let __f_ptr") {
 		t.Fatalf("append with function-call elements should not inline every element in one vec expression:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".extend(vec![\n") {
+	if !strings.Contains(rust, "let __append_values = vec![\n") {
 		t.Fatalf("append with function-call elements should break extend vec elements across lines:\n%s", rust)
 	}
 }
@@ -2179,11 +2179,11 @@ func withNil(nodes []Node) []Node {
 	if !strings.Contains(rust, "__values.push(n.clone())") {
 		t.Fatalf("named slice append should keep the existing local interface handle:\n%s", rust)
 	}
-	if strings.Contains(rust, ".push(None)") {
+	if strings.Contains(rust, "let __append_value = None;") {
 		t.Fatalf("append nil to local interface slice should push a wrapped None handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(Rc::new(RefCell::new(None)))") &&
-		!strings.Contains(rust, ".push(Arc::new(Mutex::new(None)))") {
+	if !strings.Contains(rust, "let __append_value = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let __append_value = Arc::new(Mutex::new(None));") {
 		t.Fatalf("append nil to local interface slice should emit a wrapped None handle:\n%s", rust)
 	}
 }
@@ -2198,11 +2198,11 @@ func collect(names []*Ident) []*Ident {
 }
 `)
 
-	if strings.Contains(rust, ".push(None)") {
+	if strings.Contains(rust, "let __append_value = None;") {
 		t.Fatalf("append nil to pointer slice should push a wrapped None handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".push(Rc::new(RefCell::new(None)))") &&
-		!strings.Contains(rust, ".push(Arc::new(Mutex::new(None)))") {
+	if !strings.Contains(rust, "let __append_value = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let __append_value = Arc::new(Mutex::new(None));") {
 		t.Fatalf("append nil to pointer slice should emit a wrapped None handle:\n%s", rust)
 	}
 }
@@ -2227,8 +2227,9 @@ func addEmbedded(ityp *Interface, pos Pos) {
 	if strings.Contains(rust, "let __append_target = { let __v = (*") {
 		t.Fatalf("append through pointer-to-slice field should not unwrap the target to a bare Vec:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".embed_pos.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push") &&
-		!strings.Contains(rust, ".embed_pos.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push") {
+	if !strings.Contains(rust, ".embed_pos.clone(); let __append_value = ") ||
+		(!strings.Contains(rust, "; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value)") &&
+			!strings.Contains(rust, "; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value)")) {
 		t.Fatalf("append through pointer-to-slice field should mutate the slice handle:\n%s", rust)
 	}
 }
@@ -3976,7 +3977,7 @@ func main() {
 	if strings.Contains(rust, "__tmp_1.borrow_mut().take().unwrap_or_default()") {
 		t.Fatalf("tuple assignment into []error should not move the boxed payload out of the error handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*errs.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_1;") {
+	if !strings.Contains(rust, "{ let __idx = (0) as usize; (*errs.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; }") {
 		t.Fatalf("tuple assignment into []error should store the returned error handle:\n%s", rust)
 	}
 	if strings.Contains(rust, ".error().borrow()") {
@@ -4376,8 +4377,8 @@ func main() {
 	}
 	for _, want := range []string{
 		`BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new()`,
-		`.entry("go".to_string())`,
-		`.entry("rust".to_string())`,
+		`let __key = "go".to_string();`,
+		`let __key = "rust".to_string();`,
 		`.get(&"go".to_string())`,
 		`BTreeMap::<i32, Rc<RefCell<Option<bool>>>>::new()`,
 		`.insert(__map_key, __map_value)`,
@@ -8566,7 +8567,7 @@ func keep(numbers []int, pred func(int) bool) []int {
 	if !strings.Contains(rust, "for num in __range_values.iter().copied()") {
 		t.Fatalf("[]int parameter range should copy scalar elements:\n%s", rust)
 	}
-	if !strings.Contains(rust, "push(num)") {
+	if !strings.Contains(rust, "let __append_value = num;") {
 		t.Fatalf("append should store the copied scalar range element:\n%s", rust)
 	}
 }
@@ -9185,7 +9186,7 @@ func f() {
 	if !strings.Contains(got, "file = new_val") {
 		t.Fatalf("assigned nested string range should assign the bare binding:\n%s", got)
 	}
-	if !strings.Contains(got, ".push(file.clone())") {
+	if !strings.Contains(got, "let __append_value = file.clone();") {
 		t.Fatalf("assigned nested string range append should clone the bare binding:\n%s", got)
 	}
 }

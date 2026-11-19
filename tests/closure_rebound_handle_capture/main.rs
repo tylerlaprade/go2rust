@@ -116,7 +116,7 @@ pub fn grouped() -> i32 {
         return (*n.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut() -> i32>)));
 
-    { let new_val = { let __append_target = names.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["a".to_string(), "b".to_string()]); __append_target.clone() }; names = new_val; };
+    { let new_val = { let __append_target = names.clone(); let __append_values = vec!["a".to_string(), "b".to_string()]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; names = new_val; };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(identPtr(Rc::new(RefCell::new(Some(ident { name: Rc::new(RefCell::new(Some("int".to_string()))), ..Default::default() }))).clone())) as Box<dyn expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *source.borrow_mut() = __iface_value; };
     { let __iface_handle = source.clone(); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
     return { let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

@@ -51,8 +51,8 @@ pub fn sort_pair<S, E: Any + GoValueClone + 'static>(x: Rc<RefCell<Option<Vec<Rc
         {
             let __tmp_0 = (*x.borrow().as_ref().unwrap())[(1) as usize].clone();
             let __tmp_1 = (*x.borrow().as_ref().unwrap())[(0) as usize].clone();
-            (*x.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0;
-            (*x.borrow_mut().as_mut().unwrap())[(1) as usize] = __tmp_1;
+            { let __idx = (0) as usize; (*x.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; }
+            { let __idx = (1) as usize; (*x.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; }
         };
     }
 }

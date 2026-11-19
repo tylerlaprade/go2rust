@@ -72,7 +72,7 @@ impl r#box {
     }
 
     pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) -> i32 {
-        { let new_val = { let __append_target = self.items.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*x.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; self.items = new_val; };
+        { let new_val = { let __append_target = self.items.clone(); let __append_value = (*x.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.items = new_val; };
         ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32
     }
 

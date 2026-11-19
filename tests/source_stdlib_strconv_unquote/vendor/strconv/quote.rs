@@ -251,7 +251,7 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
             let __tmp_y = ('\r' as i32) as u8;
             __tmp_x != __tmp_y
         } {
-        { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }); __append_target.clone() }; buf = new_val; };
+        { let new_val = { let __append_target = buf.clone(); let __append_value = { let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; buf = new_val; };
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -347,7 +347,7 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
                 // Append the character if unescaping the input.
         if { let __v = (*unescape.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         if { let __tmp_x = r; let __tmp_y = unicode_utf8::RUNE_SELF as i32; __tmp_x < __tmp_y } || !multibyte {
-        { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*Arc::new(Mutex::new(Some(r as u8))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; buf = new_val; };
+        { let new_val = { let __append_target = buf.clone(); let __append_value = (*Arc::new(Mutex::new(Some(r as u8))).lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; buf = new_val; };
     } else {
         { let new_val = unicode_utf8::append_rune(buf.clone(), Arc::new(Mutex::new(Some(r)))); buf = new_val; };
     }

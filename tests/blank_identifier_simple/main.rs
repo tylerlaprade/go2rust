@@ -64,7 +64,7 @@ fn main() {
     println!("{}", format!("{}", "Keys only:".to_string()));
     let mut keys = Rc::new(RefCell::new(Some(Vec::<String>::with_capacity(((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = keys.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; keys = new_val; };
+        { let new_val = { let __append_target = keys.clone(); let __append_value = name.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; keys = new_val; };
     }
     { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
@@ -76,7 +76,7 @@ fn main() {
     println!("{}", format!("{}", "Values only:".to_string()));
     let mut values = Rc::new(RefCell::new(Some(Vec::<i32>::with_capacity(((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = values.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*age.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; values = new_val; };
+        { let new_val = { let __append_target = values.clone(); let __append_value = (*age.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; values = new_val; };
     }
     { let __sort_target = values.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for age in __range_values.iter().copied() {

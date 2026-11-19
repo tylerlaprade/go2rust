@@ -453,7 +453,7 @@ pub fn set(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
     let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<Pos>()).is_some() {
         let arg = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Pos>()).unwrap().clone())));
-        (*args.borrow_mut().as_mut().unwrap())[(i) as usize] = Box::new((*position(Rc::new(RefCell::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).clone()) as Box<dyn Any>;;
+        { let __idx = (i) as usize; let __rhs = Box::new((*position(Rc::new(RefCell::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).clone()) as Box<dyn Any>; (*args.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };;
     }
     }
     } }

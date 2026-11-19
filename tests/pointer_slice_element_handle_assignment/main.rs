@@ -100,7 +100,7 @@ impl std::fmt::Display for cache {
 
 impl cache {
     pub fn store(&mut self, n: Rc<RefCell<Option<node>>>) {
-        (*self.items.borrow_mut().as_mut().unwrap())[(0) as usize] = n.clone();
+        { let __idx = (0) as usize; let __rhs = n.clone(); (*self.items.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         println!("{}", format!("{}", (*(*(*self.items.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
     }
 }

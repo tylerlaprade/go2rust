@@ -50,7 +50,7 @@ fn main() {
     println!("{} {}", format!("{}", "Original slice:".to_string()), format!("{}", format_slice(&slice)));
 
         // Append to slice
-    { let new_val = { let __append_target = slice.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec![6, 7]); __append_target.clone() }; slice = new_val; };
+    { let new_val = { let __append_target = slice.clone(); let __append_values = vec![6, 7]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; slice = new_val; };
     println!("{} {}", format!("{}", "After append:".to_string()), format!("{}", format_slice(&slice)));
 
         // Slice operations
@@ -63,10 +63,10 @@ fn main() {
 
         // Make slice
     let mut made = Rc::new(RefCell::new(Some({ let mut v = Vec::with_capacity((5) as usize); v.resize((3) as usize, 0); v })));
-    (*made.borrow_mut().as_mut().unwrap())[(0) as usize] = 10;
-    (*made.borrow_mut().as_mut().unwrap())[(1) as usize] = 20;
-    (*made.borrow_mut().as_mut().unwrap())[(2) as usize] = 30;
+    { let __idx = (0) as usize; let __rhs = 10; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (1) as usize; let __rhs = 20; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (2) as usize; let __rhs = 30; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     let mut idx = Rc::new(RefCell::new(Some(1)));
-    (*made.borrow_mut().as_mut().unwrap())[((*idx.borrow().as_ref().unwrap())) as usize] = 25;
+    { let __idx = ((*idx.borrow().as_ref().unwrap())) as usize; let __rhs = 25; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "Made slice:".to_string()), format!("{}", format_slice(&made)));
 }

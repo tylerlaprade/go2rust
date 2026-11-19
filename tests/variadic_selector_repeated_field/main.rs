@@ -265,13 +265,13 @@ pub fn join(dir: Arc<Mutex<Option<String>>>, groups: Arc<Mutex<Option<Vec<Vec<St
     let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
         for name in group.iter() {
-        { let new_val = { let __append_target = out.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({
+        { let new_val = { let __append_target = out.clone(); let __append_value = {
             let mut __s = String::new();
             __s.push_str(&format!("{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             __s.push_str(&format!("{}", "/".to_string()));
             __s.push_str(&format!("{}", name));
             __s
-        }); __append_target.clone() }; out = new_val; };
+        }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; out = new_val; };
     }
     } }
     return out.clone();

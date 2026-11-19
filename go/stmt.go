@@ -980,9 +980,11 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 		return true
 	}
 
+	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
+	// the 1, and did not compile.
 	out.WriteString("{ let __idx = ")
-	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; ")
 	writeIndexedSequenceMutationGuard(out, indexExpr.X)
 	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
 	writeIndexedCurrentElementValue(out, elemType)
@@ -1669,15 +1671,18 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 		return false
 	}
 
-	out.WriteString("(*")
+	// Both indexes and the value are evaluated before the outer sequence is
+	// locked for writing: "grid[i][j] = grid[k][l]" reads the same grid.
+	out.WriteString("{ let __outer_idx = ")
+	writeExpressionAsUsize(out, innerIndex.Index)
+	out.WriteString("; let __idx = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let __rhs = ")
+	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
+	out.WriteString("; (*")
 	TranspileExpressionContext(out, innerIndex.X, LValue)
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
-	writeExpressionAsUsize(out, innerIndex.Index)
-	out.WriteString("][")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
-	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
+	out.WriteString(".as_mut().unwrap())[__outer_idx][__idx] = __rhs; }")
 	return true
 }
 
@@ -7056,18 +7061,20 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	if writeGoPtrPointedArrayAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle) {
 		return true
 	}
-	out.WriteString(" (*")
+	// The index is evaluated before the sequence is locked for writing:
+	// "s[len(s)-1], x = a, b" reads the sequence in its index.
+	out.WriteString(" { let __idx = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; (*")
 	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
 		writeNamedSliceInnerHandleClone(out, subj)
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
+	out.WriteString(".as_mut().unwrap())[__idx] = ")
 	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-	out.WriteString(";")
+	out.WriteString("; }")
 	return true
 }
 
@@ -7876,11 +7883,22 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
 	}
 
-	out.WriteString("{ let mut __map_guard = ")
+	// The key and the operand are evaluated before the map is locked for
+	// writing. Either may read the map ("m[a] += m[b]"), and a read under the
+	// write lock panics, or hangs in a program with goroutines.
+	out.WriteString("{ let __key = ")
+	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
+	out.WriteString("; ")
+	operandIsRHS := op != token.INC && op != token.DEC && rhs != nil
+	if operandIsRHS {
+		out.WriteString("let __rhs = ")
+		TranspileExpression(out, rhs)
+		out.WriteString("; ")
+	}
+	out.WriteString("let mut __map_guard = ")
 	writeMapHandleForOp(out, indexExpr.X)
 	WriteBorrowMethod(out, true)
-	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
-	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
+	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key")
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -7917,8 +7935,8 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString(" ")
 	if op == token.INC || op == token.DEC {
 		out.WriteString("1")
-	} else if rhs != nil {
-		TranspileExpression(out, rhs)
+	} else if operandIsRHS {
+		out.WriteString("__rhs")
 	} else {
 		out.WriteString("0")
 	}
@@ -8490,8 +8508,8 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
 	out.WriteString("{ let __idx = ")
-	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; let __rhs = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let __rhs = ")
 	writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
 	out.WriteString("; ")
 	writeIndexedSequenceMutationGuard(out, indexExpr.X)
@@ -11956,20 +11974,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, call)
 									}
 								} else {
-									out.WriteString("(*")
-									if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-										writeNamedSliceInnerHandleClone(out, subj)
-										WriteBorrowMethod(out, true)
-									} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
-										writeNamedArrayInnerHandleClone(out, subj)
-										WriteBorrowMethod(out, true)
-									} else {
-										TranspileExpressionContext(out, indexExpr.X, LValue)
-										WriteBorrowMethod(out, true)
-									}
-									out.WriteString(".as_mut().unwrap())[")
+									// The index and the value are evaluated before the
+									// sequence is locked for writing. Either may read the
+									// sequence ("s[len(s)-1] = x", "s[0] = s[1]"), and a
+									// read under the write lock panics, or hangs in a
+									// program with goroutines.
+									out.WriteString("{ let __idx = ")
 									writeExpressionAsUsize(out, indexExpr.Index)
-									out.WriteString("] = ")
+									out.WriteString("; let __rhs = ")
 
 									var elemType types.Type
 									if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -11990,6 +12002,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 									}
+
+									out.WriteString("; (*")
+									if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+										writeNamedSliceInnerHandleClone(out, subj)
+										WriteBorrowMethod(out, true)
+									} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
+										writeNamedArrayInnerHandleClone(out, subj)
+										WriteBorrowMethod(out, true)
+									} else {
+										TranspileExpressionContext(out, indexExpr.X, LValue)
+										WriteBorrowMethod(out, true)
+									}
+									out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
 								}
 							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
 								// Collection field on an indexed struct element mutates that element in place.

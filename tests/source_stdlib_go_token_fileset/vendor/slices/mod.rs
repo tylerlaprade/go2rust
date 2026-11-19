@@ -40,7 +40,7 @@ pub fn delete<S, E: Any + GoValueClone + Send + Sync + 'static>(mut s: Arc<Mutex
         let mut _v = Vec::with_capacity((__max - __low) as usize);
         _v.extend_from_slice(_slice);
         _v
-    }))).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some({
+    }))).clone(); let __append_values: Vec<_> = { let __slice_holder = Arc::new(Mutex::new(Some({
         let __seq_holder = s.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
@@ -54,7 +54,7 @@ pub fn delete<S, E: Any + GoValueClone + Send + Sync + 'static>(mut s: Arc<Mutex
         let mut _v = Vec::with_capacity((__max - __low) as usize);
         _v.extend_from_slice(_slice);
         _v
-    }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() };
+    }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
     { let __clear_start = ((*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize; let __clear_end = ({ let __v = (*oldlen.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __clear_holder = s.clone(); let mut __clear_guard = __clear_holder.lock().unwrap(); if let Some(__clear_seq) = __clear_guard.as_mut() { assert!(__clear_start <= __clear_end && __clear_end <= __clear_seq.len()); for __clear_i in __clear_start..__clear_end { __clear_seq[__clear_i] = Default::default(); } } };
     s.clone()
 }

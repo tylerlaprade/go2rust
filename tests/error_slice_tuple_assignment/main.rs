@@ -9,7 +9,7 @@ pub fn parse() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![0; (1) as usize])));
     let mut errs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn StdError>>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None::<Box<dyn StdError>>)); (1) as usize])));
-    { let (__tmp_0, __tmp_1) = parse(); (*values.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0; (*errs.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_1; };
+    { let (__tmp_0, __tmp_1) = parse(); { let __idx = (0) as usize; (*values.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; } { let __idx = (0) as usize; (*errs.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; } };
 
     println!("{}", format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()));
     if { let __nil_result = (*(*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow()).is_some(); __nil_result } {

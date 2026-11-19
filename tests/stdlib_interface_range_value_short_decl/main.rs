@@ -274,7 +274,7 @@ pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Ve
             { let new_val = { let __selector_holder = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *value.lock().unwrap() = Some(new_val); };;
         }
     }
-        { let new_val = { let __append_target = values.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*value.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; values = new_val; };
+        { let new_val = { let __append_target = values.clone(); let __append_value = (*value.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; values = new_val; };
     } }
     return values.clone();
 }

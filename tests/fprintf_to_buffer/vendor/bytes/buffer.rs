@@ -986,7 +986,7 @@ impl Buffer {
         if !ok {
         { let new_val = self.grow_1(Arc::new(Mutex::new(Some(1)))); m = new_val; };
     }
-        (*self.buf.lock().unwrap().as_mut().unwrap())[(m) as usize] = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        { let __idx = (m) as usize; let __rhs = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; (*self.buf.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         return Arc::new(Mutex::new(None));
     }
 
@@ -1225,7 +1225,7 @@ impl Buffer {
         let (mut slice, __tmp_1) = self.read_slice(Arc::new(Mutex::new(Some({ let __arg_holder = delim.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
                 // return a copy of slice. The buffer's backing array may
                 // be overwritten by later calls.
-        { let new_val = { let __append_target = line.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = slice.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; line = new_val; };
+        { let new_val = { let __append_target = line.clone(); let __append_values: Vec<_> = { let __slice_holder = slice.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; line = new_val; };
         return (line.clone(), err.clone());
     }
 
@@ -1327,7 +1327,7 @@ pub fn grow_slice(b: Arc<Mutex<Option<Vec<u8>>>>, n: Arc<Mutex<Option<i32>>>) ->
     }
                 // The growth rate has historically always been 2x. In the future,
                 // we could rely purely on append to determine the growth rate.
-        let mut b2 = { let __append_target = Arc::new(Mutex::new(None)).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some(vec![0; ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() };
+        let mut b2 = { let __append_target = Arc::new(Mutex::new(None)).clone(); let __append_values: Vec<_> = { let __slice_holder = Arc::new(Mutex::new(Some(vec![0; ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
         let mut i = {
             let _src = { let __copy_src_holder = b.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
             let _n = std::cmp::min((*b2.lock().unwrap().as_ref().unwrap()).len(), _src.len());

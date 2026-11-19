@@ -485,7 +485,7 @@ pub fn decode_rune_in_string(s: Arc<Mutex<Option<String>>>) -> (i32, i32) {
 pub fn append_rune(p: Arc<Mutex<Option<Vec<u8>>>>, r: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
         // This function is inlineable for fast handling of ASCII.
     if { let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = RUNE1_MAX as u32; __tmp_x <= __tmp_y } {
-        return { let __append_target = p.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() };
+        return { let __append_target = p.clone(); let __append_value = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
     }
     append_rune_non_a_s_c_i_i(p.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
@@ -494,25 +494,25 @@ pub fn append_rune_non_a_s_c_i_i(p: Arc<Mutex<Option<Vec<u8>>>>, r: Arc<Mutex<Op
         // Negative values are erroneous. Making it unsigned addresses the problem.
     let mut i = Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u32)));
     if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = RUNE2_MAX as u32; __tmp_x <= __tmp_y } {
-            return { let __append_target = p.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![
+            return { let __append_target = p.clone(); let __append_values = vec![
                 { let __tmp_x = T2 as u8; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y },
                 { let __tmp_x = TX as u8; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MASKX as u8; __tmp_x & __tmp_y }; __tmp_x | __tmp_y },
-            ]); __append_target.clone() };
+            ]; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
         } else if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = SURROGATE_MIN as u32; __tmp_x < __tmp_y } || { let __tmp_x = SURROGATE_MAX as u32; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = RUNE3_MAX as u32; __tmp_x <= __tmp_y } {
-            return { let __append_target = p.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![
+            return { let __append_target = p.clone(); let __append_values = vec![
                 { let __tmp_x = T3 as u8; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 12; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y },
                 { let __tmp_x = TX as u8; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MASKX as u8; __tmp_x & __tmp_y }; __tmp_x | __tmp_y },
                 { let __tmp_x = TX as u8; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MASKX as u8; __tmp_x & __tmp_y }; __tmp_x | __tmp_y },
-            ]); __append_target.clone() };
+            ]; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
         } else if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = RUNE3_MAX as u32; __tmp_x > __tmp_y } && { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MAX_RUNE as u32; __tmp_x <= __tmp_y } {
-            return { let __append_target = p.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![
+            return { let __append_target = p.clone(); let __append_values = vec![
                 { let __tmp_x = T4 as u8; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 18; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y },
                 { let __tmp_x = TX as u8; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 12; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MASKX as u8; __tmp_x & __tmp_y }; __tmp_x | __tmp_y },
                 { let __tmp_x = TX as u8; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x >> __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MASKX as u8; __tmp_x & __tmp_y }; __tmp_x | __tmp_y },
                 { let __tmp_x = TX as u8; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = MASKX as u8; __tmp_x & __tmp_y }; __tmp_x | __tmp_y },
-            ]); __append_target.clone() };
+            ]; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
         } else {
-            return { let __append_target = p.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(vec![RUNE_ERROR_BYTE0 as u8, RUNE_ERROR_BYTE1 as u8, RUNE_ERROR_BYTE2 as u8]); __append_target.clone() };
+            return { let __append_target = p.clone(); let __append_values = vec![RUNE_ERROR_BYTE0 as u8, RUNE_ERROR_BYTE1 as u8, RUNE_ERROR_BYTE2 as u8]; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() };
         }
 }
 

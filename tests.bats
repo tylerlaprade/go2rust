@@ -2495,6 +2495,14 @@ run_xfail_test() {
     run_test "tests/star_pointer_incdec"
 }
 
+@test "statement_reads_what_it_writes" {
+    run_test "tests/statement_reads_what_it_writes"
+}
+
+@test "statement_reads_what_it_writes_goroutines" {
+    run_test "tests/statement_reads_what_it_writes_goroutines"
+}
+
 @test "stdlib_concrete_error_variable" {
     run_test "tests/stdlib_concrete_error_variable"
 }

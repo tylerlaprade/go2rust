@@ -75,7 +75,7 @@ fn main() {
         {
         let (mut p, mut ok) = { let __map_holder = pkgs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&id)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if ok {
-            { let new_val = { let __append_target = (*p.borrow().as_ref().unwrap()).errors.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = errs.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; (*p.borrow_mut().as_mut().unwrap()).errors = new_val; };;
+            { let new_val = { let __append_target = (*p.borrow().as_ref().unwrap()).errors.clone(); let __append_values: Vec<_> = { let __slice_holder = errs.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; (*p.borrow_mut().as_mut().unwrap()).errors = new_val; };;
         }
     }
     }

@@ -81,9 +81,9 @@ pub fn debug(cmd: Rc<RefCell<Option<Command>>>) -> Rc<RefCell<Option<String>>> {
     { let __range_holder = (*cmd.borrow().as_ref().unwrap()).args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
         let mut quoted = quote(Rc::new(RefCell::new(Some(arg.clone()))));
         if (*Rc::new(RefCell::new(Some({ let __s = &((*quoted.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (((*quoted.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()).clone() != (*arg).clone() || (*Rc::new(RefCell::new(Some({ let __s = (*arg).clone(); let __arg = " ".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()) {
-        { let new_val = { let __append_target = args.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*quoted.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; args = new_val; };
+        { let new_val = { let __append_target = args.clone(); let __append_value = (*quoted.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; args = new_val; };
     } else {
-        { let new_val = { let __append_target = args.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*arg).clone()); __append_target.clone() }; args = new_val; };
+        { let new_val = { let __append_target = args.clone(); let __append_value = (*arg).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; args = new_val; };
     }
     } }
     return Rc::new(RefCell::new(Some({ let __parts = (*args.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " ".to_string(); __parts.join(&__sep) })));

@@ -4611,21 +4611,23 @@ func appendExtendShouldUseMultiline(args []ast.Expr) bool {
 	return false
 }
 
-func writeAppendExtendElements(out *strings.Builder, args []ast.Expr, writeAppendElement func(ast.Expr)) {
+// writeAppendElementsVec writes the appended values of "append(s, a, b)" as
+// one vec![...].
+func writeAppendElementsVec(out *strings.Builder, args []ast.Expr, writeAppendElement func(ast.Expr)) {
 	if !appendExtendShouldUseMultiline(args) {
-		out.WriteString(".extend(vec![")
+		out.WriteString("vec![")
 		for i, arg := range args {
 			if i > 0 {
 				out.WriteString(", ")
 			}
 			writeAppendElement(arg)
 		}
-		out.WriteString("])")
+		out.WriteString("]")
 		return
 	}
 
 	indent := currentLineIndent(out)
-	out.WriteString(".extend(vec![\n")
+	out.WriteString("vec![\n")
 	for _, arg := range args {
 		out.WriteString(indent)
 		out.WriteString("    ")
@@ -4633,7 +4635,7 @@ func writeAppendExtendElements(out *strings.Builder, args []ast.Expr, writeAppen
 		out.WriteString(",\n")
 	}
 	out.WriteString(indent)
-	out.WriteString("])")
+	out.WriteString("]")
 }
 
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
@@ -4815,6 +4817,32 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".iter().cloned()")
 			}
 		}
+		// writeAppendedValues evaluates what is appended into a local and
+		// returns the call that adds it to the target. It runs before the
+		// target is locked for writing: the values may read the target
+		// ("append(s, s[0])", "append(s, len(s))", "append(s, s...)"), and a
+		// read under the write lock panics, or hangs in a program with
+		// goroutines.
+		writeAppendedValues := func() string {
+			if call.Ellipsis.IsValid() {
+				// Slice expansion: append(dst, src...) → extend from src.
+				// Go also permits append([]byte, string...), which expands bytes.
+				out.WriteString("let __append_values: Vec<_> = ")
+				writeAppendExpansionSource(call.Args[1])
+				out.WriteString(".collect(); ")
+				return ".extend(__append_values)"
+			}
+			if len(call.Args) == 2 {
+				out.WriteString("let __append_value = ")
+				writeAppendElement(call.Args[1])
+				out.WriteString("; ")
+				return ".push(__append_value)"
+			}
+			out.WriteString("let __append_values = ")
+			writeAppendElementsVec(out, call.Args[1:], writeAppendElement)
+			out.WriteString("; ")
+			return ".extend(__append_values)"
+		}
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
 			if !appendCallReturnsBareIndexedSlice(call) {
 				return false
@@ -4836,18 +4864,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("]")
 			}
 			out.WriteString("{ ")
+			store := writeAppendedValues()
 			writeMutableTarget()
-			if call.Ellipsis.IsValid() {
-				out.WriteString(".extend(")
-				writeAppendExpansionSource(call.Args[1])
-				out.WriteString(")")
-			} else if len(call.Args) == 2 {
-				out.WriteString(".push(")
-				writeAppendElement(call.Args[1])
-				out.WriteString(")")
-			} else {
-				writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
-			}
+			out.WriteString(store)
 			out.WriteString("; ")
 			writeReadTarget()
 			out.WriteString(".clone() }")
@@ -4873,7 +4892,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				writeMapHandleForOp(out, indexExpr.X)
 				out.WriteString(".clone()")
 			}
-			out.WriteString("{ let __slice = { let __map_holder = ")
+			out.WriteString("{ ")
+			store := writeAppendedValues()
+			out.WriteString("let __slice = { let __map_holder = ")
 			writeMapHandleClone()
 			out.WriteString("; let __map_guard = __map_holder")
 			WriteBorrowMethod(out, false)
@@ -4884,17 +4905,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(") }; (*__slice")
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new)")
-			if call.Ellipsis.IsValid() {
-				out.WriteString(".extend(")
-				writeAppendExpansionSource(call.Args[1])
-				out.WriteString(")")
-			} else if len(call.Args) == 2 {
-				out.WriteString(".push(")
-				writeAppendElement(call.Args[1])
-				out.WriteString(")")
-			} else {
-				writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
-			}
+			out.WriteString(store)
 			out.WriteString("; __slice.clone() }")
 			return true
 		}
@@ -4908,37 +4919,17 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		if indexExpr, ok := call.Args[0].(*ast.IndexExpr); ok && writeIndexedSliceAppend(indexExpr) {
 			return
 		}
-		writeAppendTargetMutationPrefix := func() {
-			out.WriteString("{ let __append_target = ")
-			writeAppendTarget(call.Args[0])
-			out.WriteString(".clone(); (*__append_target")
-			WriteBorrowMethod(out, true)
-			out.WriteString(").get_or_insert_with(Vec::new)")
-		}
-		writeAppendTargetMutationSuffix := func() {
-			out.WriteString("; __append_target.clone() }")
-		}
-		if call.Ellipsis.IsValid() {
-			// Slice expansion: append(dst, src...) → extend from src.
-			// Go also permits append([]byte, string...), which expands bytes.
-			writeAppendTargetMutationPrefix()
-			out.WriteString(".extend(")
-			writeAppendExpansionSource(call.Args[1])
-			out.WriteString(")")
-			writeAppendTargetMutationSuffix()
-		} else if len(call.Args) == 2 {
-			// Single element append
-			writeAppendTargetMutationPrefix()
-			out.WriteString(".push(")
-			writeAppendElement(call.Args[1])
-			out.WriteString(")")
-			writeAppendTargetMutationSuffix()
-		} else {
-			// Multiple elements, use extend
-			writeAppendTargetMutationPrefix()
-			writeAppendExtendElements(out, call.Args[1:], writeAppendElement)
-			writeAppendTargetMutationSuffix()
-		}
+		// The target expression is evaluated first, as in Go, then the
+		// values, and only then is the target locked.
+		out.WriteString("{ let __append_target = ")
+		writeAppendTarget(call.Args[0])
+		out.WriteString(".clone(); ")
+		store := writeAppendedValues()
+		out.WriteString("(*__append_target")
+		WriteBorrowMethod(out, true)
+		out.WriteString(").get_or_insert_with(Vec::new)")
+		out.WriteString(store)
+		out.WriteString("; __append_target.clone() }")
 	}
 }
 

@@ -7,7 +7,7 @@ fn main() {
 
     let mut names = Rc::new(RefCell::new(Some(Vec::<String>::with_capacity(((*{ let __map_holder = index.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"dep".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (name, _) in { let __range_holder = { let __map_holder = index.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"dep".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = names.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; names = new_val; };
+        { let new_val = { let __append_target = names.clone(); let __append_value = name.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; names = new_val; };
     }
     { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     println!("{} {}", format!("{}", (*names.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*names.borrow().as_ref().unwrap())[(1) as usize].clone()));
