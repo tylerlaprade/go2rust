@@ -6,6 +6,28 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+thread_local! {
+    static GO_FORMAT_ANY_POINTER_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+// Go expands a pointer to a struct only at the top level of the value being
+// printed. Below that it prints the pointer's address. That is also what keeps
+// a value that points back to itself from printing forever.
+fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    struct Depth;
+    impl Drop for Depth {
+        fn drop(&mut self) {
+            GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() - 1));
+        }
+    }
+    if GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.get()) > 0 {
+        return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
+    }
+    GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    expand()
+}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -96,7 +118,7 @@ fn format_any(value: &dyn Any) -> String {
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() {
-        match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() }
+        go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<f64>>>>>() {

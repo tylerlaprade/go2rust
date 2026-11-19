@@ -6,6 +6,28 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+thread_local! {
+    static GO_FORMAT_ANY_POINTER_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+// Go expands a pointer to a struct only at the top level of the value being
+// printed. Below that it prints the pointer's address. That is also what keeps
+// a value that points back to itself from printing forever.
+fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    struct Depth;
+    impl Drop for Depth {
+        fn drop(&mut self) {
+            GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() - 1));
+        }
+    }
+    if GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.get()) > 0 {
+        return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
+    }
+    GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    expand()
+}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -99,8 +121,10 @@ fn format_any(value: &dyn Any) -> String {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>>() {
         format_map(v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Node>>>>() {
+        go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() {
-        match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() }
+        go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<Point>>>>>() {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() {
@@ -140,6 +164,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Point>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Node>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<Point>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
@@ -251,6 +276,45 @@ impl std::fmt::Display for NotFound {
 }
 
 
+/// Node can point at itself through its interface field.
+#[derive(Clone)]
+pub struct Node {
+    pub name: Rc<RefCell<Option<String>>>,
+    pub next: Rc<RefCell<Option<Box<dyn Any>>>>,
+}
+
+impl Node {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.next.clone();
+        Self {
+            name: __go_clone_0_0,
+            next: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Node {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            name: __go_default_0_0,
+            next: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_any(self.next.borrow().as_ref().unwrap().as_ref()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 impl Status {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some(format!("status {}", (*self.code.borrow().as_ref().unwrap())))))
@@ -265,6 +329,10 @@ impl NotFound {
 
 impl StdError for NotFound {}
 
+
+pub fn render(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())))))
+}
 
 /// show prints whatever it is given. The value arrives as an interface, so
 /// the printer has to find out what it holds.
@@ -311,4 +379,18 @@ fn main() {
     let mut names = Rc::new(RefCell::new(Some(vec!["x".to_string()])));
     let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("point".to_string(), Rc::new(RefCell::new(Some(Box::new(Point { x: Rc::new(RefCell::new(Some(9))), y: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Box<dyn Any>)))), ("list".to_string(), Rc::new(RefCell::new(Some(Box::new(names.clone()) as Box<dyn Any>))))]))));
     println!("{} {}", format!("{}", format_any(({ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"point".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(({ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"list".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).borrow().as_ref().unwrap().as_ref())));
+
+        // A pointer below the top level prints as its address, so a value that
+        // points back to itself prints once and stops. The address changes from
+        // run to run; check the shape around it.
+    let mut r#loop = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("loop".to_string()))), ..Default::default() })));
+    { let new_val = Box::new(r#loop.clone()) as Box<dyn Any>; *(*r#loop.borrow().as_ref().unwrap()).next.borrow_mut() = Some(new_val); };
+    let mut text = render(Rc::new(RefCell::new(Some(Box::new(r#loop.clone()) as Box<dyn Any>))));
+    println!("{} {} {} {}", format!("{}", "cycle:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "&{loop 0x".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "}".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", ((*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __sep = "loop".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)));
+    let mut tail = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("tail".to_string()))), ..Default::default() })));
+    { let new_val = render(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("head".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(tail.clone()) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
+    println!("{} {} {}", format!("{}", "chain:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "&{head 0x".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap())));
+    let mut noNode: Rc<RefCell<Option<Node>>> = Rc::new(RefCell::new(None));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("end".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(noNode.clone()) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>))));
 }

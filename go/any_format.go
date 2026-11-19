@@ -21,11 +21,21 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		}
 	case *types.Pointer:
 		if anyFormatTypeIsLocalStruct(t.Elem()) {
+			// go_format_any_pointer expands the pointee only at the top
+			// level. A pointer reached while another is being expanded is
+			// printed as its address, as Go does, so a value that points
+			// back to itself does not print forever. The nil check below
+			// that level must not wait for the handle: the expansion that
+			// is in progress may be holding it.
 			var expr strings.Builder
-			expr.WriteString("match (*v")
+			if NeedsConcurrentWrapper() {
+				expr.WriteString("go_format_any_pointer(Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v")
+			} else {
+				expr.WriteString("go_format_any_pointer(Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v")
+			}
 			WriteBorrowMethod(&expr, false)
-			expr.WriteString(`).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() }`)
-			return anyFormatArm{expr: expr.String()}, true
+			expr.WriteString(`).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })`)
+			return anyFormatArm{expr: expr.String(), needsFormatPointer: true}, true
 		}
 	case *types.Slice:
 		if anyFormatElemImplementsDisplay(t.Elem()) {

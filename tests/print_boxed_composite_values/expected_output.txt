@@ -25,3 +25,7 @@ item: map[k:1]
 item: s
 item: 3
 {9 9} [x]
+cycle: true true 1
+chain: true false
+&{end <nil>}
+&{6 7}
