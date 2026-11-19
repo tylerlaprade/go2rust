@@ -1,0 +1,7 @@
+started
+compound map assignment: map key operand  6
+append to a slice in a map: key key value  [1 2]
+append to an element: index index value  2
+element assignment: index value  [2 2]
+element of what a function returned: slice index value  [2 2]
+append: value index  [2 2 2 0]

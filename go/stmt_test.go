@@ -2141,7 +2141,8 @@ func main() {
 	}
 	if !strings.Contains(rust, "{ let __nil_result = (*flags.lock().unwrap()).is_none(); __nil_result }") ||
 		!strings.Contains(rust, "flags.lock().unwrap().as_mut().unwrap()).insert") ||
-		!strings.Contains(rust, "let mut __map_guard = flags.lock().unwrap()") {
+		!strings.Contains(rust, "{ let __map_holder = flags.clone(); ") ||
+		!strings.Contains(rust, "let mut __map_guard = __map_holder.lock().unwrap()") {
 		t.Fatalf("pointer-to-map operations should borrow through the pointer map handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "__value.as_ref().unwrap() |") {

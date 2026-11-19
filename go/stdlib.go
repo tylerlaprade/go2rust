@@ -4851,19 +4851,18 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, indexExpr.X, LValue)
 				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap())[")
-				writeExpressionAsUsize(out, indexExpr.Index)
-				out.WriteString("]")
+				out.WriteString(".as_mut().unwrap())[__append_idx]")
 			}
 			writeReadTarget := func() {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, indexExpr.X, LValue)
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())[")
-				writeExpressionAsUsize(out, indexExpr.Index)
-				out.WriteString("]")
+				out.WriteString(".as_ref().unwrap())[__append_idx]")
 			}
-			out.WriteString("{ ")
+			// Go's order: the index of the target, then the appended values.
+			out.WriteString("{ let __append_idx = ")
+			writeExpressionAsUsize(out, indexExpr.Index)
+			out.WriteString("; ")
 			store := writeAppendedValues()
 			writeMutableTarget()
 			out.WriteString(store)
@@ -4892,9 +4891,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				writeMapHandleForOp(out, indexExpr.X)
 				out.WriteString(".clone()")
 			}
-			out.WriteString("{ ")
-			store := writeAppendedValues()
-			out.WriteString("let __slice = { let __map_holder = ")
+			// Go's order: the map and the key of the target, then the
+			// appended values. The lookup lets go of the map before the
+			// values are evaluated, and __slice is locked only after them.
+			out.WriteString("{ let __slice = { let __map_holder = ")
 			writeMapHandleClone()
 			out.WriteString("; let __map_guard = __map_holder")
 			WriteBorrowMethod(out, false)
@@ -4902,7 +4902,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
 			out.WriteString(").cloned().unwrap_or_else(|| ")
 			WriteWrappedNone(out)
-			out.WriteString(") }; (*__slice")
+			out.WriteString(") }; ")
+			store := writeAppendedValues()
+			out.WriteString("(*__slice")
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new)")
 			out.WriteString(store)

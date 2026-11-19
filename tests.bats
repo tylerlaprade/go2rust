@@ -1003,6 +1003,14 @@ run_xfail_test() {
     run_test "tests/errors_new_string_from_byte_field"
 }
 
+@test "evaluation_order_of_element_writes" {
+    run_test "tests/evaluation_order_of_element_writes"
+}
+
+@test "evaluation_order_of_element_writes_goroutines" {
+    run_test "tests/evaluation_order_of_element_writes_goroutines"
+}
+
 @test "exec_command_args_stub" {
     run_test "tests/exec_command_args_stub"
 }
