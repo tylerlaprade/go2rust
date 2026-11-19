@@ -11,14 +11,24 @@ pub struct CustomError {
 
 impl CustomError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { code: { let __guard = self.code.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, message: { let __guard = self.message.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.code.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.message.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            code: __go_clone_0_0,
+            message: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for CustomError {
     fn default() -> Self {
-        Self { code: Rc::new(RefCell::new(Some(0))), message: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            code: __go_default_0_0,
+            message: __go_default_1_0,
+        }
     }
 }
 
@@ -62,10 +72,10 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Box<dyn StdE
 
 pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
     if (*val.borrow().as_ref().unwrap()) < 0 {
-        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(100 as i32))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
+        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(100))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
     }
     if (*val.borrow().as_ref().unwrap()) > 100 {
-        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(200 as i32))), message: Rc::new(RefCell::new(Some("value too large".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
+        return Rc::new(RefCell::new(Some(Box::new(CustomError { code: Rc::new(RefCell::new(Some(200))), message: Rc::new(RefCell::new(Some("value too large".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
     }
     Rc::new(RefCell::new(None))
 }
@@ -73,7 +83,7 @@ pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn
 fn main() {
         // Basic error handling
     let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
         println!("{} {}", format!("{}", "10 / 2 =".to_string()), format!("{}", result));
@@ -81,7 +91,7 @@ fn main() {
 
         // Error case
     { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         let mut wrapped = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped division: {}", format!("{}", (*err.borrow().as_ref().unwrap())))))));
         println!("{} {}", format!("{}", "Wrapped error:".to_string()), format!("{}", format!("{}", (*wrapped.borrow().as_ref().unwrap()))));
@@ -91,7 +101,7 @@ fn main() {
 
         // Formatted error
     let (mut sqrtResult, __tmp_1) = sqrt(Rc::new(RefCell::new(Some(-4.0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Sqrt error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
         println!("{} {}", format!("{}", "Sqrt result:".to_string()), format!("{}", sqrtResult));
@@ -99,17 +109,17 @@ fn main() {
 
         // Custom error
     { let __rhs_holder = process_value(Rc::new(RefCell::new(Some(-5)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Process error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     }
 
     { let __rhs_holder = process_value(Rc::new(RefCell::new(Some(150)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Process error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     }
 
     { let __rhs_holder = process_value(Rc::new(RefCell::new(Some(50)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Process error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
         println!("{}", format!("{}", "Value processed successfully".to_string()));
