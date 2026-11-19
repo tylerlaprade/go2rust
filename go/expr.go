@@ -11220,6 +11220,20 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		out.WriteString(".clone()")
 		return
 	}
+	// A conversion to a basic value type already emits the element's handle.
+	if basic, ok := types.Unalias(valueType).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+		if call, ok := unwrapParens(value).(*ast.CallExpr); ok {
+			info := GetTypeInfo()
+			if info.GetType(call) == nil || info.GetType(call.Fun) == nil {
+				out.WriteString(`unimplemented!("type info required for map element call")`)
+				return
+			}
+			if info.IsTypeConversion(call) && typeConversionEmitsWrappedValue(call) {
+				TranspileExpression(out, call)
+				return
+			}
+		}
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
@@ -16909,6 +16923,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	// A local or imported alias denotes the same basic type as its target.
+	if basic, ok := types.Unalias(GetTypeInfo().GetType(call.Fun)).(*types.Basic); ok {
+		targetType = basic.Name()
+	}
 	// Map Go types to Rust types and handle the conversion
 	rustType := ""
 	needsCast := true
@@ -18062,6 +18080,9 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 		return false
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && call != nil && typeInfo.IsTypeConversion(call) {
+		if basic, ok := types.Unalias(typeInfo.GetType(call.Fun)).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+			return true
+		}
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(call)); ok {
 			return true
 		}

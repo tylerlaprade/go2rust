@@ -1,0 +1,8 @@
+[package]
+name = "map_converted_numeric"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_converted_numeric"
+path = "main.rs"
