@@ -17,7 +17,7 @@ Variables, basic types, maps, nil, interface{}, type assertions, control flow
 
 Pointer types, &/*, new() builtin, struct fields, nil handling
 
-- ✅ Single and parallel nil assignments to pointer variables and struct fields replace the assigned slot's handle, preserving other pointers to the same value (`pointer_nil_keeps_alias`, `pointer_nil_keeps_alias_goroutines`).
+- ✅ Single and parallel nil assignments to ordinary pointer locals and struct fields replace the assigned handle, preserving other pointers to the same value (`pointer_nil_keeps_alias`, `pointer_nil_keeps_alias_goroutines`).
 
 - ✅ Address-of struct fields and slice elements preserve mutation aliases (address_of_fields_and_elements promoted, 2026-05-06)
 - ✅ Pointer receiver nil branches - receiver comparisons lower without referencing the old Go receiver name, and pointer variables pass through method calls as wrapped pointer values (pointer_receiver_nil_compare added, 2026-05-07)

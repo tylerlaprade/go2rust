@@ -7352,10 +7352,10 @@ func nilPointerHandleAssignmentType(lhs ast.Expr, rhs ast.Expr) types.Type {
 	}
 	switch target := unwrapParens(lhs).(type) {
 	case *ast.Ident:
-		// The closure and its enclosing function currently share a pointee
-		// wrapper. Rebinding a captured variable needs a shared pointer slot.
+		// Captures and address-taking share the pointee wrapper today.
+		// Rebinding either needs a separate, shared pointer slot.
 		ctx := GetTranspileContext()
-		if ctx != nil && ctx.File != nil && ctx.File.CapturedPointerBindings[typeInfo.GetObject(target)] {
+		if ctx != nil && ctx.File != nil && ctx.File.SharedPointerBindings[typeInfo.GetObject(target)] {
 			return nil
 		}
 		if target.Name == "_" || isSliceElemPtrVar(target.Name) || isArrayElemPtrVar(target.Name) ||

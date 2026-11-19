@@ -127,6 +127,21 @@ fn main() {
     let mut previous = (*global.borrow().as_ref().unwrap()).clone();
     *global.borrow_mut() = Some(Rc::new(RefCell::new(None)));
     println!("{} {}", format!("{}", { let __slot_guard = global.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }), format!("{}", { let __nil_result = (*previous.borrow()).is_some(); __nil_result }));
+
+    let mut addressed = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
+    let mut address = Rc::new(RefCell::new(Some((addressed).clone())));
+    *addressed.borrow_mut() = None;
+    println!("{}", format!("{}", { let __nil_result = (*(*address.borrow_mut().as_mut().unwrap()).borrow()).is_none(); __nil_result }));
+
+    let mut parallelAddressed = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(8))), ..Default::default() })));
+    let mut parallelAddress = Rc::new(RefCell::new(Some(parallelAddressed.clone())));
+    {
+        let __tmp_0 = (None);
+        let __tmp_1 = 4;
+        *parallelAddressed.borrow_mut() = __tmp_0;
+        *count.borrow_mut() = Some(__tmp_1);
+    };
+    println!("{} {}", format!("{}", { let __nil_result = (*(*parallelAddress.borrow_mut().as_mut().unwrap()).borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 pub(crate) fn __go_init_all() {

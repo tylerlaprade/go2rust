@@ -51,33 +51,41 @@ func findCapturedVars(funcLit *ast.FuncLit) map[string]bool {
 	return captured
 }
 
-// capturedPointerBindings identifies pointer locals whose wrapper is shared with
-// a closure, including assignments emitted outside the closure body.
-func capturedPointerBindings(file *ast.File, typeInfo *TypeInfo) map[types.Object]bool {
+// sharedPointerBindings identifies locals whose pointer wrapper is shared
+// with closures or a pointer to the binding itself.
+func sharedPointerBindings(file *ast.File, typeInfo *TypeInfo) map[types.Object]bool {
 	if typeInfo == nil || typeInfo.info == nil {
 		return nil
 	}
-	captured := make(map[types.Object]bool)
+	shared := make(map[types.Object]bool)
 	ast.Inspect(file, func(node ast.Node) bool {
-		closure, ok := node.(*ast.FuncLit)
-		if !ok {
-			return true
-		}
-		ast.Inspect(closure.Body, func(node ast.Node) bool {
-			ident, ok := node.(*ast.Ident)
-			if !ok {
+		switch node := node.(type) {
+		case *ast.UnaryExpr:
+			if node.Op != token.AND || !typeInfo.IsPointer(node.X) {
 				return true
 			}
-			obj, ok := typeInfo.info.Uses[ident].(*types.Var)
-			if ok && !obj.IsField() && !isPackageScopeObject(obj) &&
-				obj.Pos().IsValid() && obj.Pos() < closure.Pos() && typeInfo.IsPointer(ident) {
-				captured[obj] = true
+			if ident, ok := unwrapParens(node.X).(*ast.Ident); ok {
+				if obj, ok := typeInfo.GetObject(ident).(*types.Var); ok && !isPackageScopeObject(obj) {
+					shared[obj] = true
+				}
 			}
-			return true
-		})
+		case *ast.FuncLit:
+			ast.Inspect(node.Body, func(inner ast.Node) bool {
+				ident, ok := inner.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				obj, ok := typeInfo.info.Uses[ident].(*types.Var)
+				if ok && !obj.IsField() && !isPackageScopeObject(obj) &&
+					obj.Pos().IsValid() && obj.Pos() < node.Pos() && typeInfo.IsPointer(ident) {
+					shared[obj] = true
+				}
+				return true
+			})
+		}
 		return true
 	})
-	return captured
+	return shared
 }
 
 func capturedVarsForFuncLit(funcLit *ast.FuncLit) map[string]bool {

@@ -3103,7 +3103,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	packageState.JsonDecodeSupportNeeded = packageState.JsonDecodeSupportNeeded ||
 		packageNeedsJsonDecodeSupport([]*ast.File{file}, typeInfo)
 	fileState := NewFileState(imports, helpers, NewStatementPreprocessor(fileSet))
-	fileState.CapturedPointerBindings = capturedPointerBindings(file, typeInfo)
+	fileState.SharedPointerBindings = sharedPointerBindings(file, typeInfo)
 	fileExternalPackages := make(map[string]bool)
 	for _, imp := range file.Imports {
 		path := strings.Trim(imp.Path.Value, `"`)

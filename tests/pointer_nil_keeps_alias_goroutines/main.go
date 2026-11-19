@@ -55,4 +55,14 @@ func main() {
 	previous := global
 	global = (nil)
 	fmt.Println(global == nil, previous != nil)
+
+	addressed := &Node{Value: 7}
+	address := &(addressed)
+	addressed = nil
+	fmt.Println(*address == nil)
+
+	parallelAddressed := &Node{Value: 8}
+	parallelAddress := &parallelAddressed
+	parallelAddressed, count = (nil), 4
+	fmt.Println(*parallelAddress == nil, count)
 }

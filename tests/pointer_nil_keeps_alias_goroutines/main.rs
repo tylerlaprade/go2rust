@@ -283,6 +283,21 @@ fn main() {
     let mut previous = (*global.lock().unwrap().as_ref().unwrap()).clone();
     *global.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     println!("{} {}", format!("{}", { let __slot_guard = global.lock().unwrap(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.lock().unwrap()).is_some()).unwrap_or(false); !__not_nil }), format!("{}", { let __nil_result = (*previous.lock().unwrap()).is_some(); __nil_result }));
+
+    let mut addressed = Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(7))), ..Default::default() })));
+    let mut address = Arc::new(Mutex::new(Some((addressed).clone())));
+    *addressed.lock().unwrap() = None;
+    println!("{}", format!("{}", { let __nil_result = (*(*address.lock().unwrap().as_mut().unwrap()).lock().unwrap()).is_none(); __nil_result }));
+
+    let mut parallelAddressed = Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(8))), ..Default::default() })));
+    let mut parallelAddress = Arc::new(Mutex::new(Some(parallelAddressed.clone())));
+    {
+        let __tmp_0 = (None);
+        let __tmp_1 = 4;
+        *parallelAddressed.lock().unwrap() = __tmp_0;
+        *count.lock().unwrap() = Some(__tmp_1);
+    };
+    println!("{} {}", format!("{}", { let __nil_result = (*(*parallelAddress.lock().unwrap().as_mut().unwrap()).lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }
 
 pub(crate) fn __go_init_all() {
