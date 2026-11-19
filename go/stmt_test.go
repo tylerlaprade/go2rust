@@ -2822,6 +2822,41 @@ func reset(chunks [][]int, ns []uint32) {
 	}
 }
 
+func TestParallelAssignmentEvaluatesIndexedTargetsBeforeResults(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func target(values []int) []int { return values }
+func index(value int) int { return value }
+func result(value int) int { return value }
+
+func assign(left, right []int) {
+	target(left)[index(0)], target(right)[index(1)] = result(10), result(20)
+}
+`)
+
+	parts := []string{
+		"let __go_lhs_sequence_0 = target(",
+		"let __go_lhs_index_0 = (index(",
+		"let __go_lhs_sequence_1 = target(",
+		"let __go_lhs_index_1 = (index(",
+		"let __tmp_0 = result(",
+		"let __tmp_1 = result(",
+		"(*__go_lhs_sequence_0",
+		"(*__go_lhs_sequence_1",
+	}
+	previous := -1
+	for _, part := range parts {
+		position := strings.Index(rust, part)
+		if position < 0 {
+			t.Fatalf("parallel assignment did not emit %q:\n%s", part, rust)
+		}
+		if position <= previous {
+			t.Fatalf("parallel assignment must evaluate indexed targets, then results, then writes; %q was out of order:\n%s", part, rust)
+		}
+		previous = position
+	}
+}
+
 func TestSliceElementSliceLiteralAssignmentMovesInnerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

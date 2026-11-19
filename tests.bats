@@ -2015,6 +2015,14 @@ run_xfail_test() {
     run_test "tests/parallel_assign_value_field_swap"
 }
 
+@test "parallel_assignment_lhs_evaluation_order" {
+    run_test "tests/parallel_assignment_lhs_evaluation_order"
+}
+
+@test "parallel_assignment_lhs_evaluation_order_goroutines" {
+    run_test "tests/parallel_assignment_lhs_evaluation_order_goroutines"
+}
+
 @test "parallel_decl_from_wrapped_fields" {
     run_test "tests/parallel_decl_from_wrapped_fields"
 }
