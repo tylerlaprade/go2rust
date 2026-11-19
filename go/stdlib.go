@@ -475,8 +475,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			TrackImport("Ord")
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
-				// For identifiers, just use the name directly (it's already wrapped)
-				out.WriteString(RustIdentForUse(ident))
+				writeCollectionFormatHandleIdent(out, ident)
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -534,7 +533,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					return
 				}
 				out.WriteString("format_slice(&")
-				out.WriteString(RustIdentForUse(ident))
+				writeCollectionFormatHandleIdent(out, ident)
 				out.WriteString(")")
 			} else if formatSliceArgumentIsBareValue(arg) {
 				out.WriteString("format_slice_values(&")
@@ -1815,7 +1814,7 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 		}
 		out.WriteString(wrappedHelper)
 		out.WriteString("(&")
-		out.WriteString(RustIdentForUse(ident))
+		writeCollectionFormatHandleIdent(out, ident)
 		out.WriteString(")")
 		return
 	}
@@ -1830,6 +1829,17 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 	out.WriteString("(&")
 	TranspileExpression(out, arg)
 	out.WriteString(")")
+}
+
+func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString(RustIdentForUse(ident))
+	if isPackageGlobalIdent(ident) {
+		// Single-threaded package globals use GoGlobal rather than the ordinary
+		// Rc<RefCell<Option<T>>> collection handle. Cloning produces the handle
+		// expected by the formatter. In concurrent mode the global dereferences
+		// to Arc<Mutex<Option<T>>>, whose clone is the same shared handle.
+		out.WriteString(".clone()")
+	}
 }
 
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
