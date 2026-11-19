@@ -1,0 +1,18 @@
+started
+slice into a variable 1
+slice into a variable 9
+slice into a variable, afterwards 1 9 99
+array into a variable 1
+array into a variable 2
+array into a variable, afterwards 1 9 99
+slice into a variable, no index 1 9 10
+from a range variable 1 100 200
+from a range variable 2 100 200
+range over a map 1
+range over a map into a variable 1 60
+range variable appended 1 7
+range variable stored in a map 1 1 70
+range variable kept after the loop 2 90
+range over a channel 1001
+range over a channel 1002
+the slice afterwards 1 2

@@ -16,7 +16,9 @@ impl Display for Code {
 
 impl PartialEq for Code {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -28,7 +30,9 @@ impl PartialEq<i32> for Code {
 
 impl PartialOrd for Code {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -89,6 +93,76 @@ impl std::ops::Sub<Code> for i32 {
     type Output = Code;
     fn sub(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Code {
+    type Output = Code;
+    fn mul(self, other: Self) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Code {
+    type Output = Code;
+    fn mul(self, other: i32) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Code> for i32 {
+    type Output = Code;
+    fn mul(self, other: Code) -> Code {
+        Code(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Code {
+    type Output = Code;
+    fn div(self, other: Self) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Code {
+    type Output = Code;
+    fn div(self, other: i32) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Code> for i32 {
+    type Output = Code;
+    fn div(self, other: Code) -> Code {
+        Code(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Code {
+    type Output = Code;
+    fn neg(self) -> Code {
+        Code(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Code {
+    type Output = Code;
+    fn rem(self, other: Self) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Code {
+    type Output = Code;
+    fn rem(self, other: i32) -> Code {
+        Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Code> for i32 {
+    type Output = Code;
+    fn rem(self, other: Code) -> Code {
+        Code(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -315,7 +389,7 @@ impl Ord for Code {
 
 fn main() {
     let mut x: Rc<RefCell<Option<[AnonymousStruct1; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default()))));
-    let _ = (*x.borrow().as_ref().unwrap())[(INVALID as i32 - -1 as i32) as usize].clone();
+    let _ = (*x.borrow().as_ref().unwrap())[(INVALID as i32 - -1) as usize].clone();
     println!("{}", format!("{}", "ok".to_string()));
 }
 
@@ -324,7 +398,8 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

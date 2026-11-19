@@ -46,8 +46,8 @@ where
 
 fn main() {
     let mut s: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push("a".to_string()); __append_target.clone() }; s = new_val; };
-    { let new_val = { let __append_target = s.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["b".to_string(), "c".to_string()]); __append_target.clone() }; s = new_val; };
+    { let new_val = { let __append_target = s.clone(); let __append_value = "a".to_string(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; s = new_val; };
+    { let new_val = { let __append_target = s.clone(); let __append_values = vec!["b".to_string(), "c".to_string()]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; s = new_val; };
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", format_slice(&s)));
 
     let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));

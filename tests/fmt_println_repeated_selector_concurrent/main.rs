@@ -199,20 +199,32 @@ pub struct r#box {
 
 impl r#box {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, items: self.items.clone() }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.items.clone();
+        Self {
+            name: __go_clone_0_0,
+            items: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for r#box {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), items: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            name: __go_default_0_0,
+            items: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for r#box {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), format_slice(&self.items))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.items));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -225,5 +237,5 @@ fn main() {
     done.recv().unwrap_or_default();
 
     let mut value = Arc::new(Mutex::new(Some(r#box { name: Arc::new(Mutex::new(Some("alpha".to_string()))), items: Arc::new(Mutex::new(Some(vec![1, 2]))), ..Default::default() })));
-    println!("{} {} {}", format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*(*value.lock().unwrap().as_ref().unwrap()).items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len_target = { let __field = (*value.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
 }

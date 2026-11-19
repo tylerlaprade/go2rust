@@ -9,20 +9,27 @@ pub struct Comment {
 
 impl Comment {
     pub fn __go_value_clone(&self) -> Self {
-        Self { text: { let __guard = self.text.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.text.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            text: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Comment {
     fn default() -> Self {
-        Self { text: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            text: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Comment {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.text.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.text.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -58,9 +65,9 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     let mut list: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Comment>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None)); (3) as usize])));
-    (*list.borrow_mut().as_mut().unwrap())[(0) as usize] = Rc::new(RefCell::new(Some(Comment { text: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() })));
-    (*list.borrow_mut().as_mut().unwrap())[(1) as usize] = (*separator.borrow().as_ref().unwrap()).clone();
-    (*list.borrow_mut().as_mut().unwrap())[(2) as usize] = Rc::new(RefCell::new(Some(Comment { text: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() })));
+    { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Comment { text: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }))); (*list.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (1) as usize; let __rhs = (*separator.borrow().as_ref().unwrap()).clone(); (*list.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (2) as usize; let __rhs = Rc::new(RefCell::new(Some(Comment { text: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }))); (*list.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __range_holder = list.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for c in __range_values.iter() {
         println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).text.borrow().as_ref().unwrap()).clone()));
     } }

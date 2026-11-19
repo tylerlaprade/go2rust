@@ -13,12 +13,12 @@ fn main() {
     let mut i = Rc::new(RefCell::new(Some(1)));
     println!("{} {}", format!("{}", "initial:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
-    zeroval(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))));
+    zeroval(Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     println!("{} {}", format!("{}", "zeroval:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
     zeroptr(i.clone());
     println!("{} {}", format!("{}", "zeroptr:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut p = i.clone();
-    println!("{} {}", format!("{}", "pointer is non-nil:".to_string()), format!("{}", (*p.borrow()).is_some()));
+    println!("{} {}", format!("{}", "pointer is non-nil:".to_string()), format!("{}", { let __nil_result = (*p.borrow()).is_some(); __nil_result }));
 }

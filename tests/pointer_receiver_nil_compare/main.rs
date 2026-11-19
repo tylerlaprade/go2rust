@@ -9,35 +9,42 @@ pub struct node {
 
 impl node {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for node {
     fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl node {
     pub fn same(&self, other: Rc<RefCell<Option<node>>>) -> bool {
-        if false || (*other.borrow()).is_none() {
-        return false;
+        if false || { let __nil_result = (*other.borrow()).is_none(); __nil_result } {
+        return { let __peer = other.clone(); let __peer_guard = __peer.borrow(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq };
     }
         return (*self.value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
     }
 }
 
 fn main() {
-    let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })));
+    let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     let mut missing: Rc<RefCell<Option<node>>> = Rc::new(RefCell::new(None));
     println!("{}", format!("{}", (*left.borrow().as_ref().unwrap()).same(missing.clone())));
 }

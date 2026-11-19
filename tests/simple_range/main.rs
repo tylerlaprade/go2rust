@@ -16,7 +16,7 @@ fn main() {
     } }
 
         // Index only
-    for i in 0..({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
+    for i in 0..(({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         println!("{} {}", format!("{}", "Index:".to_string()), format!("{}", i));
     }
 }

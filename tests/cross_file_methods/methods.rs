@@ -1,9 +1,9 @@
-use crate::types::*;
+use crate::{types::{Counter, Point}};
 
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-impl Counter {
+impl crate::types::Counter {
     /// Methods for Counter type
     pub fn increment(&mut self) {
         { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -18,7 +18,7 @@ impl Counter {
     }
 }
 
-impl Point {
+impl crate::types::Point {
     /// Methods for Point type
     pub fn distance(&self, other: Rc<RefCell<Option<Point>>>) -> f64 {
         let mut dx = Rc::new(RefCell::new(Some((*self.x.borrow().as_ref().unwrap()) - (*(*other.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()))));

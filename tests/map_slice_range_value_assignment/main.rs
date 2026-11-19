@@ -8,7 +8,7 @@ fn main() {
 
     let mut src: Rc<RefCell<Option<Vec<u8>>>> = Rc::new(RefCell::new(None));
     for (filename, contents) in { let __range_holder = overlay.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        if filename.clone() == "file.go" {
+        if filename.clone() == "file.go".to_string() {
         { let new_val = contents.clone(); src = new_val; };
         break
     }

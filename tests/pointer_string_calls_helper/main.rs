@@ -9,14 +9,20 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for holder {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
@@ -29,7 +35,7 @@ impl std::fmt::Display for holder {
 
 impl holder {
     pub fn to_string(&self) -> Arc<Mutex<Option<String>>> {
-        return self.value.clone();
+        return Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {

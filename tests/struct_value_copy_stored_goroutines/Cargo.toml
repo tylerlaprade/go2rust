@@ -1,0 +1,8 @@
+[package]
+name = "struct_value_copy_stored_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "struct_value_copy_stored_goroutines"
+path = "main.rs"

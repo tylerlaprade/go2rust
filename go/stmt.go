@@ -181,6 +181,10 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			return true
 		}
+		// A nil check on the left can emit a block that scopes its borrow.
+		if left, ok := e.X.(*ast.BinaryExpr); ok && isRightNilComparison(left) {
+			return true
+		}
 		// Whatever the operator, the LHS is emitted first; if it would
 		// produce a leading `{`, the binary expression inherits the
 		// parsing ambiguity.
@@ -788,9 +792,14 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 				rhsVarName = RustLocalIdent(renamed)
 			}
 		}
-		out.WriteString(rhsVarName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone()")
+		if copyCall, known := goValueCopyCallForExpr(rhsIdent); known {
+			out.WriteString(rhsVarName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
+		}
 	} else if writeNamedIntegerAssignmentValue(out, rhs) {
 		// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
 	} else if writeConstAssignmentValue(out, lhs, rhs) {
@@ -805,6 +814,10 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 		// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 	} else if writeOwnedExpressionValue(out, rhs) {
 		// Copied by value from an existing wrapped field or handle.
+	} else if writeValueOfVariableAsGoCopy(out, rhs) {
+		// A struct variable is copied into the slot.
+	} else if writeGoValueCopyOfElement(out, rhs) {
+		// So is an element of a slice or an array, and the target of a pointer.
 	} else {
 		TranspileExpression(out, rhs)
 	}
@@ -980,9 +993,11 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 		return true
 	}
 
+	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
+	// the 1, and did not compile.
 	out.WriteString("{ let __idx = ")
-	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; ")
 	writeIndexedSequenceMutationGuard(out, indexExpr.X)
 	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
 	writeIndexedCurrentElementValue(out, elemType)
@@ -1068,11 +1083,20 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
+	// An error goes into a []any element the way it goes into any other
+	// interface value.
+	if writeGoErrorInterfaceAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
 	out.WriteString("Box::new(")
-	writeAnyBoxInnerValue(out, expr)
+	// A value that keeps its handle when boxed keeps it in a []any element
+	// too, the same as every other way of storing it in an interface.
+	if !writeAnyHandleBoxInnerValue(out, expr) && !writeDefinedCollectionOwnedValue(out, expr) {
+		writeAnyBoxInnerValue(out, expr)
+	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
 }
@@ -1138,6 +1162,12 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 			out.WriteString(".clone()")
 			return
 		}
+	}
+
+	// A struct held in a variable, or read from "s[i]" or "*p", is copied into
+	// the element: the element and its source are two values from here on.
+	if writeValueOfVariableAsGoCopy(out, rhs) || writeGoValueCopyOfElement(out, rhs) {
+		return
 	}
 
 	needsUnwrap := false
@@ -1669,15 +1699,33 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 		return false
 	}
 
-	out.WriteString("(*")
-	TranspileExpressionContext(out, innerIndex.X, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
+	// Both indexes and the value are evaluated before the outer sequence is
+	// locked for writing: "grid[i][j] = grid[k][l]" reads the same grid.
+	//
+	// Go evaluates the outer sequence before its indexes. That shows when
+	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
+	// handle is then taken first and held, not locked.
+	holdsSequence := expressionCallsOrReceives(innerIndex.X)
+	out.WriteString("{ ")
+	if holdsSequence {
+		out.WriteString("let __seq = ")
+		TranspileExpressionContext(out, innerIndex.X, LValue)
+		out.WriteString(".clone(); ")
+	}
+	out.WriteString("let __outer_idx = ")
 	writeExpressionAsUsize(out, innerIndex.Index)
-	out.WriteString("][")
+	out.WriteString("; let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
+	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
+	out.WriteString("; (*")
+	if holdsSequence {
+		out.WriteString("__seq")
+	} else {
+		TranspileExpressionContext(out, innerIndex.X, LValue)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[__outer_idx][__idx] = __rhs; }")
 	return true
 }
 
@@ -3432,6 +3480,23 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 	return true
 }
 
+// typeSwitchCaseAnyHandleRustType reports the handle type a case of a type
+// switch over an empty interface has to downcast to, for case types whose
+// values keep their handle when boxed into the interface.
+func typeSwitchCaseAnyHandleRustType(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (string, bool) {
+	if typeInfo == nil || !isEmptyInterfaceType(subjectType) {
+		return "", false
+	}
+	caseType := typeInfo.GetType(typeExpr)
+	// An error whose dynamic type cannot be named is boxed as its own handle
+	// (see writeOpaqueGoErrorAnyBox). case error has to look for that handle,
+	// and its variable is the handle, the same error the box holds.
+	if isErrorInterfaceType(caseType) {
+		return rustGoErrorHandleType(), true
+	}
+	return anyBoxedHandleRustType(caseType)
+}
+
 func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) {
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
@@ -3441,6 +3506,12 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(wrapperType)
+		out.WriteString(">()).is_some()")
+		return
+	}
+	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(handleType)
 		out.WriteString(">()).is_some()")
 		return
 	}
@@ -3786,15 +3857,18 @@ func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
 }
 
 func writeSwitchPointerDirectCaseComparison(out *strings.Builder, tag ast.Expr, caseExpr ast.Expr) {
+	// Bind the comparison result before the block ends. Left as the block's
+	// tail expression, the borrow guard it creates is dropped after
+	// __switch_val, which rustc rejects (E0597) under edition 2021.
 	out.WriteString("{ let __switch_val = ")
 	writeSwitchPointerTagHandle(out, tag)
-	out.WriteString("; ")
+	out.WriteString("; let __switch_eq = ")
 	if info, ok := switchGoPtrInfo(tag); ok {
 		writeSwitchGoPtrCaseComparisonForInfo(out, "__switch_val", caseExpr, info)
 	} else {
 		writeSwitchPointerCaseComparison(out, "__switch_val", caseExpr)
 	}
-	out.WriteString(" }")
+	out.WriteString("; __switch_eq }")
 }
 
 func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
@@ -4473,26 +4547,26 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 		return false
 	}
 
-	switch typ.Underlying().(type) {
-	case *types.Basic, *types.Struct, *types.Array:
-		varName := RustIdentForUse(ident)
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = RustLocalIdent(renamed)
-			}
-		}
-		out.WriteString("{ let __owned = ")
-		out.WriteString(varName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone(); ")
-		WriteWrapperPrefix(out)
-		out.WriteString("__owned")
-		WriteWrapperSuffix(out)
-		out.WriteString(" }")
-		return true
-	default:
+	if !goTypeIsCopiedByValue(typ) {
 		return false
 	}
+	varName := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			varName = RustLocalIdent(renamed)
+		}
+	}
+	out.WriteString("{ let __owned = ")
+	out.WriteString(varName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(goValueCopyCallForType(typ))
+	out.WriteString("; ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__owned")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
 }
 
 func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
@@ -4541,12 +4615,8 @@ func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool 
 	if typ == nil {
 		return false
 	}
-	if !namedCollectionSelectorNeedsOwnedValue(expr, typ) {
-		switch typ.Underlying().(type) {
-		case *types.Basic, *types.Struct, *types.Array:
-		default:
-			return false
-		}
+	if !namedCollectionSelectorNeedsOwnedValue(expr, typ) && !goTypeIsCopiedByValue(typ) {
+		return false
 	}
 	var inner strings.Builder
 	if !writeOwnedExpressionValue(&inner, expr) {
@@ -5162,6 +5232,12 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	}
 	if writeFunctionMapValue(out, expr, nil, valueType) {
 		return
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		// A struct variable stored in a map is copied into it.
+		if copyCall, known := goValueCopyCallForExpr(ident); known && copyCall != ".clone()" && writeWrappedValueCopyFromIdent(out, ident) {
+			return
+		}
 	}
 	if ident, ok := expr.(*ast.Ident); ok &&
 		ident.Name != "_" && ident.Name != "nil" && isVarBare(ident.Name) &&
@@ -6520,6 +6596,49 @@ func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
 	return ok
 }
 
+// goTypeIsCopiedByValue reports whether assigning a value of this type gives
+// the destination a value of its own: a string, a number, a bool, a struct
+// or an array, or a defined type over one of those. Every place that decides
+// between copying a value and sharing its handle asks here, so that they
+// cannot disagree.
+func goTypeIsCopiedByValue(typ types.Type) bool {
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+		return true
+	}
+	return false
+}
+
+// receiverFieldIsReturnedByCopy reports whether a field of the receiver is
+// a value that Go copies when a method returns it. The caller's variable is
+// then its own. Returning the field's handle would make the caller's
+// variable and the field one variable, so that "name := u.Name(); name =
+// strings.ToUpper(name)" changed the struct.
+//
+// known is false when the type checker has no type for the field. The
+// caller must not guess then: a wrong guess is a silent aliasing bug.
+func receiverFieldIsReturnedByCopy(expr ast.Expr) (copied bool, known bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false, false
+	}
+	return goTypeIsCopiedByValue(typ), true
+}
+
+func receiverFieldTypeIsKnown(expr ast.Expr) bool {
+	_, known := receiverFieldIsReturnedByCopy(expr)
+	return known
+}
+
+func receiverFieldIsCopied(expr ast.Expr) bool {
+	copied, _ := receiverFieldIsReturnedByCopy(expr)
+	return copied
+}
+
 func selectorExpressionKeepsHandle(expr ast.Expr) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -7058,18 +7177,36 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	if writeGoPtrPointedArrayAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle) {
 		return true
 	}
-	out.WriteString(" (*")
-	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-		writeNamedSliceInnerHandleClone(out, subj)
+	// The index is evaluated before the sequence is locked for writing:
+	// "s[len(s)-1], x = a, b" reads the sequence in its index. A sequence
+	// that calls a function is evaluated before its index, as in Go: its
+	// handle is taken first and held.
+	holdsSequence := expressionCallsOrReceives(indexExpr.X)
+	writeSequenceHandle := func() {
+		if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+			writeNamedSliceInnerHandleClone(out, subj)
+		} else {
+			TranspileExpressionContext(out, indexExpr.X, LValue)
+		}
+	}
+	out.WriteString(" { ")
+	if holdsSequence {
+		out.WriteString("let __seq = ")
+		writeSequenceHandle()
+		out.WriteString(".clone(); ")
+	}
+	out.WriteString("let __idx = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; (*")
+	if holdsSequence {
+		out.WriteString("__seq")
 	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
+		writeSequenceHandle()
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
+	out.WriteString(".as_mut().unwrap())[__idx] = ")
 	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-	out.WriteString(";")
+	out.WriteString("; }")
 	return true
 }
 
@@ -7591,7 +7728,87 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
+	copyCall, known := elementGoValueCopyCall(rangeExpr)
+	if !known {
+		out.WriteString("; let __range_values: Vec<()> = ")
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		out.WriteString("; drop(__range_guard); ")
+		return
+	}
+	if copyCall != ".clone()" && rangeExprIsArrayValue(rangeExpr) {
+		// Go copies an array before it ranges over it, so the loop does not
+		// see writes made to the array while it runs. Cloning the array
+		// would clone each struct's handles and let those writes through.
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
+		out.WriteString(copyCall)
+		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		return
+	}
+	// A slice is not copied: each element is read when its turn comes. The
+	// snapshot holds second handles on the elements, so a field written
+	// during the loop is seen, and the loop variable takes its copy of the
+	// element at the start of its iteration (writeRangeOwnedValuesAdapter
+	// and writeRangeValueIterationCopy).
 	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
+}
+
+// writeRangeValueIterationCopy makes the loop variable of a range over
+// structs Go's copy of its element, at the start of the iteration. It is for
+// the loops that bind the variable to a reference to the element; without
+// it "p.X = 1" in the loop writes into the slice. The loops that bind an
+// owned value copy in writeRangeOwnedValuesAdapter.
+func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr) {
+	ident, ok := value.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	copyCall, known := elementGoValueCopyCall(rangeExpr)
+	if !known || copyCall == ".clone()" {
+		return
+	}
+	name := RustLocalIdent(ident.Name)
+	out.WriteString("        let ")
+	out.WriteString(name)
+	out.WriteString(" = &")
+	out.WriteString(name)
+	out.WriteString(copyCall)
+	out.WriteString(";\n")
+}
+
+// writeMapRangeValueIterationCopy makes the value variable of a range over a
+// map of structs Go's copy of the map's value, at the start of the
+// iteration. The loop binds the variable to the map's own cell for that
+// value; without this "v.X = 1" in the loop writes into the map.
+func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type, value ast.Expr) {
+	ident, ok := value.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	name := RustLocalIdent(ident.Name)
+	if valueType == nil {
+		out.WriteString("        let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		WriteWrapperPrefix(out)
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		WriteWrapperSuffix(out)
+		out.WriteString(";\n")
+		return
+	}
+	copyCall := goValueCopyCallForType(valueType)
+	if copyCall == ".clone()" {
+		return
+	}
+	out.WriteString("        let ")
+	out.WriteString(name)
+	out.WriteString(" = ")
+	WriteWrapperPrefix(out)
+	out.WriteString(name)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(copyCall)
+	WriteWrapperSuffix(out)
+	out.WriteString(";\n")
 }
 
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
@@ -7601,6 +7818,12 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
 	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
 		out.WriteString(".into_iter()")
+	} else if copyCall, known := elementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
+		// The loop variable is Go's copy of the element, taken when the
+		// iteration starts: the map runs once for each step of the loop.
+		out.WriteString(".iter().map(|__e| __e")
+		out.WriteString(copyCall)
+		out.WriteString(")")
 	} else {
 		out.WriteString(".iter().cloned()")
 	}
@@ -7810,15 +8033,32 @@ func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+// writeConcreteErrorVarInitializer writes the initializer of
+// "var name error = value" when value is not an error already but a struct
+// or pointer that implements error. It is boxed as an assignment to an error
+// variable boxes it.
+func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueType := typeInfo.GetType(value)
+	if !isGoErrorType(typeInfo.GetType(typeExpr)) || !isConcreteGoErrorValue(valueType) {
+		return false
+	}
+	// An interface that embeds error also implements error, but its value is
+	// a trait object, not a struct to box.
+	if types.IsInterface(valueType) {
+		return false
+	}
+	return writeGoErrorHandleValue(out, value)
+}
+
 func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Error")
-	out.WriteString("Box::new(")
+	out.WriteString(rustErrorFromValueStart())
 	writeConcreteErrorValue(out, expr)
-	if NeedsConcurrentWrapper() {
-		out.WriteString(") as Box<dyn StdError + Send + Sync>")
-	} else {
-		out.WriteString(") as Box<dyn StdError>")
-	}
+	out.WriteString(rustErrorFromValueEnd())
 }
 
 func writeGoErrorHandleValue(out *strings.Builder, expr ast.Expr) bool {
@@ -7858,15 +8098,74 @@ func writeConcreteErrorInterfaceAssignment(out *strings.Builder, lhs ast.Expr, r
 	out.WriteString(" = Some(new_val); }")
 }
 
-func writeMoveErrorAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+// writeErrorCopyAssignment assigns one error variable to another. The target
+// gets its own pointer to the same error and the source keeps its own, as in
+// Go, where "last = err" leaves err as it was.
+func writeErrorCopyAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
 	out.WriteString("{ let __rhs_holder = ")
 	TranspileExpressionContext(out, rhs, LValue)
-	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; guard.take() }; *")
+	out.WriteString(".clone(); let new_val = (*__rhs_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone(); *")
 	TranspileExpressionContext(out, lhs, LValue)
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = new_val; }")
+}
+
+// writeErrorHandleCopy writes a new handle that holds the same error as the
+// handle writeSource writes. An error variable that is passed, returned,
+// stored or used to start another variable is copied this way: the two
+// variables then change independently, and they are still the same error.
+func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
+	out.WriteString("{ let __err_source = ")
+	writeSource()
+	out.WriteString("; let __err_copy = (*__err_source")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone(); ")
+	writeErrorHandleFromOptionValue(out, "__err_copy")
+	out.WriteString(" }")
+}
+
+// expressionCallsOrReceives reports whether evaluating expr calls a function
+// or receives from a channel, so that evaluating it one more time, or one
+// time less, changes what the program does.
+func expressionCallsOrReceives(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.CallExpr:
+			found = true
+		case *ast.UnaryExpr:
+			if n.Op == token.ARROW {
+				found = true
+			}
+		case *ast.FuncLit:
+			return false
+		}
+		return !found
+	})
+	return found
+}
+
+// mapOperandHandleCanBeHeld reports whether the map operand of "m[k] op= v"
+// is a handle that can be cloned and held while the key and the operand are
+// evaluated. A package-level variable is not: it is a static that owns its
+// map, and cloning it copies the map. Without type information there is no
+// telling a package-level variable of another package from a field.
+func mapOperandHandleCanBeHeld(mapExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	switch operand := unwrapParens(mapExpr).(type) {
+	case *ast.Ident:
+		return !isPackageGlobalIdent(operand)
+	case *ast.SelectorExpr:
+		if variable, ok := typeInfo.info.Uses[operand.Sel].(*types.Var); ok && !variable.IsField() {
+			return false
+		}
+	}
+	return true
 }
 
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
@@ -7878,11 +8177,37 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
 	}
 
-	out.WriteString("{ let mut __map_guard = ")
-	writeMapHandleForOp(out, indexExpr.X)
-	WriteBorrowMethod(out, true)
-	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
+	// The key and the operand are evaluated before the map is locked for
+	// writing. Either may read the map ("m[a] += m[b]"), and a read under the
+	// write lock panics, or hangs in a program with goroutines.
+	//
+	// Go evaluates the map operand first, so its handle is taken before the
+	// key and the operand, without locking it. A package-level map has no
+	// handle to take: it is written in place, and naming it calls nothing.
+	holdsMapHandle := mapOperandHandleCanBeHeld(indexExpr.X)
+	out.WriteString("{ ")
+	if holdsMapHandle {
+		out.WriteString("let __map_holder = ")
+		writeMapHandleCloneForOp(out, indexExpr.X)
+		out.WriteString("; ")
+	}
+	out.WriteString("let __key = ")
 	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
+	out.WriteString("; ")
+	operandIsRHS := op != token.INC && op != token.DEC && rhs != nil
+	if operandIsRHS {
+		out.WriteString("let __rhs = ")
+		TranspileExpression(out, rhs)
+		out.WriteString("; ")
+	}
+	out.WriteString("let mut __map_guard = ")
+	if holdsMapHandle {
+		out.WriteString("__map_holder")
+	} else {
+		writeMapHandleForOp(out, indexExpr.X)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key")
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -7919,8 +8244,8 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString(" ")
 	if op == token.INC || op == token.DEC {
 		out.WriteString("1")
-	} else if rhs != nil {
-		TranspileExpression(out, rhs)
+	} else if operandIsRHS {
+		out.WriteString("__rhs")
 	} else {
 		out.WriteString("0")
 	}
@@ -8492,8 +8817,8 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
 	out.WriteString("{ let __idx = ")
-	TranspileExpression(out, indexExpr.Index)
-	out.WriteString(" as usize; let __rhs = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let __rhs = ")
 	writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
 	out.WriteString("; ")
 	writeIndexedSequenceMutationGuard(out, indexExpr.X)
@@ -8530,6 +8855,114 @@ func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) 
 	if !typeIsPredeclaredCopyScalar(elemType) {
 		out.WriteString(".clone()")
 	}
+}
+
+// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" makes the
+// existing slice or map variable or field v the same slice or map as the
+// entry by replacing its handle, as the plain "v = m[k]" does.
+func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	switch target := lhs.(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isPackageGlobalIdent(target) {
+			return false
+		}
+		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
+			return false
+		}
+		if currentCaptureRenames != nil {
+			if _, captured := currentCaptureRenames[target.Name]; captured {
+				return false
+			}
+		}
+	case *ast.SelectorExpr:
+	default:
+		return false
+	}
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Slice:
+		return isPlainSliceExpression(lhs)
+	case *types.Map:
+		return typeInfo.IsMap(lhs) && !isNamedMapExpression(lhs)
+	}
+	return false
+}
+
+// mapCommaOkValueIsSliceOrMap reports whether the values of the map read by
+// indexExpr are slices or maps, of a named type or not. The map's cell for
+// such a value can be cloned: the clone of a named slice shares its backing
+// array, as a copied slice header does in Go.
+func mapCommaOkValueIsSliceOrMap(indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
+}
+
+// writeMapCommaOkFoundValue writes the first result of "v, ok := m[k]" for a
+// key that is in the map, where the map's cell for the value is bound to v
+// in the generated match arm. A pointer, slice, map, channel, function or
+// interface value is its handle. Any other value is copied into a cell of
+// its own: handing out the map's cell let "v = 5" after the read change the
+// map, and let "v, ok = m[k]" into existing variables take the value out of
+// the map.
+func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool, valueDiscarded bool, heldInOwnCell bool) {
+	if valueDiscarded {
+		// "_, ok := m[k]" drops the value, so the handle will do.
+		out.WriteString("v.clone()")
+		return
+	}
+	if heldInOwnCell {
+		// The value is about to be moved into an existing target. Moving it
+		// out of the map's own handle would empty the map entry, so the
+		// target gets a clone of what the handle holds, in a cell of its own.
+		out.WriteString("{ let __held = v")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone(); ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("__held")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(" }")
+		return
+	}
+	if syntaxKeepsHandle {
+		out.WriteString("v.clone()")
+		return
+	}
+	var valueType types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		valueType = typeInfo.GetMapValueType(indexExpr.X)
+	}
+	if valueType == nil {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
+	if mapValueTypeKeepsHandle(valueType) {
+		out.WriteString("v.clone()")
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(goValueCopyCallForType(valueType))
+	WriteWrapperSuffix(out)
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
@@ -9456,18 +9889,10 @@ func channelElementIsGoError(expr ast.Expr) bool {
 	return ok && isGoErrorType(ch.Elem())
 }
 
-func rustStdErrorBoxType() string {
-	TrackImport("Error")
-	if NeedsConcurrentWrapper() {
-		return "Box<dyn StdError + Send + Sync>"
-	}
-	return "Box<dyn StdError>"
-}
-
 func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("None::<")
-		out.WriteString(rustStdErrorBoxType())
+		out.WriteString(rustErrorPayloadType())
 		out.WriteString(">")
 		return
 	}
@@ -9481,9 +9906,9 @@ func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
 	}
-	out.WriteString("; let mut __err_guard = __err_handle")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __err_guard.take() }")
+	out.WriteString("; let __err_value = (*__err_handle")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone(); __err_value }")
 }
 
 func writeErrorHandleFromOptionValue(out *strings.Builder, value string) {
@@ -9526,12 +9951,12 @@ func writeEmptyErrorHandle(out *strings.Builder) {
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(Mutex::new(None::<")
-		out.WriteString(rustStdErrorBoxType())
+		out.WriteString(rustErrorPayloadType())
 		out.WriteString(">))")
 		return
 	}
 	out.WriteString("Rc::new(RefCell::new(None::<")
-	out.WriteString(rustStdErrorBoxType())
+	out.WriteString(rustErrorPayloadType())
 	out.WriteString(">))")
 }
 
@@ -9649,16 +10074,20 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 			out.WriteString(ident.Name)
 			return
 		}
-		// Wrapped variable — unwrap and clone if needed
+		// Wrapped variable — unwrap and copy if needed. A value sent on a
+		// channel is a copy of the variable.
 		if isCopyType {
 			out.WriteString("(*")
 			out.WriteString(ident.Name)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
-		} else {
+		} else if copyCall, known := goValueCopyCallForExpr(ident); known {
 			out.WriteString(ident.Name)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().clone()")
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
 		}
 		return
 	}
@@ -9669,11 +10098,20 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 			TranspileExpression(out, expr)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
-		} else {
+		} else if copyCall, known := goValueCopyCallForExpr(expr); known {
 			TranspileExpression(out, expr)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().clone()")
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
 		}
+		return
+	}
+
+	// An element of a slice or an array, and the target of a pointer, is
+	// copied when it is sent.
+	if writeGoValueCopyOfElement(out, expr) {
 		return
 	}
 
@@ -10863,8 +11301,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
 							// Function selector values are represented by cloneable handles or boxed method values.
-						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-							// Returning a receiver field clones the handle. Route through
+						} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(result)) && writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+							// An error held in a field is returned as a copy. The
+							// caller's variable is its own, so assigning to it
+							// does not change the field.
+						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldTypeIsKnown(result) {
+							// Without a type there is no telling a copied field
+							// from a shared one. Say so instead of guessing.
+							out.WriteString("unimplemented!(\"type info required to return a receiver field\")")
+						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldIsCopied(result) {
+							// Returning a receiver field that Go shares, such as a
+							// pointer, slice or map, clones the handle. Route through
 							// typed selector lowering so promoted fields traverse embeds.
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
@@ -11003,6 +11450,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							continue
 						}
 						if writeBareDirectTypeParamWrappedReturnValue(out, ident, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
+						if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) && writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+							// An error variable is returned as a copy. The caller's
+							// variable is its own, so assigning to it does not
+							// change this one, which may be a package-level error.
 							continue
 						}
 						if writeWrappedValueCopyFromIdent(out, ident) {
@@ -11248,13 +11701,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Struct implementing error interface - box it
 							TrackImport("Error")
 							WriteWrapperPrefix(out)
-							out.WriteString("Box::new(")
+							out.WriteString(rustErrorFromValueStart())
 							TranspileExpression(out, result)
-							if NeedsConcurrentWrapper() {
-								out.WriteString(") as Box<dyn StdError + Send + Sync>")
-							} else {
-								out.WriteString(") as Box<dyn StdError>")
-							}
+							out.WriteString(rustErrorFromValueEnd())
 							WriteWrapperSuffix(out)
 						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 						} else if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
@@ -11550,7 +11999,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteBorrowMethod(out, true)
 					if isErrorChannelRecv {
 						out.WriteString(" = None::<")
-						out.WriteString(rustStdErrorBoxType())
+						out.WriteString(rustErrorPayloadType())
 						out.WriteString(">; *")
 					} else {
 						out.WriteString(" = Some(Default::default()); *")
@@ -11630,7 +12079,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 				// Generate the map access code.
-				if isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X)) {
+				mapIsBareValue := isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X))
+				if mapIsBareValue {
 					out.WriteString("match ")
 					TranspileExpression(out, indexExpr.X)
 					out.WriteString(".get(")
@@ -11648,7 +12098,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if !writeMapLookupKeyWithRustType(out, indexExpr.X, indexExpr.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithMapExpr(out, indexExpr.X, indexExpr.Index, keyType)
 				}
-				out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
+				if mapIsBareValue {
+					// "match map.get(key) {": only the call to get is open.
+					out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (")
+				} else {
+					out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (")
+				}
+				valueTarget, valueTargetIsIdent := s.Lhs[0].(*ast.Ident)
+				valueDiscarded := valueTargetIsIdent && valueTarget.Name == "_"
+				// "v, ok = m[k]" for a slice or map value: a plain slice or
+				// map variable takes over the entry's handle. Every other
+				// target (a named slice, a package variable, "dst[i]") gets a
+				// clone of the value in a cell of its own to move it from.
+				takesOverHandle := s.Tok != token.DEFINE && mapCommaOkAssignTakesOverHandle(s.Lhs[0], indexExpr)
+				heldInOwnCell := s.Tok != token.DEFINE && !valueDiscarded && !takesOverHandle && mapCommaOkValueIsSliceOrMap(indexExpr)
+				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueDiscarded, heldInOwnCell)
+				out.WriteString(", ")
 				out.WriteString("true")
 				out.WriteString("), None => (")
 				writeMapCommaOkMissingValue(out, indexExpr, valueKeepsHandle)
@@ -11662,7 +12127,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					registerBareShortDecl(s.Lhs[1])
 				} else {
 					out.WriteString(";")
-					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					if takesOverHandle {
+						out.WriteString(" ")
+						writePointerHandleAssignmentTargetFromValueName(out, s.Lhs[0], "__tmp_0")
+					} else {
+						// A function, interface, error or channel value is
+						// still moved out of the map's handle here (DEV-58).
+						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					}
 					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
 					out.WriteString(" }")
 				}
@@ -11947,7 +12419,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Nested slice element assignment emitted by helper.
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
 									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {
-										TranspileExpression(out, call)
+										// "x[i] = append(x[i], v)" is written as the append
+										// alone, which evaluates i once. Go evaluates the i
+										// of the target as well, and first; that shows when
+										// i calls a function.
+										if expressionCallsOrReceives(indexExpr.Index) {
+											out.WriteString("{ let _ = ")
+											writeExpressionAsUsize(out, indexExpr.Index)
+											out.WriteString("; ")
+											TranspileExpression(out, call)
+											out.WriteString("; }")
+										} else {
+											TranspileExpression(out, call)
+										}
 									} else {
 										out.WriteString("(*")
 										TranspileExpressionContext(out, indexExpr.X, LValue)
@@ -11958,20 +12442,37 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, call)
 									}
 								} else {
-									out.WriteString("(*")
-									if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-										writeNamedSliceInnerHandleClone(out, subj)
-										WriteBorrowMethod(out, true)
-									} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
-										writeNamedArrayInnerHandleClone(out, subj)
-										WriteBorrowMethod(out, true)
-									} else {
-										TranspileExpressionContext(out, indexExpr.X, LValue)
-										WriteBorrowMethod(out, true)
+									// The index and the value are evaluated before the
+									// sequence is locked for writing. Either may read the
+									// sequence ("s[len(s)-1] = x", "s[0] = s[1]"), and a
+									// read under the write lock panics, or hangs in a
+									// program with goroutines.
+									//
+									// Go evaluates the sequence operand before the
+									// index. That shows when the operand calls a
+									// function ("rows()[i()] = v()"), so its handle is
+									// then taken first and held, not locked. An operand
+									// that calls something is never a package-level
+									// variable, which has no handle to take.
+									holdsSequence := expressionCallsOrReceives(indexExpr.X)
+									writeSequenceHandle := func() {
+										if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+											writeNamedSliceInnerHandleClone(out, subj)
+										} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
+											writeNamedArrayInnerHandleClone(out, subj)
+										} else {
+											TranspileExpressionContext(out, indexExpr.X, LValue)
+										}
 									}
-									out.WriteString(".as_mut().unwrap())[")
+									out.WriteString("{ ")
+									if holdsSequence {
+										out.WriteString("let __seq = ")
+										writeSequenceHandle()
+										out.WriteString(".clone(); ")
+									}
+									out.WriteString("let __idx = ")
 									writeExpressionAsUsize(out, indexExpr.Index)
-									out.WriteString("] = ")
+									out.WriteString("; let __rhs = ")
 
 									var elemType types.Type
 									if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -11992,6 +12493,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 									}
+
+									out.WriteString("; (*")
+									if holdsSequence {
+										out.WriteString("__seq")
+									} else {
+										writeSequenceHandle()
+									}
+									WriteBorrowMethod(out, true)
+									out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
 								}
 							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
 								// Collection field on an indexed struct element mutates that element in place.
@@ -12087,7 +12597,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = Some(new_val); }")
 									}
 								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
-									writeMoveErrorAssignment(out, s.Lhs[0], s.Rhs[0])
+									writeErrorCopyAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if writeFunctionSelectorHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Function selector values are represented by handles; copy the handle.
 								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
@@ -12132,10 +12642,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														rhsVarName = RustLocalIdent(renamed)
 													}
 												}
-												if !writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
+												if writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
+													// A value of a type parameter has its own lowering.
+												} else if copyCall, known := goValueCopyCallForExpr(rhsIdent); known {
 													out.WriteString(rhsVarName)
 													WriteBorrowMethod(out, false)
-													out.WriteString(".as_ref().unwrap().clone()")
+													out.WriteString(".as_ref().unwrap()")
+													out.WriteString(copyCall)
+												} else {
+													out.WriteString(goValueCopyNeedsTypeInfo)
 												}
 											} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Constants assigned to wrapped slots need the target type from go/types.
@@ -12208,7 +12723,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											TranspileExpression(out, s.Rhs[0])
 										}
 									} else if isErrorFunc {
-										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn StdError>>>>
+										// Error functions return the full wrapped type: the error handle.
 										// Just replace the Rc pointer directly
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										out.WriteString(" = ")
@@ -12619,6 +13134,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Untyped string constants default to owned Go strings in local variables.
 											} else if writeWrappedOwnedExpressionValue(out, rhs) {
 												// Copied by value from an existing wrapped field or handle.
+											} else if writeWrappedGoValueCopyOfElement(out, rhs) {
+												// An element of a slice, array or map of structs is copied into the new variable.
 											} else if ident, ok := rhs.(*ast.Ident); ok {
 												if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
 													writeWrappedFunctionValueBox(out, ident, sig)
@@ -12892,6 +13409,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeConcreteErrorVarInitializer(out, valueSpec.Type, valueSpec.Values[i]) {
+									// A struct or pointer that implements error, stored in an error variable.
 								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
 									// Values assigned into a transpiled named interface variable may need re-boxing.
 								} else if valueSpec.Type != nil && writeConcreteToTranspiledInterfaceValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
@@ -13447,6 +13966,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		rangeValuesVar := ""
 		rangePrelude := ""
+		// Set when the loop binds its value variable to a reference to the
+		// element rather than to an owned value.
+		rangeValueBoundByReference := false
 		stringRangeValueTemp := ""
 		closeRangeGuard := false
 		needsSliceValues := !(s.Key != nil && s.Value == nil)
@@ -14046,6 +14568,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 					} else {
+						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
@@ -14079,6 +14602,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if valueAssigned {
 						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
 					} else {
+						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(".iter().enumerate()")
 					}
 				}
@@ -14121,6 +14645,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 				} else {
+					rangeValueBoundByReference = valueBindingTemp == ""
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
@@ -14157,6 +14682,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 		out.WriteString(rangePrelude)
+		if rangeValueBoundByReference {
+			writeRangeValueIterationCopy(out, s.X, s.Value)
+		}
+		if isMap && valueBindingTemp == "" {
+			writeMapRangeValueIterationCopy(out, mapValueGoType, s.Value)
+		}
 		restoreLoopBreakTarget := pushBreakTarget("")
 
 		currentLoopDepth++
@@ -15334,6 +15865,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(wrapperType)
 							out.WriteString(">()).unwrap().0.clone()")
+						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
+							// The box holds the handle itself, so the case
+							// variable shares it with every other holder.
+							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()).unwrap().clone()")
 						} else {
 							WriteWrapperPrefix(out)
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")

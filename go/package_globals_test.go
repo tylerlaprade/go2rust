@@ -695,7 +695,7 @@ var errEINVAL error = EINVAL
 	if strings.Contains(rust, "Some(E_I_N_V_A_L)") {
 		t.Fatalf("package global error const init should not store the raw const:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(Box::new(Errno(") {
+	if !strings.Contains(rust, "Some(Rc::new(Errno(") {
 		t.Fatalf("package global error const init should box the named error value:\n%s", rust)
 	}
 }
@@ -713,7 +713,7 @@ var errGlobal = error(errorString("bad"))
 	if strings.Contains(rust, "let __rhs_holder = errorString(") {
 		t.Fatalf("package global error conversion from concrete value should not move from a concrete newtype handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(Box::new(errorString(") {
+	if !strings.Contains(rust, "Some(Rc::new(errorString(") {
 		t.Fatalf("package global error conversion from concrete value should box the concrete error:\n%s", rust)
 	}
 }
