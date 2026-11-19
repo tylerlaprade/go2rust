@@ -160,7 +160,7 @@ fn main() {
 
     let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(e))))) } };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

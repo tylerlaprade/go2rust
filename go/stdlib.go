@@ -548,7 +548,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					out.WriteString("format!(\"{:p}\", self)")
 					return
 				}
-				out.WriteString("format!(\"&{}\", (*")
+				out.WriteString(printValueOrNilStart)
 				if ident, ok := arg.(*ast.Ident); ok {
 					out.WriteString(RustIdentForUse(ident))
 				} else if sel, ok := arg.(*ast.SelectorExpr); ok {
@@ -556,8 +556,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				} else {
 					TranspileExpression(out, arg)
 				}
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()))")
+				writePrintValueOrNil(out, pointerPrintFormat(ptr))
 				return
 			}
 		}
@@ -777,15 +776,42 @@ func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Typ
 	if !isGoErrorType(argType) {
 		return false
 	}
-	out.WriteString("format!(\"{}\", (*")
+	out.WriteString(printValueOrNilStart)
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 	} else {
 		TranspileExpressionContext(out, arg, LValue)
 	}
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()))")
+	writePrintValueOrNil(out, "{}")
 	return true
+}
+
+// writePrintValueOrNil finishes the printing of a handle that may hold nil:
+// an error or a pointer. The value prints with format, and nil prints as
+// <nil>, which is what Go prints for either. The caller has written
+// printValueOrNilStart and the handle.
+//
+// The match is a statement of its own so that the handle is released before
+// the next argument of the print call is evaluated. Two arguments may be the
+// same handle, and a locked handle cannot be taken twice.
+func writePrintValueOrNil(out *strings.Builder, format string) {
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__value) => format!(\"")
+	out.WriteString(format)
+	out.WriteString("\", __value), None => \"<nil>\".to_string() }; __text }")
+}
+
+const printValueOrNilStart = "{ let __text = match "
+
+// pointerPrintFormat is how fmt prints a pointer to a struct that is not nil.
+// A pointer whose type has a String or Error method prints through the
+// method, and the pointee's Display calls it. Any other prints as & and the
+// struct.
+func pointerPrintFormat(ptr *types.Pointer) string {
+	if typeHasGoStringMethod(ptr) || isConcreteGoErrorValue(ptr) {
+		return "{}"
+	}
+	return "&{}"
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
