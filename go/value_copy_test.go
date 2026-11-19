@@ -437,9 +437,10 @@ func main() {
 }
 `)
 	const held = "Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } };"
+	const namedHeld = "Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Rc::new(RefCell::new(Some(Default::default()))), false) } };"
 	for what, want := range map[string]string{
-		"a named slice variable": held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
-		"a named slice field":    held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
+		"a named slice variable": namedHeld + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
+		"a named slice field":    namedHeld + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
 		"a package variable":     held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0;",
 		"an indexed target":      held + " { let __idx = (0) as usize; (*dst.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0.borrow_mut().take().unwrap_or_default(); }",
 		"a plain local slice":    "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; local = __tmp_0;",
