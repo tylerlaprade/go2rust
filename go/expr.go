@@ -8273,6 +8273,7 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
+	} else if writeDefinedCollectionOwnedValue(out, expr) {
 	} else if isNamedTypeDefinitionValue(expr) {
 		writeOwnedNamedTypeDefinitionValue(out, expr)
 	} else if ident, ok := expr.(*ast.Ident); ok && isWrappedValueIdent(ident) {
@@ -8282,6 +8283,47 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+// writeDefinedCollectionOwnedValue writes the owned value of a variable or
+// struct field whose type is a defined slice or map type. That storage holds
+// nothing while the value is nil, so reading it must not unwrap: a nil value
+// comes out as the type's default, which is its nil slice or map.
+func writeDefinedCollectionOwnedValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok {
+		return false
+	}
+	switch named.Underlying().(type) {
+	case *types.Slice, *types.Map:
+	default:
+		return false
+	}
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		if !isWrappedValueIdent(e) {
+			return false
+		}
+	case *ast.SelectorExpr:
+		if typeInfo.info == nil {
+			return false
+		}
+		selection, ok := typeInfo.info.Selections[e]
+		if !ok || selection.Kind() != types.FieldVal {
+			return false
+		}
+	default:
+		return false
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone().unwrap_or_default()")
+	return true
 }
 
 func writeFunctionValueAnyBox(out *strings.Builder, expr ast.Expr) bool {
@@ -8882,7 +8924,7 @@ func anyBoxedConcreteValueKeepsHandle(typ types.Type) bool {
 // Only the types whose boxed form is known are answered for: pointers,
 // unnamed slices and maps, and function values. A defined slice or map type is
 // a Rust newtype that carries its own handle, and a channel is its own
-// handle, so those are boxed and unboxed as the bare value.
+// handle, so those are boxed and unboxed as the bare value. So is a []any.
 func anyBoxedHandleRustType(typ types.Type) (string, bool) {
 	if typ == nil {
 		return "", false
@@ -8890,7 +8932,14 @@ func anyBoxedHandleRustType(typ types.Type) (string, bool) {
 	switch t := types.Unalias(typ).(type) {
 	case *types.Pointer:
 		return goTypesTypeToRust(t), true
-	case *types.Slice, *types.Map, *types.Signature:
+	case *types.Slice:
+		// A []any is boxed as an owned copy of its elements
+		// (writeAnySliceCloneValueBox), not as its handle.
+		if isEmptyInterfaceType(t.Elem()) {
+			return "", false
+		}
+		return goTypesTypeToRustWrapped(t), true
+	case *types.Map, *types.Signature:
 		return goTypesTypeToRustWrapped(t), true
 	case *types.Named:
 		if _, ok := t.Underlying().(*types.Signature); ok {
@@ -14437,7 +14486,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// A value that keeps its handle when boxed keeps it
 						// here too, the same as everywhere else it is stored
 						// in an interface.
-						elementKeepsAnyHandle = writeAnyHandleBoxInnerValue(out, elt)
+						elementKeepsAnyHandle = writeAnyHandleBoxInnerValue(out, elt) || writeDefinedCollectionOwnedValue(out, elt)
 					}
 					// If the element is already a wrapped variable, unwrap it first.
 					if elementKeepsAnyHandle {
@@ -16738,7 +16787,13 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		}
 		WriteWrapperPrefix(out)
 		out.WriteString("Box::new(")
-		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if typeInfo != nil {
+			RegisterAnyCloneType(typeInfo.GetType(arg))
+		}
+		// any(x) boxes x the way every other conversion to an interface
+		// does: a value that keeps its handle when boxed keeps it here too.
+		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) {
+		} else if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString("(*")
 			out.WriteString(RustIdentForUse(ident))
 			WriteBorrowMethod(out, false)
@@ -23140,7 +23195,10 @@ func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAsser
 	if handleType, boxType, ok := functionAssertionAnyHandleTarget(e); ok {
 		// A function value sits in the box as its handle. Take the handle
 		// out first so the interface is no longer borrowed while the
-		// function runs, then call through it like any other function value.
+		// function runs, then call through the handle's own guard. The
+		// guard is held for the whole call: a function that calls itself
+		// through the same handle stops with a borrow error instead of
+		// running with two mutable references to one closure.
 		out.WriteString("({\n")
 		out.WriteString("        let __f_holder = { let val = ")
 		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
@@ -23153,16 +23211,16 @@ func writeFunctionTypeAssertionCallTarget(out *strings.Builder, e *ast.TypeAsser
 		out.WriteString("; match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<")
 		out.WriteString(handleType)
 		out.WriteString(">().expect(\"type assertion failed\").clone(), None => panic!(\"type assertion on nil interface\") } };\n")
-		out.WriteString("        let __f_ptr: *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" = { let mut __f_guard = __f_holder")
+		out.WriteString("        let mut __f_guard = __f_holder")
 		WriteBorrowMethod(out, true)
-		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(";\n")
+		out.WriteString("        let __f: &mut ")
 		out.WriteString(boxType)
-		out.WriteString(" };\n")
-		out.WriteString("        let __f = unsafe { &mut *__f_ptr };\n")
-		out.WriteString("        (*__f)")
-		return "\n    })"
+		out.WriteString(" = __f_guard.as_mut().expect(\"call of nil function\");\n")
+		// Bind the result before the block ends so the guard outlives every
+		// temporary of the call expression.
+		out.WriteString("        let __f_result = (*__f)")
+		return ";\n        __f_result\n    })"
 	}
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")

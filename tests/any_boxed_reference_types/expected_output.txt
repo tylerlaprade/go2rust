@@ -9,6 +9,14 @@ assigned: map len 1
 assigned: *Point 7
 assigned: Point 9
 returned: []int len 3 | *Point 7
+returned with error: []int len 3 | []int len 3
+converted: []int len 3 | map len 1 | *Point 7
+variadic: []int *Point map other 
+positional field: []int len 3 | *Point 7
+method argument: map len 1
+closure result: []int len 3
+nil defined: IntList len 0 | IntList len 0
+defined field: IntList len 1
 field: []int len 3
 field: *Point 7
 map value: []int len 3 | *Point 7

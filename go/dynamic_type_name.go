@@ -215,6 +215,13 @@ func typeMentionsTypeParam(typ types.Type) bool {
 			}
 		}
 		return false
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			if typeMentionsTypeParam(t.Field(i).Type()) {
+				return true
+			}
+		}
+		return false
 	}
 	return false
 }

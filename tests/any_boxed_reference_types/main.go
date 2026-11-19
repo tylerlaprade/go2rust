@@ -54,6 +54,44 @@ func boxSlice(xs []int) interface{} {
 	return xs
 }
 
+func boxWithError(xs []int) (interface{}, error) {
+	return xs, nil
+}
+
+func boxNamedResult(xs []int) (result interface{}) {
+	result = xs
+	return
+}
+
+func classifyAll(args ...interface{}) string {
+	out := ""
+	for _, arg := range args {
+		switch arg.(type) {
+		case []int:
+			out += "[]int "
+		case map[string]int:
+			out += "map "
+		case *Point:
+			out += "*Point "
+		default:
+			out += "other "
+		}
+	}
+	return out
+}
+
+type Pair struct {
+	Left, Right interface{}
+}
+
+type Shelf struct {
+	Items IntList
+}
+
+func (h *Holder) set(v interface{}) {
+	h.V = v
+}
+
 func boxPointer(p *Point) interface{} {
 	return p
 }
@@ -93,6 +131,25 @@ func main() {
 	assigned = pv
 	fmt.Println("assigned:", classify(assigned))
 	fmt.Println("returned:", classify(boxSlice(xs)), "|", classify(boxPointer(p)))
+
+	both, _ := boxWithError(xs)
+	fmt.Println("returned with error:", classify(both), "|", classify(boxNamedResult(xs)))
+	fmt.Println("converted:", classify(any(xs)), "|", classify(any(counts)), "|", classify(any(p)))
+	fmt.Println("variadic:", classifyAll(xs, p, counts, 1))
+	pair := Pair{xs, p}
+	fmt.Println("positional field:", classify(pair.Left), "|", classify(pair.Right))
+	viaMethod := &Holder{}
+	viaMethod.set(counts)
+	fmt.Println("method argument:", classify(viaMethod.V))
+	produce := func() interface{} { return xs }
+	fmt.Println("closure result:", classify(produce()))
+
+	// A nil value of a defined slice type is still a value of that type.
+	var noList IntList
+	shelf := Shelf{}
+	fmt.Println("nil defined:", classify(noList), "|", classify(shelf.Items))
+	shelf.Items = IntList{1}
+	fmt.Println("defined field:", classify(shelf.Items))
 
 	holder := Holder{V: xs}
 	fmt.Println("field:", classify(holder.V))
