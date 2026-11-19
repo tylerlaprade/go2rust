@@ -62,4 +62,22 @@ fn main() {
     let mut p = (*c.borrow().as_ref().unwrap()).link();
     { let new_val = Rc::new(RefCell::new(None)); p = new_val; };
     println!("{} {}", format!("{}", { let __nil_target = (*c.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*p.borrow()).is_none(); __nil_result }));
+
+    let mut parallel = a.clone();
+    let mut count = Rc::new(RefCell::new(Some(0)));
+    {
+        let __tmp_0 = Rc::new(RefCell::new(None));
+        let __tmp_1 = 2;
+        parallel = __tmp_0.clone();
+        *count.borrow_mut() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", { let __nil_result = (*a.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*parallel.borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
+
+    {
+        let __tmp_0 = Rc::new(RefCell::new(None));
+        let __tmp_1 = 3;
+        (*second.borrow_mut().as_mut().unwrap()).next = __tmp_0.clone();
+        *count.borrow_mut() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", { let __nil_result = (*shared.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_target = (*second.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
 }

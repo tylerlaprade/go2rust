@@ -31,4 +31,12 @@ func main() {
 	p := c.Link()
 	p = nil
 	fmt.Println(c.Next != nil, p == nil)
+
+	parallel := a
+	count := 0
+	parallel, count = (nil), 2
+	fmt.Println(a != nil, parallel == nil, count)
+
+	second.Next, count = nil, 3
+	fmt.Println(shared != nil, second.Next == nil, count)
 }

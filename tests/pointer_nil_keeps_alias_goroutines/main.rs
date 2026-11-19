@@ -219,4 +219,22 @@ fn main() {
     let mut p = { let __recv = c.clone(); let __recv_ptr: *const Node = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Node }; let __result = unsafe { &*__recv_ptr }.link(); __result };
     { let new_val = Arc::new(Mutex::new(None)); p = new_val; };
     println!("{} {}", format!("{}", { let __nil_target = (*c.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*p.lock().unwrap()).is_none(); __nil_result }));
+
+    let mut parallel = a.clone();
+    let mut count = Arc::new(Mutex::new(Some(0)));
+    {
+        let __tmp_0 = Arc::new(Mutex::new(None));
+        let __tmp_1 = 2;
+        parallel = __tmp_0.clone();
+        *count.lock().unwrap() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", { let __nil_result = (*a.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*parallel.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+    {
+        let __tmp_0 = Arc::new(Mutex::new(None));
+        let __tmp_1 = 3;
+        (*second.lock().unwrap().as_mut().unwrap()).next = __tmp_0.clone();
+        *count.lock().unwrap() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", { let __nil_result = (*shared.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_target = (*second.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

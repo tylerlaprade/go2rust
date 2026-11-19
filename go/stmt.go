@@ -7331,33 +7331,40 @@ func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, 
 }
 
 func writeNilPointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.GetType(rhs) != types.Typ[types.UntypedNil] || !typeInfo.IsPointer(lhs) {
-		return false
-	}
-	lhs = unwrapParens(lhs)
-	switch target := lhs.(type) {
-	case *ast.Ident:
-		if target.Name == "_" || isSliceElemPtrVar(target.Name) || isArrayElemPtrVar(target.Name) ||
-			(isCurrentReceiverIdent(target) && currentReceiverRustAlias != "") {
-			return false
-		}
-	case *ast.SelectorExpr:
-		selection := typeInfo.info.Selections[target]
-		if selection == nil || selection.Kind() != types.FieldVal {
-			return false
-		}
-	default:
+	pointerType := nilPointerHandleAssignmentType(lhs, rhs)
+	if pointerType == nil {
 		return false
 	}
 	// Assign a new nil handle to the pointer slot. Clearing the old
 	// pointee would also clear every other pointer to it.
 	out.WriteString("{ let new_val = ")
-	out.WriteString(zeroValueForTypesType(typeInfo.GetType(lhs)))
+	out.WriteString(zeroValueForTypesType(pointerType))
 	out.WriteString("; ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	writePointerHandleAssignmentTargetFromValueName(out, unwrapParens(lhs), "new_val")
 	out.WriteString(" }")
 	return true
+}
+
+func nilPointerHandleAssignmentType(lhs ast.Expr, rhs ast.Expr) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(rhs) != types.Typ[types.UntypedNil] || !typeInfo.IsPointer(lhs) {
+		return nil
+	}
+	switch target := unwrapParens(lhs).(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isSliceElemPtrVar(target.Name) || isArrayElemPtrVar(target.Name) ||
+			(isCurrentReceiverIdent(target) && currentReceiverRustAlias != "") {
+			return nil
+		}
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[target]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return nil
+		}
+	default:
+		return nil
+	}
+	return typeInfo.GetType(lhs)
 }
 
 func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
@@ -8782,7 +8789,7 @@ func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Exp
 }
 
 func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
-	ident, ok := rhs.(*ast.Ident)
+	ident, ok := unwrapParens(rhs).(*ast.Ident)
 	if !ok || ident.Name != "nil" {
 		return false
 	}
@@ -8807,6 +8814,11 @@ func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpNam
 		out.WriteString(" = ")
 		out.WriteString(tmpName)
 		out.WriteString(".clone();")
+		return true
+	}
+	if nilPointerHandleAssignmentType(lhs, rhs) != nil {
+		out.WriteString(" ")
+		writePointerHandleAssignmentTempTarget(out, unwrapParens(lhs), tmpName)
 		return true
 	}
 	if !tupleTempAssignsHandleToElement(lhsType) {
@@ -8849,6 +8861,10 @@ func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Exp
 	}
 	if _, ok := parallelNilGoPtrIdentAssignmentTarget(lhs, rhs); ok {
 		out.WriteString("GoPtr::nil()")
+		return
+	}
+	if pointerType := nilPointerHandleAssignmentType(lhs, rhs); pointerType != nil {
+		out.WriteString(zeroValueForTypesType(pointerType))
 		return
 	}
 	writeParallelAssignmentTempValue(out, rhs)
