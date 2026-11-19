@@ -2263,13 +2263,39 @@ impl<T: 'static> std::fmt::Display for GoAtomicPointer<T> {
 }
 
 // trackImportsForAnyPayloadType makes sure a helper that names rustType, the
-// payload of a boxed interface value, also imports the wrapper types a boxed
-// handle is spelled with. The file that boxed the value imported them for
-// itself, but the helper may be emitted somewhere else.
+// payload of a boxed interface value, also imports every std type that
+// spelling uses. The file that boxed the value imported them for itself, but
+// the helper may be emitted into a different file, which sees none of that
+// file's imports.
 func trackImportsForAnyPayloadType(rustType string) {
-	if strings.HasPrefix(rustType, GetOuterWrapperType()+"<") {
-		trackWrapperImports()
+	for i := 0; i < len(rustType); {
+		if !isRustIdentStart(rustType[i]) {
+			i++
+			continue
+		}
+		start := i
+		for i < len(rustType) && isRustIdentPart(rustType[i]) {
+			i++
+		}
+		// A path segment (std::sync::Mutex) is already fully spelled.
+		if start >= 2 && rustType[start-2:start] == "::" {
+			continue
+		}
+		switch name := rustType[start:i]; name {
+		case "Rc", "RefCell", "Arc", "Mutex", "BTreeMap", "Any":
+			TrackImport(name)
+		case "StdError":
+			TrackImport("Error")
+		}
 	}
+}
+
+func isRustIdentStart(c byte) bool {
+	return c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+}
+
+func isRustIdentPart(c byte) bool {
+	return isRustIdentStart(c) || (c >= '0' && c <= '9')
 }
 
 func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string) {

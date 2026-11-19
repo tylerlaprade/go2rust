@@ -435,6 +435,10 @@ run_xfail_test() {
     run_test "tests/any_boxed_reference_types"
 }
 
+@test "any_boxed_types_in_second_file" {
+    run_test "tests/any_boxed_types_in_second_file"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }

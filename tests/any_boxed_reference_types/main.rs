@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -240,6 +241,70 @@ impl std::fmt::Display for Holder {
 }
 
 
+#[derive(Clone, Default)]
+pub struct Pair {
+    pub left: Rc<RefCell<Option<Box<dyn Any>>>>,
+    pub right: Rc<RefCell<Option<Box<dyn Any>>>>,
+}
+
+impl Pair {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.left.clone();
+        let __go_clone_0_1 = self.right.clone();
+        Self {
+            left: __go_clone_0_0,
+            right: __go_clone_0_1,
+        }
+    }
+}
+
+impl std::fmt::Display for Pair {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", format_any(self.left.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_1 = format!("{}", format_any(self.right.borrow().as_ref().unwrap().as_ref()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Shelf {
+    pub items: Rc<RefCell<Option<IntList>>>,
+}
+
+impl Shelf {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.items.clone();
+        Self {
+            items: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Shelf {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Default::default())));
+        Self {
+            items: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Shelf {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.items.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+impl Holder {
+    pub fn set(&mut self, v: Rc<RefCell<Option<Box<dyn Any>>>>) {
+        { let new_val = v.clone(); self.v = new_val; };
+    }
+}
+
 /// classify reports the dynamic type of a boxed value. A pointer, slice, map
 /// or function has to come back out of the interface as the same kind of thing
 /// that went in.
@@ -316,6 +381,38 @@ pub fn box_slice(xs: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Box<dyn
     Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>)))
 }
 
+pub fn box_with_error(xs: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    (Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>))), Rc::new(RefCell::new(None)))
+}
+
+pub fn box_named_result(xs: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let mut result: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
+
+    { let new_val = Box::new(xs.clone()) as Box<dyn Any>; *result.borrow_mut() = Some(new_val); };
+    result.clone()
+}
+
+pub fn classify_all(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<Option<String>>> {
+    let mut out = Rc::new(RefCell::new(Some("".to_string())));
+    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
+        {
+    let _ts_ref = arg;
+    let _ts_is_nil = false;
+    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
+    if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>()).is_some() {
+        { (*out.borrow_mut().as_mut().unwrap()).push_str(&"[]int ".to_string()); };;
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>()).is_some() {
+        { (*out.borrow_mut().as_mut().unwrap()).push_str(&"map ".to_string()); };;
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Point>>>>()).is_some() {
+        { (*out.borrow_mut().as_mut().unwrap()).push_str(&"*Point ".to_string()); };;
+    } else {
+        { (*out.borrow_mut().as_mut().unwrap()).push_str(&"other ".to_string()); };;
+    }
+    }
+    } }
+    return { let __owned = out.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
+}
+
 pub fn box_pointer(p: Rc<RefCell<Option<Point>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
     Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>)))
 }
@@ -343,7 +440,7 @@ fn main() {
         5
     }) as Box<dyn FnMut() -> i32>))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{} {} {} {} {} {}", format!("{}", "literal:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![4, 5]))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([])))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    println!("{} {} {} {} {} {}", format!("{}", "defined:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*list.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*reg.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(IntList(Rc::new(RefCell::new(Some(vec![6])))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{} {} {} {} {} {}", format!("{}", "defined:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*list.borrow()).clone().unwrap_or_default()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*reg.borrow()).clone().unwrap_or_default()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(IntList(Rc::new(RefCell::new(Some(vec![6])))).clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{} {} {} {} {} {}", format!("{}", "scalar:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new("hi".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(3.5) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 
     let mut declared: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>)));
@@ -358,6 +455,27 @@ fn main() {
     println!("{} {}", format!("{}", "assigned:".to_string()), format!("{}", (*classify(assigned.clone()).borrow().as_ref().unwrap())));
     println!("{} {} {} {}", format!("{}", "returned:".to_string()), format!("{}", (*classify(box_slice(xs.clone()).clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(box_pointer(p.clone()).clone()).borrow().as_ref().unwrap())));
 
+    let (mut both, _) = box_with_error(xs.clone());
+    println!("{} {} {} {}", format!("{}", "returned with error:".to_string()), format!("{}", (*classify(both.clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(box_named_result(xs.clone()).clone()).borrow().as_ref().unwrap())));
+    println!("{} {} {} {} {} {}", format!("{}", "converted:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>))).clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(counts.clone()) as Box<dyn Any>))).clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>))).clone()).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "variadic:".to_string()), format!("{}", (*classify_all(Rc::new(RefCell::new(Some(vec![Box::new(xs.clone()) as Box<dyn Any>, Box::new(p.clone()) as Box<dyn Any>, Box::new(counts.clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    let mut pair = Rc::new(RefCell::new(Some(Pair { left: Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>))), right: Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>))), ..Default::default() })));
+    println!("{} {} {} {}", format!("{}", "positional field:".to_string()), format!("{}", (*classify((*pair.borrow().as_ref().unwrap()).left.clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify((*pair.borrow().as_ref().unwrap()).right.clone()).borrow().as_ref().unwrap())));
+    let mut viaMethod = Rc::new(RefCell::new(Some(Holder { v: Default::default() })));
+    (*viaMethod.borrow_mut().as_mut().unwrap()).set(Rc::new(RefCell::new(Some(Box::new(counts.clone()) as Box<dyn Any>))));
+    println!("{} {}", format!("{}", "method argument:".to_string()), format!("{}", (*classify((*viaMethod.borrow().as_ref().unwrap()).v.clone()).borrow().as_ref().unwrap())));
+    let xs_closure_clone = xs.clone(); let mut produce = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<Box<dyn Any>>>> {
+        return Rc::new(RefCell::new(Some(Box::new(xs_closure_clone.clone()) as Box<dyn Any>)));
+    }) as Box<dyn FnMut() -> Rc<RefCell<Option<Box<dyn Any>>>>>)));
+    println!("{} {}", format!("{}", "closure result:".to_string()), format!("{}", (*classify({ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<Box<dyn Any>>>>> = { let mut __f_guard = produce.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<Box<dyn Any>>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.clone()).borrow().as_ref().unwrap())));
+
+        // A nil value of a defined slice type is still a value of that type.
+    let mut noList: Rc<RefCell<Option<IntList>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let mut shelf = Rc::new(RefCell::new(Some(Shelf { items: Rc::new(RefCell::new(Some(Default::default()))) })));
+    println!("{} {} {} {}", format!("{}", "nil defined:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*noList.borrow()).clone().unwrap_or_default()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*(*shelf.borrow().as_ref().unwrap()).items.borrow()).clone().unwrap_or_default()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    { let new_val = IntList(Rc::new(RefCell::new(Some(vec![1])))); *(*shelf.borrow().as_ref().unwrap()).items.borrow_mut() = Some(new_val); };
+    println!("{} {}", format!("{}", "defined field:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new((*(*shelf.borrow().as_ref().unwrap()).items.borrow()).clone().unwrap_or_default()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+
     let mut holder = Rc::new(RefCell::new(Some(Holder { v: Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>))), ..Default::default() })));
     println!("{} {}", format!("{}", "field:".to_string()), format!("{}", (*classify((*holder.borrow().as_ref().unwrap()).v.clone()).borrow().as_ref().unwrap())));
     { let new_val = Box::new(p.clone()) as Box<dyn Any>; *(*holder.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
@@ -366,7 +484,7 @@ fn main() {
     let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("xs".to_string(), Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>)))), ("p".to_string(), Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>))))]))));
     println!("{} {} {} {}", format!("{}", "map value:".to_string()), format!("{}", (*classify({ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"xs".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify({ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"p".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone()).borrow().as_ref().unwrap())));
 
-    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(xs.clone()) as Box<dyn Any>, Box::new(counts.clone()) as Box<dyn Any>, Box::new(p.clone()) as Box<dyn Any>, Box::new((*pv.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*list.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(7) as Box<dyn Any>])));
+    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(xs.clone()) as Box<dyn Any>, Box::new(counts.clone()) as Box<dyn Any>, Box::new(p.clone()) as Box<dyn Any>, Box::new((*pv.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*list.borrow()).clone().unwrap_or_default()) as Box<dyn Any>, Box::new(7) as Box<dyn Any>])));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         {
     let _ts_ref = item;
@@ -514,7 +632,7 @@ fn main() {
             println!("{}", format!("{}", "comma-ok pointer: not Point".to_string()));;
         }
     }
-    let mut boxedList: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new((*list.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)));
+    let mut boxedList: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new((*list.borrow()).clone().unwrap_or_default()) as Box<dyn Any>)));
     {
         let (mut got, mut ok) = ({
         let val = boxedList.clone();
@@ -661,9 +779,10 @@ fn main() {
     let mut boxedScale: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(scale.clone()) as Box<dyn Any>)));
     println!("{} {}", format!("{}", "call defined func:".to_string()), format!("{}", ({
         let __f_holder = { let val = boxedScale.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Scale>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
-        let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(Rc::new(RefCell::new(Some(4))))
+        let mut __f_guard = __f_holder.borrow_mut();
+        let __f: &mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = __f_guard.as_mut().expect("call of nil function");
+        let __f_result = (*__f)(Rc::new(RefCell::new(Some(4))));
+        __f_result
     })));
     let mut calls = Rc::new(RefCell::new(Some(0)));
     let mut calls_closure_clone = calls.clone(); let mut counter: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
@@ -672,15 +791,17 @@ fn main() {
     }) as Box<dyn FnMut() -> i32>))).clone()) as Box<dyn Any>)));
     ({
         let __f_holder = { let val = counter.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
-        let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)()
+        let mut __f_guard = __f_holder.borrow_mut();
+        let __f: &mut Box<dyn FnMut() -> i32> = __f_guard.as_mut().expect("call of nil function");
+        let __f_result = (*__f)();
+        __f_result
     });
     println!("{} {} {}", format!("{}", "call func:".to_string()), format!("{}", ({
         let __f_holder = { let val = counter.clone(); let guard = val.borrow(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
-        let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)()
+        let mut __f_guard = __f_holder.borrow_mut();
+        let __f: &mut Box<dyn FnMut() -> i32> = __f_guard.as_mut().expect("call of nil function");
+        let __f_result = (*__f)();
+        __f_result
     })), format!("{}", { let __v = (*calls.borrow().as_ref().unwrap()).clone(); __v }));
 
         // %T names the dynamic type, and the static type of a typed variable.

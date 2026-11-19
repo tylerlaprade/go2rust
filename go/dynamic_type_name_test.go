@@ -156,7 +156,8 @@ func TestTypeMentionsTypeParam(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "generic.go", `package main
 
-func generic[T any](plain []int, elems []T, byKey map[string]*T, fn func(T) int, ch chan T) {}
+func generic[T any](plain []int, elems []T, byKey map[string]*T, fn func(T) int, ch chan T, fields []struct{ V T }, plainFields []struct{ V int }) {
+}
 `, 0)
 	if err != nil {
 		t.Fatalf("parse: %v", err)
@@ -166,7 +167,10 @@ func generic[T any](plain []int, elems []T, byKey map[string]*T, fn func(T) int,
 		t.Fatalf("type check: %v", err)
 	}
 	params := pkg.Scope().Lookup("generic").Type().(*types.Signature).Params()
-	want := map[string]bool{"plain": false, "elems": true, "byKey": true, "fn": true, "ch": true}
+	want := map[string]bool{
+		"plain": false, "elems": true, "byKey": true, "fn": true, "ch": true,
+		"fields": true, "plainFields": false,
+	}
 	for i := 0; i < params.Len(); i++ {
 		param := params.At(i)
 		if got := typeMentionsTypeParam(param.Type()); got != want[param.Name()] {

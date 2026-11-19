@@ -1074,7 +1074,7 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 	out.WriteString("Box::new(")
 	// A value that keeps its handle when boxed keeps it in a []any element
 	// too, the same as every other way of storing it in an interface.
-	if !writeAnyHandleBoxInnerValue(out, expr) {
+	if !writeAnyHandleBoxInnerValue(out, expr) && !writeDefinedCollectionOwnedValue(out, expr) {
 		writeAnyBoxInnerValue(out, expr)
 	}
 	out.WriteString(") as ")
