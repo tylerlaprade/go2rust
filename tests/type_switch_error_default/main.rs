@@ -178,7 +178,7 @@ impl plainErr {
 impl StdError for plainErr {}
 
 
-pub fn classify(mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
+pub fn classify(mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
     {
     let _ts_subject = err.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -200,5 +200,5 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    println!("{}", format!("{}", (*classify(Arc::new(Mutex::new(Some(Box::new(plainErr {  }) as Box<dyn StdError + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Arc::new(Mutex::new(Some(Arc::new(plainErr {  }) as Arc<dyn StdError + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
 }

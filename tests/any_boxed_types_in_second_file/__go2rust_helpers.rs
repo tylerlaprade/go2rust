@@ -23,7 +23,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<Box<dyn StdError>>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
@@ -47,6 +47,6 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return "map[string]int" }
-    if val.is::<Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<Box<dyn StdError>>>>>>>>>() { return "func() error" }
+    if val.is::<Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>() { return "func() error" }
     std::any::type_name_of_val(val)
 }

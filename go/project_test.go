@@ -4461,7 +4461,8 @@ func start() {
 	if strings.Contains(mainRS, "let new_val = self.first_err.clone(); *err.lock().unwrap() = Some(new_val);") {
 		t.Fatalf("*error assignment should store the error option value, not the handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__err_guard.take()") {
+	// The value is a copy: the field keeps its error.
+	if !strings.Contains(mainRS, "let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value") {
 		t.Fatalf("*error assignment should extract an error option from the RHS handle, got:\n%s", mainRS)
 	}
 }
@@ -4497,7 +4498,7 @@ func start() {
 	if strings.Contains(mainRS, "Option<Option<Box<dyn StdError") {
 		t.Fatalf("*error should use the same error handle shape as an error variable, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>)") {
+	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>)") {
 		t.Fatalf("*error parameter should accept the error handle shape, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "self.handle(err.clone())") {

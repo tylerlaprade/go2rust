@@ -113,12 +113,12 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn close(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -128,10 +128,10 @@ impl os_File {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -144,14 +144,14 @@ impl os_File {
         let bytes = value.into_bytes();
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
         } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
@@ -174,19 +174,19 @@ impl os_File {
                 }
             }
         }
-        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 }
 
 
 pub mod fs {
     use super::*;
-    pub fn SkipAll() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn SkipAll() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn SkipDir() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn SkipDir() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 }
 
@@ -223,20 +223,20 @@ pub mod os {
         }
     }
 
-    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
+    type GoError = Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>;
 
     fn no_error() -> GoError {
         Arc::new(Mutex::new(None))
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        Arc::new(Mutex::new(Some(Box::new(err))))
+        Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
     pub const PATH_LIST_SEPARATOR: i32 = 58;
     pub const PATH_SEPARATOR: i32 = 47;
 
-    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::symlink_metadata(&path) {
             Ok(metadata) => {

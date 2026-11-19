@@ -21,15 +21,15 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub static ErrUnset: GoGlobal<Box<dyn StdError>> = GoGlobal::new();
+pub static ErrUnset: GoGlobal<Rc<dyn StdError>> = GoGlobal::new();
 
-pub static ErrBoom: GoGlobal<Box<dyn StdError>> = GoGlobal::new();
+pub static ErrBoom: GoGlobal<Rc<dyn StdError>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
     *ErrUnset.borrow_mut() = None;
     *ErrBoom.borrow_mut() = None;
-    { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *ErrBoom.borrow_mut() = new_val; }
+    { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *ErrBoom.borrow_mut() = new_val; }
 }
 
 

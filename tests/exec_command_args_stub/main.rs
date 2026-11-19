@@ -26,8 +26,8 @@ impl exec_Cmd {
         Arc::new(Mutex::new(Some::<Vec<String>>(env)))
     }
 
-    fn __go_error(message: String) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-	        Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(Box::<dyn StdError + Send + Sync>::from(message))))
+    fn __go_error(message: String) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+	        Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(message)))))
 	    }
 
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
@@ -50,11 +50,11 @@ impl exec_Cmd {
     fn __go_write_output(&self, output: &std::process::Output) {
     }
 
-    pub fn output(&self) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn output(&self) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         match self.__go_run_output() {
             Ok(output) => {
                 let err = if output.status.success() {
-                    Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+                    Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
                 } else {
                     Self::__go_error(format!("exit status {}", output.status))
                 };
@@ -64,16 +64,16 @@ impl exec_Cmd {
         }
     }
 
-    pub fn run(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn run(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         self.start()
     }
 
-    pub fn start(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn start(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         match self.__go_run_output() {
             Ok(output) => {
                 self.__go_write_output(&output);
                 if output.status.success() {
-                    Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+                    Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
                 } else {
                     Self::__go_error(format!("exit status {}", output.status))
                 }
@@ -82,8 +82,8 @@ impl exec_Cmd {
         }
     }
 
-    pub fn wait(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn wait(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 }
 

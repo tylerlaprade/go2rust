@@ -2,11 +2,11 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut cleanup: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>> = Rc::new(RefCell::new(None));
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     if (*empty.borrow().as_ref().unwrap()) {
         {

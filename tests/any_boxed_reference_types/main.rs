@@ -417,7 +417,7 @@ pub fn box_slice(xs: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Box<dyn
     Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>)))
 }
 
-pub fn box_with_error(xs: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn box_with_error(xs: Rc<RefCell<Option<Vec<i32>>>>) -> (Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     (Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>))), Rc::new(RefCell::new(None)))
 }
 

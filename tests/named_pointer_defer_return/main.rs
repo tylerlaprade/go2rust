@@ -41,11 +41,11 @@ impl Package {
     }
 }
 
-pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut pkg: Rc<RefCell<Option<Package>>> = Rc::new(RefCell::new(None));
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {

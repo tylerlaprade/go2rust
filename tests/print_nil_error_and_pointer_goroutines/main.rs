@@ -347,11 +347,11 @@ impl Timeout {
 impl StdError for Timeout {}
 
 
-pub fn find(ok: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn find(ok: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
     if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return Arc::new(Mutex::new(None));
     }
-    Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("missing".to_string()))))
+    Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("missing".to_string())))))
 }
 
 pub fn lookup(ok: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Point>>> {
@@ -381,7 +381,7 @@ fn main() {
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("got {}", { let __text = match find(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).lock().unwrap().as_ref().unwrap())));
 
         // An error that is not nil prints its message, as before.
-    { let __rhs_holder = find(Arc::new(Mutex::new(Some(false)))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+    { let __rhs_holder = find(Arc::new(Mutex::new(Some(false)))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
     println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{} {}\n", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }, { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
@@ -415,11 +415,11 @@ fn main() {
 
         // A struct or a pointer that implements error can start an error
         // variable, and prints as the error it is.
-    let mut declared: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Broken { why: Arc::new(Mutex::new(Some("declared".to_string()))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)));
+    let mut declared: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(Broken { why: Arc::new(Mutex::new(Some("declared".to_string()))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
     println!("{}", format!("{}", { let __text = match declared.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    let mut plain: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Timeout { seconds: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)));
+    let mut plain: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(Timeout { seconds: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
     println!("{}", format!("{}", { let __text = match plain.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", { let __nil_result = (*declared.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*plain.lock().unwrap()).is_some(); __nil_result }));
-    let mut unset: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut unset: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
     println!("{} {}", format!("{}", { let __text = match unset.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.lock().unwrap()).is_none(); __nil_result }));
 }

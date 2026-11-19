@@ -45,7 +45,7 @@ impl wrapped {
         return self.msg.clone();
     }
 
-    pub fn unwrap(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
+    pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         Rc::new(RefCell::new(None))
     }
 }
@@ -53,7 +53,7 @@ impl wrapped {
 impl StdError for wrapped {}
 
 
-pub fn describe(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> Rc<RefCell<Option<String>>> {
+pub fn describe(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) -> Rc<RefCell<Option<String>>> {
     {
     let _ts_subject = err.clone();
     let _ts_guard = _ts_subject.borrow();
@@ -71,6 +71,6 @@ pub fn describe(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> Rc<RefCell<Optio
 }
 
 fn main() {
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new(wrapped { msg: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }) as Box<dyn StdError>)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("plain")))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Rc::new(wrapped { msg: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }) as Rc<dyn StdError>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("plain"))))))).borrow().as_ref().unwrap())));
 }

@@ -123,11 +123,11 @@ func main() {
 	} {
 		t.Run(name, func(t *testing.T) {
 			rust := transpileTypedRegression(t, source)
-			want := "let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(Some(Box::new(Broken {"
+			want := "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken {"
 			if !strings.Contains(rust, want) {
 				t.Fatalf("missing %q in:\n%s", want, rust)
 			}
-			if !strings.Contains(rust, ") as Box<dyn StdError>)));") {
+			if !strings.Contains(rust, ") as Rc<dyn StdError>)));") {
 				t.Fatalf("the value must be boxed as an error:\n%s", rust)
 			}
 		})

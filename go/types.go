@@ -890,7 +890,7 @@ func pointerTypeExprElemIsGoError(star *ast.StarExpr) bool {
 
 func rustGoErrorHandleType() string {
 	trackWrapperImports()
-	return GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustStdErrorBoxType() + ">>>"
+	return GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustErrorPayloadType() + ">>>"
 }
 
 // Generate Rust closure type from Go function type
@@ -1008,7 +1008,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "any":
 			return rustAnyTraitObject()
 		case "error":
-			return "Option<" + rustStdErrorBoxType() + ">"
+			return "Option<" + rustErrorPayloadType() + ">"
 		default:
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
@@ -1642,7 +1642,7 @@ func goTypesTypeToRust(t types.Type) string {
 	if named, ok := t.(*types.Named); ok && named.Obj() != nil {
 		obj := named.Obj()
 		if obj.Pkg() == nil && obj.Name() == "error" {
-			return rustStdErrorBoxType()
+			return rustErrorPayloadType()
 		}
 		if obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
 			return goTypesNamedTypeToRust(named)
@@ -1797,7 +1797,7 @@ func goTypesGoPtrElemTypeToRust(t types.Type) string {
 
 func goTypesChannelElemTypeToRust(t types.Type) string {
 	if isGoErrorType(t) {
-		return "Option<" + rustStdErrorBoxType() + ">"
+		return "Option<" + rustErrorPayloadType() + ">"
 	}
 	return goTypesTypeToRust(t)
 }

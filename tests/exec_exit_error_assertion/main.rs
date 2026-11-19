@@ -28,7 +28,7 @@ impl exec_ExitError {
 
 fn main() {
     if false {
-        let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+        let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
         {
         let (mut ee, mut ok) = ({
         let val = err.clone();

@@ -1874,7 +1874,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	out.WriteString(rustErrorFromTextStartFor("std::error::Error", NeedsConcurrentWrapper()))
+	out.WriteString(rustErrorFromTextStart())
 
 	if len(call.Args) > 0 {
 		// The argument is the error message

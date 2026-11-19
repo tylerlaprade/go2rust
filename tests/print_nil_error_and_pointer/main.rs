@@ -199,11 +199,11 @@ impl Timeout {
 impl StdError for Timeout {}
 
 
-pub fn find(ok: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
+pub fn find(ok: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
     if (*ok.borrow().as_ref().unwrap()) {
         return Rc::new(RefCell::new(None));
     }
-    Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("missing".to_string()))))
+    Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("missing".to_string())))))
 }
 
 pub fn lookup(ok: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<Point>>> {
@@ -226,7 +226,7 @@ fn main() {
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("got {}", { let __text = match find(Rc::new(RefCell::new(Some(true)))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).borrow().as_ref().unwrap())));
 
         // An error that is not nil prints its message, as before.
-    { let __rhs_holder = find(Rc::new(RefCell::new(Some(false)))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err.borrow_mut() = new_val; };
+    { let __rhs_holder = find(Rc::new(RefCell::new(Some(false)))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };
     println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{} {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
@@ -260,11 +260,11 @@ fn main() {
 
         // A struct or a pointer that implements error can start an error
         // variable, and prints as the error it is.
-    let mut declared: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(Some(Box::new(Broken { why: Rc::new(RefCell::new(Some("declared".to_string()))), ..Default::default() }) as Box<dyn StdError>)));
+    let mut declared: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken { why: Rc::new(RefCell::new(Some("declared".to_string()))), ..Default::default() }) as Rc<dyn StdError>)));
     println!("{}", format!("{}", { let __text = match declared.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    let mut plain: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(Some(Box::new(Timeout { seconds: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Box<dyn StdError>)));
+    let mut plain: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Timeout { seconds: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Rc<dyn StdError>)));
     println!("{}", format!("{}", { let __text = match plain.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", { let __nil_result = (*declared.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*plain.borrow()).is_some(); __nil_result }));
-    let mut unset: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut unset: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
     println!("{} {}", format!("{}", { let __text = match unset.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.borrow()).is_none(); __nil_result }));
 }

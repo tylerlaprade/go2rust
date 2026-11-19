@@ -103,10 +103,10 @@ fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
+        match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>() {
         format_map(v)
-    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>>() {
-        match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Point>>>>() {
         go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Status>>>>() {
@@ -355,7 +355,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 // the one text the method returns.
 fn go_format_is_text(value: &(dyn Any + Send + Sync)) -> bool {
     false
-        || value.is::<Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>>()
+        || value.is::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()
         || value.is::<Arc<Mutex<Option<Status>>>>()
         || value.is::<Status>()
 }
@@ -1152,8 +1152,8 @@ pub fn sprintf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Bo
     Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, false)))))
 }
 
-pub fn errorf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, true))))))
+pub fn errorf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, true)))))))
 }
 
 /// showPair passes its arguments on as a list to a format that is known when
@@ -1222,7 +1222,7 @@ fn main() {
     logf(Arc::new(Mutex::new(Some("point %v, pointer %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("slice %v, map %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1, 2]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))])))).clone()) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("error: %v / %s".to_string()))), Arc::new(Mutex::new(Some(vec![{
-        let __err_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string())))).clone();
+        let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone();
         let __err_guard = __err_holder.lock().unwrap();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -1238,12 +1238,12 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
     }, {
-        let __err_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("bang".to_string())))).clone();
+        let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bang".to_string()))))).clone();
         let __err_guard = __err_holder.lock().unwrap();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -1259,12 +1259,12 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
     }]))));
-    let mut failed = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("failed".to_string()))));
+    let mut failed = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("failed".to_string())))));
     logf(Arc::new(Mutex::new(Some("%v|%s|%10v|".to_string()))), Arc::new(Mutex::new(Some(vec![{
         let __err_holder = failed.clone();
         let __err_guard = __err_holder.lock().unwrap();
@@ -1282,7 +1282,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1303,7 +1303,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1324,7 +1324,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1350,7 +1350,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1371,7 +1371,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1392,7 +1392,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1413,7 +1413,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1434,7 +1434,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1459,7 +1459,7 @@ fn main() {
 
         // The same through Sprintf, Errorf and Fprintf.
     let mut err = errorf(Arc::new(Mutex::new(Some("code %d: %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7) as Box<dyn Any + Send + Sync>, {
-        let __err_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("inner".to_string())))).clone();
+        let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("inner".to_string()))))).clone();
         let __err_guard = __err_holder.lock().unwrap();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -1475,7 +1475,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -1501,7 +1501,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }

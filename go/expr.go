@@ -4157,13 +4157,15 @@ func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types
 			return true
 		}
 		if typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) {
-			out.WriteString(rustIdentForUseWithCapture(ident))
-			out.WriteString(".clone()")
+			writeErrorHandleCopy(out, func() {
+				out.WriteString(rustIdentForUseWithCapture(ident))
+				out.WriteString(".clone()")
+			})
 			return true
 		}
 	}
 	if sel, ok := arg.(*ast.SelectorExpr); ok && typeInfo != nil && isGoErrorType(typeInfo.GetType(sel)) {
-		writeSelectorHandleClone(out, sel)
+		writeErrorHandleCopy(out, func() { writeSelectorHandleClone(out, sel) })
 		return true
 	}
 	if call, ok := arg.(*ast.CallExpr); ok {
@@ -5362,7 +5364,9 @@ func writeGoErrorHandleEquality(out *strings.Builder, left ast.Expr, right ast.E
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __right_guard = __right")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; ")
+	// Two errors are equal when they are the same error: both nil, or both
+	// pointers to one allocation.
+	out.WriteString("; match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; ")
 	if op == token.EQL {
 		out.WriteString("__eq")
 	} else {
@@ -8567,16 +8571,18 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 
 // writeOpaqueGoErrorAnyBox boxes an error whose dynamic type is not one of
 // the error types this package can name, such as the value errors.New or
-// fmt.Errorf returns. The box holds the error's own handle, so the error is
-// still an error when it comes back out: it is not a string, its Error method
-// has not run, and asserting it back to error yields the same error.
+// fmt.Errorf returns. The box holds an error handle, so the error is still
+// an error when it comes back out: it is not a string, its Error method has
+// not run, and asserting it back to error yields the same error.
 //
-// The handle is the one the source expression holds. Assigning a new error to
-// that variable afterwards is visible through the box, which Go would not
-// allow; a plain error copy (e2 := e1) shares its handle the same way today.
+// The handle is a new one that points to the same error. The interface
+// value is a copy, as in Go: assigning another error to the source variable
+// afterwards does not change what the interface value holds.
 func writeOpaqueGoErrorAnyBox(out *strings.Builder) {
 	RegisterOpaqueErrorAnyPayload()
-	out.WriteString("Box::new(__err_holder.clone()) as ")
+	out.WriteString("Box::new(")
+	writeErrorHandleFromOptionValue(out, "Some(__err.clone())")
+	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
 }
 

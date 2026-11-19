@@ -92,7 +92,7 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
         format_map(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn StdError>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
         match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() {
         format_slice(v)
@@ -113,7 +113,7 @@ fn main() {
     ::example_com_anyfromcaller_logger::__go_init_all();
 
     example_com_anyfromcaller_logger::show(Rc::new(RefCell::new(Some({
-        let __err_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string())))).clone();
+        let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string()))))).clone();
         let __err_guard = __err_holder.borrow();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -127,13 +127,13 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any>
+                    Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any>
                 }
             }
         }
     }))));
     example_com_anyfromcaller_logger::each(Rc::new(RefCell::new(Some(vec![{
-        let __err_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("later".to_string())))).clone();
+        let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("later".to_string()))))).clone();
         let __err_guard = __err_holder.borrow();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -147,13 +147,13 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any>
+                    Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any>
                 }
             }
         }
     }]))));
     example_com_anyfromcaller_logger::each(Rc::new(RefCell::new(Some(vec![{
-        let __err_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped {}", 7))))).clone();
+        let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped {}", 7)))))).clone();
         let __err_guard = __err_holder.borrow();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -167,13 +167,13 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any>
+                    Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any>
                 }
             }
         }
     }, Box::new("text".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>]))));
     println!("{}", format!("{}", (*example_com_anyfromcaller_logger::describe(Rc::new(RefCell::new(Some({
-        let __err_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("described".to_string())))).clone();
+        let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("described".to_string()))))).clone();
         let __err_guard = __err_holder.borrow();
         match __err_guard.as_ref() {
             None => panic!("nil error-to-any lowering requires nil interface representation"),
@@ -187,7 +187,7 @@ fn main() {
                 } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
                     go_box_any_with_metadata(typed_val.clone(), "pointer", true)
                 } else {
-                    Box::new(__err_holder.clone()) as Box<dyn Any>
+                    Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any>
                 }
             }
         }

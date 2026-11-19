@@ -71,17 +71,17 @@ pub mod os {
         }
     }
 
-    type GoError = Rc<RefCell<Option<Box<dyn std::error::Error>>>>;
+    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
 
     fn no_error() -> GoError {
         Rc::new(RefCell::new(None))
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        Rc::new(RefCell::new(Some(Box::new(err))))
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
     }
 
-    pub fn stat<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<fs_FileInfo>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+    pub fn stat<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<fs_FileInfo>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::metadata(&path) {
             Ok(metadata) => {

@@ -603,7 +603,7 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 			return
 		}
 		TrackImport("Error")
-		fn.ReturnTypes = []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustStdErrorBoxType())}
+		fn.ReturnTypes = []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustErrorPayloadType())}
 	case "io":
 		if sel.Sel.Name != "MultiWriter" {
 			return
@@ -3199,10 +3199,10 @@ func writeOsErrorHelpers(out *strings.Builder) {
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        %s::new(%s::new(Some(Box::new(err))))
+        %s::new(%s::new(Some(%s)))
     }
 
-`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
 // PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
@@ -3583,14 +3583,14 @@ func writeFilepathErrorHelpers(out *strings.Builder) {
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        %s::new(%s::new(Some(Box::new(err))))
+        %s::new(%s::new(Some(%s)))
     }
 
     fn normalize_path(path: PathBuf) -> String {
         path.components().collect::<PathBuf>().to_string_lossy().into_owned()
     }
 
-`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
 // PERMANENT: not scaffold — filepath.Abs requires CWD resolution, OS-tied.

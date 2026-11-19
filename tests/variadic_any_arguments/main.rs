@@ -104,8 +104,8 @@ pub fn label() -> Rc<RefCell<Option<String>>> {
     Rc::new(RefCell::new(Some("value".to_string())))
 }
 
-pub fn fail() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-    Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("bad".to_string()))))
+pub fn fail() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string())))))
 }
 
 pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
@@ -114,5 +114,5 @@ pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
 
 fn main() {
     let mut err = fail();
-    println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new({ let __v = label(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, { let __err_holder = err.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(__err_holder.clone()) as Box<dyn Any> } } }, Box::new("literal".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>]))))));
+    println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new({ let __v = label(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, { let __err_holder = err.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } } }, Box::new("literal".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>]))))));
 }
