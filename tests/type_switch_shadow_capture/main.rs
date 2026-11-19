@@ -19,6 +19,8 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<node>() {
+        format!("{}", v)
     } else {
         "<unknown>".to_string()
     }
@@ -31,20 +33,27 @@ pub struct node {
 
 impl node {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for node {
     fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -56,13 +65,17 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: self.value.clone() }
+        let __go_clone_0_0 = self.value.clone();
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_any(self.value.borrow().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", format_any(self.value.borrow().as_ref().unwrap().as_ref()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -80,19 +93,25 @@ impl holder {
 }
 
 fn main() {
-    let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
+    let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
     let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
         {
-    let _ts_subject = T.clone();
+    let _ts_subject = T_closure_clone.clone();
     let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
+        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
+            __any = __boxed.as_ref() as &dyn Any;
+        }
+        __any
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<node>()).is_some() {
         let T = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<node>()).unwrap().clone())));
         drop(_ts_guard);
         return (*T.borrow().as_ref().unwrap()).value();;
     } else {
-        let T = T.clone();
+        let T = _ts_subject.clone();
         drop(_ts_guard);
         return 0;;
     }

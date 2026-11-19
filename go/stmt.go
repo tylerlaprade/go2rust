@@ -1072,7 +1072,11 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
 	out.WriteString("Box::new(")
-	writeAnyBoxInnerValue(out, expr)
+	// A value that keeps its handle when boxed keeps it in a []any element
+	// too, the same as every other way of storing it in an interface.
+	if !writeAnyHandleBoxInnerValue(out, expr) && !writeDefinedCollectionOwnedValue(out, expr) {
+		writeAnyBoxInnerValue(out, expr)
+	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
 }
@@ -3432,6 +3436,16 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 	return true
 }
 
+// typeSwitchCaseAnyHandleRustType reports the handle type a case of a type
+// switch over an empty interface has to downcast to, for case types whose
+// values keep their handle when boxed into the interface.
+func typeSwitchCaseAnyHandleRustType(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (string, bool) {
+	if typeInfo == nil || !isEmptyInterfaceType(subjectType) {
+		return "", false
+	}
+	return anyBoxedHandleRustType(typeInfo.GetType(typeExpr))
+}
+
 func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) {
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
@@ -3441,6 +3455,12 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(wrapperType)
+		out.WriteString(">()).is_some()")
+		return
+	}
+	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(handleType)
 		out.WriteString(">()).is_some()")
 		return
 	}
@@ -15332,6 +15352,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(wrapperType)
 							out.WriteString(">()).unwrap().0.clone()")
+						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
+							// The box holds the handle itself, so the case
+							// variable shares it with every other holder.
+							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()).unwrap().clone()")
 						} else {
 							WriteWrapperPrefix(out)
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")

@@ -926,6 +926,22 @@ func RegisterAnyCloneType(typ types.Type) {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
 		helpers.anyCloneTypes[rustType] = true
+		if arm, ok := anyFormatArmForType(typ); ok {
+			if helpers.anyFormatArms == nil {
+				helpers.anyFormatArms = make(map[string]anyFormatArm)
+			}
+			helpers.anyFormatArms[rustType] = arm
+		}
+		// The same payload type is what %T sees when the value comes back out
+		// of the interface, so record what Go calls it.
+		if goName, ok := goDynamicTypeName(typ); ok {
+			if helpers.anyTypeNames == nil {
+				helpers.anyTypeNames = make(map[string]string)
+			}
+			if existing, seen := helpers.anyTypeNames[rustType]; !seen || goName < existing {
+				helpers.anyTypeNames[rustType] = goName
+			}
+		}
 	}
 }
 
@@ -934,6 +950,22 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		return "", false
 	}
 	typ = types.Unalias(typ)
+	// Values that keep their handle in the box are cloned by cloning the
+	// handle, which is what copying a Go pointer, slice, map, channel or
+	// function value does.
+	if handleType, ok := anyBoxedHandleRustType(typ); ok {
+		if typeMentionsTypeParam(typ) {
+			return "", false
+		}
+		if ptr, ok := typ.(*types.Pointer); ok {
+			if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok {
+				if qualified, ok := currentPackageHelperRustTypePath(named, goTypesTypeToRust(named)); ok {
+					return goTypesWrappedRustType(qualified), true
+				}
+			}
+		}
+		return handleType, true
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false

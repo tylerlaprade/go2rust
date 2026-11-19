@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -187,6 +188,23 @@ type HelperTracker struct {
 	needsGoPtrKey                        bool
 	needsGoAnyPtrKey                     bool
 	anyCloneTypes                        map[string]bool
+	// anyTypeNames maps the Rust payload type of a value boxed into an empty
+	// interface to the name Go's %T prints for it.
+	anyTypeNames map[string]string
+	// anyFormatArms maps the same payload types to how format_any prints
+	// them.
+	anyFormatArms map[string]anyFormatArm
+}
+
+// anyFormatArm is one case of format_any: how to print a value of one type
+// that the program boxes into an empty interface.
+type anyFormatArm struct {
+	// expr is a Rust expression of type String. It formats v, a reference to
+	// the boxed payload, with the helper the typed print path uses for a
+	// value of the same Go type.
+	expr             string
+	needsFormatMap   bool
+	needsFormatSlice bool
 }
 
 var generatingPublicHelpers bool
@@ -250,6 +268,15 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
 
+	// format_any prints boxed slices and maps through the typed formatters,
+	// so it needs them even when no typed print site asked for them.
+	if ht.needsFormatAny {
+		for _, arm := range ht.anyFormatArms {
+			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
+			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
+		}
+	}
+
 	if ht.needsFormatMap {
 		generateMapFormatter(&result)
 	}
@@ -275,7 +302,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsFormatAny {
-		generateAnyFormatter(&result)
+		generateAnyFormatter(&result, ht.anyFormatArms)
 	}
 
 	if ht.needsFormatAnySlice {
@@ -347,7 +374,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoTypeName {
-		generateGoTypeNameHelper(&result)
+		generateGoTypeNameHelper(&result, ht.anyTypeNames)
 	}
 
 	if ht.needsBase64 {
@@ -970,7 +997,7 @@ impl std::fmt::Display for GoAnyPtrKey {
 `)
 }
 
-func generateAnyFormatter(out *strings.Builder) {
+func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm) {
 	TrackImport("Any")
 	if NeedsConcurrentWrapper() {
 		out.WriteString("\nfn format_any(value: &(dyn Any + Send + Sync)) -> String {\n")
@@ -991,6 +1018,20 @@ func generateAnyFormatter(out *strings.Builder) {
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<bool>() {\n")
 	out.WriteString("        v.to_string()\n")
+	rustTypes := make([]string, 0, len(anyFormatArms))
+	for rustType := range anyFormatArms {
+		rustTypes = append(rustTypes, rustType)
+	}
+	slices.Sort(rustTypes)
+	for _, rustType := range rustTypes {
+		trackImportsForAnyPayloadType(rustType)
+		out.WriteString("    } else if let Some(v) = value.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+		out.WriteString("        ")
+		out.WriteString(anyFormatArms[rustType].expr)
+		out.WriteString("\n")
+	}
 	out.WriteString("    } else {\n")
 	out.WriteString("        \"<unknown>\".to_string()\n")
 	out.WriteString("    }\n")
@@ -1010,6 +1051,7 @@ func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
 
 func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
 	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
+		trackImportsForAnyPayloadType(rustType)
 		out.WriteString("    if let Some(v) = value.downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">() { return Box::new(v.clone()) as ")
@@ -2257,7 +2299,43 @@ impl<T: 'static> std::fmt::Display for GoAtomicPointer<T> {
 `)
 }
 
-func generateGoTypeNameHelper(out *strings.Builder) {
+// trackImportsForAnyPayloadType makes sure a helper that names rustType, the
+// payload of a boxed interface value, also imports every std type that
+// spelling uses. The file that boxed the value imported them for itself, but
+// the helper may be emitted into a different file, which sees none of that
+// file's imports.
+func trackImportsForAnyPayloadType(rustType string) {
+	for i := 0; i < len(rustType); {
+		if !isRustIdentStart(rustType[i]) {
+			i++
+			continue
+		}
+		start := i
+		for i < len(rustType) && isRustIdentPart(rustType[i]) {
+			i++
+		}
+		// A path segment (std::sync::Mutex) is already fully spelled.
+		if start >= 2 && rustType[start-2:start] == "::" {
+			continue
+		}
+		switch name := rustType[start:i]; name {
+		case "Rc", "RefCell", "Arc", "Mutex", "BTreeMap", "Any":
+			TrackImport(name)
+		case "StdError":
+			TrackImport("Error")
+		}
+	}
+}
+
+func isRustIdentStart(c byte) bool {
+	return c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+}
+
+func isRustIdentPart(c byte) bool {
+	return isRustIdentStart(c) || (c >= '0' && c <= '9')
+}
+
+func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string) {
 	TrackImport("Any")
 	out.WriteString(`
 fn `)
@@ -2280,7 +2358,21 @@ fn `)
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    std::any::type_name_of_val(val)
+`)
+	rustTypes := make([]string, 0, len(anyTypeNames))
+	for rustType := range anyTypeNames {
+		rustTypes = append(rustTypes, rustType)
+	}
+	slices.Sort(rustTypes)
+	for _, rustType := range rustTypes {
+		trackImportsForAnyPayloadType(rustType)
+		out.WriteString("    if val.is::<")
+		out.WriteString(rustType)
+		out.WriteString(">() { return ")
+		out.WriteString(strconv.Quote(anyTypeNames[rustType]))
+		out.WriteString(" }\n")
+	}
+	out.WriteString(`    std::any::type_name_of_val(val)
 }
 `)
 }

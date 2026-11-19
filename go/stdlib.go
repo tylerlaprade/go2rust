@@ -1141,6 +1141,20 @@ func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string)
 }
 
 func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
+	// A variable of concrete type has the same %T on every run, so name it
+	// here instead of probing the value at run time. Naming a variable has no
+	// side effects to preserve, and a nil slice, map or pointer has nothing
+	// to probe.
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(ident); typ != nil && !types.IsInterface(typ) {
+				if goName, ok := goDynamicTypeName(typ); ok {
+					out.WriteString(strconv.Quote(goName))
+					return
+				}
+			}
+		}
+	}
 	NeedGoTypeName()
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString("(")

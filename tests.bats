@@ -431,6 +431,14 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_boxed_reference_types" {
+    run_test "tests/any_boxed_reference_types"
+}
+
+@test "any_boxed_types_in_second_file" {
+    run_test "tests/any_boxed_types_in_second_file"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }
@@ -2013,6 +2021,10 @@ run_xfail_test() {
 
 @test "positional_struct_nil_slice_field" {
     run_test "tests/positional_struct_nil_slice_field"
+}
+
+@test "print_boxed_composite_values" {
+    run_test "tests/print_boxed_composite_values"
 }
 
 @test "printf_p_verb_receiver" {
