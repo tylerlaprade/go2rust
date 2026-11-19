@@ -51,7 +51,7 @@ fn __go_init_globals() {
 
 impl String_ {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        return self.name.clone();
+        return Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn label(&self) -> Arc<Mutex<Option<example_com_ifaceeq_label::r#mod::Label>>> {

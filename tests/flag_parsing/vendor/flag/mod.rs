@@ -3651,12 +3651,12 @@ impl FlagSet {
 
     /// Name returns the name of the flag set.
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        return self.name.clone();
+        return Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     /// ErrorHandling returns the error handling behavior of the flag set.
     pub fn error_handling(&self) -> Arc<Mutex<Option<ErrorHandling>>> {
-        return self.error_handling.clone();
+        return Arc::new(Mutex::new(Some(ErrorHandling(Arc::new(Mutex::new(Some((*(*self.error_handling.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))));
     }
 
     /// SetOutput sets the destination for usage and error messages.

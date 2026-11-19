@@ -50,7 +50,7 @@ impl std::fmt::Display for ImportSpec {
 
 impl ImportSpec {
     pub fn label(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 

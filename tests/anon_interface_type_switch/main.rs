@@ -42,7 +42,7 @@ impl std::fmt::Display for wrapped {
 
 impl wrapped {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return self.msg.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.msg.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn unwrap(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {

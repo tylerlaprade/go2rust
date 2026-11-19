@@ -271,7 +271,7 @@ impl Counter {
 impl Service {
     /// Service's own method
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     /// Method that shadows embedded method
@@ -325,7 +325,7 @@ impl Base {
 
 impl Middle {
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
-        return self.data.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.data.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn get_i_d(&self) -> i32 {
@@ -347,7 +347,7 @@ impl Middle {
 
 impl Top {
     pub fn get_extra(&self) -> Rc<RefCell<Option<String>>> {
-        return self.extra.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.extra.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {

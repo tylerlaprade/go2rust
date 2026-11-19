@@ -6518,6 +6518,28 @@ func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
 	return ok
 }
 
+// receiverFieldIsReturnedByCopy reports whether a field of the receiver is
+// a value that Go copies when a method returns it: a string, a number, a
+// bool, a struct or an array, or a defined type over one of those. The
+// caller's variable is then its own. Returning the field's handle would make
+// the caller's variable and the field one variable, so that "name :=
+// u.Name(); name = strings.ToUpper(name)" changed the struct.
+func receiverFieldIsReturnedByCopy(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+		return true
+	}
+	return false
+}
+
 func selectorExpressionKeepsHandle(expr ast.Expr) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -10861,8 +10883,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
 							// Function selector values are represented by cloneable handles or boxed method values.
-						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-							// Returning a receiver field clones the handle. Route through
+						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldIsReturnedByCopy(result) {
+							// Returning a receiver field that Go shares, such as a
+							// pointer, slice or map, clones the handle. Route through
 							// typed selector lowering so promoted fields traverse embeds.
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")

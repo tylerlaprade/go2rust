@@ -10007,3 +10007,42 @@ func count() int {
 		t.Fatalf("make([]struct{...}) short declaration should annotate and initialize with the anonymous struct type:\n%s", rust)
 	}
 }
+
+// A method that returns a field of a type Go copies returns a copy. It used
+// to return the field's own handle, so that changing the caller's variable
+// changed the struct. A pointer or a slice field is still shared, as in Go.
+func TestMethodReturnsACopyOfAValueField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Point struct{ X, Y int }
+
+type User struct {
+	name string
+	pos  Point
+	next *User
+	tags []string
+}
+
+func (u *User) Name() string   { return u.name }
+func (u *User) Pos() Point     { return u.pos }
+func (u *User) Next() *User    { return u.next }
+func (u *User) Tags() []string { return u.tags }
+`)
+
+	for _, unwanted := range []string{
+		"self.name.clone()\n",
+		"self.pos.clone()\n",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("a value field must not be returned as its own handle, found %q in:\n%s", unwanted, rust)
+		}
+	}
+	for _, want := range []string{
+		"self.next.clone()",
+		"self.tags.clone()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("a field that Go shares should still be returned as its handle, missing %q in:\n%s", want, rust)
+		}
+	}
+}

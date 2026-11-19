@@ -224,7 +224,7 @@ impl std::fmt::Display for pair {
 
 impl item {
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        return self.name.clone();
+        return Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
