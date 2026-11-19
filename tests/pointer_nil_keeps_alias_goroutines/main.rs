@@ -188,6 +188,15 @@ impl std::fmt::Display for Node {
 }
 
 
+pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Node>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *global.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *global.lock().unwrap() = Some(Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(5))), ..Default::default() }))));
+}
+
+
 impl Node {
     pub fn link(&self) -> Arc<Mutex<Option<Node>>> {
         self.next.clone()
@@ -195,6 +204,7 @@ impl Node {
 }
 
 fn main() {
+    __go_init_all();
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send(true);;;
@@ -253,4 +263,28 @@ fn main() {
         )
     };
     println!("{}", format!("{}", { let __nil_result = (*captured.lock().unwrap()).is_none(); __nil_result }));
+
+    let mut observed = Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(6))), ..Default::default() })));
+    let observed_closure_clone = observed.clone(); let mut show = Arc::new(Mutex::new(Some(Box::new(move || {
+        println!("{}", format!("{}", { let __nil_result = (*observed_closure_clone.lock().unwrap()).is_none(); __nil_result }));
+    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    *observed.lock().unwrap() = None;
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = show.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
+
+    let mut previous = (*global.lock().unwrap().as_ref().unwrap()).clone();
+    *global.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    println!("{} {}", format!("{}", { let __slot_guard = global.lock().unwrap(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.lock().unwrap()).is_some()).unwrap_or(false); !__not_nil }), format!("{}", { let __nil_result = (*previous.lock().unwrap()).is_some(); __nil_result }));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

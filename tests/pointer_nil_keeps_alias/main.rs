@@ -40,6 +40,34 @@ impl std::fmt::Display for Node {
 }
 
 
+pub(crate) struct GoGlobal<T> {
+    value: std::cell::UnsafeCell<Option<T>>,
+}
+unsafe impl<T> Sync for GoGlobal<T> {}
+impl<T> GoGlobal<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.value.get() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.value.get() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {
+        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))
+    }
+}
+
+pub(crate) static global: GoGlobal<Rc<RefCell<Option<Node>>>> = GoGlobal::new();
+
+
+fn __go_init_globals() {
+    *global.borrow_mut() = Some(Rc::new(RefCell::new(None)));
+    *global.borrow_mut() = Some(Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(5))), ..Default::default() }))));
+}
+
+
 impl Node {
     pub fn link(&self) -> Rc<RefCell<Option<Node>>> {
         self.next.clone()
@@ -47,6 +75,7 @@ impl Node {
 }
 
 fn main() {
+    __go_init_all();
     let mut a = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
     let mut b = a.clone();
     { let new_val = Rc::new(RefCell::new(None)); b = new_val; };
@@ -87,4 +116,19 @@ fn main() {
     }) as Box<dyn FnMut() -> ()>)));
     { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = clear.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     println!("{}", format!("{}", { let __nil_result = (*captured.borrow()).is_none(); __nil_result }));
+
+    let mut observed = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(6))), ..Default::default() })));
+    let observed_closure_clone = observed.clone(); let mut show = Rc::new(RefCell::new(Some(Box::new(move || {
+        println!("{}", format!("{}", { let __nil_result = (*observed_closure_clone.borrow()).is_none(); __nil_result }));
+    }) as Box<dyn FnMut() -> ()>)));
+    *observed.borrow_mut() = None;
+    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = show.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+
+    let mut previous = (*global.borrow().as_ref().unwrap()).clone();
+    *global.borrow_mut() = Some(Rc::new(RefCell::new(None)));
+    println!("{} {}", format!("{}", { let __slot_guard = global.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }), format!("{}", { let __nil_result = (*previous.borrow()).is_some(); __nil_result }));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

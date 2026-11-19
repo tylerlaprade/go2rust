@@ -11,6 +11,8 @@ func (n *Node) Link() *Node {
 	return n.Next
 }
 
+var global = &Node{Value: 5}
+
 func main() {
 	a := &Node{Value: 1}
 	b := a
@@ -40,4 +42,13 @@ func main() {
 	clear := func() { captured = nil }
 	clear()
 	fmt.Println(captured == nil)
+
+	observed := &Node{Value: 6}
+	show := func() { fmt.Println(observed == nil) }
+	observed = nil
+	show()
+
+	previous := global
+	global = (nil)
+	fmt.Println(global == nil, previous != nil)
 }
