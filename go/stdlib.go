@@ -483,6 +483,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString(")")
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
+			if writeNestedBasicSlicePrintArg(out, arg, argType) {
+				return
+			}
 			// Check if it's a slice of interface{}
 			elemType := typeInfo.GetSliceElemType(arg)
 			if elemType != nil {
@@ -1605,6 +1608,47 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 		return !selectorRValueReturnsWrappedHandle(arg)
 	}
 	return false
+}
+
+func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	outer, ok := types.Unalias(argType).(*types.Slice)
+	if !ok {
+		return false
+	}
+	row, ok := types.Unalias(outer.Elem()).(*types.Slice)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(row.Elem()).(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false
+	}
+
+	arg = unwrapParens(arg)
+	NeedFormatNestedSlice()
+	if ident, ok := arg.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+		out.WriteString("{ let __rows = ")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => \"[]\".to_string() } }")
+		return true
+	}
+	bare := formatSliceArgumentIsBareValue(arg)
+	if bare {
+		out.WriteString("{ let __formatted = format_nested_slice_values(&")
+	} else {
+		out.WriteString("format_nested_slice(&")
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpression(out, arg)
+	}
+	out.WriteString(")")
+	if bare {
+		out.WriteString("; __formatted }")
+	}
+	return true
 }
 
 func writeTrackedRangeSlicePrintArg(out *strings.Builder, arg ast.Expr) bool {
@@ -6293,12 +6337,7 @@ where
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s
-            .as_ref()
-            .iter()
-            .map(|inner| format_slice_values(inner.as_ref()))
-            .collect();
-        format!("[{}]", formatted.join(" "))
+        format_nested_slice_values(s.as_ref())
     } else {
         "[]".to_string()
     }
@@ -6315,18 +6354,22 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s
-            .as_ref()
-            .iter()
-            .map(|inner| format_slice_values(inner.as_ref()))
-            .collect();
-        format!("[{}]", formatted.join(" "))
+        format_nested_slice_values(s.as_ref())
     } else {
         "[]".to_string()
     }
 }
 `)
 	}
+	out.WriteString(`fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+where
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    format!("[{}]", formatted.join(" "))
+}
+`)
 }
 
 // generateNestedSliceWrappedFormatter emits format_nested_slice_wrapped, the
