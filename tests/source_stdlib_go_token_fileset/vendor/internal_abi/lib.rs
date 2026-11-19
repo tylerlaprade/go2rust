@@ -1,7 +1,7 @@
 include!("__go2rust_helpers.rs");
 pub use go2rust_stdlib_stubs::*;
 pub mod r#mod;
-pub mod abi_arm64;
+pub mod abi_amd64;
 pub mod compiletype;
 pub mod escape;
 pub mod funcpc;
@@ -17,7 +17,7 @@ pub mod symtab;
 pub mod r#type;
 
 pub use r#mod::*;
-pub use abi_arm64::*;
+pub use abi_amd64::*;
 pub use compiletype::*;
 pub use escape::*;
 pub use funcpc::*;
