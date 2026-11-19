@@ -139,6 +139,8 @@ fn format_any(value: &dyn Any) -> String {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
         format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<Report>() {
+        format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Status>() {
         format!("{}", v)
     } else {
@@ -177,6 +179,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<bool>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<f64>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Report>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Status>() { return Box::new(v.clone()) as Box<dyn Any>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
@@ -361,6 +364,32 @@ impl std::fmt::Display for Outcome {
 }
 
 
+/// Failure is another name for error. A field of this type is an error field.
+pub type Failure = Rc<RefCell<Option<Box<dyn StdError>>>>;
+
+
+#[derive(Clone, Default)]
+pub struct Report {
+    pub err: Failure,
+}
+
+impl Report {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.err.clone();
+        Self {
+            err: __go_clone_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Report {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", match self.err.borrow().as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
 impl Status {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some(format!("status {}", (*self.code.borrow().as_ref().unwrap())))))
@@ -450,4 +479,7 @@ fn main() {
     println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(1))), ..Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(3))), err: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed"))))), ..Default::default() }) as Box<dyn Any>))));
+    println!("{}", format!("{}", Report { err: Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Report { err: Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Report { err: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("reported"))))), ..Default::default() }) as Box<dyn Any>))));
 }

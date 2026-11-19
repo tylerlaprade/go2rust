@@ -30,6 +30,11 @@ type Outcome struct {
 	Err   error
 }
 
+// Failure is another name for error. A field of this type is an error field.
+type Failure = error
+
+type Report struct{ Err Failure }
+
 // show prints whatever it is given. The value arrives as an interface, so
 // the printer has to find out what it holds.
 func show(v interface{}) {
@@ -100,4 +105,7 @@ func main() {
 	fmt.Println(Outcome{Value: 1})
 	show(Outcome{Value: 2})
 	show(Outcome{Value: 3, Err: fmt.Errorf("failed")})
+	fmt.Println(Report{})
+	show(Report{})
+	show(Report{Err: fmt.Errorf("reported")})
 }
