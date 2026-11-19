@@ -431,6 +431,10 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_boxed_reference_types" {
+    run_test "tests/any_boxed_reference_types"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }

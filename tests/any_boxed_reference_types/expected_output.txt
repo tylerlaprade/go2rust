@@ -1,0 +1,43 @@
+argument: []int len 3 | []string len 2 | map len 1
+argument: *Point 7 | Point 9 | func 5
+literal: []int len 2 | *Point 1 | map len 0
+defined: IntList len 2 | Registry len 2 | IntList len 1
+scalar: int 42 | string hi | other float64
+declared: []int len 3
+unset: nil
+assigned: map len 1
+assigned: *Point 7
+assigned: Point 9
+returned: []int len 3 | *Point 7
+field: []int len 3
+field: *Point 7
+map value: []int len 3 | *Point 7
+element: []int 3
+element: map 1
+element: *Point 7
+element: Point 9
+element: IntList 2
+element: other
+appended: 2 a
+comma-ok slice: 3 1
+comma-ok slice: not []string
+comma-ok slice: not IntList
+comma-ok map: 1
+comma-ok pointer: 8
+comma-ok pointer: not Point
+comma-ok defined: 2
+comma-ok defined: not []int
+single slice: 3 3 6
+single map: 1 1
+single element: 3 1 7
+single nil slice: 0
+shared slice: 99
+shared pointer: 70
+call defined func: 40
+call func: 2 2
+dynamic: []int []string map[string]int
+dynamic: *main.Point main.Point []float64
+dynamic: int string bool float64
+unmatched: other []float64 | other map[string]bool
+static: []int map[string]int *main.Point main.Point main.IntList
+static nil: []int *main.Point

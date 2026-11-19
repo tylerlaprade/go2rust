@@ -21,6 +21,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Rc<RefCell<Option<Vec<i32>>>>>() { return "[]int" }
     std::any::type_name_of_val(val)
 }
 
@@ -107,7 +108,13 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     let _ts_subject = value.clone();
     let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
+        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
+            __any = __boxed.as_ref() as &dyn Any;
+        }
+        __any
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
         drop(_ts_guard);
@@ -125,7 +132,7 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         drop(_ts_guard);
         print!("Float: {:.2}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
-        let v = value.clone();
+        let v = _ts_subject.clone();
         drop(_ts_guard);
         print!("Unknown type: {}\n", __go_type_name(&**v.borrow().as_ref().unwrap()));;
     }
@@ -154,5 +161,5 @@ fn main() {
     type_switch(Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(3.14) as Box<dyn Any>))));
-    type_switch(Rc::new(RefCell::new(Some(Box::new(vec![1, 2, 3]) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3]))).clone()) as Box<dyn Any>))));
 }

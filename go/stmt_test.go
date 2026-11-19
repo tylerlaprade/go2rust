@@ -6254,9 +6254,11 @@ func load(v any) []*Type {
 }
 `)
 
-	if !strings.Contains(rust, "downcast_ref::<Vec<Rc<RefCell<Option<Type>>>>>()") &&
-		!strings.Contains(rust, "downcast_ref::<Vec<Arc<Mutex<Option<Type>>>>>()") {
-		t.Fatalf("slice type assertion should assert the bare slice value:\n%s", rust)
+	// A slice is boxed into an interface as its handle, so that is what the
+	// assertion has to downcast to; a bare Vec never matches.
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Vec<Rc<RefCell<Option<Type>>>>>>>>()") &&
+		!strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>>>()") {
+		t.Fatalf("slice type assertion should downcast to the boxed slice handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "rts = new_val;") {
 		t.Fatalf("slice type assertion assignment should not replace the slice handle with a bare Vec:\n%s", rust)
