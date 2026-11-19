@@ -6381,6 +6381,20 @@ func positions(items []string) map[string]int {
 	}
 }
 
+func TestMapUpdateCastsLenKeyToGoInt(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bump(m map[int]int) {
+	m[len(m)] += 5
+}
+`)
+
+	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") &&
+		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") {
+		t.Fatalf("map update should cast len from usize to its Go int key type:\n%s", rust)
+	}
+}
+
 func TestMapAssignmentKeepsRangeMapValueHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
