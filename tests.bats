@@ -1543,6 +1543,10 @@ run_xfail_test() {
     run_test "tests/map_literal_defined_integer_types"
 }
 
+@test "map_literal_elided_named_slice" {
+    run_test "tests/map_literal_elided_named_slice"
+}
+
 @test "map_lookup_slice_call_argument" {
     run_test "tests/map_lookup_slice_call_argument"
 }
