@@ -55,7 +55,7 @@ func main() {
 
 	observed := &Node{Value: 6}
 	show := func() { fmt.Println(observed == nil) }
-	observed = nil
+	observed = (nil)
 	show()
 
 	previous := global
@@ -64,7 +64,7 @@ func main() {
 
 	addressed := &Node{Value: 7}
 	address := &(addressed)
-	addressed = nil
+	addressed = (nil)
 	fmt.Println(*address == nil)
 
 	parallelAddressed := &Node{Value: 8}

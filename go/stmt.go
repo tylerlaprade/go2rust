@@ -12069,8 +12069,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// GoPtr locals preserve pointer identity across pointer assignment.
 								} else if writeNilPointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Replace a pointer handle without changing its pointee.
-								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
-									// Assigning nil to pointer
+								} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(s.Rhs[0]) == types.Typ[types.UntypedNil] {
+									// Clear the existing wrapper for a nil assignment.
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									WriteBorrowMethod(out, true)
