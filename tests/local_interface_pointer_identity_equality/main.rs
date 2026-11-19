@@ -12,7 +12,7 @@ pub trait Object: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Object> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_object()
+        Object::__go_clone_box_object(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct item {
 
 impl item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for item {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -72,7 +79,7 @@ pub struct itemPtr(pub Rc<RefCell<Option<item>>>);
 impl std::fmt::Display for itemPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -111,5 +118,5 @@ fn main() {
     let mut c: Rc<RefCell<Option<Box<dyn Object>>>> = Rc::new(RefCell::new(Some(Box::new(itemPtr(other.clone())) as Box<dyn Object>)));
 
     println!("{} {} {}", format!("{}", (*(*a.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())), format!("{}", (*(*b.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())), format!("{}", (*(*c.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())));
-    println!("{} {} {}", format!("{}", same(a.clone(), b.clone())), format!("{}", same(a.clone(), c.clone())), format!("{}", (*a.borrow()).is_none()));
+    println!("{} {} {}", format!("{}", same(a.clone(), b.clone())), format!("{}", same(a.clone(), c.clone())), format!("{}", { let __nil_result = (*a.borrow()).is_none(); __nil_result }));
 }

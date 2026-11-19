@@ -225,14 +225,20 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i_d: { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            i_d: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { i_d: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            i_d: __go_default_0_0,
+        }
     }
 }
 

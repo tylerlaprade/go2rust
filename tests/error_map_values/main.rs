@@ -11,14 +11,20 @@ pub struct customError {
 
 impl customError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { msg: { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            msg: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for customError {
     fn default() -> Self {
-        Self { msg: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            msg: __go_default_0_0,
+        }
     }
 }
 
@@ -39,7 +45,7 @@ impl StdError for customError {}
 
 
 pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
-    if (*err.borrow()).is_none() {
+    if { let __nil_result = (*err.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", "nil".to_string()));
         return;
     }
@@ -52,11 +58,11 @@ fn main() {
     { let __map_key = "nil".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("three".to_string())))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     {
-        let mut err = (*errs.borrow().as_ref().unwrap()).get(&"one".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());;
-        if (*err.borrow()).is_some() {
+        let mut err = { let __map_holder = errs.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"one".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
+        if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
             accept(err.clone());;
         }
     }
-    accept((*errs.borrow().as_ref().unwrap()).get(&"two".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()));
-    accept((*errs.borrow().as_ref().unwrap()).get(&"nil".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()));
+    accept({ let __map_holder = errs.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"two".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) });
+    accept({ let __map_holder = errs.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"nil".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) });
 }

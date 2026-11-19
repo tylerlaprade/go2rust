@@ -16,14 +16,20 @@ pub struct wrapped {
 
 impl wrapped {
     pub fn __go_value_clone(&self) -> Self {
-        Self { msg: { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            msg: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for wrapped {
     fn default() -> Self {
-        Self { msg: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            msg: __go_default_0_0,
+        }
     }
 }
 

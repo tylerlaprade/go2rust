@@ -17,20 +17,32 @@ pub struct term {
 
 impl term {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tilde: { let __guard = self.tilde.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.tilde.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            tilde: __go_clone_0_0,
+            name: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for term {
     fn default() -> Self {
-        Self { tilde: Rc::new(RefCell::new(Some(false))), name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            tilde: __go_default_0_0,
+            name: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for term {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.tilde.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tilde.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -43,20 +55,32 @@ pub struct Term {
 
 impl Term {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tilde: { let __guard = self.tilde.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.tilde.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            tilde: __go_clone_0_0,
+            name: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Term {
     fn default() -> Self {
-        Self { tilde: Rc::new(RefCell::new(Some(false))), name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            tilde: __go_default_0_0,
+            name: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Term {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.tilde.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tilde.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
