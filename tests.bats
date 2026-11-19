@@ -415,6 +415,10 @@ run_xfail_test() {
     run_test "tests/anon_interface_type_switch"
 }
 
+@test "anonymous_struct_embedded_global" {
+    run_test "tests/anonymous_struct_embedded_global"
+}
+
 @test "anonymous_structs_basic" {
     run_test "tests/anonymous_structs_basic"
 }
@@ -1523,8 +1527,24 @@ run_xfail_test() {
     run_test "tests/map_comma_ok_value_copy_goroutines"
 }
 
+@test "map_converted_numeric" {
+    run_test "tests/map_converted_numeric"
+}
+
+@test "map_len_integer_key" {
+    run_test "tests/map_len_integer_key"
+}
+
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
+}
+
+@test "map_literal_defined_integer_types" {
+    run_test "tests/map_literal_defined_integer_types"
+}
+
+@test "map_literal_elided_named_slice" {
+    run_test "tests/map_literal_elided_named_slice"
 }
 
 @test "map_lookup_slice_call_argument" {
@@ -1537,6 +1557,14 @@ run_xfail_test() {
 
 @test "map_named_integer_values" {
     run_test "tests/map_named_integer_values"
+}
+
+@test "map_named_slice_missing_key" {
+    run_test "tests/map_named_slice_missing_key"
+}
+
+@test "map_named_slice_missing_key_goroutines" {
+    run_test "tests/map_named_slice_missing_key_goroutines"
 }
 
 @test "map_named_slice_parallel_lookup" {
@@ -1963,6 +1991,14 @@ run_xfail_test() {
     run_test "tests/package_named_string_conversion"
 }
 
+@test "package_nil_slice_print" {
+    run_test "tests/package_nil_slice_print"
+}
+
+@test "package_nil_slice_print_goroutine" {
+    run_test "tests/package_nil_slice_print_goroutine"
+}
+
 @test "package_selector_pointer_argument" {
     run_test "tests/package_selector_pointer_argument"
 }
@@ -2115,6 +2151,14 @@ run_xfail_test() {
     run_test "tests/print_interface_value_twice_goroutines"
 }
 
+@test "print_nested_slice" {
+    run_test "tests/print_nested_slice"
+}
+
+@test "print_nested_slice_goroutines" {
+    run_test "tests/print_nested_slice_goroutines"
+}
+
 @test "print_nil_error_and_pointer" {
     run_test "tests/print_nil_error_and_pointer"
 }
@@ -2225,6 +2269,10 @@ run_xfail_test() {
 
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
+}
+
+@test "range_over_slice_bounds" {
+    run_test "tests/range_over_slice_bounds"
 }
 
 @test "range_over_slice_field" {
@@ -2395,6 +2443,14 @@ run_xfail_test() {
     run_test "tests/rune_escape_literals"
 }
 
+@test "runtime_format_with_package_level_names" {
+    run_test "tests/runtime_format_with_package_level_names"
+}
+
+@test "runtime_format_with_package_level_names_goroutines" {
+    run_test "tests/runtime_format_with_package_level_names_goroutines"
+}
+
 @test "runtime_gomaxprocs" {
     run_test "tests/runtime_gomaxprocs"
 }
@@ -2473,6 +2529,10 @@ run_xfail_test() {
 
 @test "slice_elem_pointer_short_decl" {
     run_test "tests/slice_elem_pointer_short_decl"
+}
+
+@test "slice_element_pointer_field_receiver" {
+    run_test "tests/slice_element_pointer_field_receiver"
 }
 
 @test "slice_expr_call_argument" {
@@ -2609,6 +2669,14 @@ run_xfail_test() {
 
 @test "source_stdlib_path_filepath_isabs" {
     run_test "tests/source_stdlib_path_filepath_isabs"
+}
+
+@test "source_stdlib_pointer_as_local_interface" {
+    run_test "tests/source_stdlib_pointer_as_local_interface"
+}
+
+@test "source_stdlib_pointer_as_local_interface_goroutines" {
+    run_test "tests/source_stdlib_pointer_as_local_interface_goroutines"
 }
 
 @test "source_stdlib_strconv_unquote" {
@@ -2957,6 +3025,14 @@ run_xfail_test() {
 
 @test "switch_nil_case" {
     run_test "tests/switch_nil_case"
+}
+
+@test "switch_pointer_identity_concurrent" {
+    run_test "tests/switch_pointer_identity_concurrent"
+}
+
+@test "switch_pointer_identity_single" {
+    run_test "tests/switch_pointer_identity_single"
 }
 
 @test "switch_statements" {

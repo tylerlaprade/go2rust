@@ -1,20 +1,18 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
-func sender(ch chan int) {
+func sender(ch chan int, received chan bool) {
 	for i := 1; i <= 5; i++ {
 		fmt.Printf("Sending: %d\n", i)
 		ch <- i
-		time.Sleep(100 * time.Millisecond)
+		// Let the receiver report this value before logging the next send.
+		<-received
 	}
 	close(ch)
 }
 
-func receiver(ch chan int) {
+func receiver(ch chan int, received, done chan bool) {
 	for {
 		value, ok := <-ch
 		if !ok {
@@ -22,17 +20,20 @@ func receiver(ch chan int) {
 			break
 		}
 		fmt.Printf("Received: %d\n", value)
+		received <- true
 	}
+	done <- true
 }
 
 func main() {
 	// Unbuffered channel
 	ch := make(chan int)
+	received := make(chan bool)
+	done := make(chan bool)
 
-	go sender(ch)
-	go receiver(ch)
-
-	time.Sleep(500 * time.Millisecond)
+	go sender(ch, received)
+	go receiver(ch, received, done)
+	<-done
 
 	// Buffered channel
 	buffered := make(chan string, 3)
