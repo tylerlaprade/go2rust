@@ -98,6 +98,7 @@ type FileState struct {
 	Helpers                      *HelperTracker
 	FileSet                      *token.FileSet
 	StatementPreprocessor        *StatementPreprocessor
+	SharedPointerBindings        map[types.Object]bool
 	RangeLoopVars                map[string]string
 	RangeLoopVarGoTypes          map[string]types.Type
 	LocalRangeElemRustTypes      map[string]string

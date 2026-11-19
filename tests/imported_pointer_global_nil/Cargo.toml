@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_importedpointer_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "imported_pointer_global_nil"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "imported_pointer_global_nil"
+path = "main.rs"
+
+[dependencies]
+example_com_importedpointer_dep = { path = "vendor/example_com_importedpointer_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

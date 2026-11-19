@@ -509,7 +509,7 @@ func sourceMappedPackageGlobalPointerSelector(expr ast.Expr) (string, string, bo
 		return "", "", false
 	}
 	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
-	if !ok || obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
+	if !ok || !obj.Exported() || obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
 		return "", "", false
 	}
 	pkgPath := obj.Pkg().Path()
@@ -527,7 +527,7 @@ func sourceMappedPackageGlobalPointerSelector(expr ast.Expr) (string, string, bo
 	if crateName == "" {
 		return "", "", false
 	}
-	return crateName, rustPackageGlobalName(obj.Name()), true
+	return crateName, obj.Name(), true
 }
 
 func writePackageGlobalPointerHandleClone(out *strings.Builder, ident *ast.Ident) {
@@ -542,21 +542,7 @@ func writeSourceMappedPackageGlobalPointerHandleClone(out *strings.Builder, expr
 	if !ok {
 		return false
 	}
-	out.WriteString("(*")
-	out.WriteString(crateName)
-	out.WriteString("::")
-	out.WriteString(globalName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
-	return true
-}
-
-func writeSourceMappedPackageGlobalPointerScopedClone(out *strings.Builder, expr ast.Expr) bool {
-	crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(expr)
-	if !ok {
-		return false
-	}
-	writeScopedValueClone(out, crateName+"::"+globalName)
+	fmt.Fprintf(out, "%s::__go_get_global_%s()", crateName, globalName)
 	return true
 }
 
@@ -855,7 +841,36 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 		}
 	}
 	out.WriteString("\n\n")
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil && isSourceMappedPackagePath(typeInfo.pkg.Path()) {
+		for _, global := range globals {
+			writeExportedPointerGlobalAccessors(out, global)
+		}
+	}
 	transpilePackageGlobalInit(out, globals)
+}
+
+func writeExportedPointerGlobalAccessors(out *strings.Builder, global packageGlobal) {
+	if !ast.IsExported(global.name) || global.typ == nil {
+		return
+	}
+	if _, ok := types.Unalias(global.typ).Underlying().(*types.Pointer); !ok {
+		return
+	}
+	name := rustPackageGlobalName(global.name)
+	// Read and replace the handle inside its own crate without returning a
+	// reference to the package variable's storage.
+	fmt.Fprintf(out, "pub fn __go_get_global_%s() -> %s { (*%s", global.name, global.rustType, name)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone() }\n")
+	fmt.Fprintf(out, "pub fn __go_clear_global_%s() { *%s", global.name, name)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	if global.goPtrStorage {
+		out.WriteString("GoPtr::nil()")
+	} else {
+		out.WriteString(zeroValueForTypesType(global.typ))
+	}
+	out.WriteString("); }\n\n")
 }
 
 func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {

@@ -1855,15 +1855,19 @@ func writeIndexedSequenceElementFieldBase(out *strings.Builder, indexExpr *ast.I
 
 func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
 	out.WriteString("(*")
-	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-		writeNamedSliceInnerHandleClone(out, subj)
-	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-	}
+	writeIndexedSequenceHandle(out, indexExpr.X)
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("]")
+}
+
+func writeIndexedSequenceHandle(out *strings.Builder, expr ast.Expr) {
+	if subj := unwrapParens(expr); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, expr, LValue)
+	}
 }
 
 // writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
@@ -7309,11 +7313,15 @@ func writeCurrentPointerReceiverHandleClone(out *strings.Builder, rhs ast.Expr) 
 }
 
 func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	rhsIdent, ok := rhs.(*ast.Ident)
+	rhsIdent, ok := unwrapParens(rhs).(*ast.Ident)
 	if !ok || rhsIdent.Name != "nil" {
 		return false
 	}
-	lhsIdent, ok := packageGlobalPointerIdent(lhs)
+	if crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(lhs)); ok {
+		fmt.Fprintf(out, "%s::__go_clear_global_%s()", crateName, globalName)
+		return true
+	}
+	lhsIdent, ok := packageGlobalPointerIdent(unwrapParens(lhs))
 	if !ok {
 		return false
 	}
@@ -7330,6 +7338,49 @@ func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, 
 	return true
 }
 
+func writeNilPointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	pointerType := nilPointerHandleAssignmentType(lhs, rhs)
+	if pointerType == nil {
+		return false
+	}
+	// Assign a new nil handle to the pointer slot. Clearing the old
+	// pointee would also clear every other pointer to it.
+	out.WriteString("{ let new_val = ")
+	out.WriteString(zeroValueForTypesType(pointerType))
+	out.WriteString("; ")
+	writePointerHandleAssignmentTargetFromValueName(out, unwrapParens(lhs), "new_val")
+	out.WriteString(" }")
+	return true
+}
+
+func nilPointerHandleAssignmentType(lhs ast.Expr, rhs ast.Expr) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(rhs) != types.Typ[types.UntypedNil] || !typeInfo.IsPointer(lhs) {
+		return nil
+	}
+	switch target := unwrapParens(lhs).(type) {
+	case *ast.Ident:
+		// Captures and address-taking share the pointee wrapper today.
+		// Rebinding either needs a separate, shared pointer slot.
+		ctx := GetTranspileContext()
+		if ctx != nil && ctx.File != nil && ctx.File.SharedPointerBindings[typeInfo.GetObject(target)] {
+			return nil
+		}
+		if target.Name == "_" || isSliceElemPtrVar(target.Name) || isArrayElemPtrVar(target.Name) ||
+			(isCurrentReceiverIdent(target) && currentReceiverRustAlias != "") {
+			return nil
+		}
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[target]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return nil
+		}
+	default:
+		return nil
+	}
+	return typeInfo.GetType(lhs)
+}
+
 func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
 	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
 		return
@@ -7339,6 +7390,9 @@ func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
 
 func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs ast.Expr, valueName string) {
 	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
+		if writeIndexedValuePointerFieldReplacement(out, sel, valueName) {
+			return
+		}
 		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
 			return
 		}
@@ -7350,6 +7404,92 @@ func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs a
 	out.WriteString(" = ")
 	out.WriteString(valueName)
 	out.WriteString(";")
+}
+
+func writeIndexedValuePointerFieldReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
+	target := indexedValuePointerFieldTarget(sel)
+	if target == nil {
+		return false
+	}
+	out.WriteString("{ ")
+	target.writeOperands(out, "__sequence", "__index")
+	out.WriteString(" ")
+	target.writeStore(out, "__sequence", "__index", valueName)
+	out.WriteString(" }")
+	return true
+}
+
+type indexedPointerField struct {
+	selector *ast.SelectorExpr
+	sequence ast.Expr
+	indices  []ast.Expr
+}
+
+func indexedValuePointerFieldTarget(sel *ast.SelectorExpr) *indexedPointerField {
+	index, ok := unwrapParens(sel.X).(*ast.IndexExpr)
+	typeInfo := GetTypeInfo()
+	if !ok || typeInfo == nil {
+		return nil
+	}
+	if _, ok := coreUnderlyingType(typeInfo.GetArrayOrSliceElemType(index.X)).(*types.Struct); !ok {
+		return nil
+	}
+	target := &indexedPointerField{selector: sel, sequence: index.X, indices: []ast.Expr{index.Index}}
+	// Unnamed nested collections are stored directly in their outer element.
+	// Reaching the row through a read would clone it instead.
+rows:
+	for {
+		row, ok := unwrapParens(target.sequence).(*ast.IndexExpr)
+		if !ok || typeInfo.GetArrayOrSliceElemType(row.X) == nil {
+			break
+		}
+		rowType := types.Unalias(typeInfo.GetType(row))
+		switch rowType.(type) {
+		case *types.Array, *types.Slice:
+		default:
+			break rows
+		}
+		target.sequence = row.X
+		target.indices = append(target.indices, row.Index)
+	}
+	slices.Reverse(target.indices)
+	return target
+}
+
+func (target *indexedPointerField) writeOperands(out *strings.Builder, sequenceName, indexName string) {
+	fmt.Fprintf(out, "let %s = ", sequenceName)
+	if !writeNamedArrayInnerHandleClone(out, target.sequence) {
+		out.WriteString("(")
+		writeIndexedSequenceHandle(out, target.sequence)
+		out.WriteString(").clone()")
+	}
+	out.WriteString(";")
+	for i, index := range target.indices {
+		fmt.Fprintf(out, " let %s_%d = ", indexName, i)
+		writeExpressionAsUsize(out, index)
+		out.WriteString(";")
+	}
+}
+
+func (target *indexedPointerField) writeStore(out *strings.Builder, sequenceName, indexName, valueName string) {
+	// The index may read the same collection. Borrow only for the store.
+	fmt.Fprintf(out, "{ let mut __sequence_guard = %s", sequenceName)
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __element = &mut __sequence_guard.as_mut().unwrap()")
+	for i := range target.indices {
+		fmt.Fprintf(out, "[%s_%d]", indexName, i)
+	}
+	out.WriteString("; ")
+	fieldInfo := selectorFieldAccessInfo(target.selector)
+	if fieldInfo.IsPromoted {
+		writePromotedHandleAssignmentTarget(out, "__element", fieldInfo, false)
+	} else {
+		out.WriteString("__element.")
+		out.WriteString(fieldInfo.FieldName)
+	}
+	out.WriteString(" = ")
+	out.WriteString(valueName)
+	out.WriteString("; }")
 }
 
 func writeGoPtrFieldSelectorHandleReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
@@ -8689,15 +8829,6 @@ func writeParallelPointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Ex
 }
 
 func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
-	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
-		valueName := tmpName + ".clone()"
-		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-		if writeGoPtrFieldSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-	}
 	if ident, ok := packageGlobalPointerIdent(lhs); ok {
 		out.WriteString("*")
 		out.WriteString(rustPackageGlobalName(ident.Name))
@@ -8707,10 +8838,7 @@ func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, 
 		out.WriteString(".clone());")
 		return
 	}
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = ")
-	out.WriteString(tmpName)
-	out.WriteString(".clone();")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, tmpName+".clone()")
 }
 
 func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
@@ -8752,7 +8880,7 @@ func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Exp
 }
 
 func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
-	ident, ok := rhs.(*ast.Ident)
+	ident, ok := unwrapParens(rhs).(*ast.Ident)
 	if !ok || ident.Name != "nil" {
 		return false
 	}
@@ -8766,6 +8894,10 @@ func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpNam
 		out.WriteString(" /* ERROR: Type information required for parallel nil assignment target */ unimplemented!(\"type info required for parallel nil assignment target\");")
 		return true
 	}
+	if _, _, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(lhs)); ok {
+		fmt.Fprintf(out, " %s();", tmpName)
+		return true
+	}
 	if sel, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
 		out.WriteString(" ")
 		writePointerHandleAssignmentTargetFromValueName(out, sel, tmpName+".clone()")
@@ -8777,6 +8909,11 @@ func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpNam
 		out.WriteString(" = ")
 		out.WriteString(tmpName)
 		out.WriteString(".clone();")
+		return true
+	}
+	if nilPointerHandleAssignmentType(lhs, rhs) != nil {
+		out.WriteString(" ")
+		writePointerHandleAssignmentTempTarget(out, unwrapParens(lhs), tmpName)
 		return true
 	}
 	if !tupleTempAssignsHandleToElement(lhsType) {
@@ -8813,12 +8950,30 @@ func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.
 }
 
 func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(rhs) == types.Typ[types.UntypedNil] {
+		if crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(lhs)); ok {
+			fmt.Fprintf(out, "%s::__go_clear_global_%s", crateName, globalName)
+			return
+		}
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && currentReceiverRustAliasIsPointerHandle && isCurrentReceiverIdent(ident) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(rhs) == types.Typ[types.UntypedNil] {
+			// The receiver alias stores a pointer handle, so the temporary
+			// must carry the handle that will replace it.
+			WriteWrappedNone(out)
+			return
+		}
+	}
 	if _, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
 		out.WriteString("GoPtr::nil()")
 		return
 	}
 	if _, ok := parallelNilGoPtrIdentAssignmentTarget(lhs, rhs); ok {
 		out.WriteString("GoPtr::nil()")
+		return
+	}
+	if pointerType := nilPointerHandleAssignmentType(lhs, rhs); pointerType != nil {
+		out.WriteString(zeroValueForTypesType(pointerType))
 		return
 	}
 	writeParallelAssignmentTempValue(out, rhs)
@@ -11826,7 +11981,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// For reassignment, use temporaries to handle swaps correctly
 					indent := currentLineIndent(out)
 					out.WriteString("{\n")
-					// First, capture all RHS values into temporaries
+					// An earlier store can change the index used by a later target.
+					indexedPointerFields := make([]*indexedPointerField, len(s.Lhs))
+					for i, lhs := range s.Lhs {
+						sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+						if !ok || nilPointerHandleAssignmentType(lhs, s.Rhs[i]) == nil {
+							continue
+						}
+						target := indexedValuePointerFieldTarget(sel)
+						if target == nil {
+							continue
+						}
+						indexedPointerFields[i] = target
+						out.WriteString(indent + "    ")
+						target.writeOperands(out, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i))
+						out.WriteString("\n")
+					}
+					// Capture all RHS values before storing any results.
 					for i, rhs := range s.Rhs {
 						out.WriteString(indent)
 						out.WriteString("    ")
@@ -11836,6 +12007,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
+						if target := indexedPointerFields[i]; target != nil {
+							out.WriteString(indent + "    ")
+							target.writeStore(out, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i), fmt.Sprintf("__tmp_%d", i))
+							out.WriteString("\n")
+							continue
+						}
 						writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
 					}
 					out.WriteString(indent)
@@ -12007,8 +12184,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// GoPtr fields preserve pointer identity for slice element addresses.
 								} else if writeGoPtrAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// GoPtr locals preserve pointer identity across pointer assignment.
-								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
-									// Assigning nil to pointer
+								} else if writeNilPointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Replace a pointer handle without changing its pointee.
+								} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(s.Rhs[0]) == types.Typ[types.UntypedNil] {
+									// Clear the existing wrapper for a nil assignment.
 									out.WriteString("*")
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									WriteBorrowMethod(out, true)

@@ -2893,7 +2893,7 @@ func isMsg(key label.Key) bool {
 	usesNamedWrapper := strings.Contains(rust, "let __right_wrapper = golang_org_x_tools_internal_event_keys::String_Ptr(") &&
 		(strings.Contains(rust, "Some(&__right_wrapper as &dyn golang_org_x_tools_internal_event_label") ||
 			strings.Contains(rust, "Some(&__right_wrapper as &(dyn golang_org_x_tools_internal_event_label"))
-	usesScopedWrapperHandle := strings.Contains(rust, "let __right_holder = { let __arg_holder = golang_org_x_tools_internal_event_keys::Msg.clone();") &&
+	usesScopedWrapperHandle := strings.Contains(rust, "let __right_holder = golang_org_x_tools_internal_event_keys::__go_get_global_Msg();") &&
 		strings.Contains(rust, "__right_opt: Option<&dyn golang_org_x_tools_internal_event_label::Key>")
 	if !usesNamedWrapper && !usesScopedWrapperHandle {
 		t.Fatalf("source-mapped package global pointer equality should compare through the pointer wrapper:\n%s", rust)

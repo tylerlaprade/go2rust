@@ -1231,6 +1231,14 @@ run_xfail_test() {
     run_test "tests/imported_embedded_method_promotion"
 }
 
+@test "imported_pointer_global_nil" {
+    run_test "tests/imported_pointer_global_nil"
+}
+
+@test "imported_pointer_global_nil_goroutines" {
+    run_test "tests/imported_pointer_global_nil_goroutines"
+}
+
 @test "infinite_loop_tuple_return" {
     run_test "tests/infinite_loop_tuple_return"
 }
@@ -1957,6 +1965,14 @@ run_xfail_test() {
 
 @test "pointer_method_value_of_receiver" {
     run_test "tests/pointer_method_value_of_receiver"
+}
+
+@test "pointer_nil_keeps_alias" {
+    run_test "tests/pointer_nil_keeps_alias"
+}
+
+@test "pointer_nil_keeps_alias_goroutines" {
+    run_test "tests/pointer_nil_keeps_alias_goroutines"
 }
 
 @test "pointer_package_global" {

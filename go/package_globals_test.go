@@ -586,10 +586,10 @@ func unsafePair(path string) (pkg *types.Package, err error) {
 	if strings.Contains(rust, "go_types::Unsafe.clone()") || strings.Contains(rust, "go_types::Universe.clone()") {
 		t.Fatalf("source-mapped pointer global selector should not clone the global slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*go_types::Unsafe.borrow().as_ref().unwrap()).clone()") {
+	if !strings.Contains(rust, "go_types::__go_get_global_Unsafe()") {
 		t.Fatalf("source-mapped pointer global selector should clone the stored pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*go_types::Universe.borrow().as_ref().unwrap()).clone()") {
+	if !strings.Contains(rust, "go_types::__go_get_global_Universe()") {
 		t.Fatalf("source-mapped pointer global selector should clone the stored pointer handle:\n%s", rust)
 	}
 }
