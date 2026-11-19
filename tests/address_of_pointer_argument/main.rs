@@ -10,20 +10,32 @@ pub struct info {
 
 impl info {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            value: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for info {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))), value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for info {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -35,13 +47,17 @@ pub struct table {
 
 impl table {
     pub fn __go_value_clone(&self) -> Self {
-        Self { last: self.last.clone() }
+        let __go_clone_0_0 = self.last.clone();
+        Self {
+            last: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for table {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.last.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.last.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -58,9 +74,9 @@ pub fn accept(ptr: Rc<RefCell<Option<info>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", (*accept(Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*accept(Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), value: Rc::new(RefCell::new(Some(7))), ..Default::default() })))).borrow().as_ref().unwrap())));
 
-    let mut t = Rc::new(RefCell::new(Some(table { last: Rc::new(RefCell::new(Some(Default::default()))) })));
-    (*t.borrow_mut().as_mut().unwrap()).register(Rc::new(RefCell::new(Some("beta".to_string()))), Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("beta".to_string()))), value: Rc::new(RefCell::new(Some(9 as i32))), ..Default::default() }))));
+    let mut t = Rc::new(RefCell::new(Some(table { last: Default::default() })));
+    (*t.borrow_mut().as_mut().unwrap()).register(Rc::new(RefCell::new(Some("beta".to_string()))), Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("beta".to_string()))), value: Rc::new(RefCell::new(Some(9))), ..Default::default() }))));
     println!("{}", format!("{}", (*(*(*t.borrow().as_ref().unwrap()).last.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }

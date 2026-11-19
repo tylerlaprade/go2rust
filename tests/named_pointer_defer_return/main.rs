@@ -10,20 +10,27 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { complete: { let __guard = self.complete.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.complete.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            complete: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { complete: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            complete: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.complete.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.complete.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -34,11 +41,11 @@ impl Package {
     }
 }
 
-pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut pkg: Rc<RefCell<Option<Package>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut pkg: Rc<RefCell<Option<Package>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
@@ -53,7 +60,7 @@ pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (pkg, err);
+        return (pkg.clone(), err.clone());
     }
     }
     {
@@ -63,14 +70,17 @@ pub fn import(path: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Package>>
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (pkg, err);
+        return (pkg.clone(), err.clone());
     }
 }
 
 fn main() {
     let (mut pkg, mut err) = import(Rc::new(RefCell::new(Some("unsafe".to_string()))));
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
-    eprintln!("{}", format!("{}", (*pkg.borrow().as_ref().unwrap()).complete()));
+    {
+            let __go_print_arg_0 = format!("{}", (*pkg.borrow().as_ref().unwrap()).complete());
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

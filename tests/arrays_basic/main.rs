@@ -3,9 +3,9 @@ use std::rc::{Rc};
 
 fn main() {
     let mut arr: Rc<RefCell<Option<[i32; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))));
-    (*arr.borrow_mut().as_mut().unwrap())[(0) as usize] = 10;
-    (*arr.borrow_mut().as_mut().unwrap())[(1) as usize] = 20;
-    (*arr.borrow_mut().as_mut().unwrap())[(2) as usize] = 30;
+    { let __idx = (0) as usize; let __rhs = 10; (*arr.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (1) as usize; let __rhs = 20; (*arr.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (2) as usize; let __rhs = 30; (*arr.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
 
     println!("{}", format!("{}", "Array elements:".to_string()));
     let mut i = Rc::new(RefCell::new(Some(0)));

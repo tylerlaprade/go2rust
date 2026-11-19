@@ -10,7 +10,7 @@ pub fn r#use(e: Exporter) -> i32 {
 }
 
 fn main() {
-    example_com_fnconvert_dep::__go_init_all();
+    ::example_com_fnconvert_dep::__go_init_all();
 
     println!("{}", format!("{}", r#use(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i32>>>| -> i32 {
         (*v.borrow().as_ref().unwrap()) * 2

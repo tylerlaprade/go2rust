@@ -55,7 +55,7 @@ pub trait List: std::fmt::Display + Any {
 
 impl Clone for Box<dyn List> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_list()
+        List::__go_clone_box_list(self.as_ref())
     }
 }
 
@@ -66,20 +66,24 @@ pub struct list {
 
 impl list {
     pub fn __go_value_clone(&self) -> Self {
-        Self { labels: self.labels.clone() }
+        let __go_clone_0_0 = self.labels.clone();
+        Self {
+            labels: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for list {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.labels))
+        let __go_fmt_0 = format!("{}", format_slice(&self.labels));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl list {
     pub fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
-        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)
+        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < (({ let __len_target = { let __field = self.labels.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)
     }
 
     pub fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
@@ -88,11 +92,11 @@ impl list {
 }
 
 impl List for list {
-    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
-        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < ((*self.labels.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)
-    }
     fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
-        (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone()
+        list::label(self, index)
+    }
+    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
+        list::valid(self, index)
     }
     fn __go_clone_box_list(&self) -> Box<dyn List> {
         Box::new(self.clone()) as Box<dyn List>
@@ -103,6 +107,42 @@ impl List for list {
     fn __go_eq_list(&self, other: &dyn List) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<list>() {
             false
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct listPtr(pub Rc<RefCell<Option<list>>>);
+
+impl std::fmt::Display for listPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl List for listPtr {
+    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        list::label(__recv, index)
+    }
+    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        list::valid(__recv, index)
+    }
+    fn __go_clone_box_list(&self) -> Box<dyn List> {
+        Box::new(self.clone()) as Box<dyn List>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_list(&self, other: &dyn List) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<listPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
         } else {
             false
         }

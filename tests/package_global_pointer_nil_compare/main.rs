@@ -9,20 +9,27 @@ pub struct state {
 
 impl state {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for state {
     fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for state {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -57,7 +64,7 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }));
-    { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }))).clone(); *current.borrow_mut() = Some(new_val); };
+    { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))).clone(); *current.borrow_mut() = Some(new_val); };
     println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); __not_nil }));
 }
 

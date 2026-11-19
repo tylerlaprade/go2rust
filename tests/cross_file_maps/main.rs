@@ -5,16 +5,16 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    data::__go_init_all_data();
+    __go_init_all();
 
         // Access map - transpiler needs to know Users is a map, not a slice
-    let mut aliceID = Rc::new(RefCell::new(Some((*Users.borrow().as_ref().unwrap()).get(&"alice".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0))));
+    let mut aliceID = Rc::new(RefCell::new(Some({ let __map_holder = Users.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"alice".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) })));
     print!("Alice's ID: {}\n", { let __v = (*aliceID.borrow().as_ref().unwrap()).clone(); __v });
 
         // Check map key existence - requires knowing it's a map
     {
-        let (mut id, mut ok) = match (*Users.borrow().as_ref().unwrap()).get(&"dave".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };;
-        if (*ok.borrow().as_ref().unwrap()) {
+        let (mut id, mut ok) = { let __map_holder = Users.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"dave".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };;
+        if ok {
             print!("Dave's ID: {}\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });;
         } else {
             println!("{}", format!("{}", "Dave not found".to_string()));;
@@ -26,7 +26,7 @@ fn main() {
     print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize].clone());
 
         // Access map of slices - complex type resolution
-    let mut admins = (*Groups.borrow().as_ref().unwrap()).get(&"admins".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
+    let mut admins = { let __map_holder = Groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"admins".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     print!("Admin count: {}\n", (*admins.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
     print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
@@ -46,23 +46,31 @@ fn main() {
             let guard = __v.borrow();
             if let Some(ref any_val) = *guard {
                 if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                    (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                    (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
                 } else {
-                    (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+                    (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
                 }
             } else {
-                (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
             print!("First record name: {}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });;
         }
     }
 
         // Modify map - requires proper type handling
     { let __map_key = "dave".to_string(); let __map_value = Rc::new(RefCell::new(Some(4))); (*Users.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    print!("Dave added with ID: {}\n", (*Users.borrow().as_ref().unwrap()).get(&"dave".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0));
+    print!("Dave added with ID: {}\n", { let __map_holder = Users.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"dave".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+}
+
+pub(crate) fn __go_init_all() {
+    data::__go_zero_globals();
+    data::__go_init_order_0();
+    data::__go_init_order_1();
+    data::__go_init_order_2();
+    data::__go_init_order_3();
 }

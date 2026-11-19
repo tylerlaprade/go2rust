@@ -28,23 +28,23 @@ impl exec_ExitError {
 
 fn main() {
     if false {
-        let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+        let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
         {
         let (mut ee, mut ok) = ({
         let val = err.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<exec_ExitError>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<exec_ExitError>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<exec_ExitError>)), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
-            println!("{}", format!("{}", (*(*ee.borrow().as_ref().unwrap()).stderr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));;
+        if ok {
+            println!("{}", format!("{}", ({ let __len_target = { let __field = (*ee.borrow().as_ref().unwrap()).stderr.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));;
         }
     }
     }

@@ -1,6 +1,3 @@
-use crate::counter_step::*;
-use crate::counter_value::*;
-
 use std::any::Any;
 use std::fmt::{Display};
 
@@ -15,6 +12,6 @@ pub trait Stepper: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Stepper> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_stepper()
+        Stepper::__go_clone_box_stepper(self.as_ref())
     }
 }

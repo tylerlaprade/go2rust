@@ -1,0 +1,8 @@
+[package]
+name = "runtime_format_with_package_level_names"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "runtime_format_with_package_level_names"
+path = "main.rs"

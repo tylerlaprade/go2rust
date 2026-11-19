@@ -20,7 +20,9 @@ impl Display for Tok {
 
 impl PartialEq for Tok {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -32,7 +34,9 @@ impl PartialEq<i32> for Tok {
 
 impl PartialOrd for Tok {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -93,6 +97,76 @@ impl std::ops::Sub<Tok> for i32 {
     type Output = Tok;
     fn sub(self, other: Tok) -> Tok {
         Tok(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Tok {
+    type Output = Tok;
+    fn mul(self, other: Self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Tok {
+    type Output = Tok;
+    fn mul(self, other: i32) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Tok> for i32 {
+    type Output = Tok;
+    fn mul(self, other: Tok) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Tok {
+    type Output = Tok;
+    fn div(self, other: Self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Tok {
+    type Output = Tok;
+    fn div(self, other: i32) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Tok> for i32 {
+    type Output = Tok;
+    fn div(self, other: Tok) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Tok {
+    type Output = Tok;
+    fn neg(self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Tok {
+    type Output = Tok;
+    fn rem(self, other: Self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Tok {
+    type Output = Tok;
+    fn rem(self, other: i32) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Tok> for i32 {
+    type Output = Tok;
+    fn rem(self, other: Tok) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

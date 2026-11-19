@@ -52,25 +52,37 @@ jobs:
 
       - name: Setup BATS
         uses: bats-core/bats-action@3.0.0
+        with:
+          bats-version: "1.13.0"
 
       - name: Run tests
+        id: fixtures
         run: ./test.sh -v -t 30s
 
-      - name: Check for uncommitted changes
+      # The test run rewrites every generated file under tests/ and
+      # tests.bats. If that changes anything, the committed snapshots are not
+      # what the translator generates. This step runs even when a fixture
+      # failed: it used to be skipped then, and the snapshots went stale
+      # unnoticed.
+      - name: Check that the committed snapshots are current
+        if: ${{ !cancelled() && steps.fixtures.conclusion != 'skipped' }}
         run: |
-          if [ -n "$(git diff --name-only)" ]; then
-            echo "ERROR: Tests modified tracked files!"
-            echo "Files changed:"
-            git diff --name-only
+          changed=$(git status --porcelain -- tests tests.bats)
+          if [ -n "$changed" ]; then
+            echo "ERROR: the test run changed files under tests/ or tests.bats."
             echo ""
-            echo "Diff content:"
-            git diff
+            echo "Number of paths: $(echo "$changed" | wc -l)"
+            echo "Fixtures:"
+            echo "$changed" | awk '{print $2}' | awk -F/ '{ if ($2 == "XFAIL") print $2 "/" $3; else if (NF > 1) print $2; else print $1 }' | sort | uniq -c | sort -rn | head -100
             echo ""
-            echo "This usually means:"
-            echo "1. XFAIL tests were auto-promoted (moved from tests/XFAIL/ to tests/)"
-            echo "2. Generated .rs files were modified"
-            echo "3. tests.bats was modified with new auto-generated tests"
+            echo "First 300 lines of the difference:"
+            git diff -- tests tests.bats | head -300
             echo ""
-            echo "Please run tests locally and commit the changes if they are correct."
+            echo "This usually means one of:"
+            echo "1. Generated .rs or Cargo.toml files were not regenerated after a translator change."
+            echo "2. A fixture in tests/XFAIL/ now passes and was promoted to tests/."
+            echo "3. tests.bats was not regenerated after a fixture was added or removed."
+            echo ""
+            echo "Run ./test.sh locally and commit what it changes."
             exit 1
           fi
