@@ -13,6 +13,11 @@ import (
 // parameter, a variable or the result of a call, so it is only known when the
 // program runs. Then the generated program calls go_sprintf, which reads the
 // format the way fmt does and formats each argument for its verb.
+//
+// go_sprintf is a hand-written copy of what fmt does, so it is bridge debt:
+// row fmt-runtime-format in docs/bridge_debt.md. It goes when fmt is
+// translated from its Go source, or moves when fmt is given to the
+// hand-written runtime.
 
 // translationTimeFormat returns the format of a formatted print call as Go
 // source text when its value is known at translation time: a string literal
@@ -230,7 +235,9 @@ fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<Str
             return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\'', spec.plus), 0, true));
         }
         'U' => {
-            let mut text = format!("U+{:04X}", value as u64);
+            // A precision above four asks for more digits.
+            let digits = spec.precision.filter(|precision| *precision > 4).unwrap_or(4);
+            let mut text = format!("U+{:0digits$X}", value as u64, digits = digits);
             if spec.sharp {
                 if let Some(c) = u32::try_from(value).ok().and_then(char::from_u32).filter(|c| go_format_is_print(*c)) {
                     text.push_str(&format!(" '{}'", c));
@@ -344,7 +351,9 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     }
     let negative = value.is_sign_negative();
     if value.is_infinite() {
-        return Some(go_format_pad(spec, format!("{}Inf", if negative { "-" } else { "+" }), 0, false));
+        // +Inf keeps its sign, unless the space flag asks for a space there.
+        let sign = if negative { "-" } else if spec.space && !spec.plus { " " } else { "+" };
+        return Some(go_format_pad(spec, format!("{}Inf", sign), 0, false));
     }
     let magnitude = value.abs();
     // A float32 keeps the digits of the float32, not of the float64 it was
@@ -389,7 +398,10 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
     let formatted = match verb {
         's' | 'v' => truncated,
         'q' => {
-            if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
+            // strconv.CanBackquote: no backquote, no ASCII control character
+            // but tab, and no byte order mark.
+            let raw = truncated.chars().all(|c| if c.is_ascii() { (c >= ' ' || c == '\t') && c != '\u{60}' && c != '\u{7f}' } else { c != '\u{feff}' });
+            if spec.sharp && raw {
                 format!("\u{60}{}\u{60}", truncated)
             } else {
                 go_format_quote(&truncated, '"', spec.plus)
@@ -402,35 +414,55 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
 
 // A []byte prints as text for the verbs that print a string.
 fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<String> {
-    match verb {
-        'x' | 'X' => Some(go_format_hex(spec, verb, bytes)),
-        's' | 'q' => match std::str::from_utf8(bytes) {
-            Ok(text) => go_format_string(spec, verb, text),
-            // %q writes a byte that is not UTF-8 as an escape. A precision
-            // counts such a byte as one character.
-            Err(_) if verb == 'q' => {
-                let mut quoted = String::from("\"");
-                let mut left = spec.precision.unwrap_or(usize::MAX);
-                for chunk in bytes.utf8_chunks() {
-                    let valid: String = chunk.valid().chars().take(left).collect();
-                    left -= valid.chars().count();
-                    go_format_escape(&mut quoted, &valid, '"', spec.plus);
-                    for byte in chunk.invalid() {
-                        if left == 0 {
-                            break;
-                        }
-                        left -= 1;
-                        quoted.push_str(&format!("\\x{:02x}", byte));
-                    }
+    if matches!(verb, 'x' | 'X') {
+        return Some(go_format_hex(spec, verb, bytes));
+    }
+    if !matches!(verb, 's' | 'q') {
+        return None;
+    }
+    // A precision counts characters, and a byte that is not UTF-8 counts as
+    // one. It is applied first: what is cut off has no say in how the rest
+    // is written.
+    let mut kept = bytes.len();
+    if let Some(precision) = spec.precision {
+        let (mut count, mut end) = (0, 0);
+        'chunks: for chunk in bytes.utf8_chunks() {
+            for c in chunk.valid().chars() {
+                if count == precision {
+                    break 'chunks;
                 }
-                quoted.push('"');
-                Some(go_format_pad(spec, quoted, 0, true))
+                count += 1;
+                end += c.len_utf8();
             }
-            // %s cannot keep such a byte: the result is a Rust String. It
-            // becomes U+FFFD.
-            Err(_) => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
-        },
-        _ => None,
+            for _ in chunk.invalid() {
+                if count == precision {
+                    break 'chunks;
+                }
+                count += 1;
+                end += 1;
+            }
+        }
+        kept = end;
+    }
+    let bytes = &bytes[..kept];
+    let spec = &GoFormatSpec { precision: None, ..*spec };
+    match std::str::from_utf8(bytes) {
+        Ok(text) => go_format_string(spec, verb, text),
+        // %q writes a byte that is not UTF-8 as an escape.
+        Err(_) if verb == 'q' => {
+            let mut quoted = String::from("\"");
+            for chunk in bytes.utf8_chunks() {
+                go_format_escape(&mut quoted, chunk.valid(), '"', spec.plus);
+                for byte in chunk.invalid() {
+                    quoted.push_str(&format!("\\x{:02x}", byte));
+                }
+            }
+            quoted.push('"');
+            Some(go_format_pad(spec, quoted, 0, true))
+        }
+        // %s cannot keep such a byte: the result is a Rust String. It
+        // becomes U+FFFD.
+        Err(_) => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
     }
 }
 

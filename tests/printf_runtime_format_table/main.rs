@@ -208,7 +208,9 @@ fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<Str
             return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\'', spec.plus), 0, true));
         }
         'U' => {
-            let mut text = format!("U+{:04X}", value as u64);
+            // A precision above four asks for more digits.
+            let digits = spec.precision.filter(|precision| *precision > 4).unwrap_or(4);
+            let mut text = format!("U+{:0digits$X}", value as u64, digits = digits);
             if spec.sharp {
                 if let Some(c) = u32::try_from(value).ok().and_then(char::from_u32).filter(|c| go_format_is_print(*c)) {
                     text.push_str(&format!(" '{}'", c));
@@ -322,7 +324,9 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     }
     let negative = value.is_sign_negative();
     if value.is_infinite() {
-        return Some(go_format_pad(spec, format!("{}Inf", if negative { "-" } else { "+" }), 0, false));
+        // +Inf keeps its sign, unless the space flag asks for a space there.
+        let sign = if negative { "-" } else if spec.space && !spec.plus { " " } else { "+" };
+        return Some(go_format_pad(spec, format!("{}Inf", sign), 0, false));
     }
     let magnitude = value.abs();
     // A float32 keeps the digits of the float32, not of the float64 it was
@@ -367,7 +371,10 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
     let formatted = match verb {
         's' | 'v' => truncated,
         'q' => {
-            if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
+            // strconv.CanBackquote: no backquote, no ASCII control character
+            // but tab, and no byte order mark.
+            let raw = truncated.chars().all(|c| if c.is_ascii() { (c >= ' ' || c == '\t') && c != '\u{60}' && c != '\u{7f}' } else { c != '\u{feff}' });
+            if spec.sharp && raw {
                 format!("\u{60}{}\u{60}", truncated)
             } else {
                 go_format_quote(&truncated, '"', spec.plus)
@@ -380,35 +387,55 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
 
 // A []byte prints as text for the verbs that print a string.
 fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<String> {
-    match verb {
-        'x' | 'X' => Some(go_format_hex(spec, verb, bytes)),
-        's' | 'q' => match std::str::from_utf8(bytes) {
-            Ok(text) => go_format_string(spec, verb, text),
-            // %q writes a byte that is not UTF-8 as an escape. A precision
-            // counts such a byte as one character.
-            Err(_) if verb == 'q' => {
-                let mut quoted = String::from("\"");
-                let mut left = spec.precision.unwrap_or(usize::MAX);
-                for chunk in bytes.utf8_chunks() {
-                    let valid: String = chunk.valid().chars().take(left).collect();
-                    left -= valid.chars().count();
-                    go_format_escape(&mut quoted, &valid, '"', spec.plus);
-                    for byte in chunk.invalid() {
-                        if left == 0 {
-                            break;
-                        }
-                        left -= 1;
-                        quoted.push_str(&format!("\\x{:02x}", byte));
-                    }
+    if matches!(verb, 'x' | 'X') {
+        return Some(go_format_hex(spec, verb, bytes));
+    }
+    if !matches!(verb, 's' | 'q') {
+        return None;
+    }
+    // A precision counts characters, and a byte that is not UTF-8 counts as
+    // one. It is applied first: what is cut off has no say in how the rest
+    // is written.
+    let mut kept = bytes.len();
+    if let Some(precision) = spec.precision {
+        let (mut count, mut end) = (0, 0);
+        'chunks: for chunk in bytes.utf8_chunks() {
+            for c in chunk.valid().chars() {
+                if count == precision {
+                    break 'chunks;
                 }
-                quoted.push('"');
-                Some(go_format_pad(spec, quoted, 0, true))
+                count += 1;
+                end += c.len_utf8();
             }
-            // %s cannot keep such a byte: the result is a Rust String. It
-            // becomes U+FFFD.
-            Err(_) => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
-        },
-        _ => None,
+            for _ in chunk.invalid() {
+                if count == precision {
+                    break 'chunks;
+                }
+                count += 1;
+                end += 1;
+            }
+        }
+        kept = end;
+    }
+    let bytes = &bytes[..kept];
+    let spec = &GoFormatSpec { precision: None, ..*spec };
+    match std::str::from_utf8(bytes) {
+        Ok(text) => go_format_string(spec, verb, text),
+        // %q writes a byte that is not UTF-8 as an escape.
+        Err(_) if verb == 'q' => {
+            let mut quoted = String::from("\"");
+            for chunk in bytes.utf8_chunks() {
+                go_format_escape(&mut quoted, chunk.valid(), '"', spec.plus);
+                for byte in chunk.invalid() {
+                    quoted.push_str(&format!("\\x{:02x}", byte));
+                }
+            }
+            quoted.push('"');
+            Some(go_format_pad(spec, quoted, 0, true))
+        }
+        // %s cannot keep such a byte: the result is a Rust String. It
+        // becomes U+FFFD.
+        Err(_) => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
     }
 }
 
@@ -767,6 +794,35 @@ fn main() {
     show(Rc::new(RefCell::new(Some("%.1q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.1q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(broken.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%.3q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.3q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(broken.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%12q|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%12q|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(broken.clone()) as Box<dyn Any>])))));
+
+        // A precision is applied before %#q chooses its quotes, so a byte that
+        // is cut off has no say in them.
+    show(Rc::new(RefCell::new(Some("%#.1q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#.1q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![0x41 as u8, 0xff as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#.1q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#.1q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![0x41 as u8, 0x42 as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#.2q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#.2q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![0x41 as u8, 0xff as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.2s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.2s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![0x41 as u8, 0x42 as u8, 0xff as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.3q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.3q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![0xe2 as u8, 0x82 as u8, 0x41 as u8, 0x42 as u8]))).clone()) as Box<dyn Any>])))));
+
+        // %#q writes a raw string unless the text has a backquote, an ASCII
+        // control character other than tab, or a byte order mark.
+    show(Rc::new(RefCell::new(Some("%#q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{feff}mark".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("next\u{85}line".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("del\u{7f}".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("zero\u{200b}width".to_string()) as Box<dyn Any>])))));
+
+        // A precision above four gives %U more digits.
+    show(Rc::new(RefCell::new(Some("%.8U|%.2U|%#.6U|%10.6U|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.8U|%.2U|%#.6U|%10.6U|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>])))));
+
+        // Infinity keeps its sign and is never padded with zeros. NaN has no
+        // sign unless a flag asks for one.
+    let mut zero: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
+    let mut edges = Rc::new(RefCell::new(Some(vec![1.0 / (*zero.borrow().as_ref().unwrap()), -1.0 / (*zero.borrow().as_ref().unwrap()), { let __bin_zero = (*zero.borrow().as_ref().unwrap()).clone(); __bin_zero / __bin_zero }])));
+    let mut edgeFormats = Rc::new(RefCell::new(Some(vec!["%f".to_string(), "%+f".to_string(), "% f".to_string(), "%+ f".to_string(), "%8.2f|".to_string(), "%-8.2f|".to_string(), "%08.2f|".to_string(), "% 08.2f|".to_string(), "%v".to_string(), "%+v".to_string(), "%g".to_string(), "%e".to_string(), "%E".to_string(), "%G".to_string(), "%.0f".to_string()])));
+    { let __range_holder = edgeFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = edges.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
+    } }
+    } }
 
         // A []byte prints as text with %s, %q and %x, and as numbers with %v.
     let mut data = Rc::new(RefCell::new(Some(("Hello".to_string()).as_bytes().to_vec())));

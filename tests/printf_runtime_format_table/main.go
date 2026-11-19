@@ -179,6 +179,38 @@ func main() {
 	show("%.3q", sprintf("%.3q", broken))
 	show("%12q|", sprintf("%12q|", broken))
 
+	// A precision is applied before %#q chooses its quotes, so a byte that
+	// is cut off has no say in them.
+	show("%#.1q", sprintf("%#.1q", []byte{0x41, 0xff}))
+	show("%#.1q", sprintf("%#.1q", []byte{0x41, 0x42}))
+	show("%#.2q", sprintf("%#.2q", []byte{0x41, 0xff}))
+	show("%.2s|", sprintf("%.2s|", []byte{0x41, 0x42, 0xff}))
+	show("%.3q", sprintf("%.3q", []byte{0xe2, 0x82, 0x41, 0x42}))
+
+	// %#q writes a raw string unless the text has a backquote, an ASCII
+	// control character other than tab, or a byte order mark.
+	show("%#q", sprintf("%#q", "\ufeffmark"))
+	show("%#q", sprintf("%#q", "next\u0085line"))
+	show("%#q", sprintf("%#q", "del\x7f"))
+	show("%#q", sprintf("%#q", "zero\u200bwidth"))
+
+	// A precision above four gives %U more digits.
+	show("%.8U|%.2U|%#.6U|%10.6U|", sprintf("%.8U|%.2U|%#.6U|%10.6U|", 65, 65, 65, 65))
+
+	// Infinity keeps its sign and is never padded with zeros. NaN has no
+	// sign unless a flag asks for one.
+	var zero float64
+	edges := []float64{1 / zero, -1 / zero, zero / zero}
+	edgeFormats := []string{
+		"%f", "%+f", "% f", "%+ f", "%8.2f|", "%-8.2f|", "%08.2f|", "% 08.2f|", "%v", "%+v", "%g",
+		"%e", "%E", "%G", "%.0f",
+	}
+	for _, format := range edgeFormats {
+		for _, value := range edges {
+			show(format, sprintf(format, value))
+		}
+	}
+
 	// A []byte prints as text with %s, %q and %x, and as numbers with %v.
 	data := []byte("Hello")
 	show("%s", sprintf("%s", data))
