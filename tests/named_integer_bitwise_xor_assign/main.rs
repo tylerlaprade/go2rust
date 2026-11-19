@@ -18,7 +18,9 @@ impl Display for LoadMode {
 
 impl PartialEq for LoadMode {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -30,7 +32,9 @@ impl PartialEq<i32> for LoadMode {
 
 impl PartialOrd for LoadMode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -91,6 +95,76 @@ impl std::ops::Sub<LoadMode> for i32 {
     type Output = LoadMode;
     fn sub(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for LoadMode {
+    type Output = LoadMode;
+    fn mul(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for LoadMode {
+    type Output = LoadMode;
+    fn mul(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<LoadMode> for i32 {
+    type Output = LoadMode;
+    fn mul(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for LoadMode {
+    type Output = LoadMode;
+    fn div(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for LoadMode {
+    type Output = LoadMode;
+    fn div(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<LoadMode> for i32 {
+    type Output = LoadMode;
+    fn div(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for LoadMode {
+    type Output = LoadMode;
+    fn neg(self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for LoadMode {
+    type Output = LoadMode;
+    fn rem(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for LoadMode {
+    type Output = LoadMode;
+    fn rem(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<LoadMode> for i32 {
+    type Output = LoadMode;
+    fn rem(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -339,7 +413,14 @@ pub(crate) static modes: GoGlobal<[AnonymousStruct1; 3]> = GoGlobal::new();
 
 fn __go_init_globals() {
     *modes.borrow_mut() = Some(std::array::from_fn(|_| Default::default()));
-    *modes.borrow_mut() = Some((*Rc::new(RefCell::new(Some([AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32))))))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() }, AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32))))))), name: Rc::new(RefCell::new(Some("NeedFiles".to_string()))), ..Default::default() }, AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i32))))))), name: Rc::new(RefCell::new(Some("NeedImports".to_string()))), ..Default::default() }]))).borrow().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<AnonymousStruct1>::with_capacity(3);
+        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32))))))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() });
+        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32))))))), name: Rc::new(RefCell::new(Some("NeedFiles".to_string()))), ..Default::default() });
+        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i32))))))), name: Rc::new(RefCell::new(Some("NeedImports".to_string()))), ..Default::default() });
+        let __go_array: [AnonymousStruct1; 3] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *modes.borrow_mut() = Some(__go_array);
+    }
 }
 
 
@@ -347,29 +428,29 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
     { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         if (LoadMode(Rc::new(RefCell::new(Some(((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*item.mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))) {
-        { let __rhs = { let __selector_holder = item.mode.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
-        if (*out.borrow().as_ref().unwrap()).clone() != "" {
+        { let __rhs = (*((*item.mode.borrow().as_ref().unwrap()).clone()).0.borrow().as_ref().unwrap()).clone(); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
+        if (*out.borrow().as_ref().unwrap()).clone() != "".to_string() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
     }
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&(*item.name.borrow().as_ref().unwrap()).clone()); };
     }
     } }
     if (*mode.borrow().as_ref().unwrap()) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))) {
-        if (*out.borrow().as_ref().unwrap()).clone() != "" {
+        if (*out.borrow().as_ref().unwrap()).clone() != "".to_string() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
     }
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!("{}", format!("{:#x}", (*Rc::new(RefCell::new(Some((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
-    if (*out.borrow().as_ref().unwrap()).clone() == "" {
+    if (*out.borrow().as_ref().unwrap()).clone() == "".to_string() {
         return Rc::new(RefCell::new(Some("none".to_string())));
     }
-    return Rc::new(RefCell::new(Some(out.borrow().as_ref().unwrap().clone())));
+    return { let __owned = out.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
 }
 
 fn main() {
     __go_init_all();
-    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32 | NEED_IMPORTS as i32 as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32 | (8 as i32) as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_NAME as i32 | NEED_IMPORTS as i32) as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_FILES as i32 | (8 as i32)) as i32)))))))).borrow().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone)]
@@ -379,20 +460,32 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            mode: __go_clone_0_0,
+            name: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(0))))))), name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(0)))))));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            mode: __go_default_0_0,
+            name: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.mode.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mode.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

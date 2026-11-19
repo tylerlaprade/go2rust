@@ -1,5 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -11,37 +12,33 @@ pub struct Item {
 
 impl Item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { v: { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            v: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Item {
     fn default() -> Self {
-        Self { v: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            v: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.v.borrow().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Item {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("V") {
-            out.v = <Rc<RefCell<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.v.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 pub fn of(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Item>>> {
-    Rc::new(RefCell::new(Some(Item { v: v.clone(), ..Default::default() })))
+    Rc::new(RefCell::new(Some(Item { v: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
 pub fn make(r#static: Rc<RefCell<Option<[Item; 3]>>>, labels: Rc<RefCell<Option<Vec<Item>>>>) -> i32 {
@@ -53,4 +50,10 @@ pub fn make(r#static: Rc<RefCell<Option<[Item; 3]>>>, labels: Rc<RefCell<Option<
         { let __rhs = (*item.v.borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());
+}
+
+impl GoValueClone for Item {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }

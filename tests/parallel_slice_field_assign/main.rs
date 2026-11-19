@@ -10,29 +10,46 @@ pub struct parsed {
 
 impl parsed {
     pub fn __go_value_clone(&self) -> Self {
-        Self { kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, rest: { let __guard = self.rest.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.rest.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            kind: __go_clone_0_0,
+            rest: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for parsed {
     fn default() -> Self {
-        Self { kind: Rc::new(RefCell::new(Some(String::new()))), rest: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            kind: __go_default_0_0,
+            rest: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for parsed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.kind.borrow().as_ref().unwrap()), (*self.rest.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.kind.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.rest.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
 
 pub fn split(mut x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<parsed>>> {
     let mut p: Rc<RefCell<Option<parsed>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let __tmp_0 = Rc::new(RefCell::new(Some({ let __s = &((*x.borrow().as_ref().unwrap()).clone()); __s[..(1) as usize].to_string() }))); let __tmp_1 = Rc::new(RefCell::new(Some({ let __s = &((*x.borrow().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() }))); *(*p.borrow().as_ref().unwrap()).kind.borrow_mut() = __tmp_0.borrow_mut().take(); *x.borrow_mut() = __tmp_1.borrow_mut().take(); };
+    {
+        let __tmp_0 = Rc::new(RefCell::new(Some({ let __s = &((*x.borrow().as_ref().unwrap()).clone()); let __high = (1) as usize; __s[..__high].to_string() })));
+        let __tmp_1 = Rc::new(RefCell::new(Some({ let __s = &((*x.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() })));
+        *(*p.borrow().as_ref().unwrap()).kind.borrow_mut() = __tmp_0.borrow_mut().take();
+        *x.borrow_mut() = __tmp_1.borrow_mut().take();
+    };
     { let new_val = x.borrow().as_ref().unwrap().clone(); *(*p.borrow().as_ref().unwrap()).rest.borrow_mut() = Some(new_val); };
-    return Rc::new(RefCell::new(Some(p.borrow().as_ref().unwrap().clone())));
+    return { let __owned = p.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
 }
 
 fn main() {

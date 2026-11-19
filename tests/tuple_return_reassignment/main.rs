@@ -9,20 +9,27 @@ pub struct parsed {
 
 impl parsed {
     pub fn __go_value_clone(&self) -> Self {
-        Self { major: { let __guard = self.major.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.major.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            major: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for parsed {
     fn default() -> Self {
-        Self { major: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            major: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for parsed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.major.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.major.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -31,7 +38,7 @@ pub fn split_version(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<Strin
     if ((*v.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
         return (Rc::new(RefCell::new(Some("".to_string()))), Rc::new(RefCell::new(Some("".to_string()))), false);
     }
-    (Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); __s[..(1) as usize].to_string() }))), Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); __s[(1) as usize..].to_string() }))), true)
+    (Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); let __high = (1) as usize; __s[..__high].to_string() }))), Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))), true)
 }
 
 pub fn parse(mut v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>, bool) {
@@ -39,7 +46,7 @@ pub fn parse(mut v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>
     let mut ok = Rc::new(RefCell::new(Some(false)));
     { let (__tmp_0, __tmp_1, __tmp_2) = split_version(Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*p.borrow().as_ref().unwrap()).major.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *v.borrow_mut() = __moved_tmp_1; *ok.borrow_mut() = Some(__tmp_2); };
     println!("{} {}", format!("{}", "rest:".to_string()), format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }));
-    return (Rc::new(RefCell::new(Some(p.borrow().as_ref().unwrap().clone()))), (*ok.borrow().as_ref().unwrap()));
+    return ({ let __owned = p.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }, (*ok.borrow().as_ref().unwrap()));
 }
 
 fn main() {

@@ -18,13 +18,17 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { logf: self.logf.clone() }
+        let __go_clone_0_0 = self.logf.clone();
+        Self {
+            logf: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", "<func>")
+        let __go_fmt_0 = format!("{}", "<func>");
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -36,20 +40,27 @@ pub struct loader {
 
 impl loader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { config: { let __guard = self.config.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.config.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            config: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for loader {
     fn default() -> Self {
-        Self { config: Rc::new(RefCell::new(Some(Config::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Config::default())));
+        Self {
+            config: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for loader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.config.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.config.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
