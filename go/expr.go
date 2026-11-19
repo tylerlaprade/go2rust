@@ -11864,6 +11864,15 @@ func writeMapLookupHandleZero(out *strings.Builder, valueType types.Type, defaul
 }
 
 func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, defaultValue string, syntaxKeepsHandle bool) {
+	if mapValueTypeIsChannel(valueType) {
+		// A map stores each value in a cell, while a channel expression is the
+		// bare GoChannel handle. Copy the handle out of the cell instead of
+		// returning the cell as the value of m[k].
+		out.WriteString(".map(|__v| { let __guard = __v")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default())")
+		return
+	}
 	if syntaxKeepsHandle || mapValueTypeKeepsHandle(valueType) {
 		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| ")
 		writeMapLookupHandleZero(out, valueType, defaultValue)
@@ -11937,6 +11946,14 @@ func mapValueTypeKeepsHandle(valueType types.Type) bool {
 	default:
 		return false
 	}
+}
+
+func mapValueTypeIsChannel(valueType types.Type) bool {
+	if valueType == nil {
+		return false
+	}
+	_, ok := types.Unalias(valueType).Underlying().(*types.Chan)
+	return ok
 }
 
 func writeOwnedMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
