@@ -133,3 +133,30 @@ func main() {
 		})
 	}
 }
+
+// An interface that embeds error implements error too, but its value is not
+// a struct. The initializer must leave it to the interface conversion.
+func TestErrorVariableDeclaredFromAnInterfaceIsNotBoxedAsAStruct(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Detailed interface {
+	error
+	Detail() string
+}
+
+type Timeout struct{ Seconds int }
+
+func (t Timeout) Error() string  { return "timeout" }
+func (t Timeout) Detail() string { return "detail" }
+
+func main() {
+	var d Detailed = Timeout{3}
+	var err error = d
+	_ = err
+}
+`)
+
+	if strings.Contains(rust, "as_ref().unwrap()).clone()) as Box<dyn StdError>") {
+		t.Fatalf("an interface value must not be boxed as a concrete error:\n%s", rust)
+	}
+}

@@ -7817,7 +7817,13 @@ func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, v
 	if typeInfo == nil {
 		return false
 	}
-	if !isGoErrorType(typeInfo.GetType(typeExpr)) || !isConcreteGoErrorValue(typeInfo.GetType(value)) {
+	valueType := typeInfo.GetType(value)
+	if !isGoErrorType(typeInfo.GetType(typeExpr)) || !isConcreteGoErrorValue(valueType) {
+		return false
+	}
+	// An interface that embeds error also implements error, but its value is
+	// a trait object, not a struct to box.
+	if types.IsInterface(valueType) {
 		return false
 	}
 	return writeGoErrorHandleValue(out, value)
