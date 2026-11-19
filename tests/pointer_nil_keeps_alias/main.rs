@@ -72,6 +72,18 @@ impl Node {
     pub fn link(&self) -> Rc<RefCell<Option<Node>>> {
         self.next.clone()
     }
+
+    pub fn clear_receiver(&mut self) -> (bool, i32) {
+        let mut __self = Rc::new(RefCell::new(Some(self.clone())));
+        let mut count = Rc::new(RefCell::new(Some(0)));
+        {
+            let __tmp_0 = Rc::new(RefCell::new(None));
+            let __tmp_1 = 5;
+            __self = __tmp_0;
+            *count.borrow_mut() = Some(__tmp_1);
+        };
+        return ({ let __self_guard = __self.borrow(); __self_guard.is_none() }, (*count.borrow().as_ref().unwrap()));
+    }
 }
 
 fn main() {
@@ -142,6 +154,10 @@ fn main() {
         *count.borrow_mut() = Some(__tmp_1);
     };
     println!("{} {}", format!("{}", { let __nil_result = (*(*parallelAddress.borrow_mut().as_mut().unwrap()).borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
+
+    let mut receiver = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(9))), ..Default::default() })));
+    let (mut cleared, __tmp_1) = (*receiver.borrow_mut().as_mut().unwrap()).clear_receiver(); *count.borrow_mut() = Some(__tmp_1);;
+    println!("{} {} {}", format!("{}", cleared), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*receiver.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

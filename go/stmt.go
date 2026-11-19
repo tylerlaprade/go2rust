@@ -8861,6 +8861,14 @@ func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.
 }
 
 func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	if ident, ok := lhs.(*ast.Ident); ok && currentReceiverRustAliasIsPointerHandle && isCurrentReceiverIdent(ident) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(rhs) == types.Typ[types.UntypedNil] {
+			// The receiver alias stores a pointer handle, so the temporary
+			// must carry the handle that will replace it.
+			WriteWrappedNone(out)
+			return
+		}
+	}
 	if _, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
 		out.WriteString("GoPtr::nil()")
 		return

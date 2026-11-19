@@ -13,6 +13,12 @@ func (n *Node) Link() *Node {
 
 var global = &Node{Value: 5}
 
+func (n *Node) ClearReceiver() (bool, int) {
+	count := 0
+	n, count = (nil), 5
+	return n == nil, count
+}
+
 func main() {
 	a := &Node{Value: 1}
 	b := a
@@ -61,4 +67,8 @@ func main() {
 	parallelAddress := &parallelAddressed
 	parallelAddressed, count = (nil), 4
 	fmt.Println(*parallelAddress == nil, count)
+
+	receiver := &Node{Value: 9}
+	cleared, count := receiver.ClearReceiver()
+	fmt.Println(cleared, count, receiver.Value)
 }

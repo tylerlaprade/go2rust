@@ -201,6 +201,21 @@ impl Node {
     pub fn link(&self) -> Arc<Mutex<Option<Node>>> {
         self.next.clone()
     }
+
+    pub fn clear_receiver(&mut self) -> (bool, i32) {
+        let mut __self = Arc::new(Mutex::new(Some(self.clone())));
+        let mut count = Arc::new(Mutex::new(Some(0)));
+        {
+            let __tmp_0 = Arc::new(Mutex::new(None));
+            let __tmp_1 = 5;
+            __self = __tmp_0;
+            *count.lock().unwrap() = Some(__tmp_1);
+        };
+        return (
+            { let __self_guard = __self.lock().unwrap(); __self_guard.is_none() },
+            { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
+    }
 }
 
 fn main() {
@@ -298,6 +313,10 @@ fn main() {
         *count.lock().unwrap() = Some(__tmp_1);
     };
     println!("{} {}", format!("{}", { let __nil_result = (*(*parallelAddress.lock().unwrap().as_mut().unwrap()).lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+    let mut receiver = Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(9))), ..Default::default() })));
+    let (mut cleared, __tmp_1) = { let __recv = receiver.clone(); let __recv_ptr: *mut Node = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Node }; let __result = unsafe { &mut *__recv_ptr }.clear_receiver(); __result }; *count.lock().unwrap() = Some(__tmp_1);;
+    println!("{} {} {}", format!("{}", cleared), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*{ let __field = (*receiver.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {
