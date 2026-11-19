@@ -1,0 +1,8 @@
+[package]
+name = "print_nil_error_and_pointer_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_nil_error_and_pointer_goroutines"
+path = "main.rs"

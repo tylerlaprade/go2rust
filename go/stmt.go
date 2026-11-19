@@ -3806,15 +3806,18 @@ func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
 }
 
 func writeSwitchPointerDirectCaseComparison(out *strings.Builder, tag ast.Expr, caseExpr ast.Expr) {
+	// Bind the comparison result before the block ends. Left as the block's
+	// tail expression, the borrow guard it creates is dropped after
+	// __switch_val, which rustc rejects (E0597) under edition 2021.
 	out.WriteString("{ let __switch_val = ")
 	writeSwitchPointerTagHandle(out, tag)
-	out.WriteString("; ")
+	out.WriteString("; let __switch_eq = ")
 	if info, ok := switchGoPtrInfo(tag); ok {
 		writeSwitchGoPtrCaseComparisonForInfo(out, "__switch_val", caseExpr, info)
 	} else {
 		writeSwitchPointerCaseComparison(out, "__switch_val", caseExpr)
 	}
-	out.WriteString(" }")
+	out.WriteString("; __switch_eq }")
 }
 
 func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
@@ -7826,6 +7829,27 @@ func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
 	if !writeOwnedExpressionValue(out, expr) {
 		TranspileExpression(out, expr)
 	}
+}
+
+// writeConcreteErrorVarInitializer writes the initializer of
+// "var name error = value" when value is not an error already but a struct
+// or pointer that implements error. It is boxed as an assignment to an error
+// variable boxes it.
+func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueType := typeInfo.GetType(value)
+	if !isGoErrorType(typeInfo.GetType(typeExpr)) || !isConcreteGoErrorValue(valueType) {
+		return false
+	}
+	// An interface that embeds error also implements error, but its value is
+	// a trait object, not a struct to box.
+	if types.IsInterface(valueType) {
+		return false
+	}
+	return writeGoErrorHandleValue(out, value)
 }
 
 func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
@@ -12910,6 +12934,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeConcreteErrorVarInitializer(out, valueSpec.Type, valueSpec.Values[i]) {
+									// A struct or pointer that implements error, stored in an error variable.
 								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
 									// Values assigned into a transpiled named interface variable may need re-boxing.
 								} else if valueSpec.Type != nil && writeConcreteToTranspiledInterfaceValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {

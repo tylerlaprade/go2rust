@@ -9,20 +9,27 @@ pub struct node {
 
 impl node {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for node {
     fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -34,13 +41,17 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { child: self.child.clone() }
+        let __go_clone_0_0 = self.child.clone();
+        Self {
+            child: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.child.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.child.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -51,8 +62,8 @@ pub fn get_child(h: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<node>>> {
 
 fn main() {
     if false {
-        let mut h = Rc::new(RefCell::new(Some(holder { child: Rc::new(RefCell::new(Some(Default::default()))) })));
-        println!("{}", format!("{}", format!("&{}", (*get_child(h.clone()).borrow().as_ref().unwrap()))));
+        let mut h = Rc::new(RefCell::new(Some(holder { child: Default::default() })));
+        println!("{}", format!("{}", { let __text = match get_child(h.clone()).borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }
