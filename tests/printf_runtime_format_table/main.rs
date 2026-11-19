@@ -509,7 +509,7 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         // that does not fit a number is reported for each byte. %#v writes
         // the slice as Go source, which is not done here.
         if !sharp_v {
-            let items: Vec<String> = bytes.iter().map(|byte| go_format_integer(&basic, verb, *byte as i128).unwrap_or_else(|| format!("%!{}(uint8={})", verb, byte))).collect();
+            let items: Vec<String> = bytes.iter().map(|byte| go_format_integer(&basic, verb, *byte as i128).unwrap_or_else(|| format!("%!{}(uint8={})", verb, go_format_integer(&basic, 'd', *byte as i128).unwrap_or_default()))).collect();
             return Some(format!("[{}]", items.join(" ")));
         }
     }
@@ -575,9 +575,30 @@ fn go_format_is_basic(value: &dyn Any) -> bool {
 }
 
 // An argument as fmt names it when it does not fit the format: type=value.
-fn go_format_typed_value(value: &dyn Any) -> String {
-    let text = go_format_argument(&GoFormatSpec::default(), 'v', value).unwrap_or_default();
+// The value is written as %v writes it, with the width, the precision and
+// the flags of the verb that did not fit.
+fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+    let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
+}
+
+// The verb that writes value as %v does and leaves the flags as they are.
+// %v itself would read + and # as %+v and %#v.
+fn go_format_plain_verb(value: &dyn Any) -> char {
+    macro_rules! is_one_of {
+        ($($t:ty),*) => { false $(|| value.is::<$t>())* };
+    }
+    if is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize) {
+        'd'
+    } else if is_one_of!(f32, f64) {
+        'g'
+    } else if value.is::<bool>() {
+        't'
+    } else if is_one_of!(String, &str) {
+        's'
+    } else {
+        'v'
+    }
 }
 
 // fmt.Sprintf for a format that is only known when the program runs. A
@@ -652,11 +673,11 @@ fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(arg.as_ref()))),
+            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
         }
     }
     if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(arg.as_ref())).collect();
+        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
         out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
     }
     out
@@ -886,4 +907,18 @@ fn main() {
     show(Rc::new(RefCell::new(Some("%t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(pair.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%w".to_string()))), sprintf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(pair.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%v|%d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%v|%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(Vec::<u8>::new()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Vec::<u8>::new()))).clone()) as Box<dyn Any>])))));
+
+        // When a verb does not fit, fmt writes the value as %v would, with the
+        // width, the precision and the flags of the verb.
+    show(Rc::new(RefCell::new(Some("%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.3t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.3t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+t|%-4t|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+t|%-4t|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%5s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%-5d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-5d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.1d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.1d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("abc".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%8.2d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%8.2d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%6d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%6d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%5d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new(2) as Box<dyn Any>])))));
 }

@@ -233,4 +233,18 @@ func main() {
 	show("%t", sprintf("%t", pair))
 	show("%w", sprintf("%w", pair))
 	show("%v|%d", sprintf("%v|%d", []byte{}, []byte{}))
+
+	// When a verb does not fit, fmt writes the value as %v would, with the
+	// width, the precision and the flags of the verb.
+	show("%05t", sprintf("%05t", []byte{1, 42}))
+	show("%.3t", sprintf("%.3t", []byte{1, 42}))
+	show("%+t|%-4t|", sprintf("%+t|%-4t|", []byte{1, 42}, []byte{1, 42}))
+	show("%05t", sprintf("%05t", 42))
+	show("%+t", sprintf("%+t", 5))
+	show("%5s|", sprintf("%5s|", 5))
+	show("%-5d|", sprintf("%-5d|", "x"))
+	show("%.1d", sprintf("%.1d", "abc"))
+	show("%8.2d|", sprintf("%8.2d|", 2.5))
+	show("%6d|", sprintf("%6d|", true))
+	show("%5d", sprintf("%5d", 1, 2))
 }
