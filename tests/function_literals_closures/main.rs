@@ -10,7 +10,7 @@ fn main() {
 
         // Closure capturing variables
     let mut x = Rc::new(RefCell::new(Some(10)));
-    let x_closure_clone = x.clone(); let mut increment = Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
+    let mut x_closure_clone = x.clone(); let mut increment = Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
         { let mut guard = x_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*x_closure_clone.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut() -> i32>)));

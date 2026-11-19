@@ -46,7 +46,7 @@ impl GoValueClone for String {
 impl GoValueClone for Box<dyn Any> {
     fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
 }
-
+	
 pub trait GoComparable {
     fn go_eq(&self, other: &Self) -> bool;
     fn go_hash(&self, seed: usize) -> usize;
@@ -135,20 +135,27 @@ pub struct Var {
 
 impl Var {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Var {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Var {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 impl GoComparable for Var {

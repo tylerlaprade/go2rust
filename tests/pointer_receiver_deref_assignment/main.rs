@@ -40,27 +40,44 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, imports: self.imports.clone() }
+        let __go_clone_0_0 = { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.imports.clone();
+        Self {
+            i_d: __go_clone_0_0,
+            name: __go_clone_1_0,
+            imports: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { i_d: Rc::new(RefCell::new(Some(String::new()))), name: Rc::new(RefCell::new(Some(String::new()))), imports: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(None));
+        Self {
+            i_d: __go_default_0_0,
+            name: __go_default_1_0,
+            imports: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()), format_map(&self.imports))
+        let __go_fmt_0 = format!("{}", (*self.i_d.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_map(&self.imports));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
 
 impl Package {
     pub fn reset(&mut self, id: Rc<RefCell<Option<String>>>, name: Rc<RefCell<Option<String>>>) {
-        { let new_val = Package { i_d: id.clone(), name: name.clone(), ..Default::default() }; *self = new_val; };
+        { let new_val = Package { i_d: Rc::new(RefCell::new(Some({ let __arg_holder = id.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }; *self = new_val; };
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::new()))); self.imports = new_val; };
         { let __map_key = "self".to_string(); let __map_value = Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))); (*self.imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }

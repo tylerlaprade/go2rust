@@ -152,10 +152,10 @@ fn main() {
     println!("{} {}", format!("{}", "parameter".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.borrow().as_ref().unwrap())));
 
     let mut n: Rc<RefCell<Option<Nums>>> = Rc::new(RefCell::new(Some(Nums(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))))))));
-    (*{ let __named_array = (*n.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[(0) as usize] = 1;
-    (*{ let __named_array = (*n.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[(1) as usize] = 2;
+    { let __idx = (0) as usize; let __rhs = 1; (*{ let __named_array = (*n.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (1) as usize; let __rhs = 2; (*{ let __named_array = (*n.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     let mut m = { let __owned = n.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
-    (*{ let __named_array = (*m.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[(0) as usize] = 9;
+    { let __idx = (0) as usize; let __rhs = 9; (*{ let __named_array = (*m.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "named array of ints".to_string()), format!("{}", { let __seq_holder = { let __named_array = (*n.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*m.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }));
 
     let mut g: Rc<RefCell<Option<Grid>>> = Rc::new(RefCell::new(Some(Grid(Rc::new(RefCell::new(Some(std::array::from_fn(|_| A(Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default())))))))))))));

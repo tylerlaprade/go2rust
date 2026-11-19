@@ -13,7 +13,9 @@ impl Display for Pos {
 
 impl PartialEq for Pos {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -25,7 +27,9 @@ impl PartialEq<i32> for Pos {
 
 impl PartialOrd for Pos {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -381,33 +385,21 @@ impl Ord for Pos {
 
 
 pub fn next_pos(p: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Pos>>> {
-    {
-            let __tmp_x = (*p.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = Pos(Rc::new(RefCell::new(Some(1 as i32))));
-            Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        }
+    Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(((*(*p.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1))))))))
 }
 
 pub fn sum_pos(a: Rc<RefCell<Option<Pos>>>, b: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Pos>>> {
-    {
-            let __tmp_x = (*a.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = (*b.borrow().as_ref().unwrap()).clone();
-            Rc::new(RefCell::new(Some(__tmp_x + __tmp_y)))
-        }
+    Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))))))
 }
 
 pub fn diff_pos(a: Rc<RefCell<Option<Pos>>>, b: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Pos>>> {
-    {
-            let __tmp_x = (*a.borrow().as_ref().unwrap()).clone();
-            let __tmp_y = (*b.borrow().as_ref().unwrap()).clone();
-            Rc::new(RefCell::new(Some(__tmp_x - __tmp_y)))
-        }
+    Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))))))
 }
 
 fn main() {
-    let mut a: Rc<RefCell<Option<Pos>>> = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(10)))))));
-    let mut b: Rc<RefCell<Option<Pos>>> = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(5)))))));
-    println!("{}", format!("{}", (*next_pos(Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sum_pos(Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*diff_pos(Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()).clone()))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    let mut a: Rc<RefCell<Option<Pos>>> = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(10 as i32)))))));
+    let mut b: Rc<RefCell<Option<Pos>>> = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(5 as i32)))))));
+    println!("{}", format!("{}", (*next_pos(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sum_pos(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*diff_pos(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())));
 }

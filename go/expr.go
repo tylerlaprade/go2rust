@@ -11220,9 +11220,25 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		out.WriteString(".clone()")
 		return
 	}
+	// A conversion to a basic value type already emits the element's handle.
+	if basic, ok := types.Unalias(valueType).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+		if call, ok := unwrapParens(value).(*ast.CallExpr); ok {
+			info := GetTypeInfo()
+			if info.GetType(call) == nil || info.GetType(call.Fun) == nil {
+				out.WriteString(`unimplemented!("type info required for map element call")`)
+				return
+			}
+			if info.IsTypeConversion(call) && typeConversionEmitsWrappedValue(call) {
+				TranspileExpression(out, call)
+				return
+			}
+		}
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
+	} else if valueType != nil && writeConstExpressionForExpectedNamedInteger(out, value, valueType) {
+		// The map cell holds the defined integer type.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
 	} else {
@@ -16912,6 +16928,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	// A local or imported alias denotes the same basic type as its target.
+	if basic, ok := types.Unalias(GetTypeInfo().GetType(call.Fun)).(*types.Basic); ok {
+		targetType = basic.Name()
+	}
 	// Map Go types to Rust types and handle the conversion
 	rustType := ""
 	needsCast := true
@@ -18065,6 +18085,9 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 		return false
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && call != nil && typeInfo.IsTypeConversion(call) {
+		if basic, ok := types.Unalias(typeInfo.GetType(call.Fun)).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+			return true
+		}
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(call)); ok {
 			return true
 		}
@@ -23049,27 +23072,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				// Not a simple identifier or function literal, wrap it
 				WriteWrapperPrefix(out)
-				// Check if parameter expects float but arg is integer literal
-				isFloatParam := false
-				if paramField := ParamFieldForArg(funcSig, i); paramField != nil {
-					if paramIdent, ok := paramField.Type.(*ast.Ident); ok {
-						if paramIdent.Name == "float64" || paramIdent.Name == "float32" {
-							isFloatParam = true
-						}
-					}
-				}
 				if writeCopySelectorFieldArgumentValue(out, arg) {
 					// Field selectors passed by value copy the field contents, not the wrapper handle.
-				} else if isFloatParam {
-					// Capture expression to check if float suffix is needed
-					var argBuf strings.Builder
-					TranspileExpression(&argBuf, arg)
-					argStr := argBuf.String()
-					out.WriteString(argStr)
-					// Only add .0 if the expression is a pure integer (no decimal)
-					if !strings.Contains(argStr, ".") && !strings.Contains(argStr, "as f") {
-						out.WriteString(".0")
-					}
 				} else if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
 				} else if expectedArgType == nil && writeConstExpressionForTypeInfoType(out, arg) {

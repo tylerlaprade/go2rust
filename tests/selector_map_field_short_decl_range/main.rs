@@ -185,20 +185,32 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i_d: { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, imports: self.imports.clone() }
+        let __go_clone_0_0 = { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.imports.clone();
+        Self {
+            i_d: __go_clone_0_0,
+            imports: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { i_d: Arc::new(Mutex::new(Some(String::new()))), imports: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            i_d: __go_default_0_0,
+            imports: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.i_d.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
+        let __go_fmt_0 = format!("{}", (*self.i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_map(&self.imports));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

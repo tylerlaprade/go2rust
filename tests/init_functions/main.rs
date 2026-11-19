@@ -13,20 +13,37 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, debug: { let __guard = self.debug.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.debug.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            version: __go_clone_1_0,
+            debug: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Config {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))), version: Rc::new(RefCell::new(Some(String::new()))), debug: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            name: __go_default_0_0,
+            version: __go_default_1_0,
+            debug: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.version.borrow().as_ref().unwrap()), (*self.debug.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.version.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.debug.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -103,7 +120,7 @@ fn __go_init_2() {
 
 pub fn compute_initial_value() -> i32 {
     println!("{}", format!("{}", "Computing initial value during package initialization".to_string()));
-    42 * 2
+    84
 }
 
 /// Another init function that runs after variable initialization
@@ -153,10 +170,10 @@ fn main() {
     print!("Computed value: {}\n", { let __v = (*computedValue.borrow().as_ref().unwrap()).clone(); __v });
 
     println!("{}", format!("{}", "\nConfiguration data:".to_string()));
-    print!("  version: {}\n", (*configData.borrow().as_ref().unwrap()).get(&"version".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
-    print!("  author: {}\n", (*configData.borrow().as_ref().unwrap()).get(&"author".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
-    print!("  build: {}\n", (*configData.borrow().as_ref().unwrap()).get(&"build".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
-    print!("  target: {}\n", (*configData.borrow().as_ref().unwrap()).get(&"target".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()));
+    print!("  version: {}\n", { let __map_holder = configData.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"version".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) });
+    print!("  author: {}\n", { let __map_holder = configData.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"author".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) });
+    print!("  build: {}\n", { let __map_holder = configData.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"build".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) });
+    print!("  target: {}\n", { let __map_holder = configData.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"target".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) });
 
     print!("\nApp config: {{Name:{} Version:{} Debug:{}}}\n", (*(*appConfig.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*appConfig.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone(), (*(*appConfig.borrow().as_ref().unwrap()).debug.borrow().as_ref().unwrap()));
 

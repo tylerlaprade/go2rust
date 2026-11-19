@@ -70,7 +70,8 @@ pub struct cache {
 
 impl cache {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -83,14 +84,14 @@ impl std::fmt::Display for cache {
 
 impl cache {
     pub fn r#use(&self, T: Rc<RefCell<Option<types_Type>>>) {
-        let _ = T;
+        let _ = (*T.borrow().as_ref().unwrap());
     }
 }
 
 pub fn exercise(T: Rc<RefCell<Option<types_Type>>>, c: Rc<RefCell<Option<cache>>>) {
     (*c.borrow().as_ref().unwrap()).r#use(T.clone());
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<types_Type, Rc<RefCell<Option<i32>>>>::from([((*T.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some(1))))]))));
-    println!("{}", format!("{}", (*seen.borrow().as_ref().unwrap()).get(&(*T.borrow().as_ref().unwrap()).clone()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)));
+    println!("{}", format!("{}", { let __map_holder = seen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*T.borrow().as_ref().unwrap()).clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 }
 
 fn main() {

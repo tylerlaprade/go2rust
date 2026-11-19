@@ -1,5 +1,3 @@
-use crate::circle::*;
-
 use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display};
@@ -17,7 +15,7 @@ pub trait Shape: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Shape> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_shape()
+        Shape::__go_clone_box_shape(self.as_ref())
     }
 }
 

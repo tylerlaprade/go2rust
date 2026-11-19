@@ -19,12 +19,12 @@ fn main() {
         f(Arc::new(Mutex::new(Some("goroutine".to_string()))));;;
     });
 
-    std::thread::spawn(move || {
+    let __go_arg_0 = Arc::new(Mutex::new(Some("going".to_string()))); std::thread::spawn(move || {
         let __closure = move |msg: Arc<Mutex<Option<String>>>| {
             std::thread::sleep(std::time::Duration::from_millis(10));;
             println!("{}", format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
         };
-        __closure(Arc::new(Mutex::new(Some("going".to_string()))));
+        __closure(__go_arg_0);
     });
 
         // This runs first among the goroutines (shortest delay)

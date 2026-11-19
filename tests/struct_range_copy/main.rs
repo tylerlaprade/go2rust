@@ -100,7 +100,7 @@ fn main() {
     let mut kept: Rc<RefCell<Option<Vec<Point>>>> = Rc::new(RefCell::new(None));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
         let e = &e.__go_value_clone();
-        { let new_val = { let __append_target = kept.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*e).__go_value_clone()); __append_target.clone() }; kept = new_val; };
+        { let new_val = { let __append_target = kept.clone(); let __append_value = (*e).__go_value_clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; kept = new_val; };
     } }
     { let new_val = 7; *(*kept.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "range variable appended".to_string()), format!("{}", (*(*s.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow().as_ref().unwrap())), format!("{}", (*(*kept.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow().as_ref().unwrap())));

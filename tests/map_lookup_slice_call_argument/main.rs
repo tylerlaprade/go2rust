@@ -8,5 +8,5 @@ pub fn count(names: Rc<RefCell<Option<Vec<String>>>>) -> i32 {
 
 fn main() {
     let mut groups = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([("letters".to_string(), Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()]))))]))));
-    println!("{}", format!("{}", count((*groups.borrow().as_ref().unwrap()).get(&"letters".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()))));
+    println!("{}", format!("{}", count({ let __map_holder = groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"letters".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 }

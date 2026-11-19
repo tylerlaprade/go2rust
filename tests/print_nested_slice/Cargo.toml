@@ -1,0 +1,8 @@
+[package]
+name = "print_nested_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_nested_slice"
+path = "main.rs"

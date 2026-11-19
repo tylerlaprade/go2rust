@@ -199,20 +199,32 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { env: self.env.clone(), dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.env.clone();
+        let __go_clone_1_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            env: __go_clone_0_0,
+            dir: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Config {
     fn default() -> Self {
-        Self { env: Arc::new(Mutex::new(None)), dir: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            env: __go_default_0_0,
+            dir: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.env), (*self.dir.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.env));
+        let __go_fmt_1 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -226,20 +238,37 @@ pub struct Invocation {
 
 impl Invocation {
     pub fn __go_value_clone(&self) -> Self {
-        Self { clean_env: { let __guard = self.clean_env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, env: self.env.clone(), working_dir: { let __guard = self.working_dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.clean_env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.env.clone();
+        let __go_clone_2_0 = { let __guard = self.working_dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            clean_env: __go_clone_0_0,
+            env: __go_clone_1_0,
+            working_dir: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Invocation {
     fn default() -> Self {
-        Self { clean_env: Arc::new(Mutex::new(Some(false))), env: Arc::new(Mutex::new(None)), working_dir: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            clean_env: __go_default_0_0,
+            env: __go_default_1_0,
+            working_dir: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Invocation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.clean_env.lock().unwrap().as_ref().unwrap()), format_slice(&self.env), (*self.working_dir.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.clean_env.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.env));
+        let __go_fmt_2 = format!("{}", (*self.working_dir.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -251,13 +280,17 @@ pub struct State {
 
 impl State {
     pub fn __go_value_clone(&self) -> Self {
-        Self { cfg: self.cfg.clone() }
+        let __go_clone_0_0 = self.cfg.clone();
+        Self {
+            cfg: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.cfg.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.cfg.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -271,11 +304,14 @@ impl State {
 
 pub fn worker(state: Arc<Mutex<Option<State>>>, done: GoChannel<bool>) {
     let mut inv = { let __recv = state.clone(); let __recv_ptr: *const State = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const State }; let __result = unsafe { &*__recv_ptr }.invocation(); __result };
-    done.send((*{ let __field = (*inv.lock().unwrap().as_ref().unwrap()).clean_env.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = ((*(*inv.lock().unwrap().as_ref().unwrap()).env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (1 as i32); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*inv.lock().unwrap().as_ref().unwrap()).working_dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "work"; __tmp_x == __tmp_y });
+    done.send((*{ let __field = (*inv.lock().unwrap().as_ref().unwrap()).clean_env.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = (({ let __len_target = { let __field = (*inv.lock().unwrap().as_ref().unwrap()).env.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*inv.lock().unwrap().as_ref().unwrap()).working_dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "work".to_string(); __tmp_x == __tmp_y });
 }
 
 fn main() {
-    let mut state = Arc::new(Mutex::new(Some(State { cfg: Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=B".to_string()]))), dir: Arc::new(Mutex::new(Some("work".to_string()))), ..Default::default() }))).clone(), ..Default::default() })));
+    let mut state = Arc::new(Mutex::new(Some(State {
+        cfg: Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=B".to_string()]))), dir: Arc::new(Mutex::new(Some("work".to_string()))), ..Default::default() }))).clone(),
+        ..Default::default()
+    })));
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); let state_thread = state.clone(); std::thread::spawn(move || {
         worker(state_thread.clone(), done_thread.clone());

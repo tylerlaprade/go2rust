@@ -51,20 +51,27 @@ pub struct bucket {
 
 impl bucket {
     pub fn __go_value_clone(&self) -> Self {
-        Self { values: { let __guard = self.values.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.values.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            values: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for bucket {
     fn default() -> Self {
-        Self { values: Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            values: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for bucket {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.values))
+        let __go_fmt_0 = format!("{}", format_slice(&self.values));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -94,7 +101,7 @@ fn main() {
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = groups.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
         for name in group.iter() {
-        if (*name).clone() != "" {
+        if (*name).clone() != "".to_string() {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
