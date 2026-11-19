@@ -8409,6 +8409,40 @@ func (h *holder) assign() {
 	}
 }
 
+func TestChannelSendCopiesReferenceShapedHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Point struct{ X int }
+
+func main() {
+	p := &Point{X: 1}
+	points := make(chan *Point, 1)
+	points <- p
+
+	s := []int{1}
+	slices := make(chan []int, 1)
+	slices <- s
+
+	m := map[string]int{"a": 1}
+	maps := make(chan map[string]int, 1)
+	maps <- m
+}
+`)
+
+	for what, want := range map[string]string{
+		"pointer": "points.send(p.clone());",
+		"slice":   "slices.send(s.clone());",
+		"map":     "maps.send(m.clone());",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("sending a %s did not copy its Go handle, missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
 func TestChannelFieldAssignmentUsesMutableStructTarget(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

@@ -9599,10 +9599,16 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// Check if this is a Copy type using TypeInfo
 	isCopyType := false
+	keepsHandle := false
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil {
 		exprType := typeInfo.GetType(expr)
 		if exprType != nil {
+			// Pointers, slices, maps, channels, functions and interfaces are
+			// already represented by their Go reference handle. Sending one
+			// copies that handle; unwrapping it copies the pointee or collection
+			// and produces the wrong Rust element type for the channel.
+			keepsHandle = mapValueTypeKeepsHandle(exprType)
 			if isGoErrorType(exprType) {
 				writeErrorOptionFromHandleExpression(out, expr)
 				return
@@ -9617,6 +9623,11 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 				}
 			}
 		}
+	}
+	if keepsHandle {
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+		return
 	}
 
 	if call, ok := expr.(*ast.CallExpr); ok {

@@ -587,6 +587,10 @@ run_xfail_test() {
     run_test "tests/channel_error_values"
 }
 
+@test "channel_pointer_send" {
+    run_test "tests/channel_pointer_send"
+}
+
 @test "channel_receive_closed" {
     run_test "tests/channel_receive_closed"
 }
