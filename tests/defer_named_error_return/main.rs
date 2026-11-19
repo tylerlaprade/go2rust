@@ -8,7 +8,7 @@ pub fn compute() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
-    let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+    let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -20,12 +20,12 @@ pub fn compute() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*result.borrow().as_ref().unwrap()), err);
+        return ((*result.borrow().as_ref().unwrap()), err.clone());
     }
 }
 
 fn main() {
     let (mut result, mut err) = compute();
     println!("{}", format!("{}", result));
-    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

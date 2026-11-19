@@ -35,11 +35,11 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    if (*ErrUnset.borrow()).is_none() {
+    if { let __nil_result = (*ErrUnset.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", "unset".to_string()));
     }
-    if (*ErrBoom.borrow()).is_some() {
-        println!("{}", format!("{}", format!("{}", (*ErrBoom.borrow().as_ref().unwrap()))));
+    if { let __nil_result = (*ErrBoom.borrow()).is_some(); __nil_result } {
+        println!("{}", format!("{}", { let __text = match ErrBoom.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
 }
 

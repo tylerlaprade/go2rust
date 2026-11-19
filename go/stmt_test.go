@@ -9406,12 +9406,12 @@ func parse(filename string) (err error) {
 	if !strings.Contains(rust, "err_defer_captured") {
 		t.Fatalf("deferred closure should clone the named error result:\n%s", rust)
 	}
-	if strings.Contains(rust, "format!(\"{}\", (*err.borrow") ||
-		strings.Contains(rust, "format!(\"{}\", (*err.lock") {
+	if strings.Contains(rust, "match err.borrow") ||
+		strings.Contains(rust, "match err.lock") {
 		t.Fatalf("fmt.Errorf inside deferred closure should not format the outer err binding:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}\", (*err_defer_captured.borrow") &&
-		!strings.Contains(rust, "format!(\"{}\", (*err_defer_captured.lock") {
+	if !strings.Contains(rust, "match err_defer_captured.borrow") &&
+		!strings.Contains(rust, "match err_defer_captured.lock") {
 		t.Fatalf("fmt.Errorf inside deferred closure should format the captured err clone:\n%s", rust)
 	}
 }
