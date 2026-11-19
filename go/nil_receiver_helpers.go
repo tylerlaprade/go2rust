@@ -13,16 +13,6 @@ type nilReceiverHelper struct {
 	checksReceiver bool
 }
 
-var currentNilPointerReceiverMethodHelpers map[string]nilReceiverHelper
-
-func setCurrentNilPointerReceiverMethodHelpers(helpers map[string]nilReceiverHelper) func() {
-	previous := currentNilPointerReceiverMethodHelpers
-	currentNilPointerReceiverMethodHelpers = helpers
-	return func() {
-		currentNilPointerReceiverMethodHelpers = previous
-	}
-}
-
 func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, methods map[string][]*ast.FuncDecl) map[string]nilReceiverHelper {
 	if file == nil || typeInfo == nil || typeInfo.info == nil || len(methods) == 0 {
 		return nil
@@ -43,6 +33,15 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 	}
 
 	helpers := make(map[string]nilReceiverHelper)
+	usedNames := make(map[string]bool)
+	if typeInfo.pkg != nil {
+		scope := typeInfo.pkg.Scope()
+		for _, name := range scope.Names() {
+			if _, ok := scope.Lookup(name).(*types.Func); ok {
+				usedNames[rustFunctionNameForUse(name)] = true
+			}
+		}
+	}
 	ast.Inspect(file, func(node ast.Node) bool {
 		call, ok := node.(*ast.CallExpr)
 		if !ok {
@@ -62,7 +61,14 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		if !isTypedNilPointerReceiverMethodCall(typeInfo, sel, method) && !(checksReceiver && directPointerMethodCall(typeInfo, sel, method)) {
 			return true
 		}
-		helpers[key] = nilReceiverHelper{name: nilPointerReceiverMethodHelperName(method), checksReceiver: checksReceiver}
+		if _, exists := helpers[key]; !exists {
+			name := nilPointerReceiverMethodHelperName(method)
+			for usedNames[name] {
+				name += "_"
+			}
+			usedNames[name] = true
+			helpers[key] = nilReceiverHelper{name: name, checksReceiver: checksReceiver}
+		}
 		return true
 	})
 
@@ -169,18 +175,25 @@ func rustIdentFragment(name string) string {
 
 func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || len(currentNilPointerReceiverMethodHelpers) == 0 {
+	ctx := GetTranspileContext()
+	if typeInfo == nil || ctx == nil || ctx.File == nil || len(ctx.File.NilReceiverHelpers) == 0 {
 		return false
 	}
 	method := selectedMethodFuncFromTypeInfo(typeInfo, sel)
 	key := methodOverrideKey(method)
-	helper, ok := currentNilPointerReceiverMethodHelpers[key]
+	helper, ok := ctx.File.NilReceiverHelpers[key]
 	if !ok {
 		return false
 	}
 	literalNil := isTypedNilPointerReceiverMethodCall(typeInfo, sel, method)
 	if !literalNil && (!helper.checksReceiver || !directPointerMethodCall(typeInfo, sel, method) || methodValueReceiverIsGoPtr(sel.X)) {
 		return false
+	}
+	// Slice-element pointer fields use GoPtr and have their own method dispatcher.
+	if field, ok := unwrapParens(sel.X).(*ast.SelectorExpr); ok {
+		if _, ok := sliceElemPtrFieldInfoForSelector(field); ok {
+			return false
+		}
 	}
 	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !currentReceiverRustAliasIsPointerHandle {
 		return false

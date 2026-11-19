@@ -45,20 +45,25 @@ impl Node {
         if false {
         return 0;
     }
-        1 + __go_nil_recv_node_len({ let __recv = self.next.clone(); __recv })
+        1 + __go_nil_recv_node_len_({ let __recv = self.next.clone(); __recv })
     }
+}
+
+pub fn __go_nil_recv_node_len() -> i32 {
+    42
 }
 
 fn main() {
+    println!("{}", format!("{}", __go_nil_recv_node_len()));
     let mut list = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(1))), next: Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(2))), next: Default::default(), ..Default::default() }))).clone(), ..Default::default() })));
-    println!("{}", format!("{}", __go_nil_recv_node_len({ let __recv = list.clone(); __recv })));
+    println!("{}", format!("{}", __go_nil_recv_node_len_({ let __recv = list.clone(); __recv })));
     let mut empty: Rc<RefCell<Option<Node>>> = Rc::new(RefCell::new(None));
-    println!("{}", format!("{}", __go_nil_recv_node_len({ let __recv = empty.clone(); __recv })));
+    println!("{}", format!("{}", __go_nil_recv_node_len_({ let __recv = empty.clone(); __recv })));
 }
 
-pub fn __go_nil_recv_node_len(n: Rc<RefCell<Option<Node>>>) -> i32 {
+pub fn __go_nil_recv_node_len_(n: Rc<RefCell<Option<Node>>>) -> i32 {
     if { let __nil_result = (*n.borrow()).is_none(); __nil_result } {
         return 0;
     }
-    1 + __go_nil_recv_node_len({ let __recv = (*n.borrow().as_ref().unwrap()).next.clone(); __recv })
+    1 + __go_nil_recv_node_len_({ let __recv = (*n.borrow().as_ref().unwrap()).next.clone(); __recv })
 }

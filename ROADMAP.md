@@ -2,6 +2,8 @@
 
 ## Implementation Status
 
+Direct calls to same-file, non-generic pointer methods that check their receiver for nil preserve the nil receiver, including recursive calls through linked-list fields. The `nil_list_len` and `nil_list_len_concurrent` fixtures cover this behavior.
+
 ### ✅ Phase 1: Hello World
 
 Basic program transpilation

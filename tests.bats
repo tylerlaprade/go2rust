@@ -1747,6 +1747,10 @@ run_xfail_test() {
     run_test "tests/nil_basic"
 }
 
+@test "nil_guarded_slice_element_field" {
+    run_test "tests/nil_guarded_slice_element_field"
+}
+
 @test "nil_list_len" {
     run_test "tests/nil_list_len"
 }
