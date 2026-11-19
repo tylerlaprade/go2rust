@@ -2791,6 +2791,10 @@ run_xfail_test() {
     run_test "tests/switch_nil_case"
 }
 
+@test "switch_pointer_tag_once" {
+    run_test "tests/switch_pointer_tag_once"
+}
+
 @test "switch_statements" {
     run_test "tests/switch_statements"
 }
