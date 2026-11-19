@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/constant"
 	"go/token"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -87,8 +88,10 @@ func writeRuntimeFormatCall(out *strings.Builder, format ast.Expr, args []ast.Ex
 
 // generateGoSprintf emits go_sprintf and what it needs. spread adds
 // go_sprintf_spread, which takes the arguments as the []interface{} they
-// arrived in.
-func generateGoSprintf(out *strings.Builder, spread bool) {
+// arrived in. anyFormatArms are the types the program puts in an interface
+// value; the ones with a String or an Error method are listed in
+// go_format_is_text.
+func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[string]anyFormatArm) {
 	TrackImport("Any")
 	anyValue, anyBox := "dyn Any", "Box<dyn Any>"
 	sliceType, guard := "Rc<RefCell<Option<Vec<Box<dyn Any>>>>>", "args.borrow()"
@@ -102,6 +105,22 @@ func generateGoSprintf(out *strings.Builder, spread bool) {
 	}
 	trackWrapperImports()
 	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard)
+	textTypes := make([]string, 0, len(anyFormatArms))
+	for rustType, arm := range anyFormatArms {
+		if arm.text {
+			textTypes = append(textTypes, rustType)
+		}
+	}
+	sort.Strings(textTypes)
+	out.WriteString(`
+// Whether value has a String or an Error method. fmt prints such a value as
+// the one text the method returns.
+fn go_format_is_text(value: &` + anyValue + `) -> bool {
+    false`)
+	for _, rustType := range textTypes {
+		out.WriteString("\n        || value.is::<" + rustType + ">()")
+	}
+	out.WriteString("\n}\n")
 	out.WriteString(replace.Replace(goSprintfFormatting))
 	out.WriteString(replace.Replace(goSprintfEntry))
 	if spread {
@@ -460,9 +479,9 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
             quoted.push('"');
             Some(go_format_pad(spec, quoted, 0, true))
         }
-        // %s cannot keep such a byte: the result is a Rust String. It
-        // becomes U+FFFD.
-        Err(_) => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
+        // %s would have to write the byte as it is, and the result is a Rust
+        // String, which cannot hold it.
+        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
     }
 }
 
@@ -521,12 +540,22 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
             return Some(text);
         }
     }
-    // Anything else prints as Println prints it. That is right for an error,
-    // a value with a String method, and %v of a struct, slice, map or pointer.
-    // fmt applies other verbs and flags to each field or element, which is
-    // not done here.
-    if (verb == 'v' && !plus_v && !sharp_v) || verb == 's' {
-        return Some(go_format_pad(spec, format_any(value), 0, false));
+    // A value with a String or an Error method is the text that method
+    // returns, for the verbs that print a string.
+    if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
+        return go_format_string(&basic, verb, &format_any(value));
+    }
+    // Any other value prints as Println prints it, for a plain %v. fmt
+    // applies a width, a precision, a flag or another verb to each field or
+    // element, which is not done here. nil is one text.
+    if verb == 'v' && !plus_v && !sharp_v {
+        let text = format_any(value);
+        if text == "<nil>" {
+            return Some(go_format_pad(spec, text, 0, true));
+        }
+        if spec.width.is_none() && spec.precision.is_none() && !spec.space {
+            return Some(text);
+        }
     }
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
 }
@@ -564,6 +593,14 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[GO
         chars.next();
     }
     Ok(value.filter(|value| *value <= 1_000_000))
+}
+
+// Whether value is of a type that go_format_argument formats itself.
+fn go_format_is_basic(value: &GO_ANY_VALUE) -> bool {
+    macro_rules! is_one_of {
+        ($($t:ty),*) => { false $(|| value.is::<$t>())* };
+    }
+    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, GO_BYTES_HANDLE)
 }
 
 // An argument as fmt names it when it does not fit the format: type=value.
@@ -638,7 +675,9 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
             }
         };
         next += 1;
-        let verb = if verb == 'w' && wraps { 'v' } else { verb };
+        // In fmt.Errorf %w prints an error as %v does. A number, a string, a
+        // bool or a []byte is not an error, and fmt reports the verb.
+        let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
             None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(arg.as_ref()))),

@@ -298,3 +298,55 @@ func main() {
 		t.Fatalf("the closure must not use the outer variable:\n%s", rust)
 	}
 }
+
+// fmt prints a value that has a String or an Error method as the text the
+// method returns, so a width, a precision, %q and %x apply to that text. Any
+// other struct, slice or map has them applied to each field or element,
+// which the helper does not do: it stops the program for those. The helper
+// can only tell the two apart if it is told which types have the method.
+func TestRuntimeFormatterKnowsWhichValuesAreOneText(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+type Point struct{ X, Y int }
+
+type Status struct{ Code int }
+
+func (s Status) String() string { return "status" }
+
+func logf(format string, args ...interface{}) {
+	fmt.Printf(format, args...)
+}
+
+func main() {
+	logf("%v %v %v %v\n", Point{1, 2}, Status{1}, &Status{2}, errors.New("x"))
+}
+`)
+
+	for _, want := range []string{
+		"fn go_format_is_text(value: &dyn Any) -> bool {",
+		"|| value.is::<Status>()",
+		"|| value.is::<Rc<RefCell<Option<Status>>>>()",
+		"StdError>>>>>()",
+		"if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {",
+		// What is left stops the program; it does not print an approximation.
+		"if spec.width.is_none() && spec.precision.is_none() && !spec.space {",
+		`panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time")`,
+		"let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"value.is::<Point>()",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("found %q in:\n%s", unwanted, rust)
+		}
+	}
+}

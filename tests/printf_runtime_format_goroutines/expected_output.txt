@@ -20,6 +20,9 @@ slice [1 2], map map[a:1]
 error: boom / bang
 failed|failed|    failed|
 status 1|status 2|status 3    |status 4
+"failed"|6661696c6564|     fai|failed  |00failed
+"status 7"|status|    status 7|7374617475732037|status 7
+   <nil>|<nil>   |<nil>
 bytes Hi, hex 4869, list [72 105]
 7   |"quoted"|0xff
 %!d(string=text)
@@ -31,6 +34,8 @@ trailing %!(NOVERB)
 no verbs%!(EXTRA string=left, int=2)
 plain
 code 7: inner
+%!w(int=5)
+%!w(string=text) and failed
 value: 43
 k=1
 cart has 3 items

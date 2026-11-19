@@ -83,6 +83,13 @@ func main() {
 	logf("%v|%s|%10v|", failed, failed, failed)
 	logf("%v|%s|%-12v|%v", Status{1}, Status{2}, Status{3}, &Status{4})
 
+	// A value with a String or an Error method is the text that method
+	// returns: a width, a precision, %q and %x apply to that text.
+	logf("%q|%x|%8.3v|%-8s|%08s", failed, failed, failed, failed, failed)
+	logf("%q|%.6s|%12v|%x|%+v", Status{7}, Status{7}, &Status{7}, Status{7}, Status{7})
+	var none *Point
+	logf("%8v|%-8v|%v", none, none, none)
+
 	// A []byte prints as text where a string would.
 	logf("bytes %s, hex %x, list %v", []byte("Hi"), []byte("Hi"), []byte("Hi"))
 	logf("%*d|%#v|%#v", -4, 7, "quoted", uint8(255))
@@ -100,6 +107,9 @@ func main() {
 	// The same through Sprintf, Errorf and Fprintf.
 	err := errorf("code %d: %w", 7, errors.New("inner"))
 	fmt.Println(err)
+	// %w is for an error. fmt reports it for a number or a string.
+	fmt.Println(errorf("%w", 5))
+	fmt.Println(errorf("%w and %w", "text", failed))
 	fmt.Fprintf(os.Stdout, f, 43)
 	pair := "%s=%d"
 	var b strings.Builder
