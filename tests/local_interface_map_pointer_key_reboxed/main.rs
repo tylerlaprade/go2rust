@@ -74,20 +74,27 @@ pub struct Var {
 
 impl Var {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Var {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Var {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -99,27 +106,34 @@ pub struct declInfo {
 
 impl declInfo {
     pub fn __go_value_clone(&self) -> Self {
-        Self { seen: { let __guard = self.seen.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.seen.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            seen: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for declInfo {
     fn default() -> Self {
-        Self { seen: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            seen: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for declInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.seen.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.seen.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl Var {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
@@ -179,7 +193,7 @@ pub fn declare(objMap: Rc<RefCell<Option<BTreeMap<GoObjectInterfaceKey, Rc<RefCe
 
 pub fn lookup(objMap: Rc<RefCell<Option<BTreeMap<GoObjectInterfaceKey, Rc<RefCell<Option<declInfo>>>>>>>, obj: Rc<RefCell<Option<Box<dyn Object>>>>) -> bool {
     let mut info = { let __map_holder = objMap.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(obj.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
-    return (*info.borrow()).is_some() && (*(*info.borrow().as_ref().unwrap()).seen.borrow().as_ref().unwrap());
+    return { let __nil_result = (*info.borrow()).is_some(); __nil_result } && (*(*info.borrow().as_ref().unwrap()).seen.borrow().as_ref().unwrap());
 }
 
 fn main() {

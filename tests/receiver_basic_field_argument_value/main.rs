@@ -9,20 +9,27 @@ pub struct Parser {
 
 impl Parser {
     pub fn __go_value_clone(&self) -> Self {
-        Self { offset: { let __guard = self.offset.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.offset.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            offset: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Parser {
     fn default() -> Self {
-        Self { offset: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            offset: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Parser {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.offset.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.offset.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

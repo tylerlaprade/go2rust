@@ -19,7 +19,9 @@ impl Display for Color {
 
 impl PartialEq for Color {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -31,7 +33,9 @@ impl PartialEq<i32> for Color {
 
 impl PartialOrd for Color {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -92,6 +96,76 @@ impl std::ops::Sub<Color> for i32 {
     type Output = Color;
     fn sub(self, other: Color) -> Color {
         Color(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Color {
+    type Output = Color;
+    fn mul(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Color {
+    type Output = Color;
+    fn mul(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Color> for i32 {
+    type Output = Color;
+    fn mul(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Color {
+    type Output = Color;
+    fn div(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Color {
+    type Output = Color;
+    fn div(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Color> for i32 {
+    type Output = Color;
+    fn div(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Color {
+    type Output = Color;
+    fn neg(self) -> Color {
+        Color(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Color {
+    type Output = Color;
+    fn rem(self, other: Self) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Color {
+    type Output = Color;
+    fn rem(self, other: i32) -> Color {
+        Color(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Color> for i32 {
+    type Output = Color;
+    fn rem(self, other: Color) -> Color {
+        Color(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

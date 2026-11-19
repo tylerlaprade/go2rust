@@ -165,13 +165,13 @@ fn main() {
     let mut w = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         let jobs_thread = jobs.clone(); let results_thread = results.clone(); let w_thread = Arc::new(Mutex::new(Some((*w.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
-        worker(Arc::new(Mutex::new(Some((*w_thread.lock().unwrap().as_ref().unwrap()).clone()))), jobs_thread.clone(), results_thread.clone());
+        worker(Arc::new(Mutex::new(Some({ let __arg_holder = w_thread.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), jobs_thread.clone(), results_thread.clone());
     });
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
     let mut j = Arc::new(Mutex::new(Some(1)));
-    while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = numJobs; __tmp_x <= __tmp_y } {
+    while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         jobs.send((*j.lock().unwrap().as_ref().unwrap()));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -179,7 +179,7 @@ fn main() {
 
     let mut total = Arc::new(Mutex::new(Some(0)));
     let mut a = Arc::new(Mutex::new(Some(1)));
-    while { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = numJobs; __tmp_x <= __tmp_y } {
+    while { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         { let __rhs = results.recv().unwrap_or_default(); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let mut guard = a.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

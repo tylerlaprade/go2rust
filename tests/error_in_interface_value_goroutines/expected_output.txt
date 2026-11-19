@@ -1,0 +1,12 @@
+started
+true true bad
+bad
+text
+3
+wrapped: bad
+4
+a
+1
+2.5
+true
+error bad | error wrapped: bad | int 3 | string s | other

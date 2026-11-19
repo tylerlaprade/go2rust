@@ -26,14 +26,14 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
 /// Source-transpiling sync and internal/race keep sync.Map on the real Go
 /// stdlib source path instead of the shared bridge stubs.
 fn main() {
-    internal_abi::__go_init_all();
-    internal_race::__go_init_all();
-    internal_sync::__go_init_all();
-    sync::__go_init_all();
-    sync_atomic::__go_init_all();
+    ::internal_abi::__go_init_all();
+    ::internal_race::__go_init_all();
+    ::internal_sync::__go_init_all();
+    ::sync::__go_init_all();
+    ::sync_atomic::__go_init_all();
 
     let mut m: Arc<Mutex<Option<sync::hashtriemap::Map>>> = Arc::new(Mutex::new(Some(Default::default())));
     (*m.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new("value".to_string()) as Box<dyn Any + Send + Sync>))));
     let (mut value, mut ok) = (*m.lock().unwrap().as_ref().unwrap()).load(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))));
-    println!("{} {}", format!("{}", format_any(value.lock().unwrap().as_ref().unwrap().as_ref())), format!("{}", ok));
+    println!("{} {}", format!("{}", { let __text = format_any(value.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", ok));
 }

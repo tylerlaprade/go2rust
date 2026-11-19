@@ -21,7 +21,9 @@ impl Display for RelocKind {
 
 impl PartialEq for RelocKind {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -33,7 +35,9 @@ impl PartialEq<i32> for RelocKind {
 
 impl PartialOrd for RelocKind {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -94,6 +98,76 @@ impl std::ops::Sub<RelocKind> for i32 {
     type Output = RelocKind;
     fn sub(self, other: RelocKind) -> RelocKind {
         RelocKind(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for RelocKind {
+    type Output = RelocKind;
+    fn mul(self, other: Self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for RelocKind {
+    type Output = RelocKind;
+    fn mul(self, other: i32) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<RelocKind> for i32 {
+    type Output = RelocKind;
+    fn mul(self, other: RelocKind) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for RelocKind {
+    type Output = RelocKind;
+    fn div(self, other: Self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for RelocKind {
+    type Output = RelocKind;
+    fn div(self, other: i32) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<RelocKind> for i32 {
+    type Output = RelocKind;
+    fn div(self, other: RelocKind) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for RelocKind {
+    type Output = RelocKind;
+    fn neg(self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for RelocKind {
+    type Output = RelocKind;
+    fn rem(self, other: Self) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for RelocKind {
+    type Output = RelocKind;
+    fn rem(self, other: i32) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<RelocKind> for i32 {
+    type Output = RelocKind;
+    fn rem(self, other: RelocKind) -> RelocKind {
+        RelocKind(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -329,7 +403,9 @@ impl Display for SyncMarker {
 
 impl PartialEq for SyncMarker {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -341,7 +417,9 @@ impl PartialEq<i32> for SyncMarker {
 
 impl PartialOrd for SyncMarker {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -402,6 +480,76 @@ impl std::ops::Sub<SyncMarker> for i32 {
     type Output = SyncMarker;
     fn sub(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for SyncMarker {
+    type Output = SyncMarker;
+    fn mul(self, other: Self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for SyncMarker {
+    type Output = SyncMarker;
+    fn mul(self, other: i32) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<SyncMarker> for i32 {
+    type Output = SyncMarker;
+    fn mul(self, other: SyncMarker) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for SyncMarker {
+    type Output = SyncMarker;
+    fn div(self, other: Self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for SyncMarker {
+    type Output = SyncMarker;
+    fn div(self, other: i32) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<SyncMarker> for i32 {
+    type Output = SyncMarker;
+    fn div(self, other: SyncMarker) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for SyncMarker {
+    type Output = SyncMarker;
+    fn neg(self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for SyncMarker {
+    type Output = SyncMarker;
+    fn rem(self, other: Self) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for SyncMarker {
+    type Output = SyncMarker;
+    fn rem(self, other: i32) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<SyncMarker> for i32 {
+    type Output = SyncMarker;
+    fn rem(self, other: SyncMarker) -> SyncMarker {
+        SyncMarker(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -632,7 +780,8 @@ pub struct Encoder {
 
 impl Encoder {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 

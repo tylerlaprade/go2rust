@@ -14,7 +14,9 @@ impl Display for internalError {
 
 impl PartialEq for internalError {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -26,22 +28,22 @@ fn main() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut e = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*e.borrow()).is_some() {
+        if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
             {
         let (mut ierr, mut ok) = ({
         let val = e.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<internalError>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(Default::default()))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(Default::default()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(Default::default()))), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
             println!("{}", format!("{}", { let __v = (*ierr.borrow().as_ref().unwrap()).clone(); __v }));;
         }
     };

@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn mark_through_unsafe_pointer(addr: Rc<RefCell<Option<usize>>>) {
-    { let _ = true; };
+    { unimplemented!("unsafe.Pointer dereference assignment"); };
 }
 
 fn main() {

@@ -1,0 +1,8 @@
+[package]
+name = "print_interface_value_twice_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_interface_value_twice_goroutines"
+path = "main.rs"

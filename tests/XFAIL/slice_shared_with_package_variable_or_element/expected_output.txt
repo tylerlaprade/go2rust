@@ -1,0 +1,5 @@
+two results into a package variable true 7 7
+two results into an element true 8 8
+one result into a package variable 7 7
+a local slice into a package variable 70 70
+a local slice into an element 80 80

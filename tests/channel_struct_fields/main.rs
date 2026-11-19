@@ -156,7 +156,10 @@ pub struct Holder {
 
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ch: self.ch.clone() }
+        let __go_clone_0_0 = self.ch.clone();
+        Self {
+            ch: __go_clone_0_0,
+        }
     }
 }
 

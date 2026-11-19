@@ -9,20 +9,27 @@ pub struct entry {
 
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { deps: { let __guard = self.deps.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.deps.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            deps: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for entry {
     fn default() -> Self {
-        Self { deps: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            deps: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.deps.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.deps.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -51,7 +58,12 @@ pub(crate) static entries: GoGlobal<[entry; 1]> = GoGlobal::new();
 
 fn __go_init_globals() {
     *entries.borrow_mut() = Some(std::array::from_fn(|_| Default::default()));
-    *entries.borrow_mut() = Some((*Rc::new(RefCell::new(Some([entry { deps: Rc::new(RefCell::new(Some("abc".to_string()))), ..Default::default() }]))).borrow().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<entry>::with_capacity(1);
+        __go_array.push(entry { deps: Rc::new(RefCell::new(Some("abc".to_string()))), ..Default::default() });
+        let __go_array: [entry; 1] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *entries.borrow_mut() = Some(__go_array);
+    }
 }
 
 

@@ -8,7 +8,8 @@ pub struct counter {
 
 impl counter {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -68,7 +69,13 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
 
     let mut msg_defer_captured = msg.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let new_val = format!("{}{}", format!("{}{}", "[".to_string(), (*msg_defer_captured.borrow().as_ref().unwrap())), "]".to_string()); *msg_defer_captured.borrow_mut() = Some(new_val); };
+        { let new_val = {
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "[".to_string()));
+            __s.push_str(&format!("{}", (*msg_defer_captured.borrow().as_ref().unwrap())));
+            __s.push_str(&format!("{}", "]".to_string()));
+            __s
+        }; *msg_defer_captured.borrow_mut() = Some(new_val); };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     { let new_val = "ok".to_string(); *msg.borrow_mut() = Some(new_val); };
@@ -77,7 +84,7 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return msg;
+        return msg.clone();
     }
 }
 

@@ -1,0 +1,8 @@
+[package]
+name = "evaluation_order_of_element_writes"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "evaluation_order_of_element_writes"
+path = "main.rs"

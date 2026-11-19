@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
     let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
-    let result_closure_clone = result.clone(); let mut set = Rc::new(RefCell::new(Some(Box::new(move |values: Rc<RefCell<Option<Vec<i32>>>>| {
+    let mut result_closure_clone = result.clone(); let mut set = Rc::new(RefCell::new(Some(Box::new(move |values: Rc<RefCell<Option<Vec<i32>>>>| {
         { let new_val = values.borrow().as_ref().unwrap().clone(); *result_closure_clone.borrow_mut() = Some(new_val); };
     }) as Box<dyn FnMut(Rc<RefCell<Option<Vec<i32>>>>) -> ()>)));
 

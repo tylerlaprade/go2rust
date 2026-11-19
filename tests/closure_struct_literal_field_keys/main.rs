@@ -12,20 +12,42 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, env: { let __guard = self.env.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, build_flags: { let __guard = self.build_flags.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, tests: { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.env.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.build_flags.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            mode: __go_clone_0_0,
+            env: __go_clone_1_0,
+            build_flags: __go_clone_2_0,
+            tests: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for Config {
     fn default() -> Self {
-        Self { mode: Rc::new(RefCell::new(Some(String::new()))), env: Rc::new(RefCell::new(Some(String::new()))), build_flags: Rc::new(RefCell::new(Some(String::new()))), tests: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_3_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            mode: __go_default_0_0,
+            env: __go_default_1_0,
+            build_flags: __go_default_2_0,
+            tests: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.mode.borrow().as_ref().unwrap()), (*self.env.borrow().as_ref().unwrap()), (*self.build_flags.borrow().as_ref().unwrap()), (*self.tests.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mode.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.env.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.build_flags.borrow().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tests.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -40,20 +62,42 @@ pub struct Request {
 
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, env: { let __guard = self.env.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, build_flags: { let __guard = self.build_flags.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, tests: { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.env.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.build_flags.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            mode: __go_clone_0_0,
+            env: __go_clone_1_0,
+            build_flags: __go_clone_2_0,
+            tests: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for Request {
     fn default() -> Self {
-        Self { mode: Rc::new(RefCell::new(Some(String::new()))), env: Rc::new(RefCell::new(Some(String::new()))), build_flags: Rc::new(RefCell::new(Some(String::new()))), tests: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_3_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            mode: __go_default_0_0,
+            env: __go_default_1_0,
+            build_flags: __go_default_2_0,
+            tests: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.mode.borrow().as_ref().unwrap()), (*self.env.borrow().as_ref().unwrap()), (*self.build_flags.borrow().as_ref().unwrap()), (*self.tests.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.mode.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.env.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.build_flags.borrow().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tests.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 

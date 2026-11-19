@@ -51,13 +51,17 @@ pub struct bag {
 
 impl bag {
     pub fn __go_value_clone(&self) -> Self {
-        Self { values: self.values.clone() }
+        let __go_clone_0_0 = self.values.clone();
+        Self {
+            values: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for bag {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.values))
+        let __go_fmt_0 = format!("{}", format_slice(&self.values));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

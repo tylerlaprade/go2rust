@@ -191,6 +191,14 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+pub mod slices {
+    use super::*;
+    pub fn clip<S, E>(_arg0: Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>> {
+        panic!("clip bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub env: Arc<Mutex<Option<Vec<String>>>>,
@@ -199,26 +207,38 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { env: self.env.clone(), dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.env.clone();
+        let __go_clone_1_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            env: __go_clone_0_0,
+            dir: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Config {
     fn default() -> Self {
-        Self { env: Arc::new(Mutex::new(None)), dir: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            env: __go_default_0_0,
+            dir: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_slice(&self.env), (*self.dir.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", format_slice(&self.env));
+        let __go_fmt_1 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
 
 pub fn build_env(cfg: Arc<Mutex<Option<Config>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-    { let __append_target = Arc::new(Mutex::new(Some({ let __slice_holder = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard.as_ref().unwrap()).clone() }))).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(format!("{}{}", "PWD=".to_string(), (*{ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())); __append_target.clone() }
+    { let __append_target = { let __result = slices::clip::<Vec<String>, String>({ let __slice_holder = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); { let __slice_guard = __slice_holder.lock().unwrap(); Arc::new(Mutex::new(__slice_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| Arc::new(Mutex::new(Some(__elem)))).collect::<Vec<_>>()))) } }); let __result_guard = __result.lock().unwrap(); Arc::new(Mutex::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem.lock().unwrap().as_ref().unwrap()).clone()).collect::<Vec<_>>()))) }.clone(); let __append_value = format!("{}{}", "PWD=".to_string(), (*{ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }
 }
 
 fn main() {
@@ -230,5 +250,5 @@ fn main() {
 
     let mut cfg = Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=1".to_string()]))), dir: Arc::new(Mutex::new(Some("/tmp/work".to_string()))), ..Default::default() })));
     let mut env = build_env(cfg.clone());
-    println!("{} {} {}", format!("{}", (*env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
+    println!("{} {} {}", format!("{}", (*env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
 }

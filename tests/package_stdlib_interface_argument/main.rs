@@ -14,12 +14,12 @@ fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
 }
 
 fn main() {
-    example_com_package_stdlib_interface_argument_helper::__go_init_all();
+    ::example_com_package_stdlib_interface_argument_helper::__go_init_all();
 
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let (mut f, mut err) = os::open((*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone());
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
     let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
