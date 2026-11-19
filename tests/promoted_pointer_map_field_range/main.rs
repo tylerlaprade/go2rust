@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
@@ -28,6 +29,24 @@ where
     } else {
         "map[]".to_string()
     }
+}
+
+fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
+    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
+}
+
+fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
+    let registry = go_embedded_owner_registry().lock().unwrap();
+    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+    owner
+        .downcast_ref::<Arc<Mutex<Option<T>>>>()
+        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+        .clone()
 }
 
 struct GoChannel<T> {
@@ -185,20 +204,32 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i_d: { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, imports: self.imports.clone() }
+        let __go_clone_0_0 = { let __guard = self.i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.imports.clone();
+        Self {
+            i_d: __go_clone_0_0,
+            imports: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { i_d: Arc::new(Mutex::new(Some(String::new()))), imports: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            i_d: __go_default_0_0,
+            imports: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.i_d.lock().unwrap().as_ref().unwrap()), format_map(&self.imports))
+        let __go_fmt_0 = format!("{}", (*self.i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_map(&self.imports));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -211,20 +242,32 @@ pub struct loaderPackage {
 
 impl loaderPackage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { package: self.package.clone(), color: { let __guard = self.color.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.package.clone();
+        let __go_clone_1_0 = { let __guard = self.color.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            package: __go_clone_0_0,
+            color: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for loaderPackage {
     fn default() -> Self {
-        Self { package: Arc::new(Mutex::new(None)), color: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            package: __go_default_0_0,
+            color: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for loaderPackage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.package.lock().unwrap().as_ref().unwrap()), (*self.color.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.package.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.color.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -235,7 +278,13 @@ impl loaderPackage {
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let mut base = Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("root".to_string()))), imports: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::from([("dep".to_string(), Arc::new(Mutex::new(Some(Package { i_d: Arc::new(Mutex::new(Some("dep".to_string()))), ..Default::default() }))).clone())])))), ..Default::default() })));
-    let mut lpkg = Arc::new(Mutex::new(Some(loaderPackage { package: base.clone(), ..Default::default() })));
+    let mut lpkg = {
+        let __owner = Arc::new(Mutex::new(Some(loaderPackage { package: base.clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().package.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
     let mut stubs = (*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports.clone();
     { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Package>>>>::new()))); (*(*lpkg.lock().unwrap().as_mut().unwrap()).package.lock().unwrap().as_mut().unwrap()).imports = new_val; };
     for (importPath, _) in { let __range_holder = stubs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {

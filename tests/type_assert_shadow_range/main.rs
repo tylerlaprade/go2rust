@@ -9,20 +9,27 @@ pub struct ImportSpec {
 
 impl ImportSpec {
     pub fn __go_value_clone(&self) -> Self {
-        Self { path: { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.path.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            path: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for ImportSpec {
     fn default() -> Self {
-        Self { path: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            path: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for ImportSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.path.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.path.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

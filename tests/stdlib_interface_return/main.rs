@@ -20,15 +20,23 @@ pub fn make_var_expr() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + 
 
 pub fn make_assigned_selector_expr() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
     let mut expr: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
-    { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("pkg".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *expr.lock().unwrap() = __iface_value; };
+    { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr {
+        x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("pkg".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))),
+        sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(),
+        ..Default::default()
+    }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *expr.lock().unwrap() = __iface_value; };
     return expr.clone();
 }
 
 pub fn make_expr_slice_len() -> i32 {
     let mut exprs = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))])));
-    { let new_val = { let __append_target = exprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("y".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))); __append_target.clone() }; exprs = new_val; };
-    { let new_val = { let __append_target = exprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(make_ident_expr().clone()); __append_target.clone() }; exprs = new_val; };
-    { let new_val = { let __append_target = exprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("pkg".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))); __append_target.clone() }; exprs = new_val; };
+    { let new_val = { let __append_target = exprs.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("y".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; exprs = new_val; };
+    { let new_val = { let __append_target = exprs.clone(); let __append_value = make_ident_expr().clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; exprs = new_val; };
+    { let new_val = { let __append_target = exprs.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr {
+        x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("pkg".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))),
+        sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(),
+        ..Default::default()
+    }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; exprs = new_val; };
     return (*exprs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
 }
 
@@ -50,10 +58,10 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
 }
 
 fn main() {
-    go_ast::__go_init_all();
-    go_token::__go_init_all();
-    unicode::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::go_ast::__go_init_all();
+    ::go_token::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     if false {
         println!("{}", format!("{}", { let __nil_result = (*asserted_field_element().lock().unwrap()).is_some(); __nil_result }));

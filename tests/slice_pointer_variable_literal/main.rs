@@ -9,26 +9,33 @@ pub struct item {
 
 impl item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for item {
     fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 fn main() {
-    let mut ptr = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(4 as i32))), ..Default::default() })));
+    let mut ptr = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
     let mut items = Rc::new(RefCell::new(Some(vec![ptr.clone()])));
 
     { let new_val = 9; *(*ptr.borrow().as_ref().unwrap()).value.borrow_mut() = Some(new_val); };

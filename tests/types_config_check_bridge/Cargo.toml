@@ -2,6 +2,7 @@
 [workspace]
 members = [
     ".",
+    "vendor/bytes",
     "vendor/cmp",
     "vendor/container_heap",
     "vendor/go2rust_stdlib_stubs",
@@ -50,6 +51,7 @@ name = "types_config_check_bridge"
 path = "main.rs"
 
 [dependencies]
+bytes = { path = "vendor/bytes" }
 cmp = { path = "vendor/cmp" }
 container_heap = { path = "vendor/container_heap" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

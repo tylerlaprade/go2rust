@@ -12,7 +12,7 @@ pub trait hasValue: std::fmt::Display + Any {
 
 impl Clone for Box<dyn hasValue> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_has_value()
+        hasValue::__go_clone_box_has_value(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct r#box {
 
 impl r#box {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for r#box {
     fn default() -> Self {
-        Self { n: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for r#box {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -44,25 +51,6 @@ impl std::fmt::Display for r#box {
 impl r#box {
     pub fn value(&self) -> i32 {
         return (*self.n.borrow().as_ref().unwrap());
-    }
-}
-
-impl hasValue for r#box {
-    fn value(&self) -> i32 {
-        return (*self.n.borrow().as_ref().unwrap());
-    }
-    fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {
-        Box::new(self.clone()) as Box<dyn hasValue>
-    }
-    fn __go_as_any(&self) -> &dyn Any {
-        self
-    }
-    fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool {
-        if let Some(__other) = other.__go_as_any().downcast_ref::<r#box>() {
-            self == __other
-        } else {
-            false
-        }
     }
 }
 
@@ -74,15 +62,15 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<r#box>() {
-                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn hasValue>))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn hasValue>))), true)
             } else {
-                (Rc::new(RefCell::new(None::<Box<dyn hasValue>>)), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<Box<dyn hasValue>>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(None::<Box<dyn hasValue>>)), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<Box<dyn hasValue>>)), false)
         }
     });
-    if (*ok.borrow().as_ref().unwrap()) {
+    if ok {
         println!("{}", format!("{}", (*h.borrow().as_ref().unwrap()).value()));
     } else {
         println!("{}", format!("{}", "no".to_string()));
@@ -90,6 +78,6 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
 }
 
 fn main() {
-    probe(Rc::new(RefCell::new(Some(Box::new(r#box { n: Rc::new(RefCell::new(Some(7 as i32))), ..Default::default() }) as Box<dyn Any>))));
+    probe(Rc::new(RefCell::new(Some(Box::new(r#box { n: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))));
     probe(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>))));
 }

@@ -16,5 +16,5 @@ fn main() {
 
     { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("pkg".to_string(), Rc::new(RefCell::new(Some(1))))]))))) };
     println!("{}", format!("{}", (*view.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
-    println!("{}", format!("{}", (*view.borrow().as_ref().unwrap()).get(&"pkg".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)));
+    println!("{}", format!("{}", { let __map_holder = view.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"pkg".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 }

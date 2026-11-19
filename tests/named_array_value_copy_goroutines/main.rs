@@ -306,10 +306,10 @@ fn main() {
     println!("{} {}", format!("{}", "parameter".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
     let mut n: Arc<Mutex<Option<Nums>>> = Arc::new(Mutex::new(Some(Nums(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
-    (*{ let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(0) as usize] = 1;
-    (*{ let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(1) as usize] = 2;
+    { let __idx = (0) as usize; let __rhs = 1; (*{ let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (1) as usize; let __rhs = 2; (*{ let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     let mut m = { let __owned = n.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    (*{ let __named_array = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(0) as usize] = 9;
+    { let __idx = (0) as usize; let __rhs = 9; (*{ let __named_array = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "named array of ints".to_string()), format!("{}", { let __seq_holder = { let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }));
 
     let mut g: Arc<Mutex<Option<Grid>>> = Arc::new(Mutex::new(Some(Grid(Arc::new(Mutex::new(Some(std::array::from_fn(|_| A(Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))))))))))));

@@ -12,7 +12,7 @@ pub trait Node: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Node> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_node()
+        Node::__go_clone_box_node(self.as_ref())
     }
 }
 
@@ -38,7 +38,7 @@ fn main() {
         println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())));
         true
     }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool>)));
-    if (*insp.borrow()).is_some() {
+    if { let __nil_result = (*insp.borrow()).is_some(); __nil_result } {
         println!("{}", format!("{}", "assigned".to_string()));
     }
 }

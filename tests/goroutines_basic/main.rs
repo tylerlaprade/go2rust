@@ -11,7 +11,7 @@ pub fn say_hello(name: Arc<Mutex<Option<String>>>) {
 }
 
 pub fn counter(start: Arc<Mutex<Option<i32>>>) {
-    let mut i = Arc::new(Mutex::new(Some(start.lock().unwrap().as_ref().unwrap().clone())));
+    let mut i = { let __owned = start.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }; __tmp_x < __tmp_y } {
         print!("Count: {}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

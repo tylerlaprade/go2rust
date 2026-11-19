@@ -43,35 +43,41 @@ pub fn version(info: Arc<Mutex<Option<go_types::api::Info>>>, file: Arc<Mutex<Op
 }
 
 fn main() {
-    cmp::__go_init_all();
-    go_ast::__go_init_all();
-    go_constant::__go_init_all();
-    go_token::__go_init_all();
-    go_types::__go_init_all();
-    go_version::__go_init_all();
-    internal_buildcfg::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    internal_filepathlite::__go_init_all();
-    internal_godebug::__go_init_all();
-    internal_goexperiment::__go_init_all();
-    internal_gover::__go_init_all();
-    internal_goversion::__go_init_all();
-    internal_stringslite::__go_init_all();
-    internal_types_errors::__go_init_all();
-    math::__go_init_all();
-    math_big::__go_init_all();
-    math_bits::__go_init_all();
-    path_filepath::__go_init_all();
-    slices::__go_init_all();
-    strconv::__go_init_all();
-    sync_atomic::__go_init_all();
-    unicode::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
+    ::go_ast::__go_init_all();
+    ::go_constant::__go_init_all();
+    ::go_token::__go_init_all();
+    ::go_types::__go_init_all();
+    ::go_version::__go_init_all();
+    ::internal_buildcfg::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_filepathlite::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_goexperiment::__go_init_all();
+    ::internal_gover::__go_init_all();
+    ::internal_goversion::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::internal_types_errors::__go_init_all();
+    ::math::__go_init_all();
+    ::math_big::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::path_filepath::__go_init_all();
+    ::slices::__go_init_all();
+    ::strconv::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut file = Arc::new(Mutex::new(Some(go_ast::r#mod::File { ..Default::default() })));
     let mut info = Arc::new(Mutex::new(Some(go_types::api::Info { file_versions: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<go_ast::r#mod::File>, Arc<Mutex<Option<String>>>>::from([(go_types::GoLocalPtrKey::new(file.clone()), Arc::new(Mutex::new(Some("go1.22".to_string()))))])))), ..Default::default() })));
-    let _ = Arc::new(Mutex::new(Some(go_types::api::Info { instances: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<go_types::api::Instance>>>>::from([])))), implicits: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<Box<dyn go_types::object::Object + Send + Sync>>>>>::from([])))), scopes: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<go_types::scope::Scope>>>>::from([])))), ..Default::default() })));
+    let _ = Arc::new(Mutex::new(Some(go_types::api::Info {
+        instances: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<go_types::api::Instance>>>>::from([])))),
+        implicits: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<Box<dyn go_types::object::Object + Send + Sync>>>>>::from([])))),
+        scopes: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<go_types::scope::Scope>>>>::from([])))),
+        ..Default::default()
+    })));
     let _ = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanType { dir: Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32))))))), ..Default::default() })));
     println!("{}", format!("{}", (*version(info.clone(), file.clone()).lock().unwrap().as_ref().unwrap())));
 }

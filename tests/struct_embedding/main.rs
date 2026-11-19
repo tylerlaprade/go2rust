@@ -12,7 +12,7 @@ pub trait describer: std::fmt::Display + Any {
 
 impl Clone for Box<dyn describer> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_describer()
+        describer::__go_clone_box_describer(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct base {
 
 impl base {
     pub fn __go_value_clone(&self) -> Self {
-        Self { num: { let __guard = self.num.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.num.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            num: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for base {
     fn default() -> Self {
-        Self { num: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            num: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for base {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.num.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.num.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -49,20 +56,32 @@ pub struct container {
 
 impl container {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, str: { let __guard = self.str.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        let __go_clone_1_0 = { let __guard = self.str.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            str: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for container {
     fn default() -> Self {
-        Self { base: Rc::new(RefCell::new(Some(base::default()))), str: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(base::default())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            base: __go_default_0_0,
+            str: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for container {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.base.borrow().as_ref().unwrap()), (*self.str.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.str.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -70,25 +89,6 @@ impl std::fmt::Display for container {
 impl base {
     pub fn describe(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))))
-    }
-}
-
-impl describer for base {
-    fn describe(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("base with num={}", (*self.num.borrow().as_ref().unwrap())))))
-    }
-    fn __go_clone_box_describer(&self) -> Box<dyn describer> {
-        Box::new(self.clone()) as Box<dyn describer>
-    }
-    fn __go_as_any(&self) -> &dyn Any {
-        self
-    }
-    fn __go_eq_describer(&self, other: &dyn describer) -> bool {
-        if let Some(__other) = other.__go_as_any().downcast_ref::<base>() {
-            self == __other
-        } else {
-            false
-        }
     }
 }
 
@@ -103,7 +103,7 @@ impl container {
 }
 
 fn main() {
-    let mut co = Rc::new(RefCell::new(Some(container { base: Rc::new(RefCell::new(Some(base { num: Rc::new(RefCell::new(Some(1 as i32))), ..Default::default() }))), str: Rc::new(RefCell::new(Some("some name".to_string()))), ..Default::default() })));
+    let mut co = Rc::new(RefCell::new(Some(container { base: Rc::new(RefCell::new(Some(base { num: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), str: Rc::new(RefCell::new(Some("some name".to_string()))), ..Default::default() })));
 
     print!("co={{num: {}, str: {}}}\n", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap()), (*(*co.borrow().as_ref().unwrap()).str.borrow().as_ref().unwrap()).clone());
     println!("{} {}", format!("{}", "also num:".to_string()), format!("{}", (*(*(*co.borrow().as_ref().unwrap()).base.borrow().as_ref().unwrap()).num.borrow().as_ref().unwrap())));
@@ -111,6 +111,6 @@ fn main() {
 
     
 
-    let mut d = co.clone();
+    let mut d = Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = co.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn describer>)));
     println!("{} {}", format!("{}", "describer:".to_string()), format!("{}", (*(*d.borrow().as_ref().unwrap()).describe().borrow().as_ref().unwrap())));
 }

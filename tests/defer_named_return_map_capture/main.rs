@@ -38,13 +38,17 @@ pub struct Free {
 
 impl Free {
     pub fn __go_value_clone(&self) -> Self {
-        Self { seen: self.seen.clone() }
+        let __go_clone_0_0 = self.seen.clone();
+        Self {
+            seen: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Free {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.seen))
+        let __go_fmt_0 = format!("{}", format_map(&self.seen));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
