@@ -936,7 +936,8 @@ func RegisterAnyCloneType(typ types.Type) {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
 		helpers.anyCloneTypes[rustType] = true
-		if arm, ok := anyFormatArmForType(typ); ok {
+		arm, hasArm := anyFormatArmForType(typ)
+		if hasArm {
 			if helpers.anyFormatArms == nil {
 				helpers.anyFormatArms = make(map[string]anyFormatArm)
 			}
@@ -944,13 +945,22 @@ func RegisterAnyCloneType(typ types.Type) {
 		}
 		// The same payload type is what %T sees when the value comes back out
 		// of the interface, so record what Go calls it.
-		if goName, ok := goDynamicTypeName(typ); ok {
+		goName, hasName := goDynamicTypeName(typ)
+		if hasName {
 			if helpers.anyTypeNames == nil {
 				helpers.anyTypeNames = make(map[string]string)
 			}
 			if existing, seen := helpers.anyTypeNames[rustType]; !seen || goName < existing {
 				helpers.anyTypeNames[rustType] = goName
 			}
+		}
+		// Another package of the program may be the one that prints or
+		// copies this value.
+		if anyPayloadGoTypeIsShareable(typ) {
+			if !hasName {
+				goName = ""
+			}
+			recordProgramAnyCase(rustType, arm, hasArm, goName)
 		}
 	}
 }
@@ -977,7 +987,11 @@ func RegisterOpaqueErrorAnyPayload() {
 	expr.WriteString("match (*v")
 	WriteBorrowMethod(&expr, false)
 	expr.WriteString(`).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }`)
-	helpers.anyFormatArms[rustType] = anyFormatArm{expr: expr.String()}
+	arm := anyFormatArm{expr: expr.String()}
+	helpers.anyFormatArms[rustType] = arm
+	// The handle is the same type in every package, so the package that
+	// receives the error can carry the same cases.
+	recordProgramAnyCase(rustType, arm, true, "")
 }
 
 func anyCloneRustType(typ types.Type) (string, bool) {

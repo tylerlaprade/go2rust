@@ -271,11 +271,18 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
 
+	// In a program of several packages, each helper also carries the cases
+	// the other packages need it to have.
+	anyCloneTypes, anyFormatArms, anyTypeNames := ht.anyCloneTypes, ht.anyFormatArms, ht.anyTypeNames
+	if shared := currentProgramAnyCases; shared != nil {
+		anyCloneTypes, anyFormatArms, anyTypeNames = shared.casesFor(ht)
+	}
+
 	// format_any prints boxed slices and maps through the typed formatters,
 	// so it needs them even when no typed print site asked for them.
 	needsFormatAnyPointer := false
 	if ht.needsFormatAny {
-		for _, arm := range ht.anyFormatArms {
+		for _, arm := range anyFormatArms {
 			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
 			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
 			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
@@ -313,7 +320,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsFormatAny {
-		generateAnyFormatter(&result, ht.anyFormatArms)
+		generateAnyFormatter(&result, anyFormatArms)
 	}
 
 	if ht.needsFormatAnySlice {
@@ -325,7 +332,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsAnyClone {
-		generateAnyClone(&result, ht.anyCloneTypes)
+		generateAnyClone(&result, anyCloneTypes)
 	}
 
 	if ht.needsPanicRecover {
@@ -385,7 +392,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoTypeName {
-		generateGoTypeNameHelper(&result, ht.anyTypeNames)
+		generateGoTypeNameHelper(&result, anyTypeNames)
 	}
 
 	if ht.needsBase64 {

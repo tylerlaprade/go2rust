@@ -601,6 +601,11 @@ func (pl *PackageLoader) TranspileAll() error {
 		}
 	}
 
+	// The packages of one program share the cases of the interface-value
+	// helpers. The project generator ends this once the main package and
+	// the shared crate are written.
+	beginProgramAnyCases()
+
 	// Set the global type info from the main package
 	// This gives us access to all type information including imports
 	globalTypeInfo := &TypeInfo{
@@ -996,6 +1001,17 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		pkg:  pkg.Types,
 	}
 
+	if shared := currentProgramAnyCases; shared != nil {
+		previousPackage, previousIsStandardLibrary := shared.currentPackage, shared.currentPackageIsStandardLibrary
+		shared.currentPackage = pkg.PkgPath
+		shared.currentPackageIsStandardLibrary = pl.isSourceStdlibPackage(pkg.PkgPath)
+		delete(shared.written, pkg.PkgPath)
+		defer func() {
+			shared.currentPackage = previousPackage
+			shared.currentPackageIsStandardLibrary = previousIsStandardLibrary
+		}()
+	}
+
 	parentDetector := GetConcurrencyDetector()
 	concurrencyDetector := pl.concurrencyDetector
 	if concurrencyDetector == nil {
@@ -1326,6 +1342,36 @@ func (pl *PackageLoader) GetGeneratedGoPtrFields() map[string]bool {
 
 func (pl *PackageLoader) GetGoPtrArrayFields() map[string]goPtrArrayFieldInfo {
 	return pl.goPtrArrayFields
+}
+
+// RetranslatePackagesMissingSharedAnyCases writes again every dependency
+// whose interface-value helpers were written before a package translated
+// after it added a case they should carry. A dependency is translated before
+// the packages that import it, so this is the first moment the full set is
+// known. Call it once the main package has been translated.
+//
+// GO2RUST_RETRANSLATE_ALL_PACKAGES=1 translates every dependency again
+// whether or not it is missing a case. Comparing that output with a normal
+// run checks that translating a package twice gives the same result.
+func (pl *PackageLoader) RetranslatePackagesMissingSharedAnyCases() {
+	shared := currentProgramAnyCases
+	if shared == nil {
+		return
+	}
+	retranslateAll := os.Getenv("GO2RUST_RETRANSLATE_ALL_PACKAGES") == "1"
+	for _, pkgPath := range pl.orderedPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil || pl.packageStates[pkgPath] == nil {
+			continue
+		}
+		if !retranslateAll && !shared.packageIsMissingCases(pkgPath) {
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "Transpiling package %s again with the interface cases of the whole program...\n", pkgPath)
+		if err := pl.transpilePackage(pkg); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to transpile %s: %v\n", pkgPath, err)
+		}
+	}
 }
 
 func (pl *PackageLoader) GetPackageStates() []*PackageState {

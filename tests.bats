@@ -1791,6 +1791,10 @@ run_xfail_test() {
     run_test "tests/os_stat_fileinfo_isdir"
 }
 
+@test "package_any_value_from_caller" {
+    run_test "tests/package_any_value_from_caller"
+}
+
 @test "package_const_lowercase_condition" {
     run_test "tests/package_const_lowercase_condition"
 }
