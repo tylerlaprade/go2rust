@@ -2147,21 +2147,16 @@ pub struct textValue {
 
 impl textValue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: self.p.clone() }
+        let __go_clone_0_0 = self.p.clone();
+        Self {
+            p: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for textValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for textValue {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -2693,28 +2688,67 @@ pub struct FlagSet {
 
 impl FlagSet {
     pub fn __go_value_clone(&self) -> Self {
-        Self { usage: self.usage.clone(), name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, parsed: { let __guard = self.parsed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, actual: self.actual.clone(), formal: self.formal.clone(), args: self.args.clone(), error_handling: { let __guard = self.error_handling.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, output: self.output.clone(), undef: self.undef.clone() }
+        let __go_clone_0_0 = self.usage.clone();
+        let __go_clone_1_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.parsed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.actual.clone();
+        let __go_clone_4_0 = self.formal.clone();
+        let __go_clone_5_0 = self.args.clone();
+        let __go_clone_6_0 = { let __guard = self.error_handling.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = self.output.clone();
+        let __go_clone_8_0 = self.undef.clone();
+        Self {
+            usage: __go_clone_0_0,
+            name: __go_clone_1_0,
+            parsed: __go_clone_2_0,
+            actual: __go_clone_3_0,
+            formal: __go_clone_4_0,
+            args: __go_clone_5_0,
+            error_handling: __go_clone_6_0,
+            output: __go_clone_7_0,
+            undef: __go_clone_8_0,
+        }
     }
 }
 
 
 impl Default for FlagSet {
     fn default() -> Self {
-        Self { usage: Arc::new(Mutex::new(None)), name: Arc::new(Mutex::new(Some(String::new()))), parsed: Arc::new(Mutex::new(Some(false))), actual: Arc::new(Mutex::new(None)), formal: Arc::new(Mutex::new(None)), args: Arc::new(Mutex::new(None)), error_handling: Arc::new(Mutex::new(Some(ErrorHandling(Arc::new(Mutex::new(Some(0))))))), output: Arc::new(Mutex::new(None)), undef: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(None));
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(ErrorHandling(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        let __go_default_8_0 = Arc::new(Mutex::new(None));
+        Self {
+            usage: __go_default_0_0,
+            name: __go_default_1_0,
+            parsed: __go_default_2_0,
+            actual: __go_default_3_0,
+            formal: __go_default_4_0,
+            args: __go_default_5_0,
+            error_handling: __go_default_6_0,
+            output: __go_default_7_0,
+            undef: __go_default_8_0,
+        }
     }
 }
 
 impl std::fmt::Display for FlagSet {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", "<func>", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.parsed.lock().unwrap().as_ref().unwrap()), format_map(&self.actual), format_map(&self.formal), format_slice(&self.args), (*self.error_handling.lock().unwrap().as_ref().unwrap()), (*self.output.lock().unwrap().as_ref().unwrap()), format_map(&self.undef))
-    }
-}
-
-impl GoJsonDecode for FlagSet {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", "<func>");
+        let __go_fmt_1 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.parsed.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_map(&self.actual));
+        let __go_fmt_4 = format!("{}", format_map(&self.formal));
+        let __go_fmt_5 = format!("{}", format_slice(&self.args));
+        let __go_fmt_6 = format!("{}", (*self.error_handling.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.output.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", format_map(&self.undef));
+        write!(f, "{{{} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8)
     }
 }
 
@@ -2730,20 +2764,42 @@ pub struct Flag {
 
 impl Flag {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, usage: { let __guard = self.usage.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, value: self.value.clone(), def_value: { let __guard = self.def_value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.usage.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.value.clone();
+        let __go_clone_3_0 = { let __guard = self.def_value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            usage: __go_clone_1_0,
+            value: __go_clone_2_0,
+            def_value: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for Flag {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), usage: Arc::new(Mutex::new(Some(String::new()))), value: Arc::new(Mutex::new(None)), def_value: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+            usage: __go_default_1_0,
+            value: __go_default_2_0,
+            def_value: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for Flag {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.usage.lock().unwrap().as_ref().unwrap()), (*self.value.lock().unwrap().as_ref().unwrap()), (*self.def_value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.usage.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.def_value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 impl GoComparable for Flag {
@@ -2755,23 +2811,6 @@ impl GoComparable for Flag {
         std::hash::Hash::hash(&seed, &mut __hasher);
         std::hash::Hash::hash(&(self as *const Self as usize), &mut __hasher);
         std::hash::Hasher::finish(&__hasher) as usize
-    }
-}
-
-impl GoJsonDecode for Flag {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Name") {
-            out.name = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Usage") {
-            out.usage = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("DefValue") {
-            out.def_value = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -3554,7 +3593,16 @@ pub trait funcValueMethods {
 
 impl funcValueMethods for funcValue {
     fn set(&self, s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = self.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) }
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+                let mut __f_guard = self.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            )
+        }
     }
 
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -3570,7 +3618,16 @@ pub trait boolFuncValueMethods {
 
 impl boolFuncValueMethods for boolFuncValue {
     fn set(&self, s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = self.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) }
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+                let mut __f_guard = self.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            )
+        }
     }
 
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -3587,7 +3644,7 @@ impl FlagSet {
     /// output was not set or was set to nil.
     pub fn output(&self) -> Arc<Mutex<Option<io_Writer>>> {
         if { let __nil_target = self.output.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        return { let __arg = os::Stderr(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_Writer> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) };
+        return Arc::new(Mutex::new(Some(unimplemented!("os.File to external io.Writer requires source-mapped io; transpile io instead"))));
     }
         return self.output.clone();
     }
@@ -3612,7 +3669,16 @@ impl FlagSet {
     /// It visits all flags, even those not set.
     pub fn visit_all(&self, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync>>>>) {
         { let __range_holder = sort_flags({ let __field = self.formal.clone(); __field }).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for flag in __range_values.iter() {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*flag).clone()) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                (*flag).clone()
+            )
+        };
     } }
     }
 
@@ -3620,7 +3686,16 @@ impl FlagSet {
     /// It visits only those flags that have been set.
     pub fn visit(&self, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync>>>>) {
         { let __range_holder = sort_flags({ let __field = self.actual.clone(); __field }).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for flag in __range_values.iter() {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*flag).clone()) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync> = {
+                let mut __f_guard = r#fn.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Flag>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                (*flag).clone()
+            )
+        };
     } }
     }
 
@@ -3784,7 +3859,11 @@ impl FlagSet {
     /// BoolVar defines a bool flag with specified name, default value, and usage string.
     /// The argument p points to a bool variable in which to store the value of the flag.
     pub fn bool_var(&mut self, p: Arc<Mutex<Option<bool>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<bool>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(boolValuePtr(new_bool_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(boolValuePtr(new_bool_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Bool defines a bool flag with specified name, default value, and usage string.
@@ -3798,7 +3877,11 @@ impl FlagSet {
     /// IntVar defines an int flag with specified name, default value, and usage string.
     /// The argument p points to an int variable in which to store the value of the flag.
     pub fn int_var(&mut self, p: Arc<Mutex<Option<i32>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<i32>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(intValuePtr(new_int_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(intValuePtr(new_int_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Int defines an int flag with specified name, default value, and usage string.
@@ -3812,7 +3895,11 @@ impl FlagSet {
     /// Int64Var defines an int64 flag with specified name, default value, and usage string.
     /// The argument p points to an int64 variable in which to store the value of the flag.
     pub fn int64_var(&mut self, p: Arc<Mutex<Option<i64>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<i64>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(int64ValuePtr(new_int64_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(int64ValuePtr(new_int64_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Int64 defines an int64 flag with specified name, default value, and usage string.
@@ -3826,7 +3913,11 @@ impl FlagSet {
     /// UintVar defines a uint flag with specified name, default value, and usage string.
     /// The argument p points to a uint variable in which to store the value of the flag.
     pub fn uint_var(&mut self, p: Arc<Mutex<Option<u64>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<u64>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(uintValuePtr(new_uint_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(uintValuePtr(new_uint_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Uint defines a uint flag with specified name, default value, and usage string.
@@ -3840,7 +3931,11 @@ impl FlagSet {
     /// Uint64Var defines a uint64 flag with specified name, default value, and usage string.
     /// The argument p points to a uint64 variable in which to store the value of the flag.
     pub fn uint64_var(&mut self, p: Arc<Mutex<Option<u64>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<u64>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(uint64ValuePtr(new_uint64_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(uint64ValuePtr(new_uint64_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Uint64 defines a uint64 flag with specified name, default value, and usage string.
@@ -3854,7 +3949,11 @@ impl FlagSet {
     /// StringVar defines a string flag with specified name, default value, and usage string.
     /// The argument p points to a string variable in which to store the value of the flag.
     pub fn string_var(&mut self, p: Arc<Mutex<Option<String>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<String>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(stringValuePtr(new_string_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(stringValuePtr(new_string_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// String defines a string flag with specified name, default value, and usage string.
@@ -3868,7 +3967,11 @@ impl FlagSet {
     /// Float64Var defines a float64 flag with specified name, default value, and usage string.
     /// The argument p points to a float64 variable in which to store the value of the flag.
     pub fn float64_var(&mut self, p: Arc<Mutex<Option<f64>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<f64>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(float64ValuePtr(new_float64_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(float64ValuePtr(new_float64_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Float64 defines a float64 flag with specified name, default value, and usage string.
@@ -3883,7 +3986,11 @@ impl FlagSet {
     /// The argument p points to a time.Duration variable in which to store the value of the flag.
     /// The flag accepts a value acceptable to time.ParseDuration.
     pub fn duration_var(&mut self, p: Arc<Mutex<Option<time_Duration>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<time_Duration>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(durationValuePtr(new_duration_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(durationValuePtr(new_duration_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Duration defines a time.Duration flag with specified name, default value, and usage string.
@@ -3901,21 +4008,33 @@ impl FlagSet {
     /// If the flag is used, the flag value will be passed to p's UnmarshalText method.
     /// The type of the default value must be the same as the type of p.
     pub fn text_var(&mut self, p: Arc<Mutex<Option<encoding_TextUnmarshaler>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<encoding_TextMarshaler>>>, usage: Arc<Mutex<Option<String>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new((*new_text_value(value.clone(), p.clone()).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new((*new_text_value(value.clone(), p.clone()).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Func defines a flag with the specified name and usage string.
     /// Each time the flag is seen, fn is called with the value of the flag.
     /// If fn returns a non-nil error, it will be treated as a flag value parsing error.
     pub fn func(&mut self, name: Arc<Mutex<Option<String>>>, usage: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(funcValueAsValue(r#fn.clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(funcValueAsValue(r#fn.clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// BoolFunc defines a flag with the specified name and usage string without requiring values.
     /// Each time the flag is seen, fn is called with the value of the flag.
     /// If fn returns a non-nil error, it will be treated as a flag value parsing error.
     pub fn bool_func(&mut self, name: Arc<Mutex<Option<String>>>, usage: Arc<Mutex<Option<String>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>>>>) {
-        self.var(Arc::new(Mutex::new(Some(Box::new(boolFuncValueAsValue(r#fn.clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.var(
+            Arc::new(Mutex::new(Some(Box::new(boolFuncValueAsValue(r#fn.clone())) as Box<dyn Value + Send + Sync>))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// Var defines a flag with the specified name and usage string. The type and
@@ -3932,7 +4051,13 @@ impl FlagSet {
         std::panic::panic_any(Box::new({ let __v = self.sprintf(Arc::new(Mutex::new(Some("flag %q contains =".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>])))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
                 // Remember the default value as a string; it won't change.
-        let mut flag = Arc::new(Mutex::new(Some(Flag { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), usage: Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: value.clone(), def_value: (*value.lock().unwrap().as_ref().unwrap()).string(), ..Default::default() })));
+        let mut flag = Arc::new(Mutex::new(Some(Flag {
+            name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            usage: Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            value: value.clone(),
+            def_value: (*value.lock().unwrap().as_ref().unwrap()).string(),
+            ..Default::default()
+        })));
         let (_, mut alreadythere) = { let __map = { let __map_holder = self.formal.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         if alreadythere {
         let mut msg: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -3987,29 +4112,104 @@ impl FlagSet {
         return (false, Arc::new(Mutex::new(None)));
     }
         let mut s = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
-        if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y } || { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('-' as i32) as u8; __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                    let __tmp_y = ('-' as i32) as u8;
+                    __tmp_x != __tmp_y
+                };
+                __go_cond_1
+            }
+        } {
         return (false, Arc::new(Mutex::new(None)));
     }
         let mut numMinuses = Arc::new(Mutex::new(Some(1)));
-        if { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] };
+            let __tmp_y = ('-' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         { let mut guard = numMinuses.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x == __tmp_y } {
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.args = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.args.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = (1) as usize;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); self.args = new_val; };
         return (false, Arc::new(Mutex::new(None)));
     }
     }
                 // "--" terminates the flags
         let mut name = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*numMinuses.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() })));
-        if { let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } {
-        return (false, self.failf(Arc::new(Mutex::new(Some("bad flag syntax: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>])))));
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                        let __tmp_y = ('-' as i32) as u8;
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = {
+                    let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                    let __tmp_y = ('=' as i32) as u8;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_3
+            }
+        } {
+        return (
+            false,
+            self.failf(Arc::new(Mutex::new(Some("bad flag syntax: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))))
+        );
     }
                 // it's a flag. does it have an argument?
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.args = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.args.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = (1) as usize;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); self.args = new_val; };
         let mut hasValue = Arc::new(Mutex::new(Some(false)));
         let mut value = Arc::new(Mutex::new(Some("".to_string())));
         let mut i = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('=' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *value.lock().unwrap() = __moved_val; };
         { let new_val = true; *hasValue.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_val; };
@@ -4023,7 +4223,10 @@ impl FlagSet {
         self.usage();
         return (false, ErrHelp.clone());
     }
-        return (false, self.failf(Arc::new(Mutex::new(Some("flag provided but not defined: -%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>])))));
+        return (
+            false,
+            self.failf(Arc::new(Mutex::new(Some("flag provided but not defined: -%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))))
+        );
     }
                 // special case for nice help message.
         {
@@ -4047,29 +4250,207 @@ impl FlagSet {
         {
         let mut err = (*fv.lock().unwrap().as_mut().unwrap()).set(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            return (false, self.failf(Arc::new(Mutex::new(Some("invalid boolean value %q for -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } }])))));;
+            return (
+                false,
+                self.failf(Arc::new(Mutex::new(Some("invalid boolean value %q for -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, {
+                    let __err_holder = err.clone();
+                    let __err_guard = __err_holder.lock().unwrap();
+                    match __err_guard.as_ref() {
+                        None => panic!("nil error-to-any lowering requires nil interface representation"),
+                        Some(__err) => {
+                            if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else {
+                                panic!("type info required: error-to-any for unknown dynamic error type")
+                            }
+                        }
+                    }
+                }]))))
+            );;
         }
     }
     } else {
         {
         let mut err = (*fv.lock().unwrap().as_mut().unwrap()).set(Arc::new(Mutex::new(Some("true".to_string()))));;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            return (false, self.failf(Arc::new(Mutex::new(Some("invalid boolean flag %s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } }])))));;
+            return (
+                false,
+                self.failf(Arc::new(Mutex::new(Some("invalid boolean flag %s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, {
+                    let __err_holder = err.clone();
+                    let __err_guard = __err_holder.lock().unwrap();
+                    match __err_guard.as_ref() {
+                        None => panic!("nil error-to-any lowering requires nil interface representation"),
+                        Some(__err) => {
+                            if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else {
+                                panic!("type info required: error-to-any for unknown dynamic error type")
+                            }
+                        }
+                    }
+                }]))))
+            );;
         }
     }
     };
         } else {
             if !{ let __v = (*hasValue.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (({ let __len_target = { let __field = self.args.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let new_val = true; *hasValue.lock().unwrap() = Some(new_val); };
-        { let __tmp_0 = { let __seq = { let __seq_holder = self.args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_1 = Arc::new(Mutex::new(Some({ let __seq_holder = self.args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); *value.lock().unwrap() = Some(__tmp_0); *self.args.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
+        {
+            let __tmp_0 = { let __seq = { let __seq_holder = self.args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __tmp_1 = Arc::new(Mutex::new(Some({
+                let __seq_holder = self.args.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                drop(__seq_guard);
+                let __low = (1) as usize;
+                let __high = __seq.len();
+                let __max = __source_cap;
+                if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            })));
+            *value.lock().unwrap() = Some(__tmp_0);
+            *self.args.lock().unwrap() = __tmp_1.lock().unwrap().take();
+        };
     };
             if !{ let __v = (*hasValue.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        return (false, self.failf(Arc::new(Mutex::new(Some("flag needs an argument: -%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>])))));
+        return (
+            false,
+            self.failf(Arc::new(Mutex::new(Some("flag needs an argument: -%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))))
+        );
     };
             {
         let mut err = (*(*flag.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_mut().unwrap()).set(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            return (false, self.failf(Arc::new(Mutex::new(Some("invalid value %q for flag -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } }])))));;
+            return (
+                false,
+                self.failf(Arc::new(Mutex::new(Some("invalid value %q for flag -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, {
+                    let __err_holder = err.clone();
+                    let __err_guard = __err_holder.lock().unwrap();
+                    match __err_guard.as_ref() {
+                        None => panic!("nil error-to-any lowering requires nil interface representation"),
+                        Some(__err) => {
+                            if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                            } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
+                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                            } else {
+                                panic!("type info required: error-to-any for unknown dynamic error type")
+                            }
+                        }
+                    }
+                }]))))
+            );;
         }
     };
         }
@@ -4107,7 +4488,56 @@ impl FlagSet {
     }
             os::exit(2);
         } else if _switch_val == (ErrorHandling(Arc::new(Mutex::new(Some(PANIC_ON_ERROR as i32))))) {
-            std::panic::panic_any({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+            std::panic::panic_any({
+                let __err_holder = err.clone();
+                let __err_guard = __err_holder.lock().unwrap();
+                match __err_guard.as_ref() {
+                    None => panic!("nil error-to-any lowering requires nil interface representation"),
+                    Some(__err) => {
+                        if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
+                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
+                            go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
+                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
+                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                        } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
+                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                        } else {
+                            panic!("type info required: error-to-any for unknown dynamic error type")
+                        }
+                    }
+                }
+            });
         }
     }
     }
@@ -4196,17 +4626,43 @@ pub fn new_duration_value(val: Arc<Mutex<Option<time_Duration>>>, p: Arc<Mutex<O
 
 pub fn new_text_value(val: Arc<Mutex<Option<encoding_TextMarshaler>>>, p: Arc<Mutex<Option<encoding_TextUnmarshaler>>>) -> Arc<Mutex<Option<textValue>>> {
     let mut ptrVal = Arc::new(Mutex::new(Some(GoReflectValue { typ: Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("".to_string()))), kind: Arc::new(Mutex::new(Some(reflect_Kind(0)))), elem: Arc::new(Mutex::new(None::<Box<GoReflectType>>)), fields: Arc::new(Mutex::new(Some(vec![]))) }))), fields: Arc::new(Mutex::new(Some(vec![]))), bool_getter: Arc::new(Mutex::new(None)), bool_setter: Arc::new(Mutex::new(None)), unsupported: Some("reflect.ValueOf requires statically known pointer-to-struct type") })));
-    if { let __tmp_x = (*(*ptrVal.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::PTR; __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = (*(*ptrVal.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = reflect::PTR;
+        __tmp_x != __tmp_y
+    } {
         std::panic::panic_any(Box::new("variable value type must be a pointer".to_string()) as Box<dyn Any + Send + Sync>);
     }
     let mut defVal = Arc::new(Mutex::new(Some(GoReflectValue { typ: Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("".to_string()))), kind: Arc::new(Mutex::new(Some(reflect_Kind(0)))), elem: Arc::new(Mutex::new(None::<Box<GoReflectType>>)), fields: Arc::new(Mutex::new(Some(vec![]))) }))), fields: Arc::new(Mutex::new(Some(vec![]))), bool_getter: Arc::new(Mutex::new(None)), bool_setter: Arc::new(Mutex::new(None)), unsupported: Some("reflect.ValueOf requires statically known pointer-to-struct type") })));
-    if { let __tmp_x = (*(*defVal.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::PTR; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = (*(*defVal.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = reflect::PTR;
+        __tmp_x == __tmp_y
+    } {
         { let new_val = (*defVal.lock().unwrap().as_ref().unwrap()).elem(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *defVal.lock().unwrap() = __moved_val; };
     }
-    if { let __tmp_x = (*(*defVal.lock().unwrap().as_ref().unwrap()).r#type().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = (*ptrVal.lock().unwrap().as_ref().unwrap()).r#type(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
-        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("default type does not match variable type: {} != {}", format!("{}", (*((*defVal.lock().unwrap().as_ref().unwrap()).r#type()).lock().unwrap().as_ref().unwrap())), format!("{}", (*({ let __recv = (*ptrVal.lock().unwrap().as_ref().unwrap()).r#type(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem(); __result }).lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
+    if {
+        let __tmp_x = (*(*defVal.lock().unwrap().as_ref().unwrap()).r#type().lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_y = (*{
+            let __recv = (*ptrVal.lock().unwrap().as_ref().unwrap()).r#type();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem();
+            __result
+        }.lock().unwrap().as_ref().unwrap()).clone();
+        __tmp_x != __tmp_y
+    } {
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("default type does not match variable type: {} != {}", format!("{}", (*((*defVal.lock().unwrap().as_ref().unwrap()).r#type()).lock().unwrap().as_ref().unwrap())), format!("{}", (*({
+            let __recv = (*ptrVal.lock().unwrap().as_ref().unwrap()).r#type();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).elem();
+            __result
+        }).lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
-    { let __recv = (*ptrVal.lock().unwrap().as_ref().unwrap()).elem(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).set(defVal.clone()); __result };
+    {
+        let __recv = (*ptrVal.lock().unwrap().as_ref().unwrap()).elem();
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).set(
+            defVal.clone(),
+        );
+        __result
+    };
     Arc::new(Mutex::new(Some(textValue { p: p.clone(), ..Default::default() })))
 }
 
@@ -4240,7 +4696,11 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
                 // This works unless the Value type is itself an interface type.
         let mut typ = Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("flag.Value".to_string()))), kind: Arc::new(Mutex::new(Some(reflect_Kind(20)))), elem: Arc::new(Mutex::new(None::<Box<GoReflectType>>)), fields: Arc::new(Mutex::new(Some(vec![]))) })));
         let mut z: Arc<Mutex<Option<reflect_Value>>> = Arc::new(Mutex::new(Some(Default::default())));
-        if { let __tmp_x = (*(*typ.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::POINTER; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*(*typ.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = reflect::POINTER;
+            __tmp_x == __tmp_y
+        } {
         { let new_val = reflect::new((*typ.lock().unwrap().as_ref().unwrap()).elem()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *z.lock().unwrap() = __moved_val; };
     } else {
         { let new_val = reflect::zero(typ.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *z.lock().unwrap() = __moved_val; };
@@ -4254,7 +4714,11 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
         {
         let mut e = go_recover();;
         if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
-            if { let __tmp_x = (*(*typ_defer_captured.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::POINTER; __tmp_x == __tmp_y } {
+            if {
+                let __tmp_x = (*(*typ_defer_captured.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone();
+                let __tmp_y = reflect::POINTER;
+                __tmp_x == __tmp_y
+            } {
         { let new_val = (*typ_defer_captured.lock().unwrap().as_ref().unwrap()).elem(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *typ_defer_captured.lock().unwrap() = __moved_val; };
     };
             { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("panic calling String method on zero {} for flag {}: {}", format!("{}", (*typ.lock().unwrap().as_ref().unwrap())), (*{ let __field = (*flag_defer_captured.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), format_any(e.lock().unwrap().as_ref().unwrap().as_ref())))))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err_defer_captured.lock().unwrap() = new_val; };;
@@ -4263,7 +4727,8 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
-        { let new_val = { let __tmp_x = (*value.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = ({
+        { let new_val = { let __tmp_x = (*value.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{
+            let __recv = ({
         let val = (*z.lock().unwrap().as_ref().unwrap()).interface().clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -4295,7 +4760,10 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
         } else {
             panic!("type assertion on nil interface")
         }
-    }); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y }; *ok.lock().unwrap() = Some(new_val); };;
+    });
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string();
+            __result
+        }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y }; *ok.lock().unwrap() = Some(new_val); };;
         *err.lock().unwrap() = None;;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -4331,12 +4799,26 @@ pub fn unquote_usage(flag: Arc<Mutex<Option<Flag>>>) -> (Arc<Mutex<Option<String
     { let new_val = { let __selector_holder = (*flag.lock().unwrap().as_ref().unwrap()).usage.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *usage.lock().unwrap() = Some(new_val); };
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*usage.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('`' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('`' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })));
     while { let __tmp_x = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*usage.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('`' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('`' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let __high = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_val; };
-        { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()))); __s }; *usage.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*usage.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap())));
+            __s
+        }; *usage.lock().unwrap() = Some(new_val); };
         return ({ let __owned = name.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __owned = usage.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) });
     }
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -4364,7 +4846,13 @@ pub fn unquote_usage(flag: Arc<Mutex<Option<Flag>>>) -> (Arc<Mutex<Option<String
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<boolFuncValue>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<boolValuePtr>()).is_some() {
-        let fv: Arc<Mutex<Option<Box<dyn boolFlag + Send + Sync>>>> = unimplemented!("type info required: type switch on interface case with 2 concrete implementors needs a synthesized trait object");
+        let fv: Arc<Mutex<Option<Box<dyn boolFlag + Send + Sync>>>> = if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<boolFuncValue>()) {
+            Arc::new(Mutex::new(Some(Box::new(boolFuncValueAsboolFlag(typed_val.clone())) as Box<dyn boolFlag + Send + Sync>)))
+        } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<boolValuePtr>()) {
+            Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn boolFlag + Send + Sync>)))
+        } else {
+            panic!("type switch interface case condition matched no concrete implementor")
+        };
         if (*fv.lock().unwrap().as_ref().unwrap()).is_bool_flag() {
         { let new_val = "".to_string(); *name.lock().unwrap() = Some(new_val); };
     };
@@ -4428,7 +4916,21 @@ pub fn string(name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<String>>
 /// after all flags are defined and before flags are accessed by the program.
 pub fn parse() {
         // Ignore errors; CommandLine is set for ExitOnError.
-    { let __recv_holder = (*CommandLine.lock().unwrap().as_ref().unwrap()).clone(); let __result = (*__recv_holder.lock().unwrap().as_mut().unwrap()).parse(Arc::new(Mutex::new(Some({ let __seq_holder = go_os_args().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __result };
+    { let __recv_holder = (*CommandLine.lock().unwrap().as_ref().unwrap()).clone(); let __result = (*__recv_holder.lock().unwrap().as_mut().unwrap()).parse(Arc::new(Mutex::new(Some({
+        let __seq_holder = go_os_args().clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+        drop(__seq_guard);
+        let __low = (1) as usize;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    })))); __result };
 }
 
 fn __go_init_0() {
@@ -4436,7 +4938,10 @@ fn __go_init_0() {
     if { let __tmp_x = (({ let __len_target = { let __field = go_os_args().clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let new_val = new_flag_set(Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(ErrorHandling(Arc::new(Mutex::new(Some(EXIT_ON_ERROR as i32)))))))).clone(); *CommandLine.lock().unwrap() = Some(new_val); };
     } else {
-        { let new_val = new_flag_set(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = go_os_args().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }))), Arc::new(Mutex::new(Some(ErrorHandling(Arc::new(Mutex::new(Some(EXIT_ON_ERROR as i32)))))))).clone(); *CommandLine.lock().unwrap() = Some(new_val); };
+        { let new_val = new_flag_set(
+            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = go_os_args().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }))),
+            Arc::new(Mutex::new(Some(ErrorHandling(Arc::new(Mutex::new(Some(EXIT_ON_ERROR as i32)))))))
+        ).clone(); *CommandLine.lock().unwrap() = Some(new_val); };
     }
 
         // Override generic FlagSet default Usage with call to global Usage.
@@ -4447,7 +4952,16 @@ fn __go_init_0() {
 }
 
 pub fn command_line_usage() {
-    { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = Usage.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = Usage.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
 }
 
 /// NewFlagSet returns a new, empty flag set with the specified name and
