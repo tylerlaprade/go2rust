@@ -11241,6 +11241,8 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)
+	} else if valueType != nil && writeConstExpressionForExpectedNamedInteger(out, value, valueType) {
+		// The map cell holds the defined integer type.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
 	} else {
