@@ -3818,15 +3818,18 @@ func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
 }
 
 func writeSwitchPointerDirectCaseComparison(out *strings.Builder, tag ast.Expr, caseExpr ast.Expr) {
+	// Bind the comparison result before the block ends. Left as the block's
+	// tail expression, the borrow guard it creates is dropped after
+	// __switch_val, which rustc rejects (E0597) under edition 2021.
 	out.WriteString("{ let __switch_val = ")
 	writeSwitchPointerTagHandle(out, tag)
-	out.WriteString("; ")
+	out.WriteString("; let __switch_eq = ")
 	if info, ok := switchGoPtrInfo(tag); ok {
 		writeSwitchGoPtrCaseComparisonForInfo(out, "__switch_val", caseExpr, info)
 	} else {
 		writeSwitchPointerCaseComparison(out, "__switch_val", caseExpr)
 	}
-	out.WriteString(" }")
+	out.WriteString("; __switch_eq }")
 }
 
 func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
