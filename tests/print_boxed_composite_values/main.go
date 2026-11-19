@@ -23,6 +23,12 @@ type Node struct {
 
 func render(v interface{}) string { return fmt.Sprintf("%v", v) }
 
+// shape describes text around the addresses in it, which change from run to
+// run: whether it starts with prefix, and how many addresses it holds.
+func shape(text, prefix string) string {
+	return fmt.Sprintf("%v %d", strings.HasPrefix(text, prefix), len(strings.Split(text, "0x"))-1)
+}
+
 // Outcome is the usual result struct: its error is nil unless something
 // failed.
 type Outcome struct {
@@ -91,6 +97,17 @@ func main() {
 	tail := &Node{Name: "tail"}
 	text = render(&Node{Name: "head", Next: tail})
 	fmt.Println("chain:", strings.HasPrefix(text, "&{head 0x"), strings.Contains(text, "tail"))
+	// The same holds when the value being printed is a struct and the
+	// pointer is in one of its fields, however the struct reaches the
+	// printer, and when the pointer is an element of a slice of interfaces.
+	fmt.Println("struct value, boxed:", shape(render(*loop), "{loop 0x"))
+	fmt.Println("struct value, typed:", shape(fmt.Sprintf("%v", *loop), "{loop 0x"))
+	fmt.Println("pointer, typed:", shape(fmt.Sprintf("%v", loop), "&{loop 0x"))
+	text = render(Node{Name: "holder", Next: tail})
+	fmt.Println("struct holding a pointer:", shape(text, "{holder 0x"), strings.Contains(text, "tail"))
+	mixed := []interface{}{tail, 1}
+	text = fmt.Sprintf("%v", mixed)
+	fmt.Println("slice holding a pointer:", shape(text, "[0x"), strings.HasSuffix(text, " 1]"))
 	var noNode *Node
 	show(&Node{Name: "end", Next: noNode})
 	show(p)

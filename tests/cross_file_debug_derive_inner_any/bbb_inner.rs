@@ -1,4 +1,4 @@
-use crate::{format_any};
+use crate::{format_any, go_format_any_nested};
 
 use std::any::Any;
 use std::cell::{RefCell};
@@ -37,7 +37,7 @@ impl Default for Inner {
 impl std::fmt::Display for Inner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.tag.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", match self.data.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.data.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

@@ -149,6 +149,7 @@ type HelperTracker struct {
 	needsFormatNestedPointerSliceWrapped bool
 	needsFormatAny                       bool
 	needsFormatAnySlice                  bool
+	needsFormatAnyNested                 bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
 	needsPanicRecover                    bool
@@ -279,6 +280,9 @@ func (ht *HelperTracker) GenerateHelpers() string {
 			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
 			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
 		}
+	}
+	if needsFormatAnyPointer || ht.needsFormatAnyNested || ht.needsFormatAnySlice {
+		generateAnyDepthTracker(&result)
 	}
 	if needsFormatAnyPointer {
 		generateAnyPointerFormatter(&result)
@@ -608,6 +612,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatAnySlice {
 		add("format_any_slice", "format_any_variadic")
+	}
+	if ht.needsFormatAnyNested {
+		add("go_format_any_nested")
 	}
 	if ht.needsAnyEq {
 		add("go_any_eq")
@@ -1004,30 +1011,48 @@ impl std::fmt::Display for GoAnyPtrKey {
 `)
 }
 
+// generateAnyDepthTracker emits the count of how deep the printer is inside
+// the value being printed, and go_format_any_nested, which every place that
+// prints a value held inside another one goes through: a struct's interface
+// field, an element of a []interface{}. Go's printer keeps the same count.
+func generateAnyDepthTracker(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString(`
+thread_local! {
+    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+// Runs format one level further inside the value being printed.
+` + visibility + `fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
+    struct Depth;
+    impl Drop for Depth {
+        fn drop(&mut self) {
+            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
+        }
+    }
+    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    format()
+}
+`)
+}
+
 // generateAnyPointerFormatter emits go_format_any_pointer, which format_any
 // uses to print a pointer to a struct held in an interface.
 func generateAnyPointerFormatter(out *strings.Builder) {
 	out.WriteString(`
-thread_local! {
-    static GO_FORMAT_ANY_POINTER_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
-}
-
 // Go expands a pointer to a struct only at the top level of the value being
-// printed. Below that it prints the pointer's address. That is also what keeps
-// a value that points back to itself from printing forever.
+// printed. Inside a struct, a slice or another pointer it prints the address.
+// That is also what keeps a value that points back to itself from printing
+// forever.
 fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
-    struct Depth;
-    impl Drop for Depth {
-        fn drop(&mut self) {
-            GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() - 1));
-        }
-    }
-    if GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.get()) > 0 {
+    if GO_FORMAT_ANY_DEPTH.with(|depth| depth.get()) > 0 {
         return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
     }
-    GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    expand()
+    go_format_any_nested(expand)
 }
 `)
 }
@@ -1776,7 +1801,7 @@ fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Syn
 }
 
 fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
-    format!("[{}]", format_any_slice_values(slice))
+    go_format_any_nested(|| format!("[{}]", format_any_slice_values(slice)))
 }
 
 fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
@@ -1799,7 +1824,7 @@ fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> St
 }
 
 fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    format!("[{}]", format_any_slice_values(slice))
+    go_format_any_nested(|| format!("[{}]", format_any_slice_values(slice)))
 }
 
 fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
