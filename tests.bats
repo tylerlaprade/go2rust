@@ -1975,6 +1975,14 @@ run_xfail_test() {
     run_test "tests/package_named_string_conversion"
 }
 
+@test "package_nil_slice_print" {
+    run_test "tests/package_nil_slice_print"
+}
+
+@test "package_nil_slice_print_goroutine" {
+    run_test "tests/package_nil_slice_print_goroutine"
+}
+
 @test "package_selector_pointer_argument" {
     run_test "tests/package_selector_pointer_argument"
 }
