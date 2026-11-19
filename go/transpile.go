@@ -666,6 +666,12 @@ func importedOrderedConstraintInterfaces(typeInfo *TypeInfo) map[string]*types.I
 			if !ok || !interfaceEmbedsOnlyOrderedTerms(iface) {
 				continue
 			}
+			// A constraint the program never reaches is not written, so
+			// there is no trait to implement (as in
+			// importedTranspiledInterfaceFromType).
+			if sourceMappedDeclIsPruned(named.Obj()) {
+				continue
+			}
 			iface.Complete()
 			interfaces[goTypesNamedTypeToRust(named)] = iface
 		}

@@ -1,3 +1,5 @@
+use go2rust_stdlib_stubs::*;
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -44,161 +46,6 @@ where
     }
 }
 
-struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
-    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
-    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    capacity: usize,
-}
-
-impl<T> GoChannel<T> {
-    fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
-
-    fn new_buffered(cap: usize) -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: cap,
-        }
-    }
-
-    fn send(&self, val: T) {
-        if self.is_nil() {
-            return;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.send(val).is_ok() && self.capacity > 0 {
-                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            }
-        }
-    }
-
-    fn try_send(&self, val: T) -> bool {
-        if self.is_nil() {
-            return false;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.try_send(val).is_ok() {
-                if self.capacity > 0 {
-                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                }
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    fn recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    fn try_recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().try_recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    fn close(&self) {
-        *self.tx.lock().unwrap() = None;
-    }
-
-    fn is_nil(&self) -> bool {
-        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn len(&self) -> usize {
-        self.len.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn capacity(&self) -> usize {
-        self.capacity
-    }
-}
-
-impl<T> Clone for GoChannel<T> {
-    fn clone(&self) -> Self {
-        GoChannel {
-            tx: self.tx.clone(),
-            rx: self.rx.clone(),
-            is_nil: self.is_nil.clone(),
-            len: self.len.clone(),
-            capacity: self.capacity,
-        }
-    }
-}
-
-impl<T> Default for GoChannel<T> {
-    fn default() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
-}
-
-impl<T> std::fmt::Debug for GoChannel<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoChannel")
-    }
-}
-
-impl<T> Iterator for GoChannel<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        self.recv()
-    }
-}
-
-pub mod slices {
-    use super::*;
-    pub fn clip<S, E>(_arg0: Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>> {
-        panic!("clip bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 #[derive(Debug, Clone)]
 pub struct Config {
     pub env: Arc<Mutex<Option<Vec<String>>>>,
@@ -242,13 +89,23 @@ pub fn build_env(cfg: Arc<Mutex<Option<Config>>>) -> Arc<Mutex<Option<Vec<String
 }
 
 fn main() {
+    ::cmp::__go_init_all();
+    ::iter::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::slices::__go_init_all();
+
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();
-
     let mut cfg = Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=1".to_string()]))), dir: Arc::new(Mutex::new(Some("/tmp/work".to_string()))), ..Default::default() })));
     let mut env = build_env(cfg.clone());
     println!("{} {} {}", format!("{}", (*env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
+}
+
+impl GoValueClone for Config {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }
