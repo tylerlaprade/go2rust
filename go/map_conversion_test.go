@@ -19,3 +19,21 @@ func TestBasicMapConversionRequiresTypeInformation(t *testing.T) {
 		t.Fatalf("missing type information produced %s", out.String())
 	}
 }
+
+func TestConvertedMapElementHasOneHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Span int64
+const Tick Span = 3
+var units = map[string]uint64{"tick": uint64(Tick)}
+`)
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, `__go_map.insert("tick".to_string(),`) {
+			if strings.Count(line, "RefCell::new(Some(") != 1 {
+				t.Fatalf("converted map element should have one handle: %s", line)
+			}
+			return
+		}
+	}
+	t.Fatal("missing map element for tick")
+}
