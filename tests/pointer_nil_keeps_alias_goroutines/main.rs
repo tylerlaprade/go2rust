@@ -237,4 +237,20 @@ fn main() {
         *count.lock().unwrap() = Some(__tmp_1);
     };
     println!("{} {} {}", format!("{}", { let __nil_result = (*shared.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_target = (*second.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+    let mut captured = Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(4))), ..Default::default() })));
+    let mut captured_closure_clone = captured.clone(); let mut clear = Arc::new(Mutex::new(Some(Box::new(move || {
+        *captured_closure_clone.lock().unwrap() = None;
+    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = clear.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
+    println!("{}", format!("{}", { let __nil_result = (*captured.lock().unwrap()).is_none(); __nil_result }));
 }

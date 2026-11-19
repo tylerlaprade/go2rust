@@ -39,4 +39,9 @@ func main() {
 
 	second.Next, count = nil, 3
 	fmt.Println(shared != nil, second.Next == nil, count)
+
+	captured := &Node{Value: 4}
+	clear := func() { captured = nil }
+	clear()
+	fmt.Println(captured == nil)
 }

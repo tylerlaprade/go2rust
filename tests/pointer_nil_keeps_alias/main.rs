@@ -80,4 +80,11 @@ fn main() {
         *count.borrow_mut() = Some(__tmp_1);
     };
     println!("{} {} {}", format!("{}", { let __nil_result = (*shared.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_target = (*second.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
+
+    let mut captured = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
+    let mut captured_closure_clone = captured.clone(); let mut clear = Rc::new(RefCell::new(Some(Box::new(move || {
+        *captured_closure_clone.borrow_mut() = None;
+    }) as Box<dyn FnMut() -> ()>)));
+    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = clear.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    println!("{}", format!("{}", { let __nil_result = (*captured.borrow()).is_none(); __nil_result }));
 }

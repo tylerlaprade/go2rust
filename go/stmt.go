@@ -7352,6 +7352,11 @@ func nilPointerHandleAssignmentType(lhs ast.Expr, rhs ast.Expr) types.Type {
 	}
 	switch target := unwrapParens(lhs).(type) {
 	case *ast.Ident:
+		// The closure's clone still stands in for the enclosing variable.
+		// Rebinding it requires a shared pointer slot in the capture layout.
+		if _, captured := currentCaptureRenames[target.Name]; captured {
+			return nil
+		}
 		if target.Name == "_" || isSliceElemPtrVar(target.Name) || isArrayElemPtrVar(target.Name) ||
 			(isCurrentReceiverIdent(target) && currentReceiverRustAlias != "") {
 			return nil
