@@ -9907,11 +9907,15 @@ func pass(err error) {
 }
 `)
 
-	if strings.Contains(rust, `format!("{}",`) {
-		t.Fatalf("error-to-any lowering should not preserve only formatted error text:\n%s", rust)
-	}
-	if !strings.Contains(rust, "downcast_ref::<myErr>()") {
+	typed := strings.Index(rust, "downcast_ref::<myErr>()")
+	if typed < 0 {
 		t.Fatalf("error-to-any lowering should downcast the dynamic concrete error through go/types candidates:\n%s", rust)
+	}
+	// The message is only what is left for an error whose dynamic type the
+	// package cannot name (errors.New, fmt.Errorf). It must come after every
+	// typed downcast, never in place of one.
+	if text := strings.Index(rust, `format!("{}", __err)`); text >= 0 && text < typed {
+		t.Fatalf("error-to-any lowering should try the typed downcasts before falling back to the error text:\n%s", rust)
 	}
 	if !strings.Contains(rust, `go_box_any_with_metadata(typed_val.clone(), "struct", true)`) {
 		t.Fatalf("error-to-any lowering should box the dynamic concrete error with go/types metadata:\n%s", rust)

@@ -8498,7 +8498,7 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
 	if len(candidates) == 0 {
-		out.WriteString(`panic!("type info required: error-to-any has no visible dynamic error implementors")`)
+		writeOpaqueGoErrorAnyBox(out, "__err")
 	} else {
 		for i, candidate := range candidates {
 			if i == 0 {
@@ -8512,10 +8512,24 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 			writeGoAnyMetadataBox(out, "typed_val.clone()", candidate)
 			out.WriteString(" }")
 		}
-		out.WriteString(` else { panic!("type info required: error-to-any for unknown dynamic error type") }`)
+		out.WriteString(" else { ")
+		writeOpaqueGoErrorAnyBox(out, "__err")
+		out.WriteString(" }")
 	}
 	out.WriteString(" } }")
 	return true
+}
+
+// writeOpaqueGoErrorAnyBox boxes an error whose dynamic type is not one of
+// the error types this package can name, such as the value errors.New or
+// fmt.Errorf returns. The box holds the error's message, which is the form
+// type assertions to error and the any formatter read back. The error's
+// identity does not survive the trip.
+func writeOpaqueGoErrorAnyBox(out *strings.Builder, errExpr string) {
+	out.WriteString("Box::new(format!(\"{}\", ")
+	out.WriteString(errExpr)
+	out.WriteString(")) as ")
+	out.WriteString(rustAnyTraitObject())
 }
 
 func goErrorInterfaceAnyBoxShouldUseMultiline(candidates []localInterfaceAssertionCandidate) bool {
@@ -8556,7 +8570,9 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	out.WriteString(indent)
 	out.WriteString("            } else {\n")
 	out.WriteString(indent)
-	out.WriteString("                panic!(\"type info required: error-to-any for unknown dynamic error type\")\n")
+	out.WriteString("                ")
+	writeOpaqueGoErrorAnyBox(out, "__err")
+	out.WriteString("\n")
 	out.WriteString(indent)
 	out.WriteString("            }\n")
 	out.WriteString(indent)

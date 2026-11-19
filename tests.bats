@@ -963,6 +963,10 @@ run_xfail_test() {
     run_test "tests/error_handling"
 }
 
+@test "error_in_interface_value" {
+    run_test "tests/error_in_interface_value"
+}
+
 @test "error_map_values" {
     run_test "tests/error_map_values"
 }

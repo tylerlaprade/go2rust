@@ -1,0 +1,7 @@
+first
+bad
+wrapped: bad
+3
+2
+asserted: bad
+bad
