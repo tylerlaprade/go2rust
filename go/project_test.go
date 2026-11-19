@@ -7309,7 +7309,8 @@ var _ sync.Mutex
 	if err := loader.typeCheckLocalPackage(mainPkg, loader.projectImporter()); err != nil {
 		t.Fatalf("typeCheckLocalPackage(main) error = %v", err)
 	}
-	SetSourceStdlibReachable(loader.computeSourceStdlibReachable())
+	reachable := loader.computeSourceStdlibReachable()
+	SetSourceStdlibReachable(reachable)
 
 	typeInfo := &TypeInfo{info: syncPkg.TypesInfo, pkg: syncPkg.Types}
 	modules := []string{"mutex", "cond"}
@@ -7323,7 +7324,8 @@ var _ sync.Mutex
 		t.Fatalf("pruned cross-file local interface should not get an impl block:\n%s", rust)
 	}
 
-	SetSourceStdlibReachable(nil)
+	reachable[syncPkg.Types.Scope().Lookup("Locker")] = true
+	SetSourceStdlibReachable(reachable)
 	imports = packageSiblingItemImports(syncPkg.Syntax, modules, typeInfo)
 	if !strings.Contains(strings.Join(imports["cond"], ", "), "Locker") {
 		t.Fatalf("reachable Locker missing from cond imports: %v", imports["cond"])
