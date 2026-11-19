@@ -32,11 +32,67 @@ func typeNeedsGoValueClone(typ types.Type) bool {
 		if obj := named.Obj(); obj != nil && obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
 			return false
 		}
-		_, ok := named.Underlying().(*types.Struct)
-		return ok
+		switch named.Underlying().(type) {
+		case *types.Struct:
+			return true
+		case *types.Array:
+			// "type Grid [3]Cell" is a newtype around a shared cell, so its
+			// Clone is the same array again. writeNamedArrayValueClone
+			// gives it the copy helper.
+			return namedArrayHasGoValueClone(named)
+		}
+		return false
 	}
 	_, ok := types.Unalias(typ).Underlying().(*types.Struct)
 	return ok
+}
+
+// namedArrayHasGoValueClone reports whether the declaration of the named
+// array type gets the copy helper: every one without type parameters does.
+func namedArrayHasGoValueClone(named *types.Named) bool {
+	return named.TypeParams().Len() == 0 && named.TypeArgs().Len() == 0
+}
+
+// writeNamedArrayValueClone gives the newtype of a named array type its Go
+// copy. The newtype holds the array in a cell and derives Clone, so a clone
+// shares the array: "b := a; b[0] = 9" changed a. The copy is a new cell
+// holding Go's copy of each element.
+func writeNamedArrayValueClone(out *strings.Builder, typeSpec *ast.TypeSpec, rustTypeName string) {
+	arrayAST, ok := typeSpec.Type.(*ast.ArrayType)
+	if !ok || arrayAST.Len == nil {
+		return
+	}
+	if typeSpec.TypeParams != nil && len(typeSpec.TypeParams.List) > 0 {
+		return
+	}
+	elementsCopy := ""
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if obj := typeInfo.info.Defs[typeSpec.Name]; obj != nil {
+			if array, ok := obj.Type().Underlying().(*types.Array); ok {
+				elementsCopy = goValueCopyCallForType(array)
+			}
+		}
+	}
+	out.WriteString("\nimpl ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("    pub fn __go_value_clone(&self) -> Self {\n")
+	out.WriteString("        ")
+	if elementsCopy == "" {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+	} else {
+		out.WriteString(rustTypeName)
+		out.WriteString("(")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("self.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().map(|__go_array| __go_array")
+		out.WriteString(elementsCopy)
+		out.WriteString(")")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(")")
+	}
+	out.WriteString("\n    }\n}\n")
 }
 
 // goValueCopyCallForType is what to append to a reference to a value of this

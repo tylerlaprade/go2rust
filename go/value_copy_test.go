@@ -351,7 +351,7 @@ func TestMapCommaOkWithoutTypeInfoIsLoud(t *testing.T) {
 	defer SetTypeInfo(previous)
 
 	var out strings.Builder
-	writeMapCommaOkFoundValue(&out, &ast.IndexExpr{X: ast.NewIdent("m"), Index: ast.NewIdent("k")}, false, false)
+	writeMapCommaOkFoundValue(&out, &ast.IndexExpr{X: ast.NewIdent("m"), Index: ast.NewIdent("k")}, false, false, false)
 	if out.String() != goValueCopyNeedsTypeInfo {
 		t.Fatalf("found value without type info = %q; want %q", out.String(), goValueCopyNeedsTypeInfo)
 	}
@@ -360,5 +360,141 @@ func TestMapCommaOkWithoutTypeInfoIsLoud(t *testing.T) {
 	writeMapRangeValueIterationCopy(&out, nil, ast.NewIdent("v"))
 	if !strings.Contains(out.String(), "let v = ") || !strings.Contains(out.String(), goValueCopyNeedsTypeInfo) {
 		t.Fatalf("map range value without a type = %q; want the type-info stop", out.String())
+	}
+}
+
+// A struct with type parameters gets the same Clone as every other struct:
+// the handles of its field cells, so that a pointer method can hand on its
+// receiver. Its Clone used to be Go's copy, which detached "c" in a closure
+// such as "func() { c.N++ }" from the struct the method was called on.
+func TestGenericStructCloneKeepsTheFieldCells(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type P struct{ X int }
+
+type C[T any] struct {
+	P P
+	V T
+}
+
+func (c *C[T]) Later() func() { return func() { c.P.X++ } }
+
+func main() {
+	c := &C[int]{}
+	c.Later()()
+}
+`)
+	cloneStart := strings.Index(rust, "> Clone for C<T> {")
+	if cloneStart < 0 {
+		t.Fatalf("missing the Clone impl of the generic struct:\n%s", rust)
+	}
+	cloneImpl := rust[cloneStart:]
+	if end := strings.Index(cloneImpl, "\n}\n"); end >= 0 {
+		cloneImpl = cloneImpl[:end]
+	}
+	for _, want := range []string{"p: self.p.clone(),", "v: self.v.clone(),"} {
+		if !strings.Contains(cloneImpl, want) {
+			t.Errorf("Clone of a generic struct should clone each field cell, missing %q:\n%s", want, cloneImpl)
+		}
+	}
+	if strings.Contains(cloneImpl, "__go_value_clone") {
+		t.Errorf("Clone of a generic struct should not be Go's copy:\n%s", cloneImpl)
+	}
+	if !strings.Contains(rust, "pub fn __go_value_clone(&self) -> Self {") {
+		t.Errorf("the generic struct should still have Go's copy as its own method:\n%s", rust)
+	}
+}
+
+// "v, ok = m[k]" for a slice or map value must leave the value in the map
+// whatever the target is. A plain local slice takes over the entry's handle.
+// A named slice, a field of one, a package variable and an indexed target
+// are filled by moving a value into them, so they get a clone of the entry's
+// value in a cell of its own to move it from; they used to be given the
+// entry's own cell, and the move emptied the map entry.
+func TestMapCommaOkAssignmentLeavesSliceValuesInTheMap(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Numbers []int
+
+type Holder struct{ nums Numbers }
+
+var global []int
+
+func main() {
+	named := map[string]Numbers{}
+	lists := map[string][]int{}
+	var numbers Numbers
+	var ok bool
+	numbers, ok = named["a"]
+	var h Holder
+	h.nums, ok = named["a"]
+	global, ok = lists["a"]
+	dst := [][]int{{9}}
+	dst[0], ok = lists["a"]
+	var local []int
+	local, ok = lists["a"]
+	_, _, _ = numbers, ok, local
+}
+`)
+	const held = "Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } };"
+	for what, want := range map[string]string{
+		"a named slice variable": held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
+		"a named slice field":    held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
+		"a package variable":     held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0;",
+		"an indexed target":      held + " (*dst.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0.borrow_mut().take().unwrap_or_default();",
+		"a plain local slice":    "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; local = __tmp_0;",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// A named array type is a newtype around a cell, and its derived Clone is
+// the same array again. It needs its own copy helper, and the copy sites
+// must call it: "b := a; b[0] = 9" changed a for every named array type,
+// arrays of ints included.
+func TestNamedArrayIsCopiedWithItsOwnHelper(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type P struct{ X int }
+
+type Cells [1]P
+
+type Nums [2]int
+
+type Grid [2]Cells
+
+func use(c Cells) {}
+
+func main() {
+	var a Cells
+	b := a
+	var n Nums
+	m := n
+	var g Grid
+	h := g
+	use(a)
+	_, _, _ = b, m, h
+}
+`)
+	for what, want := range map[string]string{
+		"the helper of an array of structs":      "impl Cells {\n    pub fn __go_value_clone(&self) -> Self {\n        Cells(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.each_ref().map(|__go_elem| __go_elem.__go_value_clone())))))",
+		"the helper of an array of ints":         "impl Nums {\n    pub fn __go_value_clone(&self) -> Self {\n        Nums(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.clone()))))",
+		"the helper of an array of named arrays": "impl Grid {\n    pub fn __go_value_clone(&self) -> Self {\n        Grid(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.each_ref().map(|__go_elem| __go_elem.__go_value_clone())))))",
+		"b := a":                                 "let mut b = { let __owned = a.borrow().as_ref().unwrap().__go_value_clone();",
+		"m := n":                                 "let mut m = { let __owned = n.borrow().as_ref().unwrap().__go_value_clone();",
+		"h := g":                                 "let mut h = { let __owned = g.borrow().as_ref().unwrap().__go_value_clone();",
+		"use(a)":                                 "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
 	}
 }

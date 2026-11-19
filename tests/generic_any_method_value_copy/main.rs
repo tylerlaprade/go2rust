@@ -83,7 +83,9 @@ impl<T: Any + 'static> Cell<T> {
 
 impl<T: Any + 'static> Clone for Cell<T> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            value: self.value.clone(),
+        }
     }
 }
 

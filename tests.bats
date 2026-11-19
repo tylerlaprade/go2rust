@@ -1183,6 +1183,14 @@ run_xfail_test() {
     run_test "tests/generic_pointer_interface_type_arg"
 }
 
+@test "generic_struct_pointer_receiver" {
+    run_test "tests/generic_struct_pointer_receiver"
+}
+
+@test "generic_struct_pointer_receiver_goroutines" {
+    run_test "tests/generic_struct_pointer_receiver_goroutines"
+}
+
 @test "getter_returns_copy" {
     run_test "tests/getter_returns_copy"
 }
@@ -1451,6 +1459,14 @@ run_xfail_test() {
     run_test "tests/make_slice_zero_len_capacity"
 }
 
+@test "map_comma_ok_assignment_targets" {
+    run_test "tests/map_comma_ok_assignment_targets"
+}
+
+@test "map_comma_ok_assignment_targets_goroutines" {
+    run_test "tests/map_comma_ok_assignment_targets_goroutines"
+}
+
 @test "map_comma_ok_bool_default" {
     run_test "tests/map_comma_ok_bool_default"
 }
@@ -1629,6 +1645,14 @@ run_xfail_test() {
 
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
+}
+
+@test "named_array_value_copy" {
+    run_test "tests/named_array_value_copy"
+}
+
+@test "named_array_value_copy_goroutines" {
+    run_test "tests/named_array_value_copy_goroutines"
 }
 
 @test "named_const_method_call" {

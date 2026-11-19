@@ -1196,11 +1196,36 @@ func generateStructValueClone(out *strings.Builder, structName string, structTyp
 	out.WriteString("}\n")
 }
 
-func generateStructClone(out *strings.Builder, structName string, generics rustTypeGenerics) {
+// generateStructClone writes Clone for a struct with type parameters, which
+// does not derive it. It is the Clone every other struct derives: each field
+// cell's handle is cloned, so the clone is the same struct again. Pointer
+// receivers depend on that: "self.clone()" is how a method hands on its
+// receiver. Go's copy of the struct is __go_value_clone.
+func generateStructClone(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	rustStructName := RustTypeNameForUse(structName)
 	writeRustTraitImplHeader(out, generics, "Clone", rustStructName)
 	out.WriteString("    fn clone(&self) -> Self {\n")
-	out.WriteString("        self.__go_value_clone()\n")
+	out.WriteString("        Self {\n")
+	if structType != nil {
+		for fieldIndex, field := range structType.Fields.List {
+			fieldNames := field.Names
+			if len(fieldNames) == 0 {
+				fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+			}
+			for nameIndex, name := range fieldNames {
+				fieldName := rustStructFieldName(name, fieldIndex, nameIndex)
+				out.WriteString("            ")
+				out.WriteString(fieldName)
+				out.WriteString(": self.")
+				out.WriteString(fieldName)
+				out.WriteString(".clone(),\n")
+			}
+		}
+	}
+	if len(generics.Phantom) > 0 {
+		out.WriteString("            __go_phantom: std::marker::PhantomData,\n")
+	}
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
@@ -5638,7 +5663,7 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 	generateStructValueClone(out, structName, t, generics)
 	if !deriveClone {
 		out.WriteString("\n")
-		generateStructClone(out, structName, generics)
+		generateStructClone(out, structName, t, generics)
 	}
 	out.WriteString("\n")
 
@@ -5862,6 +5887,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 			}
+			writeNamedArrayValueClone(out, typeSpec, rustTypeName)
 
 			// Add Display implementation for displayable scalar type definitions
 			if IsStringerImplType(typeSpec.Name.Name) {

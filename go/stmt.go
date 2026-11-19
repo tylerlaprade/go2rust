@@ -8676,16 +8676,10 @@ func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) 
 	}
 }
 
-// writeMapCommaOkHandleAssignmentFromTemp assigns the first result of
-// "v, ok = m[k]" to an existing slice or map variable or field. The map's
-// value is then a handle and the temporary is the map's own handle, so the
-// target takes it over, as the plain "v = m[k]" does. Moving the value out of
-// the temporary, which is right for a cell made for the purpose, emptied the
-// map entry. It reports false, and writes nothing, for every other target.
-//
-// A function, interface, error or channel value is still moved out of the
-// map's handle by the ordinary tuple assignment (DEV-58).
-func writeMapCommaOkHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, indexExpr *ast.IndexExpr, tmpName string) bool {
+// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" makes the
+// existing slice or map variable or field v the same slice or map as the
+// entry by replacing its handle, as the plain "v = m[k]" does.
+func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -8713,19 +8707,31 @@ func writeMapCommaOkHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	}
 	switch types.Unalias(valueType).Underlying().(type) {
 	case *types.Slice:
-		if !isPlainSliceExpression(lhs) {
-			return false
-		}
+		return isPlainSliceExpression(lhs)
 	case *types.Map:
-		if !typeInfo.IsMap(lhs) {
-			return false
-		}
-	default:
+		return typeInfo.IsMap(lhs) && !isNamedMapExpression(lhs)
+	}
+	return false
+}
+
+// mapCommaOkValueIsSliceOrMap reports whether the values of the map read by
+// indexExpr are slices or maps, of a named type or not. The map's cell for
+// such a value can be cloned: the clone of a named slice shares its backing
+// array, as a copied slice header does in Go.
+func mapCommaOkValueIsSliceOrMap(indexExpr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
 		return false
 	}
-	out.WriteString(" ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, tmpName)
-	return true
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
 }
 
 // writeMapCommaOkFoundValue writes the first result of "v, ok := m[k]" for a
@@ -8735,9 +8741,26 @@ func writeMapCommaOkHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 // its own: handing out the map's cell let "v = 5" after the read change the
 // map, and let "v, ok = m[k]" into existing variables take the value out of
 // the map.
-func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool, valueDiscarded bool) {
-	if syntaxKeepsHandle || valueDiscarded {
+func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool, valueDiscarded bool, heldInOwnCell bool) {
+	if valueDiscarded {
 		// "_, ok := m[k]" drops the value, so the handle will do.
+		out.WriteString("v.clone()")
+		return
+	}
+	if heldInOwnCell {
+		// The value is about to be moved into an existing target. Moving it
+		// out of the map's own handle would empty the map entry, so the
+		// target gets a clone of what the handle holds, in a cell of its own.
+		out.WriteString("{ let __held = v")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone(); ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("__held")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(" }")
+		return
+	}
+	if syntaxKeepsHandle {
 		out.WriteString("v.clone()")
 		return
 	}
@@ -11903,7 +11926,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (")
 				}
 				valueTarget, valueTargetIsIdent := s.Lhs[0].(*ast.Ident)
-				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueTargetIsIdent && valueTarget.Name == "_")
+				valueDiscarded := valueTargetIsIdent && valueTarget.Name == "_"
+				// "v, ok = m[k]" for a slice or map value: a plain slice or
+				// map variable takes over the entry's handle. Every other
+				// target (a named slice, a package variable, "dst[i]") gets a
+				// clone of the value in a cell of its own to move it from.
+				takesOverHandle := s.Tok != token.DEFINE && mapCommaOkAssignTakesOverHandle(s.Lhs[0], indexExpr)
+				heldInOwnCell := s.Tok != token.DEFINE && !valueDiscarded && !takesOverHandle && mapCommaOkValueIsSliceOrMap(indexExpr)
+				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueDiscarded, heldInOwnCell)
 				out.WriteString(", ")
 				out.WriteString("true")
 				out.WriteString("), None => (")
@@ -11918,7 +11948,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					registerBareShortDecl(s.Lhs[1])
 				} else {
 					out.WriteString(";")
-					if !writeMapCommaOkHandleAssignmentFromTemp(out, s.Lhs[0], indexExpr, "__tmp_0") {
+					if takesOverHandle {
+						out.WriteString(" ")
+						writePointerHandleAssignmentTargetFromValueName(out, s.Lhs[0], "__tmp_0")
+					} else {
+						// A function, interface, error or channel value is
+						// still moved out of the map's handle here (DEV-58).
 						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
 					}
 					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
