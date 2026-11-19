@@ -46,13 +46,13 @@ where
 
 pub fn compare_length(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> i32 {
     if ((*a.borrow().as_ref().unwrap()).len() as i32) < ((*b.borrow().as_ref().unwrap()).len() as i32) {
-        return -1;
+        return -(1);
     }
     if ((*a.borrow().as_ref().unwrap()).len() as i32) > ((*b.borrow().as_ref().unwrap()).len() as i32) {
         return 1;
     }
     if (*a.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {
-        return -1;
+        return -(1);
     }
     if (*a.borrow().as_ref().unwrap()) > (*b.borrow().as_ref().unwrap()) {
         return 1;

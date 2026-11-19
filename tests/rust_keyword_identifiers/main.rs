@@ -9,20 +9,27 @@ pub struct Branch {
 
 impl Branch {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#else: { let __guard = self.r#else.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#else.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            r#else: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Branch {
     fn default() -> Self {
-        Self { r#else: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            r#else: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Branch {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.r#else.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#else.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -32,7 +39,7 @@ pub fn use_keyword_names(r#fn: Rc<RefCell<Option<i32>>>) -> i32 {
     for r#mod in vec![(*r#fn.borrow().as_ref().unwrap()).clone(), 2].iter().copied() {
         { let __rhs = r#mod; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-    let mut branch = Rc::new(RefCell::new(Some(Branch { r#else: total.clone(), ..Default::default() })));
+    let mut branch = Rc::new(RefCell::new(Some(Branch { r#else: Rc::new(RefCell::new(Some({ let __arg_holder = total.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     return (*(*branch.borrow().as_ref().unwrap()).r#else.borrow().as_ref().unwrap());
 }
 

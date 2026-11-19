@@ -272,6 +272,21 @@ fn go_new_timer(duration: std::time::Duration) -> GoTimer {
     }
 }
 
+fn go_after_func<F>(duration: std::time::Duration, callback: F) -> GoTimer
+where
+    F: FnOnce() + Send + 'static,
+{
+    let timer = go_new_timer(duration);
+    let stopped = timer.stopped.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(duration);
+        if !stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            callback();
+        }
+    });
+    timer
+}
+
 impl GoTimer {
     fn stop(&self) -> bool {
         let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);

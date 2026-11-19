@@ -1,4 +1,4 @@
-use crate::aaa::*;
+use crate::{aaa::{A}};
 
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,

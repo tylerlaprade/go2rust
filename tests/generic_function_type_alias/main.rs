@@ -13,7 +13,7 @@ pub fn words() -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMu
 pub fn print_until_stop(seq: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>>) {
     { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()> = { let mut __f_guard = seq.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(Box::new(move |word: Rc<RefCell<Option<String>>>| -> bool {
         println!("{} {}", format!("{}", "word:".to_string()), format!("{}", { let __v = (*word.borrow().as_ref().unwrap()).clone(); __v }));
-        (*word.borrow().as_ref().unwrap()).clone() != "go"
+        (*word.borrow().as_ref().unwrap()).clone() != "go".to_string()
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>)))) };
 }
 

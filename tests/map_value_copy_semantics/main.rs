@@ -18,7 +18,9 @@ impl Display for Tok {
 
 impl PartialEq for Tok {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -30,7 +32,9 @@ impl PartialEq<i32> for Tok {
 
 impl PartialOrd for Tok {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -91,6 +95,76 @@ impl std::ops::Sub<Tok> for i32 {
     type Output = Tok;
     fn sub(self, other: Tok) -> Tok {
         Tok(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Tok {
+    type Output = Tok;
+    fn mul(self, other: Self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Tok {
+    type Output = Tok;
+    fn mul(self, other: i32) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Tok> for i32 {
+    type Output = Tok;
+    fn mul(self, other: Tok) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Tok {
+    type Output = Tok;
+    fn div(self, other: Self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Tok {
+    type Output = Tok;
+    fn div(self, other: i32) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Tok> for i32 {
+    type Output = Tok;
+    fn div(self, other: Tok) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Tok {
+    type Output = Tok;
+    fn neg(self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Tok {
+    type Output = Tok;
+    fn rem(self, other: Self) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Tok {
+    type Output = Tok;
+    fn rem(self, other: i32) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Tok> for i32 {
+    type Output = Tok;
+    fn rem(self, other: Tok) -> Tok {
+        Tok(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -322,7 +396,7 @@ fn main() {
         { let __map_key = (*i.borrow().as_ref().unwrap()); let __map_value = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    println!("{} {} {}", format!("{}", (*m.borrow().as_ref().unwrap()).get(&1).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)), format!("{}", (*m.borrow().as_ref().unwrap()).get(&2).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)), format!("{}", (*m.borrow().as_ref().unwrap()).get(&3).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)));
+    println!("{} {} {}", format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&3)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut tm = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<Tok>>>>::from([]))));
     let mut t = Rc::new(RefCell::new(Some(Tok(Rc::new(RefCell::new(Some(1 as i32)))))));
@@ -330,5 +404,5 @@ fn main() {
         { let __map_key = { let __v = Rc::new(RefCell::new(Some((*(*t.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))); let __guard = __v.borrow(); let __owned = (*__guard.as_ref().unwrap()).clone(); __owned }; let __map_value = Rc::new(RefCell::new(Some((*t.borrow().as_ref().unwrap()).clone()))); (*tm.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let mut guard = t.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as i32); }
     }
-    println!("{} {} {}", format!("{}", (*Rc::new(RefCell::new(Some((*(*tm.borrow().as_ref().unwrap()).get(&1).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Tok(Rc::new(RefCell::new(Some(0))))).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*tm.borrow().as_ref().unwrap()).get(&2).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Tok(Rc::new(RefCell::new(Some(0))))).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*tm.borrow().as_ref().unwrap()).get(&3).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Tok(Rc::new(RefCell::new(Some(0))))).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", (*Rc::new(RefCell::new(Some((*{ let __map_holder = tm.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Tok(Rc::new(RefCell::new(Some(0))))) }.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*{ let __map_holder = tm.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Tok(Rc::new(RefCell::new(Some(0))))) }.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*{ let __map_holder = tm.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&3)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Tok(Rc::new(RefCell::new(Some(0))))) }.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())));
 }

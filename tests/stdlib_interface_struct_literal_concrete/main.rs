@@ -11,28 +11,32 @@ pub struct entry {
 
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { typ: self.typ.clone(), name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.typ.clone();
+        let __go_clone_1_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            typ: __go_clone_0_0,
+            name: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for entry {
     fn default() -> Self {
-        Self { typ: Arc::new(Mutex::new(None)), name: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            typ: __go_default_0_0,
+            name: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.typ.lock().unwrap().as_ref().unwrap()), (*self.name.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for entry {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -44,31 +48,32 @@ pub fn make_entry() -> Arc<Mutex<Option<entry>>> {
 }
 
 fn main() {
-    cmp::__go_init_all();
-    go_ast::__go_init_all();
-    go_constant::__go_init_all();
-    go_token::__go_init_all();
-    go_types::__go_init_all();
-    go_version::__go_init_all();
-    internal_buildcfg::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    internal_filepathlite::__go_init_all();
-    internal_godebug::__go_init_all();
-    internal_goexperiment::__go_init_all();
-    internal_gover::__go_init_all();
-    internal_goversion::__go_init_all();
-    internal_stringslite::__go_init_all();
-    internal_types_errors::__go_init_all();
-    math::__go_init_all();
-    math_big::__go_init_all();
-    math_bits::__go_init_all();
-    path_filepath::__go_init_all();
-    slices::__go_init_all();
-    strconv::__go_init_all();
-    sync_atomic::__go_init_all();
-    unicode::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
+    ::go_ast::__go_init_all();
+    ::go_constant::__go_init_all();
+    ::go_token::__go_init_all();
+    ::go_types::__go_init_all();
+    ::go_version::__go_init_all();
+    ::internal_buildcfg::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_filepathlite::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_goexperiment::__go_init_all();
+    ::internal_gover::__go_init_all();
+    ::internal_goversion::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::internal_types_errors::__go_init_all();
+    ::math::__go_init_all();
+    ::math_big::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::path_filepath::__go_init_all();
+    ::slices::__go_init_all();
+    ::strconv::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     if false {
         let _ = make_entry();

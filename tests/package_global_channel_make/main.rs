@@ -154,7 +154,8 @@ pub struct token {
 
 impl token {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
