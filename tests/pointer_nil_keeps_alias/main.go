@@ -94,4 +94,15 @@ func main() {
 	held := sequence[index].Next
 	index, sequence[index].Next = 1, nil
 	fmt.Println(index, sequence[0].Next == nil, sequence[1].Next != nil, held.Value)
+
+	nested := [][]Node{{{Next: &Node{Value: 15}}}}
+	saved := nested[0][0].Next
+	nested[len(nested)-1][0].Next = nil
+	fmt.Println(nested[0][0].Next == nil, saved.Value)
+
+	matrix := [2][1]Node{{{Next: &Node{Value: 16}}}, {{Next: &Node{Value: 17}}}}
+	matrixAlias := matrix[0][0].Next
+	row := 0
+	row, matrix[row][0].Next = 1, nil
+	fmt.Println(row, matrix[0][0].Next == nil, matrix[1][0].Next != nil, matrixAlias.Value)
 }

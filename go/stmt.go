@@ -7407,19 +7407,25 @@ func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs a
 }
 
 func writeIndexedValuePointerFieldReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
-	index := indexedValuePointerFieldIndex(sel)
-	if index == nil {
+	target := indexedValuePointerFieldTarget(sel)
+	if target == nil {
 		return false
 	}
 	out.WriteString("{ ")
-	writeIndexedPointerFieldOperands(out, index, "__sequence", "__index")
+	target.writeOperands(out, "__sequence", "__index")
 	out.WriteString(" ")
-	writeIndexedPointerFieldStore(out, sel, "__sequence", "__index", valueName)
+	target.writeStore(out, "__sequence", "__index", valueName)
 	out.WriteString(" }")
 	return true
 }
 
-func indexedValuePointerFieldIndex(sel *ast.SelectorExpr) *ast.IndexExpr {
+type indexedPointerField struct {
+	selector *ast.SelectorExpr
+	sequence ast.Expr
+	indices  []ast.Expr
+}
+
+func indexedValuePointerFieldTarget(sel *ast.SelectorExpr) *indexedPointerField {
 	index, ok := unwrapParens(sel.X).(*ast.IndexExpr)
 	typeInfo := GetTypeInfo()
 	if !ok || typeInfo == nil {
@@ -7428,27 +7434,53 @@ func indexedValuePointerFieldIndex(sel *ast.SelectorExpr) *ast.IndexExpr {
 	if _, ok := coreUnderlyingType(typeInfo.GetArrayOrSliceElemType(index.X)).(*types.Struct); !ok {
 		return nil
 	}
-	return index
+	target := &indexedPointerField{selector: sel, sequence: index.X, indices: []ast.Expr{index.Index}}
+	// Unnamed nested collections are stored directly in their outer element.
+	// Reaching the row through a read would clone it instead.
+rows:
+	for {
+		row, ok := unwrapParens(target.sequence).(*ast.IndexExpr)
+		if !ok || typeInfo.GetArrayOrSliceElemType(row.X) == nil {
+			break
+		}
+		rowType := types.Unalias(typeInfo.GetType(row))
+		switch rowType.(type) {
+		case *types.Array, *types.Slice:
+		default:
+			break rows
+		}
+		target.sequence = row.X
+		target.indices = append(target.indices, row.Index)
+	}
+	slices.Reverse(target.indices)
+	return target
 }
 
-func writeIndexedPointerFieldOperands(out *strings.Builder, index *ast.IndexExpr, sequenceName, indexName string) {
+func (target *indexedPointerField) writeOperands(out *strings.Builder, sequenceName, indexName string) {
 	fmt.Fprintf(out, "let %s = ", sequenceName)
-	if !writeNamedArrayInnerHandleClone(out, index.X) {
+	if !writeNamedArrayInnerHandleClone(out, target.sequence) {
 		out.WriteString("(")
-		writeIndexedSequenceHandle(out, index.X)
+		writeIndexedSequenceHandle(out, target.sequence)
 		out.WriteString(").clone()")
 	}
-	fmt.Fprintf(out, "; let %s = ", indexName)
-	writeExpressionAsUsize(out, index.Index)
 	out.WriteString(";")
+	for i, index := range target.indices {
+		fmt.Fprintf(out, " let %s_%d = ", indexName, i)
+		writeExpressionAsUsize(out, index)
+		out.WriteString(";")
+	}
 }
 
-func writeIndexedPointerFieldStore(out *strings.Builder, sel *ast.SelectorExpr, sequenceName, indexName, valueName string) {
+func (target *indexedPointerField) writeStore(out *strings.Builder, sequenceName, indexName, valueName string) {
 	// The index may read the same collection. Borrow only for the store.
 	fmt.Fprintf(out, "{ let mut __sequence_guard = %s", sequenceName)
 	WriteBorrowMethod(out, true)
-	fmt.Fprintf(out, "; let __element = &mut __sequence_guard.as_mut().unwrap()[%s]; ", indexName)
-	fieldInfo := selectorFieldAccessInfo(sel)
+	out.WriteString("; let __element = &mut __sequence_guard.as_mut().unwrap()")
+	for i := range target.indices {
+		fmt.Fprintf(out, "[%s_%d]", indexName, i)
+	}
+	out.WriteString("; ")
+	fieldInfo := selectorFieldAccessInfo(target.selector)
 	if fieldInfo.IsPromoted {
 		writePromotedHandleAssignmentTarget(out, "__element", fieldInfo, false)
 	} else {
@@ -11950,19 +11982,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					indent := currentLineIndent(out)
 					out.WriteString("{\n")
 					// An earlier store can change the index used by a later target.
-					indexedPointerFields := make([]*ast.SelectorExpr, len(s.Lhs))
+					indexedPointerFields := make([]*indexedPointerField, len(s.Lhs))
 					for i, lhs := range s.Lhs {
 						sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
 						if !ok || nilPointerHandleAssignmentType(lhs, s.Rhs[i]) == nil {
 							continue
 						}
-						index := indexedValuePointerFieldIndex(sel)
-						if index == nil {
+						target := indexedValuePointerFieldTarget(sel)
+						if target == nil {
 							continue
 						}
-						indexedPointerFields[i] = sel
+						indexedPointerFields[i] = target
 						out.WriteString(indent + "    ")
-						writeIndexedPointerFieldOperands(out, index, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i))
+						target.writeOperands(out, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i))
 						out.WriteString("\n")
 					}
 					// Capture all RHS values before storing any results.
@@ -11975,9 +12007,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
-						if sel := indexedPointerFields[i]; sel != nil {
+						if target := indexedPointerFields[i]; target != nil {
 							out.WriteString(indent + "    ")
-							writeIndexedPointerFieldStore(out, sel, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i), fmt.Sprintf("__tmp_%d", i))
+							target.writeStore(out, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i), fmt.Sprintf("__tmp_%d", i))
 							out.WriteString("\n")
 							continue
 						}
