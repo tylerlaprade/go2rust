@@ -2586,6 +2586,10 @@ func writeNamedArrayNestedInnerPeels(out *strings.Builder, named *types.Named) {
 }
 
 func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	return writeNamedSliceInnerHandleCloneWithNilSlot(out, expr, false)
+}
+
+func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.Expr, allowNilSlot bool) bool {
 	if _, _, ok := namedSliceTypeForExpr(expr); !ok {
 		return false
 	}
@@ -2619,10 +2623,21 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
-	out.WriteString("{ let __named_slice = (*")
-	TranspileExpressionContext(out, expr, LValue)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).0.clone(); __named_slice }")
+	if allowNilSlot {
+		// A nil assignment can clear the outer slot. For nil comparison,
+		// this represents the same value as a named slice with a nil handle.
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
+		WriteWrappedNone(out)
+		out.WriteString("); __named_slice }")
+	} else {
+		out.WriteString("{ let __named_slice = (*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).0.clone(); __named_slice }")
+	}
 	return true
 }
 
@@ -6218,6 +6233,27 @@ func writeWrappedHandleNilComparison(out *strings.Builder, expr ast.Expr, op tok
 		out.WriteString("is_some()")
 	}
 	out.WriteString("; __nil_result }")
+}
+
+func writeNamedSliceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	if !isNamedSliceExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __slice_holder = ")
+	writeNamedSliceInnerHandleCloneWithNilSlot(out, expr, true)
+	out.WriteString("; let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__slice_guard).")
+	if op == token.EQL {
+		out.WriteString("is_none()")
+	} else {
+		out.WriteString("is_some()")
+	}
+	out.WriteString(" }")
+	return true
 }
 
 func writeNamedMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
@@ -11793,9 +11829,26 @@ func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValu
 	writeMapLookupValueWithHandle(out, valueType, defaultValue, false)
 }
 
+// A defined slice is represented by a named wrapper around the ordinary slice
+// handle. Map storage adds its own value cell around that wrapper. A missing
+// lookup therefore needs a present outer cell containing the named slice's nil
+// zero value; Default on the outer cell would instead leave it empty, so a
+// later len/index operation would unwrap None and panic.
+func writeMapLookupHandleZero(out *strings.Builder, valueType types.Type, defaultValue string) {
+	if _, _, ok := namedSliceTypeFromType(valueType); ok {
+		WriteWrapperPrefix(out)
+		out.WriteString(defaultValue)
+		WriteWrapperSuffix(out)
+		return
+	}
+	out.WriteString("Default::default()")
+}
+
 func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, defaultValue string, syntaxKeepsHandle bool) {
 	if syntaxKeepsHandle || mapValueTypeKeepsHandle(valueType) {
-		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
+		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| ")
+		writeMapLookupHandleZero(out, valueType, defaultValue)
+		out.WriteString(")")
 		return
 	}
 	if valueType == nil {
@@ -13667,6 +13720,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeLocalInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeNamedSliceNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeNamedMapNilComparison(out, e.X, e.Op) {
