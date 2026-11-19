@@ -323,15 +323,16 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 }
 
 // structDisplayFieldIsError reports whether a struct field's declared type is
-// the predeclared error interface.
+// the predeclared error interface, or an alias of it. It asks go/types and
+// nothing else: the spelling of the type says nothing reliable, because a
+// package can declare its own type named error. Without type information the
+// answer is no, and the field keeps the formatting it had before.
 func structDisplayFieldIsError(expr ast.Expr) bool {
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil {
-			return isErrorInterfaceType(typ)
-		}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
 	}
-	ident, ok := expr.(*ast.Ident)
-	return ok && ident.Name == "error"
+	return isErrorInterfaceType(typeInfo.GetType(expr))
 }
 
 func writeStructDisplayWriteCall(out *strings.Builder, fieldCount int) {

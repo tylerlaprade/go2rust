@@ -8094,7 +8094,10 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 }
 
 func isErrorInterfaceType(typ types.Type) bool {
-	named, ok := typ.(*types.Named)
+	if typ == nil {
+		return false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
 	return ok && named.Obj() != nil && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
 }
 
