@@ -1,1 +1,2 @@
-source_stdlib_packages = "go/token,go/types,bytes,go/version,internal/gover,internal/goversion,internal/types/errors,go/ast,go/constant,math/big,math,math/bits,cmp,slices,strings,internal/stringslite,sync/atomic,unicode,unicode/utf8,internal/buildcfg,internal/goexperiment,internal/godebug,internal/godebugs,strconv,internal/bytealg,internal/cpu"
+source_stdlib_packages = "go/token,go/types,bytes,go/version,internal/gover,internal/goversion,internal/types/errors,go/ast,go/constant,math/big,math,math/bits,cmp,slices,strings,internal/stringslite,sync/atomic,unicode,unicode/utf8,internal/buildcfg,internal/goexperiment,internal/godebug,internal/godebugs,strconv,internal/bytealg,internal/cpu,internal/race,container/heap,sort"
+test_timeout = "600s"
