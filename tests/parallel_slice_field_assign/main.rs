@@ -49,7 +49,7 @@ pub fn split(mut x: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<parsed>>> 
         *x.borrow_mut() = __tmp_1.borrow_mut().take();
     };
     { let new_val = x.borrow().as_ref().unwrap().clone(); *(*p.borrow().as_ref().unwrap()).rest.borrow_mut() = Some(new_val); };
-    return { let __owned = p.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
+    return { let __owned = p.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
 }
 
 fn main() {

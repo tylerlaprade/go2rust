@@ -790,7 +790,8 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 		}
 		out.WriteString(rhsVarName)
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone()")
+		out.WriteString(".as_ref().unwrap()")
+		out.WriteString(goValueCopyCallForExpr(rhsIdent))
 	} else if writeNamedIntegerAssignmentValue(out, rhs) {
 		// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
 	} else if writeConstAssignmentValue(out, lhs, rhs) {
@@ -807,6 +808,7 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 		// Copied by value from an existing wrapped field or handle.
 	} else {
 		TranspileExpression(out, rhs)
+		writeGoValueCopyOfVariable(out, rhs)
 	}
 }
 
@@ -4483,7 +4485,9 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	out.WriteString("{ let __owned = ")
 	out.WriteString(varName)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap().clone(); ")
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(goValueCopyCallForType(typ))
+	out.WriteString("; ")
 	WriteWrapperPrefix(out)
 	out.WriteString("__owned")
 	WriteWrapperSuffix(out)
@@ -7624,6 +7628,15 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		}
 		NeedAnyClone()
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		return
+	}
+	if copyCall := rangeElementGoValueCopyCall(rangeExpr); copyCall != ".clone()" {
+		// The loop variable is a copy of the element. Cloning the slice
+		// would clone each struct's handles, and "p.X = 1" in the loop
+		// would write into the slice.
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
+		out.WriteString(copyCall)
+		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
 	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
@@ -12175,7 +12188,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												if !writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
 													out.WriteString(rhsVarName)
 													WriteBorrowMethod(out, false)
-													out.WriteString(".as_ref().unwrap().clone()")
+													out.WriteString(".as_ref().unwrap()")
+													out.WriteString(goValueCopyCallForExpr(rhsIdent))
 												}
 											} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Constants assigned to wrapped slots need the target type from go/types.
@@ -12659,6 +12673,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Untyped string constants default to owned Go strings in local variables.
 											} else if writeWrappedOwnedExpressionValue(out, rhs) {
 												// Copied by value from an existing wrapped field or handle.
+											} else if writeWrappedGoValueCopyOfElement(out, rhs) {
+												// An element of a slice, array or map of structs is copied into the new variable.
 											} else if ident, ok := rhs.(*ast.Ident); ok {
 												if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
 													writeWrappedFunctionValueBox(out, ident, sig)

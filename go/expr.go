@@ -3120,15 +3120,23 @@ func writeScopedIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	if writeScopedTypeParamIdentValueClone(out, ident, handle) {
 		return
 	}
-	writeScopedValueClone(out, handle)
+	writeScopedValueCopy(out, handle, goValueCopyCallForExpr(ident))
 }
 
 func writeScopedValueClone(out *strings.Builder, handle string) {
+	writeScopedValueCopy(out, handle, ".clone()")
+}
+
+// writeScopedValueCopy reads the value out of a handle and copies it with
+// copyCall, which is goValueCopyCallForExpr of the expression being read.
+func writeScopedValueCopy(out *strings.Builder, handle string, copyCall string) {
 	out.WriteString("{ let __arg_holder = ")
 	out.WriteString(handle)
 	out.WriteString(".clone(); let __arg_guard = __arg_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
+	out.WriteString("; (*__arg_guard.as_ref().unwrap())")
+	out.WriteString(copyCall)
+	out.WriteString(" }")
 }
 
 func writeScopedTypeParamIdentValueClone(out *strings.Builder, ident *ast.Ident, handle string) bool {
@@ -7089,7 +7097,8 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString("(*")
 	out.WriteString(name)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
+	out.WriteString(".as_ref().unwrap())")
+	out.WriteString(goValueCopyCallForExpr(ident))
 }
 
 func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool {
@@ -11839,19 +11848,7 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 	if typeInfo == nil || expr == nil {
 		return false
 	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if obj := named.Obj(); obj != nil && obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
-			return false
-		}
-		_, ok := named.Underlying().(*types.Struct)
-		return ok
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Struct)
-	return ok
+	return typeNeedsGoValueClone(typeInfo.GetType(expr))
 }
 
 func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {

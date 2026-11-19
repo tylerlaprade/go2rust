@@ -1228,7 +1228,17 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new((*__guard).clone())) }")
+	out.WriteString("::new(")
+	if copyCall := goValueCopyCallForExpr(fieldType); copyCall != ".clone()" {
+		// A struct inside the struct, or an array of them, is a value too:
+		// the copy gets its own.
+		out.WriteString("(*__guard).as_ref().map(|__go_field| __go_field")
+		out.WriteString(copyCall)
+		out.WriteString(")")
+	} else {
+		out.WriteString("(*__guard).clone()")
+	}
+	out.WriteString(")) }")
 }
 
 func structCloneFieldKeepsHandle(expr ast.Expr) bool {
@@ -9226,6 +9236,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			WriteWrapperOptionPrefix(out)
 			out.WriteString("Some(self.clone())")
 			WriteWrapperOptionSuffix(out)
+		} else if currentReceiverIsStructValue() {
+			// A value receiver is the method's own copy of the struct.
+			out.WriteString("self" + goStructValueCopyCall)
 		} else {
 			out.WriteString("self.clone()")
 		}

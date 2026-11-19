@@ -49,7 +49,7 @@ pub struct User {
 impl User {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,
             pos: __go_clone_1_0,

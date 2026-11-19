@@ -3624,7 +3624,7 @@ func (w writer) refill() writer {
 	if strings.Contains(rust, "pub fn refill(&mut self)") {
 		t.Fatalf("value receiver method should not require mutable access to the caller's receiver:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut __self = self.clone();") {
+	if !strings.Contains(rust, "let mut __self = self.__go_value_clone();") {
 		t.Fatalf("mutating value receiver method should create a mutable receiver copy:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__self.byte(") {

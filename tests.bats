@@ -2763,12 +2763,28 @@ run_xfail_test() {
     run_test "tests/struct_named_integer_map_key"
 }
 
+@test "struct_pointer_identity" {
+    run_test "tests/struct_pointer_identity"
+}
+
+@test "struct_pointer_identity_goroutines" {
+    run_test "tests/struct_pointer_identity_goroutines"
+}
+
 @test "struct_pointer_slice_format" {
     run_test "tests/struct_pointer_slice_format"
 }
 
 @test "struct_tags_reflection" {
     run_test "tests/struct_tags_reflection"
+}
+
+@test "struct_value_copy" {
+    run_test "tests/struct_value_copy"
+}
+
+@test "struct_value_copy_goroutines" {
+    run_test "tests/struct_value_copy_goroutines"
 }
 
 @test "struct_zero_value_fields" {

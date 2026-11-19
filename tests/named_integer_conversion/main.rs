@@ -491,7 +491,7 @@ fn main() {
     let mut entry = Rc::new(RefCell::new(Some(Entry { kind: Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     println!("{}", format!("{}", as_int(Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
     println!("{}", format!("{}", as_uint64(Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
-    println!("{}", format!("{}", field_as_int(Rc::new(RefCell::new(Some({ let __arg_holder = entry.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    println!("{}", format!("{}", field_as_int(Rc::new(RefCell::new(Some({ let __arg_holder = entry.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))))));
     println!("{}", format!("{}", plus_as_int(Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
     println!("{}", format!("{}", Kind::method_int(&(*k.borrow().as_ref().unwrap()))));
     println!("{}", format!("{}", Kind::method_plus(&(*k.borrow().as_ref().unwrap()))));

@@ -136,8 +136,8 @@ pub struct Employee {
 
 impl Employee {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.person.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.person.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        let __go_clone_1_0 = { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_2_0 = { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_3_0 = { let __guard = self.salary.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
@@ -184,7 +184,7 @@ pub struct Manager {
 
 impl Manager {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.employee.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.employee.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = self.team.clone();
         Self {
             employee: __go_clone_0_0,
@@ -262,7 +262,7 @@ pub struct Company {
 impl Company {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.company_info.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.company_info.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,
             company_info: __go_clone_1_0,

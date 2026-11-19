@@ -41,7 +41,7 @@ pub struct Source {
 
 impl Source {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             module: __go_clone_0_0,
         }
@@ -73,7 +73,7 @@ pub struct Dest {
 
 impl Dest {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.module.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             module: __go_clone_0_0,
         }

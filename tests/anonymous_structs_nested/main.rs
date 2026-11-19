@@ -104,8 +104,8 @@ pub struct Config {
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.database.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_2_0 = { let __guard = self.cache.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.database.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        let __go_clone_2_0 = { let __guard = self.cache.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,
             database: __go_clone_1_0,
@@ -187,7 +187,7 @@ impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.host.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.port.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_2_0 = { let __guard = self.credentials.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.credentials.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             host: __go_clone_0_0,
             port: __go_clone_1_0,
@@ -304,7 +304,7 @@ impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.r#type.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_2_0 = { let __guard = self.position.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.position.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             i_d: __go_clone_0_0,
             r#type: __go_clone_1_0,
@@ -392,7 +392,7 @@ fn main() {
     let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(vec![AnonymousStruct4 { i_d: Rc::new(RefCell::new(Some(1))), r#type: Rc::new(RefCell::new(Some("chart".to_string()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5 { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))) }))), ..Default::default() }, AnonymousStruct4 { i_d: Rc::new(RefCell::new(Some(2))), r#type: Rc::new(RefCell::new(Some("table".to_string()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5 { x: Rc::new(RefCell::new(Some(100))), y: Rc::new(RefCell::new(Some(0))) }))), ..Default::default() }]))), ..Default::default() })));
 
     print!("\nDashboard: {}\n", (*(*dashboard.borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()).clone());
-    { let __range_holder = (*dashboard.borrow().as_ref().unwrap()).widgets.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for widget in __range_values.iter() {
+    { let __range_holder = (*dashboard.borrow().as_ref().unwrap()).widgets.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for widget in __range_values.iter() {
         print!("Widget {} ({}) at position ({}, {})\n", (*widget.i_d.borrow().as_ref().unwrap()), (*widget.r#type.borrow().as_ref().unwrap()).clone(), (*(*widget.position.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()), (*(*widget.position.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()));
     } }
 
@@ -410,7 +410,7 @@ fn main() {
     print!("\nSystem version: {}\n", (*(*system.borrow().as_ref().unwrap()).version.borrow().as_ref().unwrap()).clone());
     for (name, module) in ((*(*system.borrow().as_ref().unwrap()).modules.borrow().as_ref().unwrap()).clone()).clone() {
         print!("Module {}: enabled={}\n", name, (*(*module.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()));
-        { let __range_holder = (*(*module.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for opt in __range_values.iter() {
+        { let __range_holder = (*(*module.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for opt in __range_values.iter() {
         print!("  - {}: {}\n", (*opt.key.borrow().as_ref().unwrap()).clone(), format_any(opt.value.borrow().as_ref().unwrap().as_ref()));
     } }
     }
@@ -461,7 +461,7 @@ pub struct AnonymousStruct7 {
 impl AnonymousStruct7 {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.enabled.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.settings.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.settings.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             enabled: __go_clone_0_0,
             settings: __go_clone_1_0,

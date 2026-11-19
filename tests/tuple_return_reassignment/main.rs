@@ -46,7 +46,7 @@ pub fn parse(mut v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<parsed>>>
     let mut ok = Rc::new(RefCell::new(Some(false)));
     { let (__tmp_0, __tmp_1, __tmp_2) = split_version(Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*p.borrow().as_ref().unwrap()).major.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *v.borrow_mut() = __moved_tmp_1; *ok.borrow_mut() = Some(__tmp_2); };
     println!("{} {}", format!("{}", "rest:".to_string()), format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }));
-    return ({ let __owned = p.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }, (*ok.borrow().as_ref().unwrap()));
+    return ({ let __owned = p.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) }, (*ok.borrow().as_ref().unwrap()));
 }
 
 fn main() {

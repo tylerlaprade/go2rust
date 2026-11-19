@@ -84,7 +84,7 @@ pub struct Holder {
 
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.item.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.item.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = self.values.clone();
         Self {
             item: __go_clone_0_0,
@@ -125,8 +125,8 @@ pub fn get_values(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Vec<i32>>
 fn main() {
     let mut h = Rc::new(RefCell::new(Some(Holder { item: Rc::new(RefCell::new(Some(Item { name: Rc::new(RefCell::new(Some("go".to_string()))), ..Default::default() }))), values: Rc::new(RefCell::new(Some(vec![2, 3]))), ..Default::default() })));
 
-    let mut item = get_item(Rc::new(RefCell::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    let mut values = get_values(Rc::new(RefCell::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut item = get_item(Rc::new(RefCell::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));
+    let mut values = get_values(Rc::new(RefCell::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));
 
     println!("{}", format!("{}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
     println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*values.borrow().as_ref().unwrap())[(1) as usize].clone()));

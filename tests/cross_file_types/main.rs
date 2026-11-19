@@ -14,7 +14,7 @@ fn main() {
     print!("Address: {}, {} {}\n", (*(*addr.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()).clone(), (*(*addr.borrow().as_ref().unwrap()).city.borrow().as_ref().unwrap()).clone(), (*(*addr.borrow().as_ref().unwrap()).zip.borrow().as_ref().unwrap()).clone());
 
         // Create an Employee - transpiler needs to know nested struct types
-    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() }))), address: Rc::new(RefCell::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), i_d: Rc::new(RefCell::new(Some(42))), ..Default::default() })));
+    let mut emp = Rc::new(RefCell::new(Some(Employee { person: Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() }))), address: Rc::new(RefCell::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), i_d: Rc::new(RefCell::new(Some(42))), ..Default::default() })));
     print!("Employee {}: {} lives at {}\n", (*(*emp.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()), (*(*(*emp.borrow().as_ref().unwrap()).person.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*(*emp.borrow().as_ref().unwrap()).address.borrow().as_ref().unwrap()).street.borrow().as_ref().unwrap()).clone());
 
         // Access nested fields - requires knowing the full type hierarchy

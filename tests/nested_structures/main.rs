@@ -304,8 +304,8 @@ impl Person {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.age.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_2_0 = { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_3_0 = { let __guard = self.contact.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.address.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        let __go_clone_3_0 = { let __guard = self.contact.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,
             age: __go_clone_1_0,
@@ -353,7 +353,7 @@ pub struct Department {
 impl Department {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.manager.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.manager.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_2_0 = self.employees.clone();
         let __go_clone_3_0 = { let __guard = self.budget.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
@@ -403,7 +403,7 @@ impl Company {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = self.departments.clone();
-        let __go_clone_2_0 = { let __guard = self.headquarters.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.headquarters.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,
             departments: __go_clone_1_0,
@@ -569,17 +569,17 @@ fn main() {
     let mut emp2Contact = Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("emp2@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0003".to_string()))), ..Default::default() })));
 
         // Create people
-    let mut manager = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice Manager".to_string()))), age: Rc::new(RefCell::new(Some(45))), address: Rc::new(RefCell::new(Some({ let __arg_holder = managerAddr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), contact: Rc::new(RefCell::new(Some({ let __arg_holder = managerContact.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    let mut manager = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice Manager".to_string()))), age: Rc::new(RefCell::new(Some(45))), address: Rc::new(RefCell::new(Some({ let __arg_holder = managerAddr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), contact: Rc::new(RefCell::new(Some({ let __arg_holder = managerContact.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), ..Default::default() })));
 
-    let mut employee1 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob Employee".to_string()))), age: Rc::new(RefCell::new(Some(30))), address: Rc::new(RefCell::new(Some({ let __arg_holder = emp1Addr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), contact: Rc::new(RefCell::new(Some({ let __arg_holder = emp1Contact.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    let mut employee1 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Bob Employee".to_string()))), age: Rc::new(RefCell::new(Some(30))), address: Rc::new(RefCell::new(Some({ let __arg_holder = emp1Addr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), contact: Rc::new(RefCell::new(Some({ let __arg_holder = emp1Contact.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), ..Default::default() })));
 
-    let mut employee2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Carol Worker".to_string()))), age: Rc::new(RefCell::new(Some(28))), address: Rc::new(RefCell::new(Some({ let __arg_holder = emp2Addr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), contact: Rc::new(RefCell::new(Some({ let __arg_holder = emp2Contact.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    let mut employee2 = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Carol Worker".to_string()))), age: Rc::new(RefCell::new(Some(28))), address: Rc::new(RefCell::new(Some({ let __arg_holder = emp2Addr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), contact: Rc::new(RefCell::new(Some({ let __arg_holder = emp2Contact.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), ..Default::default() })));
 
         // Create department
-    let mut engineering = Rc::new(RefCell::new(Some(Department { name: Rc::new(RefCell::new(Some("Engineering".to_string()))), manager: Rc::new(RefCell::new(Some({ let __arg_holder = manager.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), employees: Rc::new(RefCell::new(Some(vec![(*employee1.borrow().as_ref().unwrap()).clone(), (*employee2.borrow().as_ref().unwrap()).clone()]))), budget: Rc::new(RefCell::new(Some(1e+06))), ..Default::default() })));
+    let mut engineering = Rc::new(RefCell::new(Some(Department { name: Rc::new(RefCell::new(Some("Engineering".to_string()))), manager: Rc::new(RefCell::new(Some({ let __arg_holder = manager.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), employees: Rc::new(RefCell::new(Some(vec![(*employee1.borrow().as_ref().unwrap()).__go_value_clone(), (*employee2.borrow().as_ref().unwrap()).__go_value_clone()]))), budget: Rc::new(RefCell::new(Some(1e+06))), ..Default::default() })));
 
         // Create company
-    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp Inc".to_string()))), departments: Rc::new(RefCell::new(Some(vec![(*engineering.borrow().as_ref().unwrap()).clone()]))), headquarters: Rc::new(RefCell::new(Some({ let __arg_holder = hq.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp Inc".to_string()))), departments: Rc::new(RefCell::new(Some(vec![(*engineering.borrow().as_ref().unwrap()).__go_value_clone()]))), headquarters: Rc::new(RefCell::new(Some({ let __arg_holder = hq.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), ..Default::default() })));
 
         // Access nested data
     println!("{}", format!("{}", "\n=== Accessing nested data ===".to_string()));
@@ -599,7 +599,7 @@ fn main() {
         // Iterate through employees
     println!("{}", format!("{}", "\n=== Department employees ===".to_string()));
 
-    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
+    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
         print!("Employee {}: {}\n", i as i32 + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
         print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone());
@@ -695,7 +695,7 @@ fn main() {
         // Add new employee
     let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))), ..Default::default() }))), ..Default::default() })));
 
-    { let new_val = (*{ let __append_target = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*newEmployee.borrow().as_ref().unwrap()).clone()); __append_target.clone() }.borrow().as_ref().unwrap()).clone(); *(*(*company.borrow().as_ref().unwrap()).departments.borrow_mut().as_mut().unwrap())[(0) as usize].employees.borrow_mut() = Some(new_val); };
+    { let new_val = (*{ let __append_target = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*newEmployee.borrow().as_ref().unwrap()).__go_value_clone()); __append_target.clone() }.borrow().as_ref().unwrap()).clone(); *(*(*company.borrow().as_ref().unwrap()).departments.borrow_mut().as_mut().unwrap())[(0) as usize].employees.borrow_mut() = Some(new_val); };
     print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     print!("Total employees now: {}\n", ({ let __len_target = { let __field = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
 }

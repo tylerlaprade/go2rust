@@ -42,7 +42,7 @@ pub struct B {
 
 impl B {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.a.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.a.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             a: __go_clone_0_0,
@@ -80,7 +80,7 @@ pub struct C {
 
 impl C {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.b.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.b.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = { let __guard = self.z.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             b: __go_clone_0_0,
