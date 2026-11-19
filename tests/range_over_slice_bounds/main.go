@@ -2,13 +2,13 @@ package main
 
 import "fmt"
 
-func indexSum(n int) int {
+func printIndices(n int) {
 	var a [4]int
-	sum := 0
+	fmt.Printf("%d:", n)
 	for i := range a[:n] {
-		sum += i
+		fmt.Printf(" %d", i)
 	}
-	return sum
+	fmt.Println()
 }
 
 type scanner struct {
@@ -26,7 +26,9 @@ func (s *scanner) advance() {
 }
 
 func main() {
-	fmt.Println(indexSum(0), indexSum(3), indexSum(4))
+	printIndices(0)
+	printIndices(3)
+	printIndices(4)
 	s := scanner{offset: 2, data: []byte(" aBC d")}
 	s.advance()
 	fmt.Println(s.offset)

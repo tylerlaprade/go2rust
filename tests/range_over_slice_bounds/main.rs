@@ -93,17 +93,19 @@ impl scanner {
     }
 }
 
-pub fn index_sum(n: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn print_indices(n: Rc<RefCell<Option<i32>>>) {
     let mut a: Rc<RefCell<Option<[i32; 4]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))));
-    let mut sum = Rc::new(RefCell::new(Some(0)));
+    print!("{}:", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
     for i in 0..({ let __seq_holder = a.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ((*n.borrow().as_ref().unwrap())) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.len()) {
-        { let __rhs = (i as i32); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        print!(" {}", i);
     }
-    return (*sum.borrow().as_ref().unwrap());
+    println!();
 }
 
 fn main() {
-    println!("{} {} {}", format!("{}", index_sum(Rc::new(RefCell::new(Some(0))))), format!("{}", index_sum(Rc::new(RefCell::new(Some(3))))), format!("{}", index_sum(Rc::new(RefCell::new(Some(4))))));
+    print_indices(Rc::new(RefCell::new(Some(0))));
+    print_indices(Rc::new(RefCell::new(Some(3))));
+    print_indices(Rc::new(RefCell::new(Some(4))));
     let mut s = Rc::new(RefCell::new(Some(scanner { offset: Rc::new(RefCell::new(Some(2))), data: Rc::new(RefCell::new(Some((" aBC d".to_string()).as_bytes().to_vec()))), ..Default::default() })));
     (*s.borrow_mut().as_mut().unwrap()).advance();
     println!("{}", format!("{}", (*(*s.borrow().as_ref().unwrap()).offset.borrow().as_ref().unwrap())));
