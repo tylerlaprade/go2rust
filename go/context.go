@@ -1148,6 +1148,27 @@ func NeedGoTypeName() {
 	}
 }
 
+// NeedGoSprintf marks that we need go_sprintf, which formats with a format
+// that is only known at run time. It prints through format_any and names
+// types through the %T helper.
+func NeedGoSprintf() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSprintf = true
+		helpers.needsFormatAny = true
+		helpers.needsGoTypeName = true
+		TrackImport("Any")
+	}
+}
+
+// NeedGoSprintfSpread marks that we need go_sprintf_spread as well, for a
+// call that passes its arguments on as a slice.
+func NeedGoSprintfSpread() {
+	NeedGoSprintf()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSprintfSpread = true
+	}
+}
+
 // NeedBase64 marks that we need the base64 helper functions
 func NeedBase64() {
 	if helpers := activeHelperTracker(); helpers != nil {

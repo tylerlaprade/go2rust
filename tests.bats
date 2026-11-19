@@ -2043,6 +2043,18 @@ run_xfail_test() {
     run_test "tests/printf_p_verb_receiver"
 }
 
+@test "printf_runtime_format" {
+    run_test "tests/printf_runtime_format"
+}
+
+@test "printf_runtime_format_goroutines" {
+    run_test "tests/printf_runtime_format_goroutines"
+}
+
+@test "printf_runtime_format_table" {
+    run_test "tests/printf_runtime_format_table"
+}
+
 @test "printf_width_decimal" {
     run_test "tests/printf_width_decimal"
 }

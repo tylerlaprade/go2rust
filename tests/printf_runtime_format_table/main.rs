@@ -1,0 +1,512 @@
+use std::any::Any;
+use std::cell::{RefCell};
+use std::rc::{Rc};
+
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else {
+        "<unknown>".to_string()
+    }
+}
+
+fn __go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    std::any::type_name_of_val(val)
+}
+
+// A verb with its flags, as fmt reads it from a format.
+#[derive(Default)]
+struct GoFormatSpec {
+    plus: bool,
+    minus: bool,
+    sharp: bool,
+    space: bool,
+    zero: bool,
+    width: Option<usize>,
+    precision: Option<usize>,
+}
+
+// Pads text to the width of spec. A number passes the length of its sign so
+// that zero padding goes between the sign and the digits.
+fn go_format_pad(spec: &GoFormatSpec, text: String, sign_len: usize, zero_allowed: bool) -> String {
+    let width = match spec.width {
+        Some(width) => width,
+        None => return text,
+    };
+    let len = text.chars().count();
+    if len >= width {
+        return text;
+    }
+    let fill = width - len;
+    if spec.minus {
+        return text + &" ".repeat(fill);
+    }
+    if spec.zero && zero_allowed {
+        let (sign, digits) = text.split_at(sign_len);
+        return format!("{}{}{}", sign, "0".repeat(fill), digits);
+    }
+    " ".repeat(fill) + &text
+}
+
+fn go_format_sign(spec: &GoFormatSpec, negative: bool) -> &'static str {
+    if negative {
+        "-"
+    } else if spec.plus {
+        "+"
+    } else if spec.space {
+        " "
+    } else {
+        ""
+    }
+}
+
+// Quotes text the way strconv.Quote does, with quote as the delimiter.
+fn go_format_quote(text: &str, quote: char) -> String {
+    let mut out = String::new();
+    out.push(quote);
+    for c in text.chars() {
+        match c {
+            '\u{7}' => out.push_str("\\a"),
+            '\u{8}' => out.push_str("\\b"),
+            '\u{c}' => out.push_str("\\f"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '\u{b}' => out.push_str("\\v"),
+            '\\' => out.push_str("\\\\"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            c if (c as u32) < 0x20 || c == '\u{7f}' => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c if c.is_control() || (c.is_whitespace() && c != ' ') => {
+                if (c as u32) < 0x10000 {
+                    out.push_str(&format!("\\u{:04x}", c as u32));
+                } else {
+                    out.push_str(&format!("\\U{:08x}", c as u32));
+                }
+            }
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
+}
+
+fn go_format_integer(spec: &GoFormatSpec, verb: char, value: i128) -> Option<String> {
+    let negative = value < 0;
+    let magnitude = value.unsigned_abs();
+    let (mut digits, prefix) = match verb {
+        'd' | 'v' => (magnitude.to_string(), ""),
+        'b' => (format!("{:b}", magnitude), if spec.sharp { "0b" } else { "" }),
+        'o' => (format!("{:o}", magnitude), if spec.sharp && magnitude != 0 { "0" } else { "" }),
+        'O' => (format!("{:o}", magnitude), "0o"),
+        'x' => (format!("{:x}", magnitude), if spec.sharp { "0x" } else { "" }),
+        'X' => (format!("{:X}", magnitude), if spec.sharp { "0X" } else { "" }),
+        'c' => {
+            let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
+            return Some(go_format_pad(spec, c.to_string(), 0, false));
+        }
+        'q' => {
+            let c = u32::try_from(value).ok().and_then(char::from_u32).unwrap_or('\u{fffd}');
+            return Some(go_format_pad(spec, go_format_quote(&c.to_string(), '\''), 0, false));
+        }
+        'U' => {
+            let mut text = format!("U+{:04X}", value as u64);
+            if spec.sharp {
+                if let Some(c) = u32::try_from(value).ok().and_then(char::from_u32).filter(|c| !c.is_control()) {
+                    text.push_str(&format!(" '{}'", c));
+                }
+            }
+            return Some(go_format_pad(spec, text, 0, false));
+        }
+        _ => return None,
+    };
+    if let Some(precision) = spec.precision {
+        if precision == 0 && magnitude == 0 {
+            digits.clear();
+        }
+        if digits.len() < precision {
+            digits = "0".repeat(precision - digits.len()) + &digits;
+        }
+    }
+    let sign = go_format_sign(spec, negative);
+    let text = format!("{}{}{}", sign, prefix, digits);
+    Some(go_format_pad(spec, text, sign.len() + prefix.len(), spec.precision.is_none()))
+}
+
+// The digits of a float and the power of ten of the first one, from Rust's
+// {:e} form, which rounds as strconv does.
+fn go_format_float_digits(exponent_form: &str) -> (String, i32) {
+    let (mantissa, exponent) = exponent_form.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    (digits, exponent.parse().unwrap())
+}
+
+fn go_format_float_exponent(digits: &str, exponent: i32, upper: bool) -> String {
+    let mut out = String::new();
+    out.push_str(&digits[..1]);
+    if digits.len() > 1 {
+        out.push('.');
+        out.push_str(&digits[1..]);
+    }
+    out.push(if upper { 'E' } else { 'e' });
+    out.push(if exponent < 0 { '-' } else { '+' });
+    out.push_str(&format!("{:02}", exponent.abs()));
+    out
+}
+
+// Formats the magnitude of a float as strconv.FormatFloat does for 'e', 'f'
+// and 'g'. shortest is the float printed with as few digits as identify it.
+fn go_format_float_magnitude(verb: char, precision: Option<usize>, shortest: &str, with_precision: impl Fn(usize) -> String, fixed: impl Fn(usize) -> String) -> String {
+    let upper = verb.is_ascii_uppercase();
+    match verb.to_ascii_lowercase() {
+        'e' => {
+            let (digits, exponent) = go_format_float_digits(&with_precision(precision.unwrap_or(6)));
+            go_format_float_exponent(&digits, exponent, upper)
+        }
+        'f' => fixed(precision.unwrap_or(6)),
+        _ => {
+            let (digits, exponent, exponent_limit) = match precision {
+                None => {
+                    let (digits, exponent) = go_format_float_digits(shortest);
+                    (digits, exponent, 6)
+                }
+                Some(precision) => {
+                    let precision = precision.max(1);
+                    let (digits, exponent) = go_format_float_digits(&with_precision(precision - 1));
+                    let digits = digits.trim_end_matches('0');
+                    let digits = if digits.is_empty() { "0".to_string() } else { digits.to_string() };
+                    let mut limit = precision as i32;
+                    if limit > digits.len() as i32 && digits.len() as i32 >= exponent + 1 {
+                        limit = digits.len() as i32;
+                    }
+                    (digits, exponent, limit)
+                }
+            };
+            if exponent < -4 || exponent >= exponent_limit {
+                return go_format_float_exponent(&digits, exponent, upper);
+            }
+            if exponent < 0 {
+                return format!("0.{}{}", "0".repeat((-exponent - 1) as usize), digits);
+            }
+            let whole = (exponent + 1) as usize;
+            if digits.len() <= whole {
+                return format!("{}{}", digits, "0".repeat(whole - digits.len()));
+            }
+            format!("{}.{}", &digits[..whole], &digits[whole..])
+        }
+    }
+}
+
+fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> Option<String> {
+    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
+        return None;
+    }
+    if spec.sharp {
+        panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
+    }
+    if value.is_nan() {
+        let sign = if spec.plus { "+" } else if spec.space { " " } else { "" };
+        return Some(go_format_pad(spec, format!("{}NaN", sign), 0, false));
+    }
+    let negative = value.is_sign_negative();
+    if value.is_infinite() {
+        return Some(go_format_pad(spec, format!("{}Inf", if negative { "-" } else { "+" }), 0, false));
+    }
+    let magnitude = value.abs();
+    // A float32 keeps the digits of the float32, not of the float64 it was
+    // widened to.
+    let narrow = magnitude as f32;
+    let shortest = if single { format!("{:e}", narrow) } else { format!("{:e}", magnitude) };
+    let with_precision = |precision: usize| if single { format!("{:.*e}", precision, narrow) } else { format!("{:.*e}", precision, magnitude) };
+    let fixed = |precision: usize| if single { format!("{:.*}", precision, narrow) } else { format!("{:.*}", precision, magnitude) };
+    let verb = if verb == 'v' { 'g' } else { verb };
+    let digits = go_format_float_magnitude(verb, spec.precision, &shortest, with_precision, fixed);
+    let sign = go_format_sign(spec, negative);
+    Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
+}
+
+fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<String> {
+    let truncated: String = match spec.precision {
+        Some(precision) => text.chars().take(precision).collect(),
+        None => text.to_string(),
+    };
+    let formatted = match verb {
+        's' | 'v' => truncated,
+        'q' => {
+            if spec.sharp && !truncated.contains('\u{60}') && !truncated.chars().any(|c| c.is_control() && c != '\t') {
+                format!("\u{60}{}\u{60}", truncated)
+            } else {
+                go_format_quote(&truncated, '"')
+            }
+        }
+        'x' | 'X' => {
+            let prefix = if !spec.sharp { "" } else if verb == 'x' { "0x" } else { "0X" };
+            let bytes: Vec<String> = truncated.bytes().map(|b| if verb == 'x' { format!("{:02x}", b) } else { format!("{:02X}", b) }).collect();
+            if spec.space {
+                bytes.iter().map(|b| format!("{}{}", prefix, b)).collect::<Vec<_>>().join(" ")
+            } else if bytes.is_empty() {
+                String::new()
+            } else {
+                format!("{}{}", prefix, bytes.concat())
+            }
+        }
+        _ => return None,
+    };
+    Some(go_format_pad(spec, formatted, 0, true))
+}
+
+// Formats one argument for one verb. None means the verb does not apply to
+// the argument's type, which fmt reports in the output.
+fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Option<String> {
+    if verb == 'T' {
+        return Some(go_format_pad(spec, __go_type_name(value).to_string(), 0, false));
+    }
+    if verb == 'p' {
+        panic!("go2rust: %p is not supported in a format that is only known at run time");
+    }
+    macro_rules! integer {
+        ($($t:ty),*) => {
+            $(if let Some(v) = value.downcast_ref::<$t>() {
+                return go_format_integer(spec, verb, *v as i128);
+            })*
+        };
+    }
+    integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
+    if let Some(v) = value.downcast_ref::<f64>() {
+        return go_format_float(spec, verb, *v, false);
+    }
+    if let Some(v) = value.downcast_ref::<f32>() {
+        return go_format_float(spec, verb, *v as f64, true);
+    }
+    if let Some(v) = value.downcast_ref::<bool>() {
+        return if matches!(verb, 't' | 'v') { Some(go_format_pad(spec, v.to_string(), 0, false)) } else { None };
+    }
+    if let Some(v) = value.downcast_ref::<String>() {
+        return go_format_string(spec, verb, v);
+    }
+    if let Some(v) = value.downcast_ref::<&str>() {
+        return go_format_string(spec, verb, v);
+    }
+    // Anything else prints as Println prints it. That is right for an error,
+    // a value with a String method, and %v of a struct, slice, map or pointer.
+    // fmt applies other verbs and flags to each field or element, which is
+    // not done here.
+    if (verb == 'v' && !spec.plus && !spec.sharp) || verb == 's' {
+        return Some(go_format_pad(spec, format_any(value), 0, false));
+    }
+    panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
+}
+
+// An argument as fmt names it when it does not fit the format: type=value.
+fn go_format_typed_value(value: &dyn Any) -> String {
+    let text = go_format_argument(&GoFormatSpec::default(), 'v', value).unwrap_or_default();
+    format!("{}={}", __go_type_name(value), text)
+}
+
+// fmt.Sprintf for a format that is only known when the program runs. A
+// format written as a literal is expanded when the program is translated and
+// does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
+fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
+    let mut out = String::new();
+    let mut next = 0;
+    let mut chars = format.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            out.push(c);
+            continue;
+        }
+        let mut spec = GoFormatSpec::default();
+        loop {
+            match chars.peek() {
+                Some('+') => spec.plus = true,
+                Some('-') => spec.minus = true,
+                Some('#') => spec.sharp = true,
+                Some(' ') => spec.space = true,
+                Some('0') => spec.zero = true,
+                _ => break,
+            }
+            chars.next();
+        }
+        let mut number = |chars: &mut std::iter::Peekable<std::str::Chars>, next: &mut usize, out: &mut String, bad: &str| -> Option<usize> {
+            if chars.peek() == Some(&'*') {
+                chars.next();
+                let value = args.get(*next).and_then(|arg| {
+                    let arg: &dyn Any = arg.as_ref();
+                    arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied())
+                });
+                *next += 1;
+                return match value {
+                    Some(value) if value >= 0 => Some(value as usize),
+                    _ => {
+                        out.push_str(bad);
+                        None
+                    }
+                };
+            }
+            let mut value = None;
+            while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+                value = Some(value.unwrap_or(0) * 10 + digit as usize);
+                chars.next();
+            }
+            value
+        };
+        if chars.peek() == Some(&'[') {
+            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        }
+        spec.width = number(&mut chars, &mut next, &mut out, "%!(BADWIDTH)");
+        if chars.peek() == Some(&'.') {
+            chars.next();
+            spec.precision = Some(number(&mut chars, &mut next, &mut out, "%!(BADPREC)").unwrap_or(0));
+        }
+        if chars.peek() == Some(&'[') {
+            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        }
+        let verb = match chars.next() {
+            Some(verb) => verb,
+            None => {
+                out.push_str("%!(NOVERB)");
+                break;
+            }
+        };
+        if verb == '%' {
+            out.push('%');
+            continue;
+        }
+        let arg = match args.get(next) {
+            Some(arg) => arg,
+            None => {
+                out.push_str(&format!("%!{}(MISSING)", verb));
+                continue;
+            }
+        };
+        next += 1;
+        let verb = if verb == 'w' && wraps { 'v' } else { verb };
+        match go_format_argument(&spec, verb, arg.as_ref()) {
+            Some(text) => out.push_str(&text),
+            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(arg.as_ref()))),
+        }
+    }
+    if next < args.len() {
+        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(arg.as_ref())).collect();
+        out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
+    }
+    out
+}
+
+// go_sprintf for f(format, args...), where the arguments are a slice.
+fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {
+    let guard = args.borrow();
+    go_sprintf(format, guard.as_deref().unwrap_or(&[]), wraps)
+}
+
+/// sprintf receives its format as a value, so the format is only known when
+/// the program runs.
+pub fn sprintf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, false)))))
+}
+
+pub fn show(format: Rc<RefCell<Option<String>>>, text: Rc<RefCell<Option<String>>>) {
+    println!("{} {} {}", format!("{}", { let __v = (*format.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "=>".to_string()), format!("{}", {
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", "[".to_string()));
+        __s.push_str(&format!("{}", (*text.borrow().as_ref().unwrap())));
+        __s.push_str(&format!("{}", "]".to_string()));
+        __s
+    }));
+}
+
+fn main() {
+    let mut intFormats = Rc::new(RefCell::new(Some(vec!["%d".to_string(), "%5d".to_string(), "%-5d|".to_string(), "%05d".to_string(), "%+d".to_string(), "% d".to_string(), "%x".to_string(), "%X".to_string(), "%#x".to_string(), "%o".to_string(), "%#o".to_string(), "%O".to_string(), "%b".to_string(), "%c".to_string(), "%q".to_string(), "%U".to_string(), "%#U".to_string(), "%v".to_string(), "%3v".to_string(), "%.3d".to_string(), "%8.3d".to_string(), "%08.3d".to_string(), "%-8.3d|".to_string(), "%+05d".to_string(), "%.0d".to_string(), "%s".to_string(), "%t".to_string(), "%f".to_string(), "%e".to_string(), "%T".to_string()])));
+    let mut ints = Rc::new(RefCell::new(Some(vec![0, 7, -42, 65, 255, 123456789])));
+    { let __range_holder = intFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = ints.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
+    } }
+    } }
+    show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(9000000000) as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(200 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%x %X %#x".to_string()))), sprintf(Rc::new(RefCell::new(Some("%x %X %#x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(255) as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(200 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(4096 as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+
+    let mut floatFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%g".to_string(), "%G".to_string(), "%e".to_string(), "%E".to_string(), "%f".to_string(), "%F".to_string(), "%.2f".to_string(), "%8.2f|".to_string(), "%-8.2f|".to_string(), "%08.2f".to_string(), "%+.2f".to_string(), "% .2f".to_string(), "%.0f".to_string(), "%.3e".to_string(), "%.3g".to_string(), "%.10g".to_string(), "%.1g".to_string(), "%10.3g|".to_string(), "%6.2f".to_string(), "%d".to_string(), "%s".to_string(), "%T".to_string(), "%5v|".to_string(), "%.0e".to_string(), "%.0g".to_string()])));
+    let mut floats = Rc::new(RefCell::new(Some(vec![0.0, 1.0, 2.5, -(2.5), 0.1, 100000.0, 1000000.0, 1234567.0, 123456789.0, 1e20, 1e21, 1e-4, 1e-5, 0.000123456, 3.141592653589793, 1e100, 123.456, 0.5, 1.5, 2.675, 99.995])));
+    { let __range_holder = floatFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = floats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
+    } }
+    } }
+    let mut narrowFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%g".to_string(), "%f".to_string(), "%.2f".to_string(), "%e".to_string(), "%T".to_string()])));
+    { let __range_holder = narrowFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(0.1 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(2.5 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(16777216.0 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(3.1415927 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(1e10 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(1e-5 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+    } }
+
+    let mut stringFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%s".to_string(), "%q".to_string(), "%10s|".to_string(), "%-10s|".to_string(), "%.2s".to_string(), "%10.2s|".to_string(), "%x".to_string(), "%X".to_string(), "% x".to_string(), "%#x".to_string(), "%d".to_string(), "%t".to_string(), "%T".to_string(), "%05s".to_string(), "%#q".to_string(), "%c".to_string()])));
+    let mut texts = Rc::new(RefCell::new(Some(vec!["hi".to_string(), "".to_string(), "h\u{e9}llo w\u{f6}rld".to_string(), "tab\there".to_string(), "quote\"d".to_string(), "back\\slash".to_string(), "new\nline".to_string(), "bell\u{7}".to_string(), "`tick`".to_string()])));
+    { let __range_holder = stringFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        let mut i = Rc::new(RefCell::new(Some(0)));
+    while ((*i.borrow().as_ref().unwrap()) as i32) < ((*texts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new((*texts.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()) as Box<dyn Any>])))));
+        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    } }
+
+    let mut boolFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%t".to_string(), "%5t|".to_string(), "%-6t|".to_string(), "%d".to_string(), "%s".to_string(), "%T".to_string(), "%q".to_string()])));
+    { let __range_holder = boolFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>])))));
+        show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(false) as Box<dyn Any>])))));
+    } }
+
+    show(Rc::new(RefCell::new(Some("plain text".to_string()))), sprintf(Rc::new(RefCell::new(Some("plain text".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
+    show(Rc::new(RefCell::new(Some("100%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("100%%".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
+    show(Rc::new(RefCell::new(Some("%d%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d%%".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(50) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new(2) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%!".to_string()))), sprintf(Rc::new(RefCell::new(Some("%!".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%z".to_string()))), sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("trailing %".to_string()))), sprintf(Rc::new(RefCell::new(Some("trailing %".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
+    show(Rc::new(RefCell::new(Some("%5".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%-*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*.*f|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*.*f|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(8) as Box<dyn Any>, Box::new(3) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%w".to_string()))), sprintf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("wrapped".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%v %v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%v %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%-5d|%5s|%05.1f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-5d|%5s|%05.1f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(2.25) as Box<dyn Any>])))));
+}

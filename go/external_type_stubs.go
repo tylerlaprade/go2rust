@@ -1237,6 +1237,8 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoOnce = dst.needsGoOnce || src.needsGoOnce
 	dst.needsGoAtomicPointer = dst.needsGoAtomicPointer || src.needsGoAtomicPointer
 	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
+	dst.needsGoSprintf = dst.needsGoSprintf || src.needsGoSprintf
+	dst.needsGoSprintfSpread = dst.needsGoSprintfSpread || src.needsGoSprintfSpread
 	dst.needsBase64 = dst.needsBase64 || src.needsBase64
 	dst.needsSha256 = dst.needsSha256 || src.needsSha256
 	dst.needsHexFormat = dst.needsHexFormat || src.needsHexFormat

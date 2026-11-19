@@ -1252,10 +1252,10 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
-	writeFmtMacroCall(out, "print!", call, 0, TranspileExpression)
+	writeFmtMacroCall(out, "print!", call, 0)
 }
 
-func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int, dynamicFormatArg func(*strings.Builder, ast.Expr)) {
+func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int) {
 	out.WriteString(macro)
 	out.WriteString("(")
 
@@ -1266,9 +1266,9 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	if len(call.Args) > formatArgIndex {
-		if lit, ok := call.Args[formatArgIndex].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		if literal, ok := translationTimeFormat(call.Args[formatArgIndex]); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1279,7 +1279,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 		} else {
 			out.WriteString("\"{}\"")
 			out.WriteString(", ")
-			dynamicFormatArg(out, call.Args[formatArgIndex])
+			writeRuntimeFormatCall(out, call.Args[formatArgIndex], call.Args[formatArgIndex+1:], call.Ellipsis.IsValid(), false)
 			out.WriteString(")")
 			return
 		}
@@ -1398,7 +1398,7 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
 		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
-			writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+			writeFmtMacroCall(out, "format!", call, 1)
 		})
 		return
 	}
@@ -1415,7 +1415,7 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	if isOsStderr(call.Args[0]) {
 		macro = "eprint!"
 	}
-	writeFmtMacroCall(out, macro, call, 1, TranspileExpression)
+	writeFmtMacroCall(out, macro, call, 1)
 }
 
 func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
@@ -1501,7 +1501,7 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	errorInner := externalStubErrorInnerType()
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+	writeFmtMacroCall(out, "format!", call, 1)
 	out.WriteString("; let __n = __s.len() as i32; (*")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, false)
@@ -1519,7 +1519,7 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+	writeFmtMacroCall(out, "format!", call, 1)
 	out.WriteString("; ")
 	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
 		out.WriteString("(*")
@@ -1753,9 +1753,9 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	hexFormats := make(map[int]string)
 	if len(call.Args) > 0 {
 		// First arg is the format string
-		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		if literal, ok := translationTimeFormat(call.Args[0]); ok {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1766,7 +1766,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			out.WriteString("\"{}\"")
 			out.WriteString(", ")
-			writeOwnedStringStdlibArg(out, call.Args[0])
+			writeRuntimeFormatCall(out, call.Args[0], call.Args[1:], call.Ellipsis.IsValid(), false)
 			out.WriteString(")")
 			WriteWrapperSuffix(out)
 			return
@@ -1811,9 +1811,9 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
-		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		if literal, ok := translationTimeFormat(call.Args[0]); ok {
 			// Convert Go format verbs to Rust
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(lit.Value)
+			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1824,7 +1824,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			literalFormat = true
 		} else {
 			out.WriteString("\"{}\", ")
-			writeOwnedStringStdlibArg(out, call.Args[0])
+			writeRuntimeFormatCall(out, call.Args[0], call.Args[1:], call.Ellipsis.IsValid(), true)
 		}
 
 		// Rest of the arguments
@@ -6484,8 +6484,8 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 			if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 				if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "fmt" && (sel.Sel.Name == "Errorf" || sel.Sel.Name == "Sprintf") {
 					if len(callExpr.Args) > 0 {
-						if lit, ok := callExpr.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							format := convertFormatString(lit.Value)
+						if literal, ok := translationTimeFormat(callExpr.Args[0]); ok {
+							format := convertFormatString(literal)
 							out.WriteString(format)
 							for i := 1; i < len(callExpr.Args); i++ {
 								out.WriteString(", ")
@@ -6493,7 +6493,7 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 							}
 						} else {
 							out.WriteString("\"{}\", ")
-							writeOwnedStringStdlibArg(out, callExpr.Args[0])
+							writeRuntimeFormatCall(out, callExpr.Args[0], callExpr.Args[1:], callExpr.Ellipsis.IsValid(), sel.Sel.Name == "Errorf")
 						}
 					}
 				} else {
