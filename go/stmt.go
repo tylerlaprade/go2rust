@@ -7403,28 +7403,47 @@ func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs a
 }
 
 func writeIndexedValuePointerFieldReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
+	index := indexedValuePointerFieldIndex(sel)
+	if index == nil {
+		return false
+	}
+	out.WriteString("{ ")
+	writeIndexedPointerFieldOperands(out, index, "__sequence", "__index")
+	out.WriteString(" ")
+	writeIndexedPointerFieldStore(out, sel, "__sequence", "__index", valueName)
+	out.WriteString(" }")
+	return true
+}
+
+func indexedValuePointerFieldIndex(sel *ast.SelectorExpr) *ast.IndexExpr {
 	index, ok := unwrapParens(sel.X).(*ast.IndexExpr)
 	typeInfo := GetTypeInfo()
 	if !ok || typeInfo == nil {
-		return false
+		return nil
 	}
 	if _, ok := coreUnderlyingType(typeInfo.GetArrayOrSliceElemType(index.X)).(*types.Struct); !ok {
-		return false
+		return nil
 	}
+	return index
+}
 
-	// Evaluate the index before borrowing the collection. The index may
-	// read the collection itself, as in nodes[len(nodes)-1].Next.
-	out.WriteString("{ let __sequence = ")
+func writeIndexedPointerFieldOperands(out *strings.Builder, index *ast.IndexExpr, sequenceName, indexName string) {
+	fmt.Fprintf(out, "let %s = ", sequenceName)
 	if !writeNamedArrayInnerHandleClone(out, index.X) {
 		out.WriteString("(")
 		writeIndexedSequenceHandle(out, index.X)
 		out.WriteString(").clone()")
 	}
-	out.WriteString("; let __index = ")
+	fmt.Fprintf(out, "; let %s = ", indexName)
 	writeExpressionAsUsize(out, index.Index)
-	out.WriteString("; let mut __sequence_guard = __sequence")
+	out.WriteString(";")
+}
+
+func writeIndexedPointerFieldStore(out *strings.Builder, sel *ast.SelectorExpr, sequenceName, indexName, valueName string) {
+	// The index may read the same collection. Borrow only for the store.
+	fmt.Fprintf(out, "{ let mut __sequence_guard = %s", sequenceName)
 	WriteBorrowMethod(out, true)
-	out.WriteString("; let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; ")
+	fmt.Fprintf(out, "; let __element = &mut __sequence_guard.as_mut().unwrap()[%s]; ", indexName)
 	fieldInfo := selectorFieldAccessInfo(sel)
 	if fieldInfo.IsPromoted {
 		writePromotedHandleAssignmentTarget(out, "__element", fieldInfo, false)
@@ -7435,7 +7454,6 @@ func writeIndexedValuePointerFieldReplacement(out *strings.Builder, sel *ast.Sel
 	out.WriteString(" = ")
 	out.WriteString(valueName)
 	out.WriteString("; }")
-	return true
 }
 
 func writeGoPtrFieldSelectorHandleReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
@@ -11917,7 +11935,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// For reassignment, use temporaries to handle swaps correctly
 					indent := currentLineIndent(out)
 					out.WriteString("{\n")
-					// First, capture all RHS values into temporaries
+					// An earlier store can change the index used by a later target.
+					indexedPointerFields := make([]*ast.SelectorExpr, len(s.Lhs))
+					for i, lhs := range s.Lhs {
+						sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+						if !ok || nilPointerHandleAssignmentType(lhs, s.Rhs[i]) == nil {
+							continue
+						}
+						index := indexedValuePointerFieldIndex(sel)
+						if index == nil {
+							continue
+						}
+						indexedPointerFields[i] = sel
+						out.WriteString(indent + "    ")
+						writeIndexedPointerFieldOperands(out, index, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i))
+						out.WriteString("\n")
+					}
+					// Capture all RHS values before storing any results.
 					for i, rhs := range s.Rhs {
 						out.WriteString(indent)
 						out.WriteString("    ")
@@ -11927,6 +11961,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
+						if sel := indexedPointerFields[i]; sel != nil {
+							out.WriteString(indent + "    ")
+							writeIndexedPointerFieldStore(out, sel, fmt.Sprintf("__sequence_%d", i), fmt.Sprintf("__index_%d", i), fmt.Sprintf("__tmp_%d", i))
+							out.WriteString("\n")
+							continue
+						}
 						writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
 					}
 					out.WriteString(indent)

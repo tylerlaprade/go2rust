@@ -92,4 +92,10 @@ func main() {
 	namedAlias := named[0].Next
 	named[0].Next = nil
 	fmt.Println(named[0].Next == nil, namedAlias.Value)
+
+	sequence := []Node{{Next: &Node{Value: 13}}, {Next: &Node{Value: 14}}}
+	index := 0
+	held := sequence[index].Next
+	index, sequence[index].Next = 1, nil
+	fmt.Println(index, sequence[0].Next == nil, sequence[1].Next != nil, held.Value)
 }
