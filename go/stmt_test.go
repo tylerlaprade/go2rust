@@ -1731,10 +1731,10 @@ func runes(s string) []rune {
 }
 `)
 
-	if strings.Contains(rust, "] = c") && !strings.Contains(rust, "] = c as i32") {
+	if strings.Contains(rust, "let __rhs = c") && !strings.Contains(rust, "let __rhs = c as i32;") {
 		t.Fatalf("assignment to []rune element should not store Rust char directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = c as i32") {
+	if !strings.Contains(rust, "let __rhs = c as i32;") {
 		t.Fatalf("assignment to []rune element should cast string range char to Go rune:\n%s", rust)
 	}
 }
@@ -2141,7 +2141,8 @@ func main() {
 	}
 	if !strings.Contains(rust, "{ let __nil_result = (*flags.lock().unwrap()).is_none(); __nil_result }") ||
 		!strings.Contains(rust, "flags.lock().unwrap().as_mut().unwrap()).insert") ||
-		!strings.Contains(rust, "let mut __map_guard = flags.lock().unwrap()") {
+		!strings.Contains(rust, "{ let __map_holder = flags.clone(); ") ||
+		!strings.Contains(rust, "let mut __map_guard = __map_holder.lock().unwrap()") {
 		t.Fatalf("pointer-to-map operations should borrow through the pointer map handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "__value.as_ref().unwrap() |") {
@@ -4299,10 +4300,10 @@ func invert(z nat) {
 }
 `)
 
-	if strings.Contains(rust, "] = !(*") {
+	if strings.Contains(rust, "let __rhs = !(*") {
 		t.Fatalf("named integer slice element unary-not assignment should not store a raw primitive:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = Word(") {
+	if !strings.Contains(rust, "let __rhs = Word(") {
 		t.Fatalf("named integer slice element unary-not assignment should store the named value:\n%s", rust)
 	}
 }
@@ -6608,10 +6609,10 @@ func main() {
 }
 `)
 
-	if strings.Contains(rust, "] = None") {
+	if strings.Contains(rust, "let __rhs = None") {
 		t.Fatalf("unsafe.Pointer slice element nil assignment should not store Option::None in a usize slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = 0") {
+	if !strings.Contains(rust, "let __rhs = 0") {
 		t.Fatalf("unsafe.Pointer slice element nil assignment should store the zero pointer value:\n%s", rust)
 	}
 }
@@ -7510,12 +7511,12 @@ func clear(mp *machine) {
 }
 `)
 
-	if strings.Contains(rust, ".callers.lock().unwrap().as_mut().unwrap())[(0) as usize]") {
+	if strings.Contains(rust, ".callers.lock().unwrap().as_mut().unwrap())[__idx]") {
 		t.Fatalf("pointer-to-named-array field assignment should not index the named wrapper:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".callers") ||
 		!strings.Contains(rust, ".0.clone(); __named_array }") ||
-		!strings.Contains(rust, ")[(0) as usize] = 0 as usize;") {
+		!strings.Contains(rust, "{ let __idx = (0) as usize; let __rhs = 0 as usize; ") {
 		t.Fatalf("pointer-to-named-array field assignment should mutate the inner array handle:\n%s", rust)
 	}
 }

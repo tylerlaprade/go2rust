@@ -1,0 +1,8 @@
+[package]
+name = "statement_reads_what_it_writes_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "statement_reads_what_it_writes_goroutines"
+path = "main.rs"

@@ -223,8 +223,8 @@ func use(c *cache, items []node) *node {
 	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
 		t.Fatalf("GoPtr pointer array field default should initialize nil slots:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*(*c.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") &&
-		!strings.Contains(rust, "(*(*c.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") {
+	if !strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*(*c.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap())[__idx] = __rhs;") &&
+		!strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*(*c.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[__idx] = __rhs;") {
 		t.Fatalf("assignment into a GoPtr pointer array slot should convert the slice-element handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "fn pop(c: Rc<RefCell<Option<cache>>>) -> GoPtr<node>") &&
@@ -263,8 +263,8 @@ func pick(items []node) *node {
 	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
 		t.Fatalf("GoPtr pointer array local default should initialize nil slots:\n%s", rust)
 	}
-	if !strings.Contains(rust, "batch.borrow_mut().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") &&
-		!strings.Contains(rust, "batch.lock().unwrap().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") {
+	if !strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*batch.borrow_mut().as_mut().unwrap())[__idx] = __rhs;") &&
+		!strings.Contains(rust, "let __rhs = GoPtr::slice_elem_opt(p.clone()); (*batch.lock().unwrap().as_mut().unwrap())[__idx] = __rhs;") {
 		t.Fatalf("assignment into a GoPtr pointer array local slot should convert the slice-element handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "fn pick(items: Rc<RefCell<Option<Vec<node>>>>) -> GoPtr<node>") &&

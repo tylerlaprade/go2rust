@@ -52,20 +52,32 @@ pub struct invocation {
 
 impl invocation {
     pub fn __go_value_clone(&self) -> Self {
-        Self { verb: { let __guard = self.verb.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, build_flags: self.build_flags.clone() }
+        let __go_clone_0_0 = { let __guard = self.verb.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.build_flags.clone();
+        Self {
+            verb: __go_clone_0_0,
+            build_flags: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for invocation {
     fn default() -> Self {
-        Self { verb: Rc::new(RefCell::new(Some(String::new()))), build_flags: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            verb: __go_default_0_0,
+            build_flags: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for invocation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.verb.borrow().as_ref().unwrap()), format_slice(&self.build_flags))
+        let __go_fmt_0 = format!("{}", (*self.verb.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.build_flags));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -73,7 +85,7 @@ impl std::fmt::Display for invocation {
 impl invocation {
     pub fn run(&self) -> Rc<RefCell<Option<Vec<String>>>> {
         let mut goArgs = Rc::new(RefCell::new(Some(vec![{ let __selector_holder = self.verb.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }])));
-        { let new_val = { let __append_target = goArgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = self.build_flags.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; goArgs = new_val; };
+        { let new_val = { let __append_target = goArgs.clone(); let __append_values: Vec<_> = { let __slice_holder = self.build_flags.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; goArgs = new_val; };
         return goArgs.clone();
     }
 }

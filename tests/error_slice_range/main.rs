@@ -53,8 +53,8 @@ pub fn accept(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) {
 
 pub fn collect() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> {
     let mut errs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))])));
-    (*errs.borrow_mut().as_mut().unwrap())[(1) as usize] = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("two".to_string())))));
-    { let new_val = { let __append_target = errs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(Rc::new(RefCell::new(Some(Rc::new(customError { msg: Rc::new(RefCell::new(Some("custom".to_string()))), ..Default::default() }) as Rc<dyn StdError>)))); __append_target.clone() }; errs = new_val; };
+    { let __idx = (1) as usize; let __rhs = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("two".to_string()))))); (*errs.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let new_val = { let __append_target = errs.clone(); let __append_value = Rc::new(RefCell::new(Some(Rc::new(customError { msg: Rc::new(RefCell::new(Some("custom".to_string()))), ..Default::default() }) as Rc<dyn StdError>))); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; errs = new_val; };
     return errs.clone();
 }
 

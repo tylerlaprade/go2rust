@@ -128,7 +128,7 @@ impl lazybuf {
             Arc::new(Mutex::new(Some(_n as i32)))
         };
     }
-        (*self.buf.lock().unwrap().as_mut().unwrap())[(*self.w.clone().lock().unwrap().as_ref().unwrap()) as usize] = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        { let __idx = (*self.w.clone().lock().unwrap().as_ref().unwrap()) as usize; let __rhs = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; (*self.buf.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         { let __target = self.w.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
@@ -376,7 +376,7 @@ pub fn replace_string_byte(s: Arc<Mutex<Option<String>>>, old: Arc<Mutex<Option<
             let __tmp_y = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v };
             __tmp_x == __tmp_y
         } {
-        (*n.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        { let __idx = (i) as usize; let __rhs = { let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }; (*n.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
     }
     return Arc::new(Mutex::new(Some(String::from_utf8((*n.lock().unwrap().as_ref().unwrap()).clone()).unwrap())));

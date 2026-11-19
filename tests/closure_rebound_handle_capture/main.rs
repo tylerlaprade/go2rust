@@ -12,7 +12,7 @@ pub trait expr: std::fmt::Display + Any {
 
 impl Clone for Box<dyn expr> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_expr()
+        expr::__go_clone_box_expr(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct ident {
 
 impl ident {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for ident {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for ident {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -71,7 +78,7 @@ pub struct identPtr(pub Rc<RefCell<Option<ident>>>);
 impl std::fmt::Display for identPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -101,7 +108,7 @@ pub fn grouped() -> i32 {
     let mut typ: Rc<RefCell<Option<Box<dyn expr>>>> = Rc::new(RefCell::new(None));
     let mut source: Rc<RefCell<Option<Box<dyn expr>>>> = Rc::new(RefCell::new(None));
     let mut names_closure_clone = names.clone(); let typ_closure_clone = typ.clone(); let mut add = Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
-        if (*typ_closure_clone.borrow()).is_none() {
+        if { let __nil_result = (*typ_closure_clone.borrow()).is_none(); __nil_result } {
         return -(1);
     }
         let mut n = Rc::new(RefCell::new(Some((*names_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
@@ -109,9 +116,9 @@ pub fn grouped() -> i32 {
         return (*n.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut() -> i32>)));
 
-    { let new_val = { let __append_target = names.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(vec!["a".to_string(), "b".to_string()]); __append_target.clone() }; names = new_val; };
-    { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(identPtr(Rc::new(RefCell::new(Some(ident { name: Rc::new(RefCell::new(Some("int".to_string()))), ..Default::default() }))).clone())) as Box<dyn expr>))); let __iface_guard = __iface_handle.borrow(); *source.borrow_mut() = (*__iface_guard).clone(); };
-    { let __iface_handle = source.clone(); let __iface_guard = __iface_handle.borrow(); *typ.borrow_mut() = (*__iface_guard).clone(); };
+    { let new_val = { let __append_target = names.clone(); let __append_values = vec!["a".to_string(), "b".to_string()]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; names = new_val; };
+    { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(identPtr(Rc::new(RefCell::new(Some(ident { name: Rc::new(RefCell::new(Some("int".to_string()))), ..Default::default() }))).clone())) as Box<dyn expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *source.borrow_mut() = __iface_value; };
+    { let __iface_handle = source.clone(); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
     return { let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
 }
 

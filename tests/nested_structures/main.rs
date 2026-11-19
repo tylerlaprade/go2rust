@@ -618,7 +618,7 @@ fn main() {
     println!("{}", format!("{}", "Inventory:".to_string()));
     let mut categories: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     for (category, _) in { let __range_holder = inventory.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = categories.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(category.clone()); __append_target.clone() }; categories = new_val; };
+        { let new_val = { let __append_target = categories.clone(); let __append_value = category.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; categories = new_val; };
     }
     { let __sort_target = categories.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for category in __range_values.iter() {
@@ -626,7 +626,7 @@ fn main() {
         print!("  {}:\n", category);
         let mut itemNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
         for (item, _) in { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = itemNames.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(item.clone()); __append_target.clone() }; itemNames = new_val; };
+        { let new_val = { let __append_target = itemNames.clone(); let __append_value = item.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; itemNames = new_val; };
     }
         { let __sort_target = itemNames.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
         { let __range_holder = itemNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
@@ -696,7 +696,7 @@ fn main() {
         // Add new employee
     let mut newEmployee = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Dave Newbie".to_string()))), age: Rc::new(RefCell::new(Some(25))), address: Rc::new(RefCell::new(Some(Address { street: Rc::new(RefCell::new(Some("999 New St".to_string()))), city: Rc::new(RefCell::new(Some("Newtown".to_string()))), state: Rc::new(RefCell::new(Some("CA".to_string()))), zip_code: Rc::new(RefCell::new(Some("90214".to_string()))), country: Rc::new(RefCell::new(Some("USA".to_string()))), ..Default::default() }))), contact: Rc::new(RefCell::new(Some(Contact { email: Rc::new(RefCell::new(Some("dave@company.com".to_string()))), phone: Rc::new(RefCell::new(Some("555-0004".to_string()))), ..Default::default() }))), ..Default::default() })));
 
-    { let new_val = (*{ let __append_target = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*newEmployee.borrow().as_ref().unwrap()).__go_value_clone()); __append_target.clone() }.borrow().as_ref().unwrap()).clone(); *(*(*company.borrow().as_ref().unwrap()).departments.borrow_mut().as_mut().unwrap())[(0) as usize].employees.borrow_mut() = Some(new_val); };
+    { let new_val = (*{ let __append_target = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __append_value = (*newEmployee.borrow().as_ref().unwrap()).__go_value_clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }.borrow().as_ref().unwrap()).clone(); *(*(*company.borrow().as_ref().unwrap()).departments.borrow_mut().as_mut().unwrap())[(0) as usize].employees.borrow_mut() = Some(new_val); };
     print!("Added new employee: {}\n", (*(*newEmployee.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     print!("Total employees now: {}\n", ({ let __len_target = { let __field = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
 }

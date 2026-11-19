@@ -106,8 +106,8 @@ impl Decl for FuncDeclPtr {
 
 fn main() {
     let mut decls: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Decl>>>>>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); (3) as usize])));
-    (*decls.borrow_mut().as_mut().unwrap())[(0) as usize] = Rc::new(RefCell::new(Some(Box::new(FuncDeclPtr(Rc::new(RefCell::new(Some(FuncDecl { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }))).clone())) as Box<dyn Decl>)));
-    (*decls.borrow_mut().as_mut().unwrap())[(2) as usize] = Rc::new(RefCell::new(Some(Box::new(FuncDeclPtr(Rc::new(RefCell::new(Some(FuncDecl { name: Rc::new(RefCell::new(Some("c".to_string()))), ..Default::default() }))).clone())) as Box<dyn Decl>)));
+    { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(FuncDeclPtr(Rc::new(RefCell::new(Some(FuncDecl { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }))).clone())) as Box<dyn Decl>))); (*decls.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (2) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(FuncDeclPtr(Rc::new(RefCell::new(Some(FuncDecl { name: Rc::new(RefCell::new(Some("c".to_string()))), ..Default::default() }))).clone())) as Box<dyn Decl>))); (*decls.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
 
         // Read with nil check pattern.
     { let __range_holder = decls.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, d) in __range_values.iter().enumerate() {
@@ -119,7 +119,7 @@ fn main() {
     } }
 
         // Reassign nil.
-    (*decls.borrow_mut().as_mut().unwrap())[(0) as usize] = Rc::new(RefCell::new(None));
+    { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(None)); (*decls.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __range_holder = decls.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, d) in __range_values.iter().enumerate() {
         if { let __nil_result = (*d.borrow()).is_none(); __nil_result } {
         println!("{} {}", format!("{}", i), format!("{}", "<nil>".to_string()));
