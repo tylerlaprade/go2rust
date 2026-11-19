@@ -10029,20 +10029,39 @@ func (u *User) Next() *User    { return u.next }
 func (u *User) Tags() []string { return u.tags }
 `)
 
-	for _, unwanted := range []string{
-		"self.name.clone()\n",
-		"self.pos.clone()\n",
-	} {
-		if strings.Contains(rust, unwanted) {
-			t.Fatalf("a value field must not be returned as its own handle, found %q in:\n%s", unwanted, rust)
+	// Look at each getter's own body. The struct's copy helper also contains
+	// "self.next.clone()", so a search of the whole file proves nothing.
+	getterBody := func(name string) string {
+		t.Helper()
+		start := strings.Index(rust, "pub fn "+name+"(&self)")
+		if start < 0 {
+			t.Fatalf("missing getter %s in:\n%s", name, rust)
+		}
+		end := strings.Index(rust[start:], "\n    }\n")
+		if end < 0 {
+			t.Fatalf("getter %s has no end in:\n%s", name, rust)
+		}
+		return rust[start : start+end]
+	}
+
+	for name, handle := range map[string]string{"name": "self.name.clone()", "pos": "self.pos.clone()"} {
+		body := getterBody(name)
+		if !strings.Contains(body, "Rc::new(RefCell::new(Some(") {
+			t.Fatalf("%s returns a field Go copies, so it must build a cell of its own:\n%s", name, body)
+		}
+		for _, direct := range []string{handle + "\n", "return " + handle + ";"} {
+			if strings.Contains(body, direct) {
+				t.Fatalf("%s must not return the field's own handle, found %q in:\n%s", name, direct, body)
+			}
 		}
 	}
-	for _, want := range []string{
-		"self.next.clone()",
-		"self.tags.clone()",
-	} {
-		if !strings.Contains(rust, want) {
-			t.Fatalf("a field that Go shares should still be returned as its handle, missing %q in:\n%s", want, rust)
+	for name, handle := range map[string]string{"next": "self.next.clone()", "tags": "self.tags.clone()"} {
+		body := getterBody(name)
+		if !strings.Contains(body, handle) {
+			t.Fatalf("%s returns a field Go shares, so it should return the field's handle %q:\n%s", name, handle, body)
+		}
+		if strings.Contains(body, "Rc::new(") {
+			t.Fatalf("%s must not build a new cell for a field Go shares:\n%s", name, body)
 		}
 	}
 }

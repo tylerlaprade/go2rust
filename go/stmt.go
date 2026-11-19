@@ -4471,26 +4471,24 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 		return false
 	}
 
-	switch typ.Underlying().(type) {
-	case *types.Basic, *types.Struct, *types.Array:
-		varName := RustIdentForUse(ident)
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = RustLocalIdent(renamed)
-			}
-		}
-		out.WriteString("{ let __owned = ")
-		out.WriteString(varName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone(); ")
-		WriteWrapperPrefix(out)
-		out.WriteString("__owned")
-		WriteWrapperSuffix(out)
-		out.WriteString(" }")
-		return true
-	default:
+	if !goTypeIsCopiedByValue(typ) {
 		return false
 	}
+	varName := RustIdentForUse(ident)
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+			varName = RustLocalIdent(renamed)
+		}
+	}
+	out.WriteString("{ let __owned = ")
+	out.WriteString(varName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap().clone(); ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__owned")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
 }
 
 func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
@@ -4539,12 +4537,8 @@ func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool 
 	if typ == nil {
 		return false
 	}
-	if !namedCollectionSelectorNeedsOwnedValue(expr, typ) {
-		switch typ.Underlying().(type) {
-		case *types.Basic, *types.Struct, *types.Array:
-		default:
-			return false
-		}
+	if !namedCollectionSelectorNeedsOwnedValue(expr, typ) && !goTypeIsCopiedByValue(typ) {
+		return false
 	}
 	var inner strings.Builder
 	if !writeOwnedExpressionValue(&inner, expr) {
@@ -6518,26 +6512,47 @@ func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
 	return ok
 }
 
-// receiverFieldIsReturnedByCopy reports whether a field of the receiver is
-// a value that Go copies when a method returns it: a string, a number, a
-// bool, a struct or an array, or a defined type over one of those. The
-// caller's variable is then its own. Returning the field's handle would make
-// the caller's variable and the field one variable, so that "name :=
-// u.Name(); name = strings.ToUpper(name)" changed the struct.
-func receiverFieldIsReturnedByCopy(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
+// goTypeIsCopiedByValue reports whether assigning a value of this type gives
+// the destination a value of its own: a string, a number, a bool, a struct
+// or an array, or a defined type over one of those. Every place that decides
+// between copying a value and sharing its handle asks here, so that they
+// cannot disagree.
+func goTypeIsCopiedByValue(typ types.Type) bool {
 	switch types.Unalias(typ).Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array:
 		return true
 	}
 	return false
+}
+
+// receiverFieldIsReturnedByCopy reports whether a field of the receiver is
+// a value that Go copies when a method returns it. The caller's variable is
+// then its own. Returning the field's handle would make the caller's
+// variable and the field one variable, so that "name := u.Name(); name =
+// strings.ToUpper(name)" changed the struct.
+//
+// known is false when the type checker has no type for the field. The
+// caller must not guess then: a wrong guess is a silent aliasing bug.
+func receiverFieldIsReturnedByCopy(expr ast.Expr) (copied bool, known bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false, false
+	}
+	return goTypeIsCopiedByValue(typ), true
+}
+
+func receiverFieldTypeIsKnown(expr ast.Expr) bool {
+	_, known := receiverFieldIsReturnedByCopy(expr)
+	return known
+}
+
+func receiverFieldIsCopied(expr ast.Expr) bool {
+	copied, _ := receiverFieldIsReturnedByCopy(expr)
+	return copied
 }
 
 func selectorExpressionKeepsHandle(expr ast.Expr) bool {
@@ -10883,7 +10898,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
 							// Function selector values are represented by cloneable handles or boxed method values.
-						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldIsReturnedByCopy(result) {
+						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldTypeIsKnown(result) {
+							// Without a type there is no telling a copied field
+							// from a shared one. Say so instead of guessing.
+							out.WriteString("unimplemented!(\"type info required to return a receiver field\")")
+						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldIsCopied(result) {
 							// Returning a receiver field that Go shares, such as a
 							// pointer, slice or map, clones the handle. Route through
 							// typed selector lowering so promoted fields traverse embeds.
