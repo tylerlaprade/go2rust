@@ -1196,6 +1196,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatNestedPointerSliceWrapped = dst.needsFormatNestedPointerSliceWrapped || src.needsFormatNestedPointerSliceWrapped
 	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
+	dst.needsFormatAnyNested = dst.needsFormatAnyNested || src.needsFormatAnyNested
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
@@ -1208,6 +1209,14 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 		}
 		for rustType := range src.anyCloneTypes {
 			dst.anyCloneTypes[rustType] = true
+		}
+	}
+	if len(src.anyFormatArms) > 0 {
+		if dst.anyFormatArms == nil {
+			dst.anyFormatArms = make(map[string]anyFormatArm)
+		}
+		for rustType, arm := range src.anyFormatArms {
+			dst.anyFormatArms[rustType] = arm
 		}
 	}
 	if len(src.anyTypeNames) > 0 {

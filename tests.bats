@@ -2019,12 +2019,20 @@ run_xfail_test() {
     run_test "tests/positional_struct_nil_slice_field"
 }
 
+@test "print_boxed_composite_values" {
+    run_test "tests/print_boxed_composite_values"
+}
+
 @test "print_nil_error_and_pointer" {
     run_test "tests/print_nil_error_and_pointer"
 }
 
 @test "print_nil_error_and_pointer_goroutines" {
     run_test "tests/print_nil_error_and_pointer_goroutines"
+}
+
+@test "print_self_referencing_value_goroutines" {
+    run_test "tests/print_self_referencing_value_goroutines"
 }
 
 @test "printf_p_verb_receiver" {

@@ -839,6 +839,16 @@ func NeedFormatAny() {
 	}
 }
 
+// NeedFormatAnyNested marks that a value held inside another one is printed,
+// which goes through format_any_nested.
+func NeedFormatAnyNested() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatAnyNested = true
+		helpers.needsFormatAny = true
+		TrackImport("Any")
+	}
+}
+
 // NeedAnyEq marks that we need the go_any_eq helper.
 func NeedAnyEq() {
 	if helpers := activeHelperTracker(); helpers != nil {
@@ -926,6 +936,12 @@ func RegisterAnyCloneType(typ types.Type) {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
 		helpers.anyCloneTypes[rustType] = true
+		if arm, ok := anyFormatArmForType(typ); ok {
+			if helpers.anyFormatArms == nil {
+				helpers.anyFormatArms = make(map[string]anyFormatArm)
+			}
+			helpers.anyFormatArms[rustType] = arm
+		}
 		// The same payload type is what %T sees when the value comes back out
 		// of the interface, so record what Go calls it.
 		if goName, ok := goDynamicTypeName(typ); ok {

@@ -6,6 +6,16 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+// Go expands a pointer to a struct only when the pointer is the value being
+// printed. Inside a struct or a slice it prints the address. That is also
+// what keeps a value that points back to itself from printing forever.
+fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    if !nested {
+        return expand();
+    }
+    if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
+}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -75,6 +85,16 @@ where
 }
 
 fn format_any(value: &dyn Any) -> String {
+    format_any_at(value, false)
+}
+
+// Prints a value held inside the one being printed: a struct's interface
+// field, an element of a []interface{}.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any_at(value, true)
+}
+
+fn format_any_at(value: &dyn Any, nested: bool) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -89,6 +109,20 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Point>() {
+        format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() {
+        format_map(v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
+        format_map(v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() {
+        go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() {
+        format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<f64>>>>>() {
+        format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
+        format_slice(v)
     } else {
         "<unknown>".to_string()
     }
@@ -237,7 +271,7 @@ impl Holder {
 
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.v.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.v.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
@@ -262,8 +296,8 @@ impl Pair {
 
 impl std::fmt::Display for Pair {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.left.borrow().as_ref().unwrap().as_ref()));
-        let __go_fmt_1 = format!("{}", format_any(self.right.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.left.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.right.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

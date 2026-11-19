@@ -10,13 +10,17 @@ pub struct parseValue {
 
 impl parseValue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { err: self.err.clone() }
+        let __go_clone_0_0 = self.err.clone();
+        Self {
+            err: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for parseValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.err.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", match self.err.borrow().as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
