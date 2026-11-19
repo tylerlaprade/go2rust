@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -181,13 +182,44 @@ impl std::fmt::Display for Point {
 }
 
 
+pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Point>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *global.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *global.lock().unwrap() = Some(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), ..Default::default() }))));
+}
+
+
 fn main() {
+    __go_init_all();
     let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(1))), ..Default::default() })));
     let mut ch = GoChannel::<Arc<Mutex<Option<Point>>>>::new_buffered(1 as usize);
     ch.send(p.clone());
-    ch.close();
 
     let mut got = ch.recv().unwrap_or_default().clone();
     { let new_val = 2; *(*got.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", (*{ let __field = (*got.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+
+    ch.send((*global.lock().unwrap().as_ref().unwrap()).clone());
+    { let new_val = ch.recv().unwrap_or_default().clone(); got = new_val; };
+    { let new_val = 4; *(*got.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
+    println!("{} {}", format!("{}", (*{ let __field = (*got.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*(*global.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+
+    let mut s = Arc::new(Mutex::new(Some(vec![5])));
+    let mut slices = GoChannel::<Vec<i32>>::new_buffered(1 as usize);
+    slices.send(s.lock().unwrap().as_ref().unwrap().clone());
+    let mut gotSlice = Arc::new(Mutex::new(Some(slices.recv().unwrap_or_default())));
+    println!("{}", format!("{}", { let __seq = { let __seq_holder = gotSlice.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
+
+    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(6))))]))));
+    let mut maps = GoChannel::<BTreeMap<String, Arc<Mutex<Option<i32>>>>>::new_buffered(1 as usize);
+    maps.send(m.lock().unwrap().as_ref().unwrap().clone());
+    let mut gotMap = Arc::new(Mutex::new(Some(maps.recv().unwrap_or_default())));
+    println!("{}", format!("{}", { let __map = { let __map_holder = gotMap.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    ch.close();
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

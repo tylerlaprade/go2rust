@@ -3023,6 +3023,10 @@ run_xfail_test() {
     run_test "tests/wrapped_call_argument"
 }
 
+@test "XFAIL: channel_collection_copy_semantics" {
+    run_xfail_test "tests/XFAIL/channel_collection_copy_semantics"
+}
+
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
