@@ -5,12 +5,12 @@ use std::rc::{Rc};
 pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let _: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let _: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
     let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
-    let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
+    let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        if (*err_defer_captured.borrow()).is_none() {
+        if { let __nil_result = (*err_defer_captured.borrow()).is_none(); __nil_result } {
         { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("deferred".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -23,7 +23,7 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdEr
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (__return_0, err);
+        return (__return_0, err.clone());
     }
 }
 
@@ -34,12 +34,12 @@ pub fn pair() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdEr
 pub fn load_tuple() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let _: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let _: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
     let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
-    let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
+    let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        if (*err_defer_captured.borrow()).is_none() {
+        if { let __nil_result = (*err_defer_captured.borrow()).is_none(); __nil_result } {
         { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("tuple deferred".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -51,13 +51,13 @@ pub fn load_tuple() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Box<dyn
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (__return_0, err);
+        return (__return_0, err.clone());
     }
 }
 
 fn main() {
     let (mut values, mut err) = load();
-    println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*err.borrow()).is_some()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*err.borrow()).is_some(); __nil_result }), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     { let (__tmp_0, __tmp_1) = load_tuple(); let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *values.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*err.borrow()).is_some()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*err.borrow()).is_some(); __nil_result }), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }
