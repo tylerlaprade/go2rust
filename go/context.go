@@ -839,6 +839,16 @@ func NeedFormatAny() {
 	}
 }
 
+// NeedFormatAnyNested marks that a value held inside another one is printed
+// through format_any, so the printer has to know it is below the top level.
+func NeedFormatAnyNested() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatAnyNested = true
+		helpers.needsFormatAny = true
+		TrackImport("Any")
+	}
+}
+
 // NeedAnyEq marks that we need the go_any_eq helper.
 func NeedAnyEq() {
 	if helpers := activeHelperTracker(); helpers != nil {

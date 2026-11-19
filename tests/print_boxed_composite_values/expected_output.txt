@@ -27,6 +27,11 @@ item: 3
 {9 9} [x]
 cycle: true true 1
 chain: true false
+struct value, boxed: true 1
+struct value, typed: true 1
+pointer, typed: true 1
+struct holding a pointer: true 1 false
+slice holding a pointer: true 1 true
 &{end <nil>}
 &{6 7}
 {typed <nil>}

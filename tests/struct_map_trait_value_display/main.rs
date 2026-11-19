@@ -5,6 +5,23 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 
+thread_local! {
+    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+// Runs format one level further inside the value being printed.
+fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
+    struct Depth;
+    impl Drop for Depth {
+        fn drop(&mut self) {
+            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
+        }
+    }
+    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    format()
+}
+
 fn format_any(value: &dyn Any) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
@@ -41,7 +58,7 @@ impl entry {
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_0 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }

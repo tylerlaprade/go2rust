@@ -1196,6 +1196,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatNestedPointerSliceWrapped = dst.needsFormatNestedPointerSliceWrapped || src.needsFormatNestedPointerSliceWrapped
 	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
+	dst.needsFormatAnyNested = dst.needsFormatAnyNested || src.needsFormatAnyNested
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone

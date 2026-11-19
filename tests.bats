@@ -2023,6 +2023,10 @@ run_xfail_test() {
     run_test "tests/print_boxed_composite_values"
 }
 
+@test "print_self_referencing_value_goroutines" {
+    run_test "tests/print_self_referencing_value_goroutines"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
 }

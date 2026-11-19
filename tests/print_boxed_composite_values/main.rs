@@ -8,25 +8,31 @@ use std::rc::{Rc};
 
 
 thread_local! {
-    static GO_FORMAT_ANY_POINTER_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
 
-// Go expands a pointer to a struct only at the top level of the value being
-// printed. Below that it prints the pointer's address. That is also what keeps
-// a value that points back to itself from printing forever.
-fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+// Runs format one level further inside the value being printed.
+fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
     struct Depth;
     impl Drop for Depth {
         fn drop(&mut self) {
-            GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() - 1));
+            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
         }
     }
-    if GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.get()) > 0 {
+    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    format()
+}
+
+// Go expands a pointer to a struct only at the top level of the value being
+// printed. Inside a struct, a slice or another pointer it prints the address.
+// That is also what keeps a value that points back to itself from printing
+// forever.
+fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    if GO_FORMAT_ANY_DEPTH.with(|depth| depth.get()) > 0 {
         return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
     }
-    GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    expand()
+    go_format_any_nested(expand)
 }
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
@@ -146,6 +152,24 @@ fn format_any(value: &dyn Any) -> String {
     } else {
         "<unknown>".to_string()
     }
+}
+
+fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        formatted.join(" ")
+    } else {
+        String::new()
+    }
+}
+
+fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    go_format_any_nested(|| format!("[{}]", format_any_slice_values(slice)))
+}
+
+fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format_any_slice_values(slice)
 }
 
 fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
@@ -318,7 +342,7 @@ impl Default for Node {
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", match self.next.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.next.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
@@ -409,6 +433,12 @@ pub fn render(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
     Rc::new(RefCell::new(Some(format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())))))
 }
 
+/// shape describes text around the addresses in it, which change from run to
+/// run: whether it starts with prefix, and how many addresses it holds.
+pub fn shape(text: Rc<RefCell<Option<String>>>, prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("{} {}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = (*prefix.borrow().as_ref().unwrap()).clone(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap()), ((*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __sep = "0x".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)))))
+}
+
 /// show prints whatever it is given. The value arrives as an interface, so
 /// the printer has to find out what it holds.
 pub fn show(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
@@ -465,6 +495,18 @@ fn main() {
     let mut tail = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("tail".to_string()))), ..Default::default() })));
     { let new_val = render(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("head".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(tail.clone()) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
     println!("{} {} {}", format!("{}", "chain:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "&{head 0x".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap())));
+
+        // The same holds when the value being printed is a struct and the
+        // pointer is in one of its fields, however the struct reaches the
+        // printer, and when the pointer is an element of a slice of interfaces.
+    println!("{} {}", format!("{}", "struct value, boxed:".to_string()), format!("{}", (*shape(render(Rc::new(RefCell::new(Some(Box::new({ let __v = (*r#loop.borrow().as_ref().unwrap()).clone(); __v }) as Box<dyn Any>)))), Rc::new(RefCell::new(Some("{loop 0x".to_string())))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "struct value, typed:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", { let __v = (*r#loop.borrow().as_ref().unwrap()).clone(); __v })))), Rc::new(RefCell::new(Some("{loop 0x".to_string())))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", format!("&{}", (*r#loop.borrow().as_ref().unwrap())))))), Rc::new(RefCell::new(Some("&{loop 0x".to_string())))).borrow().as_ref().unwrap())));
+    { let new_val = render(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("holder".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(tail.clone()) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
+    println!("{} {} {}", format!("{}", "struct holding a pointer:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some("{holder 0x".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap())));
+    let mut mixed = Rc::new(RefCell::new(Some(vec![Box::new(tail.clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])));
+    { let new_val = Rc::new(RefCell::new(Some(format!("{}", format_any_slice(&mixed))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
+    println!("{} {} {}", format!("{}", "slice holding a pointer:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some("[0x".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = " 1]".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap())));
     let mut noNode: Rc<RefCell<Option<Node>>> = Rc::new(RefCell::new(None));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("end".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(noNode.clone()) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>))));

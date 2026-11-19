@@ -5,25 +5,31 @@ use std::rc::{Rc};
 
 
 thread_local! {
-    static GO_FORMAT_ANY_POINTER_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static GO_FORMAT_ANY_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
 
-// Go expands a pointer to a struct only at the top level of the value being
-// printed. Below that it prints the pointer's address. That is also what keeps
-// a value that points back to itself from printing forever.
-fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+// Runs format one level further inside the value being printed.
+fn go_format_any_nested(format: impl FnOnce() -> String) -> String {
     struct Depth;
     impl Drop for Depth {
         fn drop(&mut self) {
-            GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() - 1));
+            GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() - 1));
         }
     }
-    if GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.get()) > 0 {
+    GO_FORMAT_ANY_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    format()
+}
+
+// Go expands a pointer to a struct only at the top level of the value being
+// printed. Inside a struct, a slice or another pointer it prints the address.
+// That is also what keeps a value that points back to itself from printing
+// forever.
+fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    if GO_FORMAT_ANY_DEPTH.with(|depth| depth.get()) > 0 {
         return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
     }
-    GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() + 1));
-    let _depth = Depth;
-    expand()
+    go_format_any_nested(expand)
 }
 
 fn format_any(value: &dyn Any) -> String {
@@ -96,7 +102,7 @@ impl Holder {
 
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", match self.decl.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_0 = format!("{}", match self.decl.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }

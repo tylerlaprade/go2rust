@@ -1,4 +1,4 @@
-use crate::{format_any};
+use crate::{format_any, go_format_any_nested};
 
 use std::any::Any;
 use std::cell::{RefCell};
@@ -435,9 +435,9 @@ impl std::fmt::Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.kind.borrow().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
-        let __go_fmt_2 = format!("{}", match self.decl.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
-        let __go_fmt_3 = format!("{}", match self.data.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
-        let __go_fmt_4 = format!("{}", match self.r#type.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_2 = format!("{}", match self.decl.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
+        let __go_fmt_3 = format!("{}", match self.data.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
+        let __go_fmt_4 = format!("{}", match self.r#type.borrow().as_ref() { Some(__v) => go_format_any_nested(|| format_any(__v.as_ref())), None => "<nil>".to_string() });
         write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }

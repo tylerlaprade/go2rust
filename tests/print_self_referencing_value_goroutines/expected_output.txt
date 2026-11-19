@@ -1,0 +1,7 @@
+started
+pointer, boxed: true 1
+pointer, typed: true 1
+struct value, boxed: true 1
+struct value, typed: true 1
+struct holding a pointer: true 1 false
+{end <nil>}
