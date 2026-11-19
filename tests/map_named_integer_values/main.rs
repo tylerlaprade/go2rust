@@ -189,7 +189,9 @@ impl Display for Index {
 
 impl PartialEq for Index {
     fn eq(&self, other: &Self) -> bool {
-        self.0.lock().unwrap().as_ref().unwrap() == other.0.lock().unwrap().as_ref().unwrap()
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -201,7 +203,9 @@ impl PartialEq<i32> for Index {
 
 impl PartialOrd for Index {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -262,6 +266,76 @@ impl std::ops::Sub<Index> for i32 {
     type Output = Index;
     fn sub(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Index {
+    type Output = Index;
+    fn mul(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Index {
+    type Output = Index;
+    fn mul(self, other: i32) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Index> for i32 {
+    type Output = Index;
+    fn mul(self, other: Index) -> Index {
+        Index(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Index {
+    type Output = Index;
+    fn div(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Index {
+    type Output = Index;
+    fn div(self, other: i32) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Index> for i32 {
+    type Output = Index;
+    fn div(self, other: Index) -> Index {
+        Index(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Index {
+    type Output = Index;
+    fn neg(self) -> Index {
+        Index(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Index {
+    type Output = Index;
+    fn rem(self, other: Self) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Index {
+    type Output = Index;
+    fn rem(self, other: i32) -> Index {
+        Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Index> for i32 {
+    type Output = Index;
+    fn rem(self, other: Index) -> Index {
+        Index(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 
@@ -493,13 +567,17 @@ pub struct Holder {
 
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { values: self.values.clone() }
+        let __go_clone_0_0 = self.values.clone();
+        Self {
+            values: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.values))
+        let __go_fmt_0 = format!("{}", format_map(&self.values));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -512,10 +590,10 @@ fn main() {
     done.recv().unwrap_or_default();
 
     let mut h = Arc::new(Mutex::new(Some(Holder { values: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Index>>>>::from([])))), ..Default::default() })));
-    let mut idx: Arc<Mutex<Option<Index>>> = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(7)))))));
+    let mut idx: Arc<Mutex<Option<Index>>> = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(7 as i32)))))));
     { let __map_key = "answer".to_string(); let __map_value = Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone()))); (*(*h.lock().unwrap().as_ref().unwrap()).values.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    let (mut missing, mut ok) = { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&"missing".to_string()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(0))))))), Arc::new(Mutex::new(Some(false)))) } };
-    println!("{} {}", format!("{}", { let __v = (*missing.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    println!("{}", format!("{}", { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&"answer".to_string()).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Index(Arc::new(Mutex::new(Some(0))))) }));
+    let (mut missing, mut ok) = { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(0))))))), false) } };
+    println!("{} {}", format!("{}", { let __v = (*missing.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
+    println!("{}", format!("{}", { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"answer".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Index(Arc::new(Mutex::new(Some(0))))) }));
 }
