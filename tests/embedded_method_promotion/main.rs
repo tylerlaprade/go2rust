@@ -1,6 +1,29 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
+
+
+thread_local! {
+    static GO_EMBEDDED_OWNER_REGISTRY: RefCell<std::collections::HashMap<usize, Box<dyn Any>>> = RefCell::new(std::collections::HashMap::new());
+}
+
+fn go_register_embedded_owner<T: 'static>(embedded_key: usize, owner: Rc<RefCell<Option<T>>>) {
+    GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
+        registry.borrow_mut().insert(embedded_key, Box::new(owner));
+    });
+}
+
+fn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc<RefCell<Option<T>>> {
+    GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
+        let registry = registry.borrow();
+        let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+        owner
+            .downcast_ref::<Rc<RefCell<Option<T>>>>()
+            .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+            .clone()
+    })
+}
 
 /// Base types with methods
 #[derive(Debug, Clone)]
@@ -10,20 +33,27 @@ pub struct Logger {
 
 impl Logger {
     pub fn __go_value_clone(&self) -> Self {
-        Self { prefix: { let __guard = self.prefix.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.prefix.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            prefix: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Logger {
     fn default() -> Self {
-        Self { prefix: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            prefix: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Logger {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.prefix.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.prefix.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -35,20 +65,27 @@ pub struct Counter {
 
 impl Counter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { count: { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            count: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Counter {
     fn default() -> Self {
-        Self { count: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            count: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.count.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.count.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -63,20 +100,37 @@ pub struct Service {
 
 impl Service {
     pub fn __go_value_clone(&self) -> Self {
-        Self { logger: { let __guard = self.logger.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, counter: { let __guard = self.counter.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.logger.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.counter.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            logger: __go_clone_0_0,
+            counter: __go_clone_1_0,
+            name: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Service {
     fn default() -> Self {
-        Self { logger: Rc::new(RefCell::new(Some(Logger::default()))), counter: Rc::new(RefCell::new(Some(Counter::default()))), name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Logger::default())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(Counter::default())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            logger: __go_default_0_0,
+            counter: __go_default_1_0,
+            name: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Service {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.logger.borrow().as_ref().unwrap()), (*self.counter.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.logger.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.counter.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -89,20 +143,27 @@ pub struct Base {
 
 impl Base {
     pub fn __go_value_clone(&self) -> Self {
-        Self { id: { let __guard = self.id.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.id.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            id: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Base {
     fn default() -> Self {
-        Self { id: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            id: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Base {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.id.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.id.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -115,20 +176,32 @@ pub struct Middle {
 
 impl Middle {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, data: { let __guard = self.data.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.data.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+            data: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Middle {
     fn default() -> Self {
-        Self { base: Rc::new(RefCell::new(Some(Base::default()))), data: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Base::default())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            base: __go_default_0_0,
+            data: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Middle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.base.borrow().as_ref().unwrap()), (*self.data.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.data.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -141,20 +214,32 @@ pub struct Top {
 
 impl Top {
     pub fn __go_value_clone(&self) -> Self {
-        Self { middle: { let __guard = self.middle.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, extra: { let __guard = self.extra.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.middle.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.extra.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            middle: __go_clone_0_0,
+            extra: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Top {
     fn default() -> Self {
-        Self { middle: Rc::new(RefCell::new(Some(Middle::default()))), extra: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Middle::default())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            middle: __go_default_0_0,
+            extra: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Top {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.middle.borrow().as_ref().unwrap()), (*self.extra.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.middle.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.extra.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -186,7 +271,7 @@ impl Counter {
 impl Service {
     /// Service's own method
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     /// Method that shadows embedded method
@@ -240,7 +325,7 @@ impl Base {
 
 impl Middle {
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
-        return self.data.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.data.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn get_i_d(&self) -> i32 {
@@ -262,7 +347,7 @@ impl Middle {
 
 impl Top {
     pub fn get_extra(&self) -> Rc<RefCell<Option<String>>> {
-        return self.extra.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.extra.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
     pub fn get_data(&self) -> Rc<RefCell<Option<String>>> {
@@ -293,7 +378,7 @@ impl Top {
 fn main() {
         // Test basic method promotion
     println!("{}", format!("{}", "=== Basic method promotion ===".to_string()));
-    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))), ..Default::default() })));
+    let mut svc = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("SVC".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(0))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("MyService".to_string()))), ..Default::default() })));
 
         // Call promoted methods from Logger
     (*svc.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Service started".to_string()))));
@@ -311,7 +396,13 @@ fn main() {
 
         // Test method promotion with pointers
     println!("{}", format!("{}", "\n=== Method promotion with pointers ===".to_string()));
-    let mut svcPtr = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10 as i32))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))), ..Default::default() })));
+    let mut svcPtr = {
+        let __owner = Rc::new(RefCell::new(Some(Service { logger: Rc::new(RefCell::new(Some(Logger { prefix: Rc::new(RefCell::new(Some("PTR".to_string()))), ..Default::default() }))), counter: Rc::new(RefCell::new(Some(Counter { count: Rc::new(RefCell::new(Some(10))), ..Default::default() }))), name: Rc::new(RefCell::new(Some("PointerService".to_string()))), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.borrow(); __owner_guard.as_ref().unwrap().logger.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.borrow(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
 
     (*svcPtr.borrow().as_ref().unwrap()).log(Rc::new(RefCell::new(Some("Pointer service".to_string()))));
     (*svcPtr.borrow_mut().as_mut().unwrap()).increment();
@@ -319,7 +410,7 @@ fn main() {
 
         // Test multi-level embedding
     println!("{}", format!("{}", "\n=== Multi-level embedding ===".to_string()));
-    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100 as i32))), ..Default::default() }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))), ..Default::default() }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))), ..Default::default() })));
+    let mut top = Rc::new(RefCell::new(Some(Top { middle: Rc::new(RefCell::new(Some(Middle { base: Rc::new(RefCell::new(Some(Base { id: Rc::new(RefCell::new(Some(100))), ..Default::default() }))), data: Rc::new(RefCell::new(Some("middle data".to_string()))), ..Default::default() }))), extra: Rc::new(RefCell::new(Some("extra data".to_string()))), ..Default::default() })));
 
         // Methods promoted from Base through Middle
     print!("ID (promoted from Base): {}\n", (*top.borrow().as_ref().unwrap()).get_i_d());

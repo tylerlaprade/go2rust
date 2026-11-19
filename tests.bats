@@ -1215,6 +1215,14 @@ run_xfail_test() {
     run_test "tests/generic_pointer_interface_type_arg"
 }
 
+@test "getter_returns_copy" {
+    run_test "tests/getter_returns_copy"
+}
+
+@test "getter_returns_copy_goroutines" {
+    run_test "tests/getter_returns_copy_goroutines"
+}
+
 @test "global_fixed_array" {
     run_test "tests/global_fixed_array"
 }

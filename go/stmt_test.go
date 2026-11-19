@@ -10078,3 +10078,61 @@ func count() int {
 		t.Fatalf("make([]struct{...}) short declaration should annotate and initialize with the anonymous struct type:\n%s", rust)
 	}
 }
+
+// A method that returns a field of a type Go copies returns a copy. It used
+// to return the field's own handle, so that changing the caller's variable
+// changed the struct. A pointer or a slice field is still shared, as in Go.
+func TestMethodReturnsACopyOfAValueField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Point struct{ X, Y int }
+
+type User struct {
+	name string
+	pos  Point
+	next *User
+	tags []string
+}
+
+func (u *User) Name() string   { return u.name }
+func (u *User) Pos() Point     { return u.pos }
+func (u *User) Next() *User    { return u.next }
+func (u *User) Tags() []string { return u.tags }
+`)
+
+	// Look at each getter's own body. The struct's copy helper also contains
+	// "self.next.clone()", so a search of the whole file proves nothing.
+	getterBody := func(name string) string {
+		t.Helper()
+		start := strings.Index(rust, "pub fn "+name+"(&self)")
+		if start < 0 {
+			t.Fatalf("missing getter %s in:\n%s", name, rust)
+		}
+		end := strings.Index(rust[start:], "\n    }\n")
+		if end < 0 {
+			t.Fatalf("getter %s has no end in:\n%s", name, rust)
+		}
+		return rust[start : start+end]
+	}
+
+	for name, handle := range map[string]string{"name": "self.name.clone()", "pos": "self.pos.clone()"} {
+		body := getterBody(name)
+		if !strings.Contains(body, "Rc::new(RefCell::new(Some(") {
+			t.Fatalf("%s returns a field Go copies, so it must build a cell of its own:\n%s", name, body)
+		}
+		for _, direct := range []string{handle + "\n", "return " + handle + ";"} {
+			if strings.Contains(body, direct) {
+				t.Fatalf("%s must not return the field's own handle, found %q in:\n%s", name, direct, body)
+			}
+		}
+	}
+	for name, handle := range map[string]string{"next": "self.next.clone()", "tags": "self.tags.clone()"} {
+		body := getterBody(name)
+		if !strings.Contains(body, handle) {
+			t.Fatalf("%s returns a field Go shares, so it should return the field's handle %q:\n%s", name, handle, body)
+		}
+		if strings.Contains(body, "Rc::new(") {
+			t.Fatalf("%s must not build a new cell for a field Go shares:\n%s", name, body)
+		}
+	}
+}
