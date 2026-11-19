@@ -12,7 +12,7 @@ pub trait Speaker: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Speaker> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_speaker()
+        Speaker::__go_clone_box_speaker(self.as_ref())
     }
 }
 
@@ -29,13 +29,13 @@ impl std::fmt::Display for counterAsSpeaker {
 
 impl Speaker for counterAsSpeaker {
     fn speak(&self) -> i32 {
-        self.0.speak()
+        counterMethods::speak(&self.0)
     }
     fn __go_clone_box_speaker(&self) -> Box<dyn Speaker> {
         Box::new(self.clone())
     }
     fn __go_as_any(&self) -> &dyn std::any::Any {
-        self
+        &self.0
     }
     fn __go_eq_speaker(&self, _other: &dyn Speaker) -> bool {
         false
@@ -57,9 +57,9 @@ pub fn run_speaker(s: Rc<RefCell<Option<Box<dyn Speaker>>>>) -> i32 {
     (*s.borrow().as_ref().unwrap()).speak()
 }
 
-pub fn make_counter() -> Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>> {
+pub fn make_counter() -> counter {
     let mut x = Rc::new(RefCell::new(Some(41)));
-    let x_closure_clone = x.clone(); return Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
+    let mut x_closure_clone = x.clone(); return Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
         { let mut guard = x_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*x_closure_clone.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut() -> i32>)));

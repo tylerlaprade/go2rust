@@ -38,8 +38,18 @@ fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
         Ok(boxed) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
-            return;
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
         }
         Err(payload) => payload,
     };
@@ -241,20 +251,27 @@ pub struct bailout {
 
 impl bailout {
     pub fn __go_value_clone(&self) -> Self {
-        Self { msg: { let __guard = self.msg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.msg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            msg: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for bailout {
     fn default() -> Self {
-        Self { msg: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            msg: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for bailout {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.msg.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msg.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -265,7 +282,8 @@ pub struct surprise {
 
 impl surprise {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -281,7 +299,13 @@ pub fn handle(err: Arc<Mutex<Option<String>>>) {
     let _ts_subject = go_recover().clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
+        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+            __any = __boxed.as_ref() as &dyn Any;
+        }
+        __any
+    });
     if _ts_is_nil {
         let p = _ts_subject.clone();
         drop(_ts_guard);
@@ -293,7 +317,7 @@ pub fn handle(err: Arc<Mutex<Option<String>>>) {
     } else {
         let p = _ts_subject.clone();
         drop(_ts_guard);
-        if (*p.lock().unwrap()).is_none() {
+        if { let __nil_result = (*p.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = "lost".to_string(); *err.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = "default".to_string(); *err.lock().unwrap() = Some(new_val); };

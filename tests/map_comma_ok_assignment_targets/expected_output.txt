@@ -1,0 +1,9 @@
+named slice true 9 9
+named slice, appended to 2 3
+named slice field true 8 8
+global true [1 2] 2 1 2
+indexed true [1 2] [1 2]
+plain slice field true [70 2] [70 2]
+captured by a closure true [70 2] [70 2]
+named slice captured by a closure true 2 2
+named map true 2 2

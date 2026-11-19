@@ -9,20 +9,27 @@ pub struct item {
 
 impl item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for item {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -33,7 +40,8 @@ pub struct scorer {
 
 impl scorer {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -51,13 +59,17 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { s: self.s.clone() }
+        let __go_clone_0_0 = self.s.clone();
+        Self {
+            s: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.s.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.s.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -70,7 +82,8 @@ impl scorer {
 
 pub fn first(items: Rc<RefCell<Option<Vec<item>>>>) -> Rc<RefCell<Option<item>>> {
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        return Rc::new(RefCell::new(Some((*item).clone())));
+        let item = &item.__go_value_clone();
+        return Rc::new(RefCell::new(Some((*item).__go_value_clone())));
     } }
     Rc::new(RefCell::new(Some(item { name: Rc::new(RefCell::new(Some(String::new()))) })))
 }
@@ -82,7 +95,8 @@ pub fn score(item: Rc<RefCell<Option<item>>>) -> i32 {
 pub fn total_score(items: Rc<RefCell<Option<Vec<item>>>>) -> i32 {
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        { let __rhs = score(Rc::new(RefCell::new(Some((*item).clone())))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        let item = &item.__go_value_clone();
+        { let __rhs = score(Rc::new(RefCell::new(Some((*item).__go_value_clone())))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());
 }
@@ -90,7 +104,8 @@ pub fn total_score(items: Rc<RefCell<Option<Vec<item>>>>) -> i32 {
 pub fn total_method_score(h: Rc<RefCell<Option<holder>>>, items: Rc<RefCell<Option<Vec<item>>>>) -> i32 {
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        { let __rhs = (*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).score(Rc::new(RefCell::new(Some((*item).clone())))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        let item = &item.__go_value_clone();
+        { let __rhs = (*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).score(Rc::new(RefCell::new(Some((*item).__go_value_clone())))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());
 }

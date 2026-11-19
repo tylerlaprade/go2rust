@@ -157,20 +157,27 @@ pub struct state {
 
 impl state {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for state {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for state {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -192,6 +199,6 @@ impl state {
 }
 
 fn main() {
-    let mut s = Arc::new(Mutex::new(Some(state { value: Arc::new(Mutex::new(Some(7 as i32))), ..Default::default() })));
+    let mut s = Arc::new(Mutex::new(Some(state { value: Arc::new(Mutex::new(Some(7))), ..Default::default() })));
     { let __recv = s.clone(); let __recv_ptr: *const state = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const state }; let __result = unsafe { &*__recv_ptr }.run(); __result };
 }

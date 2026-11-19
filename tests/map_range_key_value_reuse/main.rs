@@ -38,20 +38,27 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            i_d: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { i_d: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            i_d: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.i_d.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.i_d.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -63,13 +70,17 @@ pub struct LoaderPackage {
 
 impl LoaderPackage {
     pub fn __go_value_clone(&self) -> Self {
-        Self { imports: self.imports.clone() }
+        let __go_clone_0_0 = self.imports.clone();
+        Self {
+            imports: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for LoaderPackage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.imports))
+        let __go_fmt_0 = format!("{}", format_map(&self.imports));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -79,12 +90,12 @@ fn main() {
     let mut pkg = Rc::new(RefCell::new(Some(LoaderPackage { imports: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::new()))), ..Default::default() })));
 
     for (id, _) in { let __range_holder = ids.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        if id.clone() == "C" {
+        if id.clone() == "C".to_string() {
         continue
     }
         { let __map_key = id.clone(); let __map_value = Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some(id.clone()))), ..Default::default() }))); (*(*pkg.borrow().as_ref().unwrap()).imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
 
-    println!("{}", format!("{}", (*(*pkg.borrow().as_ref().unwrap()).imports.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len_target = { let __field = (*pkg.borrow().as_ref().unwrap()).imports.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
     println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
 }

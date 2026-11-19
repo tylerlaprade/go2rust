@@ -2,10 +2,10 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    go_ast::__go_init_all();
-    go_token::__go_init_all();
-    unicode::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::go_ast::__go_init_all();
+    ::go_token::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut call = Arc::new(Mutex::new(Some(go_ast::r#mod::CallExpr { fun: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("f".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), args: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))]))), ..Default::default() })));
     let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
@@ -25,7 +25,7 @@ fn main() {
         }
     });;
         if ok {
-            { let __append_target = names_closure_clone.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); __append_target.clone() };;
+            { let __append_target = names_closure_clone.clone(); let __append_value = { let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };;
         }
     }
         true

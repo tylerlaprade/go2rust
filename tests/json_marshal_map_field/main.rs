@@ -56,13 +56,17 @@ pub struct OverlayJSON {
 
 impl OverlayJSON {
     pub fn __go_value_clone(&self) -> Self {
-        Self { replace: self.replace.clone() }
+        let __go_clone_0_0 = self.replace.clone();
+        Self {
+            replace: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for OverlayJSON {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.replace))
+        let __go_fmt_0 = format!("{}", format_map(&self.replace));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -70,9 +74,9 @@ impl std::fmt::Display for OverlayJSON {
 fn main() {
     let mut overlays = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("b.go".to_string(), Rc::new(RefCell::new(Some("tmp-b".to_string())))), ("a.go".to_string(), Rc::new(RefCell::new(Some("tmp-a".to_string()))))]))));
 
-    let (mut data, _) = { let __json_value = OverlayJSON { replace: overlays.clone(), ..Default::default() }; let mut __json_fields: Vec<String> = Vec::new(); { let __map_guard = __json_value.replace.borrow(); if let Some(__map) = __map_guard.as_ref() { if !__map.is_empty() { let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v.borrow(); format!("\"{}\":\"{}\"", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"replace\":{{{}}}", __map_entries)); } } } let __json = format!("{{{}}}", __json_fields.join(",")); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
+    let (mut data, _) = { let __json_value = OverlayJSON { replace: overlays.clone(), ..Default::default() }; let mut __json_fields: Vec<String> = Vec::new(); { let __map_guard = __json_value.replace.borrow(); if let Some(__map) = __map_guard.as_ref() { if !__map.is_empty() { let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v.borrow(); format!("\"{}\":\"{}\"", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"replace\":{{{}}}", __map_entries)); } } } let __json = format!("{{{}}}", __json_fields.join(",")); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))) };
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));
 
-    let (mut empty, _) = { let __json_value = OverlayJSON { replace: Rc::new(RefCell::new(Some(BTreeMap::new()))) }; let mut __json_fields: Vec<String> = Vec::new(); { let __map_guard = __json_value.replace.borrow(); if let Some(__map) = __map_guard.as_ref() { if !__map.is_empty() { let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v.borrow(); format!("\"{}\":\"{}\"", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"replace\":{{{}}}", __map_entries)); } } } let __json = format!("{{{}}}", __json_fields.join(",")); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))) };
+    let (mut empty, _) = { let __json_value = OverlayJSON { replace: Default::default() }; let mut __json_fields: Vec<String> = Vec::new(); { let __map_guard = __json_value.replace.borrow(); if let Some(__map) = __map_guard.as_ref() { if !__map.is_empty() { let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v.borrow(); format!("\"{}\":\"{}\"", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"replace\":{{{}}}", __map_entries)); } } } let __json = format!("{{{}}}", __json_fields.join(",")); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))) };
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*empty.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));
 }

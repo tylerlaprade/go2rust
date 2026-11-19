@@ -56,7 +56,13 @@ impl Display for Names {
 
 impl Names {
     pub fn swap(&self, i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>) {
-        { let __tmp_0 = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*j.borrow().as_ref().unwrap())) as usize].clone() }; let __tmp_1 = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap())) as usize].clone() }; (*self.0.borrow_mut().as_mut().unwrap())[((*i.borrow().as_ref().unwrap())) as usize] = __tmp_0; (*self.0.borrow_mut().as_mut().unwrap())[((*j.borrow().as_ref().unwrap())) as usize] = __tmp_1; };
+        let mut __self = self.clone();
+        {
+            let __tmp_0 = { let __seq_holder = __self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*j.borrow().as_ref().unwrap())) as usize].clone() };
+            let __tmp_1 = { let __seq_holder = __self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap())) as usize].clone() };
+            { let __idx = ((*i.borrow().as_ref().unwrap())) as usize; (*__self.0.clone().borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; }
+            { let __idx = ((*j.borrow().as_ref().unwrap())) as usize; (*__self.0.clone().borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; }
+        };
     }
 
     pub fn at(&self, i: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {

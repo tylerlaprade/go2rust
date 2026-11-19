@@ -25,7 +25,9 @@ impl Display for Token {
 
 impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -37,7 +39,9 @@ impl PartialEq<i32> for Token {
 
 impl PartialOrd for Token {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -98,6 +102,76 @@ impl std::ops::Sub<Token> for i32 {
     type Output = Token;
     fn sub(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Token {
+    type Output = Token;
+    fn mul(self, other: Self) -> Token {
+        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Token {
+    type Output = Token;
+    fn mul(self, other: i32) -> Token {
+        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Token> for i32 {
+    type Output = Token;
+    fn mul(self, other: Token) -> Token {
+        Token(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Token {
+    type Output = Token;
+    fn div(self, other: Self) -> Token {
+        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Token {
+    type Output = Token;
+    fn div(self, other: i32) -> Token {
+        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Token> for i32 {
+    type Output = Token;
+    fn div(self, other: Token) -> Token {
+        Token(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Token {
+    type Output = Token;
+    fn neg(self) -> Token {
+        Token(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Token {
+    type Output = Token;
+    fn rem(self, other: Self) -> Token {
+        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Token {
+    type Output = Token;
+    fn rem(self, other: i32) -> Token {
+        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Token> for i32 {
+    type Output = Token;
+    fn rem(self, other: Token) -> Token {
+        Token(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -324,7 +398,7 @@ impl Ord for Token {
 
 fn main() {
     let mut count = Rc::new(RefCell::new(Some(0)));
-    let mut i = Rc::new(RefCell::new(Some(Token(Rc::new(RefCell::new(Some(TOK_BEG as i32 + 1 as i32 as i32)))))));
+    let mut i = Rc::new(RefCell::new(Some(Token(Rc::new(RefCell::new(Some((TOK_BEG as i32 + 1 as i32) as i32)))))));
     while (*i.borrow().as_ref().unwrap()) < Token(Rc::new(RefCell::new(Some(TOK_END as i32)))) {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as i32); }

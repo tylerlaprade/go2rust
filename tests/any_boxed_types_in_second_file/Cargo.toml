@@ -1,0 +1,8 @@
+[package]
+name = "any_boxed_types_in_second_file"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_boxed_types_in_second_file"
+path = "main.rs"

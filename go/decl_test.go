@@ -1560,13 +1560,13 @@ func call() (int, error) {
 }
 `)
 
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("generic func parameter should keep the generic wrapped T return ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("instantiated func literal should be coerced to the wrapped generic return ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("func literal passed to generic func parameter should not keep a bare scalar return ABI:\n%s", rust)
 	}
 	if strings.Contains(rust, "let (mut v, mut err) = retry::<i32>") {
@@ -3588,7 +3588,7 @@ func (w writer) refill() writer {
 	if strings.Contains(rust, "pub fn refill(&mut self)") {
 		t.Fatalf("value receiver method should not require mutable access to the caller's receiver:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut __self = self.clone();") {
+	if !strings.Contains(rust, "let mut __self = self.__go_value_clone();") {
 		t.Fatalf("mutating value receiver method should create a mutable receiver copy:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__self.byte(") {

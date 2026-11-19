@@ -33,43 +33,48 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
 }
 
 fn main() {
-    cmp::__go_init_all();
-    container_heap::__go_init_all();
-    go_ast::__go_init_all();
-    go_constant::__go_init_all();
-    go_token::__go_init_all();
-    go_types::__go_init_all();
-    go_version::__go_init_all();
-    internal_abi::__go_init_all();
-    internal_buildcfg::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    internal_filepathlite::__go_init_all();
-    internal_godebug::__go_init_all();
-    internal_godebugs::__go_init_all();
-    internal_goexperiment::__go_init_all();
-    internal_gover::__go_init_all();
-    internal_goversion::__go_init_all();
-    internal_race::__go_init_all();
-    internal_stringslite::__go_init_all();
-    internal_sync::__go_init_all();
-    internal_types_errors::__go_init_all();
-    math::__go_init_all();
-    math_big::__go_init_all();
-    math_bits::__go_init_all();
-    path_filepath::__go_init_all();
-    slices::__go_init_all();
-    sort::__go_init_all();
-    strconv::__go_init_all();
-    strings::__go_init_all();
-    sync::__go_init_all();
-    sync_atomic::__go_init_all();
-    unicode::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
+    ::container_heap::__go_init_all();
+    ::go_ast::__go_init_all();
+    ::go_constant::__go_init_all();
+    ::go_token::__go_init_all();
+    ::go_types::__go_init_all();
+    ::go_version::__go_init_all();
+    ::internal_abi::__go_init_all();
+    ::internal_buildcfg::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_filepathlite::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
+    ::internal_goexperiment::__go_init_all();
+    ::internal_gover::__go_init_all();
+    ::internal_goversion::__go_init_all();
+    ::internal_race::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::internal_sync::__go_init_all();
+    ::internal_types_errors::__go_init_all();
+    ::math::__go_init_all();
+    ::math_big::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::path_filepath::__go_init_all();
+    ::slices::__go_init_all();
+    ::sort::__go_init_all();
+    ::strconv::__go_init_all();
+    ::strings::__go_init_all();
+    ::sync::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut fset = go_token::new_file_set();
     let mut name = go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string()))));
-    let mut file = Arc::new(Mutex::new(Some(go_ast::r#mod::File { name: go_ast::new_ident(Arc::new(Mutex::new(Some("main".to_string())))).clone(), decls: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::GenDecl { tok: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))))), specs: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ValueSpecPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { names: Arc::new(Mutex::new(Some(vec![name.clone()]))), r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)))]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)))]))), ..Default::default() })));
+    let mut file = Arc::new(Mutex::new(Some(go_ast::r#mod::File {
+        name: go_ast::new_ident(Arc::new(Mutex::new(Some("main".to_string())))).clone(),
+        decls: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::GenDecl { tok: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))))), specs: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ValueSpecPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { names: Arc::new(Mutex::new(Some(vec![name.clone()]))), r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)))]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)))]))),
+        ..Default::default()
+    })));
     let mut info = Arc::new(Mutex::new(Some(go_types::api::Info { defs: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<Box<dyn go_types::object::Object + Send + Sync>>>>>::from([])))), ..Default::default() })));
     let mut pkg = go_types::new_package(Arc::new(Mutex::new(Some("example.com/main".to_string()))), Arc::new(Mutex::new(Some("main".to_string()))));
     let mut checker = go_types::new_checker(Arc::new(Mutex::new(None)), fset.clone(), pkg.clone(), info.clone());

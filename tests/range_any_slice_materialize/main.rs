@@ -20,6 +20,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
@@ -33,5 +34,8 @@ pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
 }
 
 fn main() {
-    eprintln!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>]))))));
+    {
+            let __go_print_arg_0 = format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>])))));
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

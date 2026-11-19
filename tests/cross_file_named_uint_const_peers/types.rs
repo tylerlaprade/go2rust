@@ -22,7 +22,9 @@ impl Display for Version {
 
 impl PartialEq for Version {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -34,7 +36,9 @@ impl PartialEq<u32> for Version {
 
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -95,6 +99,69 @@ impl std::ops::Sub<Version> for u32 {
     type Output = Version;
     fn sub(self, other: Version) -> Version {
         Version(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Version {
+    type Output = Version;
+    fn mul(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<u32> for Version {
+    type Output = Version;
+    fn mul(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Version> for u32 {
+    type Output = Version;
+    fn mul(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Version {
+    type Output = Version;
+    fn div(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<u32> for Version {
+    type Output = Version;
+    fn div(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Version> for u32 {
+    type Output = Version;
+    fn div(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Version {
+    type Output = Version;
+    fn rem(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<u32> for Version {
+    type Output = Version;
+    fn rem(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Version> for u32 {
+    type Output = Version;
+    fn rem(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -326,20 +393,27 @@ pub struct Header {
 
 impl Header {
     pub fn __go_value_clone(&self) -> Self {
-        Self { version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            version: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Header {
     fn default() -> Self {
-        Self { version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0))))))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0)))))));
+        Self {
+            version: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Header {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.version.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.version.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
