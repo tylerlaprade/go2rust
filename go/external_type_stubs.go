@@ -1210,6 +1210,14 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 			dst.anyCloneTypes[rustType] = true
 		}
 	}
+	if len(src.anyFormatArms) > 0 {
+		if dst.anyFormatArms == nil {
+			dst.anyFormatArms = make(map[string]anyFormatArm)
+		}
+		for rustType, arm := range src.anyFormatArms {
+			dst.anyFormatArms[rustType] = arm
+		}
+	}
 	if len(src.anyTypeNames) > 0 {
 		if dst.anyTypeNames == nil {
 			dst.anyTypeNames = make(map[string]string)

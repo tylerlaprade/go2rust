@@ -926,6 +926,12 @@ func RegisterAnyCloneType(typ types.Type) {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
 		helpers.anyCloneTypes[rustType] = true
+		if arm, ok := anyFormatArmForType(typ); ok {
+			if helpers.anyFormatArms == nil {
+				helpers.anyFormatArms = make(map[string]anyFormatArm)
+			}
+			helpers.anyFormatArms[rustType] = arm
+		}
 		// The same payload type is what %T sees when the value comes back out
 		// of the interface, so record what Go calls it.
 		if goName, ok := goDynamicTypeName(typ); ok {

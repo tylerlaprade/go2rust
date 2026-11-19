@@ -1,0 +1,27 @@
+42
+hi
+2.5
+true
+[1 2 3]
+[a b]
+[true false]
+[1.5 2]
+[{1 2} {3 4}]
+map[a:1 b:2]
+map[1:one 2:two]
+map[a:{1 2}]
+{1 2}
+&{3 4}
+status 404
+x not found
+[]
+<nil>
+println: [4 5] {5 6}
+printf: [4 5] 7
+printf: &{6 7}
+item: [1 2]
+item: {7 8}
+item: map[k:1]
+item: s
+item: 3
+{9 9} [x]

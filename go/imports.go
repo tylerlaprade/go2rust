@@ -191,6 +191,20 @@ type HelperTracker struct {
 	// anyTypeNames maps the Rust payload type of a value boxed into an empty
 	// interface to the name Go's %T prints for it.
 	anyTypeNames map[string]string
+	// anyFormatArms maps the same payload types to how format_any prints
+	// them.
+	anyFormatArms map[string]anyFormatArm
+}
+
+// anyFormatArm is one case of format_any: how to print a value of one type
+// that the program boxes into an empty interface.
+type anyFormatArm struct {
+	// expr is a Rust expression of type String. It formats v, a reference to
+	// the boxed payload, with the helper the typed print path uses for a
+	// value of the same Go type.
+	expr             string
+	needsFormatMap   bool
+	needsFormatSlice bool
 }
 
 var generatingPublicHelpers bool
@@ -254,6 +268,15 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
 
+	// format_any prints boxed slices and maps through the typed formatters,
+	// so it needs them even when no typed print site asked for them.
+	if ht.needsFormatAny {
+		for _, arm := range ht.anyFormatArms {
+			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
+			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
+		}
+	}
+
 	if ht.needsFormatMap {
 		generateMapFormatter(&result)
 	}
@@ -279,7 +302,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsFormatAny {
-		generateAnyFormatter(&result)
+		generateAnyFormatter(&result, ht.anyFormatArms)
 	}
 
 	if ht.needsFormatAnySlice {
@@ -974,7 +997,7 @@ impl std::fmt::Display for GoAnyPtrKey {
 `)
 }
 
-func generateAnyFormatter(out *strings.Builder) {
+func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm) {
 	TrackImport("Any")
 	if NeedsConcurrentWrapper() {
 		out.WriteString("\nfn format_any(value: &(dyn Any + Send + Sync)) -> String {\n")
@@ -995,6 +1018,20 @@ func generateAnyFormatter(out *strings.Builder) {
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<bool>() {\n")
 	out.WriteString("        v.to_string()\n")
+	rustTypes := make([]string, 0, len(anyFormatArms))
+	for rustType := range anyFormatArms {
+		rustTypes = append(rustTypes, rustType)
+	}
+	slices.Sort(rustTypes)
+	for _, rustType := range rustTypes {
+		trackImportsForAnyPayloadType(rustType)
+		out.WriteString("    } else if let Some(v) = value.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() {\n")
+		out.WriteString("        ")
+		out.WriteString(anyFormatArms[rustType].expr)
+		out.WriteString("\n")
+	}
 	out.WriteString("    } else {\n")
 	out.WriteString("        \"<unknown>\".to_string()\n")
 	out.WriteString("    }\n")

@@ -2015,6 +2015,10 @@ run_xfail_test() {
     run_test "tests/positional_struct_nil_slice_field"
 }
 
+@test "print_boxed_composite_values" {
+    run_test "tests/print_boxed_composite_values"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
 }
