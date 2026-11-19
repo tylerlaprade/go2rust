@@ -167,6 +167,8 @@ type HelperTracker struct {
 	needsGoOnce                          bool
 	needsGoAtomicPointer                 bool
 	needsGoTypeName                      bool
+	needsGoSprintf                       bool
+	needsGoSprintfSpread                 bool
 	needsBase64                          bool
 	needsSha256                          bool
 	needsHexFormat                       bool
@@ -208,6 +210,10 @@ type anyFormatArm struct {
 	needsFormatSlice bool
 	// needsFormatPointer says expr calls go_format_any_pointer.
 	needsFormatPointer bool
+	// text says the value has a String or an Error method. fmt prints such a
+	// value as the one text the method returns, so a width, a precision, %q
+	// and %x apply to that text and not to the fields of the value.
+	text bool
 }
 
 var generatingPublicHelpers bool
@@ -393,6 +399,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoTypeName {
 		generateGoTypeNameHelper(&result, anyTypeNames)
+	}
+
+	if ht.needsGoSprintf {
+		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
 	}
 
 	if ht.needsBase64 {
@@ -673,6 +683,12 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoTypeName {
 		add(goTypeNameHelperRustName)
+	}
+	if ht.needsGoSprintf {
+		add("go_sprintf")
+	}
+	if ht.needsGoSprintfSpread {
+		add("go_sprintf_spread")
 	}
 	if ht.needsBase64 {
 		add("go_base64_encode", "go_base64_decode", "go_base64_value")

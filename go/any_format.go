@@ -17,7 +17,7 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 	switch t := types.Unalias(typ).(type) {
 	case *types.Named:
 		if anyFormatTypeIsLocalStruct(t) {
-			return anyFormatArm{expr: `format!("{}", v)`}, true
+			return anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(t) || isConcreteGoErrorValue(t)}, true
 		}
 	case *types.Pointer:
 		if anyFormatTypeIsLocalStruct(t.Elem()) {
@@ -29,7 +29,7 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 				expr.WriteString("match (*v")
 				WriteBorrowMethod(&expr, false)
 				expr.WriteString(`).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }`)
-				return anyFormatArm{expr: expr.String()}, true
+				return anyFormatArm{expr: expr.String(), text: true}, true
 			}
 			// go_format_any_pointer expands the pointee only when the
 			// pointer is the value being printed. Inside another value it
