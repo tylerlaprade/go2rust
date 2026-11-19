@@ -63,7 +63,7 @@ pub fn get_child(h: Rc<RefCell<Option<holder>>>) -> Rc<RefCell<Option<node>>> {
 fn main() {
     if false {
         let mut h = Rc::new(RefCell::new(Some(holder { child: Default::default() })));
-        println!("{}", format!("{}", format!("&{}", (*get_child(h.clone()).borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", { let __text = match get_child(h.clone()).borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

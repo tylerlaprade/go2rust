@@ -225,7 +225,7 @@ fn main() {
 
     let (mut parsed, mut err) = { let __atoi_input = "123".to_string(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "Parse error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+        println!("{} {}", format!("{}", "Parse error:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     } else {
         println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", parsed));
     }

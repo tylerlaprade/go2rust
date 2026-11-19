@@ -59,14 +59,14 @@ fn main() {
     {
         let (_, mut err) = { let __s = format!("a={} b={}", 1, 2); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));;
+            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
             return;;
         }
     }
     {
         let (_, mut err) = { let __s = format!(" c={}", 3); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));;
+            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
             return;;
         }
     }

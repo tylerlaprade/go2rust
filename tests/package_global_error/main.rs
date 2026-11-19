@@ -39,7 +39,7 @@ fn main() {
         println!("{}", format!("{}", "unset".to_string()));
     }
     if { let __nil_result = (*ErrBoom.borrow()).is_some(); __nil_result } {
-        println!("{}", format!("{}", format!("{}", (*ErrBoom.borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", { let __text = match ErrBoom.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
 }
 

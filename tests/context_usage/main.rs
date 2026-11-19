@@ -510,7 +510,7 @@ fn main() {
             break;
         }
         if let Some(_) = (*ctx.lock().unwrap().as_ref().unwrap()).done().try_recv() {
-            println!("{} {}", format!("{}", "Context cancelled:".to_string()), format!("{}", format!("{}", (*(*ctx.lock().unwrap().as_ref().unwrap()).err().lock().unwrap().as_ref().unwrap()))));
+            println!("{} {}", format!("{}", "Context cancelled:".to_string()), format!("{}", { let __text = match (*ctx.lock().unwrap().as_ref().unwrap()).err().lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -528,7 +528,7 @@ fn main() {
             )
         };
         (*ctx2.lock().unwrap().as_ref().unwrap()).done().recv().unwrap_or_default();
-        println!("{} {}", format!("{}", "Cause cancel:".to_string()), format!("{}", format!("{}", (*(*ctx2.lock().unwrap().as_ref().unwrap()).err().lock().unwrap().as_ref().unwrap()))));
+        println!("{} {}", format!("{}", "Cause cancel:".to_string()), format!("{}", { let __text = match (*ctx2.lock().unwrap().as_ref().unwrap()).err().lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

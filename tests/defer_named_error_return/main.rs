@@ -27,5 +27,5 @@ pub fn compute() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
 fn main() {
     let (mut result, mut err) = compute();
     println!("{}", format!("{}", result));
-    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

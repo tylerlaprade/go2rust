@@ -44,5 +44,5 @@ pub fn build() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
 
 fn main() {
     let mut err = build();
-    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

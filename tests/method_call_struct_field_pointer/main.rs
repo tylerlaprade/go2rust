@@ -69,7 +69,7 @@ impl cache {
 fn main() {
     if false {
         let mut c = Rc::new(RefCell::new(Some(cache { child: Default::default() })));
-        println!("{}", format!("{}", format!("&{}", (*(*c.borrow().as_ref().unwrap()).get().borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", { let __text = match (*c.borrow().as_ref().unwrap()).get().borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

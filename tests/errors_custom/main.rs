@@ -67,7 +67,7 @@ fn main() {
         {
         let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i.clone()))));;
         if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));;
+            println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", { let __text = match e.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
         } else {
             println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", r));;
         }
@@ -77,7 +77,7 @@ fn main() {
         {
         let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i.clone()))));;
         if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", format!("{}", (*e.borrow().as_ref().unwrap()))));;
+            println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", { let __text = match e.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
         } else {
             println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", r));;
         }

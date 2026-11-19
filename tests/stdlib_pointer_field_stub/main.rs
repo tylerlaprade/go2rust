@@ -89,7 +89,7 @@ pub fn selector_name_map(sel: Rc<RefCell<Option<ast_SelectorExpr>>>) -> Rc<RefCe
 
 fn main() {
     if false {
-        println!("{}", format!("{}", format!("&{}", (*pick(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap()))));
+        println!("{}", format!("{}", { let __text = match pick(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         println!("{}", format!("{}", (*selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))).borrow().as_ref().unwrap())));
         println!("{}", format!("{}", has_selector_name(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() }))))));
         println!("{}", format!("{}", format_map(&selector_name_map(Rc::new(RefCell::new(Some(ast_SelectorExpr { ..Default::default() })))))));

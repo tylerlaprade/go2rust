@@ -519,7 +519,7 @@ fn main() {
             )
         };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            print!("  Error: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));;
+            print!("  Error: {}\n", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });;
             continue;
         }
     }

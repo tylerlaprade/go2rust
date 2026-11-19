@@ -54,14 +54,14 @@ fn main() {
 
         // Pointer to struct
     let mut point = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(10))), y: Rc::new(RefCell::new(Some(20))), ..Default::default() })));
-    println!("{} {}", format!("{}", "Point:".to_string()), format!("{}", format!("&{}", (*point.borrow().as_ref().unwrap()))));
+    println!("{} {}", format!("{}", "Point:".to_string()), format!("{}", { let __text = match point.borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", "Point X:".to_string()), format!("{}", (*(*point.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "Point Y:".to_string()), format!("{}", (*(*point.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap())));
 
         // Modify struct through pointer
     { let new_val = 30; *(*point.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     { let new_val = 40; *(*point.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "Modified point:".to_string()), format!("{}", format!("&{}", (*point.borrow().as_ref().unwrap()))));
+    println!("{} {}", format!("{}", "Modified point:".to_string()), format!("{}", { let __text = match point.borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
 
         // Pointer aliasing
     let mut q = p.clone();
@@ -72,5 +72,5 @@ fn main() {
     let mut newPoint = Rc::new(RefCell::new(Some(Point::default())));
     { let new_val = 5; *(*newPoint.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     { let new_val = 15; *(*newPoint.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "New point:".to_string()), format!("{}", format!("&{}", (*newPoint.borrow().as_ref().unwrap()))));
+    println!("{} {}", format!("{}", "New point:".to_string()), format!("{}", { let __text = match newPoint.borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
 }

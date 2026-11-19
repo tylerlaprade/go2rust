@@ -7808,6 +7808,21 @@ func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+// writeConcreteErrorVarInitializer writes the initializer of
+// "var name error = value" when value is not an error already but a struct
+// or pointer that implements error. It is boxed as an assignment to an error
+// variable boxes it.
+func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if !isGoErrorType(typeInfo.GetType(typeExpr)) || !isConcreteGoErrorValue(typeInfo.GetType(value)) {
+		return false
+	}
+	return writeGoErrorHandleValue(out, value)
+}
+
 func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Error")
 	out.WriteString("Box::new(")
@@ -12890,6 +12905,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeConcreteErrorVarInitializer(out, valueSpec.Type, valueSpec.Values[i]) {
+									// A struct or pointer that implements error, stored in an error variable.
 								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
 									// Values assigned into a transpiled named interface variable may need re-boxing.
 								} else if valueSpec.Type != nil && writeConcreteToTranspiledInterfaceValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
