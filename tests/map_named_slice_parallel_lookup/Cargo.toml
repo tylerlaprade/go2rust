@@ -1,0 +1,8 @@
+[package]
+name = "map_named_slice_parallel_lookup"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_named_slice_parallel_lookup"
+path = "main.rs"

@@ -1616,13 +1616,13 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 	return true
 }
 
-func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, registerBareScalar bool) {
+func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
 	if call, isCall := rhs.(*ast.CallExpr); isCall {
 		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
 			return
 		}
 		if callReturnsBareScalar(call) {
-			if registerBareScalar {
+			if newBinding {
 				registerBareShortDecl(lhs)
 				TranspileExpression(out, call)
 			} else {
@@ -1646,6 +1646,19 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 	if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		// Address-of expressions already return wrapped handles.
 		TranspileExpression(out, rhs)
+		return
+	}
+	if newBinding && mapIndexExpressionKeepsHandle(rhs) && isNamedSliceExpression(rhs) {
+		// Copy the named slice into its own variable slot while retaining its
+		// shared backing storage. Clearing the variable must not clear the map.
+		out.WriteString("{ let __slice = ")
+		TranspileExpression(out, rhs)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone(); ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("__slice")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(" }")
 		return
 	}
 	if rhsIsPointerType(rhs) {
