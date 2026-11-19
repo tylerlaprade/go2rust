@@ -93,6 +93,12 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any(value)
+}
+
 /// Named struct with anonymous struct field
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -103,20 +109,37 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, database: { let __guard = self.database.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, cache: { let __guard = self.cache.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.database.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.cache.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            database: __go_clone_1_0,
+            cache: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Config {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))), database: Rc::new(RefCell::new(Some(AnonymousStruct1::default()))), cache: Rc::new(RefCell::new(Some(AnonymousStruct3::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(AnonymousStruct1::default())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(AnonymousStruct3::default())));
+        Self {
+            name: __go_default_0_0,
+            database: __go_default_1_0,
+            cache: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.database.borrow().as_ref().unwrap()), (*self.cache.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.database.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.cache.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -130,20 +153,32 @@ pub struct Dashboard {
 
 impl Dashboard {
     pub fn __go_value_clone(&self) -> Self {
-        Self { title: { let __guard = self.title.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, widgets: self.widgets.clone() }
+        let __go_clone_0_0 = { let __guard = self.title.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.widgets.clone();
+        Self {
+            title: __go_clone_0_0,
+            widgets: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Dashboard {
     fn default() -> Self {
-        Self { title: Rc::new(RefCell::new(Some(String::new()))), widgets: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            title: __go_default_0_0,
+            widgets: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Dashboard {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.title.borrow().as_ref().unwrap()), format_slice(&self.widgets))
+        let __go_fmt_0 = format!("{}", (*self.title.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.widgets));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -156,20 +191,37 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { host: { let __guard = self.host.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, port: { let __guard = self.port.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, credentials: { let __guard = self.credentials.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.host.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.port.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.credentials.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            host: __go_clone_0_0,
+            port: __go_clone_1_0,
+            credentials: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { host: Rc::new(RefCell::new(Some(String::new()))), port: Rc::new(RefCell::new(Some(0))), credentials: Rc::new(RefCell::new(Some(AnonymousStruct2::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(AnonymousStruct2::default())));
+        Self {
+            host: __go_default_0_0,
+            port: __go_default_1_0,
+            credentials: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.host.borrow().as_ref().unwrap()), (*self.port.borrow().as_ref().unwrap()), (*self.credentials.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.host.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.port.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.credentials.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -181,20 +233,32 @@ pub struct AnonymousStruct2 {
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { user: { let __guard = self.user.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, password: { let __guard = self.password.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.user.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.password.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            user: __go_clone_0_0,
+            password: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { user: Rc::new(RefCell::new(Some(String::new()))), password: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            user: __go_default_0_0,
+            password: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.user.borrow().as_ref().unwrap()), (*self.password.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.user.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.password.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -206,20 +270,32 @@ pub struct AnonymousStruct3 {
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { enabled: { let __guard = self.enabled.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, t_t_l: { let __guard = self.t_t_l.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.enabled.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.t_t_l.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            enabled: __go_clone_0_0,
+            t_t_l: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { enabled: Rc::new(RefCell::new(Some(false))), t_t_l: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            enabled: __go_default_0_0,
+            t_t_l: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.enabled.borrow().as_ref().unwrap()), (*self.t_t_l.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.enabled.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.t_t_l.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -232,20 +308,37 @@ pub struct AnonymousStruct4 {
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { i_d: { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, r#type: { let __guard = self.r#type.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, position: { let __guard = self.position.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.i_d.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.r#type.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.position.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            i_d: __go_clone_0_0,
+            r#type: __go_clone_1_0,
+            position: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct4 {
     fn default() -> Self {
-        Self { i_d: Rc::new(RefCell::new(Some(0))), r#type: Rc::new(RefCell::new(Some(String::new()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(AnonymousStruct5::default())));
+        Self {
+            i_d: __go_default_0_0,
+            r#type: __go_default_1_0,
+            position: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.i_d.borrow().as_ref().unwrap()), (*self.r#type.borrow().as_ref().unwrap()), (*self.position.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.i_d.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.r#type.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.position.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -257,20 +350,32 @@ pub struct AnonymousStruct5 {
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x: { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, y: { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+            y: __go_clone_0_1,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct5 {
     fn default() -> Self {
-        Self { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_0_1 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            x: __go_default_0_0,
+            y: __go_default_0_1,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x.borrow().as_ref().unwrap()), (*self.y.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.y.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -290,7 +395,7 @@ fn main() {
     print!("Cache: enabled={}, TTL={}\n", (*(*(*config.borrow().as_ref().unwrap()).cache.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()), (*(*(*config.borrow().as_ref().unwrap()).cache.borrow().as_ref().unwrap()).t_t_l.borrow().as_ref().unwrap()));
 
         // Test named struct with slice of anonymous structs
-    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(vec![AnonymousStruct4 { i_d: Rc::new(RefCell::new(Some(1))), r#type: Rc::new(RefCell::new(Some("chart".to_string()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5 { x: Rc::new(RefCell::new(Some(0 as i32))), y: Rc::new(RefCell::new(Some(0 as i32))) }))), ..Default::default() }, AnonymousStruct4 { i_d: Rc::new(RefCell::new(Some(2))), r#type: Rc::new(RefCell::new(Some("table".to_string()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5 { x: Rc::new(RefCell::new(Some(100 as i32))), y: Rc::new(RefCell::new(Some(0 as i32))) }))), ..Default::default() }]))), ..Default::default() })));
+    let mut dashboard = Rc::new(RefCell::new(Some(Dashboard { title: Rc::new(RefCell::new(Some("Main Dashboard".to_string()))), widgets: Rc::new(RefCell::new(Some(vec![AnonymousStruct4 { i_d: Rc::new(RefCell::new(Some(1))), r#type: Rc::new(RefCell::new(Some("chart".to_string()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5 { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(0))) }))), ..Default::default() }, AnonymousStruct4 { i_d: Rc::new(RefCell::new(Some(2))), r#type: Rc::new(RefCell::new(Some("table".to_string()))), position: Rc::new(RefCell::new(Some(AnonymousStruct5 { x: Rc::new(RefCell::new(Some(100))), y: Rc::new(RefCell::new(Some(0))) }))), ..Default::default() }]))), ..Default::default() })));
 
     print!("\nDashboard: {}\n", (*(*dashboard.borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()).clone());
     { let __range_holder = (*dashboard.borrow().as_ref().unwrap()).widgets.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for widget in __range_values.iter() {
@@ -324,20 +429,32 @@ pub struct AnonymousStruct6 {
 }
 impl AnonymousStruct6 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, modules: self.modules.clone() }
+        let __go_clone_0_0 = { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.modules.clone();
+        Self {
+            version: __go_clone_0_0,
+            modules: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct6 {
     fn default() -> Self {
-        Self { version: Rc::new(RefCell::new(Some(String::new()))), modules: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            version: __go_default_0_0,
+            modules: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.version.borrow().as_ref().unwrap()), format_map(&self.modules))
+        let __go_fmt_0 = format!("{}", (*self.version.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_map(&self.modules));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -349,20 +466,32 @@ pub struct AnonymousStruct7 {
 }
 impl AnonymousStruct7 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { enabled: { let __guard = self.enabled.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, settings: { let __guard = self.settings.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.enabled.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.settings.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            enabled: __go_clone_0_0,
+            settings: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct7 {
     fn default() -> Self {
-        Self { enabled: Rc::new(RefCell::new(Some(false))), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(AnonymousStruct8::default())));
+        Self {
+            enabled: __go_default_0_0,
+            settings: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct7 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.enabled.borrow().as_ref().unwrap()), (*self.settings.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.enabled.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.settings.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -373,14 +502,18 @@ pub struct AnonymousStruct8 {
 }
 impl AnonymousStruct8 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { options: self.options.clone() }
+        let __go_clone_0_0 = self.options.clone();
+        Self {
+            options: __go_clone_0_0,
+        }
     }
 }
 
 
 impl std::fmt::Display for AnonymousStruct8 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.options))
+        let __go_fmt_0 = format!("{}", format_slice(&self.options));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -392,19 +525,31 @@ pub struct AnonymousStruct9 {
 }
 impl AnonymousStruct9 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { key: { let __guard = self.key.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, value: self.value.clone() }
+        let __go_clone_0_0 = { let __guard = self.key.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.value.clone();
+        Self {
+            key: __go_clone_0_0,
+            value: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct9 {
     fn default() -> Self {
-        Self { key: Rc::new(RefCell::new(Some(String::new()))), value: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            key: __go_default_0_0,
+            value: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct9 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.key.borrow().as_ref().unwrap()), format_any(self.value.borrow().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", (*self.key.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

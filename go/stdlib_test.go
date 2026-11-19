@@ -76,8 +76,8 @@ func wrap() error {
 		strings.Contains(rust, "ErrNotFound.borrow().as_ref().unwrap()).clone()).borrow()") {
 		t.Fatalf("fmt.Errorf should not clone the boxed error before formatting it:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}\", (*os_exec::ErrNotFound.lock().unwrap().as_ref().unwrap()))") &&
-		!strings.Contains(rust, "format!(\"{}\", (*os_exec::ErrNotFound.borrow().as_ref().unwrap()))") {
+	if !strings.Contains(rust, "match os_exec::ErrNotFound.lock().unwrap().as_ref() { Some(__value) => format!(\"{}\", __value)") &&
+		!strings.Contains(rust, "match os_exec::ErrNotFound.borrow().as_ref() { Some(__value) => format!(\"{}\", __value)") {
 		t.Fatalf("fmt.Errorf should format the package-global error handle directly:\n%s", rust)
 	}
 }
@@ -1149,7 +1149,7 @@ func forceConcurrent(ch chan bool) {
 	if strings.Contains(rust, ".next.clone(); __field }.lock().unwrap().as_ref().unwrap()).lock().unwrap()") {
 		t.Fatalf("printing a pointer selector should not unwrap the pointee and then lock it again:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{}", format!("&{}", (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field }.lock().unwrap().as_ref().unwrap())))`) {
+	if !strings.Contains(rust, `format!("{}", { let __text = match { let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field }.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })`) {
 		t.Fatalf("printing a pointer selector should format the selector handle once:\n%s", rust)
 	}
 }

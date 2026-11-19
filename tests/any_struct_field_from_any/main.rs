@@ -24,6 +24,12 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
+    format_any(value)
+}
+
 #[derive(Clone, Default)]
 pub struct entry {
     pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
@@ -40,7 +46,7 @@ impl entry {
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.value.lock().unwrap().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }

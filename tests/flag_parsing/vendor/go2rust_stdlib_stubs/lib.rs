@@ -229,7 +229,7 @@ impl encoding_TextMarshaler {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
-    pub fn marshal_text(&self) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn marshal_text(&self) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("encoding_TextMarshaler.marshal_text bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
@@ -286,7 +286,7 @@ impl encoding_TextUnmarshaler {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
-    pub fn unmarshal_text<T0>(&self, _arg0: T0) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn unmarshal_text<T0>(&self, _arg0: T0) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         panic!("encoding_TextUnmarshaler.unmarshal_text bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
@@ -460,7 +460,7 @@ impl io_Writer {
         panic!("io_Writer.__go_write_bytes bridge: unsupported concrete receiver; transpile io source instead - see AGENTS.md and docs/bridge_debt.md#io-writer-trait-bridging")
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -470,7 +470,7 @@ impl io_Writer {
         };
         let n = bytes.len() as i32;
         self.__go_write_bytes(&bytes);
-        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+        (n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -864,7 +864,7 @@ impl runtime_plainError {
 
 #[derive(Debug, Clone, Default)]
 pub struct strconv_NumError {
-    pub err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>,
+    pub err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>,
 }
 
 impl std::fmt::Display for strconv_NumError {
@@ -1026,7 +1026,7 @@ impl time_fileSizeError {
 
 pub mod fmt {
     use super::*;
-    pub fn fprint<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn fprint<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("fprint bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
@@ -1067,12 +1067,12 @@ pub mod strconv {
     use super::*;
     pub const INT_SIZE: i32 = 64;
 
-    pub fn ErrRange() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn ErrRange() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn ErrSyntax() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    pub fn ErrSyntax() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
     pub fn format_bool<T0>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
@@ -1083,15 +1083,15 @@ pub mod strconv {
         panic!("format_uint bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
-    pub fn parse_float<T0, T1>(_arg0: T0, _arg1: T1) -> (f64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn parse_float<T0, T1>(_arg0: T0, _arg1: T1) -> (f64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("parse_float bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
-    pub fn parse_int<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn parse_int<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("parse_int bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
-    pub fn parse_uint<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (u64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn parse_uint<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (u64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("parse_uint bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
@@ -1099,7 +1099,7 @@ pub mod strconv {
 
 pub mod time {
     use super::*;
-    pub fn parse_duration<T0>(_arg0: T0) -> (Arc<Mutex<Option<time_Duration>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn parse_duration<T0>(_arg0: T0) -> (Arc<Mutex<Option<time_Duration>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("parse_duration bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }

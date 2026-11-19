@@ -1,0 +1,60 @@
+42
+hi
+2.5
+true
+[1 2 3]
+[a b]
+[true false]
+[1.5 2]
+[{1 2} {3 4}]
+map[a:1 b:2]
+map[1:one 2:two]
+map[a:{1 2}]
+{1 2}
+&{3 4}
+status 404
+x not found
+[]
+<nil>
+println: [4 5] {5 6}
+printf: [4 5] 7
+printf: &{6 7}
+item: [1 2]
+item: {7 8}
+item: map[k:1]
+item: s
+item: 3
+{9 9} [x]
+cycle: true true 1
+chain: true false
+struct value, boxed: true 1
+struct value, typed: true 1
+pointer, typed: true 1
+struct holding a pointer: true 1 false
+slice holding a pointer: true 1 true
+&{end <nil>}
+&{6 7}
+{typed <nil>}
+{boxed <nil>}
+&{pointer <nil>}
+{full 3}
+{1 <nil>}
+{2 <nil>}
+{3 failed}
+{<nil>}
+{<nil>}
+{reported}
+&{7 0}
+&{7 0}
+{row &{7 0}}
+{row &{7 0}}
+&{row &{7 0}}
+slice: true 1
+&{8 0} &{2 3} 1
+{4 missing at &{9 0}}
+{outer {5 missing at &{9 0}}}
+status 404
+{n status 5}
+y not found
+<nil>
+{n <nil>}

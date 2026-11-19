@@ -165,7 +165,7 @@ impl deltaErr {
 impl StdError for deltaErr {}
 
 
-pub fn as_any(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+pub fn as_any(err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     Arc::new(Mutex::new(Some({
         let __err_holder = err.clone();
         let __err_guard = __err_holder.lock().unwrap();
@@ -181,7 +181,7 @@ pub fn as_any(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<M
                 } else if let Some(typed_val) = __err.downcast_ref::<gammaErr>() {
                     go_box_any_with_metadata(typed_val.clone(), "struct", true)
                 } else {
-                    panic!("type info required: error-to-any for unknown dynamic error type")
+                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
                 }
             }
         }
@@ -193,6 +193,6 @@ fn main() {
         ;
     });
 
-    let _ = as_any(Arc::new(Mutex::new(Some(Box::new(deltaErr {  }) as Box<dyn StdError + Send + Sync>))));
+    let _ = as_any(Arc::new(Mutex::new(Some(Arc::new(deltaErr {  }) as Arc<dyn StdError + Send + Sync>))));
     println!("{}", format!("{}", "boxed".to_string()));
 }
