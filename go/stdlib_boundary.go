@@ -172,12 +172,25 @@ type stdlibBoundaryDecision struct {
 // toolchain adds.
 var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 	// Native: the package is the runtime or OS interface itself.
-	"net":         {tier: stdlibTierNative, reason: "OS networking on internal/poll and syscall, with per-platform sources"},
-	"os":          {tier: stdlibTierNative, reason: "OS boundary: files, processes and signals sit on syscall and internal/poll, with per-platform sources"},
-	"os/signal":   {tier: stdlibTierNative, reason: "runtime signal delivery"},
-	"os/user":     {tier: stdlibTierNative, reason: "OS user database, through cgo on some platforms"},
-	"plugin":      {tier: stdlibTierNative, reason: "runtime module loading"},
-	"reflect":     {tier: stdlibTierNative, reason: "reads the runtime's type metadata and memory layout"},
+	"net":       {tier: stdlibTierNative, reason: "OS networking on internal/poll and syscall, with per-platform sources"},
+	"os/signal": {tier: stdlibTierNative, reason: "runtime signal delivery"},
+	"os/user":   {tier: stdlibTierNative, reason: "OS user database, through cgo on some platforms"},
+	"plugin":    {tier: stdlibTierNative, reason: "runtime module loading"},
+	"reflect":   {tier: stdlibTierNative, reason: "reads the runtime's type metadata and memory layout"},
+
+	// Native: packages under runtime/ that are part of the runtime. Some show
+	// no signals in an ordinary build, because their files are behind a build
+	// tag or an experiment; they are still the runtime's. The packages under
+	// runtime/ that are ordinary Go around a few runtime calls are source
+	// with hooks, below.
+	"runtime/asan":   {tier: stdlibTierNative, reason: "address sanitizer runtime, through cgo"},
+	"runtime/cgo":    {tier: stdlibTierNative, reason: "the runtime's C call bridge"},
+	"runtime/msan":   {tier: stdlibTierNative, reason: "memory sanitizer runtime, through cgo"},
+	"runtime/pprof":  {tier: stdlibTierNative, reason: "reads the runtime's profile buffers through more than a dozen runtime functions, a set that changes between releases"},
+	"runtime/race":   {tier: stdlibTierNative, reason: "the race detector runtime"},
+	"runtime/secret": {tier: stdlibTierNative, reason: "erases registers and stack through the runtime (Go 1.26+, behind an experiment)"},
+	"runtime/trace":  {tier: stdlibTierNative, reason: "writes to the runtime's execution tracer"},
+
 	"sync":        {tier: stdlibTierNative, reason: "runtime semaphores, scheduler pinning and notify lists"},
 	"sync/atomic": {tier: stdlibTierNative, reason: "compiler intrinsics with assembly bodies"},
 	"syscall":     {tier: stdlibTierNative, reason: "raw OS interface: assembly trampolines and per-platform sources"},
@@ -202,6 +215,9 @@ var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 	"mime/multipart":              {tier: stdlibTierSourceWithHooks, hooks: []string{"readMIMEHeader"}, reason: "one function implemented in net/textproto"},
 	"net/http":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"badRoundTrip", "badServeHTTP", "readMIMEHeader"}, reason: "linkname declarations kept for outside callers, never called; one function implemented in net/textproto (Go 1.27+)"},
 	"net/url":                     {tier: stdlibTierSourceWithHooks, hooks: []string{"badSetPath"}, reason: "linkname declarations kept for outside callers; never called"},
+	"os":                          {tier: stdlibTierSourceWithHooks, hooks: []string{"checkClonePidfd", "closedir", "ignoreSIGSYS", "readdir_r", "restoreSIGSYS", "runtime_args", "runtime_beforeExit", "runtime_rand", "sigpipe"}, reason: "arguments, exit and a random seed come from the runtime, and a few libc and pidfd calls; the rest is ordinary Go on top of syscall and internal/poll, which are native"},
+	"runtime/debug":               {tier: stdlibTierSourceWithHooks, hooks: []string{"SetTraceback", "WriteHeapDump", "freeOSMemory", "modinfo", "readGCStats", "runtime_setCrashFD", "setGCPercent", "setMaxStack", "setMaxThreads", "setMemoryLimit", "setPanicOnFault"}, asm: true, reason: "garbage-collector and crash controls come from the runtime; build-info parsing and stack formatting are ordinary Go. The assembly file is empty and only lets the declarations compile"},
+	"runtime/metrics":             {tier: stdlibTierSourceWithHooks, hooks: []string{"runtime_readMetrics"}, reason: "one function reads the runtime's counters; the descriptions and value types are ordinary Go"},
 	"testing/cryptotest":          {tier: stdlibTierSourceWithHooks, hooks: []string{"randSetTestingReader", "testingCheckParallel"}, reason: "functions implemented in crypto/internal/rand and testing (Go 1.26+)"},
 	"testing/synctest":            {tier: stdlibTierSourceWithHooks, hooks: []string{"testingSynctestTest"}, reason: "one function implemented in testing (Go 1.25+)"},
 	"time":                        {tier: stdlibTierSourceWithHooks, hooks: []string{"Sleep", "newTimer", "now", "resetTimer", "runtimeIsBubbled", "runtimeNano", "runtimeNow", "stopTimer"}, reason: "runtime clock and timers; formatting, parsing and arithmetic are ordinary Go"},
@@ -210,12 +226,17 @@ var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 
 // isRuntimeImplementationStdlibPath reports packages that are the Go runtime
 // or the compiler's own surface. They are native whatever their signals say.
+//
+// A package is not the runtime merely because its path starts with runtime/.
+// runtime/debug.ParseBuildInfo is an ordinary parser, in the same file as
+// modinfo, which only the runtime can answer. Public packages under runtime/
+// are decided one by one in stdlibBoundaryPolicy.
 func isRuntimeImplementationStdlibPath(importPath string) bool {
 	switch importPath {
 	case "runtime", "unsafe":
 		return true
 	}
-	return strings.HasPrefix(importPath, "runtime/") || strings.HasPrefix(importPath, "internal/runtime/")
+	return strings.HasPrefix(importPath, "runtime/internal/") || strings.HasPrefix(importPath, "internal/runtime/")
 }
 
 // isInternalStdlibPath reports implementation-detail packages: anything under

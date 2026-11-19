@@ -15,7 +15,7 @@ stdlib package cannot compile or run belongs here.
 Scope: this registry covers source-tier stdlib packages and external
 packages. The one exclusion is the stdlib's **native tier**. Hand-written Rust
 for a native-tier package (`runtime`, `unsafe`, `sync`, `sync/atomic`,
-`syscall`, `reflect`, `os`, and the runtime-bound `internal/*` packages) is the
+`syscall`, `reflect`, and the runtime-bound `internal/*` packages) is the
 permanent implementation, not debt, and needs no row. The tier of a package is
 decided by `stdlibBoundaryTier` in `go/stdlib_boundary.go`; see
 [stdlib_boundary.md](stdlib_boundary.md). Existing rows that describe a

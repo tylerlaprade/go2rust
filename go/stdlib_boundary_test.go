@@ -37,8 +37,14 @@ func TestStdlibBoundaryTierRules(t *testing.T) {
 		{name: "plain public package is source", path: "strconv", want: stdlibTierSource},
 		{name: "plain internal package is source", path: "internal/itoa", want: stdlibTierSource},
 		{name: "runtime is native without signals", path: "runtime", want: stdlibTierNative},
-		{name: "runtime subpackage is native", path: "runtime/debug", want: stdlibTierNative},
+		{name: "runtime's own internals are native", path: "runtime/internal/atomic", want: stdlibTierNative},
 		{name: "internal runtime package is native", path: "internal/runtime/maps", want: stdlibTierNative},
+		{name: "a runtime/ path alone does not make a package native", path: "runtime/coverage", want: stdlibTierSource},
+		{name: "runtime/debug is ordinary Go around listed runtime calls", path: "runtime/debug", signals: stdlibRuntimeSignals{AsmFiles: []string{"debug.s"}, BodylessFuncs: []string{"modinfo", "setGCPercent"}}, want: stdlibTierSourceWithHooks},
+		{name: "a new runtime call in runtime/debug is an error", path: "runtime/debug", signals: hook("modinfo", "runtime_newThing"), want: stdlibTierSourceWithHooks, wantError: "outside its hook list"},
+		{name: "runtime/pprof is native by decision", path: "runtime/pprof", signals: hook("readProfile"), want: stdlibTierNative},
+		{name: "os is ordinary Go around listed runtime calls", path: "os", signals: hook("runtime_args", "runtime_beforeExit", "sigpipe"), want: stdlibTierSourceWithHooks},
+		{name: "a new runtime call in os is an error", path: "os", signals: hook("runtime_args", "runtime_newThing"), want: stdlibTierSourceWithHooks, wantError: "outside its hook list"},
 		{name: "unsafe is native", path: "unsafe", want: stdlibTierNative},
 		{name: "internal package with assembly is native", path: "internal/bytealg", signals: asm, want: stdlibTierNative},
 		{name: "internal package with hooks is native", path: "internal/poll", signals: hook("runtime_pollOpen"), want: stdlibTierNative},
@@ -142,6 +148,86 @@ func TestStdlibBoundaryPolicyIsWellFormed(t *testing.T) {
 			t.Errorf("%s: already native by path; remove the policy entry", path)
 		}
 	}
+}
+
+// TestStdlibBoundaryIsDecidedPerDeclaration pins two packages where the
+// package path or the file name suggests "native" and the declarations say
+// otherwise. It reads the installed toolchain's source for each supported
+// operating system, so a Go upgrade that moves a body in or out is caught.
+//
+//   - runtime/debug: ParseBuildInfo is an ordinary parser with a Go body.
+//     modinfo, in the same file, has no body: only the runtime can answer it.
+//   - os: IsPathSeparator lives in a per-platform file, and on every platform
+//     it is a complete Go function. A per-platform file is how Go selects
+//     source for a target. It is not a sign that the code calls the system.
+func TestStdlibBoundaryIsDecidedPerDeclaration(t *testing.T) {
+	if os.Getenv("GO2RUST_STDLIB_BOUNDARY_TARGET") != "" {
+		t.Skip("this test sets its own targets")
+	}
+	cases := []struct {
+		pkg      string
+		withBody []string
+		hooks    []string
+	}{
+		{pkg: "runtime/debug", withBody: []string{"ParseBuildInfo", "ReadBuildInfo", "Stack"}, hooks: []string{"modinfo"}},
+		{pkg: "os", withBody: []string{"IsPathSeparator", "IsNotExist", "Getenv"}, hooks: []string{"runtime_args"}},
+	}
+	for _, target := range []string{"linux/amd64", "darwin/arm64", "windows/amd64"} {
+		t.Setenv("GO2RUST_STDLIB_BOUNDARY_TARGET", target)
+		for _, tc := range cases {
+			listed := listStdlibBoundaryPackages(t, tc.pkg)
+			if len(listed) != 1 {
+				t.Fatalf("%s: go list %s returned %d packages, want 1", target, tc.pkg, len(listed))
+			}
+			pkg := listed[0]
+			signals := stdlibBoundarySignalsForListedPackage(t, pkg)
+			tier, err := stdlibBoundaryTier(tc.pkg, signals)
+			if err != nil {
+				t.Errorf("%s: %v", target, err)
+			}
+			if tier != stdlibTierSourceWithHooks {
+				t.Errorf("%s: %s is %v, want %v", target, tc.pkg, tier, stdlibTierSourceWithHooks)
+			}
+			bodyless := make(map[string]bool, len(signals.BodylessFuncs))
+			for _, name := range signals.BodylessFuncs {
+				bodyless[name] = true
+			}
+			declared := stdlibBoundaryDeclaredFuncs(t, pkg)
+			for _, name := range tc.withBody {
+				if !declared[name] {
+					t.Errorf("%s: %s.%s is not declared; pick another function for this test", target, tc.pkg, name)
+				}
+				if bodyless[name] {
+					t.Errorf("%s: %s.%s has no Go body any more; it now needs a boundary decision", target, tc.pkg, name)
+				}
+			}
+			for _, name := range tc.hooks {
+				if !bodyless[name] {
+					t.Errorf("%s: %s.%s has a Go body now; remove it from the hook list", target, tc.pkg, name)
+				}
+			}
+		}
+	}
+}
+
+// stdlibBoundaryDeclaredFuncs returns the names of the package-level
+// functions a listed package declares, with or without a body.
+func stdlibBoundaryDeclaredFuncs(t *testing.T, pkg stdlibBoundaryListedPackage) map[string]bool {
+	t.Helper()
+	fset := token.NewFileSet()
+	declared := make(map[string]bool)
+	for _, name := range pkg.GoFiles {
+		file, err := parser.ParseFile(fset, filepath.Join(pkg.Dir, name), nil, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse %s/%s: %v", pkg.ImportPath, name, err)
+		}
+		for _, decl := range file.Decls {
+			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv == nil {
+				declared[fn.Name.Name] = true
+			}
+		}
+	}
+	return declared
 }
 
 type stdlibBoundaryListedPackage struct {
@@ -269,7 +355,7 @@ func TestStdlibBoundaryCoversSelfHostClosure(t *testing.T) {
 		"time":             stdlibTierSourceWithHooks,
 		"internal/abi":     stdlibTierNative,
 		"internal/bytealg": stdlibTierNative,
-		"os":               stdlibTierNative,
+		"os":               stdlibTierSourceWithHooks,
 		"reflect":          stdlibTierNative,
 		"runtime":          stdlibTierNative,
 		"sync":             stdlibTierNative,

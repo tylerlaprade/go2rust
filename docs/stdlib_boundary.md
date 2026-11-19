@@ -51,10 +51,13 @@ numbers. The source tier stays under the "transpile, don't bridge" rules in
 
 The rules apply in this order. The first one that matches decides.
 
-1. `runtime`, `runtime/...`, `internal/runtime/...` and `unsafe` are native.
+1. `runtime`, `runtime/internal/...`, `internal/runtime/...` and `unsafe` are
+   native. The public packages under `runtime/` are not covered by this rule.
+   Each has its own entry, because some of them are ordinary Go:
+   `runtime/debug.ParseBuildInfo` is a parser like any other.
 2. A package with an entry in `stdlibBoundaryPolicy` gets the entry's tier.
-   A native entry holds whatever the signals say, so `os` is native even on a
-   build where it shows none. A source+hooks entry is checked against the
+   A native entry holds whatever the signals say, so `sync` is native even on
+   a build where it shows none. A source+hooks entry is checked against the
    signals: every bodyless function must be in its hook list. If the build
    leaves no signals at all, the package is plain source.
 3. A package with no signals is **source**. The signals are mechanical, read
@@ -82,8 +85,8 @@ go2rust's own dependency closure under Go 1.24 with `-tags=purego` on Linux is
 | Tier | Packages | Examples |
 | --- | --- | --- |
 | source | 107 | `strconv`, `fmt`, `go/ast`, `go/parser`, `go/token`, `path/filepath` |
-| source with hooks | 9 | `go/types`, `time`, `math`, `math/big`, `math/rand`, `iter` |
-| native | 25 | `runtime`, `unsafe`, `sync`, `sync/atomic`, `syscall`, `reflect`, `os`, `internal/bytealg`, `internal/cpu`, `internal/abi` |
+| source with hooks | 10 | `go/types`, `time`, `os`, `math`, `math/big`, `math/rand`, `iter` |
+| native | 24 | `runtime`, `unsafe`, `sync`, `sync/atomic`, `syscall`, `reflect`, `internal/poll`, `internal/bytealg`, `internal/cpu`, `internal/abi` |
 
 `go/types` is in the hooks tier only because it declares one linkname symbol
 for outside callers. Nothing in the package calls it. For transpilation it is
@@ -109,10 +112,29 @@ linux/amd64, linux/arm64, darwin/arm64, darwin/amd64 and windows/amd64.
 Signals do not settle these. They are decisions, and they can be revisited in
 one place.
 
-- **`os` is native.** It has only a handful of runtime hooks, but it sits
-  directly on `syscall` and `internal/poll` and most of its files are
-  per-platform. Rust's `std::fs`, `std::env` and `std::process` cover the same
-  ground.
+- **`os` is source with hooks.** An earlier version of this document made it
+  native, on the grounds that it sits on `syscall` and `internal/poll` and
+  most of its files are per-platform. That was the wrong test. A per-platform
+  file is how Go selects source for a target; it does not mean the code calls
+  the system. `os.IsPathSeparator` lives in `path_unix.go` and is one
+  comparison. Calling all of `os` native would have licensed a hand-written
+  copy of every such function.
+
+  What `os` gets from outside Go is nine functions without a body: the
+  arguments, the exit hook, a random seed, and a few libc and pidfd calls. The
+  boundary is below it, at `syscall` and `internal/poll`, which are native.
+
+  Open question, for the design of the native tier: the Go bodies of
+  `os.Open` or `(*File).Read` are correct, but they need a hand-written
+  `internal/poll` and `syscall` with Go's exact shapes underneath. It may be
+  far less work to provide some `os` operations directly on Rust's `std::fs`.
+  If so, each one is listed by name as a reviewed replacement, the way hooks
+  are listed now. The package does not go back to native as a whole.
+- **`runtime/debug` and `runtime/metrics` are source with hooks.** The path
+  starts with `runtime/`, and the packages are mostly ordinary Go: build-info
+  parsing, stack formatting, metric descriptions. The runtime supplies eleven
+  functions in the first and one in the second. `runtime/pprof`,
+  `runtime/trace`, `runtime/cgo` and the sanitizer packages stay native.
 - **`sync` is native.** Go's `Mutex`, `WaitGroup` and `Pool` are written
   against runtime semaphores and scheduler internals. The translator already
   lowers `sync.Mutex` and `sync.Once` to Rust primitives.
