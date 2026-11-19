@@ -197,7 +197,7 @@ pub struct User {
 impl User {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,
             pos: __go_clone_1_0,
@@ -278,5 +278,5 @@ fn main() {
 
     let mut p = { let __recv = u.clone(); let __recv_ptr: *const User = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const User }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
     { let new_val = 100; *(*p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
-    println!("{} {}", format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
+    println!("{} {}", format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
 }

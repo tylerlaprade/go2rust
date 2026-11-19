@@ -1,0 +1,7 @@
+started
+named array of structs 1 9
+assigned 1 8
+parameter 1
+named array of ints 1 9
+nested named arrays 2 7
+range over a named array 1

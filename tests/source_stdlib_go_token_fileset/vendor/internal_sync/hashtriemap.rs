@@ -66,7 +66,14 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for HashTrieMap<K, V> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            inited: self.inited.clone(),
+            init_mu: self.init_mu.clone(),
+            root: self.root.clone(),
+            key_hash: self.key_hash.clone(),
+            val_equal: self.val_equal.clone(),
+            seed: self.seed.clone(),
+        }
     }
 }
 
@@ -137,7 +144,13 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for indirect<K, V> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            node: self.node.clone(),
+            dead: self.dead.clone(),
+            mu: self.mu.clone(),
+            parent: self.parent.clone(),
+            children: self.children.clone(),
+        }
     }
 }
 
@@ -196,7 +209,12 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for entry<K, V> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            node: self.node.clone(),
+            overflow: self.overflow.clone(),
+            key: self.key.clone(),
+            value: self.value.clone(),
+        }
     }
 }
 
@@ -248,7 +266,10 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for node<K, V> {
     fn clone(&self) -> Self {
-        self.__go_value_clone()
+        Self {
+            is_entry: self.is_entry.clone(),
+            __go_phantom: std::marker::PhantomData,
+        }
     }
 }
 

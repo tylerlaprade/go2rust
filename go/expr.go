@@ -3120,15 +3120,28 @@ func writeScopedIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	if writeScopedTypeParamIdentValueClone(out, ident, handle) {
 		return
 	}
-	writeScopedValueClone(out, handle)
+	copyCall, known := goValueCopyCallForExpr(ident)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
+	writeScopedValueCopy(out, handle, copyCall)
 }
 
 func writeScopedValueClone(out *strings.Builder, handle string) {
+	writeScopedValueCopy(out, handle, ".clone()")
+}
+
+// writeScopedValueCopy reads the value out of a handle and copies it with
+// copyCall, which is goValueCopyCallForExpr of the expression being read.
+func writeScopedValueCopy(out *strings.Builder, handle string, copyCall string) {
 	out.WriteString("{ let __arg_holder = ")
 	out.WriteString(handle)
 	out.WriteString(".clone(); let __arg_guard = __arg_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
+	out.WriteString("; (*__arg_guard.as_ref().unwrap())")
+	out.WriteString(copyCall)
+	out.WriteString(" }")
 }
 
 func writeScopedTypeParamIdentValueClone(out *strings.Builder, ident *ast.Ident, handle string) bool {
@@ -4712,7 +4725,12 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			TranspileExpression(out, ident)
 			return
 		}
-		writeScopedValueClone(out, varName)
+		// A value put into an interface is a copy of the variable.
+		if copyCall, known := goValueCopyCallForExpr(ident); known {
+			writeScopedValueCopy(out, varName, copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
+		}
 		return
 	}
 	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
@@ -7090,10 +7108,16 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 			name = RustLocalIdent(renamed)
 		}
 	}
+	copyCall, known := goValueCopyCallForExpr(ident)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
 	out.WriteString("(*")
 	out.WriteString(name)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
+	out.WriteString(".as_ref().unwrap())")
+	out.WriteString(copyCall)
 }
 
 func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool {
@@ -11774,9 +11798,22 @@ func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, d
 		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
 		return
 	}
+	if valueType == nil {
+		// Without the value's type there is no telling Go's copy from Clone.
+		out.WriteString(".map(|_| ")
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		out.WriteString(").unwrap_or_else(|| ")
+		out.WriteString(defaultValue)
+		out.WriteString(")")
+		return
+	}
+	// Reading a map element copies it: "v := m[k]; v.X = 1" must not change
+	// the value in the map.
 	out.WriteString(".map(|__v| __v")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(goValueCopyCallForType(valueType))
+	out.WriteString(").unwrap_or_else(|| ")
 	out.WriteString(defaultValue)
 	out.WriteString(")")
 }
@@ -11877,12 +11914,30 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			out.WriteString(".clone()")
 			return true
 		}
+		// The value of a range variable, or of the temporary behind
+		// "for _, p = range s", is copied where it is assigned. This also
+		// writes plain reads such as a comparison, where a clone is right,
+		// so a variable with no known type keeps the clone.
+		copyCall, known := rangeVarGoValueCopyCall(ident)
+		if !known {
+			copyCall = ".clone()"
+		}
 		out.WriteString("(*")
 		out.WriteString(name)
-		out.WriteString(").clone()")
+		out.WriteString(")")
+		out.WriteString(copyCall)
 		return true
 	}
 	if isWrappedRangeVarType(varType) {
+		if copyCall, known := rangeVarGoValueCopyCall(ident); known && copyCall != ".clone()" {
+			// The range variable is the cell of a struct, as for the values
+			// of a map. Its owned value is Go's copy of what the cell holds.
+			out.WriteString(name)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+			return true
+		}
 		if strings.HasPrefix(varType, "&") {
 			out.WriteString("(*")
 			out.WriteString(name)
@@ -12104,19 +12159,7 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 	if typeInfo == nil || expr == nil {
 		return false
 	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if obj := named.Obj(); obj != nil && obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
-			return false
-		}
-		_, ok := named.Underlying().(*types.Struct)
-		return ok
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Struct)
-	return ok
+	return typeNeedsGoValueClone(typeInfo.GetType(expr))
 }
 
 func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {

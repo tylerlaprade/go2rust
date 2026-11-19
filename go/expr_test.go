@@ -8537,7 +8537,13 @@ func f() {
 	if !strings.Contains(got, "for (_, age) in { let __range_holder = ages.clone();") {
 		t.Fatalf("tracked map range did not use map iteration:\n%s", got)
 	}
-	if strings.Contains(got, "type info required") || strings.Contains(got, "0..") {
+	// The loop is still found from the tracked map. Binding the value needs
+	// the value's type to tell Go's copy from Clone, which this setup does
+	// not have, so that one step says so.
+	if !strings.Contains(got, "let age = Rc::new(RefCell::new(Some("+goValueCopyNeedsTypeInfo+")));") {
+		t.Fatalf("binding a map range value without its type should say type info is required:\n%s", got)
+	}
+	if strings.Contains(strings.ReplaceAll(got, goValueCopyNeedsTypeInfo, ""), "type info required") || strings.Contains(got, "0..") {
 		t.Fatalf("tracked map range fell back to non-map lowering:\n%s", got)
 	}
 }
@@ -8922,7 +8928,13 @@ func f() { _ = counts["x"] }`, 0)
 	TranspileExpression(&out, index)
 
 	got := out.String()
-	if strings.Contains(got, "type info required") {
+	// The read is still found from the syntax kind. Copying the value out of
+	// the map needs the value's type, which this setup does not have, so that
+	// one step says so instead of guessing between Clone and Go's copy.
+	if !strings.Contains(got, ".map(|_| "+goValueCopyNeedsTypeInfo+")") {
+		t.Fatalf("copying a map value without its type should say type info is required:\n%s", got)
+	}
+	if strings.Contains(strings.ReplaceAll(got, goValueCopyNeedsTypeInfo, ""), "type info required") {
 		t.Fatalf("package global map index should use syntax collection kind:\n%s", got)
 	}
 	if !strings.Contains(got, "counts.clone()") ||
@@ -9735,8 +9747,8 @@ func (lm listMap) Find(name string) Label {
 	if strings.Contains(rust, "Some(l)") {
 		t.Fatalf("returning a struct range value should not wrap the reference directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some((*l).clone())") {
-		t.Fatalf("returning a struct range value should clone the referenced value:\n%s", rust)
+	if !strings.Contains(rust, "Some((*l).__go_value_clone())") {
+		t.Fatalf("returning a struct range value should return Go's copy of the referenced value:\n%s", rust)
 	}
 }
 

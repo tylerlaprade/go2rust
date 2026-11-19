@@ -124,5 +124,5 @@ pub fn call_via_closure(a: Rc<RefCell<Option<Box<dyn Spec>>>>, b: Rc<RefCell<Opt
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(Impl { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(Impl { name: Rc::new(RefCell::new(Some("beta".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*call_via_closure(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Spec>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*call_via_closure(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Spec>)))).borrow().as_ref().unwrap())));
 }

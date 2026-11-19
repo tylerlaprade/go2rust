@@ -100,8 +100,8 @@ pub struct Service {
 
 impl Service {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.logger.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.counter.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.logger.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        let __go_clone_1_0 = { let __guard = self.counter.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_2_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             logger: __go_clone_0_0,
@@ -176,7 +176,7 @@ pub struct Middle {
 
 impl Middle {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.base.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = { let __guard = self.data.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             base: __go_clone_0_0,
@@ -214,7 +214,7 @@ pub struct Top {
 
 impl Top {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.middle.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.middle.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = { let __guard = self.extra.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             middle: __go_clone_0_0,

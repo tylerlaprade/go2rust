@@ -1215,6 +1215,14 @@ run_xfail_test() {
     run_test "tests/generic_pointer_interface_type_arg"
 }
 
+@test "generic_struct_pointer_receiver" {
+    run_test "tests/generic_struct_pointer_receiver"
+}
+
+@test "generic_struct_pointer_receiver_goroutines" {
+    run_test "tests/generic_struct_pointer_receiver_goroutines"
+}
+
 @test "getter_returns_copy" {
     run_test "tests/getter_returns_copy"
 }
@@ -1483,8 +1491,24 @@ run_xfail_test() {
     run_test "tests/make_slice_zero_len_capacity"
 }
 
+@test "map_comma_ok_assignment_targets" {
+    run_test "tests/map_comma_ok_assignment_targets"
+}
+
+@test "map_comma_ok_assignment_targets_goroutines" {
+    run_test "tests/map_comma_ok_assignment_targets_goroutines"
+}
+
 @test "map_comma_ok_bool_default" {
     run_test "tests/map_comma_ok_bool_default"
+}
+
+@test "map_comma_ok_value_copy" {
+    run_test "tests/map_comma_ok_value_copy"
+}
+
+@test "map_comma_ok_value_copy_goroutines" {
+    run_test "tests/map_comma_ok_value_copy_goroutines"
 }
 
 @test "map_len_value_assignment" {
@@ -1653,6 +1677,14 @@ run_xfail_test() {
 
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
+}
+
+@test "named_array_value_copy" {
+    run_test "tests/named_array_value_copy"
+}
+
+@test "named_array_value_copy_goroutines" {
+    run_test "tests/named_array_value_copy_goroutines"
 }
 
 @test "named_const_method_call" {
@@ -2831,12 +2863,44 @@ run_xfail_test() {
     run_test "tests/struct_named_integer_map_key"
 }
 
+@test "struct_pointer_identity" {
+    run_test "tests/struct_pointer_identity"
+}
+
+@test "struct_pointer_identity_goroutines" {
+    run_test "tests/struct_pointer_identity_goroutines"
+}
+
 @test "struct_pointer_slice_format" {
     run_test "tests/struct_pointer_slice_format"
 }
 
+@test "struct_range_copy" {
+    run_test "tests/struct_range_copy"
+}
+
+@test "struct_range_copy_goroutines" {
+    run_test "tests/struct_range_copy_goroutines"
+}
+
 @test "struct_tags_reflection" {
     run_test "tests/struct_tags_reflection"
+}
+
+@test "struct_value_copy" {
+    run_test "tests/struct_value_copy"
+}
+
+@test "struct_value_copy_goroutines" {
+    run_test "tests/struct_value_copy_goroutines"
+}
+
+@test "struct_value_copy_stored" {
+    run_test "tests/struct_value_copy_stored"
+}
+
+@test "struct_value_copy_stored_goroutines" {
+    run_test "tests/struct_value_copy_stored_goroutines"
 }
 
 @test "struct_zero_value_fields" {
@@ -3125,6 +3189,10 @@ run_xfail_test() {
 
 @test "XFAIL: parallel_assign_receiver_value_field_swap" {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
+}
+
+@test "XFAIL: slice_shared_with_package_variable_or_element" {
+    run_xfail_test "tests/XFAIL/slice_shared_with_package_variable_or_element"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {

@@ -8977,7 +8977,7 @@ func (v Value) Walk(index []int) Value {
 	if strings.Contains(rust, "*self.borrow_mut()") || strings.Contains(rust, "*self.lock().unwrap()") {
 		t.Fatalf("value receiver reassignment should not treat self as a wrapped slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut __self = self.clone();") {
+	if !strings.Contains(rust, "let mut __self = self.__go_value_clone();") {
 		t.Fatalf("value receiver reassignment should introduce a mutable local receiver copy:\n%s", rust)
 	}
 	if strings.Count(rust, "__self = __moved_val") < 2 {
@@ -9120,8 +9120,8 @@ func method() Method {
 		strings.Contains(rust, "Arc::new(Mutex::new(Some(m.lock().unwrap().as_ref().unwrap().clone())))") {
 		t.Fatalf("wrapped struct return should not wrap a borrow temporary directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __owned = m.borrow().as_ref().unwrap().clone();") &&
-		!strings.Contains(rust, "let __owned = m.lock().unwrap().as_ref().unwrap().clone();") {
+	if !strings.Contains(rust, "let __owned = m.borrow().as_ref().unwrap().__go_value_clone();") &&
+		!strings.Contains(rust, "let __owned = m.lock().unwrap().as_ref().unwrap().__go_value_clone();") {
 		t.Fatalf("wrapped struct return should clone before constructing the wrapper:\n%s", rust)
 	}
 }
