@@ -112,25 +112,47 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		}
 	}
 	sort.Strings(textTypes)
+	// go_format_is_text names the program's own types, so it stays where
+	// they are in scope. Its one name is one Go cannot declare.
 	out.WriteString(`
 // Whether value has a String or an Error method. fmt prints such a value as
 // the one text the method returns.
-fn go_format_is_text(value: &` + anyValue + `) -> bool {
+fn go_format_is_text(__value: &` + anyValue + `) -> bool {
     false`)
 	for _, rustType := range textTypes {
-		out.WriteString("\n        || value.is::<" + rustType + ">()")
+		out.WriteString("\n        || __value.is::<" + rustType + ">()")
 	}
 	out.WriteString("\n}\n")
+	// The rest is in a module of its own. The crate root, where helpers are
+	// written, imports every package-level variable and constant of the Go
+	// package, and Rust does not let a local name or a parameter be the
+	// name of one: a Go package with "var prefix" stopped the crate from
+	// compiling. The module imports only what it uses.
+	out.WriteString(`
+#[allow(unused_imports)]
+mod __go_runtime_format {
+    use super::{format_any, __go_type_name, go_format_is_text};
+    use std::any::Any;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
+`)
 	out.WriteString(replace.Replace(goSprintfFormatting))
-	out.WriteString(replace.Replace(goSprintfEntry))
+	out.WriteString(replace.Replace(strings.Replace(goSprintfEntry, "\nfn go_sprintf(", "\npub(super) fn go_sprintf(", 1)))
 	if spread {
 		out.WriteString(`
 // go_sprintf for f(format, args...), where the arguments are a slice.
-fn go_sprintf_spread(format: &str, args: &` + sliceType + `, wraps: bool) -> String {
+pub(super) fn go_sprintf_spread(format: &str, args: &` + sliceType + `, wraps: bool) -> String {
     let guard = ` + guard + `;
     go_sprintf(format, guard.as_deref().unwrap_or(&[]), wraps)
 }
 `)
+	}
+	out.WriteString("}\n")
+	if spread {
+		out.WriteString("use __go_runtime_format::{go_sprintf, go_sprintf_spread};\n")
+	} else {
+		out.WriteString("use __go_runtime_format::go_sprintf;\n")
 	}
 }
 

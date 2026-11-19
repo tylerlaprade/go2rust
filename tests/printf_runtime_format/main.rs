@@ -218,12 +218,20 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 
 // Whether value has a String or an Error method. fmt prints such a value as
 // the one text the method returns.
-fn go_format_is_text(value: &dyn Any) -> bool {
+fn go_format_is_text(__value: &dyn Any) -> bool {
     false
-        || value.is::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()
-        || value.is::<Rc<RefCell<Option<Status>>>>()
-        || value.is::<Status>()
+        || __value.is::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()
+        || __value.is::<Rc<RefCell<Option<Status>>>>()
+        || __value.is::<Status>()
 }
+
+#[allow(unused_imports)]
+mod __go_runtime_format {
+    use super::{format_any, __go_type_name, go_format_is_text};
+    use std::any::Any;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -734,7 +742,7 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // fmt.Sprintf for a format that is only known when the program runs. A
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
-fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
+pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
     let mut out = String::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
@@ -814,10 +822,12 @@ fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
 }
 
 // go_sprintf for f(format, args...), where the arguments are a slice.
-fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {
+pub(super) fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {
     let guard = args.borrow();
     go_sprintf(format, guard.as_deref().unwrap_or(&[]), wraps)
 }
+}
+use __go_runtime_format::{go_sprintf, go_sprintf_spread};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct errors_errorString;

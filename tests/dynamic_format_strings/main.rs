@@ -63,9 +63,17 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 
 // Whether value has a String or an Error method. fmt prints such a value as
 // the one text the method returns.
-fn go_format_is_text(value: &dyn Any) -> bool {
+fn go_format_is_text(__value: &dyn Any) -> bool {
     false
 }
+
+#[allow(unused_imports)]
+mod __go_runtime_format {
+    use super::{format_any, __go_type_name, go_format_is_text};
+    use std::any::Any;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -576,7 +584,7 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // fmt.Sprintf for a format that is only known when the program runs. A
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
-fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
+pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
     let mut out = String::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
@@ -654,6 +662,8 @@ fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
     }
     out
 }
+}
+use __go_runtime_format::go_sprintf;
 
 fn main() {
     let mut messageFormat = Rc::new(RefCell::new(Some("dynamic message".to_string())));

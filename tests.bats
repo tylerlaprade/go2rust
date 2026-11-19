@@ -2415,6 +2415,14 @@ run_xfail_test() {
     run_test "tests/rune_escape_literals"
 }
 
+@test "runtime_format_with_package_level_names" {
+    run_test "tests/runtime_format_with_package_level_names"
+}
+
+@test "runtime_format_with_package_level_names_goroutines" {
+    run_test "tests/runtime_format_with_package_level_names_goroutines"
+}
+
 @test "runtime_gomaxprocs" {
     run_test "tests/runtime_gomaxprocs"
 }
