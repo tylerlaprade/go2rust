@@ -15,6 +15,8 @@ slice [1 2], map map[a:1]
 error: boom / bang
 failed|failed|    failed|
 status 1|status 2|status 3    |status 4
+bytes Hi, hex 4869, list [72 105]
+7   |"quoted"|0xff
 %!d(string=text)
 %!s(int=5)
 1 %!d(MISSING)

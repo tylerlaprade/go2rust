@@ -86,4 +86,44 @@ func main() {
 	show("%w", sprintf("%w", "wrapped"))
 	show("%v %v", sprintf("%v %v", 1))
 	show("%-5d|%5s|%05.1f", sprintf("%-5d|%5s|%05.1f", 3, "ab", 2.25))
+
+	// A negative width from an argument means left alignment. A negative
+	// precision is reported and then ignored.
+	show("%*d|", sprintf("%*d|", -6, 42))
+	show("%*s|", sprintf("%*s|", -6, "ab"))
+	show("%-*d|", sprintf("%-*d|", -6, 42))
+	show("%.*f|", sprintf("%.*f|", -2, 3.14159))
+
+	// Precision counts bytes for %x and characters for %s.
+	show("%.1x", sprintf("%.1x", "é"))
+	show("%.3x", sprintf("%.3x", "héllo"))
+	show("%.2X", sprintf("%.2X", "héllo"))
+	show("%.3s", sprintf("%.3s", "héllo"))
+	show("% .2x", sprintf("% .2x", "héllo"))
+
+	// %#v writes a value the way Go source does. %+v changes nothing for
+	// a number or a string.
+	show("%#v", sprintf("%#v", "hello"))
+	show("%#v", sprintf("%#v", "new\nline"))
+	show("%#v", sprintf("%#v", 42))
+	show("%#v", sprintf("%#v", int64(-5)))
+	show("%#v", sprintf("%#v", uint8(200)))
+	show("%#v", sprintf("%#v", 2.5))
+	show("%#v", sprintf("%#v", 1000000.0))
+	show("%#v", sprintf("%#v", true))
+	show("%#10v|", sprintf("%#10v|", "hi"))
+	show("%+v", sprintf("%+v", "hello"))
+	show("%+v", sprintf("%+v", 42))
+
+	// A []byte prints as text with %s, %q and %x, and as numbers with %v.
+	data := []byte("Hello")
+	show("%s", sprintf("%s", data))
+	show("%q", sprintf("%q", data))
+	show("%x", sprintf("%x", data))
+	show("%X", sprintf("%X", data))
+	show("% x", sprintf("% x", data))
+	show("%v", sprintf("%v", data))
+	show("%s", sprintf("%s", []byte("direct")))
+	show("%10s|", sprintf("%10s|", data))
+	show("%.2s", sprintf("%.2s", data))
 }

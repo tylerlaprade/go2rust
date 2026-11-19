@@ -115,6 +115,8 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
         format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+        format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Status>() {
         format!("{}", v)
     } else {
@@ -197,12 +199,13 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Rc<RefCell<Option<Point>>>>() { return "*main.Point" }
     if val.is::<Rc<RefCell<Option<Status>>>>() { return "*main.Status" }
     if val.is::<Rc<RefCell<Option<Vec<i32>>>>>() { return "[]int" }
+    if val.is::<Rc<RefCell<Option<Vec<u8>>>>>() { return "[]uint8" }
     if val.is::<Status>() { return "main.Status" }
     std::any::type_name_of_val(val)
 }
 
 // A verb with its flags, as fmt reads it from a format.
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 struct GoFormatSpec {
     plus: bool,
     minus: bool,
@@ -414,7 +417,29 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
 }
 
+// %x and %X of a string or a []byte: two digits for each byte. A precision
+// counts bytes here, not characters.
+fn go_format_hex(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> String {
+    let bytes = match spec.precision {
+        Some(precision) if precision < bytes.len() => &bytes[..precision],
+        _ => bytes,
+    };
+    let prefix = if !spec.sharp { "" } else if verb == 'x' { "0x" } else { "0X" };
+    let digits: Vec<String> = bytes.iter().map(|b| if verb == 'x' { format!("{:02x}", b) } else { format!("{:02X}", b) }).collect();
+    let text = if spec.space {
+        digits.iter().map(|d| format!("{}{}", prefix, d)).collect::<Vec<_>>().join(" ")
+    } else if digits.is_empty() {
+        String::new()
+    } else {
+        format!("{}{}", prefix, digits.concat())
+    };
+    go_format_pad(spec, text, 0, true)
+}
+
 fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<String> {
+    if matches!(verb, 'x' | 'X') {
+        return Some(go_format_hex(spec, verb, text.as_bytes()));
+    }
     let truncated: String = match spec.precision {
         Some(precision) => text.chars().take(precision).collect(),
         None => text.to_string(),
@@ -428,20 +453,18 @@ fn go_format_string(spec: &GoFormatSpec, verb: char, text: &str) -> Option<Strin
                 go_format_quote(&truncated, '"')
             }
         }
-        'x' | 'X' => {
-            let prefix = if !spec.sharp { "" } else if verb == 'x' { "0x" } else { "0X" };
-            let bytes: Vec<String> = truncated.bytes().map(|b| if verb == 'x' { format!("{:02x}", b) } else { format!("{:02X}", b) }).collect();
-            if spec.space {
-                bytes.iter().map(|b| format!("{}{}", prefix, b)).collect::<Vec<_>>().join(" ")
-            } else if bytes.is_empty() {
-                String::new()
-            } else {
-                format!("{}{}", prefix, bytes.concat())
-            }
-        }
         _ => return None,
     };
     Some(go_format_pad(spec, formatted, 0, true))
+}
+
+// A []byte prints as text for the verbs that print a string.
+fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<String> {
+    match verb {
+        'x' | 'X' => Some(go_format_hex(spec, verb, bytes)),
+        's' | 'q' => go_format_string(spec, verb, &String::from_utf8_lossy(bytes)),
+        _ => None,
+    }
 }
 
 // Formats one argument for one verb. None means the verb does not apply to
@@ -453,37 +476,84 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     if verb == 'p' {
         panic!("go2rust: %p is not supported in a format that is only known at run time");
     }
-    macro_rules! integer {
+    // %+v and %#v ask for field names and Go syntax. A number or a bool has
+    // neither, so it prints as %v prints it, with two exceptions for %#v: an
+    // unsigned integer is written in hex and a string in quotes.
+    let (plus_v, sharp_v) = (verb == 'v' && spec.plus, verb == 'v' && spec.sharp);
+    let basic = GoFormatSpec { plus: spec.plus && !plus_v, sharp: spec.sharp && !sharp_v, ..*spec };
+    macro_rules! signed {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
-                return go_format_integer(spec, verb, *v as i128);
+                return go_format_integer(&basic, verb, *v as i128);
             })*
         };
     }
-    integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
+    signed!(i8, i16, i32, i64, isize);
+    macro_rules! unsigned {
+        ($($t:ty),*) => {
+            $(if let Some(v) = value.downcast_ref::<$t>() {
+                if sharp_v {
+                    return go_format_integer(&GoFormatSpec { sharp: true, ..basic }, 'x', *v as i128);
+                }
+                return go_format_integer(&basic, verb, *v as i128);
+            })*
+        };
+    }
+    unsigned!(u8, u16, u32, u64, usize);
     if let Some(v) = value.downcast_ref::<f64>() {
-        return go_format_float(spec, verb, *v, false);
+        return go_format_float(&basic, verb, *v, false);
     }
     if let Some(v) = value.downcast_ref::<f32>() {
-        return go_format_float(spec, verb, *v as f64, true);
+        return go_format_float(&basic, verb, *v as f64, true);
     }
     if let Some(v) = value.downcast_ref::<bool>() {
-        return if matches!(verb, 't' | 'v') { Some(go_format_pad(spec, v.to_string(), 0, false)) } else { None };
+        return if matches!(verb, 't' | 'v') { Some(go_format_pad(&basic, v.to_string(), 0, true)) } else { None };
     }
+    let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
-        return go_format_string(spec, verb, v);
+        return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<&str>() {
-        return go_format_string(spec, verb, v);
+        return go_format_string(&basic, string_verb, v);
+    }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+        let guard = v.borrow();
+        if let Some(text) = go_format_bytes(spec, verb, guard.as_deref().unwrap_or(&[])) {
+            return Some(text);
+        }
     }
     // Anything else prints as Println prints it. That is right for an error,
     // a value with a String method, and %v of a struct, slice, map or pointer.
     // fmt applies other verbs and flags to each field or element, which is
     // not done here.
-    if (verb == 'v' && !spec.plus && !spec.sharp) || verb == 's' {
+    if (verb == 'v' && !plus_v && !sharp_v) || verb == 's' {
         return Some(go_format_pad(spec, format_any(value), 0, false));
     }
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
+}
+
+// The number after % or after the dot: digits, or * for the next argument.
+// Ok(None) is no number. Err is a * whose argument is not a usable integer.
+fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any>], next: &mut usize) -> Result<Option<i64>, ()> {
+    if chars.peek() == Some(&'*') {
+        chars.next();
+        let arg: &dyn Any = match args.get(*next) {
+            Some(arg) => arg.as_ref(),
+            None => return Err(()),
+        };
+        *next += 1;
+        let value = arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied());
+        return match value {
+            Some(value) if value.abs() <= 1_000_000 => Ok(Some(value)),
+            _ => Err(()),
+        };
+    }
+    let mut value: Option<i64> = None;
+    while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+        value = Some(value.unwrap_or(0).saturating_mul(10).saturating_add(digit as i64));
+        chars.next();
+    }
+    Ok(value.filter(|value| *value <= 1_000_000))
 }
 
 // An argument as fmt names it when it does not fit the format: type=value.
@@ -516,36 +586,25 @@ fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
             }
             chars.next();
         }
-        let mut number = |chars: &mut std::iter::Peekable<std::str::Chars>, next: &mut usize, out: &mut String, bad: &str| -> Option<usize> {
-            if chars.peek() == Some(&'*') {
-                chars.next();
-                let value = args.get(*next).and_then(|arg| {
-                    let arg: &dyn Any = arg.as_ref();
-                    arg.downcast_ref::<i32>().map(|v| *v as i64).or_else(|| arg.downcast_ref::<i64>().copied())
-                });
-                *next += 1;
-                return match value {
-                    Some(value) if value >= 0 => Some(value as usize),
-                    _ => {
-                        out.push_str(bad);
-                        None
-                    }
-                };
-            }
-            let mut value = None;
-            while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
-                value = Some(value.unwrap_or(0) * 10 + digit as usize);
-                chars.next();
-            }
-            value
-        };
         if chars.peek() == Some(&'[') {
             panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
         }
-        spec.width = number(&mut chars, &mut next, &mut out, "%!(BADWIDTH)");
+        match go_format_number(&mut chars, args, &mut next) {
+            // A negative width from an argument means left alignment.
+            Ok(Some(width)) if width < 0 => {
+                spec.minus = true;
+                spec.width = Some((-width) as usize);
+            }
+            Ok(width) => spec.width = width.map(|width| width as usize),
+            Err(()) => out.push_str("%!(BADWIDTH)"),
+        }
         if chars.peek() == Some(&'.') {
             chars.next();
-            spec.precision = Some(number(&mut chars, &mut next, &mut out, "%!(BADPREC)").unwrap_or(0));
+            match go_format_number(&mut chars, args, &mut next) {
+                Ok(Some(precision)) if precision < 0 => out.push_str("%!(BADPREC)"),
+                Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
+                Err(()) => out.push_str("%!(BADPREC)"),
+            }
         }
         if chars.peek() == Some(&'[') {
             panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
@@ -924,6 +983,10 @@ fn main() {
         }
     }]))));
     logf(Rc::new(RefCell::new(Some("%v|%s|%-12v|%v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Status { code: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Status { code: Rc::new(RefCell::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any>]))));
+
+        // A []byte prints as text where a string would.
+    logf(Rc::new(RefCell::new(Some("bytes %s, hex %x, list %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("%*d|%#v|%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-(4)) as Box<dyn Any>, Box::new(7) as Box<dyn Any>, Box::new("quoted".to_string()) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(255 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>]))));
 
         // What fmt writes when the format and the arguments do not fit.
     println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));

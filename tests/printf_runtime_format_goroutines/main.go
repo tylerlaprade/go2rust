@@ -65,6 +65,10 @@ func main() {
 	logf("%v|%s|%10v|", failed, failed, failed)
 	logf("%v|%s|%-12v|%v", Status{1}, Status{2}, Status{3}, &Status{4})
 
+	// A []byte prints as text where a string would.
+	logf("bytes %s, hex %x, list %v", []byte("Hi"), []byte("Hi"), []byte("Hi"))
+	logf("%*d|%#v|%#v", -4, 7, "quoted", uint8(255))
+
 	// What fmt writes when the format and the arguments do not fit.
 	fmt.Println(sprintf("%d", "text"))
 	fmt.Println(sprintf("%s", 5))

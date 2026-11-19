@@ -191,3 +191,28 @@ func main() {
 		}
 	}
 }
+
+// A []byte argument is recognized by its handle type, which differs between
+// the two wrapper modes.
+func TestRuntimeFormatterKnowsTheByteSliceHandleOfEachMode(t *testing.T) {
+	source := `package main
+
+import "fmt"
+
+func main() {
+	done := make(chan bool, 1)
+	done <- true
+	<-done
+	f := "%s\n"
+	fmt.Printf(f, []byte("hi"))
+}
+`
+	plain := transpileTypedRegression(t, strings.Replace(source, "\tdone := make(chan bool, 1)\n\tdone <- true\n\t<-done\n", "", 1))
+	if !strings.Contains(plain, "value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>()") || !strings.Contains(plain, "let guard = v.borrow();") {
+		t.Fatalf("want the Rc handle of a []byte:\n%s", plain)
+	}
+	locked := transpileTypedConcurrentRegression(t, source)
+	if !strings.Contains(locked, "value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>()") || !strings.Contains(locked, "let guard = v.lock().unwrap();") {
+		t.Fatalf("want the Arc handle of a []byte:\n%s", locked)
+	}
+}
