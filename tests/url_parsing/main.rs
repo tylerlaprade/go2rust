@@ -43,8 +43,8 @@ impl url_URL {
 
 fn main() {
     let (mut u, mut err) = { let __url_input = "https://example.com/path?key=value".to_string(); (Arc::new(Mutex::new(Some(go_url_parse(&__url_input)))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };
-    if (*err.lock().unwrap()).is_some() {
-        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
 
