@@ -7696,6 +7696,42 @@ func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, valu
 	out.WriteString(";\n")
 }
 
+// writeMapRangeValueIterationCopy makes the value variable of a range over a
+// map of structs Go's copy of the map's value, at the start of the
+// iteration. The loop binds the variable to the map's own cell for that
+// value; without this "v.X = 1" in the loop writes into the map.
+func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type, value ast.Expr) {
+	ident, ok := value.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	name := RustLocalIdent(ident.Name)
+	if valueType == nil {
+		out.WriteString("        let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		WriteWrapperPrefix(out)
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		WriteWrapperSuffix(out)
+		out.WriteString(";\n")
+		return
+	}
+	copyCall := goValueCopyCallForType(valueType)
+	if copyCall == ".clone()" {
+		return
+	}
+	out.WriteString("        let ")
+	out.WriteString(name)
+	out.WriteString(" = ")
+	WriteWrapperPrefix(out)
+	out.WriteString(name)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(copyCall)
+	WriteWrapperSuffix(out)
+	out.WriteString(";\n")
+}
+
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
 // loop values from a materialized range snapshot. A []any snapshot holds
 // Box<dyn Any> (not Clone), so it is consumed with into_iter; everything else
@@ -8638,6 +8674,91 @@ func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) 
 	if !typeIsPredeclaredCopyScalar(elemType) {
 		out.WriteString(".clone()")
 	}
+}
+
+// writeMapCommaOkHandleAssignmentFromTemp assigns the first result of
+// "v, ok = m[k]" to an existing slice or map variable or field. The map's
+// value is then a handle and the temporary is the map's own handle, so the
+// target takes it over, as the plain "v = m[k]" does. Moving the value out of
+// the temporary, which is right for a cell made for the purpose, emptied the
+// map entry. It reports false, and writes nothing, for every other target.
+//
+// A function, interface, error or channel value is still moved out of the
+// map's handle by the ordinary tuple assignment (DEV-58).
+func writeMapCommaOkHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, indexExpr *ast.IndexExpr, tmpName string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	switch target := lhs.(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isPackageGlobalIdent(target) {
+			return false
+		}
+		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
+			return false
+		}
+		if currentCaptureRenames != nil {
+			if _, captured := currentCaptureRenames[target.Name]; captured {
+				return false
+			}
+		}
+	case *ast.SelectorExpr:
+	default:
+		return false
+	}
+	valueType := typeInfo.GetMapValueType(indexExpr.X)
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Slice:
+		if !isPlainSliceExpression(lhs) {
+			return false
+		}
+	case *types.Map:
+		if !typeInfo.IsMap(lhs) {
+			return false
+		}
+	default:
+		return false
+	}
+	out.WriteString(" ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, tmpName)
+	return true
+}
+
+// writeMapCommaOkFoundValue writes the first result of "v, ok := m[k]" for a
+// key that is in the map, where the map's cell for the value is bound to v
+// in the generated match arm. A pointer, slice, map, channel, function or
+// interface value is its handle. Any other value is copied into a cell of
+// its own: handing out the map's cell let "v = 5" after the read change the
+// map, and let "v, ok = m[k]" into existing variables take the value out of
+// the map.
+func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool, valueDiscarded bool) {
+	if syntaxKeepsHandle || valueDiscarded {
+		// "_, ok := m[k]" drops the value, so the handle will do.
+		out.WriteString("v.clone()")
+		return
+	}
+	var valueType types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		valueType = typeInfo.GetMapValueType(indexExpr.X)
+	}
+	if valueType == nil {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
+	if mapValueTypeKeepsHandle(valueType) {
+		out.WriteString("v.clone()")
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(goValueCopyCallForType(valueType))
+	WriteWrapperSuffix(out)
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
@@ -9789,6 +9910,12 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		} else {
 			out.WriteString(goValueCopyNeedsTypeInfo)
 		}
+		return
+	}
+
+	// An element of a slice or an array, and the target of a pointer, is
+	// copied when it is sent.
+	if writeGoValueCopyOfElement(out, expr) {
 		return
 	}
 
@@ -11750,7 +11877,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 				// Generate the map access code.
-				if isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X)) {
+				mapIsBareValue := isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X))
+				if mapIsBareValue {
 					out.WriteString("match ")
 					TranspileExpression(out, indexExpr.X)
 					out.WriteString(".get(")
@@ -11768,7 +11896,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if !writeMapLookupKeyWithRustType(out, indexExpr.X, indexExpr.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithMapExpr(out, indexExpr.X, indexExpr.Index, keyType)
 				}
-				out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
+				if mapIsBareValue {
+					// "match map.get(key) {": only the call to get is open.
+					out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (")
+				} else {
+					out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (")
+				}
+				valueTarget, valueTargetIsIdent := s.Lhs[0].(*ast.Ident)
+				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueTargetIsIdent && valueTarget.Name == "_")
+				out.WriteString(", ")
 				out.WriteString("true")
 				out.WriteString("), None => (")
 				writeMapCommaOkMissingValue(out, indexExpr, valueKeepsHandle)
@@ -11782,7 +11918,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					registerBareShortDecl(s.Lhs[1])
 				} else {
 					out.WriteString(";")
-					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					if !writeMapCommaOkHandleAssignmentFromTemp(out, s.Lhs[0], indexExpr, "__tmp_0") {
+						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					}
 					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
 					out.WriteString(" }")
 				}
@@ -14292,6 +14430,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(rangePrelude)
 		if rangeValueBoundByReference {
 			writeRangeValueIterationCopy(out, s.X, s.Value)
+		}
+		if isMap && valueBindingTemp == "" {
+			writeMapRangeValueIterationCopy(out, mapValueGoType, s.Value)
 		}
 		restoreLoopBreakTarget := pushBreakTarget("")
 

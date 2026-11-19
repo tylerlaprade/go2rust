@@ -11649,12 +11649,30 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			out.WriteString(".clone()")
 			return true
 		}
+		// The value of a range variable, or of the temporary behind
+		// "for _, p = range s", is copied where it is assigned. This also
+		// writes plain reads such as a comparison, where a clone is right,
+		// so a variable with no known type keeps the clone.
+		copyCall, known := rangeVarGoValueCopyCall(ident)
+		if !known {
+			copyCall = ".clone()"
+		}
 		out.WriteString("(*")
 		out.WriteString(name)
-		out.WriteString(").clone()")
+		out.WriteString(")")
+		out.WriteString(copyCall)
 		return true
 	}
 	if isWrappedRangeVarType(varType) {
+		if copyCall, known := rangeVarGoValueCopyCall(ident); known && copyCall != ".clone()" {
+			// The range variable is the cell of a struct, as for the values
+			// of a map. Its owned value is Go's copy of what the cell holds.
+			out.WriteString(name)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+			return true
+		}
 		if strings.HasPrefix(varType, "&") {
 			out.WriteString("(*")
 			out.WriteString(name)

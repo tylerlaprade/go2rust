@@ -779,7 +779,7 @@ fn __go_init_0() {
 /// Lookup maps an identifier to its keyword token or [IDENT] (if not a keyword).
 pub fn lookup(ident: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Token>>> {
     {
-        let (mut tok, mut is_keyword) = { let __map = { let __map_holder = keywords.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*ident.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Token(Arc::new(Mutex::new(Some(0))))))), false) } };;
+        let (mut tok, mut is_keyword) = { let __map = { let __map_holder = keywords.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*ident.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(Token(Arc::new(Mutex::new(Some(0))))))), false) } };;
         if is_keyword {
             return { let __owned = tok.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
         }

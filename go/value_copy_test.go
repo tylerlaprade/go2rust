@@ -258,3 +258,107 @@ func TestGoCopyOfElementsWithoutTypeInfoIsLoud(t *testing.T) {
 		t.Errorf("copy loop without an element copy = %q; want the type-info stop", loop.String())
 	}
 }
+
+const structRangeAndMapReadProgram = `package main
+
+type Point struct{ X int }
+
+type Registry struct{ byName map[string]Point }
+
+func main() {
+	s := []Point{{1}}
+	var p Point
+	for _, p = range s {
+		p.X = 2
+	}
+	m := map[string]Point{"a": {1}}
+	for _, v := range m {
+		v.X = 3
+	}
+	var w Point
+	for _, w = range m {
+		w.X = 4
+	}
+	q, ok := m["a"]
+	var r Point
+	r, ok = m["a"]
+	counts := map[string]int{"a": 1}
+	n, ok := counts["a"]
+	lists := map[string][]int{"a": {1}}
+	var l []int
+	l, ok = lists["a"]
+	ptrs := map[string]*Point{}
+	pp, ok := ptrs["a"]
+	reg := Registry{byName: m}
+	f, ok := reg.byName["a"]
+	_, _, _, _, _, _, _, _ = q, r, n, l, pp, ok, p, f
+}
+`
+
+// A range loop that assigns to a variable declared before it, a range over a
+// map, and the two-result map read all hand over a copy of the value. Each of
+// them handed over the container's own storage before: "for _, p = range s"
+// left p sharing the last element, "v, ok := m[k]; v = 5" changed the map for
+// any value type, and "v, ok = m[k]" moved the value out of the map.
+func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
+	rust := transpileTypedRegression(t, structRangeAndMapReadProgram)
+
+	for what, want := range map[string]string{
+		"for _, p = range s":         "{ let new_val = (*__range_p).__go_value_clone(); *p.borrow_mut() = Some(new_val); }",
+		"for _, v := range m":        "let v = Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone())));",
+		"for _, w = range m":         "{ let new_val = __range_w.borrow().as_ref().unwrap().__go_value_clone(); *w.borrow_mut() = Some(new_val); }",
+		`q, ok := m["a"]`:            "let (mut q, mut ok) = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
+		`n, ok := counts["a"]`:       "Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false)",
+		`l, ok = lists["a"]`:         "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l = __tmp_0;",
+		`pp, ok := ptrs["a"]`:        "let (mut pp, mut ok) = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true)",
+		`f, ok := reg.byName["a"]`:   ".clone().get(&\"a\".to_string()) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
+		"the map's cell is not kept": "*r.borrow_mut() = __moved_tmp_0;",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if strings.Contains(rust, ".get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true), None => (Rc::new(RefCell::new(Some(Default::default()))), false) };\n    {") {
+		t.Errorf("the two-result read of a map held by value closes one parenthesis too many")
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// An element sent on a channel is a copy of the element.
+func TestSendingASliceElementCopiesIt(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Point struct{ X int }
+
+func main() {
+	s := []Point{{1}}
+	ch := make(chan Point, 1)
+	ch <- s[0]
+}
+`)
+	if want := "ch.send((*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone());"; !strings.Contains(rust, want) {
+		t.Fatalf("ch <- s[0] should send Go's copy of the element, missing %q:\n%s", want, rust)
+	}
+}
+
+// With no type for the map's value, the two-result read stops instead of
+// handing out the map's cell.
+func TestMapCommaOkWithoutTypeInfoIsLoud(t *testing.T) {
+	previous := GetTypeInfo()
+	SetTypeInfo(nil)
+	defer SetTypeInfo(previous)
+
+	var out strings.Builder
+	writeMapCommaOkFoundValue(&out, &ast.IndexExpr{X: ast.NewIdent("m"), Index: ast.NewIdent("k")}, false, false)
+	if out.String() != goValueCopyNeedsTypeInfo {
+		t.Fatalf("found value without type info = %q; want %q", out.String(), goValueCopyNeedsTypeInfo)
+	}
+
+	out.Reset()
+	writeMapRangeValueIterationCopy(&out, nil, ast.NewIdent("v"))
+	if !strings.Contains(out.String(), "let v = ") || !strings.Contains(out.String(), goValueCopyNeedsTypeInfo) {
+		t.Fatalf("map range value without a type = %q; want the type-info stop", out.String())
+	}
+}

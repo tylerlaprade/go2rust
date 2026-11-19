@@ -266,3 +266,14 @@ func goElementCopyIter(sliceExpr ast.Expr) string {
 	}
 	return ".iter().map(|__go_elem| __go_elem" + copyCall + ")"
 }
+
+// rangeVarGoValueCopyCall returns the call that makes Go's copy of the value
+// a range loop variable holds. The temporary of "for _, p = range s" is made
+// by the translator and unknown to the type checker, so the type the loop
+// recorded for it comes first. known is false when neither has a type.
+func rangeVarGoValueCopyCall(ident *ast.Ident) (call string, known bool) {
+	if typ := rangeLoopVarGoTypes[ident.Name]; typ != nil {
+		return goValueCopyCallForType(typ), true
+	}
+	return goValueCopyCallForExpr(ident)
+}

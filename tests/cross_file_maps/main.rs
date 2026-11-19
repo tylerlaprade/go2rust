@@ -13,7 +13,7 @@ fn main() {
 
         // Check map key existence - requires knowing it's a map
     {
-        let (mut id, mut ok) = { let __map_holder = Users.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"dave".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Rc::new(RefCell::new(Some(0))), false) } };;
+        let (mut id, mut ok) = { let __map_holder = Users.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"dave".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };;
         if ok {
             print!("Dave's ID: {}\n", { let __v = (*id.borrow().as_ref().unwrap()).clone(); __v });;
         } else {

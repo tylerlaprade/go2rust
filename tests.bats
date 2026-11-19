@@ -1455,6 +1455,14 @@ run_xfail_test() {
     run_test "tests/map_comma_ok_bool_default"
 }
 
+@test "map_comma_ok_value_copy" {
+    run_test "tests/map_comma_ok_value_copy"
+}
+
+@test "map_comma_ok_value_copy_goroutines" {
+    run_test "tests/map_comma_ok_value_copy_goroutines"
+}
+
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
 }
@@ -2773,6 +2781,14 @@ run_xfail_test() {
 
 @test "struct_pointer_slice_format" {
     run_test "tests/struct_pointer_slice_format"
+}
+
+@test "struct_range_copy" {
+    run_test "tests/struct_range_copy"
+}
+
+@test "struct_range_copy_goroutines" {
+    run_test "tests/struct_range_copy_goroutines"
 }
 
 @test "struct_tags_reflection" {
