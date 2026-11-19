@@ -3123,6 +3123,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
+@test "XFAIL: slice_shared_with_package_variable_or_element" {
+    run_xfail_test "tests/XFAIL/slice_shared_with_package_variable_or_element"
+}
+
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
     run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
 }
