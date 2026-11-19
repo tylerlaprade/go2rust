@@ -12,6 +12,16 @@ non-source-mapped user-program calls; it is not a precedent for self-hosting
 source-stdlib work. Any new or widened mapping added because a source-transpiled
 stdlib package cannot compile or run belongs here.
 
+Scope: this registry covers source-tier stdlib packages and external
+packages. The one exclusion is the stdlib's **native tier**. Hand-written Rust
+for a native-tier package (`runtime`, `unsafe`, `sync`, `sync/atomic`,
+`syscall`, `reflect`, and the runtime-bound `internal/*` packages) is the
+permanent implementation, not debt, and needs no row. The tier of a package is
+decided by `stdlibBoundaryTier` in `go/stdlib_boundary.go`; see
+[stdlib_boundary.md](stdlib_boundary.md). Existing rows that describe a
+native-tier surface stay until that surface is reviewed against the rules for
+native code and then leave the registry.
+
 Every `// TEMPORARY:` comment in `go/external_type_stubs.go` MUST have a row
 here. The Go test `TestBridgeDebtRegistryCoversAllShims` (in
 `go/external_type_stubs_test.go`) compares that historical subset and fails CI
@@ -148,6 +158,36 @@ comment.
   `go/types.TypeName`, and `go/types.TypeParam` from source for all callers
   still routed through the generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
+
+## Runtime helpers outside the stubs file
+
+Rows here are bridge debt that lives outside `go/external_type_stubs.go`.
+They are kept apart from "## Shims" because
+`TestBridgeDebtRegistryCoversAllShims` counts the rows of that section
+against the `// TEMPORARY:` comments of that one file.
+
+**fmt-runtime-format**
+
+- Location: `go/runtime_format.go`, `generateGoSprintf`: the generated Rust
+  functions `go_sprintf`, `go_sprintf_spread` and `go_format_*`. Calls to
+  them are written by `writeRuntimeFormatCall`.
+- Go symbol: `fmt.Printf`, `fmt.Sprintf`, `fmt.Errorf` and `fmt.Fprintf`,
+  when the format is not known while translating or the arguments are passed
+  on as a list (`f(format, args...)`).
+- Transpiler gap: `fmt` cannot be translated from its Go source, because its
+  printer walks every value with `reflect` and a translated program has
+  nothing to reflect on. A format that is known while translating is expanded
+  into a Rust format macro by the older mapping in `go/stdlib.go`. A format
+  that arrives as a value has nothing to expand, so before this helper the
+  format was printed as it was and the arguments were dropped.
+- Fixture: `tests/printf_runtime_format/`,
+  `tests/printf_runtime_format_goroutines/` and
+  `tests/printf_runtime_format_table/`, which compares each verb and flag
+  with Go line by line.
+- Removal trigger: `fmt` is translated from source, which needs `reflect`.
+  Or the stdlib boundary puts `fmt` in the hand-written tier; then the
+  helper moves into that runtime and this row is deleted with the move.
+- Added: 2026-11-19
 
 ## Shims
 

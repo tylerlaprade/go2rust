@@ -12,7 +12,7 @@ pub trait Object: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Object> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_object()
+        Object::__go_clone_box_object(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct TypeName {
 
 impl TypeName {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for TypeName {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for TypeName {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -48,27 +55,34 @@ pub struct Builtin {
 
 impl Builtin {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Builtin {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Builtin {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl TypeName {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
@@ -97,7 +111,7 @@ pub struct TypeNamePtr(pub Rc<RefCell<Option<TypeName>>>);
 impl std::fmt::Display for TypeNamePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -124,7 +138,7 @@ impl Object for TypeNamePtr {
 
 impl Builtin {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return self.name.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
@@ -153,7 +167,7 @@ pub struct BuiltinPtr(pub Rc<RefCell<Option<Builtin>>>);
 impl std::fmt::Display for BuiltinPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -179,23 +193,29 @@ impl Object for BuiltinPtr {
 }
 
 pub fn classify(mut obj: Rc<RefCell<Option<Box<dyn Object>>>>) -> Rc<RefCell<Option<String>>> {
-    let mut obj: Rc<RefCell<Option<Box<dyn Object>>>> = obj.clone();
+    let mut obj: Rc<RefCell<Option<Box<dyn Object>>>> = Rc::new(RefCell::new(obj.borrow().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
     {
     let _ts_subject = obj.clone();
     let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
+    let _ts_owned = _ts_guard.as_ref().cloned();
+    drop(_ts_guard);
+    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
+        let __any = __v.as_ref().__go_as_any();
+        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Object>>() {
+            __boxed.as_ref().__go_as_any()
+        } else {
+            __any
+        }
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<TypeNamePtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<TypeNamePtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "type:".to_string(), (*(*obj.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<BuiltinPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<BuiltinPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "builtin:".to_string(), (*(*obj.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())))));;
     } else {
-        let obj = obj.clone();
-        drop(_ts_guard);
+        let obj = _ts_subject.clone();
         panic!("unreachable");;
     }
     }

@@ -9,20 +9,27 @@ pub struct item {
 
 impl item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { index: { let __guard = self.index.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.index.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            index: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for item {
     fn default() -> Self {
-        Self { index: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            index: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.index.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.index.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -34,6 +41,6 @@ impl item {
 }
 
 fn main() {
-    let mut v = Rc::new(RefCell::new(Some(item { index: Rc::new(RefCell::new(Some(3 as i32))), ..Default::default() })));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()).index().to_string()))).borrow().as_ref().unwrap())));
+    let mut v = Rc::new(RefCell::new(Some(item { index: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(((*v.borrow().as_ref().unwrap()).index()).to_string()))).borrow().as_ref().unwrap())));
 }

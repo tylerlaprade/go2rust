@@ -158,20 +158,27 @@ pub struct counter {
 
 impl counter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for counter {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -185,7 +192,7 @@ pub trait valueReader: std::fmt::Display + Any {
 
 impl Clone for Box<dyn valueReader + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_value_reader()
+        valueReader::__go_clone_box_value_reader(self.as_ref())
     }
 }
 
@@ -197,7 +204,7 @@ pub(crate) static fallback: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<
 fn __go_init_globals() {
     *current.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some(5 as i32))), ..Default::default() }))));
+    *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some(5))), ..Default::default() }))));
 }
 
 
@@ -209,7 +216,7 @@ impl counter {
 
 impl valueReader for counter {
     fn value(&self) -> i32 {
-        return (*self.value.lock().unwrap().as_ref().unwrap());
+        counter::value(self)
     }
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync> {
         Box::new(self.clone()) as Box<dyn valueReader + Send + Sync>
@@ -226,8 +233,39 @@ impl valueReader for counter {
     }
 }
 
+#[derive(Clone)]
+pub struct counterPtr(pub Arc<Mutex<Option<counter>>>);
+
+impl std::fmt::Display for counterPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl valueReader for counterPtr {
+    fn value(&self) -> i32 {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        counter::value(__recv)
+    }
+    fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn valueReader + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<counterPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 pub fn new_counter(value: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<counter>>> {
-    Arc::new(Mutex::new(Some(counter { value: value.clone(), ..Default::default() })))
+    Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
 pub fn set_counter(c: Arc<Mutex<Option<counter>>>) {
@@ -247,7 +285,7 @@ pub fn set_current_value(value: Arc<Mutex<Option<i32>>>) {
 }
 
 pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::new((*(*fallback.lock().unwrap().as_ref().unwrap()).clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn valueReader + Send + Sync>)))
+    Arc::new(Mutex::new(Some(Box::new(counterPtr({ let __arg_holder = fallback.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })) as Box<dyn valueReader + Send + Sync>)))
 }
 
 pub fn clear_counter() {
@@ -274,11 +312,15 @@ fn main() {
     set_counter(new_counter(Arc::new(Mutex::new(Some(11)))));
     println!("{}", format!("{}", (*(*get_counter().lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap())));
     set_counter(Arc::new(Mutex::new(None)));
-    println!("{}", format!("{}", (*get_counter().lock().unwrap()).is_none()));
+    println!("{}", format!("{}", { let __nil_result = (*get_counter().lock().unwrap()).is_none(); __nil_result }));
     set_counter(new_counter(Arc::new(Mutex::new(Some(13)))));
     clear_counter();
-    println!("{}", format!("{}", (*get_counter().lock().unwrap()).is_none()));
-    println!("{}", format!("{}", { let __recv = get_fallback(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value(); __result }));
+    println!("{}", format!("{}", { let __nil_result = (*get_counter().lock().unwrap()).is_none(); __nil_result }));
+    println!("{}", format!("{}", {
+        let __recv = get_fallback();
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).value();
+        __result
+    }));
 }
 
 pub(crate) fn __go_init_all() {

@@ -10,20 +10,27 @@ pub struct Error {
 
 impl Error {
     pub fn __go_value_clone(&self) -> Self {
-        Self { msg: { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.msg.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            msg: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Error {
     fn default() -> Self {
-        Self { msg: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            msg: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.msg.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.msg.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -33,8 +40,8 @@ fn main() {
     let mut importingPkg = Rc::new(RefCell::new(Some((*stack.borrow().as_ref().unwrap())[(((*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (2 as i32)) as usize].clone())));
     let mut additionalErrors = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<Error>>>>>::new())));
 
-    { let __map_key = (*importingPkg.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = additionalErrors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*importingPkg.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(Error { msg: importingPkg.clone(), ..Default::default() }); __slice.clone() }; (*additionalErrors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = (*importingPkg.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = additionalErrors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*importingPkg.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = Error { msg: Rc::new(RefCell::new(Some({ let __arg_holder = importingPkg.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*additionalErrors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     println!("{}", format!("{}", (*additionalErrors.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
-    println!("{}", format!("{}", (*(*(*additionalErrors.borrow().as_ref().unwrap()).get(&"importer".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap())[(0) as usize].clone().msg.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*{ let __map_holder = additionalErrors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"importer".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap())[(0) as usize].clone().msg.borrow().as_ref().unwrap()).clone()));
 }

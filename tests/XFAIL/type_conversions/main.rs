@@ -66,7 +66,7 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
-fn go_type_name(val: &dyn Any) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i32>() { return "int" }
     if val.is::<i64>() { return "int64" }
     if val.is::<i8>() { return "int8" }
@@ -115,7 +115,7 @@ fn main() {
         // Unsigned integers
     println!("{}", format!("{}", "\n=== Unsigned integer conversions ===".to_string()));
 
-    let mut ui: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some(42)));
+    let mut ui: Rc<RefCell<Option<u64>>> = Rc::new(RefCell::new(Some(42)));
     let mut ui8: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some((*ui.borrow().as_ref().unwrap()) as u8)));
     let mut ui16: Rc<RefCell<Option<u16>>> = Rc::new(RefCell::new(Some((*ui8.borrow().as_ref().unwrap()) as u16)));
     let mut ui32: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some((*ui16.borrow().as_ref().unwrap()) as u32)));
@@ -152,7 +152,7 @@ fn main() {
     print!("rune to string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
 
         // Byte slice to string
-    let mut bytes = Rc::new(RefCell::new(Some(vec![72, 101, 108, 108, 111])));
+    let mut bytes = Rc::new(RefCell::new(Some(vec![72 as u8, 101 as u8, 108 as u8, 108 as u8, 111 as u8])));
     let mut strFromBytes = Rc::new(RefCell::new(Some(String::from_utf8((*bytes.borrow().as_ref().unwrap()).clone()).unwrap())));
     print!("bytes to string: {}\n", { let __v = (*strFromBytes.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -194,7 +194,7 @@ fn main() {
 
     let mut any: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
     print!("interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("interface{{}} type: {}\n", go_type_name(&**any.borrow().as_ref().unwrap()));
+    print!("interface{{}} type: {}\n", __go_type_name(&**any.borrow().as_ref().unwrap()));
 
         // Type assertion
     {
@@ -203,15 +203,15 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<i32>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(0))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(0))), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
             print!("asserted as int: {}\n", { let __v = (*intVal.borrow().as_ref().unwrap()).clone(); __v });;
         }
     }
@@ -219,7 +219,7 @@ fn main() {
         // Change interface value
     { let new_val = Box::new("hello".to_string()) as Box<dyn Any>; *any.borrow_mut() = Some(new_val); };
     print!("new interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("new interface{{}} type: {}\n", go_type_name(&**any.borrow().as_ref().unwrap()));
+    print!("new interface{{}} type: {}\n", __go_type_name(&**any.borrow().as_ref().unwrap()));
 
     {
         let (mut strVal, mut ok) = ({
@@ -227,15 +227,15 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
             print!("asserted as string: {}\n", { let __v = (*strVal.borrow().as_ref().unwrap()).clone(); __v });;
         }
     }
@@ -244,19 +244,19 @@ fn main() {
     println!("{}", format!("{}", "\n=== Complex number conversions ===".to_string()));
 
     let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(3 + 4i)));
-    let mut c128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some(num::Complex::<f64>::new((*c64.borrow().as_ref().unwrap()) as f64, 0.0))));
+    let mut c128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some({ let __z = (*c64.borrow().as_ref().unwrap()); num::Complex::<f64>::new(__z.re as f64, __z.im as f64) })));
 
     print!("complex64: {}\n", { let __v = (*c64.borrow().as_ref().unwrap()).clone(); __v });
     print!("complex128: {}\n", { let __v = (*c128.borrow().as_ref().unwrap()).clone(); __v });
 
         // Extract real and imaginary parts
-    let mut real = Rc::new(RefCell::new(Some((*(*c128.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).re)));
-    let mut imag = Rc::new(RefCell::new(Some((*(*c128.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).im)));
+    let mut real = Rc::new(RefCell::new(Some((*c128.borrow().as_ref().unwrap()).re)));
+    let mut imag = Rc::new(RefCell::new(Some((*c128.borrow().as_ref().unwrap()).im)));
     print!("real part: {:.2}\n", { let __v = (*real.borrow().as_ref().unwrap()).clone(); __v });
     print!("imaginary part: {:.2}\n", { let __v = (*imag.borrow().as_ref().unwrap()).clone(); __v });
 
         // Create complex from parts
-    let mut newComplex = Rc::new(RefCell::new(Some(num::Complex::new(*(*real.borrow().as_ref().unwrap()).borrow().as_ref().unwrap(), *(*imag.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()))));
+    let mut newComplex = Rc::new(RefCell::new(Some(num::Complex::new((*real.borrow().as_ref().unwrap()) as f64, (*imag.borrow().as_ref().unwrap()) as f64))));
     print!("reconstructed: {}\n", { let __v = (*newComplex.borrow().as_ref().unwrap()).clone(); __v });
 
         // Overflow demonstration (be careful!)
@@ -279,7 +279,7 @@ fn main() {
     type MyInt = Rc<RefCell<Option<i32>>>;
     type MyString = Rc<RefCell<Option<String>>>;
 
-    let mut mi: MyInt = Rc::new(RefCell::new(Some(42)));
+    let mut mi: MyInt = Rc::new(RefCell::new(Some(MyInt(Rc::new(RefCell::new(Some(42 as i32)))))));
     let mut regularInt: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some((*(*mi.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32)));
     let mut backToMyInt: MyInt = Rc::new(RefCell::new(Some(MyInt(Rc::new(RefCell::new(Some((*regularInt.borrow().as_ref().unwrap()) as i32)))))));
 
@@ -288,7 +288,7 @@ fn main() {
     print!("back to MyInt: {}\n", { let __v = (*backToMyInt.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut ms: MyString = Rc::new(RefCell::new(Some("hello".to_string())));
-    let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*ms.borrow().as_ref().unwrap()).to_string())));
+    let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*(*ms.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone())));
     let mut backToMyString: MyString = Rc::new(RefCell::new(Some(MyString(Rc::new(RefCell::new(Some((*regularString.borrow().as_ref().unwrap()).clone())))))));
 
     print!("MyString: {}\n", { let __v = (*ms.borrow().as_ref().unwrap()).clone(); __v });

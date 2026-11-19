@@ -1,0 +1,8 @@
+[package]
+name = "print_self_referencing_value_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_self_referencing_value_goroutines"
+path = "main.rs"

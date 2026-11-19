@@ -9,13 +9,17 @@ pub struct queue {
 
 impl queue {
     pub fn __go_value_clone(&self) -> Self {
-        Self { later: self.later.clone() }
+        let __go_clone_0_0 = self.later.clone();
+        Self {
+            later: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for queue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { let __guard = self.later.borrow(); match __guard.as_ref() { Some(__v) => format!("[{}]", std::iter::repeat("<func>").take(__v.len()).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self.later.borrow(); match __guard.as_ref() { Some(__v) => format!("[{}]", std::iter::repeat("<func>").take(__v.len()).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

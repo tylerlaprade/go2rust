@@ -11,7 +11,10 @@ fn main() {
     eprint!("This goes to stderr via fmt.Fprintf: {}\n", "error message".to_string());
 
         // Built-in println (goes to stderr)
-    eprintln!("{}", format!("{}", "This goes to stderr via built-in println".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "This goes to stderr via built-in println".to_string());
+            eprintln!("{}", __go_print_arg_0)
+        };
 
         // More mixed output
     println!("{}", format!("{}", "Back to stdout".to_string()));

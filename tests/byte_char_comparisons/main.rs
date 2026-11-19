@@ -12,7 +12,8 @@ pub struct opAppender {
 
 impl opAppender {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -25,7 +26,7 @@ impl std::fmt::Display for opAppender {
 
 impl opAppender {
     pub fn append_op(&self, path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-        { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() }
+        { let __append_target = path.clone(); let __append_value = (*op.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }
     }
 }
 
@@ -38,7 +39,7 @@ pub fn starts_with_v(s: Rc<RefCell<Option<String>>>) -> bool {
 }
 
 pub fn append_op(path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-    { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*op.borrow().as_ref().unwrap()).clone()); __append_target.clone() }
+    { let __append_target = path.clone(); let __append_value = (*op.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }
 }
 
 pub fn classify_op(op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<String>>> {
@@ -59,7 +60,7 @@ fn main() {
     println!("{} {}", format!("{}", "version v1:".to_string()), format!("{}", starts_with_v(Rc::new(RefCell::new(Some("v1.0.0".to_string()))))));
     println!("{} {}", format!("{}", "version x1:".to_string()), format!("{}", starts_with_v(Rc::new(RefCell::new(Some("x1.0.0".to_string()))))));
     let mut path = Rc::new(RefCell::new(Some(Vec::<u8>::new())));
-    { let new_val = { let __append_target = path.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(OP_TYPE as u8); __append_target.clone() }; path = new_val; };
+    { let new_val = { let __append_target = path.clone(); let __append_value = OP_TYPE as u8; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; path = new_val; };
     { let new_val = append_op(path.clone(), Rc::new(RefCell::new(Some(OP_ELEM as u8)))); path = new_val; };
     { let new_val = opAppender {  }.append_op(path.clone(), Rc::new(RefCell::new(Some(OP_ELEM as u8)))); path = new_val; };
     println!("{} {} {}", format!("{}", "op type:".to_string()), format!("{}", (*path.borrow().as_ref().unwrap())[(0) as usize].clone() == OP_TYPE as u8), format!("{}", (*classify_op(Rc::new(RefCell::new(Some((*path.borrow().as_ref().unwrap())[(0) as usize].clone())))).borrow().as_ref().unwrap())));

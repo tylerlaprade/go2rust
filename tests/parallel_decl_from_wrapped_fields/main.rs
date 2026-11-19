@@ -10,20 +10,32 @@ pub struct P {
 
 impl P {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pos: { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, tok: { let __guard = self.tok.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.tok.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            pos: __go_clone_0_0,
+            tok: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for P {
     fn default() -> Self {
-        Self { pos: Rc::new(RefCell::new(Some(0))), tok: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            pos: __go_default_0_0,
+            tok: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for P {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.pos.borrow().as_ref().unwrap()), (*self.tok.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.pos.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.tok.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -40,6 +52,6 @@ impl P {
 }
 
 fn main() {
-    let (mut x, mut y) = { let __recv = (Rc::new(RefCell::new(Some(P { pos: Rc::new(RefCell::new(Some(1 as i32))), tok: Rc::new(RefCell::new(Some(2 as i32))), ..Default::default() })))); let __result = (*__recv.borrow().as_ref().unwrap()).pair(); __result };
+    let (mut x, mut y) = { let __recv = (Rc::new(RefCell::new(Some(P { pos: Rc::new(RefCell::new(Some(1))), tok: Rc::new(RefCell::new(Some(2))), ..Default::default() })))); let __result = (*__recv.borrow().as_ref().unwrap()).pair(); __result };
     println!("{} {}", format!("{}", x), format!("{}", y));
 }

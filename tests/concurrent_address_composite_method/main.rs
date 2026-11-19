@@ -9,20 +9,27 @@ pub struct finder {
 
 impl finder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            base: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for finder {
     fn default() -> Self {
-        Self { base: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            base: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for finder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.base.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -34,7 +41,13 @@ impl finder {
 }
 
 pub fn call_find() -> i32 {
-    { let __recv = (Arc::new(Mutex::new(Some(finder { base: Arc::new(Mutex::new(Some(2 as i32))), ..Default::default() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).find(Arc::new(Mutex::new(Some(3)))); __result }
+    {
+        let __recv = (Arc::new(Mutex::new(Some(finder { base: Arc::new(Mutex::new(Some(2))), ..Default::default() }))));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).find(
+            Arc::new(Mutex::new(Some(3))),
+        );
+        __result
+    }
 }
 
 fn main() {

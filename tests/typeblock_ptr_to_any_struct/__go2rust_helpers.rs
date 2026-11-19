@@ -20,3 +20,9 @@ fn format_any(value: &dyn Any) -> String {
         "<unknown>".to_string()
     }
 }
+
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any(value)
+}

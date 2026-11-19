@@ -10,20 +10,32 @@ pub struct Tracker {
 
 impl Tracker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { needs_channel: { let __guard = self.needs_channel.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, needs_context: { let __guard = self.needs_context.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.needs_channel.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.needs_context.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            needs_channel: __go_clone_0_0,
+            needs_context: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Tracker {
     fn default() -> Self {
-        Self { needs_channel: Rc::new(RefCell::new(Some(false))), needs_context: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            needs_channel: __go_default_0_0,
+            needs_context: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Tracker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.needs_channel.borrow().as_ref().unwrap()), (*self.needs_context.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.needs_channel.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.needs_context.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
