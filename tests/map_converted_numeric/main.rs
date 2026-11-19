@@ -388,6 +388,9 @@ impl Ord for Span {
 }
 
 
+pub type Code = Rc<RefCell<Option<u16>>>;
+
+
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -429,6 +432,16 @@ fn main() {
             let __go_print_arg_0 = format!("{}", { let __map_holder = units.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"tick".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             let __go_print_arg_1 = format!("{}", { let __map_holder = signed.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"n".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             let __go_print_arg_2 = format!("{}", (*Rc::new(RefCell::new(Some({ let __map_holder = decimal.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"tick".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0.0) } as i32))).borrow().as_ref().unwrap()));
+            eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
+    let mut wide = Rc::new(RefCell::new(Some(270 as i32)));
+    let mut codes = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<u16>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some((*wide.borrow().as_ref().unwrap()) as u16))))]))));
+    let mut flags = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(true))))]))));
+    let mut labels = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(char::from_u32((('x' as i32)) as u32).unwrap().to_string()))))]))));
+    {
+            let __go_print_arg_0 = format!("{}", { let __map_holder = codes.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+            let __go_print_arg_1 = format!("{}", { let __map_holder = flags.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false) });
+            let __go_print_arg_2 = format!("{}", { let __map_holder = labels.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) });
             eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
         };
 }
