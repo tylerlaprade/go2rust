@@ -1821,11 +1821,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(format!")
-	}
+	out.WriteString(rustErrorFromTextStart() + "format!")
 	out.WriteString("(")
 
 	var skipIndices []int
@@ -1872,16 +1868,13 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")))))")
+	out.WriteString(")" + rustErrorFromTextEnd())
+	WriteWrapperSuffix(out)
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn std::error::Error + Send + Sync>::from(")
-	} else {
-		out.WriteString("Box::<dyn std::error::Error>::from(")
-	}
+	out.WriteString(rustErrorFromTextStartFor("std::error::Error", NeedsConcurrentWrapper()))
 
 	if len(call.Args) > 0 {
 		// The argument is the error message
@@ -1894,7 +1887,8 @@ func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString("))))")
+	out.WriteString(rustErrorFromTextEnd())
+	WriteWrapperSuffix(out)
 }
 
 func transpileFlagString(out *strings.Builder, call *ast.CallExpr) {
@@ -1932,11 +1926,7 @@ func transpileOsCreate(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(e)")
-	}
+	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(") } }")
 }
@@ -1953,11 +1943,7 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 	writeTypedErrorNone(out)
 	out.WriteString(", Err(e) => ")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(e)")
-	}
+	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(" } }")
 }
@@ -3308,11 +3294,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		TrackImport("Error")
 		out.WriteString("Err(_) => (0 as i32, ")
 		WriteWrapperPrefix(out)
-		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
-		} else {
-			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
-		}
+		out.WriteString(rustErrorFromText("format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)") + ")))) } }")
 	}
 }
 
@@ -3330,11 +3312,7 @@ func transpileStrconvParseBool(out *strings.Builder, call *ast.CallExpr) {
 		TrackImport("Error")
 		out.WriteString("_ => (false, ")
 		WriteWrapperPrefix(out)
-		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)))))) } }")
-		} else {
-			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)))))) } }")
-		}
+		out.WriteString(rustErrorFromText("format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)") + ")))) } }")
 	}
 }
 
@@ -3453,11 +3431,7 @@ func transpileBase64DecodeString(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Box::<dyn StdError + Send + Sync>::from(e)")
-	} else {
-		out.WriteString("Box::<dyn StdError>::from(e)")
-	}
+	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(") } }")
 }
@@ -4361,12 +4335,12 @@ func writeTypedErrorNone(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString("Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))")
+		out.WriteString("Arc::new(Mutex::new(" + rustNoErrorPayload() + "))")
 		return
 	}
 	TrackImport("Rc")
 	TrackImport("RefCell")
-	out.WriteString("Rc::new(RefCell::new(None::<Box<dyn StdError>>))")
+	out.WriteString("Rc::new(RefCell::new(" + rustNoErrorPayload() + "))")
 }
 
 func transpileUrlParse(out *strings.Builder, call *ast.CallExpr) {

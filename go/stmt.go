@@ -7863,13 +7863,9 @@ func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, v
 
 func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Error")
-	out.WriteString("Box::new(")
+	out.WriteString(rustErrorFromValueStart())
 	writeConcreteErrorValue(out, expr)
-	if NeedsConcurrentWrapper() {
-		out.WriteString(") as Box<dyn StdError + Send + Sync>")
-	} else {
-		out.WriteString(") as Box<dyn StdError>")
-	}
+	out.WriteString(rustErrorFromValueEnd())
 }
 
 func writeGoErrorHandleValue(out *strings.Builder, expr ast.Expr) bool {
@@ -9505,14 +9501,6 @@ func channelElementIsGoError(expr ast.Expr) bool {
 	}
 	ch, ok := types.Unalias(typ).Underlying().(*types.Chan)
 	return ok && isGoErrorType(ch.Elem())
-}
-
-func rustStdErrorBoxType() string {
-	TrackImport("Error")
-	if NeedsConcurrentWrapper() {
-		return "Box<dyn StdError + Send + Sync>"
-	}
-	return "Box<dyn StdError>"
 }
 
 func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
@@ -11299,13 +11287,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Struct implementing error interface - box it
 							TrackImport("Error")
 							WriteWrapperPrefix(out)
-							out.WriteString("Box::new(")
+							out.WriteString(rustErrorFromValueStart())
 							TranspileExpression(out, result)
-							if NeedsConcurrentWrapper() {
-								out.WriteString(") as Box<dyn StdError + Send + Sync>")
-							} else {
-								out.WriteString(") as Box<dyn StdError>")
-							}
+							out.WriteString(rustErrorFromValueEnd())
 							WriteWrapperSuffix(out)
 						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 						} else if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
@@ -12259,7 +12243,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											TranspileExpression(out, s.Rhs[0])
 										}
 									} else if isErrorFunc {
-										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn StdError>>>>
+										// Error functions return the full wrapped type: the error handle.
 										// Just replace the Rc pointer directly
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										out.WriteString(" = ")

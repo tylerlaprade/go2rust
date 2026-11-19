@@ -4563,13 +4563,13 @@ func generateGoContextHelper(out *strings.Builder) {
 #[derive(Clone)]
 struct GoContext {
     done: GoChannel<bool>,
-    err: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>,
+    err: std::sync::Arc<std::sync::Mutex<Option<GO_ERROR_PAYLOAD>>>,
     cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
     label: String,
 }
 
 type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
+type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) -> () + Send + Sync>;
 
 impl GoContext {
     fn background() -> GoContext {
@@ -4593,7 +4593,7 @@ impl GoContext {
     fn with_timeout(parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
         let label = format!("{}.WithDeadline", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         let context = GoContext {
@@ -4609,7 +4609,7 @@ impl GoContext {
         std::thread::spawn(move || {
             std::thread::sleep(duration);
             if !timeout_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *timeout_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context deadline exceeded".to_string()));
+                *timeout_err.lock().unwrap() = Some(GO_ERROR_FROM("context deadline exceeded".to_string()));
                 timeout_done.send(true);
                 timeout_done.close();
             }
@@ -4620,7 +4620,7 @@ impl GoContext {
         let cancel_cancelled = cancelled.clone();
         let cancel: GoCancelFunc = std::sync::Arc::new(move || {
             if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string()));
+                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
                 cancel_done.send(true);
                 cancel_done.close();
             }
@@ -4635,7 +4635,7 @@ impl GoContext {
     fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
         let label = format!("{}.WithCancel", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         let context = GoContext {
@@ -4650,7 +4650,7 @@ impl GoContext {
         let cancel_cancelled = cancelled.clone();
         let cancel: GoCancelFunc = std::sync::Arc::new(move || {
             if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string()));
+                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
                 cancel_done.send(true);
                 cancel_done.close();
             }
@@ -4665,7 +4665,7 @@ impl GoContext {
     fn with_cancel_cause(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelCauseFunc>>>) {
         let label = format!("{}.WithCancelCause", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         let context = GoContext {
@@ -4680,7 +4680,7 @@ impl GoContext {
         let cancel_cancelled = cancelled.clone();
         let cancel: GoCancelCauseFunc = Box::new(move |_cause| {
             if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string()));
+                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
                 cancel_done.send(true);
                 cancel_done.close();
             }
@@ -4696,7 +4696,7 @@ impl GoContext {
         self.done.clone()
     }
 
-    fn err(&self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
+    fn err(&self) -> Arc<Mutex<Option<GO_ERROR_PAYLOAD>>> {
         self.err.clone()
     }
 }
@@ -4724,7 +4724,7 @@ impl std::fmt::Debug for GoContext {
 		code = strings.ReplaceAll(code, "    fn done(", "    pub fn done(")
 		code = strings.ReplaceAll(code, "    fn err(", "    pub fn err(")
 	}
-	out.WriteString(code)
+	out.WriteString(expandErrorRepr(code, true))
 }
 
 func generateGoRandHelper(out *strings.Builder) {
@@ -4788,7 +4788,7 @@ func generateOsFileHelper(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`
+		out.WriteString(expandErrorRepr(`
 struct GoFile {
     file: Option<std::fs::File>,
 }
@@ -4807,32 +4807,32 @@ impl GoFile {
         GoFile { file: None }
     }
 
-    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) {
+    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) {
         let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
         match self.file.as_mut() {
             Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
                 Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i32))), Arc::new(Mutex::new(None))),
-                Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(e))))),
+                Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(GO_ERROR_FROM(e))))),
             },
             None => (
                 Arc::new(Mutex::new(Some(0))),
-                Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
+                Arc::new(Mutex::new(Some(GO_ERROR_FROM(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
             ),
         }
     }
 
-    fn close(&mut self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
+    fn close(&mut self) -> Arc<Mutex<Option<GO_ERROR_PAYLOAD>>> {
         self.file = None;
         Arc::new(Mutex::new(None))
     }
 }
-`)
+`, true))
 		return
 	}
 
 	TrackImport("Rc")
 	TrackImport("RefCell")
-	out.WriteString(`
+	out.WriteString(expandErrorRepr(`
 struct GoFile {
     file: Option<std::fs::File>,
 }
@@ -4851,26 +4851,26 @@ impl GoFile {
         GoFile { file: None }
     }
 
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn std::error::Error>>>>) {
+    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<GO_ERROR_PAYLOAD>>>) {
         let text = (*text.borrow().as_ref().unwrap()).clone();
         match self.file.as_mut() {
             Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
                 Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i32))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from(e))))),
+                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(GO_ERROR_FROM(e))))),
             },
             None => (
                 Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
+                Rc::new(RefCell::new(Some(GO_ERROR_FROM(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
             ),
         }
     }
 
-    fn close(&mut self) -> Rc<RefCell<Option<Box<dyn std::error::Error>>>> {
+    fn close(&mut self) -> Rc<RefCell<Option<GO_ERROR_PAYLOAD>>> {
         self.file = None;
         Rc::new(RefCell::new(None))
     }
 }
-`)
+`, false))
 }
 
 func generateReflectHelper(out *strings.Builder) {

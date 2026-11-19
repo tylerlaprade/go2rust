@@ -11766,7 +11766,7 @@ func rustMapValueTypeKeepsHandle(rustType string) bool {
 		strings.HasPrefix(rustType, "Rc<RefCell<Option<BTreeMap<") ||
 		strings.HasPrefix(rustType, "Arc<Mutex<Option<BTreeMap<") ||
 		strings.HasPrefix(rustType, "GoChannel<") ||
-		strings.Contains(rustType, "Box<dyn StdError") ||
+		rustTypeHoldsImportedErrorPayload(rustType) ||
 		strings.Contains(rustType, "Box<dyn Any")
 }
 
@@ -19582,11 +19582,7 @@ func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, rustType string
 
 func writeTypeAssertionSuccessBareValue(out *strings.Builder, targetIsError bool) {
 	if targetIsError {
-		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
-		} else {
-			out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
-		}
+		out.WriteString(rustErrorFromText("typed_val.clone()"))
 	} else {
 		out.WriteString("typed_val.clone()")
 	}
@@ -20566,11 +20562,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		case "error":
 			TrackImport("Error")
 			rustType = "std::string::String"
-			if NeedsConcurrentWrapper() {
-				defaultValue = "Box::<dyn StdError + Send + Sync>::from(std::string::String::new())"
-			} else {
-				defaultValue = "Box::<dyn StdError>::from(std::string::String::new())"
-			}
+			defaultValue = rustErrorFromText("std::string::String::new()")
 			targetIsError = true
 			targetIsInterface = false
 		case "int":
@@ -20727,11 +20719,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("                (")
 		WriteWrapperPrefix(out)
 		if targetIsError {
-			if NeedsConcurrentWrapper() {
-				out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
-			} else {
-				out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
-			}
+			out.WriteString(rustErrorFromText("typed_val.clone()"))
 		} else {
 			out.WriteString("typed_val.clone()")
 		}
@@ -20785,11 +20773,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("            (")
 		WriteWrapperPrefix(out)
 		if targetIsError {
-			if NeedsConcurrentWrapper() {
-				out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
-			} else {
-				out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
-			}
+			out.WriteString(rustErrorFromText("typed_val.clone()"))
 		} else {
 			out.WriteString("typed_val.clone()")
 		}
@@ -20839,11 +20823,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString("                (")
 	WriteWrapperPrefix(out)
 	if targetIsError {
-		if NeedsConcurrentWrapper() {
-			out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
-		} else {
-			out.WriteString("Box::<dyn StdError>::from(typed_val.clone())")
-		}
+		out.WriteString(rustErrorFromText("typed_val.clone()"))
 	} else {
 		out.WriteString("typed_val.clone()")
 	}
@@ -23236,11 +23216,6 @@ func syntaxExprIsGoError(expr ast.Expr) bool {
 	default:
 		return false
 	}
-}
-
-func rustTypeIsGoErrorHandle(rustType string) bool {
-	return strings.Contains(rustType, "Box<dyn StdError") ||
-		strings.Contains(rustType, "Box<dyn std::error::Error")
 }
 
 func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExpr, sig *types.Signature) {

@@ -1008,11 +1008,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "any":
 			return rustAnyTraitObject()
 		case "error":
-			TrackImport("Error")
-			if NeedsConcurrentWrapper() {
-				return "Option<Box<dyn StdError + Send + Sync>>"
-			}
-			return "Option<Box<dyn StdError>>"
+			return "Option<" + rustStdErrorBoxType() + ">"
 		default:
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
@@ -1567,7 +1563,7 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	// Local named interfaces need wrapped slice elements: Box<dyn Trait> has no
 	// Default (so make([]Trait, n) breaks) and can't be nil (so
 	// interface-typed slice elements can't represent Go's nil interface value).
-	// Wrapping mirrors the [`error` -> Box<dyn StdError>] handling above.
+	// Wrapping mirrors the handling of `error` above.
 	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
 		return GoTypeToRust(expr)
 	}
@@ -1646,11 +1642,7 @@ func goTypesTypeToRust(t types.Type) string {
 	if named, ok := t.(*types.Named); ok && named.Obj() != nil {
 		obj := named.Obj()
 		if obj.Pkg() == nil && obj.Name() == "error" {
-			TrackImport("Error")
-			if NeedsConcurrentWrapper() {
-				return "Box<dyn StdError + Send + Sync>"
-			}
-			return "Box<dyn StdError>"
+			return rustStdErrorBoxType()
 		}
 		if obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
 			return goTypesNamedTypeToRust(named)
@@ -1805,11 +1797,7 @@ func goTypesGoPtrElemTypeToRust(t types.Type) string {
 
 func goTypesChannelElemTypeToRust(t types.Type) string {
 	if isGoErrorType(t) {
-		TrackImport("Error")
-		if NeedsConcurrentWrapper() {
-			return "Option<Box<dyn StdError + Send + Sync>>"
-		}
-		return "Option<Box<dyn StdError>>"
+		return "Option<" + rustStdErrorBoxType() + ">"
 	}
 	return goTypesTypeToRust(t)
 }
