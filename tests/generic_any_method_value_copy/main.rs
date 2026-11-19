@@ -66,7 +66,7 @@ impl GoValueClone for String {
 impl GoValueClone for Box<dyn Any> {
     fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
 }
-
+	
 #[derive(Default)]
 pub struct Cell<T: Any + 'static> {
     pub value: Rc<RefCell<Option<T>>>,
@@ -74,7 +74,10 @@ pub struct Cell<T: Any + 'static> {
 
 impl<T: Any + 'static> Cell<T> {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: self.value.clone() }
+        let __go_clone_0_0 = self.value.clone();
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
@@ -86,7 +89,8 @@ impl<T: Any + 'static> Clone for Cell<T> {
 
 impl<T: Any + 'static> std::fmt::Display for Cell<T> where T: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -107,4 +111,10 @@ pub fn r#use(c: Rc<RefCell<Option<Cell<Box<dyn Any>>>>>) {
 }
 
 fn main() {
+}
+
+impl<T: Any + 'static> GoValueClone for Cell<T> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }
