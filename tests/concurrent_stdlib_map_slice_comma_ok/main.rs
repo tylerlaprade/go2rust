@@ -142,27 +142,34 @@ pub struct scope {
 
 impl scope {
     pub fn __go_value_clone(&self) -> Self {
-        Self { id: { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            id: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for scope {
     fn default() -> Self {
-        Self { id: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            id: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for scope {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.id.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.id.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 pub fn lookup(m: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<scope>, Arc<Mutex<Option<Vec<types_Object>>>>>>>>, s: Arc<Mutex<Option<scope>>>) -> Arc<Mutex<Option<Vec<types_Object>>>> {
-    let (mut objs, mut ok) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&GoLocalPtrKey::new(s.clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Default::default(), Arc::new(Mutex::new(Some(false)))) } };
-    if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+    let (mut objs, mut ok) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(s.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
+    if !ok {
         { let new_val = Arc::new(Mutex::new(Some(vec![Default::default(); (1) as usize]))); objs = new_val; };
         { let __map_key = GoLocalPtrKey::new(s.clone()); let __map_value = objs.clone(); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }

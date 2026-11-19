@@ -15,5 +15,5 @@ pub fn run(s: Rc<RefCell<Option<Box<dyn Stepper>>>>) -> i32 {
 }
 
 fn main() {
-    println!("{}", format!("{}", run(Rc::new(RefCell::new(Some(Box::new(Counter { n: Rc::new(RefCell::new(Some(0))) }) as Box<dyn Stepper>))))));
+    println!("{}", format!("{}", run(Rc::new(RefCell::new(Some(Box::new(crate::counter_step::CounterPtr(Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(0))) }))).clone())) as Box<dyn Stepper>))))));
 }

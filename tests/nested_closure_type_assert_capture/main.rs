@@ -16,30 +16,30 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<i32>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(0))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(0))), false)
         }
     });
-        println!("{}", format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{}", format!("{}", ok));
     }) as Box<dyn FnMut() -> ()>))));
         let (_, mut ok) = ({
         let val = v_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<i32>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(0))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(0))), false)
         }
     });
-        println!("{}", format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }));
+        println!("{}", format!("{}", ok));
     }) as Box<dyn FnMut() -> ()>)));
 
     { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

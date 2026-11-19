@@ -1,0 +1,16 @@
+first
+bad
+wrapped: bad
+3
+2
+is a string: false
+asserted: bad true
+bad
+bad|bad
+aliased true
+bad
+text
+wrapped: bad
+false
+error bad | error wrapped: bad | int 3 | string s | other
+true false false

@@ -2,7 +2,7 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    go_token::__go_init_all();
+    ::go_token::__go_init_all();
 
     let mut keyword = go_token::lookup(Arc::new(Mutex::new(Some("func".to_string()))));
     let mut ident = go_token::lookup(Arc::new(Mutex::new(Some("not_keyword".to_string()))));

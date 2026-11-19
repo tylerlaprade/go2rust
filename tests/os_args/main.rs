@@ -55,6 +55,6 @@ fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
 
 fn main() {
     println!("{} {}", format!("{}", "Program name present:".to_string()), format!("{}", (*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone() != "".to_string()));
-    println!("{} {}", format!("{}", "Arguments:".to_string()), format!("{}", format_slice(&Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = go_os_args().clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() }))))));
-    println!("{} {}", format!("{}", "Total args:".to_string()), format!("{}", (*go_os_args().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", "Arguments:".to_string()), format!("{}", format_slice(&Rc::new(RefCell::new(Some({ let __seq_holder = go_os_args().clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))))));
+    println!("{} {}", format!("{}", "Total args:".to_string()), format!("{}", ({ let __len_target = { let __field = go_os_args().clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
 }

@@ -9,20 +9,27 @@ pub struct node {
 
 impl node {
     pub fn __go_value_clone(&self) -> Self {
-        Self { color: { let __guard = self.color.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.color.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            color: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for node {
     fn default() -> Self {
-        Self { color: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            color: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.color.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.color.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

@@ -1,0 +1,25 @@
+true true
+boom boom
+second first
+not found closed <nil>
+true false true
+not found closed ok other: boom
+lookup: 0 not found
+true not found true
+false true true true
+report: boom
+report: boom
+boom
+true boom true boom
+true closed
+0 boom true
+1 boom true
+2 not found false
+3 <nil> false
+5 first boom
+boom true true
+true missing key
+true true
+boom changed
+true changed true
+wrapped: inner <nil>

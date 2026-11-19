@@ -1,0 +1,8 @@
+[package]
+name = "const_case_collision"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "const_case_collision"
+path = "main.rs"

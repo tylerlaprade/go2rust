@@ -53,20 +53,37 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { dir: { let __guard = self.dir.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, go_files: self.go_files.clone(), cgo_files: self.cgo_files.clone() }
+        let __go_clone_0_0 = { let __guard = self.dir.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.go_files.clone();
+        let __go_clone_2_0 = self.cgo_files.clone();
+        Self {
+            dir: __go_clone_0_0,
+            go_files: __go_clone_1_0,
+            cgo_files: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Package {
     fn default() -> Self {
-        Self { dir: Rc::new(RefCell::new(Some(String::new()))), go_files: Rc::new(RefCell::new(None)), cgo_files: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        let __go_default_2_0 = Rc::new(RefCell::new(None));
+        Self {
+            dir: __go_default_0_0,
+            go_files: __go_default_1_0,
+            cgo_files: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.dir.borrow().as_ref().unwrap()), format_slice(&self.go_files), format_slice(&self.cgo_files))
+        let __go_fmt_0 = format!("{}", (*self.dir.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.go_files));
+        let __go_fmt_2 = format!("{}", format_slice(&self.cgo_files));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -77,9 +94,9 @@ pub fn abs_join(dir: Rc<RefCell<Option<String>>>, fileses: Rc<RefCell<Option<Vec
 
 fn main() {
     let mut p = Rc::new(RefCell::new(Some(Package { dir: Rc::new(RefCell::new(Some("root".to_string()))), go_files: Rc::new(RefCell::new(Some(vec!["a.go".to_string()]))), cgo_files: Rc::new(RefCell::new(Some(vec!["c.go".to_string()]))), ..Default::default() })));
-    let mut files = abs_join({ let __field = (*p.borrow().as_ref().unwrap()).dir.clone(); __field }, Rc::new(RefCell::new(Some(vec![{ let __slice_holder = (*p.borrow().as_ref().unwrap()).go_files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = (*p.borrow().as_ref().unwrap()).cgo_files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))));
+    let mut files = abs_join(Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some(vec![{ let __slice_holder = (*p.borrow().as_ref().unwrap()).go_files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = (*p.borrow().as_ref().unwrap()).cgo_files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))));
     { let new_val = "changed".to_string(); *(*p.borrow().as_ref().unwrap()).dir.borrow_mut() = Some(new_val); };
-    (*(*p.borrow().as_ref().unwrap()).go_files.borrow_mut().as_mut().unwrap())[(0) as usize] = "b.go".to_string();
+    { let __idx = (0) as usize; let __rhs = "b.go".to_string(); (*(*p.borrow().as_ref().unwrap()).go_files.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(0) as usize].clone()));
     println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(1) as usize].clone()));
     println!("{}", format!("{}", (*files.borrow().as_ref().unwrap())[(2) as usize].clone()));

@@ -3220,7 +3220,8 @@ func main() {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard);") {
+	// The elements are structs, so each loop value is Go's copy of its element.
+	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
 		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
@@ -4226,10 +4227,10 @@ func Use() []*Item {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "push((*new_item()") {
+	if strings.Contains(mainRS, "let __append_value = (*new_item()") {
 		t.Fatalf("append of pointer-returning call should keep the pointer handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "push(new_item())") {
+	if !strings.Contains(mainRS, "let __append_value = new_item();") {
 		t.Fatalf("append of pointer-returning call should push the returned handle, got:\n%s", mainRS)
 	}
 }
@@ -4461,7 +4462,8 @@ func start() {
 	if strings.Contains(mainRS, "let new_val = self.first_err.clone(); *err.lock().unwrap() = Some(new_val);") {
 		t.Fatalf("*error assignment should store the error option value, not the handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__err_guard.take()") {
+	// The value is a copy: the field keeps its error.
+	if !strings.Contains(mainRS, "let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value") {
 		t.Fatalf("*error assignment should extract an error option from the RHS handle, got:\n%s", mainRS)
 	}
 }
@@ -4497,7 +4499,7 @@ func start() {
 	if strings.Contains(mainRS, "Option<Option<Box<dyn StdError") {
 		t.Fatalf("*error should use the same error handle shape as an error variable, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>)") {
+	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>)") {
 		t.Fatalf("*error parameter should accept the error handle shape, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "self.handle(err.clone())") {
@@ -7943,5 +7945,66 @@ func main() {
 	// interface handle; cloning the GoPtr enum mismatches the return type.
 	if !strings.Contains(mainRS, "v.borrow()") {
 		t.Fatalf("deref of a GoPtr-to-interface should read the pointee via .borrow() and rewrap, got:\n%s", mainRS)
+	}
+}
+
+// A map keyed by an interface of the package uses the key type written next
+// to the interface's trait, in the interface's own file. A file in another
+// module that holds such a map imports that key type. And the trait of an
+// interface that embeds another one comes with adapters that spell out every
+// method of the embedded interface, so the types in those signatures are
+// imported too. go/types, translated from source, needed both: its objMap is
+// keyed by Object, declared in object.go, and its dependency interface embeds
+// Object, whose Type method returns a Type, declared in type.go.
+func TestSiblingImportsCoverInterfaceMapKeysAndEmbeddedMethods(t *testing.T) {
+	fset := token.NewFileSet()
+	parse := func(name, src string) *ast.File {
+		file, err := parser.ParseFile(fset, name, src, parser.ParseComments|parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse %s: %v", name, err)
+		}
+		return file
+	}
+	typeFile := parse("type.go", `package p
+
+type Type interface{ String() string }
+`)
+	objectFile := parse("object.go", `package p
+
+type Object interface{ Type() Type }
+`)
+	checkFile := parse("check.go", `package p
+
+type checker struct{ objMap map[Object]int }
+`)
+	orderFile := parse("initorder.go", `package p
+
+type dependency interface {
+	Object
+	isDependency()
+}
+`)
+	files := []*ast.File{typeFile, objectFile, checkFile, orderFile}
+	typeInfo, err := NewTypeInfoWithImporter("example.com/p", files, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{
+		Package:        NewPackageState(),
+		PackageMapping: map[string]string{"example.com/p": "example_com_p"},
+	})
+	defer SetTranspileContext(prevCtx)
+
+	imports := packageSiblingItemImports(files, []string{"r#type", "object", "check", "initorder"}, typeInfo)
+	joined := func(module string) string { return strings.Join(imports[module], " ") }
+	if got := joined("check"); !strings.Contains(got, "GoObjectInterfaceKey") {
+		t.Errorf("check.go holds a map keyed by Object, so it must import GoObjectInterfaceKey; got %q", got)
+	}
+	if got := joined("initorder"); !strings.Contains(got, "Type") {
+		t.Errorf("initorder.go's adapters for the embedded Object spell out Type() Type, so it must import Type; got %q", got)
+	}
+	if got := joined("object"); strings.Contains(got, "InterfaceKey") {
+		t.Errorf("object.go holds no map; got %q", got)
 	}
 }

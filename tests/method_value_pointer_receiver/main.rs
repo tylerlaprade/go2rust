@@ -9,20 +9,27 @@ pub struct tracker {
 
 impl tracker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.value.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for tracker {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            value: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for tracker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.value.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.value.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -40,10 +47,28 @@ pub fn make_bump(t: Arc<Mutex<Option<tracker>>>) -> Arc<Mutex<Option<Box<dyn FnM
 fn main() {
     let mut t = Arc::new(Mutex::new(Some(tracker { value: Arc::new(Mutex::new(Some(0))) })));
     let mut first = make_bump(t.clone());
-    { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = first.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = first.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
     let mut second: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
     { let new_val = Arc::new(Mutex::new(Some({ let __recv = t.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Box<dyn FnMut() -> () + Send + Sync> }))); second = new_val; };
-    { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = second.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = second.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
     std::thread::spawn(move || {
         ;
     });

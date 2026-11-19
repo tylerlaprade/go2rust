@@ -156,7 +156,7 @@ pub fn print_person(p: Arc<Mutex<Option<AnonymousStruct1>>>) {
 
 /// Function returning anonymous struct
 pub fn get_point() -> Arc<Mutex<Option<AnonymousStruct2>>> {
-    Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })))
+    Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })))
 }
 
 /// Function with multiple anonymous struct parameters
@@ -166,7 +166,10 @@ pub fn compare_points(p1: Arc<Mutex<Option<AnonymousStruct2>>>, p2: Arc<Mutex<Op
 
 /// Function returning multiple values including anonymous struct
 pub fn get_config() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<AnonymousStruct3>>>) {
-    (Arc::new(Mutex::new(Some("server".to_string()))), Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080 as i32))), timeout: Arc::new(Mutex::new(Some(30 as i32))) }))))
+    (
+        Arc::new(Mutex::new(Some("server".to_string()))),
+        Arc::new(Mutex::new(Some(AnonymousStruct3 { port: Arc::new(Mutex::new(Some(8080))), timeout: Arc::new(Mutex::new(Some(30))) })))
+    )
 }
 
 /// Function with anonymous struct pointer parameter
@@ -184,16 +187,16 @@ pub fn process_events(ch: GoChannel<AnonymousStruct5>) {
 
 fn main() {
         // Test function with anonymous struct parameter
-    print_person(Arc::new(Mutex::new(Some(AnonymousStruct1 { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30 as i32))) }))));
+    print_person(Arc::new(Mutex::new(Some(AnonymousStruct1 { name: Arc::new(Mutex::new(Some("Alice".to_string()))), age: Arc::new(Mutex::new(Some(30))) }))));
 
         // Test function returning anonymous struct
     let mut point = get_point();
     print!("Point: ({}, {})\n", (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()));
 
         // Test function with multiple anonymous struct parameters
-    let mut p1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5 as i32))), y: Arc::new(Mutex::new(Some(10 as i32))) })));
-    let mut p2 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5 as i32))), y: Arc::new(Mutex::new(Some(10 as i32))) })));
-    let mut p3 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10 as i32))), y: Arc::new(Mutex::new(Some(20 as i32))) })));
+    let mut p1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(10))) })));
+    let mut p2 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(10))) })));
+    let mut p3 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(10))), y: Arc::new(Mutex::new(Some(20))) })));
     print!("p1 == p2: {}\n", compare_points(p1.clone(), p2.clone()));
     print!("p1 == p3: {}\n", compare_points(p1.clone(), p3.clone()));
 
@@ -222,20 +225,32 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, age: { let __guard = self.age.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.age.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            age: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), age: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            age: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.age.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.age.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -247,20 +262,32 @@ pub struct AnonymousStruct2 {
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x: { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, y: { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            x: __go_clone_0_0,
+            y: __go_clone_0_1,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { x: Arc::new(Mutex::new(Some(0))), y: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            x: __go_default_0_0,
+            y: __go_default_0_1,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.x.lock().unwrap().as_ref().unwrap()), (*self.y.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.y.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -272,20 +299,32 @@ pub struct AnonymousStruct3 {
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { port: { let __guard = self.port.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, timeout: { let __guard = self.timeout.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.port.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.timeout.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            port: __go_clone_0_0,
+            timeout: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { port: Arc::new(Mutex::new(Some(0))), timeout: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            port: __go_default_0_0,
+            timeout: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.port.lock().unwrap().as_ref().unwrap()), (*self.timeout.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.port.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.timeout.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -297,20 +336,32 @@ pub struct AnonymousStruct4 {
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { debug: { let __guard = self.debug.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, verbose: { let __guard = self.verbose.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.debug.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.verbose.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            debug: __go_clone_0_0,
+            verbose: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct4 {
     fn default() -> Self {
-        Self { debug: Arc::new(Mutex::new(Some(false))), verbose: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            debug: __go_default_0_0,
+            verbose: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.debug.lock().unwrap().as_ref().unwrap()), (*self.verbose.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.debug.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.verbose.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -322,19 +373,31 @@ pub struct AnonymousStruct5 {
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, message: { let __guard = self.message.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.message.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            message: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct5 {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(String::new()))), message: Arc::new(Mutex::new(Some(String::new()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            r#type: __go_default_0_0,
+            message: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.message.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.message.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

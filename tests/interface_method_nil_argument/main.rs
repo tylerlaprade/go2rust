@@ -12,12 +12,12 @@ pub trait Node: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Node> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_node()
+        Node::__go_clone_box_node(self.as_ref())
     }
 }
 
 pub fn describe(node: Rc<RefCell<Option<Box<dyn Node>>>>) {
-    if (*node.borrow()).is_none() {
+    if { let __nil_result = (*node.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", "nil node".to_string()));
         return;
     }

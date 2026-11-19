@@ -228,13 +228,23 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        Self { env: self.env.clone(), build_flags: self.build_flags.clone(), overlay: self.overlay.clone() }
+        let __go_clone_0_0 = self.env.clone();
+        let __go_clone_1_0 = self.build_flags.clone();
+        let __go_clone_2_0 = self.overlay.clone();
+        Self {
+            env: __go_clone_0_0,
+            build_flags: __go_clone_1_0,
+            overlay: __go_clone_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.env), format_slice(&self.build_flags), format_map(&self.overlay))
+        let __go_fmt_0 = format!("{}", format_slice(&self.env));
+        let __go_fmt_1 = format!("{}", format_slice(&self.build_flags));
+        let __go_fmt_2 = format!("{}", format_map(&self.overlay));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -248,13 +258,23 @@ pub struct Request {
 
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
-        Self { env: self.env.clone(), build_flags: self.build_flags.clone(), overlay: self.overlay.clone() }
+        let __go_clone_0_0 = self.env.clone();
+        let __go_clone_1_0 = self.build_flags.clone();
+        let __go_clone_2_0 = self.overlay.clone();
+        Self {
+            env: __go_clone_0_0,
+            build_flags: __go_clone_1_0,
+            overlay: __go_clone_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", format_slice(&self.env), format_slice(&self.build_flags), format_map(&self.overlay))
+        let __go_fmt_0 = format!("{}", format_slice(&self.env));
+        let __go_fmt_1 = format!("{}", format_slice(&self.build_flags));
+        let __go_fmt_2 = format!("{}", format_map(&self.overlay));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -270,7 +290,12 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut cfg = Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["GOOS=darwin".to_string()]))), build_flags: Arc::new(Mutex::new(Some(vec!["-tags=test".to_string()]))), overlay: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<String>>>>::from([("file.go".to_string(), Arc::new(Mutex::new(Some("package main".to_string()))))])))), ..Default::default() })));
+    let mut cfg = Arc::new(Mutex::new(Some(Config {
+        env: Arc::new(Mutex::new(Some(vec!["GOOS=darwin".to_string()]))),
+        build_flags: Arc::new(Mutex::new(Some(vec!["-tags=test".to_string()]))),
+        overlay: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<String>>>>::from([("file.go".to_string(), Arc::new(Mutex::new(Some("package main".to_string()))))])))),
+        ..Default::default()
+    })));
     let mut req = build_request(cfg.clone());
-    println!("{} {} {}", format!("{}", { let __seq = { let __seq_holder = (*req.lock().unwrap().as_ref().unwrap()).env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*req.lock().unwrap().as_ref().unwrap()).build_flags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __map = { let __map_holder = (*req.lock().unwrap().as_ref().unwrap()).overlay.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&"file.go".to_string()).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+    println!("{} {} {}", format!("{}", { let __seq = { let __seq_holder = (*req.lock().unwrap().as_ref().unwrap()).env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*req.lock().unwrap().as_ref().unwrap()).build_flags.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __map = { let __map_holder = (*req.lock().unwrap().as_ref().unwrap()).overlay.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"file.go".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
 }

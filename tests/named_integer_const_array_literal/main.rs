@@ -18,7 +18,9 @@ impl Display for Version {
 
 impl PartialEq for Version {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -30,7 +32,9 @@ impl PartialEq<u32> for Version {
 
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -91,6 +95,69 @@ impl std::ops::Sub<Version> for u32 {
     type Output = Version;
     fn sub(self, other: Version) -> Version {
         Version(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Version {
+    type Output = Version;
+    fn mul(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<u32> for Version {
+    type Output = Version;
+    fn mul(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Version> for u32 {
+    type Output = Version;
+    fn mul(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Version {
+    type Output = Version;
+    fn div(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<u32> for Version {
+    type Output = Version;
+    fn div(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Version> for u32 {
+    type Output = Version;
+    fn div(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Version {
+    type Output = Version;
+    fn rem(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<u32> for Version {
+    type Output = Version;
+    fn rem(self, other: u32) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Version> for u32 {
+    type Output = Version;
+    fn rem(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -339,7 +406,15 @@ pub(crate) static introduced: GoGlobal<[Version; 4]> = GoGlobal::new();
 
 fn __go_init_globals() {
     *introduced.borrow_mut() = Some(std::array::from_fn(|_| Version(Rc::new(RefCell::new(Some(0))))));
-    *introduced.borrow_mut() = Some((*Rc::new(RefCell::new(Some([Version(Rc::new(RefCell::new(Some(V1 as u32)))), Version(Rc::new(RefCell::new(Some(0 as u32)))), Version(Rc::new(RefCell::new(Some(V2 as u32)))), Version(Rc::new(RefCell::new(Some(0))))]))).borrow().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<Version>::with_capacity(4);
+        __go_array.push(Version(Rc::new(RefCell::new(Some(V1 as u32)))));
+        __go_array.push(Version(Rc::new(RefCell::new(Some(0 as u32)))));
+        __go_array.push(Version(Rc::new(RefCell::new(Some(V2 as u32)))));
+        __go_array.push(Version(Rc::new(RefCell::new(Some(0)))));
+        let __go_array: [Version; 4] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *introduced.borrow_mut() = Some(__go_array);
+    }
 }
 
 

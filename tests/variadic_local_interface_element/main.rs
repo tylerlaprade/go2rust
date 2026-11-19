@@ -12,7 +12,7 @@ pub trait Expr: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Expr> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_expr()
+        Expr::__go_clone_box_expr(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct lit {
 
 impl lit {
     pub fn __go_value_clone(&self) -> Self {
-        Self { v: { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            v: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for lit {
     fn default() -> Self {
-        Self { v: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            v: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for lit {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.v.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.v.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -48,33 +55,40 @@ pub struct checker {
 
 impl checker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for checker {
     fn default() -> Self {
-        Self { n: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for checker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl lit {
     pub fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        return self.v.clone();
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.v.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
 
 impl Expr for lit {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        self.kind()
+        lit::kind(self)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -85,6 +99,37 @@ impl Expr for lit {
     fn __go_eq_expr(&self, other: &dyn Expr) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<lit>() {
             self == __other
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct litPtr(pub Rc<RefCell<Option<lit>>>);
+
+impl std::fmt::Display for litPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Expr for litPtr {
+    fn kind(&self) -> Rc<RefCell<Option<String>>> {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        lit::kind(__recv)
+    }
+    fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
+        Box::new(self.clone()) as Box<dyn Expr>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_expr(&self, other: &dyn Expr) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<litPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
         } else {
             false
         }
@@ -105,6 +150,6 @@ impl checker {
 
 fn main() {
     let mut c = Rc::new(RefCell::new(Some(checker { n: Rc::new(RefCell::new(Some(0))) })));
-    (*c.borrow_mut().as_mut().unwrap()).run(Rc::new(RefCell::new(Some(Box::new(lit { v: Rc::new(RefCell::new(Some("abc".to_string()))), ..Default::default() }) as Box<dyn Expr>))));
+    (*c.borrow_mut().as_mut().unwrap()).run(Rc::new(RefCell::new(Some(Box::new(litPtr(Rc::new(RefCell::new(Some(lit { v: Rc::new(RefCell::new(Some("abc".to_string()))), ..Default::default() }))).clone())) as Box<dyn Expr>))));
     println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 }
