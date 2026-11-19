@@ -338,11 +338,22 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 
 func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 	NeedFormatAny()
-	out.WriteString("format_any(")
-	if writeBareAnyPayloadRef(out, arg) {
+	var payload strings.Builder
+	if writeBareAnyPayloadRef(&payload, arg) {
+		out.WriteString("format_any(")
+		out.WriteString(payload.String())
 		out.WriteString(")")
 		return
 	}
+	// The argument reads the variable through its handle. In a program with
+	// goroutines that is a lock, and it is held until the statement ends
+	// unless the argument is a block of its own. Without the block, a
+	// statement that prints the same variable twice waits on itself forever.
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __text = ")
+		defer out.WriteString("; __text }")
+	}
+	out.WriteString("format_any(")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
@@ -1182,12 +1193,24 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		}
 	}
 	NeedGoTypeName()
-	out.WriteString(goTypeNameHelperRustName)
-	out.WriteString("(")
-	if writeBareAnyPayloadRef(out, arg) {
+	var payload strings.Builder
+	if writeBareAnyPayloadRef(&payload, arg) {
+		out.WriteString(goTypeNameHelperRustName)
+		out.WriteString("(")
+		out.WriteString(payload.String())
 		out.WriteString(")")
 		return
 	}
+	// As in writeFormatAnyPrintArg: the argument reads the variable through
+	// its handle, and in a program with goroutines the lock has to end with
+	// the argument. "%T: %v" of one variable would wait on itself otherwise.
+	// The name is a &'static str, so it outlives the lock.
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __type_name = ")
+		defer out.WriteString("; __type_name }")
+	}
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(")
 	if ident, ok := arg.(*ast.Ident); ok {
 		if isVarBare(ident.Name) {
 			out.WriteString(ident.Name)
