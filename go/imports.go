@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -187,6 +188,9 @@ type HelperTracker struct {
 	needsGoPtrKey                        bool
 	needsGoAnyPtrKey                     bool
 	anyCloneTypes                        map[string]bool
+	// anyTypeNames maps the Rust payload type of a value boxed into an empty
+	// interface to the name Go's %T prints for it.
+	anyTypeNames map[string]string
 }
 
 var generatingPublicHelpers bool
@@ -347,7 +351,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoTypeName {
-		generateGoTypeNameHelper(&result)
+		generateGoTypeNameHelper(&result, ht.anyTypeNames)
 	}
 
 	if ht.needsBase64 {
@@ -1010,6 +1014,7 @@ func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
 
 func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
 	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
+		trackImportsForAnyPayloadType(rustType)
 		out.WriteString("    if let Some(v) = value.downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">() { return Box::new(v.clone()) as ")
@@ -2257,7 +2262,43 @@ impl<T: 'static> std::fmt::Display for GoAtomicPointer<T> {
 `)
 }
 
-func generateGoTypeNameHelper(out *strings.Builder) {
+// trackImportsForAnyPayloadType makes sure a helper that names rustType, the
+// payload of a boxed interface value, also imports every std type that
+// spelling uses. The file that boxed the value imported them for itself, but
+// the helper may be emitted into a different file, which sees none of that
+// file's imports.
+func trackImportsForAnyPayloadType(rustType string) {
+	for i := 0; i < len(rustType); {
+		if !isRustIdentStart(rustType[i]) {
+			i++
+			continue
+		}
+		start := i
+		for i < len(rustType) && isRustIdentPart(rustType[i]) {
+			i++
+		}
+		// A path segment (std::sync::Mutex) is already fully spelled.
+		if start >= 2 && rustType[start-2:start] == "::" {
+			continue
+		}
+		switch name := rustType[start:i]; name {
+		case "Rc", "RefCell", "Arc", "Mutex", "BTreeMap", "Any":
+			TrackImport(name)
+		case "StdError":
+			TrackImport("Error")
+		}
+	}
+}
+
+func isRustIdentStart(c byte) bool {
+	return c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+}
+
+func isRustIdentPart(c byte) bool {
+	return isRustIdentStart(c) || (c >= '0' && c <= '9')
+}
+
+func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string) {
 	TrackImport("Any")
 	out.WriteString(`
 fn `)
@@ -2280,7 +2321,21 @@ fn `)
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    std::any::type_name_of_val(val)
+`)
+	rustTypes := make([]string, 0, len(anyTypeNames))
+	for rustType := range anyTypeNames {
+		rustTypes = append(rustTypes, rustType)
+	}
+	slices.Sort(rustTypes)
+	for _, rustType := range rustTypes {
+		trackImportsForAnyPayloadType(rustType)
+		out.WriteString("    if val.is::<")
+		out.WriteString(rustType)
+		out.WriteString(">() { return ")
+		out.WriteString(strconv.Quote(anyTypeNames[rustType]))
+		out.WriteString(" }\n")
+	}
+	out.WriteString(`    std::any::type_name_of_val(val)
 }
 `)
 }

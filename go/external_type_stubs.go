@@ -1210,6 +1210,16 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 			dst.anyCloneTypes[rustType] = true
 		}
 	}
+	if len(src.anyTypeNames) > 0 {
+		if dst.anyTypeNames == nil {
+			dst.anyTypeNames = make(map[string]string)
+		}
+		for rustType, goName := range src.anyTypeNames {
+			if existing, seen := dst.anyTypeNames[rustType]; !seen || goName < existing {
+				dst.anyTypeNames[rustType] = goName
+			}
+		}
+	}
 	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
