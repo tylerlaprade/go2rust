@@ -1959,6 +1959,14 @@ run_xfail_test() {
     run_test "tests/pointer_method_value_of_receiver"
 }
 
+@test "pointer_nil_keeps_alias" {
+    run_test "tests/pointer_nil_keeps_alias"
+}
+
+@test "pointer_nil_keeps_alias_goroutines" {
+    run_test "tests/pointer_nil_keeps_alias_goroutines"
+}
+
 @test "pointer_package_global" {
     run_test "tests/pointer_package_global"
 }

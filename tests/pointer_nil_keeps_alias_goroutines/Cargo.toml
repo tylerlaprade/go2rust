@@ -1,0 +1,8 @@
+[package]
+name = "pointer_nil_keeps_alias_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_nil_keeps_alias_goroutines"
+path = "main.rs"

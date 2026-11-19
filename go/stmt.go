@@ -7330,6 +7330,36 @@ func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, 
 	return true
 }
 
+func writeNilPointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(rhs) != types.Typ[types.UntypedNil] || !typeInfo.IsPointer(lhs) {
+		return false
+	}
+	lhs = unwrapParens(lhs)
+	switch target := lhs.(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isSliceElemPtrVar(target.Name) || isArrayElemPtrVar(target.Name) ||
+			(isCurrentReceiverIdent(target) && currentReceiverRustAlias != "") {
+			return false
+		}
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[target]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return false
+		}
+	default:
+		return false
+	}
+	// Assign a new nil handle to the pointer slot. Clearing the old
+	// pointee would also clear every other pointer to it.
+	out.WriteString("{ let new_val = ")
+	out.WriteString(zeroValueForTypesType(typeInfo.GetType(lhs)))
+	out.WriteString("; ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
+	return true
+}
+
 func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
 	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
 		return
@@ -12007,6 +12037,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// GoPtr fields preserve pointer identity for slice element addresses.
 								} else if writeGoPtrAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// GoPtr locals preserve pointer identity across pointer assignment.
+								} else if writeNilPointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Replace a pointer handle without changing its pointee.
 								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
 									// Assigning nil to pointer
 									out.WriteString("*")
