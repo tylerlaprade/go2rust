@@ -14,14 +14,16 @@ impl Display for internalError {
 
 impl PartialEq for internalError {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
 
 impl internalError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()).to_string())))
+        Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()).clone())))
     }
 }
 
@@ -40,6 +42,6 @@ pub fn direct() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", format!("{}", (*(assigned()).borrow().as_ref().unwrap()))));
-    println!("{}", format!("{}", format!("{}", (*(direct()).borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", format!("{}", (*assigned().borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", format!("{}", (*direct().borrow().as_ref().unwrap()))));
 }

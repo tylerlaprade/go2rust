@@ -10,7 +10,10 @@ pub struct wrappedError {
 
 impl wrappedError {
     pub fn __go_value_clone(&self) -> Self {
-        Self { error: self.error.clone() }
+        let __go_clone_0_0 = self.error.clone();
+        Self {
+            error: __go_clone_0_0,
+        }
     }
 }
 

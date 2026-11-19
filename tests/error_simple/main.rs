@@ -12,7 +12,7 @@ pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32,
 fn main() {
         // Success case
     let (mut result, mut err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(2))));
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
         println!("{} {}", format!("{}", "Result:".to_string()), format!("{}", result));
@@ -20,7 +20,7 @@ fn main() {
 
         // Error case
     { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
         println!("{} {}", format!("{}", "Result:".to_string()), format!("{}", result));

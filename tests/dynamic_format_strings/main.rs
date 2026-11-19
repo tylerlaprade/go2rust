@@ -7,5 +7,5 @@ fn main() {
     let mut errorFormat = Rc::new(RefCell::new(Some("dynamic error".to_string())));
 
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*messageFormat.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", format!("{}", (*(Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("{}", (*errorFormat.borrow().as_ref().unwrap()).clone())))))).borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", format!("{}", (*Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("{}", (*errorFormat.borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()))));
 }

@@ -220,11 +220,11 @@ fn main() {
         // strconv package
     println!("{}", format!("{}", "\n--- strconv package ---".to_string()));
     let mut num = Rc::new(RefCell::new(Some(42)));
-    let mut str = Rc::new(RefCell::new(Some((*num.borrow().as_ref().unwrap()).to_string())));
+    let mut str = Rc::new(RefCell::new(Some(((*num.borrow().as_ref().unwrap())).to_string())));
     println!("{} {}", format!("{}", "Number as string:".to_string()), format!("{}", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }));
 
     let (mut parsed, mut err) = { let __atoi_input = "123".to_string(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Parse error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
         println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", parsed));
@@ -252,7 +252,7 @@ fn main() {
 
         // os package
     println!("{}", format!("{}", "\n--- os package ---".to_string()));
-    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", (*go_os_args().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", ({ let __len_target = { let __field = go_os_args().clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
 
         // Combined usage
     println!("{}", format!("{}", "\n--- Combined usage ---".to_string()));

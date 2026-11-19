@@ -310,7 +310,12 @@ fn main() {
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x >= __tmp_y } {
         break
     }
-        { let __tmp_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_1 = { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }; *i.lock().unwrap() = Some(__tmp_0); *j.lock().unwrap() = Some(__tmp_1); };
+        {
+            let __tmp_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
+            let __tmp_1 = { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y };
+            *i.lock().unwrap() = Some(__tmp_0);
+            *j.lock().unwrap() = Some(__tmp_1);
+        };
     }
 
         // For loop with complex condition
@@ -393,7 +398,7 @@ fn main() {
 
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (rowIdx, row) in __range_values.iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
-        if { let __tmp_x = (*cell).clone(); let __tmp_y = "e"; __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*cell).clone(); let __tmp_y = "e".to_string(); __tmp_x == __tmp_y } {
         print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
         continue
     }
@@ -478,7 +483,7 @@ fn main() {
     println!("{}", format!("{}", "\n=== Complex error handling flow ===".to_string()));
 
     let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = (0 as i32); __tmp_x == __tmp_y } {
+        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("empty data")))));
     }
         { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
@@ -489,16 +494,31 @@ fn main() {
         return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("value too large at index {}: {}", i, val)))));
     }
     } }
-        Arc::new(Mutex::new(None))
+        return Arc::new(Mutex::new(None));
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
-    let mut testData = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], Vec::<i32>::new(), vec![1, -2, 3], vec![1, 200, 3], vec![10, 20, 30]])));
+    let mut testData = Arc::new(Mutex::new(Some(vec![
+        vec![1, 2, 3],
+        Vec::<i32>::new(),
+        vec![1, -2, 3],
+        vec![1, 200, 3],
+        vec![10, 20, 30],
+    ])));
 
     { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, data) in __range_values.iter().enumerate() {
         print!("Testing dataset {}: {}\n", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }, format_slice_values(data));
         {
-        let mut err = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = processData.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*data).clone())))) };;
-        if (*err.lock().unwrap()).is_some() {
+        let mut err = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+                let mut __f_guard = processData.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some((*data).clone())))
+            )
+        };;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             print!("  Error: {}\n", format!("{}", (*err.lock().unwrap().as_ref().unwrap())));;
             continue;
         }
