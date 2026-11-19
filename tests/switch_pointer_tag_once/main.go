@@ -18,8 +18,21 @@ func classify(p, q *int) {
 	}
 }
 
+func shadow(p, _switch_val *int, _switch_val_ int) {
+	switch p {
+	case nil:
+		fmt.Println("nil", _switch_val_)
+	case _switch_val:
+		fmt.Println("same", _switch_val_)
+	default:
+		fmt.Println("distinct", *_switch_val)
+	}
+}
+
 func main() {
 	a, b := 1, 2
+	shadow(&a, &b, 7)
+	shadow(&a, &a, 8)
 	classify(nil, &b)
 	classify(&a, &a)
 	classify(&a, &b)

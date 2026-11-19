@@ -3781,6 +3781,23 @@ func writeSwitchGoErrorTagHandle(out *strings.Builder, tag ast.Expr) {
 	}
 }
 
+// The binding that holds the tag is in scope for every case and its body.
+func switchTagBindingName(body *ast.BlockStmt) string {
+	used := make(map[string]bool)
+	ast.Inspect(body, func(node ast.Node) bool {
+		if id, ok := node.(*ast.Ident); ok {
+			used[RustIdentForUse(id)] = true
+			used[rustFunctionNameForUse(id.Name)] = true
+		}
+		return true
+	})
+	name := "_switch_val"
+	for used[name] || isPackageTupleStructTypeName(name) || isPackageGlobalName(name) {
+		name += "_"
+	}
+	return name
+}
+
 func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
 	writePointerHandleExpression(out, tag)
 }
@@ -14277,6 +14294,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		var switchVal string
 		var switchTagInterfaceType types.Type
 		var switchTagInterfaceName string
 		switchTagIsInterface := false
@@ -14286,6 +14304,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		switchTagGoPtrInfo := goPtrResultInfo{}
 		switchTagIsGoPtr := false
 		if s.Tag != nil {
+			switchVal = switchTagBindingName(s.Body)
 			switchTagInterfaceType, switchTagInterfaceName, switchTagIsInterface = switchTagNamedInterface(s.Tag)
 			switchTagIsEmptyInterface = switchTagEmptyInterface(s.Tag)
 			switchTagIsGoError = switchTagGoError(s.Tag)
@@ -14303,7 +14322,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("{\n")
 
 			if s.Tag != nil {
-				out.WriteString("        let _switch_val = ")
+				out.WriteString("        let " + switchVal + " = ")
 				if switchTagIsEmptyInterface {
 					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
 				} else if switchTagIsInterface {
@@ -14334,17 +14353,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if s.Tag != nil {
 								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
+									writeSwitchEmptyInterfaceCaseComparison(out, switchVal, expr)
 								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
+									writeSwitchInterfaceCaseComparison(out, switchVal, expr, switchTagInterfaceType, switchTagInterfaceName)
 								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
+									writeSwitchGoErrorCaseComparison(out, switchVal, expr)
 								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
+									writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, expr, switchTagGoPtrInfo)
 								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
+									writeSwitchPointerCaseComparison(out, switchVal, expr)
 								} else {
-									out.WriteString("_switch_val == ")
+									out.WriteString(switchVal + " == ")
 									writeSwitchCaseValueForTag(out, expr, s.Tag)
 								}
 							} else {
@@ -14385,7 +14404,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// expressions can be strings, calls, named constants, or other
 			// non-pattern values, so explicit comparisons are the general form.
 			if s.Tag != nil {
-				out.WriteString("{ let _switch_val = ")
+				out.WriteString("{ let " + switchVal + " = ")
 				if switchTagIsEmptyInterface {
 					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
 				} else if switchTagIsInterface {
@@ -14418,17 +14437,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if s.Tag != nil {
 							if switchTagIsEmptyInterface {
-								writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
+								writeSwitchEmptyInterfaceCaseComparison(out, switchVal, expr)
 							} else if switchTagIsInterface {
-								writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
+								writeSwitchInterfaceCaseComparison(out, switchVal, expr, switchTagInterfaceType, switchTagInterfaceName)
 							} else if switchTagIsGoError {
-								writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
+								writeSwitchGoErrorCaseComparison(out, switchVal, expr)
 							} else if switchTagIsGoPtr {
-								writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
+								writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, expr, switchTagGoPtrInfo)
 							} else if switchTagIsPointer {
-								writeSwitchPointerCaseComparison(out, "_switch_val", expr)
+								writeSwitchPointerCaseComparison(out, switchVal, expr)
 							} else {
-								out.WriteString("_switch_val == (")
+								out.WriteString(switchVal + " == (")
 								writeSwitchCaseValueForTag(out, expr, s.Tag)
 								out.WriteString(")")
 							}

@@ -1,3 +1,5 @@
+distinct 2
+same 8
 tag
 nil
 tag
