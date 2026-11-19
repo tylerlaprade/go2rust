@@ -2903,6 +2903,10 @@ run_xfail_test() {
     run_test "tests/typeblock_ptr_to_any_struct"
 }
 
+@test "typed_nil_method_result" {
+    run_test "tests/typed_nil_method_result"
+}
+
 @test "types_config_check_bridge" {
     run_test "tests/types_config_check_bridge"
 }
