@@ -181,6 +181,10 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			return true
 		}
+		// A nil check on the left can emit a block that scopes its borrow.
+		if left, ok := e.X.(*ast.BinaryExpr); ok && isRightNilComparison(left) {
+			return true
+		}
 		// Whatever the operator, the LHS is emitted first; if it would
 		// produce a leading `{`, the binary expression inherits the
 		// parsing ambiguity.
@@ -1612,13 +1616,13 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 	return true
 }
 
-func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, registerBareScalar bool) {
+func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
 	if call, isCall := rhs.(*ast.CallExpr); isCall {
 		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
 			return
 		}
 		if callReturnsBareScalar(call) {
-			if registerBareScalar {
+			if newBinding {
 				registerBareShortDecl(lhs)
 				TranspileExpression(out, call)
 			} else {
@@ -1642,6 +1646,19 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 	if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		// Address-of expressions already return wrapped handles.
 		TranspileExpression(out, rhs)
+		return
+	}
+	if newBinding && mapIndexExpressionKeepsHandle(rhs) && isNamedSliceExpression(rhs) {
+		// Copy the named slice into its own variable slot while retaining its
+		// shared backing storage. Clearing the variable must not clear the map.
+		out.WriteString("{ let __slice = ")
+		TranspileExpression(out, rhs)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone(); ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("__slice")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(" }")
 		return
 	}
 	if rhsIsPointerType(rhs) {
@@ -3848,23 +3865,25 @@ func writeSwitchGoErrorTagHandle(out *strings.Builder, tag ast.Expr) {
 	}
 }
 
-func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
-	writePointerHandleExpression(out, tag)
+// The binding that holds the tag is in scope for every case and its body.
+func switchTagBindingName(body *ast.BlockStmt) string {
+	used := make(map[string]bool)
+	ast.Inspect(body, func(node ast.Node) bool {
+		if id, ok := node.(*ast.Ident); ok {
+			used[RustIdentForUse(id)] = true
+			used[rustFunctionNameForUse(id.Name)] = true
+		}
+		return true
+	})
+	name := "_switch_val"
+	for used[name] || isPackageTupleStructTypeName(name) || isPackageGlobalName(name) {
+		name += "_"
+	}
+	return name
 }
 
-func writeSwitchPointerDirectCaseComparison(out *strings.Builder, tag ast.Expr, caseExpr ast.Expr) {
-	// Bind the comparison result before the block ends. Left as the block's
-	// tail expression, the borrow guard it creates is dropped after
-	// __switch_val, which rustc rejects (E0597) under edition 2021.
-	out.WriteString("{ let __switch_val = ")
-	writeSwitchPointerTagHandle(out, tag)
-	out.WriteString("; let __switch_eq = ")
-	if info, ok := switchGoPtrInfo(tag); ok {
-		writeSwitchGoPtrCaseComparisonForInfo(out, "__switch_val", caseExpr, info)
-	} else {
-		writeSwitchPointerCaseComparison(out, "__switch_val", caseExpr)
-	}
-	out.WriteString("; __switch_eq }")
+func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
+	writePointerHandleExpression(out, tag)
 }
 
 func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
@@ -3883,16 +3902,18 @@ func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, ca
 	trackWrapperImports()
 	out.WriteString("{ let __case = ")
 	writePointerHandleExpression(out, caseExpr)
-	out.WriteString("; let __switch_guard = ")
-	out.WriteString(switchVal)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __case_guard = __case")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __both_nil = (*__switch_guard).is_none() && (*__case_guard).is_none(); let __eq = __both_nil || ")
+	// Test identity first. For distinct handles, finish each nil check before
+	// borrowing the other handle so concurrent switches cannot nest locks.
+	out.WriteString("; let __same = ")
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::ptr_eq(&")
 	out.WriteString(switchVal)
-	out.WriteString(", &__case); __eq }")
+	out.WriteString(", &__case); if __same { true } else { let __tag_nil = ")
+	out.WriteString(switchVal)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); let __both_nil = __tag_nil && __case")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); __both_nil } }")
 }
 
 func switchGoPtrElemRustType(tag ast.Expr) (string, bool) {
@@ -8990,11 +9011,11 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
-	if syntaxKeepsHandle {
+	typeInfo := GetTypeInfo()
+	if syntaxKeepsHandle && typeInfo == nil {
 		out.WriteString("Default::default()")
 		return
 	}
-	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		out.WriteString("/* ERROR: Type information required for map comma-ok zero value */ unimplemented!(\"type info required for map comma-ok zero value\")")
 		return
@@ -9005,8 +9026,12 @@ func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr,
 		out.WriteString("/* ERROR: Map value type required for map comma-ok zero value */ unimplemented!(\"map value type required for map comma-ok zero value\")")
 		return
 	}
+	if syntaxKeepsHandle {
+		writeMapLookupHandleZero(out, valueType, zeroValueForTypesType(valueType))
+		return
+	}
 	if mapValueTypeKeepsHandle(valueType) {
-		out.WriteString("Default::default()")
+		writeMapLookupHandleZero(out, valueType, zeroValueForTypesType(valueType))
 		return
 	}
 
@@ -14854,6 +14879,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		var switchVal string
 		var switchTagInterfaceType types.Type
 		var switchTagInterfaceName string
 		switchTagIsInterface := false
@@ -14863,6 +14889,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		switchTagGoPtrInfo := goPtrResultInfo{}
 		switchTagIsGoPtr := false
 		if s.Tag != nil {
+			switchVal = switchTagBindingName(s.Body)
 			switchTagInterfaceType, switchTagInterfaceName, switchTagIsInterface = switchTagNamedInterface(s.Tag)
 			switchTagIsEmptyInterface = switchTagEmptyInterface(s.Tag)
 			switchTagIsGoError = switchTagGoError(s.Tag)
@@ -14880,7 +14907,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("{\n")
 
 			if s.Tag != nil {
-				out.WriteString("        let _switch_val = ")
+				out.WriteString("        let " + switchVal + " = ")
 				if switchTagIsEmptyInterface {
 					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
 				} else if switchTagIsInterface {
@@ -14911,17 +14938,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if s.Tag != nil {
 								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
+									writeSwitchEmptyInterfaceCaseComparison(out, switchVal, expr)
 								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
+									writeSwitchInterfaceCaseComparison(out, switchVal, expr, switchTagInterfaceType, switchTagInterfaceName)
 								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
+									writeSwitchGoErrorCaseComparison(out, switchVal, expr)
 								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
+									writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, expr, switchTagGoPtrInfo)
 								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
+									writeSwitchPointerCaseComparison(out, switchVal, expr)
 								} else {
-									out.WriteString("_switch_val == ")
+									out.WriteString(switchVal + " == ")
 									writeSwitchCaseValueForTag(out, expr, s.Tag)
 								}
 							} else {
@@ -14958,56 +14985,63 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("    }")
 		} else {
-			// Standard match-based code (no fallthrough)
-
-			// Check if any case is nil (pointer nil-check switch)
-			hasNilCase := false
+			// Use an if/else chain instead of Rust match patterns. Go case
+			// expressions can be strings, calls, named constants, or other
+			// non-pattern values, so explicit comparisons are the general form.
 			if s.Tag != nil {
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						for _, expr := range caseClause.List {
-							if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
-								hasNilCase = true
-								break
-							}
-						}
-					}
+				out.WriteString("{ let " + switchVal + " = ")
+				if switchTagIsEmptyInterface {
+					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
+				} else if switchTagIsInterface {
+					writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
+				} else if switchTagIsGoError {
+					writeSwitchGoErrorTagHandle(out, s.Tag)
+				} else if switchTagIsPointer {
+					writeSwitchPointerTagHandle(out, s.Tag)
+				} else {
+					writeSwitchTagValue(out, s.Tag)
 				}
-			}
-			tagIsPointer := false
-			if hasNilCase {
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					tagIsPointer = typeInfo.IsPointer(s.Tag)
-				}
+				out.WriteString(";\n    ")
 			}
 
-			if hasNilCase && tagIsPointer {
-				// Pointer nil-check switch: generate if-else chain
-				var nonDefaultClauses []*ast.CaseClause
-				var defaultClause *ast.CaseClause
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if len(caseClause.List) == 0 {
-							defaultClause = caseClause
-						} else {
-							nonDefaultClauses = append(nonDefaultClauses, caseClause)
-						}
+			emittedCase := false
+			var defaultClause *ast.CaseClause
+			for _, stmt := range s.Body.List {
+				if caseClause, ok := stmt.(*ast.CaseClause); ok {
+					if len(caseClause.List) == 0 {
+						defaultClause = caseClause
+						continue
 					}
-				}
-				for i, caseClause := range nonDefaultClauses {
-					if i == 0 {
-						out.WriteString("if ")
-					} else {
-						out.WriteString(" else if ")
+					if emittedCase {
+						out.WriteString(" else ")
 					}
-					for j, expr := range caseClause.List {
-						if j > 0 {
+					out.WriteString("if ")
+					for i, expr := range caseClause.List {
+						if i > 0 {
 							out.WriteString(" || ")
 						}
-						writeSwitchPointerDirectCaseComparison(out, s.Tag, expr)
+						if s.Tag != nil {
+							if switchTagIsEmptyInterface {
+								writeSwitchEmptyInterfaceCaseComparison(out, switchVal, expr)
+							} else if switchTagIsInterface {
+								writeSwitchInterfaceCaseComparison(out, switchVal, expr, switchTagInterfaceType, switchTagInterfaceName)
+							} else if switchTagIsGoError {
+								writeSwitchGoErrorCaseComparison(out, switchVal, expr)
+							} else if switchTagIsGoPtr {
+								writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, expr, switchTagGoPtrInfo)
+							} else if switchTagIsPointer {
+								writeSwitchPointerCaseComparison(out, switchVal, expr)
+							} else {
+								out.WriteString(switchVal + " == (")
+								writeSwitchCaseValueForTag(out, expr, s.Tag)
+								out.WriteString(")")
+							}
+						} else {
+							transpileCondition(out, expr)
+						}
 					}
 					out.WriteString(" {\n")
+
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
@@ -15017,119 +15051,32 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
 					}
+
 					out.WriteString("        }")
+					emittedCase = true
 				}
-				if defaultClause != nil {
-					if len(nonDefaultClauses) > 0 {
-						out.WriteString(" else {\n")
-					} else {
-						out.WriteString("{\n")
-					}
-					var caseBodyLastPos token.Pos = defaultClause.Colon
-					for _, bodyStmt := range defaultClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
-				}
-			} else {
-				// Use an if/else chain instead of Rust match patterns. Go case
-				// expressions can be strings, calls, named constants, or other
-				// non-pattern values, so explicit comparisons are the general form.
-				if s.Tag != nil {
-					out.WriteString("{ let _switch_val = ")
-					if switchTagIsEmptyInterface {
-						writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
-					} else if switchTagIsInterface {
-						writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
-					} else if switchTagIsGoError {
-						writeSwitchGoErrorTagHandle(out, s.Tag)
-					} else if switchTagIsPointer {
-						writeSwitchPointerTagHandle(out, s.Tag)
-					} else {
-						writeSwitchTagValue(out, s.Tag)
-					}
-					out.WriteString(";\n    ")
-				}
+			}
 
-				emittedCase := false
-				var defaultClause *ast.CaseClause
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if len(caseClause.List) == 0 {
-							defaultClause = caseClause
-							continue
-						}
-						if emittedCase {
-							out.WriteString(" else ")
-						}
-						out.WriteString("if ")
-						for i, expr := range caseClause.List {
-							if i > 0 {
-								out.WriteString(" || ")
-							}
-							if s.Tag != nil {
-								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
-								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
-								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
-								} else {
-									out.WriteString("_switch_val == (")
-									writeSwitchCaseValueForTag(out, expr, s.Tag)
-									out.WriteString(")")
-								}
-							} else {
-								transpileCondition(out, expr)
-							}
-						}
-						out.WriteString(" {\n")
-
-						var caseBodyLastPos token.Pos = caseClause.Colon
-						for _, bodyStmt := range caseClause.Body {
-							if isUnlabeledBreakStmt(bodyStmt) {
-								break
-							}
-							out.WriteString("            ")
-							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-							out.WriteString("\n")
-						}
-
-						out.WriteString("        }")
-						emittedCase = true
-					}
+			if defaultClause != nil {
+				if emittedCase {
+					out.WriteString(" else {\n")
+				} else {
+					out.WriteString("{\n")
 				}
-
-				if defaultClause != nil {
-					if emittedCase {
-						out.WriteString(" else {\n")
-					} else {
-						out.WriteString("{\n")
+				var caseBodyLastPos token.Pos = defaultClause.Colon
+				for _, bodyStmt := range defaultClause.Body {
+					if isUnlabeledBreakStmt(bodyStmt) {
+						break
 					}
-					var caseBodyLastPos token.Pos = defaultClause.Colon
-					for _, bodyStmt := range defaultClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
+					out.WriteString("            ")
+					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+					out.WriteString("\n")
 				}
+				out.WriteString("        }")
+			}
 
-				if s.Tag != nil {
-					out.WriteString("\n    }")
-				}
+			if s.Tag != nil {
+				out.WriteString("\n    }")
 			}
 		}
 		if needsBreakTarget {

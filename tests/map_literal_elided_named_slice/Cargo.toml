@@ -1,0 +1,8 @@
+[package]
+name = "map_literal_elided_named_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_literal_elided_named_slice"
+path = "main.rs"
