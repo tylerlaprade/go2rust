@@ -238,7 +238,7 @@ fn main() {
         }
     });;
         if ok {
-            let _ = (*name.borrow().as_ref().unwrap());;
+            let _ = &name;;
         }
     }
     }
