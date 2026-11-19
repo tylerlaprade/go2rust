@@ -1,0 +1,2 @@
+flag provided but not defined: -%s
+io_Writer.__go_write_bytes bridge: unsupported concrete receiver

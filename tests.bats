@@ -370,6 +370,23 @@ run_xfail_test() {
             rm -f "$phase_file" "$phase_detail_file"
             return 1
         fi
+
+		# Most XFAIL fixtures only pin that the Rust side still fails. A fixture
+		# may opt into a stricter contract by listing literal diagnostic fragments
+		# in expected_failure.txt, one per line. That keeps a newly introduced,
+		# unrelated compile or runtime failure from satisfying the XFAIL.
+		local expected_failure_file="$test_dir/expected_failure.txt"
+		if [[ -f "$expected_failure_file" ]]; then
+			local expected_fragment
+			while IFS= read -r expected_fragment || [[ -n "$expected_fragment" ]]; do
+				[[ -z "$expected_fragment" ]] && continue
+				if ! grep -Fq -- "$expected_fragment" "$phase_detail_file"; then
+					echo "XFAIL failed for an unexpected reason; missing diagnostic: $expected_fragment"
+					rm -f "$phase_file" "$phase_detail_file"
+					return 1
+				fi
+			done < "$expected_failure_file"
+		fi
         rm -f "$phase_file" "$phase_detail_file"
         # Other failures are expected for XFAIL
         # But if we're running specific tests (not all tests), fail so we see the output
