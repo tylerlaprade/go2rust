@@ -87,7 +87,10 @@ func anyFormatElemImplementsDisplay(typ types.Type) bool {
 	return anyFormatTypeIsLocalStruct(typ)
 }
 
+// anyFormatKeyIsOrderedBasic reports whether typ is a key type format_map can
+// print in Go's order. Go prints a map sorted by key: integers and strings in
+// their own order, false before true. Rust orders all three the same way.
 func anyFormatKeyIsOrderedBasic(typ types.Type) bool {
 	basic, ok := types.Unalias(typ).(*types.Basic)
-	return ok && basic.Info()&(types.IsInteger|types.IsString) != 0 && basic.Info()&types.IsUntyped == 0
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsString) != 0 && basic.Info()&types.IsUntyped == 0
 }

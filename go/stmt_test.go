@@ -9982,8 +9982,9 @@ func use() string {
 	if !strings.Contains(rust, "_ts_val.and_then(|__v| "+handle+").is_some()") {
 		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let x = _ts_val.and_then(|__v| "+handle+").unwrap().clone();") {
-		t.Fatalf("the case variable should be the error handle the interface value holds:\n%s", rust)
+	// The case variable is a copy: a handle of its own to the same error.
+	if !strings.Contains(rust, "let x = { let __err_source = _ts_val.and_then(|__v| "+handle+").unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };") {
+		t.Fatalf("the case variable should get its own handle to the error the interface value holds:\n%s", rust)
 	}
 	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
 		t.Fatalf("case error should not look for a bare boxed error:\n%s", rust)

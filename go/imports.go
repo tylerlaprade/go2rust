@@ -1096,6 +1096,11 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<bool>() {\n")
 	out.WriteString("        v.to_string()\n")
+	// The other integer types print as plain numbers too.
+	for _, intType := range []string{"i8", "i16", "isize", "u8", "u16", "u32", "u64", "usize"} {
+		out.WriteString("    } else if let Some(v) = value.downcast_ref::<" + intType + ">() {\n")
+		out.WriteString("        v.to_string()\n")
+	}
 	rustTypes := make([]string, 0, len(anyFormatArms))
 	for rustType := range anyFormatArms {
 		rustTypes = append(rustTypes, rustType)
@@ -1110,8 +1115,11 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 		out.WriteString(anyFormatArms[rustType].expr)
 		out.WriteString("\n")
 	}
+	// A value of a type with no case above cannot be printed yet. Stop
+	// with a message that says so: printing a placeholder would be a wrong
+	// answer that looks like a right one.
 	out.WriteString("    } else {\n")
-	out.WriteString("        \"<unknown>\".to_string()\n")
+	out.WriteString("        panic!(\"go2rust: cannot print this value held in an interface: its type has no formatting case yet\")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 	if !pointerArms && nestedEntry {
