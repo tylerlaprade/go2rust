@@ -915,6 +915,14 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "dereferenced_pointer_receiver_arg_order" {
+    run_test "tests/dereferenced_pointer_receiver_arg_order"
+}
+
+@test "dereferenced_pointer_receiver_arg_order_goroutines" {
+    run_test "tests/dereferenced_pointer_receiver_arg_order_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
