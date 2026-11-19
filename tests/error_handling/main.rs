@@ -100,7 +100,7 @@ fn main() {
     }
 
         // Formatted error
-    let (mut sqrtResult, __tmp_1) = sqrt(Rc::new(RefCell::new(Some(-(4).0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
+    let (mut sqrtResult, __tmp_1) = sqrt(Rc::new(RefCell::new(Some(-4.0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Sqrt error:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     } else {

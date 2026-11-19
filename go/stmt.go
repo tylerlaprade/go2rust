@@ -181,6 +181,10 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			return true
 		}
+		// A nil check on the left can emit a block that scopes its borrow.
+		if left, ok := e.X.(*ast.BinaryExpr); ok && isRightNilComparison(left) {
+			return true
+		}
 		// Whatever the operator, the LHS is emitted first; if it would
 		// produce a leading `{`, the binary expression inherits the
 		// parsing ambiguity.
@@ -3883,16 +3887,18 @@ func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, ca
 	trackWrapperImports()
 	out.WriteString("{ let __case = ")
 	writePointerHandleExpression(out, caseExpr)
-	out.WriteString("; let __switch_guard = ")
-	out.WriteString(switchVal)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __case_guard = __case")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __both_nil = (*__switch_guard).is_none() && (*__case_guard).is_none(); let __eq = __both_nil || ")
+	// Test identity first. For distinct handles, finish each nil check before
+	// borrowing the other handle so concurrent switches cannot nest locks.
+	out.WriteString("; let __same = ")
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::ptr_eq(&")
 	out.WriteString(switchVal)
-	out.WriteString(", &__case); __eq }")
+	out.WriteString(", &__case); if __same { true } else { let __tag_nil = ")
+	out.WriteString(switchVal)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); let __both_nil = __tag_nil && __case")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); __both_nil } }")
 }
 
 func switchGoPtrElemRustType(tag ast.Expr) (string, bool) {
