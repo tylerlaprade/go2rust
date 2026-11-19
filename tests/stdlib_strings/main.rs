@@ -53,15 +53,22 @@ fn main() {
 
         // String indexing and slicing
     print!("First character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*str.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (1 as i32); __tmp_x - __tmp_y }) as usize] }) as u8 as char);
-    print!("Substring [0:5]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s[(0) as usize..(5) as usize].to_string() }))).lock().unwrap().as_ref().unwrap()));
-    print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s[(7) as usize..].to_string() }))).lock().unwrap().as_ref().unwrap()));
+    print!("Last character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*str.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }) as u8 as char);
+    print!("Substring [0:5]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()));
+    print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()));
 
         // String concatenation
     println!("{}", format!("{}", "\n=== String concatenation ===".to_string()));
     let mut first = Arc::new(Mutex::new(Some("Hello".to_string())));
     let mut second = Arc::new(Mutex::new(Some("World".to_string())));
-    let mut combined = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}{}", format!("{}{}", { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }, ", ".to_string()), { let __v = (*second.lock().unwrap().as_ref().unwrap()).clone(); __v }), "!".to_string()))));
+    let mut combined = Arc::new(Mutex::new(Some({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s.push_str(&format!("{}", ", ".to_string()));
+        __s.push_str(&format!("{}", { let __v = (*second.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s.push_str(&format!("{}", "!".to_string()));
+        __s
+    })));
     print!("Concatenated: {}\n", { let __v = (*combined.lock().unwrap().as_ref().unwrap()).clone(); __v });
 
         // Using strings package

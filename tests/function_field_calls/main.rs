@@ -9,13 +9,17 @@ pub struct Runner {
 
 impl Runner {
     pub fn __go_value_clone(&self) -> Self {
-        Self { callback: self.callback.clone() }
+        let __go_clone_0_0 = self.callback.clone();
+        Self {
+            callback: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Runner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", "<func>")
+        let __go_fmt_0 = format!("{}", "<func>");
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

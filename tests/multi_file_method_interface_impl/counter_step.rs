@@ -1,5 +1,4 @@
-use crate::counter_value::*;
-use crate::iface::*;
+use crate::{iface::{Stepper}};
 
 use std::any::Any;
 use std::cell::{RefCell};
@@ -13,20 +12,27 @@ pub struct Counter {
 
 impl Counter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Counter {
     fn default() -> Self {
-        Self { n: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Counter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -39,10 +45,10 @@ impl Counter {
 
 impl Stepper for Counter {
     fn step(&mut self) {
-        self.step()
+        Counter::step(self)
     }
     fn value(&self) -> i32 {
-        self.value()
+        Counter::value(self)
     }
     fn __go_clone_box_stepper(&self) -> Box<dyn Stepper> {
         Box::new(self.clone()) as Box<dyn Stepper>
@@ -53,6 +59,42 @@ impl Stepper for Counter {
     fn __go_eq_stepper(&self, other: &dyn Stepper) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Counter>() {
             false
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CounterPtr(pub Rc<RefCell<Option<Counter>>>);
+
+impl std::fmt::Display for CounterPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Stepper for CounterPtr {
+    fn step(&mut self) {
+        let mut __recv_guard = self.0.borrow_mut();
+        let __recv = __recv_guard.as_mut().unwrap();
+        Counter::step(__recv)
+    }
+    fn value(&self) -> i32 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        Counter::value(__recv)
+    }
+    fn __go_clone_box_stepper(&self) -> Box<dyn Stepper> {
+        Box::new(self.clone()) as Box<dyn Stepper>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_stepper(&self, other: &dyn Stepper) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<CounterPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
         } else {
             false
         }

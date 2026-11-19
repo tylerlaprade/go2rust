@@ -8,7 +8,8 @@ pub struct recorder {
 
 impl recorder {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -32,7 +33,7 @@ pub fn relay(record: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>
 
 fn main() {
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
-    let out_closure_clone = out.clone(); relay(Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| {
+    let mut out_closure_clone = out.clone(); relay(Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| {
         { let new_val = s.borrow().as_ref().unwrap().clone(); *out_closure_clone.borrow_mut() = Some(new_val); };
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))));
     println!("{}", format!("{}", { let __v = (*out.borrow().as_ref().unwrap()).clone(); __v }));

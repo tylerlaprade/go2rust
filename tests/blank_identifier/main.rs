@@ -203,7 +203,7 @@ fn main() {
 
         // Alternative: just use index (more idiomatic)
     println!("{}", format!("{}", "Indices (idiomatic):".to_string()));
-    for i in 0..({ let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
+    for i in 0..(({ let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         print!("{} ", i);
     }
     println!();
@@ -217,9 +217,9 @@ fn main() {
     println!("{}", format!("{}", "Keys only:".to_string()));
     let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = names.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; names = new_val; };
+        { let new_val = { let __append_target = names.clone(); let __append_value = name.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; names = new_val; };
     }
-    { let mut __sort_guard = names.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
         print!("{} ", name);
     } }
@@ -229,9 +229,9 @@ fn main() {
     println!("{}", format!("{}", "Values only:".to_string()));
     let mut sortedAges: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
     for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = sortedAges.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*age.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; sortedAges = new_val; };
+        { let new_val = { let __append_target = sortedAges.clone(); let __append_value = (*age.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; sortedAges = new_val; };
     }
-    { let mut __sort_guard = sortedAges.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    { let __sort_target = sortedAges.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = sortedAges.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for age in __range_values.iter().copied() {
         print!("{} ", age);
     } }
@@ -268,15 +268,15 @@ fn main() {
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
             } else {
-                (Arc::new(Mutex::new(Some(std::string::String::new()))), Arc::new(Mutex::new(Some(false))))
+                (Arc::new(Mutex::new(Some(std::string::String::new()))), false)
             }
         } else {
-            (Arc::new(Mutex::new(Some(std::string::String::new()))), Arc::new(Mutex::new(Some(false))))
+            (Arc::new(Mutex::new(Some(std::string::String::new()))), false)
         }
     });;
-        if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        if ok {
             println!("{}", format!("{}", "Value is a string (but we ignored the actual value)".to_string()));;
         }
     }
@@ -288,15 +288,15 @@ fn main() {
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<i32>() {
-                (Arc::new(Mutex::new(Some(typed_val.clone()))), Arc::new(Mutex::new(Some(true))))
+                (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
             } else {
-                (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+                (Arc::new(Mutex::new(Some(0))), false)
             }
         } else {
-            (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))))
+            (Arc::new(Mutex::new(Some(0))), false)
         }
     });;
-        if { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        if ok {
             println!("{}", format!("{}", "Value is an int".to_string()));;
         } else {
             println!("{}", format!("{}", "Value is not an int".to_string()));;

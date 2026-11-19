@@ -41,20 +41,34 @@ impl Display for nodeSet {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct graphNode {
     pub succ: Rc<RefCell<Option<nodeSet>>>,
 }
 
 impl graphNode {
     pub fn __go_value_clone(&self) -> Self {
-        Self { succ: self.succ.clone() }
+        let __go_clone_0_0 = self.succ.clone();
+        Self {
+            succ: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for graphNode {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(nodeSet::default())));
+        Self {
+            succ: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for graphNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.succ.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.succ.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

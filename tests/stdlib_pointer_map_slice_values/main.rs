@@ -114,15 +114,7 @@ impl types_Package {
 }
 
 
-pub mod sort {
-    use super::*;
-    pub fn slice<T0, T1>(_arg0: T0, _arg1: T1) {
-        panic!("slice bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct pkgObj {
     pub obj: Rc<RefCell<Option<types_Object>>>,
     pub name: Rc<RefCell<Option<String>>>,
@@ -130,56 +122,76 @@ pub struct pkgObj {
 
 impl pkgObj {
     pub fn __go_value_clone(&self) -> Self {
-        Self { obj: self.obj.clone(), name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.obj.clone();
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            obj: __go_clone_0_0,
+            name: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for pkgObj {
     fn default() -> Self {
-        Self { obj: Rc::new(RefCell::new(None)), name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(None));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            obj: __go_default_0_0,
+            name: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for pkgObj {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.obj.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.obj.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct bundle {
     pub localpkg: Rc<RefCell<Option<types_Package>>>,
 }
 
 impl bundle {
     pub fn __go_value_clone(&self) -> Self {
-        Self { localpkg: self.localpkg.clone() }
+        let __go_clone_0_0 = self.localpkg.clone();
+        Self {
+            localpkg: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for bundle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.localpkg.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.localpkg.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct writer {
     pub p: Rc<RefCell<Option<bundle>>>,
 }
 
 impl writer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: self.p.clone() }
+        let __go_clone_0_0 = self.p.clone();
+        Self {
+            p: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.p.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.p.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -199,28 +211,28 @@ pub fn export_path(pkg: Rc<RefCell<Option<types_Package>>>) -> Rc<RefCell<Option
 
 pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<RefCell<Option<Vec<pkgObj>>>>>>>>, pkg: Rc<RefCell<Option<types_Package>>>, obj: Rc<RefCell<Option<types_Object>>>) {
     { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = Rc::new(RefCell::new(None)); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }); __slice.clone() }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     let mut w = Rc::new(RefCell::new(Some(writer { p: Rc::new(RefCell::new(Some(bundle { localpkg: pkg.clone(), ..Default::default() }))).clone(), ..Default::default() })));
     let mut pkgs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<types_Package>>>>>>> = Rc::new(RefCell::new(None));
     for (__range_key, objs) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let p = __range_key.value();
-        { let new_val = { let __append_target = pkgs.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(p.clone()); __append_target.clone() }; pkgs = new_val; };
-        let objs_closure_clone = objs.clone(); sort::slice(objs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+        { let new_val = { let __append_target = pkgs.clone(); let __append_value = p.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; pkgs = new_val; };
+        let objs_closure_clone = objs.clone(); { let __sort_target = objs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
         return (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone() < (*(*objs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().name.borrow().as_ref().unwrap()).clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
         let _ = (*objs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0);
     }
-    let pkgs_closure_clone = pkgs.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let pkgs_closure_clone = pkgs.clone(); { let __sort_target = pkgs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
         return (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
-    let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); sort::slice(pkgs_closure_clone.clone(), Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    let pkgs_closure_clone = pkgs.clone(); let w_closure_clone = w.clone(); { let __sort_target = pkgs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
         return (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone() < (*(*w_closure_clone.borrow().as_ref().unwrap()).export_path((*pkgs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone()).borrow().as_ref().unwrap()).clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     { let __range_holder = pkgs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         let _ = export_path((*p).clone());
         let _ = (*w.borrow().as_ref().unwrap()).export_path((*p).clone());
         let _ = (*p.borrow_mut().as_mut().unwrap()).name();
-        let _ = (*m.borrow().as_ref().unwrap()).get(&GoLocalPtrKey::new(p.clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
+        let _ = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(p.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     } }
     let _ = (*pkgs.borrow().as_ref().unwrap());
 }

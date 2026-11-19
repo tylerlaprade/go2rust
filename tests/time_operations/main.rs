@@ -100,27 +100,34 @@ impl std::fmt::Display for GoTime {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct event {
     pub when: Rc<RefCell<Option<GoTime>>>,
 }
 
 impl event {
     pub fn __go_value_clone(&self) -> Self {
-        Self { when: { let __guard = self.when.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.when.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            when: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for event {
     fn default() -> Self {
-        Self { when: Rc::new(RefCell::new(Some(Default::default()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Default::default())));
+        Self {
+            when: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.when.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.when.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

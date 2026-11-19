@@ -12,7 +12,7 @@ pub trait hasName: std::fmt::Display + Any {
 
 impl Clone for Box<dyn hasName> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_has_name()
+        hasName::__go_clone_box_has_name(self.as_ref())
     }
 }
 
@@ -24,7 +24,7 @@ pub trait hasNameAndString: hasName + std::fmt::Display + Any {
 
 impl Clone for Box<dyn hasNameAndString> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_has_name_and_string()
+        hasNameAndString::__go_clone_box_has_name_and_string(self.as_ref())
     }
 }
 
@@ -46,9 +46,9 @@ impl hasName for Box<dyn hasNameAndString> {
 pub fn asserted_anonymous_interface(v: Rc<RefCell<Option<Box<dyn hasNameAndString>>>>) -> bool {
     let (_, mut ok) = ({
         let __asserted = v.clone();
-        (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
+        (__asserted.clone(), true)
     });
-    return (*ok.borrow().as_ref().unwrap());
+    ok
 }
 
 fn main() {
@@ -61,15 +61,15 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(std::string::String::new()))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(std::string::String::new()))), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
             println!("{} {}", format!("{}", "x is string:".to_string()), format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));;
         }
     }
@@ -93,15 +93,15 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<i32>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(0))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(0))), false)
         }
     });;
-        if (*ok.borrow().as_ref().unwrap()) {
+        if ok {
             println!("{} {}", format!("{}", "x is int:".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));;
         } else {
             println!("{}", format!("{}", "x is not an int".to_string()));;

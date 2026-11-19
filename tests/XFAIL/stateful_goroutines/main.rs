@@ -199,20 +199,31 @@ pub struct readOp {
 
 impl readOp {
     pub fn __go_value_clone(&self) -> Self {
-        Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, resp: self.resp.clone() }
+        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.resp.clone();
+        Self {
+            key: __go_clone_0_0,
+            resp: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for readOp {
     fn default() -> Self {
-        Self { key: Arc::new(Mutex::new(Some(0))), resp: Default::default() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Default::default();
+        Self {
+            key: __go_default_0_0,
+            resp: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for readOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.key.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -226,20 +237,36 @@ pub struct writeOp {
 
 impl writeOp {
     pub fn __go_value_clone(&self) -> Self {
-        Self { key: { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, val: { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, resp: self.resp.clone() }
+        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.resp.clone();
+        Self {
+            key: __go_clone_0_0,
+            val: __go_clone_1_0,
+            resp: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for writeOp {
     fn default() -> Self {
-        Self { key: Arc::new(Mutex::new(Some(0))), val: Arc::new(Mutex::new(Some(0))), resp: Default::default() }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Default::default();
+        Self {
+            key: __go_default_0_0,
+            val: __go_default_1_0,
+            resp: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for writeOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.key.lock().unwrap().as_ref().unwrap()), (*self.val.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.val.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -258,7 +285,7 @@ fn main() {
         loop {
         if let Some(read) = reads_thread.try_recv() {
             let mut read = Arc::new(Mutex::new(Some(read)));
-            (*read.lock().unwrap().as_ref().unwrap()).resp.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+            (*read.lock().unwrap().as_ref().unwrap()).resp.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             break;
         }
         if let Some(write) = writes_thread.try_recv() {
@@ -276,9 +303,9 @@ fn main() {
     while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x < __tmp_y } {
         let done_thread = done.clone(); let readOps_thread = Arc::new(Mutex::new(Some((*readOps.lock().unwrap().as_ref().unwrap()).clone()))); let reads_thread = reads.clone(); std::thread::spawn(move || {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))), resp: GoChannel::<i32>::new(), ..Default::default() })));;
-        reads_thread.send(read.lock().unwrap().as_ref().unwrap().clone());;
+        reads_thread.send(read.lock().unwrap().as_ref().unwrap().__go_value_clone());;
         (*read.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap_or_default();;
-        atomic::add_uint64(readOps_thread.clone(), 1);;
+        atomic::add_uint64(readOps_thread.clone(), 1 as u64);;
         done_thread.send(true);;;
     });
         { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -287,10 +314,15 @@ fn main() {
     let mut w = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
         let done_thread = done.clone(); let writeOps_thread = Arc::new(Mutex::new(Some((*writeOps.lock().unwrap().as_ref().unwrap()).clone()))); let writes_thread = writes.clone(); std::thread::spawn(move || {
-        let mut write = Arc::new(Mutex::new(Some(writeOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))), val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i32)))), resp: GoChannel::<bool>::new(), ..Default::default() })));;
-        writes_thread.send(write.lock().unwrap().as_ref().unwrap().clone());;
+        let mut write = Arc::new(Mutex::new(Some(writeOp {
+            key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i32)))),
+            val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i32)))),
+            resp: GoChannel::<bool>::new(),
+            ..Default::default()
+        })));;
+        writes_thread.send(write.lock().unwrap().as_ref().unwrap().__go_value_clone());;
         (*write.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap_or_default();;
-        atomic::add_uint64(writeOps_thread.clone(), 1);;
+        atomic::add_uint64(writeOps_thread.clone(), 1 as u64);;
         done_thread.send(true);;;
     });
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

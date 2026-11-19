@@ -21,7 +21,7 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static local: GoGlobal<Rc<RefCell<Option<example_com_package_selector_readonly_pointer_method_helper::Counter>>>> = GoGlobal::new();
+pub(crate) static local: GoGlobal<Rc<RefCell<Option<example_com_package_selector_readonly_pointer_method_helper::r#mod::Counter>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -31,7 +31,7 @@ fn __go_init_globals() {
 
 
 fn main() {
-    example_com_package_selector_readonly_pointer_method_helper::__go_init_all();
+    ::example_com_package_selector_readonly_pointer_method_helper::__go_init_all();
 
     __go_init_all();
     println!("{}", format!("{}", { let __recv_holder = (*local.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.total(); __result }));

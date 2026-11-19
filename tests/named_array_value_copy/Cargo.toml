@@ -1,0 +1,8 @@
+[package]
+name = "named_array_value_copy"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_array_value_copy"
+path = "main.rs"

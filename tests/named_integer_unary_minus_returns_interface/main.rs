@@ -15,7 +15,7 @@ pub trait Value: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Value> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_value()
+        Value::__go_clone_box_value(self.as_ref())
     }
 }
 
@@ -30,7 +30,9 @@ impl Display for int64Val {
 
 impl PartialEq for int64Val {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -42,7 +44,9 @@ impl PartialEq<i64> for int64Val {
 
 impl PartialOrd for int64Val {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -405,7 +409,7 @@ impl int64Val {
 
 impl Value for int64Val {
     fn tag(&self) -> i64 {
-        self.tag()
+        int64Val::tag(self)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {
         Box::new(self.clone()) as Box<dyn Value>
@@ -422,8 +426,39 @@ impl Value for int64Val {
     }
 }
 
+#[derive(Clone)]
+pub struct int64ValPtr(pub Rc<RefCell<Option<int64Val>>>);
+
+impl std::fmt::Display for int64ValPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Value for int64ValPtr {
+    fn tag(&self) -> i64 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        int64Val::tag(__recv)
+    }
+    fn __go_clone_box_value(&self) -> Box<dyn Value> {
+        Box::new(self.clone()) as Box<dyn Value>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_value(&self, other: &dyn Value) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<int64ValPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 pub fn negate(y: Rc<RefCell<Option<int64Val>>>) -> Rc<RefCell<Option<Box<dyn Value>>>> {
-    let mut z = Rc::new(RefCell::new(Some(-((*y.borrow().as_ref().unwrap()).clone()))));
+    let mut z = Rc::new(RefCell::new(Some(int64Val(Rc::new(RefCell::new(Some(-(*(*y.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))));
     return Rc::new(RefCell::new(Some(Box::new((*z.borrow().as_ref().unwrap()).clone()) as Box<dyn Value>)));
 }
 
