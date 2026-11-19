@@ -24,6 +24,12 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
+    format_any(value)
+}
+
 #[derive(Clone, Default)]
 pub struct entry {
     pub value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
@@ -31,13 +37,17 @@ pub struct entry {
 
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: self.value.clone() }
+        let __go_clone_0_0 = self.value.clone();
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", match self.value.lock().unwrap().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -55,6 +65,6 @@ fn main() {
     let mut e = make_entry(value.clone());
     let mut prev = (*e.lock().unwrap().as_ref().unwrap()).value.clone();
 
-    println!("{}", format!("{}", format_any((*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref())));
-    println!("{}", format!("{}", format_any(prev.lock().unwrap().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", { let __text = format_any((*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+    println!("{}", format!("{}", { let __text = format_any(prev.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
 }

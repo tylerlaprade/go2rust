@@ -1,0 +1,42 @@
+started
+count 1 of 2
+name=x ok=true
+7-z
+value: 42
+k=1
+k|1
+1 and two
+2 arguments
+   42|42   |00042|+42|ff|FF|10|101|A|'A'|U+0041
+go|        go|go        |go|"go"|676f
+2.5|2.500000|2.50|   2.500|1.234568e+05|1e+21
+true|false| true
+1 two 3.5 true
+int string float64 bool
+100% of 3
+   42|42   |3.14
+point {1 2}, pointer &{3 4}
+slice [1 2], map map[a:1]
+error: boom / bang
+failed|failed|    failed|
+status 1|status 2|status 3    |status 4
+"failed"|6661696c6564|     fai|failed  |00failed
+"status 7"|status|    status 7|7374617475732037|status 7
+   <nil>|<nil>   |<nil>
+bytes Hi, hex 4869, list [72 105]
+7   |"quoted"|0xff
+%!d(string=text)
+%!s(int=5)
+1 %!d(MISSING)
+1%!(EXTRA int=2)
+%!z(int=1)
+trailing %!(NOVERB)
+no verbs%!(EXTRA string=left, int=2)
+plain
+code 7: inner
+%!w(int=5)
+%!w(string=text) and failed
+[%!w(uint8=65) %!w(uint8=66)]
+value: 43
+k=1
+cart has 3 items

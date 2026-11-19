@@ -1068,11 +1068,20 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
+	// An error goes into a []any element the way it goes into any other
+	// interface value.
+	if writeGoErrorInterfaceAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
 	out.WriteString("Box::new(")
-	writeAnyBoxInnerValue(out, expr)
+	// A value that keeps its handle when boxed keeps it in a []any element
+	// too, the same as every other way of storing it in an interface.
+	if !writeAnyHandleBoxInnerValue(out, expr) && !writeDefinedCollectionOwnedValue(out, expr) {
+		writeAnyBoxInnerValue(out, expr)
+	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
 }
@@ -3432,6 +3441,23 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 	return true
 }
 
+// typeSwitchCaseAnyHandleRustType reports the handle type a case of a type
+// switch over an empty interface has to downcast to, for case types whose
+// values keep their handle when boxed into the interface.
+func typeSwitchCaseAnyHandleRustType(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (string, bool) {
+	if typeInfo == nil || !isEmptyInterfaceType(subjectType) {
+		return "", false
+	}
+	caseType := typeInfo.GetType(typeExpr)
+	// An error whose dynamic type cannot be named is boxed as its own handle
+	// (see writeOpaqueGoErrorAnyBox). case error has to look for that handle,
+	// and its variable is the handle, the same error the box holds.
+	if isErrorInterfaceType(caseType) {
+		return rustGoErrorHandleType(), true
+	}
+	return anyBoxedHandleRustType(caseType)
+}
+
 func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) {
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
@@ -3441,6 +3467,12 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(wrapperType)
+		out.WriteString(">()).is_some()")
+		return
+	}
+	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(handleType)
 		out.WriteString(">()).is_some()")
 		return
 	}
@@ -7834,13 +7866,9 @@ func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, v
 
 func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Error")
-	out.WriteString("Box::new(")
+	out.WriteString(rustErrorFromValueStart())
 	writeConcreteErrorValue(out, expr)
-	if NeedsConcurrentWrapper() {
-		out.WriteString(") as Box<dyn StdError + Send + Sync>")
-	} else {
-		out.WriteString(") as Box<dyn StdError>")
-	}
+	out.WriteString(rustErrorFromValueEnd())
 }
 
 func writeGoErrorHandleValue(out *strings.Builder, expr ast.Expr) bool {
@@ -7880,15 +7908,32 @@ func writeConcreteErrorInterfaceAssignment(out *strings.Builder, lhs ast.Expr, r
 	out.WriteString(" = Some(new_val); }")
 }
 
-func writeMoveErrorAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+// writeErrorCopyAssignment assigns one error variable to another. The target
+// gets its own pointer to the same error and the source keeps its own, as in
+// Go, where "last = err" leaves err as it was.
+func writeErrorCopyAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
 	out.WriteString("{ let __rhs_holder = ")
 	TranspileExpressionContext(out, rhs, LValue)
-	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; guard.take() }; *")
+	out.WriteString(".clone(); let new_val = (*__rhs_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone(); *")
 	TranspileExpressionContext(out, lhs, LValue)
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = new_val; }")
+}
+
+// writeErrorHandleCopy writes a new handle that holds the same error as the
+// handle writeSource writes. An error variable that is passed, returned,
+// stored or used to start another variable is copied this way: the two
+// variables then change independently, and they are still the same error.
+func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
+	out.WriteString("{ let __err_source = ")
+	writeSource()
+	out.WriteString("; let __err_copy = (*__err_source")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone(); ")
+	writeErrorHandleFromOptionValue(out, "__err_copy")
+	out.WriteString(" }")
 }
 
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
@@ -9478,18 +9523,10 @@ func channelElementIsGoError(expr ast.Expr) bool {
 	return ok && isGoErrorType(ch.Elem())
 }
 
-func rustStdErrorBoxType() string {
-	TrackImport("Error")
-	if NeedsConcurrentWrapper() {
-		return "Box<dyn StdError + Send + Sync>"
-	}
-	return "Box<dyn StdError>"
-}
-
 func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("None::<")
-		out.WriteString(rustStdErrorBoxType())
+		out.WriteString(rustErrorPayloadType())
 		out.WriteString(">")
 		return
 	}
@@ -9503,9 +9540,9 @@ func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
 	}
-	out.WriteString("; let mut __err_guard = __err_handle")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __err_guard.take() }")
+	out.WriteString("; let __err_value = (*__err_handle")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone(); __err_value }")
 }
 
 func writeErrorHandleFromOptionValue(out *strings.Builder, value string) {
@@ -9548,12 +9585,12 @@ func writeEmptyErrorHandle(out *strings.Builder) {
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(Mutex::new(None::<")
-		out.WriteString(rustStdErrorBoxType())
+		out.WriteString(rustErrorPayloadType())
 		out.WriteString(">))")
 		return
 	}
 	out.WriteString("Rc::new(RefCell::new(None::<")
-	out.WriteString(rustStdErrorBoxType())
+	out.WriteString(rustErrorPayloadType())
 	out.WriteString(">))")
 }
 
@@ -10885,6 +10922,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
 							// Function selector values are represented by cloneable handles or boxed method values.
+						} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(result)) && writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+							// An error held in a field is returned as a copy. The
+							// caller's variable is its own, so assigning to it
+							// does not change the field.
 						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 							// Returning a receiver field clones the handle. Route through
 							// typed selector lowering so promoted fields traverse embeds.
@@ -11025,6 +11066,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							continue
 						}
 						if writeBareDirectTypeParamWrappedReturnValue(out, ident, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
+						if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) && writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+							// An error variable is returned as a copy. The caller's
+							// variable is its own, so assigning to it does not
+							// change this one, which may be a package-level error.
 							continue
 						}
 						if writeWrappedValueCopyFromIdent(out, ident) {
@@ -11270,13 +11317,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Struct implementing error interface - box it
 							TrackImport("Error")
 							WriteWrapperPrefix(out)
-							out.WriteString("Box::new(")
+							out.WriteString(rustErrorFromValueStart())
 							TranspileExpression(out, result)
-							if NeedsConcurrentWrapper() {
-								out.WriteString(") as Box<dyn StdError + Send + Sync>")
-							} else {
-								out.WriteString(") as Box<dyn StdError>")
-							}
+							out.WriteString(rustErrorFromValueEnd())
 							WriteWrapperSuffix(out)
 						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 						} else if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
@@ -11572,7 +11615,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteBorrowMethod(out, true)
 					if isErrorChannelRecv {
 						out.WriteString(" = None::<")
-						out.WriteString(rustStdErrorBoxType())
+						out.WriteString(rustErrorPayloadType())
 						out.WriteString(">; *")
 					} else {
 						out.WriteString(" = Some(Default::default()); *")
@@ -12109,7 +12152,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = Some(new_val); }")
 									}
 								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
-									writeMoveErrorAssignment(out, s.Lhs[0], s.Rhs[0])
+									writeErrorCopyAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if writeFunctionSelectorHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Function selector values are represented by handles; copy the handle.
 								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
@@ -12230,7 +12273,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											TranspileExpression(out, s.Rhs[0])
 										}
 									} else if isErrorFunc {
-										// Error functions return the full wrapped type Rc<RefCell<Option<Box<dyn StdError>>>>
+										// Error functions return the full wrapped type: the error handle.
 										// Just replace the Rc pointer directly
 										TranspileExpressionContext(out, s.Lhs[0], LValue)
 										out.WriteString(" = ")
@@ -15358,6 +15401,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(wrapperType)
 							out.WriteString(">()).unwrap().0.clone()")
+						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
+							// The box holds the handle itself, so the case
+							// variable shares it with every other holder.
+							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()).unwrap().clone()")
 						} else {
 							WriteWrapperPrefix(out)
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")

@@ -1,0 +1,8 @@
+[package]
+name = "error_in_interface_value"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_in_interface_value"
+path = "main.rs"

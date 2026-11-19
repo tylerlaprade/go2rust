@@ -1,17 +1,28 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_any_nested,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_any_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::cond::*;
-use crate::hashtriemap::*;
-use crate::mutex::*;
-use crate::once::*;
-use crate::oncefunc::*;
-use crate::pool::*;
-use crate::poolqueue::*;
-use crate::runtime::*;
-use crate::runtime2::*;
-use crate::waitgroup::*;
+use crate::{
+    mutex::{Locker, Mutex},
+    runtime::{fatal, runtime__semacquire_r_w_mutex, runtime__semacquire_r_w_mutex_r, runtime__semrelease},
+};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -54,28 +65,47 @@ pub struct RWMutex {
 
 impl RWMutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { w: { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, writer_sem: { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_sem: { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_count: { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_wait: { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            w: __go_clone_0_0,
+            writer_sem: __go_clone_1_0,
+            reader_sem: __go_clone_2_0,
+            reader_count: __go_clone_3_0,
+            reader_wait: __go_clone_4_0,
+        }
     }
 }
 
 
 impl Default for RWMutex {
     fn default() -> Self {
-        Self { w: Arc::new(StdMutex::new(Some(Mutex::default()))), writer_sem: Arc::new(StdMutex::new(Some(0))), reader_sem: Arc::new(StdMutex::new(Some(0))), reader_count: Arc::new(StdMutex::new(Some(Default::default()))), reader_wait: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            w: __go_default_0_0,
+            writer_sem: __go_default_1_0,
+            reader_sem: __go_default_2_0,
+            reader_count: __go_default_3_0,
+            reader_wait: __go_default_4_0,
+        }
     }
 }
 
 impl std::fmt::Display for RWMutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.w.lock().unwrap().as_ref().unwrap()), (*self.writer_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_count.lock().unwrap().as_ref().unwrap()), (*self.reader_wait.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for RWMutex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.writer_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reader_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.reader_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.reader_wait.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -91,53 +121,47 @@ pub struct rlocker {
 
 impl rlocker {
     pub fn __go_value_clone(&self) -> Self {
-        Self { w: { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, writer_sem: { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_sem: { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_count: { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, reader_wait: { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.w.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.writer_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.reader_sem.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.reader_count.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.reader_wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            w: __go_clone_0_0,
+            writer_sem: __go_clone_1_0,
+            reader_sem: __go_clone_2_0,
+            reader_count: __go_clone_3_0,
+            reader_wait: __go_clone_4_0,
+        }
     }
 }
 
 
 impl Default for rlocker {
     fn default() -> Self {
-        Self { w: Arc::new(StdMutex::new(Some(Mutex::default()))), writer_sem: Arc::new(StdMutex::new(Some(0))), reader_sem: Arc::new(StdMutex::new(Some(0))), reader_count: Arc::new(StdMutex::new(Some(Default::default()))), reader_wait: Arc::new(StdMutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(Mutex::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(Default::default())));
+        Self {
+            w: __go_default_0_0,
+            writer_sem: __go_default_1_0,
+            reader_sem: __go_default_2_0,
+            reader_count: __go_default_3_0,
+            reader_wait: __go_default_4_0,
+        }
     }
 }
 
 impl std::fmt::Display for rlocker {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.w.lock().unwrap().as_ref().unwrap()), (*self.writer_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_sem.lock().unwrap().as_ref().unwrap()), (*self.reader_count.lock().unwrap().as_ref().unwrap()), (*self.reader_wait.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for rlocker {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
-
-#[derive(Debug, Clone, Default)]
-pub struct AnonymousStruct1 {
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self {  }
-    }
-}
-
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{}}")
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.writer_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.reader_sem.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.reader_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.reader_wait.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -182,7 +206,10 @@ impl RWMutex {
     }
         return false;
     }
-        if (*self.reader_count.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(c))), Arc::new(StdMutex::new(Some({ let __tmp_x = c; let __tmp_y = 1 as i32; __tmp_x + __tmp_y })))) {
+        if (*self.reader_count.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(StdMutex::new(Some(c))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = c; let __tmp_y = 1 as i32; __tmp_x + __tmp_y }))),
+        ) {
         if internal_race::ENABLED {
         internal_race::enable();
         internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
@@ -378,11 +405,19 @@ impl Locker for RWMutexPtr {
 
 impl rlocker {
     pub fn lock(&self) {
-        { let __recv = Arc::new(StdMutex::new(Some(RWMutex::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_lock(); __result };
+        {
+            let __recv = Arc::new(StdMutex::new(Some(RWMutex::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_lock();
+            __result
+        };
     }
 
     pub fn unlock(&self) {
-        { let __recv = Arc::new(StdMutex::new(Some(RWMutex::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_unlock(); __result };
+        {
+            let __recv = Arc::new(StdMutex::new(Some(RWMutex::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r_unlock();
+            __result
+        };
     }
 }
 

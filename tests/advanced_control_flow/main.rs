@@ -482,20 +482,20 @@ fn main() {
         // Complex error handling flow
     println!("{}", format!("{}", "\n=== Complex error handling flow ===".to_string()));
 
-    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("empty data")))));
+        return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("empty data"))))));
     }
         { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = val; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("negative value at index {}: {}", i, val)))));
+        return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("negative value at index {}: {}", i, val))))));
     }
         if { let __tmp_x = val; let __tmp_y = 100; __tmp_x > __tmp_y } {
-        return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("value too large at index {}: {}", i, val)))));
+        return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("value too large at index {}: {}", i, val))))));
     }
     } }
         return Arc::new(Mutex::new(None));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
     let mut testData = Arc::new(Mutex::new(Some(vec![
         vec![1, 2, 3],
@@ -509,9 +509,9 @@ fn main() {
         print!("Testing dataset {}: {}\n", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }, format_slice_values(data));
         {
         let mut err = {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
                 let mut __f_guard = processData.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(

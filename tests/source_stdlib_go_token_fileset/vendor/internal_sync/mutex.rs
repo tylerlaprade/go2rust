@@ -1,9 +1,24 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::hashtriemap::*;
-use crate::runtime::*;
+use crate::{
+    runtime::{fatal, runtime__semacquire_mutex, runtime__semrelease, runtime_can_spin, runtime_do_spin, runtime_nanotime, throw},
+};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex as StdMutex};
@@ -26,28 +41,32 @@ pub struct Mutex {
 
 impl Mutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { state: { let __guard = self.state.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, sema: { let __guard = self.sema.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.state.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.sema.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            state: __go_clone_0_0,
+            sema: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Mutex {
     fn default() -> Self {
-        Self { state: Arc::new(StdMutex::new(Some(0))), sema: Arc::new(StdMutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        Self {
+            state: __go_default_0_0,
+            sema: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Mutex {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.state.lock().unwrap().as_ref().unwrap()), (*self.sema.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Mutex {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.state.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.sema.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -101,7 +120,31 @@ impl Mutex {
                 // Active spinning makes sense.
                 // Try to set mutexWoken flag to inform Unlock
                 // to not wake other blocked goroutines.
-        if !{ let __v = (*awoke.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WAITER_SHIFT; __tmp_x >> __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y })))) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = !{ let __v = (*awoke.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WAITER_SHIFT; __tmp_x >> __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y }))));
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         { let new_val = true; *awoke.lock().unwrap() = Some(new_val); };
     }
         runtime_do_spin();

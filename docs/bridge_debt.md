@@ -149,6 +149,36 @@ comment.
   still routed through the generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
 
+## Runtime helpers outside the stubs file
+
+Rows here are bridge debt that lives outside `go/external_type_stubs.go`.
+They are kept apart from "## Shims" because
+`TestBridgeDebtRegistryCoversAllShims` counts the rows of that section
+against the `// TEMPORARY:` comments of that one file.
+
+**fmt-runtime-format**
+
+- Location: `go/runtime_format.go`, `generateGoSprintf`: the generated Rust
+  functions `go_sprintf`, `go_sprintf_spread` and `go_format_*`. Calls to
+  them are written by `writeRuntimeFormatCall`.
+- Go symbol: `fmt.Printf`, `fmt.Sprintf`, `fmt.Errorf` and `fmt.Fprintf`,
+  when the format is not known while translating or the arguments are passed
+  on as a list (`f(format, args...)`).
+- Transpiler gap: `fmt` cannot be translated from its Go source, because its
+  printer walks every value with `reflect` and a translated program has
+  nothing to reflect on. A format that is known while translating is expanded
+  into a Rust format macro by the older mapping in `go/stdlib.go`. A format
+  that arrives as a value has nothing to expand, so before this helper the
+  format was printed as it was and the arguments were dropped.
+- Fixture: `tests/printf_runtime_format/`,
+  `tests/printf_runtime_format_goroutines/` and
+  `tests/printf_runtime_format_table/`, which compares each verb and flag
+  with Go line by line.
+- Removal trigger: `fmt` is translated from source, which needs `reflect`.
+  Or the stdlib boundary puts `fmt` in the hand-written tier; then the
+  helper moves into that runtime and this row is deleted with the move.
+- Added: 2026-11-19
+
 ## Shims
 
 The rows below were backfilled on 2026-05-27 from the existing 36

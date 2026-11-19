@@ -5,7 +5,7 @@ use std::rc::{Rc};
 
 #[derive(Clone, Default)]
 pub struct wrappedError {
-    pub error: Rc<RefCell<Option<Box<dyn StdError>>>>,
+    pub error: Rc<RefCell<Option<Rc<dyn StdError>>>>,
 }
 
 impl wrappedError {
@@ -38,8 +38,8 @@ impl wrappedError {
 impl StdError for wrappedError {}
 
 
-pub fn build() -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-    Rc::new(RefCell::new(Some(Box::new(wrappedError { error: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("wrapped {}", "boom".to_string()))))), ..Default::default() }) as Box<dyn StdError>)))
+pub fn build() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    Rc::new(RefCell::new(Some(Rc::new(wrappedError { error: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped {}", "boom".to_string())))))), ..Default::default() }) as Rc<dyn StdError>)))
 }
 
 fn main() {

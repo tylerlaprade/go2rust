@@ -84,13 +84,13 @@ pub mod exec {
         }
     }
 
-    pub fn look_path<T0>(_arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<String>(Default::default()))), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(Box::<dyn std::error::Error + Send + Sync>::from("executable file not found")))))
+    pub fn look_path<T0>(_arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<String>(Default::default()))), Arc::new(Mutex::new(Some::<std::sync::Arc<dyn std::error::Error + Send + Sync>>(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("executable file not found"))))))
     }
 }
 
 
 fn main() {
     let (_, mut err) = exec::look_path("__go2rust_missing_executable__".to_string());
-    println!("{}", format!("{}", (*err.lock().unwrap()).is_some()));
+    println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }));
 }

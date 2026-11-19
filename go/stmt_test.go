@@ -2005,7 +2005,7 @@ func classify(target error) string {
 		strings.Contains(rust, "let _switch_val = (*target.lock().unwrap().as_ref().unwrap()).clone()") {
 		t.Fatalf("error switch tag should keep the handle, not clone Box<dyn Error>:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let _switch_val = target.clone();") {
+	if !strings.Contains(rust, "let _switch_val = { let __err_source = target.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };") {
 		t.Fatalf("error switch tag should clone the error handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "std::ptr::addr_eq(&**__left, &**__right)") {
@@ -6254,9 +6254,11 @@ func load(v any) []*Type {
 }
 `)
 
-	if !strings.Contains(rust, "downcast_ref::<Vec<Rc<RefCell<Option<Type>>>>>()") &&
-		!strings.Contains(rust, "downcast_ref::<Vec<Arc<Mutex<Option<Type>>>>>()") {
-		t.Fatalf("slice type assertion should assert the bare slice value:\n%s", rust)
+	// A slice is boxed into an interface as its handle, so that is what the
+	// assertion has to downcast to; a bare Vec never matches.
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Vec<Rc<RefCell<Option<Type>>>>>>>>()") &&
+		!strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>>>()") {
+		t.Fatalf("slice type assertion should downcast to the boxed slice handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "rts = new_val;") {
 		t.Fatalf("slice type assertion assignment should not replace the slice handle with a bare Vec:\n%s", rust)
@@ -7278,11 +7280,11 @@ func parse() (bool, error) {
 }
 `)
 
-	if strings.Contains(rust, "Box::new(syntax_error()) as Box<dyn StdError") {
+	if strings.Contains(rust, "Rc::new(syntax_error()) as Rc<dyn StdError") {
 		t.Fatalf("pointer error call result should not box the pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*syntax_error()") ||
-		!strings.Contains(rust, ".as_ref().unwrap()).clone()) as Box<dyn StdError") {
+	if !strings.Contains(rust, "Rc::new((*syntax_error()") ||
+		!strings.Contains(rust, ".as_ref().unwrap()).clone()) as Rc<dyn StdError") {
 		t.Fatalf("pointer error call result should box the pointee clone:\n%s", rust)
 	}
 }
@@ -8342,8 +8344,8 @@ func parse() (ok bool, err error) {
 		strings.Contains(rust, "*err.lock().unwrap() = __moved_val") {
 		t.Fatalf("named error return should not assign a concrete error option into the error slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(parseError") ||
-		!strings.Contains(rust, "as Box<dyn StdError") {
+	if !strings.Contains(rust, "Rc::new(parseError") ||
+		!strings.Contains(rust, "as Rc<dyn StdError") {
 		t.Fatalf("named error return should box the concrete error value:\n%s", rust)
 	}
 }
@@ -8362,10 +8364,10 @@ func setenv() error {
 }
 `)
 
-	if strings.Contains(rust, "Box::new(EINVAL)") {
+	if strings.Contains(rust, "Rc::new(EINVAL)") {
 		t.Fatalf("typed error const return should not box the raw const:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(Errno(") {
+	if !strings.Contains(rust, "Rc::new(Errno(") {
 		t.Fatalf("typed error const return should construct the named error before boxing:\n%s", rust)
 	}
 }
@@ -9819,10 +9821,10 @@ func underlyingErrorIs(err, target error) bool {
 	if !strings.Contains(rust, "downcast_ref::<Errno>()") {
 		t.Fatalf("type assertion to an error alias should downcast to the underlying concrete error:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Errno::is(&(*e.borrow().as_ref().unwrap()), target.clone())") &&
-		!strings.Contains(rust, "Errno::is(&(*e.lock().unwrap().as_ref().unwrap()), target.clone())") &&
-		!strings.Contains(rust, "(*e.borrow().as_ref().unwrap()).is(target.clone())") &&
-		!strings.Contains(rust, "(*e.lock().unwrap().as_ref().unwrap()).is(target.clone())") {
+	if !strings.Contains(rust, "Errno::is(&(*e.borrow().as_ref().unwrap()), { let __err_source = target.clone();") &&
+		!strings.Contains(rust, "Errno::is(&(*e.lock().unwrap().as_ref().unwrap()), { let __err_source = target.clone();") &&
+		!strings.Contains(rust, "(*e.borrow().as_ref().unwrap()).is({ let __err_source = target.clone();") &&
+		!strings.Contains(rust, "(*e.lock().unwrap().as_ref().unwrap()).is({ let __err_source = target.clone();") {
 		t.Fatalf("asserted concrete error method call should unwrap the receiver:\n%s", rust)
 	}
 }
@@ -9915,6 +9917,75 @@ func pass(err error) {
 	}
 	if !strings.Contains(rust, `go_box_any_with_metadata(typed_val.clone(), "struct", true)`) {
 		t.Fatalf("error-to-any lowering should box the dynamic concrete error with go/types metadata:\n%s", rust)
+	}
+}
+
+func TestOpaqueErrorPassedToAnyKeepsItsHandle(t *testing.T) {
+	source := `package main
+
+import "errors"
+
+func take(v any) {}
+
+func pass() {
+	err := errors.New("opaque")
+	take(err)
+	var boxed any = err
+	if back, ok := boxed.(error); ok {
+		_ = back
+	}
+}
+`
+	rust := transpileTypedRegression(t, source)
+	// The message is read when the error is printed, never when it is put in
+	// the interface value: Error is user code, and a string in the box would
+	// answer x.(string).
+	if strings.Contains(rust, `Box::new(format!("{}", __err))`) {
+		t.Fatalf("error-to-any lowering should not box the error's message:\n%s", rust)
+	}
+	// The interface value holds a handle of its own on the same error, so it
+	// does not follow a later assignment to the variable it was made from.
+	if !strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any>") {
+		t.Fatalf("error-to-any lowering should box a handle on the same error:\n%s", rust)
+	}
+	if strings.Contains(rust, "error-to-any has no visible dynamic error implementors") {
+		t.Fatalf("error-to-any lowering should not panic for an error it cannot name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()") {
+		t.Fatalf("asserting an interface value to error should look for the error handle:\n%s", rust)
+	}
+}
+
+func TestTypeSwitchErrorCaseFindsTheBoxedErrorHandle(t *testing.T) {
+	source := `package main
+
+import "errors"
+
+func kind(v any) string {
+	switch x := v.(type) {
+	case error:
+		return x.Error()
+	}
+	return "other"
+}
+
+func use() string {
+	return kind(errors.New("opaque"))
+}
+`
+	rust := transpileTypedRegression(t, source)
+	// An error the package cannot name is boxed as its own handle. A case
+	// that looked for a bare Rc<dyn StdError> would never match it, and the
+	// switch would take the default branch without a word.
+	handle := "__v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()"
+	if !strings.Contains(rust, "_ts_val.and_then(|__v| "+handle+").is_some()") {
+		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let x = _ts_val.and_then(|__v| "+handle+").unwrap().clone();") {
+		t.Fatalf("the case variable should be the error handle the interface value holds:\n%s", rust)
+	}
+	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
+		t.Fatalf("case error should not look for a bare boxed error:\n%s", rust)
 	}
 }
 
