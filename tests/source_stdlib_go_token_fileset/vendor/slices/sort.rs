@@ -1,10 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::iter::*;
-use crate::r#mod::*;
-use crate::zsortanyfunc::*;
-use crate::zsortordered::*;
-
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -432,7 +427,22 @@ pub fn binary_search_func<S, E: Any + GoValueClone + Send + Sync + 'static, T: A
         let mut h = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x >> __tmp_y }) as i32)));
 
                 // i ≤ h < j
-        if { let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> = { let mut __f_guard = cmp.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }, target.clone()) }; let __tmp_y = 0; __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x =
+                {
+                    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> = {
+                        let mut __f_guard = cmp.lock().unwrap();
+                        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync>
+                    };
+                    let __f = unsafe { &mut *__f_ptr };
+                    (*__f)(
+                        { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() },
+                        target.clone()
+                    )
+                };
+            let __tmp_y = 0;
+            __tmp_x < __tmp_y
+        } {
         { let new_val = { let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; *i.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = h.lock().unwrap().as_ref().unwrap().clone(); *j.lock().unwrap() = Some(new_val); };
@@ -444,5 +454,31 @@ pub fn binary_search_func<S, E: Any + GoValueClone + Send + Sync + 'static, T: A
         // preserves cmp(x[i - 1], target) < 0
         // preserves cmp(x[j], target) >= 0
         // i == j, cmp(x[i-1], target) < 0, and cmp(x[j], target) (= cmp(x[i], target)) >= 0  =>  answer is i.
-    return ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> = { let mut __f_guard = cmp.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }, target.clone()) }; let __tmp_y = 0; __tmp_x == __tmp_y });
+    return (
+        { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v },
+        {
+            let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x =
+                        {
+                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> = {
+                                let mut __f_guard = cmp.lock().unwrap();
+                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync>
+                            };
+                            let __f = unsafe { &mut *__f_ptr };
+                            (*__f)(
+                                { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() },
+                                target.clone()
+                            )
+                        };
+                    let __tmp_y = 0;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        }
+    );
 }

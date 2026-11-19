@@ -1,9 +1,21 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
-
-use crate::serialize::*;
-use crate::r#mod::*;
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_any_clone,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
 use std::any::Any;
 use std::cell::{RefCell};
@@ -29,40 +41,38 @@ pub struct Position {
 
 impl Position {
     pub fn __go_value_clone(&self) -> Self {
-        Self { filename: { let __guard = self.filename.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, line: { let __guard = self.line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, column: { let __guard = self.column.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.filename.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.column.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            filename: __go_clone_0_0,
+            offset: __go_clone_1_0,
+            line: __go_clone_2_0,
+            column: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for Position {
     fn default() -> Self {
-        Self { filename: Arc::new(Mutex::new(Some(String::new()))), offset: Arc::new(Mutex::new(Some(0))), line: Arc::new(Mutex::new(Some(0))), column: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            filename: __go_default_0_0,
+            offset: __go_default_1_0,
+            line: __go_default_2_0,
+            column: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Position {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Filename") {
-            out.filename = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Offset") {
-            out.offset = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Line") {
-            out.line = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Column") {
-            out.column = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
     }
 }
 
@@ -485,20 +495,51 @@ pub struct File {
 
 impl File {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, size: { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mutex: self.mutex.clone(), lines: self.lines.clone(), infos: self.infos.clone() }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = self.mutex.clone();
+        let __go_clone_4_0 = self.lines.clone();
+        let __go_clone_5_0 = self.infos.clone();
+        Self {
+            name: __go_clone_0_0,
+            base: __go_clone_1_0,
+            size: __go_clone_2_0,
+            mutex: __go_clone_3_0,
+            lines: __go_clone_4_0,
+            infos: __go_clone_5_0,
+        }
     }
 }
 
 
 impl Default for File {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), base: Arc::new(Mutex::new(Some(0))), size: Arc::new(Mutex::new(Some(0))), mutex: Default::default(), lines: Arc::new(Mutex::new(None)), infos: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Default::default();
+        let __go_default_4_0 = Arc::new(Mutex::new(None));
+        let __go_default_5_0 = Arc::new(Mutex::new(None));
+        Self {
+            name: __go_default_0_0,
+            base: __go_default_1_0,
+            size: __go_default_2_0,
+            mutex: __go_default_3_0,
+            lines: __go_default_4_0,
+            infos: __go_default_5_0,
+        }
     }
 }
 
 impl std::fmt::Display for File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.base.lock().unwrap().as_ref().unwrap()), (*self.size.lock().unwrap().as_ref().unwrap()), format_slice(&self.lines), format_slice(&self.infos))
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", format_slice(&self.lines));
+        let __go_fmt_4 = format!("{}", format_slice(&self.infos));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 impl GoComparable for File {
@@ -510,14 +551,6 @@ impl GoComparable for File {
         std::hash::Hash::hash(&seed, &mut __hasher);
         std::hash::Hash::hash(&(self as *const Self as usize), &mut __hasher);
         std::hash::Hasher::finish(&__hasher) as usize
-    }
-}
-
-impl GoJsonDecode for File {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -535,40 +568,42 @@ pub struct lineInfo {
 
 impl lineInfo {
     pub fn __go_value_clone(&self) -> Self {
-        Self { offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, filename: { let __guard = self.filename.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, line: { let __guard = self.line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, column: { let __guard = self.column.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.filename.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.line.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_1 = { let __guard = self.column.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            offset: __go_clone_0_0,
+            filename: __go_clone_1_0,
+            line: __go_clone_2_0,
+            column: __go_clone_2_1,
+        }
     }
 }
 
 
 impl Default for lineInfo {
     fn default() -> Self {
-        Self { offset: Arc::new(Mutex::new(Some(0))), filename: Arc::new(Mutex::new(Some(String::new()))), line: Arc::new(Mutex::new(Some(0))), column: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_1 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            offset: __go_default_0_0,
+            filename: __go_default_1_0,
+            line: __go_default_2_0,
+            column: __go_default_2_1,
+        }
     }
 }
 
 impl std::fmt::Display for lineInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.offset.lock().unwrap().as_ref().unwrap()), (*self.filename.lock().unwrap().as_ref().unwrap()), (*self.line.lock().unwrap().as_ref().unwrap()), (*self.column.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for lineInfo {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Offset") {
-            out.offset = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Filename") {
-            out.filename = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Line") {
-            out.line = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Column") {
-            out.column = <Arc<Mutex<Option<i32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.filename.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.line.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.column.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -605,28 +640,41 @@ pub struct FileSet {
 
 impl FileSet {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mutex: self.mutex.clone(), base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, files: self.files.clone(), last: { let __guard = self.last.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.mutex.clone();
+        let __go_clone_1_0 = { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.files.clone();
+        let __go_clone_3_0 = { let __guard = self.last.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            mutex: __go_clone_0_0,
+            base: __go_clone_1_0,
+            files: __go_clone_2_0,
+            last: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for FileSet {
     fn default() -> Self {
-        Self { mutex: Default::default(), base: Arc::new(Mutex::new(Some(0))), files: Arc::new(Mutex::new(None)), last: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Default::default();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            mutex: __go_default_0_0,
+            base: __go_default_1_0,
+            files: __go_default_2_0,
+            last: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for FileSet {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), format_slice_wrapped(&self.files), (*self.last.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for FileSet {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.base.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice_wrapped(&self.files));
+        let __go_fmt_2 = format!("{}", (*self.last.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -717,7 +765,27 @@ impl File {
         self.mutex.lock();
         {
         let mut i = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
-        if ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y }) && { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+                        let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        __tmp_x < __tmp_y
+                    };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
             { let new_val = { let __append_target = self.lines.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*offset.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; self.lines = new_val; };;
         }
     }
@@ -749,8 +817,45 @@ impl File {
                         // numbered <line+1>. The entry in lines corresponding to the line
                         // numbered <line+1> is located at index <line>, since indices in lines
                         // are 0-based and line numbers are 1-based.
-            { let _dst_start = ({ let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let _dst_len = (*self.lines.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = ({ let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __seq[__low..].to_vec() }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*self.lines.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
-            { let new_val = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __high = ({ let __tmp_x = (({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __seq[..__high].to_vec() }))); self.lines = new_val; };
+            {
+                let _dst_start = ({ let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+                let _dst_len = (*self.lines.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+                let _src = (*Arc::new(Mutex::new(Some({
+                    let __seq_holder = self.lines.clone();
+                    let __seq_guard = __seq_holder.lock().unwrap();
+                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                    let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                    drop(__seq_guard);
+                    let __low = ({ let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize;
+                    let __high = __seq.len();
+                    let __max = __source_cap;
+                    if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                    let _slice = &__seq[__low..__high];
+                    let mut _v = Vec::with_capacity((__max - __low) as usize);
+                    _v.extend_from_slice(_slice);
+                    _v
+                }))).lock().unwrap().as_ref().unwrap()).clone();
+                let _n = std::cmp::min(_dst_len, _src.len());
+                for _i in 0.._n {
+                    (*self.lines.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+                }
+                Arc::new(Mutex::new(Some(_n as i32)))
+            };
+            { let new_val = Arc::new(Mutex::new(Some({
+                let __seq_holder = self.lines.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = ({ let __tmp_x = (({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
+                let __max = __source_cap;
+                if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }))); self.lines = new_val; };
 
             // Execute deferred functions
             while let Some(f) = __defer_stack.pop() {
@@ -792,7 +897,27 @@ impl File {
                 // verify validity of lines table
         let mut size = Arc::new(Mutex::new(Some({ let __selector_holder = self.size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let __range_holder = lines.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, offset) in __range_values.iter().copied().enumerate() {
-        if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = offset; let __tmp_y = { let __seq = { let __seq_holder = lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __tmp_x <= __tmp_y } || { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = offset; __tmp_x <= __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = {
+                        let __tmp_x = offset;
+                        let __tmp_y = { let __seq = { let __seq_holder = lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+                        __tmp_x <= __tmp_y
+                    };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = offset; __tmp_x <= __tmp_y };
+                __go_cond_3
+            }
+        } {
         return false;
     }
     } }
@@ -847,7 +972,11 @@ impl File {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return Arc::new(Mutex::new(Some(Pos(Arc::new(Mutex::new(Some({ let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __tmp_x + __tmp_y } as i32)))))));
+        return Arc::new(Mutex::new(Some(Pos(Arc::new(Mutex::new(Some({
+            let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+            __tmp_x + __tmp_y
+        } as i32)))))));
     }
         }));
         std::panic::set_hook(__go_previous_panic_hook);
@@ -882,8 +1011,34 @@ impl File {
         self.mutex.lock();
         {
         let mut i = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.infos.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
-        if ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __seq = { let __seq_holder = self.infos.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y }) && { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-            { let new_val = { let __append_target = self.infos.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(lineInfo { offset: Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), filename: Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), line: Arc::new(Mutex::new(Some({ let __arg_holder = line.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), column: Arc::new(Mutex::new(Some({ let __arg_holder = column.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }); __append_target.clone() }; self.infos = new_val; };;
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = {
+                        let __tmp_x = (*{ let __seq = { let __seq_holder = self.infos.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.offset.lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        __tmp_x < __tmp_y
+                    };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
+            { let new_val = { let __append_target = self.infos.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(lineInfo {
+                offset: Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                filename: Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                line: Arc::new(Mutex::new(Some({ let __arg_holder = line.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                column: Arc::new(Mutex::new(Some({ let __arg_holder = column.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                ..Default::default()
+            }); __append_target.clone() }; self.infos = new_val; };;
         }
     }
         self.mutex.unlock();
@@ -955,7 +1110,20 @@ impl File {
         {
         let mut i = search_ints({ let __field = self.lines.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-            { let __tmp_0 = { let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_1 = { let __tmp_x = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; __tmp_x - __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }; *line.lock().unwrap() = Some(__tmp_0); *column.lock().unwrap() = Some(__tmp_1); };;
+            {
+                let __tmp_0 = { let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y };
+                let __tmp_1 = {
+                    let __tmp_x = {
+                        let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        let __tmp_y = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+                        __tmp_x - __tmp_y
+                    };
+                    let __tmp_y = 1;
+                    __tmp_x + __tmp_y
+                };
+                *line.lock().unwrap() = Some(__tmp_0);
+                *column.lock().unwrap() = Some(__tmp_1);
+            };;
         }
     }
         if { let __v = (*adjusted.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (({ let __len_target = { let __field = self.infos.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
@@ -973,7 +1141,11 @@ impl File {
             if { let __tmp_x = (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).column.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let new_val = 0; *column.lock().unwrap() = Some(new_val); };
     } else if { let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let new_val = { let __tmp_x = (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).column.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x + __tmp_y }; *column.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).column.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+            __tmp_x + __tmp_y
+        }; *column.lock().unwrap() = Some(new_val); };
     };
         }
     };
@@ -1125,7 +1297,21 @@ impl FileSet {
     }));
             {
         let mut i = search_files({ let __field = self.files.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*file.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
-        if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __left = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; let __right = file.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __go_cond_0 = { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __left = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() };
+                    let __right = file.clone();
+                    let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                    let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                    __eq
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
             let mut last: Option<GoSliceElemPtr<Arc<Mutex<Option<File>>>>> = Some(GoSliceElemPtr::new(self.files.clone(), ({ let __tmp_x = (({ let __len_target = { let __field = self.files.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize));;
             { let new_val = slices::delete::<Vec<Arc<Mutex<Option<File>>>>, File>({ let __field = self.files.clone(); __field }, Arc::new(Mutex::new(Some(i))), Arc::new(Mutex::new(Some({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y })))); self.files = new_val; };;
             { let new_val = Arc::new(Mutex::new(None)); *last.as_ref().unwrap().borrow_mut() = Some(new_val); };;
@@ -1162,7 +1348,16 @@ impl FileSet {
         { let new_val = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); file = new_val; };
     }
         self.mutex.r_unlock();
-        if { let __nil_result = (*file.lock().unwrap()).is_none(); __nil_result } || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
+        if { let __nil_result = (*file.lock().unwrap()).is_none(); __nil_result } || !{
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = {
+                let mut __f_guard = f.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                file.clone()
+            )
+        } {
         break
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1177,8 +1372,37 @@ impl FileSet {
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         // common case: p is in last file.
             {
-        let mut f: GoPtr<File> = { let __go_ptr = (*self.last.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };;
-        if !f.is_nil() && { let __tmp_x = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().base.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().base.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
+        let mut f: GoPtr<File> = {
+            let __go_ptr = (*self.last.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
+            }
+        };;
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = !f.is_nil();
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().base.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_3 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = { let __tmp_x = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().base.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                    __tmp_x <= __tmp_y
+                };
+                __go_cond_3
+            } else {
+                false
+            }
+        } {
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1194,10 +1418,17 @@ impl FileSet {
     }));
                         // p is not in last file - search all files
             {
-        let mut i = search_files({ let __field = self.files.clone(); __field }, Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))));;
+        let mut i = search_files(
+            { let __field = self.files.clone(); __field },
+            Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))
+        );;
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
             let mut f = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.clone();;
-            if { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __field = (*f.lock().unwrap().as_ref().unwrap()).base.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*f.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
+            if {
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = { let __tmp_x = (*{ let __field = (*f.lock().unwrap().as_ref().unwrap()).base.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*f.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                __tmp_x <= __tmp_y
+            } {
         (*self.last.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(f.clone()));
         {
         // Execute deferred functions
@@ -1321,7 +1552,11 @@ pub fn search_ints(a: Arc<Mutex<Option<Vec<i32>>>>, x: Arc<Mutex<Option<i32>>>) 
         let mut h = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x >> __tmp_y }) as i32)));
 
                 // i ≤ h < j
-        if { let __tmp_x = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x <= __tmp_y
+        } {
         { let new_val = { let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; *i.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = h.lock().unwrap().as_ref().unwrap().clone(); *j.lock().unwrap() = Some(new_val); };
