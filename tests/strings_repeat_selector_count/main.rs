@@ -9,25 +9,32 @@ pub struct printer {
 
 impl printer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { indent: { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            indent: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for printer {
     fn default() -> Self {
-        Self { indent: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            indent: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for printer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.indent.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.indent.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 fn main() {
-    let mut p = Rc::new(RefCell::new(Some(printer { indent: Rc::new(RefCell::new(Some(3 as i32))), ..Default::default() })));
+    let mut p = Rc::new(RefCell::new(Some(printer { indent: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
     println!("{}", format!("{}", format!("{}{}", (*Rc::new(RefCell::new(Some({ let __s = "..".to_string(); let __count = { let __selector_holder = (*p.borrow().as_ref().unwrap()).indent.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __s.repeat(__count as usize) }))).borrow().as_ref().unwrap()), "x".to_string())));
 }

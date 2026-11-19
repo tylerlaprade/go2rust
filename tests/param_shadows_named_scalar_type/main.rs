@@ -16,7 +16,9 @@ impl Display for color {
 
 impl PartialEq for color {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -28,7 +30,9 @@ impl PartialEq<u32> for color {
 
 impl PartialOrd for color {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -383,20 +387,27 @@ pub struct obj {
 
 impl obj {
     pub fn __go_value_clone(&self) -> Self {
-        Self { c: { let __guard = self.c.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.c.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            c: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for obj {
     fn default() -> Self {
-        Self { c: Rc::new(RefCell::new(Some(color(Rc::new(RefCell::new(Some(0))))))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(color(Rc::new(RefCell::new(Some(0)))))));
+        Self {
+            c: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for obj {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.c.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.c.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -408,7 +419,7 @@ impl obj {
 }
 
 fn main() {
-    let mut o = Rc::new(RefCell::new(Some(obj { c: Rc::new(RefCell::new(Some(Default::default()))) })));
+    let mut o = Rc::new(RefCell::new(Some(obj { c: Rc::new(RefCell::new(Some(color(Rc::new(RefCell::new(Some(0))))))) })));
     (*o.borrow_mut().as_mut().unwrap()).set_color(Rc::new(RefCell::new(Some(color(Rc::new(RefCell::new(Some(2 as u32))))))));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some((*(*(*o.borrow().as_ref().unwrap()).c.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as u32))).borrow().as_ref().unwrap())));
 }

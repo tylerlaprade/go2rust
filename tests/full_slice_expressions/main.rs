@@ -46,7 +46,7 @@ where
 
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    let mut all = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[..].to_vec() })));
+    let mut all = Rc::new(RefCell::new(Some({ let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
     println!("{} {} {}", format!("{}", (*all.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*all.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&all)));
 
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));

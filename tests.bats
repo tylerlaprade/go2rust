@@ -763,6 +763,10 @@ run_xfail_test() {
     run_test "tests/const_basic"
 }
 
+@test "const_case_collision" {
+    run_test "tests/const_case_collision"
+}
+
 @test "const_integer_call_argument" {
     run_test "tests/const_integer_call_argument"
 }
@@ -2003,6 +2007,10 @@ run_xfail_test() {
     run_test "tests/parallel_assign_receiver_named_scalar_field"
 }
 
+@test "parallel_assign_receiver_value_field_swap" {
+    run_test "tests/parallel_assign_receiver_value_field_swap"
+}
+
 @test "parallel_assign_value_field_swap" {
     run_test "tests/parallel_assign_value_field_swap"
 }
@@ -3179,10 +3187,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
 
-@test "XFAIL: const_case_collision" {
-    run_xfail_test "tests/XFAIL/const_case_collision"
-}
-
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
 }
@@ -3201,10 +3205,6 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
-}
-
-@test "XFAIL: parallel_assign_receiver_value_field_swap" {
-    run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
 @test "XFAIL: slice_shared_with_package_variable_or_element" {

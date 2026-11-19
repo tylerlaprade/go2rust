@@ -20,7 +20,9 @@ impl Display for ServerState {
 
 impl PartialEq for ServerState {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -32,7 +34,9 @@ impl PartialEq<i32> for ServerState {
 
 impl PartialOrd for ServerState {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -93,6 +97,76 @@ impl std::ops::Sub<ServerState> for i32 {
     type Output = ServerState;
     fn sub(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for ServerState {
+    type Output = ServerState;
+    fn mul(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for ServerState {
+    type Output = ServerState;
+    fn mul(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<ServerState> for i32 {
+    type Output = ServerState;
+    fn mul(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for ServerState {
+    type Output = ServerState;
+    fn div(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for ServerState {
+    type Output = ServerState;
+    fn div(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<ServerState> for i32 {
+    type Output = ServerState;
+    fn div(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for ServerState {
+    type Output = ServerState;
+    fn neg(self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for ServerState {
+    type Output = ServerState;
+    fn rem(self, other: Self) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for ServerState {
+    type Output = ServerState;
+    fn rem(self, other: i32) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<ServerState> for i32 {
+    type Output = ServerState;
+    fn rem(self, other: ServerState) -> ServerState {
+        ServerState(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -354,7 +428,7 @@ fn __go_init_globals() {
 
 impl ServerState {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some((*stateName.borrow().as_ref().unwrap()).get(&self.clone()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()))))
+        Rc::new(RefCell::new(Some({ let __map_holder = stateName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&self.clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })))
     }
 }
 
@@ -363,7 +437,7 @@ fn main() {
     let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))))));
     println!("{}", format!("{}", { let __v = (*ns.borrow().as_ref().unwrap()).clone(); __v }));
 
-    let mut ns2 = transition(Rc::new(RefCell::new(Some((*ns.borrow().as_ref().unwrap()).clone()))));
+    let mut ns2 = transition(Rc::new(RefCell::new(Some({ let __arg_holder = ns.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     println!("{}", format!("{}", { let __v = (*ns2.borrow().as_ref().unwrap()).clone(); __v }));
 }
 

@@ -9,20 +9,27 @@ pub struct exporter {
 
 impl exporter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { indent: { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.indent.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            indent: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for exporter {
     fn default() -> Self {
-        Self { indent: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            indent: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for exporter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.indent.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.indent.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -34,13 +41,17 @@ pub struct writer {
 
 impl writer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { p: self.p.clone() }
+        let __go_clone_0_0 = self.p.clone();
+        Self {
+            p: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.p.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.p.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

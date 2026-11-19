@@ -100,7 +100,7 @@ const z: i32 = x + y;
     const untypedFloat: f64 = 3.14;
 
 
-    let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(untypedInt)));
+    let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(100)));
     let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(untypedFloat)));
     let mut mixed = Rc::new(RefCell::new(Some(untypedInt + 3)));
 

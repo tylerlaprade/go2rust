@@ -65,14 +65,20 @@ pub struct Group {
 
 impl Group {
     pub fn __go_value_clone(&self) -> Self {
-        Self { wg: self.wg.clone() }
+        let __go_clone_0_0 = self.wg.clone();
+        Self {
+            wg: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Group {
     fn default() -> Self {
-        Self { wg: WaitGroup::new() }
+        let __go_default_0_0 = WaitGroup::new();
+        Self {
+            wg: __go_default_0_0,
+        }
     }
 }
 

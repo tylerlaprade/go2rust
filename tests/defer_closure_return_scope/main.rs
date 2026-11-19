@@ -6,7 +6,7 @@ pub fn run() -> i32 {
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
 
-    let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+    let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let new_val = 7; *result_defer_captured.borrow_mut() = Some(new_val); };
         ()

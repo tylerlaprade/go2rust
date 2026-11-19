@@ -38,7 +38,13 @@ fn __go_init_globals() {
         (*x.borrow().as_ref().unwrap()) * 2
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>);
     *CombineStrings.borrow_mut() = Some(Box::new(move |a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", format!("{}{}", (*a.borrow().as_ref().unwrap()), " ".to_string()), (*b.borrow().as_ref().unwrap())))))
+        Rc::new(RefCell::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", (*a.borrow().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " ".to_string()));
+            __s.push_str(&format!("{}", (*b.borrow().as_ref().unwrap())));
+            __s
+        })))
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>);
     *ApplyTwice.borrow_mut() = Some(Box::new(move |f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>, x: Rc<RefCell<Option<i32>>>| -> i32 {
         { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) })))) }
@@ -46,6 +52,51 @@ fn __go_init_globals() {
     *GetGreeting.borrow_mut() = Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("Hello from function variable!".to_string())))
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>);
+    *DivMod.borrow_mut() = Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> (i32, i32) {
+        ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> (i32, i32)>);
+}
+
+
+pub(crate) fn __go_zero_globals() {
+}
+
+
+pub(crate) fn __go_init_order_0() {
+    *ProcessData.borrow_mut() = Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> i32 {
+        (*x.borrow().as_ref().unwrap()) * 2
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>);
+}
+
+
+pub(crate) fn __go_init_order_1() {
+    *CombineStrings.borrow_mut() = Some(Box::new(move |a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", (*a.borrow().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " ".to_string()));
+            __s.push_str(&format!("{}", (*b.borrow().as_ref().unwrap())));
+            __s
+        })))
+    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>);
+}
+
+
+pub(crate) fn __go_init_order_2() {
+    *ApplyTwice.borrow_mut() = Some(Box::new(move |f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>, x: Rc<RefCell<Option<i32>>>| -> i32 {
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) })))) }
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>, Rc<RefCell<Option<i32>>>) -> i32>);
+}
+
+
+pub(crate) fn __go_init_order_3() {
+    *GetGreeting.borrow_mut() = Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some("Hello from function variable!".to_string())))
+    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>);
+}
+
+
+pub(crate) fn __go_init_order_4() {
     *DivMod.borrow_mut() = Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> (i32, i32) {
         ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> (i32, i32)>);
@@ -70,6 +121,11 @@ fn __go_init_0() {
         Rc::new(RefCell::new(Some(format!("Dynamic: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }))))
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *DynamicFunc.borrow_mut() = Some(new_val); };
 }
+
+pub(crate) fn __go_init_functions() {
+    self::__go_init_0();
+}
+
 
 pub(crate) fn __go_init_all_funcs() {
     self::__go_init_globals();
