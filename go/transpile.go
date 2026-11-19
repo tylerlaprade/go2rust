@@ -996,7 +996,7 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 func markComparableInterfaceImplementorStructs(typeDecls []struct {
 	spec *ast.TypeSpec
 	decl *ast.GenDecl
-}, methods map[string][]*ast.FuncDecl, interfaces map[string]*ast.InterfaceType) {
+}, interfaces map[string]*ast.InterfaceType) {
 	if NeedsConcurrentWrapper() {
 		return
 	}
@@ -1014,7 +1014,8 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 			continue
 		}
 		for _, ifaceType := range interfaces {
-			if implementsInterface(methods[decl.spec.Name.Name], ifaceType) {
+			iface, ok := typeInfo.GetType(ifaceType).(*types.Interface)
+			if ok && types.Implements(obj.Type(), iface) {
 				comparableStructTypes[decl.spec.Name.Name] = true
 				break
 			}
@@ -1665,6 +1666,22 @@ func currentPackageNamedType(typeName string) (*types.Named, bool) {
 	}
 	named, ok := types.Unalias(obj.Type()).(*types.Named)
 	return named, ok
+}
+
+func resolveImplInterfaces(names []string, functionLocal map[string]*ast.InterfaceType, typeInfo *TypeInfo) map[string]*types.Interface {
+	// Function-local interfaces are emitted as Rust traits too. Resolve these
+	// at their declaration, since package scope cannot see them.
+	implInterfaces := make(map[string]*types.Interface, len(names))
+	for _, name := range names {
+		if decl := functionLocal[name]; decl != nil {
+			if iface, ok := typeInfo.GetType(decl).(*types.Interface); ok && !iface.Empty() {
+				implInterfaces[name] = iface
+			}
+		} else {
+			implInterfaces[name] = localInterfaceTypesByName(name)
+		}
+	}
+	return implInterfaces
 }
 
 func currentPackageTypeImplementsInterface(typeName string, iface *types.Interface) bool {
@@ -3025,32 +3042,6 @@ func getReceiverType(expr ast.Expr) string {
 	return "Unknown"
 }
 
-// implementsInterface checks if a type implements all methods of an interface
-func implementsInterface(typeMethods []*ast.FuncDecl, iface *ast.InterfaceType) bool {
-	// Check each interface method
-	for _, method := range iface.Methods.List {
-		if len(method.Names) == 0 {
-			continue
-		}
-		methodName := method.Names[0].Name
-
-		// Check if the type has this method
-		found := false
-		for _, typeMethod := range typeMethods {
-			if typeMethod.Name.Name == methodName {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return false
-		}
-	}
-
-	return true
-}
-
 func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (string, *ImportTracker, map[string]bool) {
 	return TranspileWithMapping(file, fileSet, typeInfo, nil)
 }
@@ -3382,7 +3373,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			registerStructTypeSpecDef(t.spec, structType)
 		}
 	}
-	markComparableInterfaceImplementorStructs(types, methods, interfaces)
+	markComparableInterfaceImplementorStructs(types, interfaces)
 	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
@@ -3464,7 +3455,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 
-	ifaceNamesForDeclaredTypes := packageLocalInterfaceNames(interfaces)
+	ifaceNames := packageLocalInterfaceNames(interfaces)
+	slices.Sort(ifaceNames)
+	implInterfaces := resolveImplInterfaces(ifaceNames, localFunctionInterfaces, typeInfo)
 	for _, t := range types {
 		typeName := t.spec.Name.Name
 		if typesWithImpls[typeName] {
@@ -3473,11 +3466,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if _, iface := localInterfaceNamedTypeByName(typeName); iface != nil {
 			continue
 		}
-		for _, ifaceName := range ifaceNamesForDeclaredTypes {
+		for _, ifaceName := range ifaceNames {
 			if prunedTypeNames[ifaceName] || localInterfaceTypeIsPruned(ifaceName) {
 				continue
 			}
-			if currentPackageTypeImplementsInterface(typeName, localInterfaceTypesByName(ifaceName)) {
+			if currentPackageTypeImplementsInterface(typeName, implInterfaces[ifaceName]) {
 				typeNames = append(typeNames, typeName)
 				typesWithImpls[typeName] = true
 				break
@@ -3606,20 +3599,17 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			// a concrete type in one file (circle.go) implements an interface
 			// declared in another (shape.go), exactly like go/types' Basic/Signature/
 			// ... implementing the Type interface from type.go. The loop body resolves
-			// each name through the package scope (localInterfaceTypesByName) and only
+			// each name through its Go declaration and only
 			// emits an impl when currentPackageTypeImplementsInterface holds. The impl
 			// belongs with the concrete type declaration; files that only add methods
 			// emit inherent impl blocks but must not duplicate trait impls.
-			// Sort interface names for deterministic output.
-			ifaceNames := packageLocalInterfaceNames(interfaces)
-			slices.Sort(ifaceNames)
 			pointerWrapperEmitted := false
 
 			for _, ifaceName := range ifaceNames {
 				if prunedTypeNames[ifaceName] || localInterfaceTypeIsPruned(ifaceName) {
 					continue
 				}
-				ifaceType := localInterfaceTypesByName(ifaceName)
+				ifaceType := implInterfaces[ifaceName]
 				if !currentPackageTypeImplementsInterface(typeName, ifaceType) {
 					continue
 				}
