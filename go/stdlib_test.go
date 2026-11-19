@@ -82,6 +82,35 @@ func wrap() error {
 	}
 }
 
+func TestFmtPrintlnClonesPackageGlobalSliceHandle(t *testing.T) {
+	source := `package main
+
+import "fmt"
+
+var global []int
+var labels map[string]int
+
+func main() {
+	fmt.Println(global, labels)
+}
+`
+
+	for _, rust := range []string{
+		transpileTypedRegression(t, source),
+		transpileTypedConcurrentRegression(t, source),
+	} {
+		if !strings.Contains(rust, "format_slice(&global.clone())") {
+			t.Fatalf("package-global slice printing should pass an ordinary collection handle to the formatter:\n%s", rust)
+		}
+		if strings.Contains(rust, "format_slice(&global)") {
+			t.Fatalf("package-global slice printing should not pass the global slot itself to the formatter:\n%s", rust)
+		}
+		if !strings.Contains(rust, "format_map(&labels.clone())") {
+			t.Fatalf("package-global map printing should clone the collection handle:\n%s", rust)
+		}
+	}
+}
+
 func TestLenOfPointerToSliceDerefUsesSliceHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
