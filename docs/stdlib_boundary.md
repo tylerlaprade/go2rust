@@ -58,7 +58,8 @@ The rules apply in this order. The first one that matches decides.
 2. A package with an entry in `stdlibBoundaryPolicy` gets the entry's tier.
    A native entry holds whatever the signals say, so `sync` is native even on
    a build where it shows none. A source+hooks entry is checked against the
-   signals: every bodyless function must be in its hook list. If the build
+   signals: every bodyless function must be in its hook list, and assembly
+   or cgo is allowed only if the entry says the package has it. If the build
    leaves no signals at all, the package is plain source.
 3. A package with no signals is **source**. The signals are mechanical, read
    for the current build configuration: assembly files, functions declared
@@ -130,6 +131,13 @@ one place.
   far less work to provide some `os` operations directly on Rust's `std::fs`.
   If so, each one is listed by name as a reviewed replacement, the way hooks
   are listed now. The package does not go back to native as a whole.
+- **`net` is source with hooks**, for the same reason as `os`.
+  `net.JoinHostPort` is a colon search and a string concatenation, and a
+  program that never opens a socket can use it. `net` declares three
+  functions without a body. Its cgo name resolver is optional: the Go
+  resolver is complete. Sockets are ordinary Go on top of `syscall` and
+  `internal/poll`. The same open question applies: dialing and listening may
+  be better provided on Rust's `std::net` as named replacements.
 - **`runtime/debug` and `runtime/metrics` are source with hooks.** The path
   starts with `runtime/`, and the packages are mostly ordinary Go: build-info
   parsing, stack formatting, metric descriptions. The runtime supplies eleven

@@ -156,6 +156,10 @@ type stdlibBoundaryDecision struct {
 	// hooks. Without it, an assembly file in a source+hooks package is an
 	// error.
 	asm bool
+	// cgo records that the package has an optional cgo path next to a
+	// complete Go one, as net has for name resolution. Without it, cgo in a
+	// source+hooks package is an error.
+	cgo bool
 	// reason is why the package sits in this tier.
 	reason string
 }
@@ -172,7 +176,6 @@ type stdlibBoundaryDecision struct {
 // toolchain adds.
 var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 	// Native: the package is the runtime or OS interface itself.
-	"net":       {tier: stdlibTierNative, reason: "OS networking on internal/poll and syscall, with per-platform sources"},
 	"os/signal": {tier: stdlibTierNative, reason: "runtime signal delivery"},
 	"os/user":   {tier: stdlibTierNative, reason: "OS user database, through cgo on some platforms"},
 	"plugin":    {tier: stdlibTierNative, reason: "runtime module loading"},
@@ -213,6 +216,7 @@ var stdlibBoundaryPolicy = map[string]stdlibBoundaryDecision{
 	"math/rand":                   {tier: stdlibTierSourceWithHooks, hooks: []string{"runtime_rand"}, reason: "runtime random seed"},
 	"math/rand/v2":                {tier: stdlibTierSourceWithHooks, hooks: []string{"runtime_rand"}, reason: "runtime random seed"},
 	"mime/multipart":              {tier: stdlibTierSourceWithHooks, hooks: []string{"readMIMEHeader"}, reason: "one function implemented in net/textproto"},
+	"net":                         {tier: stdlibTierSourceWithHooks, hooks: []string{"newUnixFile", "newWindowsFile", "runtime_rand"}, cgo: true, reason: "a random seed from the runtime and one constructor implemented in os; the cgo resolver is optional and the Go resolver is complete. Sockets are ordinary Go on top of syscall and internal/poll, which are native"},
 	"net/http":                    {tier: stdlibTierSourceWithHooks, hooks: []string{"badRoundTrip", "badServeHTTP", "readMIMEHeader"}, reason: "linkname declarations kept for outside callers, never called; one function implemented in net/textproto (Go 1.27+)"},
 	"net/url":                     {tier: stdlibTierSourceWithHooks, hooks: []string{"badSetPath"}, reason: "linkname declarations kept for outside callers; never called"},
 	"os":                          {tier: stdlibTierSourceWithHooks, hooks: []string{"checkClonePidfd", "closedir", "ignoreSIGSYS", "readdir_r", "restoreSIGSYS", "runtime_args", "runtime_beforeExit", "runtime_rand", "sigpipe"}, reason: "arguments, exit and a random seed come from the runtime, and a few libc and pidfd calls; the rest is ordinary Go on top of syscall and internal/poll, which are native"},
@@ -285,7 +289,7 @@ func stdlibBoundaryTier(importPath string, signals stdlibRuntimeSignals) (stdlib
 }
 
 func checkStdlibBoundaryHooks(importPath string, decision stdlibBoundaryDecision, signals stdlibRuntimeSignals) error {
-	if signals.UsesCgo {
+	if signals.UsesCgo && !decision.cgo {
 		return fmt.Errorf("stdlib package %q is source+hooks but uses cgo; review its entry in stdlibBoundaryPolicy", importPath)
 	}
 	if len(signals.AsmFiles) > 0 && !decision.asm {

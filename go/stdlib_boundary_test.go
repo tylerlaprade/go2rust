@@ -45,6 +45,9 @@ func TestStdlibBoundaryTierRules(t *testing.T) {
 		{name: "runtime/pprof is native by decision", path: "runtime/pprof", signals: hook("readProfile"), want: stdlibTierNative},
 		{name: "os is ordinary Go around listed runtime calls", path: "os", signals: hook("runtime_args", "runtime_beforeExit", "sigpipe"), want: stdlibTierSourceWithHooks},
 		{name: "a new runtime call in os is an error", path: "os", signals: hook("runtime_args", "runtime_newThing"), want: stdlibTierSourceWithHooks, wantError: "outside its hook list"},
+		{name: "net is ordinary Go around listed hooks", path: "net", signals: hook("newUnixFile", "runtime_rand"), want: stdlibTierSourceWithHooks},
+		{name: "net's optional cgo resolver is allowed by its entry", path: "net", signals: stdlibRuntimeSignals{UsesCgo: true, BodylessFuncs: []string{"runtime_rand"}}, want: stdlibTierSourceWithHooks},
+		{name: "a new hook in net is an error", path: "net", signals: hook("runtime_rand", "runtime_pollNewThing"), want: stdlibTierSourceWithHooks, wantError: "outside its hook list"},
 		{name: "unsafe is native", path: "unsafe", want: stdlibTierNative},
 		{name: "internal package with assembly is native", path: "internal/bytealg", signals: asm, want: stdlibTierNative},
 		{name: "internal package with hooks is native", path: "internal/poll", signals: hook("runtime_pollOpen"), want: stdlibTierNative},
@@ -138,8 +141,8 @@ func TestStdlibBoundaryPolicyIsWellFormed(t *testing.T) {
 				t.Errorf("%s: source+hooks entry lists no hooks", path)
 			}
 		case stdlibTierNative:
-			if len(decision.hooks) > 0 || decision.asm {
-				t.Errorf("%s: native entry must not list hooks or asm", path)
+			if len(decision.hooks) > 0 || decision.asm || decision.cgo {
+				t.Errorf("%s: native entry must not list hooks, asm or cgo", path)
 			}
 		default:
 			t.Errorf("%s: policy entries are for native or source+hooks packages; source needs no entry", path)
@@ -160,6 +163,8 @@ func TestStdlibBoundaryPolicyIsWellFormed(t *testing.T) {
 //   - os: IsPathSeparator lives in a per-platform file, and on every platform
 //     it is a complete Go function. A per-platform file is how Go selects
 //     source for a target. It is not a sign that the code calls the system.
+//   - net: JoinHostPort is a colon search and a string concatenation. A
+//     program that never opens a socket can use it.
 func TestStdlibBoundaryIsDecidedPerDeclaration(t *testing.T) {
 	if os.Getenv("GO2RUST_STDLIB_BOUNDARY_TARGET") != "" {
 		t.Skip("this test sets its own targets")
@@ -171,6 +176,7 @@ func TestStdlibBoundaryIsDecidedPerDeclaration(t *testing.T) {
 	}{
 		{pkg: "runtime/debug", withBody: []string{"ParseBuildInfo", "ReadBuildInfo", "Stack"}, hooks: []string{"modinfo"}},
 		{pkg: "os", withBody: []string{"IsPathSeparator", "IsNotExist", "Getenv"}, hooks: []string{"runtime_args"}},
+		{pkg: "net", withBody: []string{"JoinHostPort", "SplitHostPort", "ParseIP", "Dial"}, hooks: []string{"runtime_rand"}},
 	}
 	for _, target := range []string{"linux/amd64", "darwin/arm64", "windows/amd64"} {
 		t.Setenv("GO2RUST_STDLIB_BOUNDARY_TARGET", target)
