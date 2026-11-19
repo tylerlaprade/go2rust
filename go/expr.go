@@ -14586,9 +14586,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					} else {
 						TranspileExpression(out, elt)
 					}
-					out.WriteString(") as Box<dyn ")
-					out.WriteString(interfaceName)
-					out.WriteString(">")
+					if isEmptyInterfaceType(elemType) {
+						// In a program with goroutines an interface value is
+						// Box<dyn Any + Send + Sync>. Every element has to be
+						// that type, or the slice cannot be copied or ranged.
+						out.WriteString(") as ")
+						out.WriteString(rustAnyTraitObject())
+					} else {
+						out.WriteString(") as Box<dyn ")
+						out.WriteString(interfaceName)
+						out.WriteString(">")
+					}
 				} else {
 					if elemType == nil && writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
 						continue

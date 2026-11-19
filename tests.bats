@@ -975,6 +975,10 @@ run_xfail_test() {
     run_test "tests/error_in_interface_value"
 }
 
+@test "error_in_interface_value_goroutines" {
+    run_test "tests/error_in_interface_value_goroutines"
+}
+
 @test "error_map_values" {
     run_test "tests/error_map_values"
 }
