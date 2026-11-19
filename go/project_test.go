@@ -7962,3 +7962,64 @@ func main() {
 		t.Fatalf("deref of a GoPtr-to-interface should read the pointee via .borrow() and rewrap, got:\n%s", mainRS)
 	}
 }
+
+// A map keyed by an interface of the package uses the key type written next
+// to the interface's trait, in the interface's own file. A file in another
+// module that holds such a map imports that key type. And the trait of an
+// interface that embeds another one comes with adapters that spell out every
+// method of the embedded interface, so the types in those signatures are
+// imported too. go/types, translated from source, needed both: its objMap is
+// keyed by Object, declared in object.go, and its dependency interface embeds
+// Object, whose Type method returns a Type, declared in type.go.
+func TestSiblingImportsCoverInterfaceMapKeysAndEmbeddedMethods(t *testing.T) {
+	fset := token.NewFileSet()
+	parse := func(name, src string) *ast.File {
+		file, err := parser.ParseFile(fset, name, src, parser.ParseComments|parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse %s: %v", name, err)
+		}
+		return file
+	}
+	typeFile := parse("type.go", `package p
+
+type Type interface{ String() string }
+`)
+	objectFile := parse("object.go", `package p
+
+type Object interface{ Type() Type }
+`)
+	checkFile := parse("check.go", `package p
+
+type checker struct{ objMap map[Object]int }
+`)
+	orderFile := parse("initorder.go", `package p
+
+type dependency interface {
+	Object
+	isDependency()
+}
+`)
+	files := []*ast.File{typeFile, objectFile, checkFile, orderFile}
+	typeInfo, err := NewTypeInfoWithImporter("example.com/p", files, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{
+		Package:        NewPackageState(),
+		PackageMapping: map[string]string{"example.com/p": "example_com_p"},
+	})
+	defer SetTranspileContext(prevCtx)
+
+	imports := packageSiblingItemImports(files, []string{"r#type", "object", "check", "initorder"}, typeInfo)
+	joined := func(module string) string { return strings.Join(imports[module], " ") }
+	if got := joined("check"); !strings.Contains(got, "GoObjectInterfaceKey") {
+		t.Errorf("check.go holds a map keyed by Object, so it must import GoObjectInterfaceKey; got %q", got)
+	}
+	if got := joined("initorder"); !strings.Contains(got, "Type") {
+		t.Errorf("initorder.go's adapters for the embedded Object spell out Type() Type, so it must import Type; got %q", got)
+	}
+	if got := joined("object"); strings.Contains(got, "InterfaceKey") {
+		t.Errorf("object.go holds no map; got %q", got)
+	}
+}
