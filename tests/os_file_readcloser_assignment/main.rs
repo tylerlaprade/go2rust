@@ -265,5 +265,8 @@ fn main() {
             panic!("{}", (*err.borrow().as_ref().unwrap()));;
         }
     }
-    eprintln!("{}", format!("{}", "closed".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "closed".to_string());
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

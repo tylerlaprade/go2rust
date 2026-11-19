@@ -97,7 +97,7 @@ pub mod os {
 fn main() {
     if false {
         let (mut info, mut err) = os::stat(".".to_string());
-        if (*err.borrow()).is_none() {
+        if { let __nil_result = (*err.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", (*info.borrow().as_ref().unwrap()).is_dir()));
     }
     }

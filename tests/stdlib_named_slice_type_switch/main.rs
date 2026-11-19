@@ -60,7 +60,7 @@ pub fn describe(mut err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
         println!("{}", format!("{}", (*(*item.borrow().as_ref().unwrap()).msg.borrow().as_ref().unwrap()).clone()));
     } };
     } else {
-        let err = err.clone();
+        let err = _ts_subject.clone();
         drop(_ts_guard);
         println!("{}", format!("{}", "other".to_string()));;
     }

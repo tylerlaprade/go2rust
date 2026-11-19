@@ -92,5 +92,5 @@ pub mod exec {
 
 fn main() {
     let (_, mut err) = exec::look_path("__go2rust_missing_executable__".to_string());
-    println!("{}", format!("{}", (*err.lock().unwrap()).is_some()));
+    println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }));
 }

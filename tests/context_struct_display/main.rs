@@ -302,20 +302,24 @@ impl std::fmt::Debug for GoContext {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct holder {
     pub ctx: Arc<Mutex<Option<GoContext>>>,
 }
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ctx: self.ctx.clone() }
+        let __go_clone_0_0 = self.ctx.clone();
+        Self {
+            ctx: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.ctx.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.ctx.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

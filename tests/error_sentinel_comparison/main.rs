@@ -11,7 +11,7 @@ pub mod io {
 
 
 pub fn same(err: Rc<RefCell<Option<Box<dyn StdError>>>>) -> bool {
-    (*err.borrow()).is_none() == (*io::EOF().borrow()).is_none()
+    { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq }
 }
 
 fn main() {

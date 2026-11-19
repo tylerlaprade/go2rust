@@ -157,7 +157,8 @@ pub struct plainErr {
 
 impl plainErr {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -184,7 +185,7 @@ pub fn classify(mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) ->
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val = _ts_guard.as_ref();
     {
-        let err = err.clone();
+        let err = _ts_subject.clone();
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));;
     }

@@ -152,7 +152,9 @@ impl Display for Mode {
 
 impl PartialEq for Mode {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -164,7 +166,9 @@ impl PartialEq<i32> for Mode {
 
 impl PartialOrd for Mode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -225,6 +229,76 @@ impl std::ops::Sub<Mode> for i32 {
     type Output = Mode;
     fn sub(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Mode {
+    type Output = Mode;
+    fn mul(self, other: Self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Mode {
+    type Output = Mode;
+    fn mul(self, other: i32) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Mode> for i32 {
+    type Output = Mode;
+    fn mul(self, other: Mode) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Mode {
+    type Output = Mode;
+    fn div(self, other: Self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Mode {
+    type Output = Mode;
+    fn div(self, other: i32) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Mode> for i32 {
+    type Output = Mode;
+    fn div(self, other: Mode) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Mode {
+    type Output = Mode;
+    fn neg(self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Mode {
+    type Output = Mode;
+    fn rem(self, other: Self) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Mode {
+    type Output = Mode;
+    fn rem(self, other: i32) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Mode> for i32 {
+    type Output = Mode;
+    fn rem(self, other: Mode) -> Mode {
+        Mode(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -465,27 +539,54 @@ pub struct Request {
 
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
-        Self { mode: { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, env: self.env.clone(), build_flags: self.build_flags.clone(), tests: { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, overlay: self.overlay.clone() }
+        let __go_clone_0_0 = { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.env.clone();
+        let __go_clone_2_0 = self.build_flags.clone();
+        let __go_clone_3_0 = { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_4_0 = self.overlay.clone();
+        Self {
+            mode: __go_clone_0_0,
+            env: __go_clone_1_0,
+            build_flags: __go_clone_2_0,
+            tests: __go_clone_3_0,
+            overlay: __go_clone_4_0,
+        }
     }
 }
 
 
 impl Default for Request {
     fn default() -> Self {
-        Self { mode: Rc::new(RefCell::new(Some(Mode(Rc::new(RefCell::new(Some(0))))))), env: Rc::new(RefCell::new(None)), build_flags: Rc::new(RefCell::new(None)), tests: Rc::new(RefCell::new(Some(false))), overlay: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Mode(Rc::new(RefCell::new(Some(0)))))));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        let __go_default_2_0 = Rc::new(RefCell::new(None));
+        let __go_default_3_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_4_0 = Rc::new(RefCell::new(None));
+        Self {
+            mode: __go_default_0_0,
+            env: __go_default_1_0,
+            build_flags: __go_default_2_0,
+            tests: __go_default_3_0,
+            overlay: __go_default_4_0,
+        }
     }
 }
 
 impl std::fmt::Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.mode.borrow().as_ref().unwrap()), format_slice(&self.env), format_slice(&self.build_flags), (*self.tests.borrow().as_ref().unwrap()), "<map>")
+        let __go_fmt_0 = format!("{}", (*self.mode.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.env));
+        let __go_fmt_2 = format!("{}", format_slice(&self.build_flags));
+        let __go_fmt_3 = format!("{}", (*self.tests.borrow().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", "<map>");
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
 
 fn main() {
     let mut overlay = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<u8>>>>>::new())));
-    { let __map_key = "b.go".to_string(); let __map_value = Rc::new(RefCell::new(Some(vec![0, 1, 255]))); (*overlay.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "b.go".to_string(); let __map_value = Rc::new(RefCell::new(Some(vec![0 as u8, 1 as u8, 255 as u8]))); (*overlay.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "a.go".to_string(); let __map_value = Rc::new(RefCell::new(Some(("tmp-a".to_string()).as_bytes().to_vec()))); (*overlay.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     let mut req = Rc::new(RefCell::new(Some(Request { mode: Rc::new(RefCell::new(Some(Mode(Rc::new(RefCell::new(Some(3 as i32))))))), env: Rc::new(RefCell::new(Some(vec!["B=2".to_string(), "A=1".to_string()]))), build_flags: Rc::new(RefCell::new(Some(vec!["-tags".to_string(), "dev".to_string()]))), tests: Rc::new(RefCell::new(Some(true))), overlay: overlay.clone(), ..Default::default() })));

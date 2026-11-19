@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug, Clone, Default)]
 pub struct exec_Cmd {
     pub args: Arc<Mutex<Option<Vec<String>>>>,
+    pub env: Arc<Mutex<Option<Vec<String>>>>,
 }
 
 impl std::fmt::Display for exec_Cmd {
@@ -13,13 +14,21 @@ impl std::fmt::Display for exec_Cmd {
 }
 
 impl exec_Cmd {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+	    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+	        None
+	    }
+
+	    pub fn environ(&self) -> Arc<Mutex<Option<Vec<String>>>> {
+        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
+        if let Some(cmd_env) = self.env.lock().unwrap().as_ref() {
+            env.extend(cmd_env.iter().cloned());
+        }
+        Arc::new(Mutex::new(Some::<Vec<String>>(env)))
     }
 
     fn __go_error(message: String) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(Box::<dyn StdError + Send + Sync>::from(message))))
-    }
+	        Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(Box::<dyn StdError + Send + Sync>::from(message))))
+	    }
 
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
         let args = self.args.lock().unwrap().as_ref().cloned().unwrap_or_default();
@@ -28,6 +37,13 @@ impl exec_Cmd {
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
+        if let Some(env) = self.env.lock().unwrap().as_ref() {
+            for item in env {
+                if let Some((key, value)) = item.split_once('=') {
+                    command.env(key, value);
+                }
+            }
+        }
         command.output()
     }
 
@@ -164,8 +180,12 @@ pub mod exec {
 
 
 fn main() {
-    let (mut out, mut err) = { let __recv = exec::command("go".to_string(), ("list".to_string(), "-e".to_string(), "-f".to_string(), "{{context.ReleaseTags}}".to_string(), "--".to_string(), "unsafe".to_string())); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).output(); __result };
-    if (*err.lock().unwrap()).is_some() {
+    let (mut out, mut err) = {
+        let __recv = exec::command("go".to_string(), ("list".to_string(), "-e".to_string(), "-f".to_string(), "{{context.ReleaseTags}}".to_string(), "--".to_string(), "unsafe".to_string()));
+        let __result = (*__recv.lock().unwrap().as_mut().unwrap()).output();
+        __result
+    };
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", "error".to_string()));
         return;
     }
