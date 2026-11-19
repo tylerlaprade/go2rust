@@ -91,6 +91,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isSlice                   bool
 		isMap                     bool
 		isInterface               bool
+		isError                   bool
 		isFunction                bool
 		funcSlice                 bool
 		anySlice                  bool
@@ -119,6 +120,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isSlice := field.Type.(*ast.ArrayType)
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
+		isError := structDisplayFieldIsError(field.Type)
 		isFunction := isFunctionSignatureTypeExpr(field.Type)
 		funcSlice := arrayFieldContainsFunction(field.Type)
 		anySlice := sliceFieldContainsEmptyInterface(field.Type)
@@ -149,6 +151,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isSlice:                   isSlice,
 					isMap:                     isMap,
 					isInterface:               isInterface,
+					isError:                   isError,
 					isFunction:                isFunction,
 					funcSlice:                 funcSlice,
 					anySlice:                  anySlice,
@@ -205,11 +208,21 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	writeDisplayFieldValue := func(f fieldEntry) {
 		if f.isInterface {
-			NeedFormatAny()
-			out.WriteString("format_any(self.")
+			// A nil interface field prints as <nil>. The zero value of a
+			// struct has one, so this is the common case, not a corner.
+			// The value in the field is inside the struct, where Go prints
+			// a pointer as its address. format_any_nested knows that.
+			NeedFormatAnyNested()
+			out.WriteString("match self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().as_ref())")
+			out.WriteString(".as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => \"<nil>\".to_string() }")
+		} else if f.isError {
+			// The same for an error field: nil until something fails.
+			out.WriteString("match self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref() { Some(__v) => format!(\"{}\", __v), None => \"<nil>\".to_string() }")
 		} else if f.isFunction {
 			out.WriteString("\"<func>\"")
 		} else if f.funcSlice {
@@ -309,6 +322,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	writeStructDisplayWriteCall(out, len(fields))
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+// structDisplayFieldIsError reports whether a struct field's declared type is
+// the predeclared error interface, or an alias of it. It asks go/types and
+// nothing else: the spelling of the type says nothing reliable, because a
+// package can declare its own type named error. Without type information the
+// answer is no, and the field keeps the formatting it had before.
+func structDisplayFieldIsError(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isErrorInterfaceType(typeInfo.GetType(expr))
 }
 
 func writeStructDisplayWriteCall(out *strings.Builder, fieldCount int) {
@@ -1196,11 +1222,36 @@ func generateStructValueClone(out *strings.Builder, structName string, structTyp
 	out.WriteString("}\n")
 }
 
-func generateStructClone(out *strings.Builder, structName string, generics rustTypeGenerics) {
+// generateStructClone writes Clone for a struct with type parameters, which
+// does not derive it. It is the Clone every other struct derives: each field
+// cell's handle is cloned, so the clone is the same struct again. Pointer
+// receivers depend on that: "self.clone()" is how a method hands on its
+// receiver. Go's copy of the struct is __go_value_clone.
+func generateStructClone(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	rustStructName := RustTypeNameForUse(structName)
 	writeRustTraitImplHeader(out, generics, "Clone", rustStructName)
 	out.WriteString("    fn clone(&self) -> Self {\n")
-	out.WriteString("        self.__go_value_clone()\n")
+	out.WriteString("        Self {\n")
+	if structType != nil {
+		for fieldIndex, field := range structType.Fields.List {
+			fieldNames := field.Names
+			if len(fieldNames) == 0 {
+				fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
+			}
+			for nameIndex, name := range fieldNames {
+				fieldName := rustStructFieldName(name, fieldIndex, nameIndex)
+				out.WriteString("            ")
+				out.WriteString(fieldName)
+				out.WriteString(": self.")
+				out.WriteString(fieldName)
+				out.WriteString(".clone(),\n")
+			}
+		}
+	}
+	if len(generics.Phantom) > 0 {
+		out.WriteString("            __go_phantom: std::marker::PhantomData,\n")
+	}
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
@@ -1228,7 +1279,19 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new((*__guard).clone())) }")
+	out.WriteString("::new(")
+	if copyCall, known := goValueCopyCallForExpr(fieldType); !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+	} else if copyCall != ".clone()" {
+		// A struct inside the struct, or an array of them, is a value too:
+		// the copy gets its own.
+		out.WriteString("(*__guard).as_ref().map(|__go_field| __go_field")
+		out.WriteString(copyCall)
+		out.WriteString(")")
+	} else {
+		out.WriteString("(*__guard).clone()")
+	}
+	out.WriteString(")) }")
 }
 
 func structCloneFieldKeepsHandle(expr ast.Expr) bool {
@@ -5626,7 +5689,7 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 	generateStructValueClone(out, structName, t, generics)
 	if !deriveClone {
 		out.WriteString("\n")
-		generateStructClone(out, structName, generics)
+		generateStructClone(out, structName, t, generics)
 	}
 	out.WriteString("\n")
 
@@ -5850,6 +5913,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 			}
+			writeNamedArrayValueClone(out, typeSpec, rustTypeName)
 
 			// Add Display implementation for displayable scalar type definitions
 			if IsStringerImplType(typeSpec.Name.Name) {
@@ -9226,6 +9290,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			WriteWrapperOptionPrefix(out)
 			out.WriteString("Some(self.clone())")
 			WriteWrapperOptionSuffix(out)
+		} else if currentReceiverIsStructValue() {
+			// A value receiver is the method's own copy of the struct.
+			out.WriteString("self" + goStructValueCopyCall)
 		} else {
 			out.WriteString("self.clone()")
 		}

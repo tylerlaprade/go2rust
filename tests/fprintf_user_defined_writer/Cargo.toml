@@ -19,7 +19,6 @@ name = "fprintf_user_defined_writer"
 path = "main.rs"
 
 [dependencies]
-serde_json = "1"
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 internal_bytealg = { path = "vendor/internal_bytealg" }

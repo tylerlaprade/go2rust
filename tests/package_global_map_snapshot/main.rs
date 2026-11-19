@@ -39,8 +39,8 @@ fn main() {
     let mut old = Rc::new(RefCell::new(Some((*current.borrow().as_ref().unwrap()).clone())));
     { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("new".to_string()))))])))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *current.borrow_mut() = new_val; };
     { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new(Some("saved".to_string()))); (*old.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{}", format!("{}", (*current.borrow().as_ref().unwrap()).get(&"a".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new())));
-    println!("{} {}", format!("{}", (*old.borrow().as_ref().unwrap()).get(&"a".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new())), format!("{}", (*old.borrow().as_ref().unwrap()).get(&"b".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new())));
+    println!("{}", format!("{}", { let __map_holder = current.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+    println!("{} {}", format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
 }
 
 pub(crate) fn __go_init_all() {

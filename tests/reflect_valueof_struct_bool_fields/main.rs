@@ -292,20 +292,32 @@ pub struct Flags {
 
 impl Flags {
     pub fn __go_value_clone(&self) -> Self {
-        Self { alpha: { let __guard = self.alpha.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, beta: { let __guard = self.beta.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.alpha.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.beta.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            alpha: __go_clone_0_0,
+            beta: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Flags {
     fn default() -> Self {
-        Self { alpha: Rc::new(RefCell::new(Some(false))), beta: Rc::new(RefCell::new(Some(false))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(false)));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(false)));
+        Self {
+            alpha: __go_default_0_0,
+            beta: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Flags {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.alpha.borrow().as_ref().unwrap()), (*self.beta.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.alpha.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.beta.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

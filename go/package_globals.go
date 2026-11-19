@@ -1513,9 +1513,9 @@ func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGloba
 	if isGoErrorType(exprType) {
 		out.WriteString("    { let __rhs_holder = ")
 		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; guard.take() }; *")
+		out.WriteString(".clone(); let new_val = (*__rhs_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString(").clone(); *")
 		out.WriteString(rustPackageGlobalName(global.name))
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = new_val; }\n")

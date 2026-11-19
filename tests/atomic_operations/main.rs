@@ -12,7 +12,9 @@ impl Display for namedState {
 
 impl PartialEq for namedState {
     fn eq(&self, other: &Self) -> bool {
-        self.0.lock().unwrap().as_ref().unwrap() == other.0.lock().unwrap().as_ref().unwrap()
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -24,7 +26,9 @@ impl PartialEq<u32> for namedState {
 
 impl PartialOrd for namedState {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 

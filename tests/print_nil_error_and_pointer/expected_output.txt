@@ -1,0 +1,29 @@
+<nil>
+result: <nil>
+<nil>
+<nil> and 3
+<nil>
+<nil>
+got <nil>
+missing
+result: missing
+missing missing
+missing
+<nil>
+point: <nil>
+<nil>
+<nil>
+&{1 2}
+&{1 2}
+status 7
+status 7 status 7
+gauge 3
+gauge 3
+broken: z
+gauge: gauge 3 broken: broken: z
+<nil>
+<nil>
+broken: declared
+timeout after 3s
+true true
+<nil> true

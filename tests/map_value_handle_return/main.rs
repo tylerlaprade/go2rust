@@ -10,20 +10,27 @@ pub struct Method {
 
 impl Method {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Method {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -56,8 +63,8 @@ fn __go_init_globals() {
 
 
 pub fn lookup(methods: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>>>>>>, receiver: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>> {
-    if (*receiver.borrow().as_ref().unwrap()).clone() != "" && ((*(*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
-        return (*methods.borrow().as_ref().unwrap()).get(&(*receiver.borrow().as_ref().unwrap()).clone()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default());
+    if (*receiver.borrow().as_ref().unwrap()).clone() != "".to_string() && ((*{ let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
+        return { let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     }
     fallback.clone()
 }

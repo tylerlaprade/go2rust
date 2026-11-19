@@ -38,13 +38,17 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { table: self.table.clone() }
+        let __go_clone_0_0 = self.table.clone();
+        Self {
+            table: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.table))
+        let __go_fmt_0 = format!("{}", format_map(&self.table));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -58,8 +62,8 @@ fn main() {
         ;
     });
     let mut h = Arc::new(Mutex::new(Some(holder { table: Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<String>>>>::from([(1, Arc::new(Mutex::new(Some("one".to_string()))))])))), ..Default::default() })));
-    println!("{}", format!("{}", { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(&1).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+    println!("{}", format!("{}", { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
     remove(h.clone(), Arc::new(Mutex::new(Some(1))));
-    let (_, mut ok) = { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; match __map.get(&1) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(String::new()))), Arc::new(Mutex::new(Some(false)))) } };
-    println!("{}", format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    let (_, mut ok) = { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&1)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(String::new()))), false) } };
+    println!("{}", format!("{}", ok));
 }

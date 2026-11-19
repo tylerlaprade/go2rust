@@ -151,7 +151,16 @@ impl<T> Iterator for GoChannel<T> {
 
 pub fn run(f: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>, done: GoChannel<String>) {
     let done_thread = done.clone(); let f_thread = f.clone(); std::thread::spawn(move || {
-        done_thread.send((*{ let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __f_guard = f_thread.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.lock().unwrap().as_ref().unwrap()).clone());;;
+        done_thread.send((*{
+            let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
+                let mut __f_guard = f_thread.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+
+            )
+        }.lock().unwrap().as_ref().unwrap()).clone());;;
     });
 }
 

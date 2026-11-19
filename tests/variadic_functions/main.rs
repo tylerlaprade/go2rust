@@ -32,7 +32,7 @@ pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Op
 }
 
 pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
-    let mut minimum = Rc::new(RefCell::new(Some(first.borrow().as_ref().unwrap().clone())));
+    let mut minimum = { let __owned = first.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let __range_holder = rest.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         if num < (*minimum.borrow().as_ref().unwrap()) {
         { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
@@ -46,10 +46,10 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
         return Rc::new(RefCell::new(Some("".to_string())));
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));
-    for str in &{ let __seq = { let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() } {
+    for str in &{ let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v } {
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*separator.borrow().as_ref().unwrap()), str)); };
     }
-    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
+    return { let __owned = result.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
 }
 
 fn main() {

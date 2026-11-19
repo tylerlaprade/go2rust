@@ -168,7 +168,7 @@ fn main() {
 
         // Only index
     println!("{}", format!("{}", "Indices only:".to_string()));
-    for i in 0..({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
+    for i in 0..(({ let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         print!("{} ", i);
     }
     println!();
@@ -193,11 +193,11 @@ fn main() {
 
     let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let new_val = { let __append_target = sortedNames.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(name.clone()); __append_target.clone() }; sortedNames = new_val; };
+        { let new_val = { let __append_target = sortedNames.clone(); let __append_value = name.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; sortedNames = new_val; };
     }
-    { let mut __sort_guard = sortedNames.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    { let __sort_target = sortedNames.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = sortedNames.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        print!("{} is {} years old\n", name, { let __map = { let __map_holder = ages.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }; __map.get(name).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+        print!("{} is {} years old\n", name, { let __map = { let __map_holder = ages.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(name)).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
     } }
 
         // Only keys
