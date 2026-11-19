@@ -52,8 +52,8 @@ pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32,
 
 pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
     let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
-    if (*err.borrow()).is_some() {
-        return (0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, format!("{}", (*err.borrow().as_ref().unwrap()))))))));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        return (0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }))))));
     }
     (num, Rc::new(RefCell::new(None)))
 }
@@ -99,7 +99,7 @@ pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
 }
 
 pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
-    (Rc::new(RefCell::new(Some(b.borrow().as_ref().unwrap().clone()))), Rc::new(RefCell::new(Some(a.borrow().as_ref().unwrap().clone()))))
+    ({ let __owned = b.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }, { let __owned = a.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) })
 }
 
 /// Function returning multiple values of different types
@@ -122,7 +122,7 @@ pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Op
         return (i as i32, true);
     }
     } }
-    (-1, false)
+    (-(1), false)
 }
 
 /// Multiple returns with error handling
@@ -148,15 +148,15 @@ fn main() {
         // Multiple returns with error handling
     println!("{}", format!("{}", "\n=== Multiple returns with errors ===".to_string()));
     let (mut num, mut err) = parse_number(Rc::new(RefCell::new(Some("123".to_string()))));
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Parsed number: {}\n", num);
     }
 
     { let (__tmp_0, __tmp_1) = parse_number(Rc::new(RefCell::new(Some("abc".to_string())))); num = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Parsed number: {}\n", num);
     }
@@ -205,15 +205,15 @@ fn main() {
         // Safe division
     println!("{}", format!("{}", "\n=== Safe division ===".to_string()));
     let (mut result, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(3.0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("10.0 / 3.0 = {:.2}\n", result);
     }
 
     { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Result: {:.2}\n", result);
     }
@@ -232,6 +232,11 @@ fn main() {
     print!("a={}, b={}, c={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 
         // Reassignment with multiple returns
-    { let __tmp_0 = (*b.borrow().as_ref().unwrap()); let __tmp_1 = (*a.borrow().as_ref().unwrap()); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+    {
+        let __tmp_0 = (*b.borrow().as_ref().unwrap()).clone();
+        let __tmp_1 = (*a.borrow().as_ref().unwrap()).clone();
+        *a.borrow_mut() = Some(__tmp_0);
+        *b.borrow_mut() = Some(__tmp_1);
+    };
     print!("After swap: a={}, b={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v });
 }

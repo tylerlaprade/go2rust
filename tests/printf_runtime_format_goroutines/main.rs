@@ -1112,7 +1112,7 @@ fn main() {
             }
         }
     }]))));
-    println!("{}", format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
+    println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new(43) as Box<dyn Any + Send + Sync>], false));
     let mut pair = Arc::new(Mutex::new(Some("%s=%d".to_string())));
     let mut b: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));

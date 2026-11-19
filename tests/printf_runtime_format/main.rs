@@ -958,7 +958,7 @@ fn main() {
             }
         }
     }]))));
-    println!("{}", format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43) as Box<dyn Any>], false));
     let mut pair = Rc::new(RefCell::new(Some("%s=%d".to_string())));
     let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
