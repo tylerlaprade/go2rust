@@ -110,6 +110,7 @@ func main() {
 	// %w is for an error. fmt reports it for a number or a string.
 	fmt.Println(errorf("%w", 5))
 	fmt.Println(errorf("%w and %w", "text", failed))
+	fmt.Println(errorf("%w", []byte{65, 66}))
 	fmt.Fprintf(os.Stdout, f, 43)
 	pair := "%s=%d"
 	var b strings.Builder

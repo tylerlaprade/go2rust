@@ -222,4 +222,15 @@ func main() {
 	show("%s", sprintf("%s", []byte("direct")))
 	show("%10s|", sprintf("%10s|", data))
 	show("%.2s", sprintf("%.2s", data))
+
+	// A verb that does not print a []byte as text is applied to each byte.
+	pair := []byte{1, 2}
+	show("%d", sprintf("%d", data))
+	show("%c", sprintf("%c", data))
+	show("%5v", sprintf("%5v", pair))
+	show("%03d|%-4d|%+d", sprintf("%03d|%-4d|%+d", pair, pair, pair))
+	show("%o %b %U", sprintf("%o %b %U", []byte{8}, []byte{5}, []byte{65}))
+	show("%t", sprintf("%t", pair))
+	show("%w", sprintf("%w", pair))
+	show("%v|%d", sprintf("%v|%d", []byte{}, []byte{}))
 }

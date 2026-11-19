@@ -35,6 +35,7 @@ plain
 code 7: inner
 %!w(int=5)
 %!w(string=text) and failed
+[%!w(uint8=65) %!w(uint8=66)]
 value: 43
 k=1
 cart has 3 items

@@ -583,6 +583,11 @@ fn go_format_float_magnitude(verb: char, precision: Option<usize>, shortest: &st
 }
 
 fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> Option<String> {
+    // fmt also writes a float in binary (%b) and in hex (%x). Neither is
+    // done here.
+    if matches!(verb, 'b' | 'x' | 'X') {
+        panic!("go2rust: %{} of a float is not supported in a format that is only known at run time", verb);
+    }
     if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
         return None;
     }
@@ -761,8 +766,16 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         let guard = v.lock().unwrap();
-        if let Some(text) = go_format_bytes(spec, verb, guard.as_deref().unwrap_or(&[])) {
+        let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
+        if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
+        }
+        // Any other verb is applied to each byte, between brackets. A verb
+        // that does not fit a number is reported for each byte. %#v writes
+        // the slice as Go source, which is not done here.
+        if !sharp_v {
+            let items: Vec<String> = bytes.iter().map(|byte| go_format_integer(&basic, verb, *byte as i128).unwrap_or_else(|| format!("%!{}(uint8={})", verb, byte))).collect();
+            return Some(format!("[{}]", items.join(" ")));
         }
     }
     // A value with a String or an Error method is the text that method
@@ -899,7 +912,8 @@ fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) ->
         };
         next += 1;
         // In fmt.Errorf %w prints an error as %v does. A number, a string, a
-        // bool or a []byte is not an error, and fmt reports the verb.
+        // bool or a []byte is not an error, and fmt reports the verb: once
+        // for a scalar, and for each byte of a []byte.
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
@@ -1471,6 +1485,7 @@ fn main() {
             }
         }
     }])))).lock().unwrap().as_ref().unwrap()))));
+    println!("{}", format!("{}", format!("{}", (*errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![65 as u8, 66 as u8]))).clone()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()))));
     print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new(43) as Box<dyn Any + Send + Sync>], false));
     let mut pair = Arc::new(Mutex::new(Some("%s=%d".to_string())));
     let mut b: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
