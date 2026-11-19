@@ -1347,8 +1347,8 @@ func wrap(errno Errno) *PathError {
 	if strings.Contains(rust, "err: errno.clone()") {
 		t.Fatalf("error struct field should not clone the concrete error handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "err: Rc::new(RefCell::new(Some(Box::new((*errno.borrow().as_ref().unwrap()).clone()) as Box<dyn StdError>)))") &&
-		!strings.Contains(rust, "err: Arc::new(Mutex::new(Some(Box::new((*errno.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))") {
+	if !strings.Contains(rust, "err: Rc::new(RefCell::new(Some(Rc::new((*errno.borrow().as_ref().unwrap()).clone()) as Rc<dyn StdError>)))") &&
+		!strings.Contains(rust, "err: Arc::new(Mutex::new(Some(Arc::new((*errno.lock().unwrap().as_ref().unwrap()).clone()) as Arc<dyn StdError + Send + Sync>)))") {
 		t.Fatalf("error struct field should box the concrete error value:\n%s", rust)
 	}
 }
@@ -1368,7 +1368,10 @@ func wrap(err error) *PathError {
 	if strings.Contains(rust, "err.lock().unwrap().as_ref().unwrap()).clone()") {
 		t.Fatalf("error interface struct field should not clone the boxed trait object:\n%s", rust)
 	}
-	if !strings.Contains(rust, "err: err.clone()") {
+	// The field gets its own handle on the same error. Sharing the
+	// parameter's handle would make the field follow a later assignment to
+	// the parameter.
+	if !strings.Contains(rust, "err: { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }") {
 		t.Fatalf("error interface struct field should clone the error handle:\n%s", rust)
 	}
 }
@@ -1407,7 +1410,7 @@ func check(err error) bool {
 		strings.Contains(rust, "io::EOF.borrow().as_ref().unwrap()).clone()") {
 		t.Fatalf("errors.Is selector error argument should not clone the boxed trait object:\n%s", rust)
 	}
-	if !strings.Contains(rust, "errors::is(err.clone(), { let __field = io::EOF.clone(); __field })") {
+	if !strings.Contains(rust, "errors::is({ let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, { let __err_source = { let __field = io::EOF.clone(); __field }; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) })") {
 		t.Fatalf("errors.Is selector error argument should pass the error handle:\n%s", rust)
 	}
 }
@@ -2387,12 +2390,11 @@ func use() {
 }
 `)
 
-	if strings.Contains(rust, `Box<dyn std::error::Error`) &&
-		strings.Contains(rust, `.as_ref().unwrap()).clone()`) {
-		t.Fatalf("variadic error elements should not unwrap returned error handles to boxed payloads:\n%s", rust)
+	if strings.Contains(rust, `.as_ref().unwrap()).clone()`) {
+		t.Fatalf("variadic error elements should not unwrap returned error handles to their payloads:\n%s", rust)
 	}
-	if !strings.Contains(rust, `join(Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("one".to_string())))), Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("two".to_string()))))])))`) &&
-		!strings.Contains(rust, `join(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("one".to_string())))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("two".to_string()))))])))`) {
+	if !strings.Contains(rust, `join(Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("one".to_string()))))), Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("two".to_string())))))]))))`) &&
+		!strings.Contains(rust, `join(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("one".to_string()))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("two".to_string())))))]))))`) {
 		t.Fatalf("variadic error elements should keep returned error handles:\n%s", rust)
 	}
 	if !strings.Contains(rust, `Rc::new(RefCell::new(None))`) &&
@@ -4911,10 +4913,10 @@ func box() any {
 }
 `)
 
-	if !strings.Contains(rust, "Box::new(Arc::new(Mutex::new(None::<Option<Box<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>") {
+	if !strings.Contains(rust, "Box::new(Arc::new(Mutex::new(None::<Option<Arc<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>") {
 		t.Fatalf("error pointer nil conversion should preserve the typed nil pointer payload:\n%s", rust)
 	}
-	if !strings.Contains(rust, `go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Box<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true)`) {
+	if !strings.Contains(rust, `go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Arc<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true)`) {
 		t.Fatalf("error pointer nil conversion boxed as any should register Go pointer metadata:\n%s", rust)
 	}
 }

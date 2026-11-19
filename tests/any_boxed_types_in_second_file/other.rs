@@ -15,9 +15,9 @@ pub fn type_name(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Stri
 
 pub fn report() {
     let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1))))]))));
-    let mut failed = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<Box<dyn StdError>>>> {
+    let mut failed = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         Rc::new(RefCell::new(None))
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<Box<dyn StdError>>>>>)));
+    }) as Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>)));
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(counts.clone()) as Box<dyn Any>, Box::new(failed.clone()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>])));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         print!("{}\n", __go_type_name(item.as_ref()));

@@ -5,7 +5,7 @@ use std::rc::{Rc};
 
 #[derive(Clone, Default)]
 pub struct holder {
-    pub err: Rc<RefCell<Option<Box<dyn StdError>>>>,
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
 }
 
 impl holder {
@@ -26,6 +26,6 @@ impl std::fmt::Display for holder {
 
 
 fn main() {
-    let mut h = Rc::new(RefCell::new(Some(holder { err: Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string())))), ..Default::default() })));
+    let mut h = Rc::new(RefCell::new(Some(holder { err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))), ..Default::default() })));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*h.borrow().as_ref().unwrap()).err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }

@@ -420,7 +420,7 @@ impl std::fmt::Display for Missing {
 #[derive(Clone)]
 pub struct Outcome {
     pub value: Rc<RefCell<Option<i32>>>,
-    pub err: Rc<RefCell<Option<Box<dyn StdError>>>>,
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
 }
 
 impl Outcome {
@@ -456,7 +456,7 @@ impl std::fmt::Display for Outcome {
 
 
 /// Failure is another name for error. A field of this type is an error field.
-pub type Failure = Rc<RefCell<Option<Box<dyn StdError>>>>;
+pub type Failure = Rc<RefCell<Option<Rc<dyn StdError>>>>;
 
 
 #[derive(Clone, Default)]
@@ -583,7 +583,7 @@ fn main() {
         // printer, and when the pointer is an element of a slice of interfaces.
     println!("{} {}", format!("{}", "struct value, boxed:".to_string()), format!("{}", (*shape(render(Rc::new(RefCell::new(Some(Box::new({ let __v = (*r#loop.borrow().as_ref().unwrap()).clone(); __v }) as Box<dyn Any>)))), Rc::new(RefCell::new(Some("{loop 0x".to_string())))).borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "struct value, typed:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", { let __v = (*r#loop.borrow().as_ref().unwrap()).clone(); __v })))), Rc::new(RefCell::new(Some("{loop 0x".to_string())))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", format!("&{}", (*r#loop.borrow().as_ref().unwrap())))))), Rc::new(RefCell::new(Some("&{loop 0x".to_string())))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", { let __text = match r#loop.borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })))), Rc::new(RefCell::new(Some("&{loop 0x".to_string())))).borrow().as_ref().unwrap())));
     { let new_val = render(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("holder".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(tail.clone()) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
     println!("{} {} {}", format!("{}", "struct holding a pointer:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some("{holder 0x".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap())));
     let mut mixed = Rc::new(RefCell::new(Some(vec![Box::new(tail.clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])));
@@ -602,10 +602,10 @@ fn main() {
     show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("full".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
     println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(1))), ..Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(3))), err: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed"))))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(3))), err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("failed")))))), ..Default::default() }) as Box<dyn Any>))));
     println!("{}", format!("{}", Report { err: Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Report { err: Default::default() }) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new(Report { err: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("reported"))))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Report { err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("reported")))))), ..Default::default() }) as Box<dyn Any>))));
 
         // A String or Error method that prints starts a print call of its own.
         // The pointer it prints is expanded, however deep the value with the
@@ -618,8 +618,8 @@ fn main() {
     let mut labels = Rc::new(RefCell::new(Some(vec![Box::new(Label { x: Rc::new(RefCell::new(Some(8))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])));
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", format_any_slice(&labels))))), Rc::new(RefCell::new(Some("[&{8 0} 0x".to_string())))).borrow().as_ref().unwrap())));
     println!("{}", format_any_variadic(&labels));
-    println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(4))), err: Rc::new(RefCell::new(Some(Box::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Box<dyn StdError>))), ..Default::default() }));
-    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("outer".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(5))), err: Rc::new(RefCell::new(Some(Box::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Box<dyn StdError>))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
+    println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(4))), err: Rc::new(RefCell::new(Some(Rc::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Rc<dyn StdError>))), ..Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("outer".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(5))), err: Rc::new(RefCell::new(Some(Rc::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Rc<dyn StdError>))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
 
         // A pointer to a type with a String or Error method prints through the
         // method, at the top level and inside another value. A nil one is <nil>.

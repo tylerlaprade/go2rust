@@ -644,5 +644,5 @@ fn main() {
     let mut errorFormat = Rc::new(RefCell::new(Some("dynamic error".to_string())));
 
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&(*messageFormat.borrow().as_ref().unwrap()).clone(), &[], false))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", { let __text = match Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("{}", go_sprintf(&(*errorFormat.borrow().as_ref().unwrap()).clone(), &[], true)))))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __text = match Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf(&(*errorFormat.borrow().as_ref().unwrap()).clone(), &[], true))))))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

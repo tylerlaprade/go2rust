@@ -33,7 +33,7 @@ fn format_any_nested(value: &dyn Any) -> String {
 
 #[derive(Clone, Default)]
 pub struct wrappedErr {
-    pub err: Rc<RefCell<Option<Box<dyn StdError>>>>,
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
     pub tag: Rc<RefCell<Option<Box<dyn Any>>>>,
 }
 
@@ -59,7 +59,7 @@ impl std::fmt::Display for wrappedErr {
 
 pub fn may_panic(triggerPanic: Rc<RefCell<Option<bool>>>) {
     if (*triggerPanic.borrow().as_ref().unwrap()) {
-        panic!("{}", wrappedErr { err: Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string())))), tag: Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>))), ..Default::default() });
+        panic!("{}", wrappedErr { err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))), tag: Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>))), ..Default::default() });
     }
     println!("{}", format!("{}", "no panic".to_string()));
 }

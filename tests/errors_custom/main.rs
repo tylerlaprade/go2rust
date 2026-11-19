@@ -48,16 +48,16 @@ impl argError {
 impl StdError for argError {}
 
 
-pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (-(1), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("can't work with 42".to_string())))));
+        return (-(1), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("can't work with 42".to_string()))))));
     }
     ((*arg.borrow().as_ref().unwrap()) + 3, Rc::new(RefCell::new(None)))
 }
 
-pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (-(1), Rc::new(RefCell::new(Some(Box::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Box<dyn StdError>))));
+        return (-(1), Rc::new(RefCell::new(Some(Rc::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Rc<dyn StdError>))));
     }
     ((*arg.borrow().as_ref().unwrap()) + 3, Rc::new(RefCell::new(None)))
 }

@@ -1,6 +1,78 @@
+use std::any::Any;
+use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+}
+
+fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
+    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => {
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<String>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<&'static str>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i32>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i64>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let _payload = match payload.downcast::<bool>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(_payload) => _payload,
+    };
+    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        std::panic::panic_any(payload);
+    }
+}
 
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
@@ -149,65 +221,88 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-    {
+        {
         { let new_val = ch.recv().unwrap_or_default(); *err.lock().unwrap() = new_val; };
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return err;
+        return err.clone();
+    }
+    }));
+    std::panic::set_hook(__go_previous_panic_hook);
+    match __go_panic_result {
+        Ok(__go_value) => __go_value,
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            go_resume_unrecovered_panic();
+            err.clone()
+        }
     }
 }
 
-pub fn select_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn select_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
     loop {
         if let Some(err) = ch.try_recv() {
             let mut err = Arc::new(Mutex::new(err));
-            return err.clone();
+            return { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
         }
         return Arc::new(Mutex::new(None));
     }
+    unreachable!()
 }
 
-pub fn local_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn local_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
     let mut err = Arc::new(Mutex::new(ch.recv().unwrap_or_default()));
-    return err.clone();
+    return { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
 }
 
-pub fn comma_receive(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> (bool, bool) {
-    let (mut err, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(v)), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)), Arc::new(Mutex::new(Some(false)))) };
-    return ((*err.lock().unwrap()).is_some(), { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v });
+pub fn comma_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> (bool, bool) {
+    let (mut err, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(v)), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), Arc::new(Mutex::new(Some(false)))) };
+    return (
+        { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result },
+        { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }
+    );
 }
 
-pub fn comma_assign(ch: GoChannel<Option<Box<dyn StdError + Send + Sync>>>) -> (bool, bool) {
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+pub fn comma_assign(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> (bool, bool) {
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-    match ch.recv() { Some(v) => { *err.lock().unwrap() = v; *ok.lock().unwrap() = Some(true); }, None => { *err.lock().unwrap() = None::<Box<dyn StdError + Send + Sync>>; *ok.lock().unwrap() = Some(false); } };
-    return ((*err.lock().unwrap()).is_some(), { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    match ch.recv() { Some(v) => { *err.lock().unwrap() = v; *ok.lock().unwrap() = Some(true); }, None => { *err.lock().unwrap() = None::<Arc<dyn StdError + Send + Sync>>; *ok.lock().unwrap() = Some(false); } };
+    return (
+        { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result },
+        { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }
+    );
 }
 
 fn main() {
-    let mut ch = GoChannel::<Option<Box<dyn StdError + Send + Sync>>>::new_buffered(2 as usize);
-    let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    ch.send({ let __err_handle = err.clone(); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
-    println!("{}", format!("{}", (*receive(ch.clone()).lock().unwrap()).is_none()));
-    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("boom".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
-    println!("{}", format!("{}", (*select_receive(ch.clone()).lock().unwrap()).is_some()));
-    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("local".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
-    println!("{}", format!("{}", (*local_receive(ch.clone()).lock().unwrap()).is_some()));
-    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("comma".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
+    let mut ch = GoChannel::<Option<Arc<dyn StdError + Send + Sync>>>::new_buffered(2 as usize);
+    let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    ch.send({ let __err_handle = err.clone(); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value });
+    println!("{}", format!("{}", { let __nil_result = (*receive(ch.clone()).lock().unwrap()).is_none(); __nil_result }));
+    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value });
+    println!("{}", format!("{}", { let __nil_result = (*select_receive(ch.clone()).lock().unwrap()).is_some(); __nil_result }));
+    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("local".to_string()))))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value });
+    println!("{}", format!("{}", { let __nil_result = (*local_receive(ch.clone()).lock().unwrap()).is_some(); __nil_result }));
+    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("comma".to_string()))))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value });
     let (mut hasErr, mut ok) = comma_receive(ch.clone());
     println!("{} {}", format!("{}", hasErr), format!("{}", ok));
-    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("assign".to_string())))); let mut __err_guard = __err_handle.lock().unwrap(); __err_guard.take() });
+    ch.send({ let __err_handle = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("assign".to_string()))))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value });
     { let (__tmp_0, __tmp_1) = comma_assign(ch.clone()); hasErr = __tmp_0; ok = __tmp_1; };
     println!("{} {}", format!("{}", hasErr), format!("{}", ok));
 }

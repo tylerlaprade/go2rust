@@ -50,10 +50,10 @@ pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32,
     ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))
 }
 
-pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-    let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
+pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        return (0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }))))));
+        return (0, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))))));
     }
     (num, Rc::new(RefCell::new(None)))
 }
@@ -126,12 +126,12 @@ pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Op
 }
 
 /// Multiple returns with error handling
-pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut result: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     if (*b.borrow().as_ref().unwrap()) == 0.0 {
-        return (0.0, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("division by zero"))))));
+        return (0.0, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("division by zero")))))));
     }
     ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)))
 }

@@ -963,6 +963,14 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_copy_and_identity" {
+    run_test "tests/error_copy_and_identity"
+}
+
+@test "error_copy_and_identity_goroutines" {
+    run_test "tests/error_copy_and_identity_goroutines"
+}
+
 @test "error_field_return" {
     run_test "tests/error_field_return"
 }
