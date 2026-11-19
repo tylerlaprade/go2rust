@@ -1519,6 +1519,10 @@ run_xfail_test() {
     run_test "tests/map_comma_ok_value_copy_goroutines"
 }
 
+@test "map_len_integer_key" {
+    run_test "tests/map_len_integer_key"
+}
+
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
 }
