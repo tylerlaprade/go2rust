@@ -11224,6 +11224,21 @@ func mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath string, expectedFieldType ty
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	if lit, ok := value.(*ast.CompositeLit); ok && lit.Type == nil {
+		if named, sliceType, ok := namedSliceTypeFromType(valueType); ok {
+			// The map stores the defined slice in its own cell. The slice
+			// payload still needs its inner handle, as in an explicit literal.
+			WriteWrapperPrefix(out)
+			out.WriteString(goTypesNamedTypeToRust(named))
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
+			writeBareSliceCompositeLiteral(out, lit, sliceType)
+			WriteWrapperSuffix(out)
+			out.WriteString(")")
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
 	if isGoErrorMapValueType(valueExpr, valueType) && writeGoErrorHandleValue(out, value) {
 		return
 	}
