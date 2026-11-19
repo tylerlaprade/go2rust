@@ -29,7 +29,7 @@ fn __go_init_globals() {
 
 
 fn __go_init_0() {
-    for i in 0..({ let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) {
+    for i in 0..(({ let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         (*labels.borrow_mut().as_mut().unwrap())[(i) as usize] = (*Rc::new(RefCell::new(Some(format!("label-{}", i)))).borrow().as_ref().unwrap()).clone();
     }
 }

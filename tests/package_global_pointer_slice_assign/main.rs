@@ -9,20 +9,27 @@ pub struct Comment {
 
 impl Comment {
     pub fn __go_value_clone(&self) -> Self {
-        Self { text: { let __guard = self.text.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.text.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            text: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Comment {
     fn default() -> Self {
-        Self { text: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            text: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Comment {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.text.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.text.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

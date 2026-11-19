@@ -51,13 +51,17 @@ pub struct dict {
 
 impl dict {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tparams: self.tparams.clone() }
+        let __go_clone_0_0 = self.tparams.clone();
+        Self {
+            tparams: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for dict {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.tparams))
+        let __go_fmt_0 = format!("{}", format_slice(&self.tparams));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -70,13 +74,20 @@ pub struct reader {
 
 impl reader {
     pub fn __go_value_clone(&self) -> Self {
-        Self { dict: self.dict.clone(), later: self.later.clone() }
+        let __go_clone_0_0 = self.dict.clone();
+        let __go_clone_1_0 = self.later.clone();
+        Self {
+            dict: __go_clone_0_0,
+            later: __go_clone_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.dict.borrow().as_ref().unwrap()), { let __guard = self.later.borrow(); match __guard.as_ref() { Some(__v) => format!("[{}]", std::iter::repeat("<func>").take(__v.len()).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } })
+        let __go_fmt_0 = format!("{}", { let __guard = self.dict.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __guard = self.later.borrow(); match __guard.as_ref() { Some(__v) => format!("[{}]", std::iter::repeat("<func>").take(__v.len()).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -85,7 +96,7 @@ impl reader {
     pub fn collect(&mut self, vals: Rc<RefCell<Option<Vec<i32>>>>) {
         let mut tparams = (*self.dict.borrow().as_ref().unwrap()).tparams.clone();
         let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let new_val = { let __append_target = self.later.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(Rc::new(RefCell::new(Some(Box::new(move || {
-        { let __range_holder = vals.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
+        { let __range_holder = vals_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         (*tparams_closure_clone.borrow_mut().as_mut().unwrap())[(i) as usize] = val;
     } }
     }) as Box<dyn FnMut() -> ()>)))); __append_target.clone() }; self.later = new_val; };

@@ -6,10 +6,10 @@ use std::sync::{Arc, Mutex};
 /// where p.output is an io.Writer. Without proper handling, the call lowers
 /// to `print!(...)` which returns () and the destructure fails.
 fn main() {
-    bytes::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
     let (mut n, mut err) = { let __s = format!("answer={}", 42); (*buf.clone().lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };

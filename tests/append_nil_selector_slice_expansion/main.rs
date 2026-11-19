@@ -52,20 +52,32 @@ pub struct invocation {
 
 impl invocation {
     pub fn __go_value_clone(&self) -> Self {
-        Self { verb: { let __guard = self.verb.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, build_flags: self.build_flags.clone() }
+        let __go_clone_0_0 = { let __guard = self.verb.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.build_flags.clone();
+        Self {
+            verb: __go_clone_0_0,
+            build_flags: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for invocation {
     fn default() -> Self {
-        Self { verb: Rc::new(RefCell::new(Some(String::new()))), build_flags: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            verb: __go_default_0_0,
+            build_flags: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for invocation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.verb.borrow().as_ref().unwrap()), format_slice(&self.build_flags))
+        let __go_fmt_0 = format!("{}", (*self.verb.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.build_flags));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

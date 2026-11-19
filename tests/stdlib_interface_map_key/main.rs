@@ -212,13 +212,17 @@ pub struct entry {
 
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { obj: self.obj.clone() }
+        let __go_clone_0_0 = self.obj.clone();
+        Self {
+            obj: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.obj.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.obj.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

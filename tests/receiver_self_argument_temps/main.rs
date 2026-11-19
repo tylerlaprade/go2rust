@@ -51,13 +51,17 @@ pub struct r#box {
 
 impl r#box {
     pub fn __go_value_clone(&self) -> Self {
-        Self { items: self.items.clone() }
+        let __go_clone_0_0 = self.items.clone();
+        Self {
+            items: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for r#box {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.items))
+        let __go_fmt_0 = format!("{}", format_slice(&self.items));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -69,17 +73,17 @@ impl r#box {
 
     pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) -> i32 {
         { let new_val = { let __append_target = self.items.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push((*x.borrow().as_ref().unwrap()).clone()); __append_target.clone() }; self.items = new_val; };
-        (*self.items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
+        ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32
     }
 
     pub fn flush(&mut self) {
-        { let __method_arg0 = Rc::new(RefCell::new(Some((*self.items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))); self.print(__method_arg0) };
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __method_arg0 = Rc::new(RefCell::new(Some((*self.items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))); self.add(__method_arg0) }))); self.print(__method_arg0) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some(({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32))); self.print(__method_arg0) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __method_arg0 = Rc::new(RefCell::new(Some(({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32))); self.add(__method_arg0) }))); self.print(__method_arg0) };
     }
 }
 
 fn main() {
     let mut b = Rc::new(RefCell::new(Some(r#box { items: Rc::new(RefCell::new(Some(vec![1, 2, 3]))), ..Default::default() })));
     (*b.borrow_mut().as_mut().unwrap()).flush();
-    println!("{}", format!("{}", (*(*b.borrow().as_ref().unwrap()).items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len_target = { let __field = (*b.borrow().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
 }

@@ -38,7 +38,9 @@ impl Display for Pos {
 
 impl PartialEq for Pos {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -50,7 +52,9 @@ impl PartialEq<i32> for Pos {
 
 impl PartialOrd for Pos {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -412,20 +416,27 @@ pub struct Position {
 
 impl Position {
     pub fn __go_value_clone(&self) -> Self {
-        Self { offset: { let __guard = self.offset.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.offset.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            offset: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Position {
     fn default() -> Self {
-        Self { offset: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            offset: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.offset.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.offset.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -437,12 +448,12 @@ pub fn position(p: Rc<RefCell<Option<Pos>>>) -> Rc<RefCell<Option<Position>>> {
 pub fn set(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
     { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, mut arg) in __range_values.into_iter().enumerate() {
         {
-    let _ts_ref = arg;
+    let _ts_ref = &arg;
     let _ts_is_nil = false;
     let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<Pos>()).is_some() {
         let arg = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Pos>()).unwrap().clone())));
-        (*args.borrow_mut().as_mut().unwrap())[(i) as usize] = Box::new((*position(Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap()).clone()) as Box<dyn Any>;;
+        (*args.borrow_mut().as_mut().unwrap())[(i) as usize] = Box::new((*position(Rc::new(RefCell::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).clone()) as Box<dyn Any>;;
     }
     }
     } }
@@ -450,5 +461,8 @@ pub fn set(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
 }
 
 fn main() {
-    eprintln!("{}", format!("{}", set(Rc::new(RefCell::new(Some(vec![Box::new(Pos(Rc::new(RefCell::new(Some(42 as i32))))) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>, Box::new(Pos(Rc::new(RefCell::new(Some(7 as i32))))) as Box<dyn Any>]))))));
+    {
+            let __go_print_arg_0 = format!("{}", set(Rc::new(RefCell::new(Some(vec![Box::new(Pos(Rc::new(RefCell::new(Some(42 as i32))))) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>, Box::new(Pos(Rc::new(RefCell::new(Some(7 as i32))))) as Box<dyn Any>])))));
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

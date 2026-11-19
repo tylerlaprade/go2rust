@@ -216,20 +216,27 @@ pub struct Holder {
 
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { elems: { let __guard = self.elems.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.elems.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            elems: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Holder {
     fn default() -> Self {
-        Self { elems: Arc::new(Mutex::new(Some(std::array::from_fn(|_| vec![])))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| vec![]))));
+        Self {
+            elems: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_nested_slice(&self.elems))
+        let __go_fmt_0 = format!("{}", format_nested_slice(&self.elems));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

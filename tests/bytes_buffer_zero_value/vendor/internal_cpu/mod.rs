@@ -2,9 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{format_slice, format_slice_values, format_slice_wrapped};
 
-use crate::cpu_arm64::*;
-use crate::cpu_arm64_darwin::*;
-use crate::cpu_no_name::*;
+use crate::{cpu_x86::{CACHE_LINE_PAD_SIZE}};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -13,33 +11,32 @@ use std::sync::{Arc, Mutex};
 /// CacheLinePad is used to pad structs to avoid false sharing.
 #[derive(Debug, Clone)]
 pub struct CacheLinePad {
-    pub __blank_0_0: Arc<Mutex<Option<[u8; 128]>>>,
+    pub __blank_0_0: Arc<Mutex<Option<[u8; 64]>>>,
 }
 
 impl CacheLinePad {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for CacheLinePad {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            __blank_0_0: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for CacheLinePad {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.__blank_0_0))
-    }
-}
-
-impl GoJsonDecode for CacheLinePad {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", format_slice(&self.__blank_0_0));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -55,40 +52,42 @@ pub struct option {
 
 impl option {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, feature: self.feature.clone(), specified: { let __guard = self.specified.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, enable: { let __guard = self.enable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.feature.clone();
+        let __go_clone_2_0 = { let __guard = self.specified.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.enable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            feature: __go_clone_1_0,
+            specified: __go_clone_2_0,
+            enable: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for option {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), feature: Arc::new(Mutex::new(None)), specified: Arc::new(Mutex::new(Some(false))), enable: Arc::new(Mutex::new(Some(false))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        Self {
+            name: __go_default_0_0,
+            feature: __go_default_1_0,
+            specified: __go_default_2_0,
+            enable: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for option {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), { let __guard = self.feature.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.specified.lock().unwrap().as_ref().unwrap()), (*self.enable.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for option {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Name") {
-            out.name = <Arc<Mutex<Option<String>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Feature") {
-            out.feature = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Specified") {
-            out.specified = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Enable") {
-            out.enable = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.feature.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.specified.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.enable.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -176,91 +175,163 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s: { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_d_x: { let __guard = self.has_a_d_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x: { let __guard = self.has_a_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x2: { let __guard = self.has_a_v_x2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x512_f: { let __guard = self.has_a_v_x512_f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x512_b_w: { let __guard = self.has_a_v_x512_b_w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_v_x512_v_l: { let __guard = self.has_a_v_x512_v_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_b_m_i1: { let __guard = self.has_b_m_i1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_b_m_i2: { let __guard = self.has_b_m_i2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_r_m_s: { let __guard = self.has_e_r_m_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_f_s_r_m: { let __guard = self.has_f_s_r_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_f_m_a: { let __guard = self.has_f_m_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_o_s_x_s_a_v_e: { let __guard = self.has_o_s_x_s_a_v_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_p_c_l_m_u_l_q_d_q: { let __guard = self.has_p_c_l_m_u_l_q_d_q.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_p_o_p_c_n_t: { let __guard = self.has_p_o_p_c_n_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_r_d_t_s_c_p: { let __guard = self.has_r_d_t_s_c_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a: { let __guard = self.has_s_h_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_e3: { let __guard = self.has_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_s_e3: { let __guard = self.has_s_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_e41: { let __guard = self.has_s_s_e41.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_s_e42: { let __guard = self.has_s_s_e42.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_22_0: { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_a_d_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_a_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_a_v_x2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.has_a_v_x512_f.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.has_a_v_x512_b_w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.has_a_v_x512_v_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.has_b_m_i1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.has_b_m_i2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.has_e_r_m_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.has_f_s_r_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.has_f_m_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.has_o_s_x_s_a_v_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.has_p_c_l_m_u_l_q_d_q.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.has_p_o_p_c_n_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.has_r_d_t_s_c_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_17_0 = { let __guard = self.has_s_h_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = { let __guard = self.has_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_19_0 = { let __guard = self.has_s_s_s_e3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_20_0 = { let __guard = self.has_s_s_e41.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_21_0 = { let __guard = self.has_s_s_e42.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_a_e_s: __go_clone_1_0,
+            has_a_d_x: __go_clone_2_0,
+            has_a_v_x: __go_clone_3_0,
+            has_a_v_x2: __go_clone_4_0,
+            has_a_v_x512_f: __go_clone_5_0,
+            has_a_v_x512_b_w: __go_clone_6_0,
+            has_a_v_x512_v_l: __go_clone_7_0,
+            has_b_m_i1: __go_clone_8_0,
+            has_b_m_i2: __go_clone_9_0,
+            has_e_r_m_s: __go_clone_10_0,
+            has_f_s_r_m: __go_clone_11_0,
+            has_f_m_a: __go_clone_12_0,
+            has_o_s_x_s_a_v_e: __go_clone_13_0,
+            has_p_c_l_m_u_l_q_d_q: __go_clone_14_0,
+            has_p_o_p_c_n_t: __go_clone_15_0,
+            has_r_d_t_s_c_p: __go_clone_16_0,
+            has_s_h_a: __go_clone_17_0,
+            has_s_s_e3: __go_clone_18_0,
+            has_s_s_s_e3: __go_clone_19_0,
+            has_s_s_e41: __go_clone_20_0,
+            has_s_s_e42: __go_clone_21_0,
+            __blank_22_0: __go_clone_22_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_a_e_s: Arc::new(Mutex::new(Some(false))), has_a_d_x: Arc::new(Mutex::new(Some(false))), has_a_v_x: Arc::new(Mutex::new(Some(false))), has_a_v_x2: Arc::new(Mutex::new(Some(false))), has_a_v_x512_f: Arc::new(Mutex::new(Some(false))), has_a_v_x512_b_w: Arc::new(Mutex::new(Some(false))), has_a_v_x512_v_l: Arc::new(Mutex::new(Some(false))), has_b_m_i1: Arc::new(Mutex::new(Some(false))), has_b_m_i2: Arc::new(Mutex::new(Some(false))), has_e_r_m_s: Arc::new(Mutex::new(Some(false))), has_f_s_r_m: Arc::new(Mutex::new(Some(false))), has_f_m_a: Arc::new(Mutex::new(Some(false))), has_o_s_x_s_a_v_e: Arc::new(Mutex::new(Some(false))), has_p_c_l_m_u_l_q_d_q: Arc::new(Mutex::new(Some(false))), has_p_o_p_c_n_t: Arc::new(Mutex::new(Some(false))), has_r_d_t_s_c_p: Arc::new(Mutex::new(Some(false))), has_s_h_a: Arc::new(Mutex::new(Some(false))), has_s_s_e3: Arc::new(Mutex::new(Some(false))), has_s_s_s_e3: Arc::new(Mutex::new(Some(false))), has_s_s_e41: Arc::new(Mutex::new(Some(false))), has_s_s_e42: Arc::new(Mutex::new(Some(false))), __blank_22_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_a_e_s: __go_default_1_0,
+            has_a_d_x: __go_default_2_0,
+            has_a_v_x: __go_default_3_0,
+            has_a_v_x2: __go_default_4_0,
+            has_a_v_x512_f: __go_default_5_0,
+            has_a_v_x512_b_w: __go_default_6_0,
+            has_a_v_x512_v_l: __go_default_7_0,
+            has_b_m_i1: __go_default_8_0,
+            has_b_m_i2: __go_default_9_0,
+            has_e_r_m_s: __go_default_10_0,
+            has_f_s_r_m: __go_default_11_0,
+            has_f_m_a: __go_default_12_0,
+            has_o_s_x_s_a_v_e: __go_default_13_0,
+            has_p_c_l_m_u_l_q_d_q: __go_default_14_0,
+            has_p_o_p_c_n_t: __go_default_15_0,
+            has_r_d_t_s_c_p: __go_default_16_0,
+            has_s_h_a: __go_default_17_0,
+            has_s_s_e3: __go_default_18_0,
+            has_s_s_s_e3: __go_default_19_0,
+            has_s_s_e41: __go_default_20_0,
+            has_s_s_e42: __go_default_21_0,
+            __blank_22_0: __go_default_22_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_a_e_s.lock().unwrap().as_ref().unwrap()), (*self.has_a_d_x.lock().unwrap().as_ref().unwrap()), (*self.has_a_v_x.lock().unwrap().as_ref().unwrap()), (*self.has_a_v_x2.lock().unwrap().as_ref().unwrap()), (*self.has_a_v_x512_f.lock().unwrap().as_ref().unwrap()), (*self.has_a_v_x512_b_w.lock().unwrap().as_ref().unwrap()), (*self.has_a_v_x512_v_l.lock().unwrap().as_ref().unwrap()), (*self.has_b_m_i1.lock().unwrap().as_ref().unwrap()), (*self.has_b_m_i2.lock().unwrap().as_ref().unwrap()), (*self.has_e_r_m_s.lock().unwrap().as_ref().unwrap()), (*self.has_f_s_r_m.lock().unwrap().as_ref().unwrap()), (*self.has_f_m_a.lock().unwrap().as_ref().unwrap()), (*self.has_o_s_x_s_a_v_e.lock().unwrap().as_ref().unwrap()), (*self.has_p_c_l_m_u_l_q_d_q.lock().unwrap().as_ref().unwrap()), (*self.has_p_o_p_c_n_t.lock().unwrap().as_ref().unwrap()), (*self.has_r_d_t_s_c_p.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a.lock().unwrap().as_ref().unwrap()), (*self.has_s_s_e3.lock().unwrap().as_ref().unwrap()), (*self.has_s_s_s_e3.lock().unwrap().as_ref().unwrap()), (*self.has_s_s_e41.lock().unwrap().as_ref().unwrap()), (*self.has_s_s_e42.lock().unwrap().as_ref().unwrap()), (*self.__blank_22_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasAES") {
-            out.has_a_e_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasADX") {
-            out.has_a_d_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX") {
-            out.has_a_v_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX2") {
-            out.has_a_v_x2 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX512F") {
-            out.has_a_v_x512_f = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX512BW") {
-            out.has_a_v_x512_b_w = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAVX512VL") {
-            out.has_a_v_x512_v_l = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasBMI1") {
-            out.has_b_m_i1 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasBMI2") {
-            out.has_b_m_i2 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasERMS") {
-            out.has_e_r_m_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasFSRM") {
-            out.has_f_s_r_m = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasFMA") {
-            out.has_f_m_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasOSXSAVE") {
-            out.has_o_s_x_s_a_v_e = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasPCLMULQDQ") {
-            out.has_p_c_l_m_u_l_q_d_q = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasPOPCNT") {
-            out.has_p_o_p_c_n_t = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasRDTSCP") {
-            out.has_r_d_t_s_c_p = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA") {
-            out.has_s_h_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSE3") {
-            out.has_s_s_e3 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSSE3") {
-            out.has_s_s_s_e3 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSE41") {
-            out.has_s_s_e41 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSSE42") {
-            out.has_s_s_e42 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_a_e_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.has_a_d_x.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.has_a_v_x.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.has_a_v_x2.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.has_a_v_x512_f.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.has_a_v_x512_b_w.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.has_a_v_x512_v_l.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.has_b_m_i1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.has_b_m_i2.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.has_e_r_m_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.has_f_s_r_m.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.has_f_m_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.has_o_s_x_s_a_v_e.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.has_p_c_l_m_u_l_q_d_q.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.has_p_o_p_c_n_t.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.has_r_d_t_s_c_p.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.has_s_h_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.has_s_s_e3.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.has_s_s_s_e3.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.has_s_s_e41.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.has_s_s_e42.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.__blank_22_0.lock().unwrap().as_ref().unwrap()));
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22
+        )
     }
 }
 
@@ -275,37 +346,47 @@ pub struct AnonymousStruct2 {
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v_f_pv4: { let __guard = self.has_v_f_pv4.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_i_d_i_v_a: { let __guard = self.has_i_d_i_v_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v7_atomics: { let __guard = self.has_v7_atomics.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_4_0: { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_v_f_pv4.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_i_d_i_v_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_v7_atomics.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_v_f_pv4: __go_clone_1_0,
+            has_i_d_i_v_a: __go_clone_2_0,
+            has_v7_atomics: __go_clone_3_0,
+            __blank_4_0: __go_clone_4_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_v_f_pv4: Arc::new(Mutex::new(Some(false))), has_i_d_i_v_a: Arc::new(Mutex::new(Some(false))), has_v7_atomics: Arc::new(Mutex::new(Some(false))), __blank_4_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_v_f_pv4: __go_default_1_0,
+            has_i_d_i_v_a: __go_default_2_0,
+            has_v7_atomics: __go_default_3_0,
+            __blank_4_0: __go_default_4_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_v_f_pv4.lock().unwrap().as_ref().unwrap()), (*self.has_i_d_i_v_a.lock().unwrap().as_ref().unwrap()), (*self.has_v7_atomics.lock().unwrap().as_ref().unwrap()), (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct2 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasVFPv4") {
-            out.has_v_f_pv4 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasIDIVA") {
-            out.has_i_d_i_v_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasV7Atomics") {
-            out.has_v7_atomics = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_v_f_pv4.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.has_i_d_i_v_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.has_v7_atomics.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -327,58 +408,97 @@ pub struct AnonymousStruct3 {
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s: { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_p_m_u_l_l: { let __guard = self.has_p_m_u_l_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a1: { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a2: { let __guard = self.has_s_h_a2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a512: { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_c_r_c32: { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_t_o_m_i_c_s: { let __guard = self.has_a_t_o_m_i_c_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_c_p_u_i_d: { let __guard = self.has_c_p_u_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_d_i_t: { let __guard = self.has_d_i_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_neoverse: { let __guard = self.is_neoverse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_11_0: { let __guard = self.__blank_11_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_p_m_u_l_l.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_s_h_a2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.has_a_t_o_m_i_c_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.has_c_p_u_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.has_d_i_t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.is_neoverse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.__blank_11_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_a_e_s: __go_clone_1_0,
+            has_p_m_u_l_l: __go_clone_2_0,
+            has_s_h_a1: __go_clone_3_0,
+            has_s_h_a2: __go_clone_4_0,
+            has_s_h_a512: __go_clone_5_0,
+            has_c_r_c32: __go_clone_6_0,
+            has_a_t_o_m_i_c_s: __go_clone_7_0,
+            has_c_p_u_i_d: __go_clone_8_0,
+            has_d_i_t: __go_clone_9_0,
+            is_neoverse: __go_clone_10_0,
+            __blank_11_0: __go_clone_11_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_a_e_s: Arc::new(Mutex::new(Some(false))), has_p_m_u_l_l: Arc::new(Mutex::new(Some(false))), has_s_h_a1: Arc::new(Mutex::new(Some(false))), has_s_h_a2: Arc::new(Mutex::new(Some(false))), has_s_h_a512: Arc::new(Mutex::new(Some(false))), has_c_r_c32: Arc::new(Mutex::new(Some(false))), has_a_t_o_m_i_c_s: Arc::new(Mutex::new(Some(false))), has_c_p_u_i_d: Arc::new(Mutex::new(Some(false))), has_d_i_t: Arc::new(Mutex::new(Some(false))), is_neoverse: Arc::new(Mutex::new(Some(false))), __blank_11_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_a_e_s: __go_default_1_0,
+            has_p_m_u_l_l: __go_default_2_0,
+            has_s_h_a1: __go_default_3_0,
+            has_s_h_a2: __go_default_4_0,
+            has_s_h_a512: __go_default_5_0,
+            has_c_r_c32: __go_default_6_0,
+            has_a_t_o_m_i_c_s: __go_default_7_0,
+            has_c_p_u_i_d: __go_default_8_0,
+            has_d_i_t: __go_default_9_0,
+            is_neoverse: __go_default_10_0,
+            __blank_11_0: __go_default_11_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_a_e_s.lock().unwrap().as_ref().unwrap()), (*self.has_p_m_u_l_l.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a1.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a2.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a512.lock().unwrap().as_ref().unwrap()), (*self.has_c_r_c32.lock().unwrap().as_ref().unwrap()), (*self.has_a_t_o_m_i_c_s.lock().unwrap().as_ref().unwrap()), (*self.has_c_p_u_i_d.lock().unwrap().as_ref().unwrap()), (*self.has_d_i_t.lock().unwrap().as_ref().unwrap()), (*self.is_neoverse.lock().unwrap().as_ref().unwrap()), (*self.__blank_11_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct3 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasAES") {
-            out.has_a_e_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasPMULL") {
-            out.has_p_m_u_l_l = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA1") {
-            out.has_s_h_a1 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA2") {
-            out.has_s_h_a2 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA512") {
-            out.has_s_h_a512 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasCRC32") {
-            out.has_c_r_c32 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasATOMICS") {
-            out.has_a_t_o_m_i_c_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasCPUID") {
-            out.has_c_p_u_i_d = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasDIT") {
-            out.has_d_i_t = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsNeoverse") {
-            out.is_neoverse = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_a_e_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.has_p_m_u_l_l.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.has_s_h_a1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.has_s_h_a2.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.has_s_h_a512.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.has_c_r_c32.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.has_a_t_o_m_i_c_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.has_c_p_u_i_d.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.has_d_i_t.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.is_neoverse.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.__blank_11_0.lock().unwrap().as_ref().unwrap()));
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11
+        )
     }
 }
 
@@ -394,40 +514,52 @@ pub struct AnonymousStruct4 {
 }
 impl AnonymousStruct4 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_s_x: { let __guard = self.has_l_s_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_c_r_c32: { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_a_m_c_a_s: { let __guard = self.has_l_a_m_c_a_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_a_m__b_h: { let __guard = self.has_l_a_m__b_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_5_0: { let __guard = self.__blank_5_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_l_s_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_c_r_c32.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_l_a_m_c_a_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_l_a_m__b_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.__blank_5_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_l_s_x: __go_clone_1_0,
+            has_c_r_c32: __go_clone_2_0,
+            has_l_a_m_c_a_s: __go_clone_3_0,
+            has_l_a_m__b_h: __go_clone_4_0,
+            __blank_5_0: __go_clone_5_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct4 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_l_s_x: Arc::new(Mutex::new(Some(false))), has_c_r_c32: Arc::new(Mutex::new(Some(false))), has_l_a_m_c_a_s: Arc::new(Mutex::new(Some(false))), has_l_a_m__b_h: Arc::new(Mutex::new(Some(false))), __blank_5_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_l_s_x: __go_default_1_0,
+            has_c_r_c32: __go_default_2_0,
+            has_l_a_m_c_a_s: __go_default_3_0,
+            has_l_a_m__b_h: __go_default_4_0,
+            __blank_5_0: __go_default_5_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_l_s_x.lock().unwrap().as_ref().unwrap()), (*self.has_c_r_c32.lock().unwrap().as_ref().unwrap()), (*self.has_l_a_m_c_a_s.lock().unwrap().as_ref().unwrap()), (*self.has_l_a_m__b_h.lock().unwrap().as_ref().unwrap()), (*self.__blank_5_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct4 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasLSX") {
-            out.has_l_s_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasCRC32") {
-            out.has_c_r_c32 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasLAMCAS") {
-            out.has_l_a_m_c_a_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasLAM_BH") {
-            out.has_l_a_m__b_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_l_s_x.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.has_c_r_c32.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.has_l_a_m_c_a_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.has_l_a_m__b_h.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.__blank_5_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -440,31 +572,37 @@ pub struct AnonymousStruct5 {
 }
 impl AnonymousStruct5 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_m_s_a: { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_2_0: { let __guard = self.__blank_2_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.__blank_2_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_m_s_a: __go_clone_1_0,
+            __blank_2_0: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct5 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_m_s_a: Arc::new(Mutex::new(Some(false))), __blank_2_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_m_s_a: __go_default_1_0,
+            __blank_2_0: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct5 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_m_s_a.lock().unwrap().as_ref().unwrap()), (*self.__blank_2_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct5 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasMSA") {
-            out.has_m_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_m_s_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.__blank_2_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -481,43 +619,57 @@ pub struct AnonymousStruct6 {
 }
 impl AnonymousStruct6 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_d_a_r_n: { let __guard = self.has_d_a_r_n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_c_v: { let __guard = self.has_s_c_v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_p_o_w_e_r8: { let __guard = self.is_p_o_w_e_r8.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_p_o_w_e_r9: { let __guard = self.is_p_o_w_e_r9.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, is_p_o_w_e_r10: { let __guard = self.is_p_o_w_e_r10.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_6_0: { let __guard = self.__blank_6_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_d_a_r_n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_s_c_v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.is_p_o_w_e_r8.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.is_p_o_w_e_r9.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.is_p_o_w_e_r10.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.__blank_6_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_d_a_r_n: __go_clone_1_0,
+            has_s_c_v: __go_clone_2_0,
+            is_p_o_w_e_r8: __go_clone_3_0,
+            is_p_o_w_e_r9: __go_clone_4_0,
+            is_p_o_w_e_r10: __go_clone_5_0,
+            __blank_6_0: __go_clone_6_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct6 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_d_a_r_n: Arc::new(Mutex::new(Some(false))), has_s_c_v: Arc::new(Mutex::new(Some(false))), is_p_o_w_e_r8: Arc::new(Mutex::new(Some(false))), is_p_o_w_e_r9: Arc::new(Mutex::new(Some(false))), is_p_o_w_e_r10: Arc::new(Mutex::new(Some(false))), __blank_6_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_d_a_r_n: __go_default_1_0,
+            has_s_c_v: __go_default_2_0,
+            is_p_o_w_e_r8: __go_default_3_0,
+            is_p_o_w_e_r9: __go_default_4_0,
+            is_p_o_w_e_r10: __go_default_5_0,
+            __blank_6_0: __go_default_6_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct6 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_d_a_r_n.lock().unwrap().as_ref().unwrap()), (*self.has_s_c_v.lock().unwrap().as_ref().unwrap()), (*self.is_p_o_w_e_r8.lock().unwrap().as_ref().unwrap()), (*self.is_p_o_w_e_r9.lock().unwrap().as_ref().unwrap()), (*self.is_p_o_w_e_r10.lock().unwrap().as_ref().unwrap()), (*self.__blank_6_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct6 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasDARN") {
-            out.has_d_a_r_n = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSCV") {
-            out.has_s_c_v = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsPOWER8") {
-            out.is_p_o_w_e_r8 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsPOWER9") {
-            out.is_p_o_w_e_r9 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("IsPOWER10") {
-            out.is_p_o_w_e_r10 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_d_a_r_n.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.has_s_c_v.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.is_p_o_w_e_r8.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.is_p_o_w_e_r9.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.is_p_o_w_e_r10.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.__blank_6_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6)
     }
 }
 
@@ -550,91 +702,163 @@ pub struct AnonymousStruct7 {
 }
 impl AnonymousStruct7 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_z_a_r_c_h: { let __guard = self.has_z_a_r_c_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_t_f_l_e: { let __guard = self.has_s_t_f_l_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_l_d_i_s_p: { let __guard = self.has_l_d_i_s_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_i_m_m: { let __guard = self.has_e_i_m_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_d_f_p: { let __guard = self.has_d_f_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_t_f3_e_h: { let __guard = self.has_e_t_f3_e_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_m_s_a: { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s: { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s_c_b_c: { let __guard = self.has_a_e_s_c_b_c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s_c_t_r: { let __guard = self.has_a_e_s_c_t_r.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_a_e_s_g_c_m: { let __guard = self.has_a_e_s_g_c_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_g_h_a_s_h: { let __guard = self.has_g_h_a_s_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a1: { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a256: { let __guard = self.has_s_h_a256.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a512: { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_s_h_a3: { let __guard = self.has_s_h_a3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v_x: { let __guard = self.has_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_v_x_e: { let __guard = self.has_v_x_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_k_d_s_a: { let __guard = self.has_k_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_c_d_s_a: { let __guard = self.has_e_c_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, has_e_d_d_s_a: { let __guard = self.has_e_d_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_22_0: { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.has_z_a_r_c_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.has_s_t_f_l_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.has_l_d_i_s_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.has_e_i_m_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.has_d_f_p.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.has_e_t_f3_e_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = { let __guard = self.has_m_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_8_0 = { let __guard = self.has_a_e_s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_9_0 = { let __guard = self.has_a_e_s_c_b_c.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.has_a_e_s_c_t_r.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_11_0 = { let __guard = self.has_a_e_s_g_c_m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_12_0 = { let __guard = self.has_g_h_a_s_h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_13_0 = { let __guard = self.has_s_h_a1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_14_0 = { let __guard = self.has_s_h_a256.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_15_0 = { let __guard = self.has_s_h_a512.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_16_0 = { let __guard = self.has_s_h_a3.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_17_0 = { let __guard = self.has_v_x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_18_0 = { let __guard = self.has_v_x_e.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_19_0 = { let __guard = self.has_k_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_20_0 = { let __guard = self.has_e_c_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_21_0 = { let __guard = self.has_e_d_d_s_a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_22_0 = { let __guard = self.__blank_22_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            __blank_0_0: __go_clone_0_0,
+            has_z_a_r_c_h: __go_clone_1_0,
+            has_s_t_f_l_e: __go_clone_2_0,
+            has_l_d_i_s_p: __go_clone_3_0,
+            has_e_i_m_m: __go_clone_4_0,
+            has_d_f_p: __go_clone_5_0,
+            has_e_t_f3_e_h: __go_clone_6_0,
+            has_m_s_a: __go_clone_7_0,
+            has_a_e_s: __go_clone_8_0,
+            has_a_e_s_c_b_c: __go_clone_9_0,
+            has_a_e_s_c_t_r: __go_clone_10_0,
+            has_a_e_s_g_c_m: __go_clone_11_0,
+            has_g_h_a_s_h: __go_clone_12_0,
+            has_s_h_a1: __go_clone_13_0,
+            has_s_h_a256: __go_clone_14_0,
+            has_s_h_a512: __go_clone_15_0,
+            has_s_h_a3: __go_clone_16_0,
+            has_v_x: __go_clone_17_0,
+            has_v_x_e: __go_clone_18_0,
+            has_k_d_s_a: __go_clone_19_0,
+            has_e_c_d_s_a: __go_clone_20_0,
+            has_e_d_d_s_a: __go_clone_21_0,
+            __blank_22_0: __go_clone_22_0,
+        }
     }
 }
 
 
 impl Default for AnonymousStruct7 {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))), has_z_a_r_c_h: Arc::new(Mutex::new(Some(false))), has_s_t_f_l_e: Arc::new(Mutex::new(Some(false))), has_l_d_i_s_p: Arc::new(Mutex::new(Some(false))), has_e_i_m_m: Arc::new(Mutex::new(Some(false))), has_d_f_p: Arc::new(Mutex::new(Some(false))), has_e_t_f3_e_h: Arc::new(Mutex::new(Some(false))), has_m_s_a: Arc::new(Mutex::new(Some(false))), has_a_e_s: Arc::new(Mutex::new(Some(false))), has_a_e_s_c_b_c: Arc::new(Mutex::new(Some(false))), has_a_e_s_c_t_r: Arc::new(Mutex::new(Some(false))), has_a_e_s_g_c_m: Arc::new(Mutex::new(Some(false))), has_g_h_a_s_h: Arc::new(Mutex::new(Some(false))), has_s_h_a1: Arc::new(Mutex::new(Some(false))), has_s_h_a256: Arc::new(Mutex::new(Some(false))), has_s_h_a512: Arc::new(Mutex::new(Some(false))), has_s_h_a3: Arc::new(Mutex::new(Some(false))), has_v_x: Arc::new(Mutex::new(Some(false))), has_v_x_e: Arc::new(Mutex::new(Some(false))), has_k_d_s_a: Arc::new(Mutex::new(Some(false))), has_e_c_d_s_a: Arc::new(Mutex::new(Some(false))), has_e_d_d_s_a: Arc::new(Mutex::new(Some(false))), __blank_22_0: Arc::new(Mutex::new(Some(CacheLinePad::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_7_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_8_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_11_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_12_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_13_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_14_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_15_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_16_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_17_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_18_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_19_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_20_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_21_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_22_0 = Arc::new(Mutex::new(Some(CacheLinePad::default())));
+        Self {
+            __blank_0_0: __go_default_0_0,
+            has_z_a_r_c_h: __go_default_1_0,
+            has_s_t_f_l_e: __go_default_2_0,
+            has_l_d_i_s_p: __go_default_3_0,
+            has_e_i_m_m: __go_default_4_0,
+            has_d_f_p: __go_default_5_0,
+            has_e_t_f3_e_h: __go_default_6_0,
+            has_m_s_a: __go_default_7_0,
+            has_a_e_s: __go_default_8_0,
+            has_a_e_s_c_b_c: __go_default_9_0,
+            has_a_e_s_c_t_r: __go_default_10_0,
+            has_a_e_s_g_c_m: __go_default_11_0,
+            has_g_h_a_s_h: __go_default_12_0,
+            has_s_h_a1: __go_default_13_0,
+            has_s_h_a256: __go_default_14_0,
+            has_s_h_a512: __go_default_15_0,
+            has_s_h_a3: __go_default_16_0,
+            has_v_x: __go_default_17_0,
+            has_v_x_e: __go_default_18_0,
+            has_k_d_s_a: __go_default_19_0,
+            has_e_c_d_s_a: __go_default_20_0,
+            has_e_d_d_s_a: __go_default_21_0,
+            __blank_22_0: __go_default_22_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct7 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.has_z_a_r_c_h.lock().unwrap().as_ref().unwrap()), (*self.has_s_t_f_l_e.lock().unwrap().as_ref().unwrap()), (*self.has_l_d_i_s_p.lock().unwrap().as_ref().unwrap()), (*self.has_e_i_m_m.lock().unwrap().as_ref().unwrap()), (*self.has_d_f_p.lock().unwrap().as_ref().unwrap()), (*self.has_e_t_f3_e_h.lock().unwrap().as_ref().unwrap()), (*self.has_m_s_a.lock().unwrap().as_ref().unwrap()), (*self.has_a_e_s.lock().unwrap().as_ref().unwrap()), (*self.has_a_e_s_c_b_c.lock().unwrap().as_ref().unwrap()), (*self.has_a_e_s_c_t_r.lock().unwrap().as_ref().unwrap()), (*self.has_a_e_s_g_c_m.lock().unwrap().as_ref().unwrap()), (*self.has_g_h_a_s_h.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a1.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a256.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a512.lock().unwrap().as_ref().unwrap()), (*self.has_s_h_a3.lock().unwrap().as_ref().unwrap()), (*self.has_v_x.lock().unwrap().as_ref().unwrap()), (*self.has_v_x_e.lock().unwrap().as_ref().unwrap()), (*self.has_k_d_s_a.lock().unwrap().as_ref().unwrap()), (*self.has_e_c_d_s_a.lock().unwrap().as_ref().unwrap()), (*self.has_e_d_d_s_a.lock().unwrap().as_ref().unwrap()), (*self.__blank_22_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct7 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("HasZARCH") {
-            out.has_z_a_r_c_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSTFLE") {
-            out.has_s_t_f_l_e = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasLDISP") {
-            out.has_l_d_i_s_p = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasEIMM") {
-            out.has_e_i_m_m = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasDFP") {
-            out.has_d_f_p = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasETF3EH") {
-            out.has_e_t_f3_e_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasMSA") {
-            out.has_m_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAES") {
-            out.has_a_e_s = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAESCBC") {
-            out.has_a_e_s_c_b_c = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAESCTR") {
-            out.has_a_e_s_c_t_r = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasAESGCM") {
-            out.has_a_e_s_g_c_m = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasGHASH") {
-            out.has_g_h_a_s_h = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA1") {
-            out.has_s_h_a1 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA256") {
-            out.has_s_h_a256 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA512") {
-            out.has_s_h_a512 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasSHA3") {
-            out.has_s_h_a3 = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasVX") {
-            out.has_v_x = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasVXE") {
-            out.has_v_x_e = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasKDSA") {
-            out.has_k_d_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasECDSA") {
-            out.has_e_c_d_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("HasEDDSA") {
-            out.has_e_d_d_s_a = <Arc<Mutex<Option<bool>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.has_z_a_r_c_h.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.has_s_t_f_l_e.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.has_l_d_i_s_p.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.has_e_i_m_m.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.has_d_f_p.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.has_e_t_f3_e_h.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", (*self.has_m_s_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_8 = format!("{}", (*self.has_a_e_s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_9 = format!("{}", (*self.has_a_e_s_c_b_c.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.has_a_e_s_c_t_r.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_11 = format!("{}", (*self.has_a_e_s_g_c_m.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_12 = format!("{}", (*self.has_g_h_a_s_h.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_13 = format!("{}", (*self.has_s_h_a1.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_14 = format!("{}", (*self.has_s_h_a256.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_15 = format!("{}", (*self.has_s_h_a512.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_16 = format!("{}", (*self.has_s_h_a3.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_17 = format!("{}", (*self.has_v_x.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_18 = format!("{}", (*self.has_v_x_e.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_19 = format!("{}", (*self.has_k_d_s_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_20 = format!("{}", (*self.has_e_c_d_s_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_21 = format!("{}", (*self.has_e_d_d_s_a.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_22 = format!("{}", (*self.__blank_22_0.lock().unwrap().as_ref().unwrap()));
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22
+        )
     }
 }
 

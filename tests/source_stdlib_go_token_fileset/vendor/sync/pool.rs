@@ -1,17 +1,24 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_any,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_any_eq,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
-use crate::cond::*;
-use crate::hashtriemap::*;
-use crate::mutex::*;
-use crate::once::*;
-use crate::oncefunc::*;
-use crate::poolqueue::*;
-use crate::runtime::*;
-use crate::runtime2::*;
-use crate::rwmutex::*;
-use crate::waitgroup::*;
+use crate::{cond::{noCopy}, mutex::{Mutex}, poolqueue::{poolChain}};
 
 use std::any::Any;
 use std::cell::{RefCell};
@@ -67,28 +74,52 @@ pub struct Pool {
 
 impl Pool {
     pub fn __go_value_clone(&self) -> Self {
-        Self { no_copy: { let __guard = self.no_copy.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, local: { let __guard = self.local.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, local_size: { let __guard = self.local_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, victim: { let __guard = self.victim.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, victim_size: { let __guard = self.victim_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, new: self.new.clone() }
+        let __go_clone_0_0 = { let __guard = self.no_copy.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.local.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.local_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.victim.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.victim_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = self.new.clone();
+        Self {
+            no_copy: __go_clone_0_0,
+            local: __go_clone_1_0,
+            local_size: __go_clone_2_0,
+            victim: __go_clone_3_0,
+            victim_size: __go_clone_4_0,
+            new: __go_clone_5_0,
+        }
     }
 }
 
 
 impl Default for Pool {
     fn default() -> Self {
-        Self { no_copy: Arc::new(StdMutex::new(Some(noCopy::default()))), local: Arc::new(StdMutex::new(Some(0))), local_size: Arc::new(StdMutex::new(Some(0))), victim: Arc::new(StdMutex::new(Some(0))), victim_size: Arc::new(StdMutex::new(Some(0))), new: Arc::new(StdMutex::new(None)) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(noCopy::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(StdMutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(StdMutex::new(None));
+        Self {
+            no_copy: __go_default_0_0,
+            local: __go_default_1_0,
+            local_size: __go_default_2_0,
+            victim: __go_default_3_0,
+            victim_size: __go_default_4_0,
+            new: __go_default_5_0,
+        }
     }
 }
 
 impl std::fmt::Display for Pool {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {}}}", (*self.no_copy.lock().unwrap().as_ref().unwrap()), (*self.local.lock().unwrap().as_ref().unwrap()), (*self.local_size.lock().unwrap().as_ref().unwrap()), (*self.victim.lock().unwrap().as_ref().unwrap()), (*self.victim_size.lock().unwrap().as_ref().unwrap()), "<func>")
-    }
-}
-
-impl GoJsonDecode for Pool {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.no_copy.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.local.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.local_size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.victim.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.victim_size.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", "<func>");
+        write!(f, "{{{} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5)
     }
 }
 
@@ -102,28 +133,32 @@ pub struct poolLocalInternal {
 
 impl poolLocalInternal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { private: self.private.clone(), shared: { let __guard = self.shared.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.private.clone();
+        let __go_clone_1_0 = { let __guard = self.shared.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            private: __go_clone_0_0,
+            shared: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for poolLocalInternal {
     fn default() -> Self {
-        Self { private: Arc::new(StdMutex::new(None)), shared: Arc::new(StdMutex::new(Some(poolChain::default()))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(None));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(poolChain::default())));
+        Self {
+            private: __go_default_0_0,
+            shared: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for poolLocalInternal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", format_any(self.private.lock().unwrap().as_ref().unwrap().as_ref()), (*self.shared.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for poolLocalInternal {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", format_any(self.private.lock().unwrap().as_ref().unwrap().as_ref()));
+        let __go_fmt_1 = format!("{}", (*self.shared.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -136,28 +171,32 @@ pub struct poolLocal {
 
 impl poolLocal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pool_local_internal: { let __guard = self.pool_local_internal.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pool_local_internal.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pad.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        Self {
+            pool_local_internal: __go_clone_0_0,
+            pad: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for poolLocal {
     fn default() -> Self {
-        Self { pool_local_internal: Arc::new(StdMutex::new(Some(poolLocalInternal::default()))), pad: Arc::new(StdMutex::new(Some(std::array::from_fn(|_| 0)))) }
+        let __go_default_0_0 = Arc::new(StdMutex::new(Some(poolLocalInternal::default())));
+        let __go_default_1_0 = Arc::new(StdMutex::new(Some(std::array::from_fn(|_| 0))));
+        Self {
+            pool_local_internal: __go_default_0_0,
+            pad: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for poolLocal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.pool_local_internal.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad))
-    }
-}
-
-impl GoJsonDecode for poolLocal {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.pool_local_internal.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", format_slice(&self.pad));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -234,7 +273,10 @@ impl Pool {
                 // Try to pop the head of the local shard. We prefer
                 // the head over the tail for temporal locality of
                 // reuse.
-        { let (__tmp_0, __tmp_1) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_head(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_0; };
+        {
+            let (__tmp_0, __tmp_1) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_head();
+            let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_0;
+        };
         if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
         x = self.get_slow(Arc::new(StdMutex::new(Some(pid)))).clone();
     }
@@ -262,7 +304,10 @@ impl Pool {
                 // Try to steal one element from other procs.
         let mut i = Arc::new(StdMutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
+        let mut l: GoPtr<poolLocal> = index_local(
+            Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })))
+        );
         {
         let (mut x, _) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_tail();;
         if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
@@ -289,7 +334,10 @@ impl Pool {
     }
         let mut i = Arc::new(StdMutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
+        let mut l: GoPtr<poolLocal> = index_local(
+            Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })))
+        );
         {
         let (mut x, _) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_tail();;
         if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
@@ -322,7 +370,10 @@ impl Pool {
         let mut s = runtime__load_acquintptr(self.local_size.clone());
         let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = s; __tmp_x < __tmp_y } {
-        return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
+        return (
+            index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))),
+            pid
+        );
     }
         self.pin_slow()
     }
@@ -350,7 +401,10 @@ impl Pool {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
+        return (
+            index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))),
+            pid
+        );
     }
     }
             if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
@@ -360,13 +414,19 @@ impl Pool {
             let mut size = runtime::g_o_m_a_x_p_r_o_c_s(0);
             let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
             sync_atomic::store_pointer(self.local.clone(), Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))));
-            runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
+            runtime__store_reluintptr(
+                self.local_size.clone(),
+                Arc::new(StdMutex::new(Some(size as usize)))
+            );
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (GoPtr::slice_elem(GoSliceElemPtr::new(local.clone(), (pid) as usize)), pid);
+        return (
+            GoPtr::slice_elem(GoSliceElemPtr::new(local.clone(), (pid) as usize)),
+            pid
+        );
     }
         }));
         std::panic::set_hook(__go_previous_panic_hook);
@@ -438,7 +498,12 @@ pub fn pool_cleanup() {
 
         // The pools with non-empty primary caches now have non-empty
         // victim caches and no pools have primary caches.
-    { let __tmp_0 = allPools.clone(); let __tmp_1 = None; *oldPools.lock().unwrap() = __tmp_0.lock().unwrap().take(); *allPools.lock().unwrap() = __tmp_1; };
+    {
+        let __tmp_0 = allPools.clone();
+        let __tmp_1 = None;
+        *oldPools.lock().unwrap() = __tmp_0.lock().unwrap().take();
+        *allPools.lock().unwrap() = __tmp_1;
+    };
 }
 
 fn __go_init_0() {
@@ -446,7 +511,11 @@ fn __go_init_0() {
 }
 
 pub fn index_local(l: Arc<StdMutex<Option<usize>>>, i: Arc<StdMutex<Option<i32>>>) -> GoPtr<poolLocal> {
-    let mut lp = Arc::new(StdMutex::new(Some({ let __tmp_x = (*Arc::new(StdMutex::new(Some((*l.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(StdMutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(StdMutex::new(Some(std::mem::size_of::<poolLocal>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
+    let mut lp = Arc::new(StdMutex::new(Some({
+        let __tmp_x = (*Arc::new(StdMutex::new(Some((*l.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = { let __tmp_x = (*Arc::new(StdMutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(StdMutex::new(Some(std::mem::size_of::<poolLocal>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y };
+        __tmp_x + __tmp_y
+    })));
     return GoPtr::raw({ let __ptr = lp.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
 }
 

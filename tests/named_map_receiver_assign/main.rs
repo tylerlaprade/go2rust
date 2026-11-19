@@ -51,15 +51,17 @@ pub struct Tally(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<i3
 
 impl Tally {
     pub fn add(&self, name: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i32>>>) {
-        { let __map_key = (*name.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = self.0.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*name.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push((*value.borrow().as_ref().unwrap()).clone()); __slice.clone() }; (*self.0.clone().borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        let mut __self = self.clone();
+        { let __map_key = (*name.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = __self.0.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*name.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push((*value.borrow().as_ref().unwrap()).clone()); __slice.clone() }; (*__self.0.clone().borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
 
     pub fn replace(&self, old: Rc<RefCell<Option<String>>>, new: Rc<RefCell<Option<String>>>) {
+        let mut __self = self.clone();
         {
-        let (mut list, mut ok) = match (*self.0.clone().borrow().as_ref().unwrap()).get(&(*old.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Default::default(), Rc::new(RefCell::new(Some(false)))) };;
-        if (*ok.borrow().as_ref().unwrap()) {
-            { let __map_handle = self.0.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&(*old.borrow().as_ref().unwrap()).clone()); };;
-            { let __map_key = (*new.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = self.0.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*new.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __slice.clone() }; (*self.0.clone().borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };;
+        let (mut list, mut ok) = { let __map_holder = __self.0.clone().clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&(*old.borrow().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
+        if ok {
+            { let __map_handle = __self.0.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&(*old.borrow().as_ref().unwrap()).clone()); };;
+            { let __map_key = (*new.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = __self.0.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*new.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __slice.clone() }; (*__self.0.clone().borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };;
         }
     }
     }
@@ -72,12 +74,12 @@ fn main() {
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("b".to_string()))), Rc::new(RefCell::new(Some(3))));
     (*t.borrow().as_ref().unwrap()).replace(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some("c".to_string()))));
 
-    let mut keys = Rc::new(RefCell::new(Some(Vec::with_capacity(({ let __map_holder = { let __named_map = (*t.borrow().as_ref().unwrap()).0.clone(); __named_map }; let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))));
-    for (k, _) in { let __range_holder = { let __named_map = (*t.borrow().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    let mut keys = Rc::new(RefCell::new(Some(Vec::<String>::with_capacity(({ let __named_map_holder = t.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }) as usize))));
+    for (k, _) in { let __range_holder = { let __named_map_holder = t.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = keys.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(k.clone()); __append_target.clone() }; keys = new_val; };
     }
-    { let mut __sort_guard = keys.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for k in __range_values.iter() {
-        println!("{} {}", format!("{}", k), format!("{}", format_slice(&(*{ let __named_map = (*t.borrow().as_ref().unwrap()).0.clone(); __named_map }.borrow().as_ref().unwrap()).get(k).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()))));
+        println!("{} {}", format!("{}", k), format!("{}", format_slice(&{ let __map_holder = { let __named_map = (*t.borrow().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(k)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
     } }
 }

@@ -12,7 +12,7 @@ fn main() {
     { let (__tmp_0, __tmp_1) = parse(); (*values.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0; (*errs.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_1; };
 
     println!("{}", format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()));
-    if (*(*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow()).is_some() {
+    if { let __nil_result = (*(*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow()).is_some(); __nil_result } {
         println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
     }
 }

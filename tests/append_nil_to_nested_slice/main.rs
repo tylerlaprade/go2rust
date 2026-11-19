@@ -11,6 +11,12 @@ fn main() {
         { let __rhs = v; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     } }
-    eprintln!("{}", format!("{}", (*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
-    eprintln!("{}", format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
+    {
+            let __go_print_arg_0 = format!("{}", (*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+            eprintln!("{}", __go_print_arg_0)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v });
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

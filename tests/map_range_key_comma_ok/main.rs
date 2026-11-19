@@ -52,13 +52,17 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        Self { errors: self.errors.clone() }
+        let __go_clone_0_0 = self.errors.clone();
+        Self {
+            errors: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.errors))
+        let __go_fmt_0 = format!("{}", format_slice(&self.errors));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -69,12 +73,12 @@ fn main() {
 
     for (id, errs) in { let __range_holder = additional.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         {
-        let (mut p, mut ok) = match (*pkgs.borrow().as_ref().unwrap()).get(&id) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Default::default(), Rc::new(RefCell::new(Some(false)))) };;
-        if (*ok.borrow().as_ref().unwrap()) {
+        let (mut p, mut ok) = { let __map_holder = pkgs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&id)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
+        if ok {
             { let new_val = { let __append_target = (*p.borrow().as_ref().unwrap()).errors.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend({ let __slice_holder = errs.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; (*p.borrow_mut().as_mut().unwrap()).errors = new_val; };;
         }
     }
     }
 
-    println!("{}", format!("{}", (*(*(*pkgs.borrow().as_ref().unwrap()).get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).errors.borrow().as_ref().unwrap())[(0) as usize].clone()));
+    println!("{}", format!("{}", (*(*{ let __map_holder = pkgs.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"pkg".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).errors.borrow().as_ref().unwrap())[(0) as usize].clone()));
 }

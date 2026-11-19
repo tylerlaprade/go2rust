@@ -51,13 +51,17 @@ pub struct Holder {
 
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { items: self.items.clone() }
+        let __go_clone_0_0 = self.items.clone();
+        Self {
+            items: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.items))
+        let __go_fmt_0 = format!("{}", format_slice(&self.items));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

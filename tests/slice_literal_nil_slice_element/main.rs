@@ -51,13 +51,17 @@ pub struct source {
 
 impl source {
     pub fn __go_value_clone(&self) -> Self {
-        Self { files: self.files.clone() }
+        let __go_clone_0_0 = self.files.clone();
+        Self {
+            files: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for source {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.files))
+        let __go_fmt_0 = format!("{}", format_slice(&self.files));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

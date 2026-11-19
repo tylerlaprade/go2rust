@@ -2,9 +2,58 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn sort_pair<S, E: Any + Clone + 'static>(x: Rc<RefCell<Option<Vec<Rc<RefCell<Option<E>>>>>>>, less: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<E>>>, Rc<RefCell<Option<E>>>) -> bool>>>>) {
+
+fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+
+    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+
+pub trait GoValueClone {
+    fn go_value_clone(&self) -> Self;
+}
+
+macro_rules! impl_go_value_clone_copy {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoValueClone for $t {
+            fn go_value_clone(&self) -> Self { *self }
+        })*
+    };
+}
+
+impl_go_value_clone_copy!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str);
+
+impl GoValueClone for String {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+
+impl GoValueClone for Box<dyn Any> {
+    fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
+}
+	
+pub fn sort_pair<S, E: Any + GoValueClone + 'static>(x: Rc<RefCell<Option<Vec<Rc<RefCell<Option<E>>>>>>>, less: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<E>>>, Rc<RefCell<Option<E>>>) -> bool>>>>) {
     if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<E>>>, Rc<RefCell<Option<E>>>) -> bool> = { let mut __f_guard = less.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<E>>>, Rc<RefCell<Option<E>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*x.borrow().as_ref().unwrap())[(1) as usize].clone(), (*x.borrow().as_ref().unwrap())[(0) as usize].clone()) } {
-        { let __tmp_0 = (*x.borrow().as_ref().unwrap())[(1) as usize].clone(); let __tmp_1 = (*x.borrow().as_ref().unwrap())[(0) as usize].clone(); (*x.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0; (*x.borrow_mut().as_mut().unwrap())[(1) as usize] = __tmp_1; };
+        {
+            let __tmp_0 = (*x.borrow().as_ref().unwrap())[(1) as usize].clone();
+            let __tmp_1 = (*x.borrow().as_ref().unwrap())[(0) as usize].clone();
+            (*x.borrow_mut().as_mut().unwrap())[(0) as usize] = __tmp_0;
+            (*x.borrow_mut().as_mut().unwrap())[(1) as usize] = __tmp_1;
+        };
     }
 }
 
