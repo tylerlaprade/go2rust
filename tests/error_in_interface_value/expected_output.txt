@@ -12,3 +12,5 @@ bad
 text
 wrapped: bad
 false
+error bad | error wrapped: bad | int 3 | string s | other
+true false false

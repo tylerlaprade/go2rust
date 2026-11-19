@@ -19,6 +19,28 @@ func count(args ...any) int {
 
 type failure = error
 
+// kind tells values apart with a type switch, the way a handler does.
+func kind(v any) string {
+	switch x := v.(type) {
+	case int:
+		return fmt.Sprintf("int %d", x)
+	case string:
+		return "string " + x
+	case error:
+		return "error " + x.Error()
+	default:
+		return "other"
+	}
+}
+
+func isError(v any) bool {
+	switch v.(type) {
+	case error:
+		return true
+	}
+	return false
+}
+
 func main() {
 	plain := errors.New("bad")
 	wrapped := fmt.Errorf("wrapped: %w", plain)
@@ -49,4 +71,9 @@ func main() {
 	var number any = 5
 	_, numberIsError := number.(error)
 	fmt.Println(numberIsError)
+
+	// A type switch finds the error as well, and its case variable is the
+	// error.
+	fmt.Println(kind(plain), "|", kind(wrapped), "|", kind(3), "|", kind("s"), "|", kind(2.5))
+	fmt.Println(isError(plain), isError("bad"), isError(4))
 }

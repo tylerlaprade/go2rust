@@ -3448,7 +3448,14 @@ func typeSwitchCaseAnyHandleRustType(typeInfo *TypeInfo, typeExpr ast.Expr, subj
 	if typeInfo == nil || !isEmptyInterfaceType(subjectType) {
 		return "", false
 	}
-	return anyBoxedHandleRustType(typeInfo.GetType(typeExpr))
+	caseType := typeInfo.GetType(typeExpr)
+	// An error whose dynamic type cannot be named is boxed as its own handle
+	// (see writeOpaqueGoErrorAnyBox). case error has to look for that handle,
+	// and its variable is the handle, the same error the box holds.
+	if isErrorInterfaceType(caseType) {
+		return rustGoErrorHandleType(), true
+	}
+	return anyBoxedHandleRustType(caseType)
 }
 
 func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) {

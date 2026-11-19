@@ -9954,6 +9954,39 @@ func pass() {
 	}
 }
 
+func TestTypeSwitchErrorCaseFindsTheBoxedErrorHandle(t *testing.T) {
+	source := `package main
+
+import "errors"
+
+func kind(v any) string {
+	switch x := v.(type) {
+	case error:
+		return x.Error()
+	}
+	return "other"
+}
+
+func use() string {
+	return kind(errors.New("opaque"))
+}
+`
+	rust := transpileTypedRegression(t, source)
+	// An error the package cannot name is boxed as its own handle. A case
+	// that looked for a bare Box<dyn StdError> would never match it, and the
+	// switch would take the default branch without a word.
+	handle := "__v.downcast_ref::<Rc<RefCell<Option<Box<dyn StdError>>>>>()"
+	if !strings.Contains(rust, "_ts_val.and_then(|__v| "+handle+").is_some()") {
+		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let x = _ts_val.and_then(|__v| "+handle+").unwrap().clone();") {
+		t.Fatalf("the case variable should be the error handle the interface value holds:\n%s", rust)
+	}
+	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
+		t.Fatalf("case error should not look for a bare boxed error:\n%s", rust)
+	}
+}
+
 func TestConcurrentPanicErrorPayloadBreaksDowncastChainAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
