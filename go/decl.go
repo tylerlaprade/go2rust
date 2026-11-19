@@ -91,6 +91,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isSlice                   bool
 		isMap                     bool
 		isInterface               bool
+		isError                   bool
 		isFunction                bool
 		funcSlice                 bool
 		anySlice                  bool
@@ -119,6 +120,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isSlice := field.Type.(*ast.ArrayType)
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
+		isError := structDisplayFieldIsError(field.Type)
 		isFunction := isFunctionSignatureTypeExpr(field.Type)
 		funcSlice := arrayFieldContainsFunction(field.Type)
 		anySlice := sliceFieldContainsEmptyInterface(field.Type)
@@ -149,6 +151,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isSlice:                   isSlice,
 					isMap:                     isMap,
 					isInterface:               isInterface,
+					isError:                   isError,
 					isFunction:                isFunction,
 					funcSlice:                 funcSlice,
 					anySlice:                  anySlice,
@@ -205,11 +208,21 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	writeDisplayFieldValue := func(f fieldEntry) {
 		if f.isInterface {
-			NeedFormatAny()
-			out.WriteString("format_any(self.")
+			// A nil interface field prints as <nil>. The zero value of a
+			// struct has one, so this is the common case, not a corner.
+			// The value in the field is inside the struct, where Go prints
+			// a pointer as its address. format_any_nested knows that.
+			NeedFormatAnyNested()
+			out.WriteString("match self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().as_ref())")
+			out.WriteString(".as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => \"<nil>\".to_string() }")
+		} else if f.isError {
+			// The same for an error field: nil until something fails.
+			out.WriteString("match self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref() { Some(__v) => format!(\"{}\", __v), None => \"<nil>\".to_string() }")
 		} else if f.isFunction {
 			out.WriteString("\"<func>\"")
 		} else if f.funcSlice {
@@ -309,6 +322,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	writeStructDisplayWriteCall(out, len(fields))
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+// structDisplayFieldIsError reports whether a struct field's declared type is
+// the predeclared error interface, or an alias of it. It asks go/types and
+// nothing else: the spelling of the type says nothing reliable, because a
+// package can declare its own type named error. Without type information the
+// answer is no, and the field keeps the formatting it had before.
+func structDisplayFieldIsError(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isErrorInterfaceType(typeInfo.GetType(expr))
 }
 
 func writeStructDisplayWriteCall(out *strings.Builder, fieldCount int) {

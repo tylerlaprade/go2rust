@@ -65,6 +65,12 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
+    format_any(value)
+}
+
 fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
     let left_guard = left.lock().unwrap();
     let right_guard = right.lock().unwrap();

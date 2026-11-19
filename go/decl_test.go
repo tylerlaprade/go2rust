@@ -1560,13 +1560,13 @@ func call() (int, error) {
 }
 `)
 
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("generic func parameter should keep the generic wrapped T return ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("instantiated func literal should be coerced to the wrapped generic return ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("func literal passed to generic func parameter should not keep a bare scalar return ABI:\n%s", rust)
 	}
 	if strings.Contains(rust, "let (mut v, mut err) = retry::<i32>") {

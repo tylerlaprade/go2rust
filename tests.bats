@@ -431,6 +431,14 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_boxed_reference_types" {
+    run_test "tests/any_boxed_reference_types"
+}
+
+@test "any_boxed_types_in_second_file" {
+    run_test "tests/any_boxed_types_in_second_file"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }
@@ -955,12 +963,36 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_copy_and_identity" {
+    run_test "tests/error_copy_and_identity"
+}
+
+@test "error_copy_and_identity_goroutines" {
+    run_test "tests/error_copy_and_identity_goroutines"
+}
+
+@test "error_custom_type_in_interface" {
+    run_test "tests/error_custom_type_in_interface"
+}
+
+@test "error_custom_type_in_interface_goroutines" {
+    run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
 @test "error_field_return" {
     run_test "tests/error_field_return"
 }
 
 @test "error_handling" {
     run_test "tests/error_handling"
+}
+
+@test "error_in_interface_value" {
+    run_test "tests/error_in_interface_value"
+}
+
+@test "error_in_interface_value_goroutines" {
+    run_test "tests/error_in_interface_value_goroutines"
 }
 
 @test "error_map_values" {
@@ -1783,6 +1815,10 @@ run_xfail_test() {
     run_test "tests/os_stat_fileinfo_isdir"
 }
 
+@test "package_any_value_from_caller" {
+    run_test "tests/package_any_value_from_caller"
+}
+
 @test "package_const_lowercase_condition" {
     run_test "tests/package_const_lowercase_condition"
 }
@@ -2019,8 +2055,40 @@ run_xfail_test() {
     run_test "tests/positional_struct_nil_slice_field"
 }
 
+@test "print_boxed_composite_values" {
+    run_test "tests/print_boxed_composite_values"
+}
+
+@test "print_interface_value_twice_goroutines" {
+    run_test "tests/print_interface_value_twice_goroutines"
+}
+
+@test "print_nil_error_and_pointer" {
+    run_test "tests/print_nil_error_and_pointer"
+}
+
+@test "print_nil_error_and_pointer_goroutines" {
+    run_test "tests/print_nil_error_and_pointer_goroutines"
+}
+
+@test "print_self_referencing_value_goroutines" {
+    run_test "tests/print_self_referencing_value_goroutines"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
+}
+
+@test "printf_runtime_format" {
+    run_test "tests/printf_runtime_format"
+}
+
+@test "printf_runtime_format_goroutines" {
+    run_test "tests/printf_runtime_format_goroutines"
+}
+
+@test "printf_runtime_format_table" {
+    run_test "tests/printf_runtime_format_table"
 }
 
 @test "printf_width_decimal" {
