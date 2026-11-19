@@ -1161,9 +1161,10 @@ type externalLocalInterfaceArg struct {
 }
 
 type localInterfaceAssertionCandidate struct {
-	rustType string
-	external bool
-	typ      types.Type
+	pointerAdapter string
+	rustType       string
+	external       bool
+	typ            types.Type
 }
 
 type anonymousInterfaceAssertionTrait struct {
@@ -1591,6 +1592,31 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 		return "", nil, nil, nil, false
 	}
 	candidates := localInterfaceAssertionCandidates(ifaceType, sourceType)
+	// Empty interfaces store pointers as raw shared handles. The named trait
+	// uses a forwarding wrapper around that same handle.
+	if isEmptyInterfaceType(sourceType) {
+		for _, candidate := range candidates {
+			if candidate.external {
+				continue
+			}
+			elem := candidate.typ
+			if ptr, ok := elem.(*types.Pointer); ok {
+				elem = ptr.Elem()
+			}
+			local, ok := elem.(*types.Named)
+			if !ok {
+				continue
+			}
+			if _, ok := local.Underlying().(*types.Struct); !ok {
+				continue
+			}
+			ptr := types.NewPointer(local)
+			candidates = append(candidates, localInterfaceAssertionCandidate{
+				typ: ptr, rustType: goTypesTypeToRust(ptr),
+				pointerAdapter: pointerLocalInterfaceWrapperNameForUse(local.Obj().Name(), ifaceName),
+			})
+		}
+	}
 	return ifaceName, ifaceType, sourceType, candidates, true
 }
 

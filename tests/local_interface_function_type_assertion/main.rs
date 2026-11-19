@@ -113,6 +113,8 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<r#box>() {
                 (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn hasValue>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<r#box>>>>() {
+                (Rc::new(RefCell::new(Some(Box::new(boxPtr(typed_val.clone())) as Box<dyn hasValue>))), true)
             } else {
                 (Rc::new(RefCell::new(None::<Box<dyn hasValue>>)), false)
             }
@@ -121,7 +123,22 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     });
     if ok {
-        println!("{}", format!("{}", (*h.borrow().as_ref().unwrap()).value()));
+        let mut again = ({
+        let val = v.clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<r#box>() {
+                Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn hasValue>)))
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<r#box>>>>() {
+                Rc::new(RefCell::new(Some(Box::new(boxPtr(typed_val.clone())) as Box<dyn hasValue>)))
+            } else {
+                panic!("type assertion failed")
+            }
+        } else {
+            panic!("type assertion on nil interface")
+        }
+    }).clone();
+        println!("{} {}", format!("{}", (*h.borrow().as_ref().unwrap()).value()), format!("{}", (*again.borrow().as_ref().unwrap()).value()));
     } else {
         println!("{}", format!("{}", "no".to_string()));
     }
@@ -129,5 +146,6 @@ pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
 
 fn main() {
     probe(Rc::new(RefCell::new(Some(Box::new(r#box { n: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))));
+    probe(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(r#box { n: Rc::new(RefCell::new(Some(8))), ..Default::default() }))).clone()) as Box<dyn Any>))));
     probe(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>))));
 }

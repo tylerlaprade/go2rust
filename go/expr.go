@@ -19786,15 +19786,14 @@ func writeLocalInterfaceAssertionWrappedSuccess(out *strings.Builder, ifaceName 
 
 func writeLocalInterfaceAssertionWrappedCandidateSuccess(out *strings.Builder, ifaceName string, candidate localInterfaceAssertionCandidate) {
 	WriteWrapperPrefix(out)
-	if adapterValue, ok := functionTypeInterfaceAssertionAdapterValue(ifaceName, candidate); ok {
-		out.WriteString("Box::new(")
-		out.WriteString(adapterValue)
-		out.WriteString(") as ")
-		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	} else {
-		out.WriteString("Box::new(typed_val.clone()) as ")
-		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	value := "typed_val.clone()"
+	if candidate.pointerAdapter != "" {
+		value = candidate.pointerAdapter + "(" + value + ")"
+	} else if adapter, ok := functionTypeInterfaceAssertionAdapterValue(ifaceName, candidate); ok {
+		value = adapter
 	}
+	out.WriteString("Box::new(" + value + ") as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	WriteWrapperSuffix(out)
 }
 

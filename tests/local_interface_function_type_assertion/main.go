@@ -17,7 +17,8 @@ func probe(v any) {
 
 	h, ok := v.(hasValue)
 	if ok {
-		fmt.Println(h.Value())
+		again := v.(hasValue)
+		fmt.Println(h.Value(), again.Value())
 	} else {
 		fmt.Println("no")
 	}
@@ -25,5 +26,6 @@ func probe(v any) {
 
 func main() {
 	probe(box{n: 7})
+	probe(&box{n: 8})
 	probe("x")
 }
