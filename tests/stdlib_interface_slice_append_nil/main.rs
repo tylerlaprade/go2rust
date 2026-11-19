@@ -317,7 +317,7 @@ fn main() {
         done_thread.send({ let __nil_result = (*pad_exprs(
             nil_literal(),
             Arc::new(Mutex::new(Some(2)))
-        ).lock().unwrap()).is_some(); __nil_result } && { let __nil_result = (*pad_named_exprs(Arc::new(Mutex::new(None))).lock().unwrap()).is_some(); __nil_result });;;
+        ).lock().unwrap()).is_some(); __nil_result } && { let __slice_holder = { let __named_slice = pad_named_exprs(Arc::new(Mutex::new(None))).lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_some() });;;
     });
         println!("{}", format!("{}", done.recv().unwrap_or_default()));
     }
