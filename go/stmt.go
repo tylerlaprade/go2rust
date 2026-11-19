@@ -3813,16 +3813,18 @@ func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, ca
 	trackWrapperImports()
 	out.WriteString("{ let __case = ")
 	writePointerHandleExpression(out, caseExpr)
-	out.WriteString("; let __switch_guard = ")
-	out.WriteString(switchVal)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __case_guard = __case")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __both_nil = (*__switch_guard).is_none() && (*__case_guard).is_none(); let __eq = __both_nil || ")
+	// Test identity first. For distinct handles, finish each nil check before
+	// borrowing the other handle so concurrent switches cannot nest locks.
+	out.WriteString("; let __same = ")
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::ptr_eq(&")
 	out.WriteString(switchVal)
-	out.WriteString(", &__case); __eq }")
+	out.WriteString(", &__case); if __same { true } else { let __tag_nil = ")
+	out.WriteString(switchVal)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); let __both_nil = __tag_nil && __case")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); __both_nil } }")
 }
 
 func switchGoPtrElemRustType(tag ast.Expr) (string, bool) {

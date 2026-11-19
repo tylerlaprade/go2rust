@@ -1,0 +1,8 @@
+[package]
+name = "switch_pointer_identity_concurrent"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "switch_pointer_identity_concurrent"
+path = "main.rs"

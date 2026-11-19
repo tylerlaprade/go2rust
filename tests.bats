@@ -2791,6 +2791,14 @@ run_xfail_test() {
     run_test "tests/switch_nil_case"
 }
 
+@test "switch_pointer_identity_concurrent" {
+    run_test "tests/switch_pointer_identity_concurrent"
+}
+
+@test "switch_pointer_identity_single" {
+    run_test "tests/switch_pointer_identity_single"
+}
+
 @test "switch_statements" {
     run_test "tests/switch_statements"
 }
