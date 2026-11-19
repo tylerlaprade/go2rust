@@ -11,28 +11,26 @@ pub struct writer {
 
 impl writer {
     pub fn __go_value_clone(&self) -> Self {
-        Self { buffer: { let __guard = self.buffer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.buffer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            buffer: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for writer {
     fn default() -> Self {
-        Self { buffer: Arc::new(Mutex::new(Some(Default::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            buffer: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for writer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for writer {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
     }
 }
 
@@ -87,42 +85,42 @@ impl writer {
         embedded_ref.next(_arg0)
     }
 
-    pub fn read(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.read(_arg0)
     }
 
-    pub fn read_byte(&self) -> (u8, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_byte(&self) -> (u8, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.read_byte()
     }
 
-    pub fn read_bytes(&self, _arg0: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_bytes(&self, _arg0: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.read_bytes(_arg0)
     }
 
-    pub fn read_from(&self, _arg0: Arc<Mutex<Option<Box<dyn io::r#mod::Reader + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_from(&self, _arg0: Arc<Mutex<Option<Box<dyn io::r#mod::Reader + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.read_from(_arg0)
     }
 
-    pub fn read_rune(&self) -> (i32, i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_rune(&self) -> (i32, i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.read_rune()
     }
 
-    pub fn read_string(&self, _arg0: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_string(&self, _arg0: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -150,49 +148,49 @@ impl writer {
         embedded_ref.truncate(_arg0)
     }
 
-    pub fn unread_byte(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn unread_byte(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.unread_byte()
     }
 
-    pub fn unread_rune(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn unread_rune(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.unread_rune()
     }
 
-    pub fn write(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.write(_arg0)
     }
 
-    pub fn write_byte(&self, _arg0: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+    pub fn write_byte(&self, _arg0: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.write_byte(_arg0)
     }
 
-    pub fn write_rune(&self, _arg0: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_rune(&self, _arg0: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.write_rune(_arg0)
     }
 
-    pub fn write_string(&self, _arg0: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string(&self, _arg0: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.write_string(_arg0)
     }
 
-    pub fn write_to(&self, _arg0: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_to(&self, _arg0: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();

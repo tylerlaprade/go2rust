@@ -170,7 +170,7 @@ fn main() {
     println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", (*grid.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone()), format!("{}", (*grid.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone()));
 
     let mut pts = Rc::new(RefCell::new(Some(vec![Pt { x: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Pt { x: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    { let __idx = (((*pts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize; let __rhs = (*pts.borrow().as_ref().unwrap())[(0) as usize].clone(); (*pts.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (((*pts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize; let __rhs = (*pts.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); (*pts.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "struct element".to_string()), format!("{}", (*(*pts.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow().as_ref().unwrap())));
 
     let mut arr = Rc::new(RefCell::new(Some([1, 2, 3])));

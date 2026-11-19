@@ -9,7 +9,8 @@ pub struct store {
 
 impl store {
     pub fn __go_value_clone(&self) -> Self {
-        Self {  }
+        Self {
+        }
     }
 }
 
@@ -33,12 +34,12 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<bool>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
-                (Rc::new(RefCell::new(Some(false))), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(Some(false))), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(false))), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(Some(false))), false)
         }
     });
     println!("{}", format!("{}", { let __v = (*seen.borrow().as_ref().unwrap()).clone(); __v }));

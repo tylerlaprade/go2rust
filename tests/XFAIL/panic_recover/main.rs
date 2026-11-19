@@ -24,18 +24,18 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
-pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut result: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
-    let err_defer_captured = err.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+    let mut err_defer_captured = err.clone(); let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*r.borrow()).is_some() {
-            { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("panic occurred: {}", format_any(r.borrow().as_ref().unwrap().as_ref())))))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };;
+        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("panic occurred: {}", format_any(r.borrow().as_ref().unwrap().as_ref()))))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
             { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };;
         }
     }
@@ -53,22 +53,22 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*result.borrow().as_ref().unwrap()), err);
+        return ((*result.borrow().as_ref().unwrap()), err.clone());
     }
 }
 
-pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let mut value: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
-    let mut err: Rc<RefCell<Option<Box<dyn StdError>>>> = Rc::new(RefCell::new(None));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
-    let err_defer_captured = err.clone(); let value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
+    let mut err_defer_captured = err.clone(); let mut value_defer_captured = value.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*r.borrow()).is_some() {
-            { let __rhs_holder = Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("index out of bounds: {}", format_any(r.borrow().as_ref().unwrap().as_ref())))))).clone(); let new_val = { let mut guard = __rhs_holder.borrow_mut(); guard.take() }; *err_defer_captured.borrow_mut() = new_val; };;
+        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("index out of bounds: {}", format_any(r.borrow().as_ref().unwrap().as_ref()))))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
             { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };;
         }
     }
@@ -82,7 +82,7 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Opt
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return ((*value.borrow().as_ref().unwrap()), err);
+        return ((*value.borrow().as_ref().unwrap()), err.clone());
     }
 }
 
@@ -93,7 +93,7 @@ pub fn nested_panic() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*r.borrow()).is_some() {
+        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             print!("Recovered from nested panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
         }
     }
@@ -106,7 +106,7 @@ pub fn nested_panic() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*r.borrow()).is_some() {
+        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             print!("Inner recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
             panic!("re-panicking from inner function");;
         }
@@ -133,7 +133,7 @@ pub fn demonstrate_panic_types() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*r.borrow()).is_some() {
+        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             print!("Recovered string panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
         }
     }
@@ -172,7 +172,7 @@ pub fn chained_defers() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = Rc::new(RefCell::new(None::<Box<dyn Any>>));;
-        if (*r.borrow()).is_some() {
+        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             print!("Final recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
         }
     }
@@ -210,15 +210,15 @@ fn main() {
     println!("{}", format!("{}", "=== Safe divide examples ===".to_string()));
 
     let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("10 / 2 = {:.2}\n", result);
     }
 
     { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Result: {:.2}\n", result);
     }
@@ -228,15 +228,15 @@ fn main() {
     let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
 
     let (mut value, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(2)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("numbers[2] = {}\n", value);
     }
 
     { let (__tmp_0, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10)))); value = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if (*err.borrow()).is_some() {
-        print!("Error: {}\n", format!("{}", (*err.borrow().as_ref().unwrap())));
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Value: {}\n", value);
     }

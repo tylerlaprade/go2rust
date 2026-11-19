@@ -13,7 +13,9 @@ impl Display for Kind {
 
 impl PartialEq for Kind {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -25,7 +27,9 @@ impl PartialEq<i32> for Kind {
 
 impl PartialOrd for Kind {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -86,6 +90,76 @@ impl std::ops::Sub<Kind> for i32 {
     type Output = Kind;
     fn sub(self, other: Kind) -> Kind {
         Kind(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Kind {
+    type Output = Kind;
+    fn mul(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Kind {
+    type Output = Kind;
+    fn mul(self, other: i32) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Kind> for i32 {
+    type Output = Kind;
+    fn mul(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Kind {
+    type Output = Kind;
+    fn div(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Kind {
+    type Output = Kind;
+    fn div(self, other: i32) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Kind> for i32 {
+    type Output = Kind;
+    fn div(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Kind {
+    type Output = Kind;
+    fn neg(self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Kind {
+    type Output = Kind;
+    fn rem(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Kind {
+    type Output = Kind;
+    fn rem(self, other: i32) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Kind> for i32 {
+    type Output = Kind;
+    fn rem(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -326,8 +400,8 @@ pub fn previous(values: Rc<RefCell<Option<Vec<i32>>>>, k: Rc<RefCell<Option<Kind
 
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![10, 20, 30])));
-    let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(1)))))));
-    println!("{}", format!("{}", pick(values.clone(), Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone()))))));
-    println!("{}", format!("{}", previous(values.clone(), Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone()))))));
-    println!("{}", format!("{}", (*k.borrow().as_ref().unwrap()).method_pick(values.clone())));
+    let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(1 as i32)))))));
+    println!("{}", format!("{}", pick(values.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    println!("{}", format!("{}", previous(values.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    println!("{}", format!("{}", Kind::method_pick(&(*k.borrow().as_ref().unwrap()), values.clone())));
 }

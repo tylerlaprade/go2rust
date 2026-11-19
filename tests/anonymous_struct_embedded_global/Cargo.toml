@@ -1,0 +1,8 @@
+[package]
+name = "anonymous_struct_embedded_global"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "anonymous_struct_embedded_global"
+path = "main.rs"

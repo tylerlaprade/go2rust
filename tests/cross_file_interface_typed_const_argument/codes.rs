@@ -16,7 +16,7 @@ pub trait Code: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Code> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_code()
+        Code::__go_clone_box_code(self.as_ref())
     }
 }
 
@@ -31,7 +31,9 @@ impl Display for CodeVal {
 
 impl PartialEq for CodeVal {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -43,7 +45,9 @@ impl PartialEq<i32> for CodeVal {
 
 impl PartialOrd for CodeVal {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -104,6 +108,76 @@ impl std::ops::Sub<CodeVal> for i32 {
     type Output = CodeVal;
     fn sub(self, other: CodeVal) -> CodeVal {
         CodeVal(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for CodeVal {
+    type Output = CodeVal;
+    fn mul(self, other: Self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for CodeVal {
+    type Output = CodeVal;
+    fn mul(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<CodeVal> for i32 {
+    type Output = CodeVal;
+    fn mul(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for CodeVal {
+    type Output = CodeVal;
+    fn div(self, other: Self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for CodeVal {
+    type Output = CodeVal;
+    fn div(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<CodeVal> for i32 {
+    type Output = CodeVal;
+    fn div(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for CodeVal {
+    type Output = CodeVal;
+    fn neg(self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for CodeVal {
+    type Output = CodeVal;
+    fn rem(self, other: Self) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for CodeVal {
+    type Output = CodeVal;
+    fn rem(self, other: i32) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<CodeVal> for i32 {
+    type Output = CodeVal;
+    fn rem(self, other: CodeVal) -> CodeVal {
+        CodeVal(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -336,7 +410,7 @@ impl CodeVal {
 
 impl Code for CodeVal {
     fn value(&self) -> i32 {
-        (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
+        CodeVal::value(self)
     }
     fn __go_clone_box_code(&self) -> Box<dyn Code> {
         Box::new(self.clone()) as Box<dyn Code>
@@ -347,6 +421,37 @@ impl Code for CodeVal {
     fn __go_eq_code(&self, other: &dyn Code) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<CodeVal>() {
             self == __other
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CodeValPtr(pub Rc<RefCell<Option<CodeVal>>>);
+
+impl std::fmt::Display for CodeValPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Code for CodeValPtr {
+    fn value(&self) -> i32 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        CodeVal::value(__recv)
+    }
+    fn __go_clone_box_code(&self) -> Box<dyn Code> {
+        Box::new(self.clone()) as Box<dyn Code>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_code(&self, other: &dyn Code) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<CodeValPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
         } else {
             false
         }

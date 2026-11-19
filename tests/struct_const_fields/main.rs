@@ -19,7 +19,9 @@ impl Display for Kind {
 
 impl PartialEq for Kind {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -31,7 +33,9 @@ impl PartialEq<i8> for Kind {
 
 impl PartialOrd for Kind {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -92,6 +96,76 @@ impl std::ops::Sub<Kind> for i8 {
     type Output = Kind;
     fn sub(self, other: Kind) -> Kind {
         Kind(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Kind {
+    type Output = Kind;
+    fn mul(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i8> for Kind {
+    type Output = Kind;
+    fn mul(self, other: i8) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Kind> for i8 {
+    type Output = Kind;
+    fn mul(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Kind {
+    type Output = Kind;
+    fn div(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i8> for Kind {
+    type Output = Kind;
+    fn div(self, other: i8) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Kind> for i8 {
+    type Output = Kind;
+    fn div(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Kind {
+    type Output = Kind;
+    fn neg(self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Kind {
+    type Output = Kind;
+    fn rem(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i8> for Kind {
+    type Output = Kind;
+    fn rem(self, other: i8) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Kind> for i8 {
+    type Output = Kind;
+    fn rem(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -327,7 +401,9 @@ impl Display for Version {
 
 impl PartialEq for Version {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -339,7 +415,9 @@ impl PartialEq<i8> for Version {
 
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -400,6 +478,76 @@ impl std::ops::Sub<Version> for i8 {
     type Output = Version;
     fn sub(self, other: Version) -> Version {
         Version(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Version {
+    type Output = Version;
+    fn mul(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i8> for Version {
+    type Output = Version;
+    fn mul(self, other: i8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Version> for i8 {
+    type Output = Version;
+    fn mul(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Version {
+    type Output = Version;
+    fn div(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i8> for Version {
+    type Output = Version;
+    fn div(self, other: i8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Version> for i8 {
+    type Output = Version;
+    fn div(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Version {
+    type Output = Version;
+    fn neg(self) -> Version {
+        Version(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Version {
+    type Output = Version;
+    fn rem(self, other: Self) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i8> for Version {
+    type Output = Version;
+    fn rem(self, other: i8) -> Version {
+        Version(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Version> for i8 {
+    type Output = Version;
+    fn rem(self, other: Version) -> Version {
+        Version(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -633,20 +781,37 @@ pub struct Symbol {
 
 impl Symbol {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, version: { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.version.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            kind: __go_clone_1_0,
+            version: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for Symbol {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))), kind: Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0))))))), version: Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0))))))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(0)))))));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(Version(Rc::new(RefCell::new(Some(0)))))));
+        Self {
+            name: __go_default_0_0,
+            kind: __go_default_1_0,
+            version: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.borrow().as_ref().unwrap()), (*self.kind.borrow().as_ref().unwrap()), (*self.version.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.kind.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.version.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 

@@ -48,10 +48,10 @@ pub fn restore(values: Rc<RefCell<Option<Vec<i32>>>>, seen: Rc<RefCell<Option<BT
 fn main() {
     __go_init_all();
     restore(nil_values(), nil_seen());
-    println!("{} {} {} {}", format!("{}", (*currentValues.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*currentValues.borrow()).is_none()), format!("{}", (*currentSeen.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*currentSeen.borrow()).is_none()));
+    println!("{} {} {} {}", format!("{}", (*currentValues.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentValues.borrow()).is_none(); __nil_result }), format!("{}", (*currentSeen.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentSeen.borrow()).is_none(); __nil_result }));
 
     restore(Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(3))))])))));
-    println!("{} {} {} {}", format!("{}", (*currentValues.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*currentValues.borrow()).is_none()), format!("{}", (*currentSeen.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*currentSeen.borrow()).is_none()));
+    println!("{} {} {} {}", format!("{}", (*currentValues.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentValues.borrow()).is_none(); __nil_result }), format!("{}", (*currentSeen.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentSeen.borrow()).is_none(); __nil_result }));
 }
 
 pub(crate) fn __go_init_all() {

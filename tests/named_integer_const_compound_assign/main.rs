@@ -18,7 +18,9 @@ impl Display for LoadMode {
 
 impl PartialEq for LoadMode {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -30,7 +32,9 @@ impl PartialEq<i32> for LoadMode {
 
 impl PartialOrd for LoadMode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -91,6 +95,76 @@ impl std::ops::Sub<LoadMode> for i32 {
     type Output = LoadMode;
     fn sub(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for LoadMode {
+    type Output = LoadMode;
+    fn mul(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for LoadMode {
+    type Output = LoadMode;
+    fn mul(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<LoadMode> for i32 {
+    type Output = LoadMode;
+    fn mul(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for LoadMode {
+    type Output = LoadMode;
+    fn div(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for LoadMode {
+    type Output = LoadMode;
+    fn div(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<LoadMode> for i32 {
+    type Output = LoadMode;
+    fn div(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for LoadMode {
+    type Output = LoadMode;
+    fn neg(self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for LoadMode {
+    type Output = LoadMode;
+    fn rem(self, other: Self) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for LoadMode {
+    type Output = LoadMode;
+    fn rem(self, other: i32) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<LoadMode> for i32 {
+    type Output = LoadMode;
+    fn rem(self, other: LoadMode) -> LoadMode {
+        LoadMode(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -319,6 +393,6 @@ fn main() {
     let mut mode: Rc<RefCell<Option<LoadMode>>> = Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(0)))))));
     { let __rhs = LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i32)))); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | __rhs); };
     { let __rhs = LoadMode(Rc::new(RefCell::new(Some(8 as i32)))); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | __rhs); };
-    { let __rhs = LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32 | NEED_NAME as i32 as i32)))); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | __rhs); };
+    { let __rhs = LoadMode(Rc::new(RefCell::new(Some((NEED_FILES as i32 | NEED_NAME as i32) as i32)))); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() | __rhs); };
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())));
 }

@@ -70,7 +70,7 @@ pub mod types {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct term {
     pub tilde: Arc<Mutex<Option<bool>>>,
     pub typ: Arc<Mutex<Option<types_Type>>>,
@@ -78,26 +78,38 @@ pub struct term {
 
 impl term {
     pub fn __go_value_clone(&self) -> Self {
-        Self { tilde: { let __guard = self.tilde.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: self.typ.clone() }
+        let __go_clone_0_0 = { let __guard = self.tilde.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.typ.clone();
+        Self {
+            tilde: __go_clone_0_0,
+            typ: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for term {
     fn default() -> Self {
-        Self { tilde: Arc::new(Mutex::new(Some(false))), typ: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(false)));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            tilde: __go_default_0_0,
+            typ: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for term {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.tilde.lock().unwrap().as_ref().unwrap()), (*self.typ.lock().unwrap().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.tilde.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
 
 pub fn under(t: Arc<Mutex<Option<types_Type>>>) -> Arc<Mutex<Option<types_Type>>> {
-    t.clone()
+    return t.clone();
 }
 
 pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> bool {
@@ -114,7 +126,7 @@ pub fn disjoint(x: Arc<Mutex<Option<term>>>, y: Arc<Mutex<Option<term>>>) -> boo
 
 fn main() {
     if false {
-        let mut t = Arc::new(Mutex::new(Some(term { tilde: Arc::new(Mutex::new(Some(false))), typ: Arc::new(Mutex::new(Some(Default::default()))) })));
+        let mut t = Arc::new(Mutex::new(Some(term { tilde: Arc::new(Mutex::new(Some(false))), typ: Default::default() })));
         println!("{}", format!("{}", disjoint(t.clone(), t.clone())));
     }
     println!("{}", format!("{}", "ok".to_string()));

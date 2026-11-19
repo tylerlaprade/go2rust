@@ -21,13 +21,13 @@ fn main() {
 
         // Bitwise compound assignments
     let mut y = Rc::new(RefCell::new(Some(0b1010)));
-    { let __rhs = 0b1100; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() & __rhs); };
+    { let __rhs = 12; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() & __rhs); };
     print!("y &= 0b1100: {:b}\n", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
-    { let __rhs = 0b0011; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+    { let __rhs = 3; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     print!("y |= 0b0011: {:b}\n", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
-    { let __rhs = 0b0101; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() ^ __rhs); };
+    { let __rhs = 5; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() ^ __rhs); };
     print!("y ^= 0b0101: {:b}\n", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 
     { let __rhs = 2; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() << __rhs); };

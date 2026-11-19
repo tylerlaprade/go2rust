@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 
 struct GoChannel<T> {
@@ -150,18 +149,21 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn sender(ch: GoChannel<i32>) {
+pub fn sender(ch: GoChannel<i32>, received: GoChannel<bool>) {
     let mut i = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         print!("Sending: {}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });
         ch.send((*i.lock().unwrap().as_ref().unwrap()));
-        std::thread::sleep(std::time::Duration::from_millis(100));
+
+                // Let the receiver report this value before logging the next send.
+        received.recv().unwrap_or_default();
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+        // Let the receiver report this value before logging the next send.
     ch.close();
 }
 
-pub fn receiver(ch: GoChannel<i32>) {
+pub fn receiver(ch: GoChannel<i32>, received: GoChannel<bool>, done: GoChannel<bool>) {
     loop {
         let (mut value, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -169,21 +171,24 @@ pub fn receiver(ch: GoChannel<i32>) {
         break
     }
         print!("Received: {}\n", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        received.send(true);
     }
+    done.send(true);
 }
 
 fn main() {
         // Unbuffered channel
     let mut ch = GoChannel::<i32>::new();
+    let mut received = GoChannel::<bool>::new();
+    let mut done = GoChannel::<bool>::new();
 
-    let ch_thread = ch.clone(); std::thread::spawn(move || {
-        sender(ch_thread.clone());
+    let ch_thread = ch.clone(); let received_thread = received.clone(); std::thread::spawn(move || {
+        sender(ch_thread.clone(), received_thread.clone());
     });
-    let ch_thread = ch.clone(); std::thread::spawn(move || {
-        receiver(ch_thread.clone());
+    let ch_thread = ch.clone(); let done_thread = done.clone(); let received_thread = received.clone(); std::thread::spawn(move || {
+        receiver(ch_thread.clone(), received_thread.clone(), done_thread.clone());
     });
-
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    done.recv().unwrap_or_default();
 
         // Buffered channel
     let mut buffered = GoChannel::<String>::new_buffered(3 as usize);

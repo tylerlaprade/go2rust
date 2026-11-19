@@ -41,20 +41,34 @@ impl Display for namedMap {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct holder {
     pub values: Rc<RefCell<Option<namedMap>>>,
 }
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { values: self.values.clone() }
+        let __go_clone_0_0 = self.values.clone();
+        Self {
+            values: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for holder {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(namedMap::default())));
+        Self {
+            values: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.values.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.values.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

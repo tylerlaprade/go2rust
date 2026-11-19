@@ -12,7 +12,7 @@ pub trait Value: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Value> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_value()
+        Value::__go_clone_box_value(self.as_ref())
     }
 }
 
@@ -27,7 +27,9 @@ impl Display for intVal {
 
 impl PartialEq for intVal {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -39,7 +41,9 @@ impl PartialEq<i64> for intVal {
 
 impl PartialOrd for intVal {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -100,6 +104,76 @@ impl std::ops::Sub<intVal> for i64 {
     type Output = intVal;
     fn sub(self, other: intVal) -> intVal {
         intVal(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for intVal {
+    type Output = intVal;
+    fn mul(self, other: Self) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i64> for intVal {
+    type Output = intVal;
+    fn mul(self, other: i64) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<intVal> for i64 {
+    type Output = intVal;
+    fn mul(self, other: intVal) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for intVal {
+    type Output = intVal;
+    fn div(self, other: Self) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i64> for intVal {
+    type Output = intVal;
+    fn div(self, other: i64) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<intVal> for i64 {
+    type Output = intVal;
+    fn div(self, other: intVal) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for intVal {
+    type Output = intVal;
+    fn neg(self) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for intVal {
+    type Output = intVal;
+    fn rem(self, other: Self) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i64> for intVal {
+    type Output = intVal;
+    fn rem(self, other: i64) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<intVal> for i64 {
+    type Output = intVal;
+    fn rem(self, other: intVal) -> intVal {
+        intVal(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -332,13 +406,20 @@ pub struct complexVal {
 
 impl complexVal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { re: self.re.clone(), im: self.im.clone() }
+        let __go_clone_0_0 = self.re.clone();
+        let __go_clone_1_0 = self.im.clone();
+        Self {
+            re: __go_clone_0_0,
+            im: __go_clone_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for complexVal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.re.borrow().as_ref().unwrap()), (*self.im.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.re.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.im.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -351,7 +432,7 @@ impl intVal {
 
 impl Value for intVal {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        self.kind()
+        intVal::kind(self)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {
         Box::new(self.clone()) as Box<dyn Value>
@@ -368,6 +449,37 @@ impl Value for intVal {
     }
 }
 
+#[derive(Clone)]
+pub struct intValPtr(pub Rc<RefCell<Option<intVal>>>);
+
+impl std::fmt::Display for intValPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Value for intValPtr {
+    fn kind(&self) -> Rc<RefCell<Option<String>>> {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        intVal::kind(__recv)
+    }
+    fn __go_clone_box_value(&self) -> Box<dyn Value> {
+        Box::new(self.clone()) as Box<dyn Value>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_value(&self, other: &dyn Value) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<intValPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 impl complexVal {
     pub fn kind(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("complex".to_string())))
@@ -376,7 +488,7 @@ impl complexVal {
 
 impl Value for complexVal {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        self.kind()
+        complexVal::kind(self)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {
         Box::new(self.clone()) as Box<dyn Value>
@@ -393,11 +505,45 @@ impl Value for complexVal {
     }
 }
 
+#[derive(Clone)]
+pub struct complexValPtr(pub Rc<RefCell<Option<complexVal>>>);
+
+impl std::fmt::Display for complexValPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Value for complexValPtr {
+    fn kind(&self) -> Rc<RefCell<Option<String>>> {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        complexVal::kind(__recv)
+    }
+    fn __go_clone_box_value(&self) -> Box<dyn Value> {
+        Box::new(self.clone()) as Box<dyn Value>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_value(&self, other: &dyn Value) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<complexValPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 pub fn make_complex(n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Box<dyn Value>>>> {
     Rc::new(RefCell::new(Some(Box::new(complexVal { re: Rc::new(RefCell::new(Some(Box::new(intVal(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) as i64))))) as Box<dyn Value>))), im: Rc::new(RefCell::new(Some(Box::new(intVal(Rc::new(RefCell::new(Some(0 as i64))))) as Box<dyn Value>))), ..Default::default() }) as Box<dyn Value>)))
 }
 
 fn main() {
     let mut v = make_complex(Rc::new(RefCell::new(Some(5 as i64))));
-    eprintln!("{}", format!("{}", (*(*v.borrow().as_ref().unwrap()).kind().borrow().as_ref().unwrap())));
+    {
+            let __go_print_arg_0 = format!("{}", (*(*v.borrow().as_ref().unwrap()).kind().borrow().as_ref().unwrap()));
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

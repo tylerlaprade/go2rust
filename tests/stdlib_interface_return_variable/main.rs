@@ -145,16 +145,16 @@ pub fn as_type(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<types_Ty
         let val = t.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<types_Chan>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+            if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<types_Chan>>>>() {
+                (typed_val.clone(), true)
             } else {
-                (Rc::new(RefCell::new(None::<types_Chan>)), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<types_Chan>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(None::<types_Chan>)), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<types_Chan>)), false)
         }
     });
-    if (*ok.borrow().as_ref().unwrap()) {
+    if ok {
         return { let __arg = ch.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) };
     }
     t.clone()
@@ -162,7 +162,7 @@ pub fn as_type(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<types_Ty
 
 pub fn zero_object() -> Rc<RefCell<Option<types_Object>>> {
     let mut obj: Rc<RefCell<Option<types_Object>>> = Rc::new(RefCell::new(None));
-    if (*obj.borrow()).is_none() {
+    if { let __nil_result = (*obj.borrow()).is_none(); __nil_result } {
         return Rc::new(RefCell::new(None));
     }
     return obj.clone();
@@ -171,7 +171,7 @@ pub fn zero_object() -> Rc<RefCell<Option<types_Object>>> {
 fn main() {
     if false {
         println!("{}", format!("{}", format!("{}", (*(as_type(Rc::new(RefCell::new(None)))).borrow().as_ref().unwrap()))));
-        println!("{}", format!("{}", (*zero_object().borrow()).is_none()));
+        println!("{}", format!("{}", { let __nil_result = (*zero_object().borrow()).is_none(); __nil_result }));
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

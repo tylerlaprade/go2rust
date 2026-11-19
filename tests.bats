@@ -415,6 +415,10 @@ run_xfail_test() {
     run_test "tests/anon_interface_type_switch"
 }
 
+@test "anonymous_struct_embedded_global" {
+    run_test "tests/anonymous_struct_embedded_global"
+}
+
 @test "anonymous_structs_basic" {
     run_test "tests/anonymous_structs_basic"
 }
@@ -761,6 +765,10 @@ run_xfail_test() {
 
 @test "const_basic" {
     run_test "tests/const_basic"
+}
+
+@test "const_case_collision" {
+    run_test "tests/const_case_collision"
 }
 
 @test "const_integer_call_argument" {
@@ -1519,6 +1527,10 @@ run_xfail_test() {
     run_test "tests/map_comma_ok_value_copy_goroutines"
 }
 
+@test "map_converted_numeric" {
+    run_test "tests/map_converted_numeric"
+}
+
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
 }
@@ -2007,6 +2019,10 @@ run_xfail_test() {
     run_test "tests/parallel_assign_receiver_named_scalar_field"
 }
 
+@test "parallel_assign_receiver_value_field_swap" {
+    run_test "tests/parallel_assign_receiver_value_field_swap"
+}
+
 @test "parallel_assign_value_field_swap" {
     run_test "tests/parallel_assign_value_field_swap"
 }
@@ -2219,6 +2235,10 @@ run_xfail_test() {
     run_test "tests/range_over_integer"
 }
 
+@test "range_over_slice_bounds" {
+    run_test "tests/range_over_slice_bounds"
+}
+
 @test "range_over_slice_field" {
     run_test "tests/range_over_slice_field"
 }
@@ -2387,6 +2407,14 @@ run_xfail_test() {
     run_test "tests/rune_escape_literals"
 }
 
+@test "runtime_format_with_package_level_names" {
+    run_test "tests/runtime_format_with_package_level_names"
+}
+
+@test "runtime_format_with_package_level_names_goroutines" {
+    run_test "tests/runtime_format_with_package_level_names_goroutines"
+}
+
 @test "runtime_gomaxprocs" {
     run_test "tests/runtime_gomaxprocs"
 }
@@ -2465,6 +2493,10 @@ run_xfail_test() {
 
 @test "slice_elem_pointer_short_decl" {
     run_test "tests/slice_elem_pointer_short_decl"
+}
+
+@test "slice_element_pointer_field_receiver" {
+    run_test "tests/slice_element_pointer_field_receiver"
 }
 
 @test "slice_expr_call_argument" {
@@ -2601,6 +2633,14 @@ run_xfail_test() {
 
 @test "source_stdlib_path_filepath_isabs" {
     run_test "tests/source_stdlib_path_filepath_isabs"
+}
+
+@test "source_stdlib_pointer_as_local_interface" {
+    run_test "tests/source_stdlib_pointer_as_local_interface"
+}
+
+@test "source_stdlib_pointer_as_local_interface_goroutines" {
+    run_test "tests/source_stdlib_pointer_as_local_interface_goroutines"
 }
 
 @test "source_stdlib_strconv_unquote" {
@@ -2951,6 +2991,14 @@ run_xfail_test() {
     run_test "tests/switch_nil_case"
 }
 
+@test "switch_pointer_identity_concurrent" {
+    run_test "tests/switch_pointer_identity_concurrent"
+}
+
+@test "switch_pointer_identity_single" {
+    run_test "tests/switch_pointer_identity_single"
+}
+
 @test "switch_statements" {
     run_test "tests/switch_statements"
 }
@@ -3183,10 +3231,6 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
 
-@test "XFAIL: const_case_collision" {
-    run_xfail_test "tests/XFAIL/const_case_collision"
-}
-
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
 }
@@ -3205,10 +3249,6 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
-}
-
-@test "XFAIL: parallel_assign_receiver_value_field_swap" {
-    run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
 @test "XFAIL: slice_shared_with_package_variable_or_element" {
