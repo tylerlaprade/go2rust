@@ -205,6 +205,8 @@ type anyFormatArm struct {
 	expr             string
 	needsFormatMap   bool
 	needsFormatSlice bool
+	// needsFormatPointer says expr calls go_format_any_pointer.
+	needsFormatPointer bool
 }
 
 var generatingPublicHelpers bool
@@ -270,11 +272,16 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	// format_any prints boxed slices and maps through the typed formatters,
 	// so it needs them even when no typed print site asked for them.
+	needsFormatAnyPointer := false
 	if ht.needsFormatAny {
 		for _, arm := range ht.anyFormatArms {
 			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
 			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
+			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
 		}
+	}
+	if needsFormatAnyPointer {
+		generateAnyPointerFormatter(&result)
 	}
 
 	if ht.needsFormatMap {
@@ -993,6 +1000,34 @@ impl std::fmt::Debug for GoAnyPtrKey {
 }
 impl std::fmt::Display for GoAnyPtrKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+`)
+}
+
+// generateAnyPointerFormatter emits go_format_any_pointer, which format_any
+// uses to print a pointer to a struct held in an interface.
+func generateAnyPointerFormatter(out *strings.Builder) {
+	out.WriteString(`
+thread_local! {
+    static GO_FORMAT_ANY_POINTER_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+// Go expands a pointer to a struct only at the top level of the value being
+// printed. Below that it prints the pointer's address. That is also what keeps
+// a value that points back to itself from printing forever.
+fn go_format_any_pointer(address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
+    struct Depth;
+    impl Drop for Depth {
+        fn drop(&mut self) {
+            GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() - 1));
+        }
+    }
+    if GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.get()) > 0 {
+        return if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) };
+    }
+    GO_FORMAT_ANY_POINTER_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    let _depth = Depth;
+    expand()
 }
 `)
 }
