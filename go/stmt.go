@@ -1068,6 +1068,11 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
+	// An error goes into a []any element the way it goes into any other
+	// interface value.
+	if writeGoErrorInterfaceAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}

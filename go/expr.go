@@ -8094,7 +8094,10 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 }
 
 func isErrorInterfaceType(typ types.Type) bool {
-	named, ok := typ.(*types.Named)
+	if typ == nil {
+		return false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
 	return ok && named.Obj() != nil && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
 }
 
@@ -8540,7 +8543,7 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
 	if len(candidates) == 0 {
-		writeOpaqueGoErrorAnyBox(out, "__err")
+		writeOpaqueGoErrorAnyBox(out)
 	} else {
 		for i, candidate := range candidates {
 			if i == 0 {
@@ -8555,7 +8558,7 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 			out.WriteString(" }")
 		}
 		out.WriteString(" else { ")
-		writeOpaqueGoErrorAnyBox(out, "__err")
+		writeOpaqueGoErrorAnyBox(out)
 		out.WriteString(" }")
 	}
 	out.WriteString(" } }")
@@ -8564,13 +8567,16 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 
 // writeOpaqueGoErrorAnyBox boxes an error whose dynamic type is not one of
 // the error types this package can name, such as the value errors.New or
-// fmt.Errorf returns. The box holds the error's message, which is the form
-// type assertions to error and the any formatter read back. The error's
-// identity does not survive the trip.
-func writeOpaqueGoErrorAnyBox(out *strings.Builder, errExpr string) {
-	out.WriteString("Box::new(format!(\"{}\", ")
-	out.WriteString(errExpr)
-	out.WriteString(")) as ")
+// fmt.Errorf returns. The box holds the error's own handle, so the error is
+// still an error when it comes back out: it is not a string, its Error method
+// has not run, and asserting it back to error yields the same error.
+//
+// The handle is the one the source expression holds. Assigning a new error to
+// that variable afterwards is visible through the box, which Go would not
+// allow; a plain error copy (e2 := e1) shares its handle the same way today.
+func writeOpaqueGoErrorAnyBox(out *strings.Builder) {
+	RegisterOpaqueErrorAnyPayload()
+	out.WriteString("Box::new(__err_holder.clone()) as ")
 	out.WriteString(rustAnyTraitObject())
 }
 
@@ -8613,7 +8619,7 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	out.WriteString("            } else {\n")
 	out.WriteString(indent)
 	out.WriteString("                ")
-	writeOpaqueGoErrorAnyBox(out, "__err")
+	writeOpaqueGoErrorAnyBox(out)
 	out.WriteString("\n")
 	out.WriteString(indent)
 	out.WriteString("            }\n")
@@ -14490,6 +14496,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 							TranspileExpression(out, elt)
+						}
+						continue
+					}
+					// An error goes into a []any literal the way it goes into
+					// any other interface value.
+					if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
+						if multilineCollectionLiteral {
+							out.WriteString(",\n")
 						}
 						continue
 					}
@@ -20750,7 +20764,18 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
-	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString("            ")
+	if targetIsError && typeAssertionSourceIsEmptyInterface(e.X) {
+		// An error whose dynamic type cannot be named sits in the box as its
+		// own handle (see writeOpaqueGoErrorAnyBox). Asserting it back to
+		// error hands out that handle, so it is still the same error.
+		out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">() {\n")
+		out.WriteString("                (typed_val.clone(), true)\n")
+		out.WriteString("            } else ")
+	}
+	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
 	out.WriteString(rustType)
 	out.WriteString(">() {\n")
 	out.WriteString("                (")
@@ -20783,6 +20808,14 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString(")\n")
 	out.WriteString("        }\n")
 	out.WriteString("    })")
+}
+
+func typeAssertionSourceIsEmptyInterface(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isEmptyInterfaceType(typeInfo.GetType(expr))
 }
 
 func isFunctionTypeAliasValue(expr ast.Expr) bool {

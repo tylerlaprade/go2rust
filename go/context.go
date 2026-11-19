@@ -945,6 +945,31 @@ func RegisterAnyCloneType(typ types.Type) {
 	}
 }
 
+// RegisterOpaqueErrorAnyPayload records that the program boxes an error
+// handle into an empty interface, which is how an error travels when its
+// dynamic type cannot be named (see writeOpaqueGoErrorAnyBox). The handle is
+// copied by cloning it, and printed by asking the error for its message at
+// the moment it is printed.
+func RegisterOpaqueErrorAnyPayload() {
+	helpers := activeHelperTracker()
+	if helpers == nil {
+		return
+	}
+	rustType := rustGoErrorHandleType()
+	if helpers.anyCloneTypes == nil {
+		helpers.anyCloneTypes = make(map[string]bool)
+	}
+	helpers.anyCloneTypes[rustType] = true
+	if helpers.anyFormatArms == nil {
+		helpers.anyFormatArms = make(map[string]anyFormatArm)
+	}
+	var expr strings.Builder
+	expr.WriteString("match (*v")
+	WriteBorrowMethod(&expr, false)
+	expr.WriteString(`).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }`)
+	helpers.anyFormatArms[rustType] = anyFormatArm{expr: expr.String()}
+}
+
 func anyCloneRustType(typ types.Type) (string, bool) {
 	if typ == nil {
 		return "", false

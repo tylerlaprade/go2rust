@@ -9909,18 +9909,48 @@ func pass(err error) {
 }
 `)
 
-	typed := strings.Index(rust, "downcast_ref::<myErr>()")
-	if typed < 0 {
-		t.Fatalf("error-to-any lowering should downcast the dynamic concrete error through go/types candidates:\n%s", rust)
+	if strings.Contains(rust, `format!("{}",`) {
+		t.Fatalf("error-to-any lowering should not preserve only formatted error text:\n%s", rust)
 	}
-	// The message is only what is left for an error whose dynamic type the
-	// package cannot name (errors.New, fmt.Errorf). It must come after every
-	// typed downcast, never in place of one.
-	if text := strings.Index(rust, `format!("{}", __err)`); text >= 0 && text < typed {
-		t.Fatalf("error-to-any lowering should try the typed downcasts before falling back to the error text:\n%s", rust)
+	if !strings.Contains(rust, "downcast_ref::<myErr>()") {
+		t.Fatalf("error-to-any lowering should downcast the dynamic concrete error through go/types candidates:\n%s", rust)
 	}
 	if !strings.Contains(rust, `go_box_any_with_metadata(typed_val.clone(), "struct", true)`) {
 		t.Fatalf("error-to-any lowering should box the dynamic concrete error with go/types metadata:\n%s", rust)
+	}
+}
+
+func TestOpaqueErrorPassedToAnyKeepsItsHandle(t *testing.T) {
+	source := `package main
+
+import "errors"
+
+func take(v any) {}
+
+func pass() {
+	err := errors.New("opaque")
+	take(err)
+	var boxed any = err
+	if back, ok := boxed.(error); ok {
+		_ = back
+	}
+}
+`
+	rust := transpileTypedRegression(t, source)
+	// The message is read when the error is printed, never when it is put in
+	// the interface value: Error is user code, and a string in the box would
+	// answer x.(string).
+	if strings.Contains(rust, `Box::new(format!("{}", __err))`) {
+		t.Fatalf("error-to-any lowering should not box the error's message:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(__err_holder.clone()) as Box<dyn Any>") {
+		t.Fatalf("error-to-any lowering should box the error's own handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "error-to-any has no visible dynamic error implementors") {
+		t.Fatalf("error-to-any lowering should not panic for an error it cannot name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn StdError>>>>>()") {
+		t.Fatalf("asserting an interface value to error should look for the error handle:\n%s", rust)
 	}
 }
 

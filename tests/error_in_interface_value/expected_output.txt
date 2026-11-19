@@ -3,5 +3,12 @@ bad
 wrapped: bad
 3
 2
-asserted: bad
+is a string: false
+asserted: bad true
 bad
+bad|bad
+aliased true
+bad
+text
+wrapped: bad
+false
