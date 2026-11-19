@@ -8536,7 +8536,7 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
-	candidates := localInterfaceAssertionCandidates(errorIface, typeInfo.GetType(expr))
+	candidates := goErrorAnyBoxCandidates(localInterfaceAssertionCandidates(errorIface, typeInfo.GetType(expr)))
 	if goErrorInterfaceAnyBoxShouldUseMultiline(candidates) {
 		writeGoErrorInterfaceAnyBoxMultiline(out, expr, candidates)
 		return true
@@ -8558,7 +8558,7 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 			out.WriteString("let Some(typed_val) = __err.downcast_ref::<")
 			out.WriteString(candidate.rustType)
 			out.WriteString(">() { ")
-			writeGoAnyMetadataBox(out, "typed_val.clone()", candidate)
+			writeGoAnyMetadataBox(out, goErrorAnyBoxValue(candidate), candidate)
 			out.WriteString(" }")
 		}
 		out.WriteString(" else { ")
@@ -8618,7 +8618,7 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 		out.WriteString(">() {\n")
 		out.WriteString(indent)
 		out.WriteString("                ")
-		writeGoAnyMetadataBox(out, "typed_val.clone()", candidate)
+		writeGoAnyMetadataBox(out, goErrorAnyBoxValue(candidate), candidate)
 		out.WriteString("\n")
 	}
 	out.WriteString(indent)
@@ -8635,6 +8635,45 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	out.WriteString("    }\n")
 	out.WriteString(indent)
 	out.WriteString("}")
+}
+
+// goErrorAnyBoxCandidates keeps the error types that an interface value can
+// hold under their own type: the ones format_any can print and go_any_clone
+// can copy, which are the types this package declares. An error of any other
+// type goes into the interface value as an error handle, which every reader
+// knows. Naming a type the readers do not know made the value print as
+// "<unknown>" and stopped the program when it was copied.
+func goErrorAnyBoxCandidates(candidates []localInterfaceAssertionCandidate) []localInterfaceAssertionCandidate {
+	var known []localInterfaceAssertionCandidate
+	for _, candidate := range candidates {
+		if candidate.external {
+			continue
+		}
+		if _, ok := anyCloneRustType(candidate.typ); !ok {
+			continue
+		}
+		if _, ok := anyFormatArmForType(candidate.typ); !ok {
+			continue
+		}
+		RegisterAnyCloneType(candidate.typ)
+		known = append(known, candidate)
+	}
+	return known
+}
+
+// goErrorAnyBoxValue is the value that goes into the interface value for an
+// error whose type is candidate. typed_val is the value found in the error.
+// An interface value holds a pointer as a handle, like any pointer variable,
+// so a pointer error gets a handle around what the error holds.
+func goErrorAnyBoxValue(candidate localInterfaceAssertionCandidate) string {
+	if _, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+		var value strings.Builder
+		WriteWrapperPrefix(&value)
+		value.WriteString("typed_val.clone()")
+		WriteWrapperSuffix(&value)
+		return value.String()
+	}
+	return "typed_val.clone()"
 }
 
 func writeGoAnyMetadataBox(out *strings.Builder, valueExpr string, candidate localInterfaceAssertionCandidate) {

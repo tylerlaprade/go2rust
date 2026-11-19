@@ -135,11 +135,6 @@ pub struct GoAnyTypeMetadata {
     pub elem_comparable: bool,
 }
 
-pub struct GoAnyMetadataBox {
-    pub value: Box<dyn Any + Send + Sync>,
-    pub metadata: GoAnyTypeMetadata,
-}
-
 fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
@@ -162,9 +157,13 @@ pub fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'st
     go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
 }
 
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
 pub fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
-    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
-    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any + Send + Sync>, metadata }) as Box<dyn Any + Send + Sync>
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any + Send + Sync>
 }
 
 pub fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
@@ -172,11 +171,26 @@ pub fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'s
 }
 
 pub fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
-    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
-        return Some(__boxed.metadata);
-    }
     go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
+}
+
+fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+pub fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
+    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
+}
+
+pub fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
+    let registry = go_embedded_owner_registry().lock().unwrap();
+    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+    owner
+        .downcast_ref::<Arc<Mutex<Option<T>>>>()
+        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+        .clone()
 }
 
 
@@ -208,207 +222,6 @@ impl<T> std::fmt::Debug for GoPtrKey<T> {
 impl<T> std::fmt::Display for GoPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
-
-pub use serde_json;
-
-pub trait GoJsonInputArg {
-    fn into_go_json_bytes(self) -> Vec<u8>;
-}
-
-pub trait GoJsonDecode: Sized {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String>;
-}
-
-pub trait GoJsonDecodeTarget {
-    fn assign_go_json(self, value: &serde_json::Value) -> Result<(), String>;
-}
-
-fn go_json_no_error() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-    Arc::new(Mutex::new(None))
-}
-
-fn go_json_error(message: String) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(message))))
-}
-
-pub fn go_json_expected(value: &serde_json::Value, want: &str) -> String {
-    format!("expected {}, got {}", want, value)
-}
-
-impl GoJsonInputArg for Vec<u8> {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self
-    }
-}
-
-impl GoJsonInputArg for String {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.into_bytes()
-    }
-}
-
-impl<'a> GoJsonInputArg for &'a str {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.as_bytes().to_vec()
-    }
-}
-
-impl<T> GoJsonInputArg for Arc<Mutex<Option<T>>>
-where
-    T: GoJsonInputArg + Clone,
-{
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.lock().unwrap().as_ref().cloned().map(|value| value.into_go_json_bytes()).unwrap_or_default()
-    }
-}
-
-impl GoJsonDecode for String {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_str().map(|value| value.to_string()).ok_or_else(|| go_json_expected(value, "string"))
-    }
-}
-
-impl GoJsonDecode for bool {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_bool().ok_or_else(|| go_json_expected(value, "bool"))
-    }
-}
-
-impl GoJsonDecode for i32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().map(|value| value as i32).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for i16 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().map(|value| value as i16).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for i8 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().map(|value| value as i8).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for i64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_i64().ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u8 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as u8).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u16 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as u16).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as u32).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for u64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for usize {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_u64().map(|value| value as usize).ok_or_else(|| go_json_expected(value, "integer"))
-    }
-}
-
-impl GoJsonDecode for f64 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_f64().ok_or_else(|| go_json_expected(value, "number"))
-    }
-}
-
-impl GoJsonDecode for f32 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        value.as_f64().map(|value| value as f32).ok_or_else(|| go_json_expected(value, "number"))
-    }
-}
-
-impl<T> GoJsonDecode for Vec<T>
-where
-    T: GoJsonDecode,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
-        array.iter().map(T::go_json_decode).collect()
-    }
-}
-
-impl<T, const N: usize> GoJsonDecode for [T; N]
-where
-    T: GoJsonDecode + Default,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let array = value.as_array().ok_or_else(|| go_json_expected(value, "array"))?;
-        if array.len() != N {
-            return Err(format!("expected array of length {}, got {}", N, array.len()));
-        }
-        let mut out = std::array::from_fn(|_| T::default());
-        for (index, item) in array.iter().enumerate() {
-            out[index] = T::go_json_decode(item)?;
-        }
-        Ok(out)
-    }
-}
-
-impl<V> GoJsonDecode for BTreeMap<String, V>
-where
-    V: GoJsonDecode,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = BTreeMap::new();
-        for (key, value) in object {
-            out.insert(key.clone(), V::go_json_decode(value)?);
-        }
-        Ok(out)
-    }
-}
-
-impl<T> GoJsonDecode for Arc<Mutex<Option<T>>>
-where
-    T: GoJsonDecode,
-{
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        if value.is_null() {
-            Ok(Arc::new(Mutex::new(None)))
-        } else {
-            Ok(Arc::new(Mutex::new(Some(T::go_json_decode(value)?))))
-        }
-    }
-}
-
-impl<T> GoJsonDecodeTarget for Arc<Mutex<Option<T>>>
-where
-    T: GoJsonDecode,
-{
-    fn assign_go_json(self, value: &serde_json::Value) -> Result<(), String> {
-        if value.is_null() {
-            *self.lock().unwrap() = None;
-        } else {
-            *self.lock().unwrap() = Some(T::go_json_decode(value)?);
-        }
-        Ok(())
-    }
-}
-
-
 
 pub mod goarch {
     use super::*;

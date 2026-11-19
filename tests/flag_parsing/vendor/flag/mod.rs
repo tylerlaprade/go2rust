@@ -4878,56 +4878,7 @@ impl FlagSet {
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (
                 false,
-                self.failf(Arc::new(Mutex::new(Some("invalid boolean value %q for -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, {
-                    let __err_holder = err.clone();
-                    let __err_guard = __err_holder.lock().unwrap();
-                    match __err_guard.as_ref() {
-                        None => panic!("nil error-to-any lowering requires nil interface representation"),
-                        Some(__err) => {
-                            if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else {
-                                Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
-                            }
-                        }
-                    }
-                }]))))
+                self.failf(Arc::new(Mutex::new(Some("invalid boolean value %q for -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))))
             );;
         }
     }
@@ -4937,56 +4888,7 @@ impl FlagSet {
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (
                 false,
-                self.failf(Arc::new(Mutex::new(Some("invalid boolean flag %s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, {
-                    let __err_holder = err.clone();
-                    let __err_guard = __err_holder.lock().unwrap();
-                    match __err_guard.as_ref() {
-                        None => panic!("nil error-to-any lowering requires nil interface representation"),
-                        Some(__err) => {
-                            if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else {
-                                Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
-                            }
-                        }
-                    }
-                }]))))
+                self.failf(Arc::new(Mutex::new(Some("invalid boolean flag %s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))))
             );;
         }
     }
@@ -5026,56 +4928,7 @@ impl FlagSet {
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (
                 false,
-                self.failf(Arc::new(Mutex::new(Some("invalid value %q for flag -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, {
-                    let __err_holder = err.clone();
-                    let __err_guard = __err_holder.lock().unwrap();
-                    match __err_guard.as_ref() {
-                        None => panic!("nil error-to-any lowering requires nil interface representation"),
-                        Some(__err) => {
-                            if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                            } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
-                                go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                            } else {
-                                Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
-                            }
-                        }
-                    }
-                }]))))
+                self.failf(Arc::new(Mutex::new(Some("invalid value %q for flag -%s: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))))
             );;
         }
     };
@@ -5114,56 +4967,7 @@ impl FlagSet {
     }
             os::exit(2);
         } else if _switch_val == (ErrorHandling(Arc::new(Mutex::new(Some(PANIC_ON_ERROR as i32))))) {
-            std::panic::panic_any({
-                let __err_holder = err.clone();
-                let __err_guard = __err_holder.lock().unwrap();
-                match __err_guard.as_ref() {
-                    None => panic!("nil error-to-any lowering requires nil interface representation"),
-                    Some(__err) => {
-                        if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<fmt_wrapErrors>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<fs_PathError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<os_LinkError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<os_SyscallError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<os_errSymlink>() {
-                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<reflect_ValueError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_PanicNilError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_TypeAssertionError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_boundsError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorAddressString>() {
-                            go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_errorString>() {
-                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<runtime_plainError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<strconv_NumError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<syscall_Errno>() {
-                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<time_ParseError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                        } else if let Some(typed_val) = __err.downcast_ref::<time_fileSizeError>() {
-                            go_box_any_with_metadata(typed_val.clone(), "basic", true)
-                        } else {
-                            Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
-                        }
-                    }
-                }
-            });
+            std::panic::panic_any({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
         }
     }
     }

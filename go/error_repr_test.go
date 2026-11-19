@@ -199,3 +199,52 @@ func TestExpandErrorReprFillsHelperText(t *testing.T) {
 		t.Fatalf("concurrent:\n got %s\nwant %s", got, want)
 	}
 }
+
+// An error of a type the program declares goes into an interface{} as
+// itself, where format_any and go_any_clone find it. It used to go in inside
+// a wrapper that no reader opened, so it printed as "<unknown>" and stopped
+// the program when the interface value was copied.
+func TestCustomErrorIsBoxedIntoAnInterfaceAsItself(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Missing struct{ Name string }
+
+func (m Missing) Error() string { return "missing " + m.Name }
+
+type NotFound struct{ Code int }
+
+func (n *NotFound) Error() string { return "not found" }
+
+func find() error { return Missing{"key"} }
+
+func lookup() error { return &NotFound{Code: 404} }
+
+func log(v interface{}) { fmt.Println(v) }
+
+func main() {
+	log(find())
+	log(lookup())
+}
+`)
+
+	for _, want := range []string{
+		// A struct error is boxed as the struct.
+		`if let Some(typed_val) = __err.downcast_ref::<Missing>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) }`,
+		// A pointer error is boxed as a pointer handle, as any pointer is.
+		`if let Some(typed_val) = __err.downcast_ref::<NotFound>() { go_box_any_with_metadata(Rc::new(RefCell::new(Some(typed_val.clone()))), "pointer", true) }`,
+		// The box holds the value and nothing else.
+		"go_register_any_type::<T>(kind, comparable);\n    Box::new(value) as Box<dyn Any>",
+		// Both types are known to the readers of an interface value.
+		"} else if let Some(v) = value.downcast_ref::<Missing>() {",
+		"} else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<NotFound>>>>() {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "GoAnyMetadataBox") {
+		t.Fatalf("no wrapper should stand between an interface value and what it holds:\n%s", rust)
+	}
+}

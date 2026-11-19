@@ -1,21 +1,19 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_lookup_embedded_owner, go_register_embedded_owner};
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+};
 
-use crate::r#mod::*;
-use crate::abi_arm64::*;
-use crate::compiletype::*;
-use crate::escape::*;
-use crate::funcpc::*;
-use crate::iface::*;
-use crate::map_noswiss::*;
-use crate::map_select_swiss::*;
-use crate::map_swiss::*;
-use crate::rangefuncconsts::*;
-use crate::runtime::*;
-use crate::stack::*;
-use crate::switch::*;
-use crate::symtab::*;
+use crate::{escape::{no_escape}, iface::{EmptyInterface}, map_select_swiss::{mapType}, map_swiss::{SwissMapType}};
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -109,46 +107,91 @@ pub struct Type {
 
 impl Type {
     pub fn __go_value_clone(&self) -> Self {
-        Self { size_: { let __guard = self.size_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ptr_bytes: { let __guard = self.ptr_bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hash: { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, t_flag: { let __guard = self.t_flag.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, align_: { let __guard = self.align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, field_align_: { let __guard = self.field_align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, kind_: { let __guard = self.kind_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, equal: self.equal.clone(), g_c_data: self.g_c_data.clone(), str: { let __guard = self.str.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ptr_to_this: { let __guard = self.ptr_to_this.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.size_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.ptr_bytes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.hash.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.t_flag.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_5_0 = { let __guard = self.field_align_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_6_0 = { let __guard = self.kind_.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_7_0 = self.equal.clone();
+        let __go_clone_8_0 = self.g_c_data.clone();
+        let __go_clone_9_0 = { let __guard = self.str.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_10_0 = { let __guard = self.ptr_to_this.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            size_: __go_clone_0_0,
+            ptr_bytes: __go_clone_1_0,
+            hash: __go_clone_2_0,
+            t_flag: __go_clone_3_0,
+            align_: __go_clone_4_0,
+            field_align_: __go_clone_5_0,
+            kind_: __go_clone_6_0,
+            equal: __go_clone_7_0,
+            g_c_data: __go_clone_8_0,
+            str: __go_clone_9_0,
+            ptr_to_this: __go_clone_10_0,
+        }
     }
 }
 
 
 impl Default for Type {
     fn default() -> Self {
-        Self { size_: Arc::new(Mutex::new(Some(0))), ptr_bytes: Arc::new(Mutex::new(Some(0))), hash: Arc::new(Mutex::new(Some(0))), t_flag: Arc::new(Mutex::new(Some(TFlag(Arc::new(Mutex::new(Some(0))))))), align_: Arc::new(Mutex::new(Some(0))), field_align_: Arc::new(Mutex::new(Some(0))), kind_: Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(0))))))), equal: Arc::new(Mutex::new(None)), g_c_data: Arc::new(Mutex::new(None)), str: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), ptr_to_this: Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(TFlag(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_5_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_6_0 = Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_7_0 = Arc::new(Mutex::new(None));
+        let __go_default_8_0 = Arc::new(Mutex::new(None));
+        let __go_default_9_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_10_0 = Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            size_: __go_default_0_0,
+            ptr_bytes: __go_default_1_0,
+            hash: __go_default_2_0,
+            t_flag: __go_default_3_0,
+            align_: __go_default_4_0,
+            field_align_: __go_default_5_0,
+            kind_: __go_default_6_0,
+            equal: __go_default_7_0,
+            g_c_data: __go_default_8_0,
+            str: __go_default_9_0,
+            ptr_to_this: __go_default_10_0,
+        }
     }
 }
 
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", (*self.size_.lock().unwrap().as_ref().unwrap()), (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()), (*self.hash.lock().unwrap().as_ref().unwrap()), (*self.t_flag.lock().unwrap().as_ref().unwrap()), (*self.align_.lock().unwrap().as_ref().unwrap()), (*self.field_align_.lock().unwrap().as_ref().unwrap()), (*self.kind_.lock().unwrap().as_ref().unwrap()), "<func>", { let __guard = self.g_c_data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.str.lock().unwrap().as_ref().unwrap()), (*self.ptr_to_this.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Type {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Size_") {
-            out.size_ = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("PtrBytes") {
-            out.ptr_bytes = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Hash") {
-            out.hash = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Align_") {
-            out.align_ = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("FieldAlign_") {
-            out.field_align_ = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("GCData") {
-            out.g_c_data = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.size_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.ptr_bytes.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.hash.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.t_flag.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.align_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_5 = format!("{}", (*self.field_align_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_6 = format!("{}", (*self.kind_.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_7 = format!("{}", "<func>");
+        let __go_fmt_8 = format!("{}", { let __guard = self.g_c_data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_9 = format!("{}", (*self.str.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_10 = format!("{}", (*self.ptr_to_this.lock().unwrap().as_ref().unwrap()));
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10
+        )
     }
 }
 
@@ -2067,28 +2110,42 @@ pub struct Method {
 
 impl Method {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mtyp: { let __guard = self.mtyp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ifn: { let __guard = self.ifn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tfn: { let __guard = self.tfn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mtyp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.ifn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.tfn.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            mtyp: __go_clone_1_0,
+            ifn: __go_clone_2_0,
+            tfn: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for Method {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), mtyp: Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0))))))), ifn: Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0))))))), tfn: Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(TextOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            name: __go_default_0_0,
+            mtyp: __go_default_1_0,
+            ifn: __go_default_2_0,
+            tfn: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.mtyp.lock().unwrap().as_ref().unwrap()), (*self.ifn.lock().unwrap().as_ref().unwrap()), (*self.tfn.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Method {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mtyp.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.ifn.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.tfn.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2108,37 +2165,47 @@ pub struct UncommonType {
 
 impl UncommonType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mcount: { let __guard = self.mcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, xcount: { let __guard = self.xcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, moff: { let __guard = self.moff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_4_0: { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.mcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.xcount.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.moff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_4_0 = { let __guard = self.__blank_4_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            pkg_path: __go_clone_0_0,
+            mcount: __go_clone_1_0,
+            xcount: __go_clone_2_0,
+            moff: __go_clone_3_0,
+            __blank_4_0: __go_clone_4_0,
+        }
     }
 }
 
 
 impl Default for UncommonType {
     fn default() -> Self {
-        Self { pkg_path: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), mcount: Arc::new(Mutex::new(Some(0))), xcount: Arc::new(Mutex::new(Some(0))), moff: Arc::new(Mutex::new(Some(0))), __blank_4_0: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_4_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            pkg_path: __go_default_0_0,
+            mcount: __go_default_1_0,
+            xcount: __go_default_2_0,
+            moff: __go_default_3_0,
+            __blank_4_0: __go_default_4_0,
+        }
     }
 }
 
 impl std::fmt::Display for UncommonType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()), (*self.mcount.lock().unwrap().as_ref().unwrap()), (*self.xcount.lock().unwrap().as_ref().unwrap()), (*self.moff.lock().unwrap().as_ref().unwrap()), (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for UncommonType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Mcount") {
-            out.mcount = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Xcount") {
-            out.xcount = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Moff") {
-            out.moff = <Arc<Mutex<Option<u32>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.mcount.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.xcount.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_3 = format!("{}", (*self.moff.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_4 = format!("{}", (*self.__blank_4_0.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }
 
@@ -2152,28 +2219,32 @@ pub struct Imethod {
 
 impl Imethod {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.typ.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            typ: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for Imethod {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0))))))), typ: Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(NameOff(Arc::new(Mutex::new(Some(0)))))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(TypeOff(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            name: __go_default_0_0,
+            typ: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for Imethod {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), (*self.typ.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for Imethod {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.typ.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2189,31 +2260,42 @@ pub struct ArrayType {
 
 impl ArrayType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone(), slice: self.slice.clone(), len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        let __go_clone_2_0 = self.slice.clone();
+        let __go_clone_3_0 = { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+            slice: __go_clone_2_0,
+            len: __go_clone_3_0,
+        }
     }
 }
 
 
 impl Default for ArrayType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)), slice: Arc::new(Mutex::new(None)), len: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+            slice: __go_default_2_0,
+            len: __go_default_3_0,
+        }
     }
 }
 
 impl std::fmt::Display for ArrayType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.slice.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.len.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for ArrayType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Len") {
-            out.len = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.slice.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_3 = format!("{}", (*self.len.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }
 }
 
@@ -2610,28 +2692,37 @@ pub struct ChanType {
 
 impl ChanType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone(), dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        let __go_clone_2_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+            dir: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for ChanType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)), dir: Arc::new(Mutex::new(Some(ChanDir(Arc::new(Mutex::new(Some(0))))))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(ChanDir(Arc::new(Mutex::new(Some(0)))))));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+            dir: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for ChanType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.dir.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for ChanType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.dir.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2644,28 +2735,32 @@ pub struct structTypeUncommon {
 
 impl structTypeUncommon {
     pub fn __go_value_clone(&self) -> Self {
-        Self { struct_type: { let __guard = self.struct_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, u: { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.struct_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            struct_type: __go_clone_0_0,
+            u: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for structTypeUncommon {
     fn default() -> Self {
-        Self { struct_type: Arc::new(Mutex::new(Some(StructType::default()))), u: Arc::new(Mutex::new(Some(UncommonType::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(StructType::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(UncommonType::default())));
+        Self {
+            struct_type: __go_default_0_0,
+            u: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for structTypeUncommon {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.struct_type.lock().unwrap().as_ref().unwrap()), (*self.u.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for structTypeUncommon {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.struct_type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2679,28 +2774,37 @@ pub struct InterfaceType {
 
 impl InterfaceType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, methods: self.methods.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.methods.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            pkg_path: __go_clone_1_0,
+            methods: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for InterfaceType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), pkg_path: Arc::new(Mutex::new(Some(Name::default()))), methods: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Name::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            pkg_path: __go_default_1_0,
+            methods: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for InterfaceType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.pkg_path.lock().unwrap().as_ref().unwrap()), format_slice(&self.methods))
-    }
-}
-
-impl GoJsonDecode for InterfaceType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.methods));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2713,28 +2817,32 @@ pub struct SliceType {
 
 impl SliceType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for SliceType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for SliceType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
-    }
-}
-
-impl GoJsonDecode for SliceType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2759,34 +2867,37 @@ pub struct FuncType {
 
 impl FuncType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, in_count: { let __guard = self.in_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, out_count: { let __guard = self.out_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.in_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.out_count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r#type: __go_clone_0_0,
+            in_count: __go_clone_1_0,
+            out_count: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for FuncType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), in_count: Arc::new(Mutex::new(Some(0))), out_count: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r#type: __go_default_0_0,
+            in_count: __go_default_1_0,
+            out_count: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for FuncType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.in_count.lock().unwrap().as_ref().unwrap()), (*self.out_count.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for FuncType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("InCount") {
-            out.in_count = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("OutCount") {
-            out.out_count = <Arc<Mutex<Option<u16>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.in_count.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", (*self.out_count.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2799,28 +2910,32 @@ pub struct PtrType {
 
 impl PtrType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, elem: self.elem.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.elem.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            elem: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for PtrType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), elem: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            elem: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for PtrType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
-    }
-}
-
-impl GoJsonDecode for PtrType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.elem.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -2834,31 +2949,37 @@ pub struct StructField {
 
 impl StructField {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, typ: self.typ.clone(), offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.typ.clone();
+        let __go_clone_2_0 = { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+            typ: __go_clone_1_0,
+            offset: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for StructField {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(Name::default()))), typ: Arc::new(Mutex::new(None)), offset: Arc::new(Mutex::new(Some(0))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Name::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        let __go_default_2_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            name: __go_default_0_0,
+            typ: __go_default_1_0,
+            offset: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for StructField {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.name.lock().unwrap().as_ref().unwrap()), { let __guard = self.typ.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.offset.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for StructField {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Offset") {
-            out.offset = <Arc<Mutex<Option<usize>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", { let __guard = self.typ.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", (*self.offset.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2872,28 +2993,37 @@ pub struct StructType {
 
 impl StructType {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pkg_path: { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fields: self.fields.clone() }
+        let __go_clone_0_0 = { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pkg_path.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.fields.clone();
+        Self {
+            r#type: __go_clone_0_0,
+            pkg_path: __go_clone_1_0,
+            fields: __go_clone_2_0,
+        }
     }
 }
 
 
 impl Default for StructType {
     fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(Type::default()))), pkg_path: Arc::new(Mutex::new(Some(Name::default()))), fields: Arc::new(Mutex::new(None)) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Type::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(Name::default())));
+        let __go_default_2_0 = Arc::new(Mutex::new(None));
+        Self {
+            r#type: __go_default_0_0,
+            pkg_path: __go_default_1_0,
+            fields: __go_default_2_0,
+        }
     }
 }
 
 impl std::fmt::Display for StructType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.pkg_path.lock().unwrap().as_ref().unwrap()), format_slice(&self.fields))
-    }
-}
-
-impl GoJsonDecode for StructType {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.r#type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.pkg_path.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", format_slice(&self.fields));
+        write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
 }
 
@@ -2905,24 +3035,17 @@ pub struct Name {
 
 impl Name {
     pub fn __go_value_clone(&self) -> Self {
-        Self { bytes: self.bytes.clone() }
+        let __go_clone_0_0 = self.bytes.clone();
+        Self {
+            bytes: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { if self.bytes.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
-    }
-}
-
-impl GoJsonDecode for Name {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Bytes") {
-            out.bytes = GoPtr::local(<Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?);
-        }
-        Ok(out)
+        let __go_fmt_0 = format!("{}", { if self.bytes.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -2932,7 +3055,38 @@ pub(crate) static kindNames: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex
 
 fn __go_init_globals() {
     *kindNames.lock().unwrap() = Some(vec![]);
-    *kindNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["invalid".to_string(), "bool".to_string(), "int".to_string(), "int8".to_string(), "int16".to_string(), "int32".to_string(), "int64".to_string(), "uint".to_string(), "uint8".to_string(), "uint16".to_string(), "uint32".to_string(), "uint64".to_string(), "uintptr".to_string(), "float32".to_string(), "float64".to_string(), "complex64".to_string(), "complex128".to_string(), "array".to_string(), "chan".to_string(), "func".to_string(), "interface".to_string(), "map".to_string(), "ptr".to_string(), "slice".to_string(), "string".to_string(), "struct".to_string(), "unsafe.Pointer".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(27);
+        __go_slice.push("invalid".to_string());
+        __go_slice.push("bool".to_string());
+        __go_slice.push("int".to_string());
+        __go_slice.push("int8".to_string());
+        __go_slice.push("int16".to_string());
+        __go_slice.push("int32".to_string());
+        __go_slice.push("int64".to_string());
+        __go_slice.push("uint".to_string());
+        __go_slice.push("uint8".to_string());
+        __go_slice.push("uint16".to_string());
+        __go_slice.push("uint32".to_string());
+        __go_slice.push("uint64".to_string());
+        __go_slice.push("uintptr".to_string());
+        __go_slice.push("float32".to_string());
+        __go_slice.push("float64".to_string());
+        __go_slice.push("complex64".to_string());
+        __go_slice.push("complex128".to_string());
+        __go_slice.push("array".to_string());
+        __go_slice.push("chan".to_string());
+        __go_slice.push("func".to_string());
+        __go_slice.push("interface".to_string());
+        __go_slice.push("map".to_string());
+        __go_slice.push("ptr".to_string());
+        __go_slice.push("slice".to_string());
+        __go_slice.push("string".to_string());
+        __go_slice.push("struct".to_string());
+        __go_slice.push("unsafe.Pointer".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *kindNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
@@ -2942,7 +3096,38 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_0() {
-    *kindNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["invalid".to_string(), "bool".to_string(), "int".to_string(), "int8".to_string(), "int16".to_string(), "int32".to_string(), "int64".to_string(), "uint".to_string(), "uint8".to_string(), "uint16".to_string(), "uint32".to_string(), "uint64".to_string(), "uintptr".to_string(), "float32".to_string(), "float64".to_string(), "complex64".to_string(), "complex128".to_string(), "array".to_string(), "chan".to_string(), "func".to_string(), "interface".to_string(), "map".to_string(), "ptr".to_string(), "slice".to_string(), "string".to_string(), "struct".to_string(), "unsafe.Pointer".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(27);
+        __go_slice.push("invalid".to_string());
+        __go_slice.push("bool".to_string());
+        __go_slice.push("int".to_string());
+        __go_slice.push("int8".to_string());
+        __go_slice.push("int16".to_string());
+        __go_slice.push("int32".to_string());
+        __go_slice.push("int64".to_string());
+        __go_slice.push("uint".to_string());
+        __go_slice.push("uint8".to_string());
+        __go_slice.push("uint16".to_string());
+        __go_slice.push("uint32".to_string());
+        __go_slice.push("uint64".to_string());
+        __go_slice.push("uintptr".to_string());
+        __go_slice.push("float32".to_string());
+        __go_slice.push("float64".to_string());
+        __go_slice.push("complex64".to_string());
+        __go_slice.push("complex128".to_string());
+        __go_slice.push("array".to_string());
+        __go_slice.push("chan".to_string());
+        __go_slice.push("func".to_string());
+        __go_slice.push("interface".to_string());
+        __go_slice.push("map".to_string());
+        __go_slice.push("ptr".to_string());
+        __go_slice.push("slice".to_string());
+        __go_slice.push("string".to_string());
+        __go_slice.push("struct".to_string());
+        __go_slice.push("unsafe.Pointer".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *kindNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
@@ -2962,7 +3147,11 @@ impl Type {
     }
 
     pub fn has_name(&self) -> bool {
-        return { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_NAMED as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_NAMED as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        };
     }
 
     /// Pointers reports whether t contains pointers.
@@ -2972,24 +3161,54 @@ impl Type {
 
     /// IfaceIndir reports whether t is stored indirectly in an interface value.
     pub fn iface_indir(&self) -> bool {
-        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8)))));
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        };
     }
 
     /// isDirectIface reports whether t is stored directly in an interface value.
     pub fn is_direct_iface(&self) -> bool {
-        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y };
+        return {
+            let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind_.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & KIND_DIRECT_IFACE as u8)))));
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        };
     }
 
     pub fn gc_slice(&self, begin: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_G_C_MASK_ON_DEMAND as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_G_C_MASK_ON_DEMAND as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         std::panic::panic_any(Box::new("GcSlice can't handle on-demand gcdata types".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*begin.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() })))
+        Arc::new(Mutex::new(Some({
+            let __seq_holder = { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result }.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = ({ let __v = (*begin.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))
     }
 
     /// Len returns the length of t if t is an array type, otherwise 0
     pub fn len(&self) -> i32 {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8))));
+            __tmp_x == __tmp_y
+        } {
         return (*Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<ArrayType>)) } else { go_lookup_embedded_owner::<ArrayType>(*__ptr_guard.as_ref().unwrap(), "ArrayType") } }.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
     }
         0
@@ -3001,7 +3220,11 @@ impl Type {
 
     /// ChanDir returns the direction of t if t is a channel type, otherwise InvalidDir (0).
     pub fn chan_dir(&self) -> Arc<Mutex<Option<ChanDir>>> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(CHAN as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(CHAN as u8))));
+            __tmp_x == __tmp_y
+        } {
         let mut ch: GoPtr<ChanType> = { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<ChanType>(*__ptr_guard.as_ref().unwrap(), "ChanType")) } };
         return Arc::new(Mutex::new(Some(ChanDir(Arc::new(Mutex::new(Some((*(*{ let __ptr_value = ch.with_mut(|__ptr_value| __ptr_value.dir.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))));
     }
@@ -3010,7 +3233,11 @@ impl Type {
 
     /// Uncommon returns a pointer to T's "uncommon" data if there is any, otherwise nil
     pub fn uncommon(&self) -> Arc<Mutex<Option<UncommonType>>> {
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x == __tmp_y
+        } {
         return Arc::new(Mutex::new(None));
     }
         { let _switch_val = { let __v = self.kind(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
@@ -3069,7 +3296,11 @@ impl Type {
 
     /// StructType returns t cast to a *StructType, or nil if its tag does not match.
     pub fn struct_type(&self) -> GoPtr<StructType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(STRUCT as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(STRUCT as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<StructType>(*__ptr_guard.as_ref().unwrap(), "StructType")) } }
@@ -3077,7 +3308,11 @@ impl Type {
 
     /// MapType returns t cast to a *OldMapType or *SwissMapType, or nil if its tag does not match.
     pub fn map_type(&self) -> GoPtr<crate::map_swiss::SwissMapType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<crate::map_swiss::SwissMapType>(*__ptr_guard.as_ref().unwrap(), "crate::map_swiss::SwissMapType")) } }
@@ -3085,7 +3320,11 @@ impl Type {
 
     /// ArrayType returns t cast to a *ArrayType, or nil if its tag does not match.
     pub fn array_type(&self) -> GoPtr<ArrayType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(ARRAY as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<ArrayType>(*__ptr_guard.as_ref().unwrap(), "ArrayType")) } }
@@ -3093,7 +3332,11 @@ impl Type {
 
     /// FuncType returns t cast to a *FuncType, or nil if its tag does not match.
     pub fn func_type(&self) -> GoPtr<FuncType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(FUNC as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(FUNC as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<FuncType>(*__ptr_guard.as_ref().unwrap(), "FuncType")) } }
@@ -3101,7 +3344,11 @@ impl Type {
 
     /// InterfaceType returns t cast to a *InterfaceType, or nil if its tag does not match.
     pub fn interface_type(&self) -> GoPtr<InterfaceType> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8))));
+            __tmp_x != __tmp_y
+        } {
         return GoPtr::nil();
     }
         { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<InterfaceType>(*__ptr_guard.as_ref().unwrap(), "InterfaceType")) } }
@@ -3130,7 +3377,11 @@ impl Type {
     }
 
     pub fn num_method(&self) -> i32 {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(INTERFACE as u8))));
+            __tmp_x == __tmp_y
+        } {
         let mut tt: GoPtr<InterfaceType> = { let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<InterfaceType>(*__ptr_guard.as_ref().unwrap(), "InterfaceType")) } };
         return { let __recv_value = tt.borrow(); let __result = (*__recv_value.as_ref().unwrap()).num_method(); __result };
     }
@@ -3138,7 +3389,11 @@ impl Type {
     }
 
     pub fn key(&self) -> Arc<Mutex<Option<Type>>> {
-        if { let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8)))); __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = (*self.kind().lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = Kind(Arc::new(Mutex::new(Some(MAP as u8))));
+            __tmp_x == __tmp_y
+        } {
         return (*{ let __ptr = Arc::new(Mutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<crate::map_swiss::SwissMapType>)) } else { go_lookup_embedded_owner::<crate::map_swiss::SwissMapType>(*__ptr_guard.as_ref().unwrap(), "crate::map_swiss::SwissMapType") } }.lock().unwrap().as_ref().unwrap()).key.clone();
     }
         return Arc::new(Mutex::new(None));
@@ -3150,14 +3405,40 @@ impl UncommonType {
         if { let __tmp_x = (*self.mcount.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.mcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __high = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[0..__high]; let mut _v = Vec::with_capacity(((__max) - 0) as usize); _v.extend_from_slice(_slice); _v })))
+        Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+                Arc::new(Mutex::new(Some("t.mcount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = 0;
+            let __high = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))
     }
 
     pub fn exported_methods(&self) -> Arc<Mutex<Option<Vec<Method>>>> {
         if { let __tmp_x = (*self.xcount.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.xcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __high = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[0..__high]; let mut _v = Vec::with_capacity(((__max) - 0) as usize); _v.extend_from_slice(_slice); _v })))
+        Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+                Arc::new(Mutex::new(Some("t.xcount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = 0;
+            let __high = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))
     }
 }
 
@@ -3338,7 +3619,10 @@ impl InterfaceType {
 
 impl FuncType {
     pub fn r#in(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Type>>> {
-        { let __seq = { let __seq_holder = self.in_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }
+        {
+            let __seq = { let __seq_holder = self.in_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+        }
     }
 
     pub fn num_in(&self) -> i32 {
@@ -3350,18 +3634,38 @@ impl FuncType {
     }
 
     pub fn out(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Type>>> {
-        ({ let __seq = { let __seq_holder = self.out_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })
+        {
+            let __seq = { let __seq_holder = self.out_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+        }
     }
 
     pub fn in_slice(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>> {
         let mut uadd = Arc::new(Mutex::new(Some(std::mem::size_of::<FuncType>())));
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         { let __rhs = (*Arc::new(Mutex::new(Some(std::mem::size_of::<UncommonType>()))).lock().unwrap().as_ref().unwrap()) as usize; let mut guard = uadd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         if { let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
-        return Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("t.inCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 65536]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __high = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[0..__high]; let mut _v = Vec::with_capacity(((__max) - 0) as usize); _v.extend_from_slice(_slice); _v })));
+        return Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some("t.inCount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 65536]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = 0;
+            let __high = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
     }
 
     pub fn out_slice(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>> {
@@ -3370,10 +3674,27 @@ impl FuncType {
         return Arc::new(Mutex::new(None));
     }
         let mut uadd = Arc::new(Mutex::new(Some(std::mem::size_of::<FuncType>())));
-        if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*(*self.r#type.lock().unwrap().as_ref().unwrap()).t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_UNCOMMON as u8)))));
+            let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8))));
+            __tmp_x != __tmp_y
+        } {
         { let __rhs = (*Arc::new(Mutex::new(Some(std::mem::size_of::<UncommonType>()))).lock().unwrap().as_ref().unwrap()) as usize; let mut guard = uadd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        return Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("outCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize; let __high = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize; let __max = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity(((__max) - (__low)) as usize); _v.extend_from_slice(_slice); _v })));
+        return Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some("outCount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let __low = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __high = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
+            let __max = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
     }
 
     pub fn is_variadic(&self) -> bool {
@@ -3567,13 +3888,21 @@ impl Name {
     /// DataChecked does pointer arithmetic on n's Bytes, and that arithmetic is asserted to
     /// be safe for the reason in whySafe (which can appear in a backtrace, etc.)
     pub fn data_checked(&self, off: Arc<Mutex<Option<i32>>>, whySafe: Arc<Mutex<Option<String>>>) -> GoPtr<u8> {
-        GoPtr::raw({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self.bytes.addr()))), Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = whySafe.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = add_checked(
+            Arc::new(Mutex::new(Some(self.bytes.addr()))),
+            Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = whySafe.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     /// Data does pointer arithmetic on n's Bytes, and that arithmetic is asserted to
     /// be safe because the runtime made the call (other packages use DataChecked)
     pub fn data(&self, off: Arc<Mutex<Option<i32>>>) -> GoPtr<u8> {
-        GoPtr::raw({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self.bytes.addr()))), Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some("the runtime doesn't need to give you a reason".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = add_checked(
+            Arc::new(Mutex::new(Some(self.bytes.addr()))),
+            Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some("the runtime doesn't need to give you a reason".to_string())))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     /// IsExported returns "is n exported?"
@@ -3597,10 +3926,16 @@ impl Name {
         let mut v = Arc::new(Mutex::new(Some(0)));
         let mut i = Arc::new(Mutex::new(Some(0)));
     loop {
-        let mut x = Arc::new(Mutex::new(Some({ let __ptr_handle = self.data_checked(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some("read varint".to_string())))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() })));
+        let mut x = Arc::new(Mutex::new(Some({ let __ptr_handle = self.data_checked(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some("read varint".to_string()))),
+        ); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() })));
         { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x7f as u8; __tmp_x & __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 7; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = v.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
-        return ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }, { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        return (
+            { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y },
+            { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }
+        );
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -4709,11 +5044,110 @@ pub fn type_of(a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> GoPtr<Type>
     let __value = match __guard.as_ref() { Some(__value) => __value.as_ref(), None => return GoPtr::nil() };
     let mut __typ = Type::default();
     let __go_any_metadata = go_any_type_metadata(__value);
-    let __kind: u8 = if let Some(__go_meta) = __go_any_metadata { match __go_meta.kind { "struct" => STRUCT, "pointer" => POINTER, "slice" => SLICE, "map" => MAP, "interface" => INTERFACE, "chan" => CHAN, "func" => FUNC, "array" => ARRAY, "basic" => INVALID, _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_meta.kind) } } else if <dyn std::any::Any>::is::<bool>(__value) { BOOL } else if <dyn std::any::Any>::is::<i32>(__value) { INT } else if <dyn std::any::Any>::is::<isize>(__value) { INT } else if <dyn std::any::Any>::is::<i8>(__value) { INT8 } else if <dyn std::any::Any>::is::<i16>(__value) { INT16 } else if <dyn std::any::Any>::is::<i64>(__value) { INT64 } else if <dyn std::any::Any>::is::<u8>(__value) { UINT8 } else if <dyn std::any::Any>::is::<u16>(__value) { UINT16 } else if <dyn std::any::Any>::is::<u32>(__value) { UINT32 } else if <dyn std::any::Any>::is::<u64>(__value) { UINT64 } else if <dyn std::any::Any>::is::<usize>(__value) { UINTPTR } else if <dyn std::any::Any>::is::<f32>(__value) { FLOAT32 } else if <dyn std::any::Any>::is::<f64>(__value) { FLOAT64 } else if <dyn std::any::Any>::is::<String>(__value) { STRING } else if <dyn std::any::Any>::is::<&'static str>(__value) { STRING } else if <dyn std::any::Any>::is::<char>(__value) { INT32 } else if <dyn std::any::Any>::is::<Vec<u8>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i32>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<f64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<String>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<bool>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<u8>>>>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<Box<dyn Any + Send + Sync>>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Box<dyn Any + Send + Sync>>(__value) { INTERFACE } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>(__value) { INTERFACE } else { panic!("internal/abi.TypeOf unsupported Rust Any payload: {}", std::any::type_name_of_val(__value)) };
+    let __kind: u8 = if let Some(__go_meta) = __go_any_metadata {
+        match __go_meta.kind {
+            "struct" => STRUCT,
+            "pointer" => POINTER,
+            "slice" => SLICE,
+            "map" => MAP,
+            "interface" => INTERFACE,
+            "chan" => CHAN,
+            "func" => FUNC,
+            "array" => ARRAY,
+            "basic" => INVALID,
+            _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_meta.kind),
+        }
+    } else if <dyn std::any::Any>::is::<bool>(__value) {
+        BOOL
+    } else if <dyn std::any::Any>::is::<i32>(__value) {
+        INT
+    } else if <dyn std::any::Any>::is::<isize>(__value) {
+        INT
+    } else if <dyn std::any::Any>::is::<i8>(__value) {
+        INT8
+    } else if <dyn std::any::Any>::is::<i16>(__value) {
+        INT16
+    } else if <dyn std::any::Any>::is::<i64>(__value) {
+        INT64
+    } else if <dyn std::any::Any>::is::<u8>(__value) {
+        UINT8
+    } else if <dyn std::any::Any>::is::<u16>(__value) {
+        UINT16
+    } else if <dyn std::any::Any>::is::<u32>(__value) {
+        UINT32
+    } else if <dyn std::any::Any>::is::<u64>(__value) {
+        UINT64
+    } else if <dyn std::any::Any>::is::<usize>(__value) {
+        UINTPTR
+    } else if <dyn std::any::Any>::is::<f32>(__value) {
+        FLOAT32
+    } else if <dyn std::any::Any>::is::<f64>(__value) {
+        FLOAT64
+    } else if <dyn std::any::Any>::is::<String>(__value) {
+        STRING
+    } else if <dyn std::any::Any>::is::<&'static str>(__value) {
+        STRING
+    } else if <dyn std::any::Any>::is::<char>(__value) {
+        INT32
+    } else if <dyn std::any::Any>::is::<Vec<u8>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<i32>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<i64>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<f64>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<String>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<bool>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<u8>>>>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Vec<Box<dyn Any + Send + Sync>>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>>(__value) {
+        SLICE
+    } else if <dyn std::any::Any>::is::<Box<dyn Any + Send + Sync>>(__value) {
+        INTERFACE
+    } else if <dyn std::any::Any>::is::<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>(__value) {
+        INTERFACE
+    } else {
+        panic!("internal/abi.TypeOf unsupported Rust Any payload: {}", std::any::type_name_of_val(__value))
+    };
     *__typ.kind_.lock().unwrap() = Some(Kind(Arc::new(Mutex::new(Some(__kind)))));
     *__typ.size_.lock().unwrap() = Some(std::mem::size_of_val(__value));
     if let Some(__go_meta) = __go_any_metadata { if __go_meta.comparable { *__typ.equal.lock().unwrap() = Some(Box::new(|_, _| false) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>); } }
-    if let Some(__go_meta) = __go_any_metadata { if __go_meta.kind == "pointer" { let mut __ptr_type = PtrType::default(); *__ptr_type.r#type.lock().unwrap() = Some(__typ); if let Some(__go_elem_kind) = __go_meta.elem_kind { let mut __elem_type = Type::default(); let __elem_kind: u8 = match __go_elem_kind { "struct" => STRUCT, "pointer" => POINTER, "slice" => SLICE, "map" => MAP, "interface" => INTERFACE, "chan" => CHAN, "func" => FUNC, "array" => ARRAY, "basic" => INVALID, _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_elem_kind) }; *__elem_type.kind_.lock().unwrap() = Some(Kind(Arc::new(Mutex::new(Some(__elem_kind))))); if __go_meta.elem_comparable { *__elem_type.equal.lock().unwrap() = Some(Box::new(|_, _| false) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>); } *__ptr_type.elem.lock().unwrap() = Some(__elem_type); } let __owner = Arc::new(Mutex::new(Some(__ptr_type))); let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().r#type.clone() }; let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); return GoPtr::local(__embedded); } }
+    if let Some(__go_meta) = __go_any_metadata {
+        if __go_meta.kind == "pointer" {
+            let mut __ptr_type = PtrType::default();
+            *__ptr_type.r#type.lock().unwrap() = Some(__typ);
+            if let Some(__go_elem_kind) = __go_meta.elem_kind {
+                let mut __elem_type = Type::default();
+                let __elem_kind: u8 =                 match __go_elem_kind {
+                    "struct" => STRUCT,
+                    "pointer" => POINTER,
+                    "slice" => SLICE,
+                    "map" => MAP,
+                    "interface" => INTERFACE,
+                    "chan" => CHAN,
+                    "func" => FUNC,
+                    "array" => ARRAY,
+                    "basic" => INVALID,
+                    _ => panic!("internal/abi.TypeOf unsupported Go metadata kind: {}", __go_elem_kind),
+                };
+                *__elem_type.kind_.lock().unwrap() = Some(Kind(Arc::new(Mutex::new(Some(__elem_kind)))));
+                if __go_meta.elem_comparable {
+                    *__elem_type.equal.lock().unwrap() = Some(Box::new(|_, _| false) as Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>);
+                }
+                *__ptr_type.elem.lock().unwrap() = Some(__elem_type);
+            }
+            let __owner = Arc::new(Mutex::new(Some(__ptr_type)));
+            let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().r#type.clone() };
+            let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+            go_register_embedded_owner(__embedded_key, __owner.clone());
+            return GoPtr::local(__embedded);
+        }
+    }
     GoPtr::local(Arc::new(Mutex::new(Some(__typ))))
 }
 
@@ -4736,7 +5170,12 @@ pub struct AnonymousStruct1 {
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        Self { ptr_type: { let __guard = self.ptr_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, u: { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.ptr_type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.u.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            ptr_type: __go_clone_0_0,
+            u: __go_clone_1_0,
+        }
     }
 }
 
@@ -4921,21 +5360,20 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        Self { ptr_type: Arc::new(Mutex::new(Some(PtrType::default()))), u: Arc::new(Mutex::new(Some(UncommonType::default()))) }
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(PtrType::default())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(UncommonType::default())));
+        Self {
+            ptr_type: __go_default_0_0,
+            u: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.ptr_type.lock().unwrap().as_ref().unwrap()), (*self.u.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", (*self.ptr_type.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.u.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

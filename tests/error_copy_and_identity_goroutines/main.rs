@@ -24,6 +24,8 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
         match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
+    } else if let Some(v) = value.downcast_ref::<Missing>() {
+        format!("{}", v)
     } else {
         "<unknown>".to_string()
     }
@@ -107,11 +109,6 @@ struct GoAnyTypeMetadata {
     pub elem_comparable: bool,
 }
 
-struct GoAnyMetadataBox {
-    pub value: Box<dyn Any + Send + Sync>,
-    pub metadata: GoAnyTypeMetadata,
-}
-
 fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
@@ -134,9 +131,13 @@ fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'static
     go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
 }
 
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
 fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
-    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
-    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any + Send + Sync>, metadata }) as Box<dyn Any + Send + Sync>
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any + Send + Sync>
 }
 
 fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
@@ -144,9 +145,6 @@ fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'stati
 }
 
 fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
-    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
-        return Some(__boxed.metadata);
-    }
     go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
@@ -621,26 +619,9 @@ fn main() {
 
         // An interface value holds a copy as well: it does not follow the
         // variable it was made from.
-    let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({
-        let __err_holder = err.clone();
-        let __err_guard = __err_holder.lock().unwrap();
-        match __err_guard.as_ref() {
-            None => panic!("nil error-to-any lowering requires nil interface representation"),
-            Some(__err) => {
-                if let Some(typed_val) = __err.downcast_ref::<Missing>() {
-                    go_box_any_with_metadata(typed_val.clone(), "struct", true)
-                } else if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() {
-                    go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() {
-                    go_box_any_with_metadata(typed_val.clone(), "pointer", true)
-                } else {
-                    Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync>
-                }
-            }
-        }
-    })));
+    let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<Missing>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } })));
     { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("changed".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
-    println!("{} {}", format!("{}", format_any(boxed.lock().unwrap().as_ref().unwrap().as_ref())), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __text = format_any(boxed.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // So does what a closure returns.
     let err_closure_clone = err.clone(); let mut check = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {

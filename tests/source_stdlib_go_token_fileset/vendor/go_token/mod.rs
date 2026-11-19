@@ -1,9 +1,21 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
-
-use crate::position::*;
-use crate::serialize::*;
+use crate::{
+    GoArrayElemMutRef,
+    GoArrayElemPtr,
+    GoArrayElemRef,
+    GoPtr,
+    GoSliceElemMutRef,
+    GoSliceElemPtr,
+    GoSliceElemRef,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_any_clone,
+    go_recover,
+    go_resume_unrecovered_panic,
+    go_store_panic_payload,
+};
 
 use std::any::Any;
 use std::collections::BTreeMap;
@@ -498,7 +510,100 @@ pub(crate) static keywords: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<
 fn __go_init_globals() {
     *tokens.lock().unwrap() = Some(std::array::from_fn(|_| String::new()));
     *keywords.lock().unwrap() = Some(BTreeMap::new());
-    *tokens.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["ILLEGAL".to_string(), "EOF".to_string(), "COMMENT".to_string(), String::new(), "IDENT".to_string(), "INT".to_string(), "FLOAT".to_string(), "IMAG".to_string(), "CHAR".to_string(), "STRING".to_string(), String::new(), String::new(), "+".to_string(), "-".to_string(), "*".to_string(), "/".to_string(), "%".to_string(), "&".to_string(), "|".to_string(), "^".to_string(), "<<".to_string(), ">>".to_string(), "&^".to_string(), "+=".to_string(), "-=".to_string(), "*=".to_string(), "/=".to_string(), "%=".to_string(), "&=".to_string(), "|=".to_string(), "^=".to_string(), "<<=".to_string(), ">>=".to_string(), "&^=".to_string(), "&&".to_string(), "||".to_string(), "<-".to_string(), "++".to_string(), "--".to_string(), "==".to_string(), "<".to_string(), ">".to_string(), "=".to_string(), "!".to_string(), "!=".to_string(), "<=".to_string(), ">=".to_string(), ":=".to_string(), "...".to_string(), "(".to_string(), "[".to_string(), "{".to_string(), ",".to_string(), ".".to_string(), ")".to_string(), "]".to_string(), "}".to_string(), ";".to_string(), ":".to_string(), String::new(), String::new(), "break".to_string(), "case".to_string(), "chan".to_string(), "const".to_string(), "continue".to_string(), "default".to_string(), "defer".to_string(), "else".to_string(), "fallthrough".to_string(), "for".to_string(), "func".to_string(), "go".to_string(), "goto".to_string(), "if".to_string(), "import".to_string(), "interface".to_string(), "map".to_string(), "package".to_string(), "range".to_string(), "return".to_string(), "select".to_string(), "struct".to_string(), "switch".to_string(), "type".to_string(), "var".to_string(), String::new(), String::new(), "~".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(89);
+        __go_array.push("ILLEGAL".to_string());
+        __go_array.push("EOF".to_string());
+        __go_array.push("COMMENT".to_string());
+        __go_array.push(String::new());
+        __go_array.push("IDENT".to_string());
+        __go_array.push("INT".to_string());
+        __go_array.push("FLOAT".to_string());
+        __go_array.push("IMAG".to_string());
+        __go_array.push("CHAR".to_string());
+        __go_array.push("STRING".to_string());
+        __go_array.push(String::new());
+        __go_array.push(String::new());
+        __go_array.push("+".to_string());
+        __go_array.push("-".to_string());
+        __go_array.push("*".to_string());
+        __go_array.push("/".to_string());
+        __go_array.push("%".to_string());
+        __go_array.push("&".to_string());
+        __go_array.push("|".to_string());
+        __go_array.push("^".to_string());
+        __go_array.push("<<".to_string());
+        __go_array.push(">>".to_string());
+        __go_array.push("&^".to_string());
+        __go_array.push("+=".to_string());
+        __go_array.push("-=".to_string());
+        __go_array.push("*=".to_string());
+        __go_array.push("/=".to_string());
+        __go_array.push("%=".to_string());
+        __go_array.push("&=".to_string());
+        __go_array.push("|=".to_string());
+        __go_array.push("^=".to_string());
+        __go_array.push("<<=".to_string());
+        __go_array.push(">>=".to_string());
+        __go_array.push("&^=".to_string());
+        __go_array.push("&&".to_string());
+        __go_array.push("||".to_string());
+        __go_array.push("<-".to_string());
+        __go_array.push("++".to_string());
+        __go_array.push("--".to_string());
+        __go_array.push("==".to_string());
+        __go_array.push("<".to_string());
+        __go_array.push(">".to_string());
+        __go_array.push("=".to_string());
+        __go_array.push("!".to_string());
+        __go_array.push("!=".to_string());
+        __go_array.push("<=".to_string());
+        __go_array.push(">=".to_string());
+        __go_array.push(":=".to_string());
+        __go_array.push("...".to_string());
+        __go_array.push("(".to_string());
+        __go_array.push("[".to_string());
+        __go_array.push("{".to_string());
+        __go_array.push(",".to_string());
+        __go_array.push(".".to_string());
+        __go_array.push(")".to_string());
+        __go_array.push("]".to_string());
+        __go_array.push("}".to_string());
+        __go_array.push(";".to_string());
+        __go_array.push(":".to_string());
+        __go_array.push(String::new());
+        __go_array.push(String::new());
+        __go_array.push("break".to_string());
+        __go_array.push("case".to_string());
+        __go_array.push("chan".to_string());
+        __go_array.push("const".to_string());
+        __go_array.push("continue".to_string());
+        __go_array.push("default".to_string());
+        __go_array.push("defer".to_string());
+        __go_array.push("else".to_string());
+        __go_array.push("fallthrough".to_string());
+        __go_array.push("for".to_string());
+        __go_array.push("func".to_string());
+        __go_array.push("go".to_string());
+        __go_array.push("goto".to_string());
+        __go_array.push("if".to_string());
+        __go_array.push("import".to_string());
+        __go_array.push("interface".to_string());
+        __go_array.push("map".to_string());
+        __go_array.push("package".to_string());
+        __go_array.push("range".to_string());
+        __go_array.push("return".to_string());
+        __go_array.push("select".to_string());
+        __go_array.push("struct".to_string());
+        __go_array.push("switch".to_string());
+        __go_array.push("type".to_string());
+        __go_array.push("var".to_string());
+        __go_array.push(String::new());
+        __go_array.push(String::new());
+        __go_array.push("~".to_string());
+        let __go_array: [String; 89] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *tokens.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -509,7 +614,100 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_0() {
-    *tokens.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["ILLEGAL".to_string(), "EOF".to_string(), "COMMENT".to_string(), String::new(), "IDENT".to_string(), "INT".to_string(), "FLOAT".to_string(), "IMAG".to_string(), "CHAR".to_string(), "STRING".to_string(), String::new(), String::new(), "+".to_string(), "-".to_string(), "*".to_string(), "/".to_string(), "%".to_string(), "&".to_string(), "|".to_string(), "^".to_string(), "<<".to_string(), ">>".to_string(), "&^".to_string(), "+=".to_string(), "-=".to_string(), "*=".to_string(), "/=".to_string(), "%=".to_string(), "&=".to_string(), "|=".to_string(), "^=".to_string(), "<<=".to_string(), ">>=".to_string(), "&^=".to_string(), "&&".to_string(), "||".to_string(), "<-".to_string(), "++".to_string(), "--".to_string(), "==".to_string(), "<".to_string(), ">".to_string(), "=".to_string(), "!".to_string(), "!=".to_string(), "<=".to_string(), ">=".to_string(), ":=".to_string(), "...".to_string(), "(".to_string(), "[".to_string(), "{".to_string(), ",".to_string(), ".".to_string(), ")".to_string(), "]".to_string(), "}".to_string(), ";".to_string(), ":".to_string(), String::new(), String::new(), "break".to_string(), "case".to_string(), "chan".to_string(), "const".to_string(), "continue".to_string(), "default".to_string(), "defer".to_string(), "else".to_string(), "fallthrough".to_string(), "for".to_string(), "func".to_string(), "go".to_string(), "goto".to_string(), "if".to_string(), "import".to_string(), "interface".to_string(), "map".to_string(), "package".to_string(), "range".to_string(), "return".to_string(), "select".to_string(), "struct".to_string(), "switch".to_string(), "type".to_string(), "var".to_string(), String::new(), String::new(), "~".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(89);
+        __go_array.push("ILLEGAL".to_string());
+        __go_array.push("EOF".to_string());
+        __go_array.push("COMMENT".to_string());
+        __go_array.push(String::new());
+        __go_array.push("IDENT".to_string());
+        __go_array.push("INT".to_string());
+        __go_array.push("FLOAT".to_string());
+        __go_array.push("IMAG".to_string());
+        __go_array.push("CHAR".to_string());
+        __go_array.push("STRING".to_string());
+        __go_array.push(String::new());
+        __go_array.push(String::new());
+        __go_array.push("+".to_string());
+        __go_array.push("-".to_string());
+        __go_array.push("*".to_string());
+        __go_array.push("/".to_string());
+        __go_array.push("%".to_string());
+        __go_array.push("&".to_string());
+        __go_array.push("|".to_string());
+        __go_array.push("^".to_string());
+        __go_array.push("<<".to_string());
+        __go_array.push(">>".to_string());
+        __go_array.push("&^".to_string());
+        __go_array.push("+=".to_string());
+        __go_array.push("-=".to_string());
+        __go_array.push("*=".to_string());
+        __go_array.push("/=".to_string());
+        __go_array.push("%=".to_string());
+        __go_array.push("&=".to_string());
+        __go_array.push("|=".to_string());
+        __go_array.push("^=".to_string());
+        __go_array.push("<<=".to_string());
+        __go_array.push(">>=".to_string());
+        __go_array.push("&^=".to_string());
+        __go_array.push("&&".to_string());
+        __go_array.push("||".to_string());
+        __go_array.push("<-".to_string());
+        __go_array.push("++".to_string());
+        __go_array.push("--".to_string());
+        __go_array.push("==".to_string());
+        __go_array.push("<".to_string());
+        __go_array.push(">".to_string());
+        __go_array.push("=".to_string());
+        __go_array.push("!".to_string());
+        __go_array.push("!=".to_string());
+        __go_array.push("<=".to_string());
+        __go_array.push(">=".to_string());
+        __go_array.push(":=".to_string());
+        __go_array.push("...".to_string());
+        __go_array.push("(".to_string());
+        __go_array.push("[".to_string());
+        __go_array.push("{".to_string());
+        __go_array.push(",".to_string());
+        __go_array.push(".".to_string());
+        __go_array.push(")".to_string());
+        __go_array.push("]".to_string());
+        __go_array.push("}".to_string());
+        __go_array.push(";".to_string());
+        __go_array.push(":".to_string());
+        __go_array.push(String::new());
+        __go_array.push(String::new());
+        __go_array.push("break".to_string());
+        __go_array.push("case".to_string());
+        __go_array.push("chan".to_string());
+        __go_array.push("const".to_string());
+        __go_array.push("continue".to_string());
+        __go_array.push("default".to_string());
+        __go_array.push("defer".to_string());
+        __go_array.push("else".to_string());
+        __go_array.push("fallthrough".to_string());
+        __go_array.push("for".to_string());
+        __go_array.push("func".to_string());
+        __go_array.push("go".to_string());
+        __go_array.push("goto".to_string());
+        __go_array.push("if".to_string());
+        __go_array.push("import".to_string());
+        __go_array.push("interface".to_string());
+        __go_array.push("map".to_string());
+        __go_array.push("package".to_string());
+        __go_array.push("range".to_string());
+        __go_array.push("return".to_string());
+        __go_array.push("select".to_string());
+        __go_array.push("struct".to_string());
+        __go_array.push("switch".to_string());
+        __go_array.push("type".to_string());
+        __go_array.push("var".to_string());
+        __go_array.push(String::new());
+        __go_array.push(String::new());
+        __go_array.push("~".to_string());
+        let __go_array: [String; 89] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *tokens.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -521,11 +719,29 @@ impl Token {
     /// constant name (e.g. for the token [IDENT], the string is "IDENT").
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         let mut s = Arc::new(Mutex::new(Some("".to_string())));
-        if { let __tmp_x = Token(Arc::new(Mutex::new(Some(0 as i32)))); let __tmp_y = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x <= __tmp_y } && { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Token(Arc::new(Mutex::new(Some((*tokens.lock().unwrap().as_ref().unwrap()).len() as i32)))); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = Token(Arc::new(Mutex::new(Some(0 as i32)))); let __tmp_y = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x <= __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone();
+                    let __tmp_y = Token(Arc::new(Mutex::new(Some((*tokens.lock().unwrap().as_ref().unwrap()).len() as i32))));
+                    __tmp_x < __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let new_val = { let __seq = { let __seq_holder = tokens.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*self.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }; *s.lock().unwrap() = Some(new_val); };
     }
         if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", "token(".to_string())); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) as i32).to_string()))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s }; *s.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "token(".to_string()));
+            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) as i32).to_string()))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", ")".to_string()));
+            __s
+        }; *s.lock().unwrap() = Some(new_val); };
     }
         return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }

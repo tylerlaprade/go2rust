@@ -3,10 +3,10 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 fn main() {
-    bytes::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     std::thread::spawn(move || {
         ;

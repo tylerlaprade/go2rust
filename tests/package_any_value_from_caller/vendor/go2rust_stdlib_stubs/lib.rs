@@ -12,11 +12,6 @@ pub struct GoAnyTypeMetadata {
     pub elem_comparable: bool,
 }
 
-pub struct GoAnyMetadataBox {
-    pub value: Box<dyn Any>,
-    pub metadata: GoAnyTypeMetadata,
-}
-
 fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
@@ -39,9 +34,13 @@ pub fn go_register_any_type_with_elem<T: Any + 'static>(kind: &'static str, comp
     go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
 }
 
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
 pub fn go_box_any_with_metadata<T: Any + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any> {
-    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
-    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any>, metadata }) as Box<dyn Any>
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any>
 }
 
 pub fn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, comparable: bool) {
@@ -49,9 +48,6 @@ pub fn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, compa
 }
 
 pub fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
-    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
-        return Some(__boxed.metadata);
-    }
     go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
