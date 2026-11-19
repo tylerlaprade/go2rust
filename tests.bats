@@ -415,6 +415,10 @@ run_xfail_test() {
     run_test "tests/anon_interface_type_switch"
 }
 
+@test "anonymous_struct_embedded_global" {
+    run_test "tests/anonymous_struct_embedded_global"
+}
+
 @test "anonymous_structs_basic" {
     run_test "tests/anonymous_structs_basic"
 }
