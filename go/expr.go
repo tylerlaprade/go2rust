@@ -11352,6 +11352,9 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if writeStringValueForExpectedBasicType(out, key, keyType) {
 		return true
 	}
+	if writeLenCapCallArgumentForExpectedType(out, key, keyType) {
+		return true
+	}
 	if writeStdlibInterfaceMapKeyValue(out, key, keyType) {
 		return true
 	}
