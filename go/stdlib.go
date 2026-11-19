@@ -4763,6 +4763,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						return
 					}
 				}
+				// An interface value appended to a []interface{} is copied
+				// into a box of its own. A box cannot be cloned, so the
+				// generic clone below did not compile.
+				if isEmptyInterfaceType(elemType) && writeExistingAnyBoxClone(out, expr) {
+					return
+				}
 				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 					return
 				}

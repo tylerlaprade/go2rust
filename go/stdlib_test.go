@@ -1822,3 +1822,25 @@ func main() {
 		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)
 	}
 }
+
+// An interface value appended to a []interface{} is copied into a box of its
+// own with go_any_clone. A Box<dyn Any> has no clone(), so the generic copy
+// did not compile.
+func TestAppendingAnInterfaceValueCopiesTheBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var kept []any
+	var x any = "s"
+	kept = append(kept, x)
+	fmt.Println(len(kept))
+}
+`)
+
+	want := "let __append_value = { let __any_holder = x.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect(\"nil interface in variadic any argument\").as_ref()) };"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("missing %q in:\n%s", want, rust)
+	}
+}
