@@ -188,6 +188,10 @@ impl std::fmt::Display for Node {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct NodeSlice(pub Arc<Mutex<Option<Vec<Node>>>>);
+
+
 pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Node>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
@@ -317,6 +321,35 @@ fn main() {
     let mut receiver = Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(9))), ..Default::default() })));
     let (mut cleared, __tmp_1) = { let __recv = receiver.clone(); let __recv_ptr: *mut Node = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Node }; let __result = unsafe { &mut *__recv_ptr }.clear_receiver(); __result }; *count.lock().unwrap() = Some(__tmp_1);;
     println!("{} {} {}", format!("{}", cleared), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*{ let __field = (*receiver.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+
+    let mut nodes = Arc::new(Mutex::new(Some(vec![Node {
+        next: Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(10))), ..Default::default() }))).clone(),
+        ..Default::default()
+    }])));
+    let mut sliceAlias = { let __seq = { let __seq_holder = nodes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.next.clone();
+    { let new_val = Arc::new(Mutex::new(None)); { let __sequence = (nodes).clone(); let __index = ({ let __tmp_x = ((*nodes.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let mut __sequence_guard = __sequence.lock().unwrap(); let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; __element.next = new_val; } };
+    println!("{} {}", format!("{}", { let __nil_target = { let __seq = { let __seq_holder = nodes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __field = (*sliceAlias.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+
+    let mut array = Arc::new(Mutex::new(Some([Node {
+        next: Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(11))), ..Default::default() }))).clone(),
+        ..Default::default()
+    }])));
+    let mut arrayAlias = { let __seq = { let __seq_holder = array.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.next.clone();
+    {
+        let __tmp_0 = Arc::new(Mutex::new(None));
+        let __tmp_1 = 6;
+        { let __sequence = (array).clone(); let __index = (0) as usize; let mut __sequence_guard = __sequence.lock().unwrap(); let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; __element.next = __tmp_0.clone(); }
+        *count.lock().unwrap() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", { let __nil_target = { let __seq = { let __seq_holder = array.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __field = (*arrayAlias.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+    let mut named = Arc::new(Mutex::new(Some(NodeSlice(Arc::new(Mutex::new(Some(vec![Node {
+        next: Arc::new(Mutex::new(Some(Node { value: Arc::new(Mutex::new(Some(12))), ..Default::default() }))).clone(),
+        ..Default::default()
+    }])))))));
+    let mut namedAlias = { let __seq_holder = { let __named_slice = (*named.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.next.clone();
+    { let new_val = Arc::new(Mutex::new(None)); { let __sequence = ({ let __named_slice = (*named.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }).clone(); let __index = (0) as usize; let mut __sequence_guard = __sequence.lock().unwrap(); let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; __element.next = new_val; } };
+    println!("{} {}", format!("{}", { let __nil_target = { let __seq_holder = { let __named_slice = (*named.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __field = (*namedAlias.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

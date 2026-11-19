@@ -7,6 +7,8 @@ type Node struct {
 	Next  *Node
 }
 
+type NodeSlice []Node
+
 func (n *Node) Link() *Node {
 	return n.Next
 }
@@ -71,4 +73,19 @@ func main() {
 	receiver := &Node{Value: 9}
 	cleared, count := receiver.ClearReceiver()
 	fmt.Println(cleared, count, receiver.Value)
+
+	nodes := []Node{{Next: &Node{Value: 10}}}
+	sliceAlias := nodes[0].Next
+	nodes[len(nodes)-1].Next = nil
+	fmt.Println(nodes[0].Next == nil, sliceAlias.Value)
+
+	array := [1]Node{{Next: &Node{Value: 11}}}
+	arrayAlias := array[0].Next
+	array[0].Next, count = (nil), 6
+	fmt.Println(array[0].Next == nil, arrayAlias.Value, count)
+
+	named := NodeSlice{{Next: &Node{Value: 12}}}
+	namedAlias := named[0].Next
+	named[0].Next = nil
+	fmt.Println(named[0].Next == nil, namedAlias.Value)
 }

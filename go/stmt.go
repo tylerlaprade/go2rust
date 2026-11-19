@@ -1855,15 +1855,19 @@ func writeIndexedSequenceElementFieldBase(out *strings.Builder, indexExpr *ast.I
 
 func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
 	out.WriteString("(*")
-	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-		writeNamedSliceInnerHandleClone(out, subj)
-	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-	}
+	writeIndexedSequenceHandle(out, indexExpr.X)
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("]")
+}
+
+func writeIndexedSequenceHandle(out *strings.Builder, expr ast.Expr) {
+	if subj := unwrapParens(expr); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, expr, LValue)
+	}
 }
 
 // writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
@@ -7382,6 +7386,9 @@ func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
 
 func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs ast.Expr, valueName string) {
 	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
+		if writeIndexedValuePointerFieldReplacement(out, sel, valueName) {
+			return
+		}
 		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
 			return
 		}
@@ -7393,6 +7400,42 @@ func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs a
 	out.WriteString(" = ")
 	out.WriteString(valueName)
 	out.WriteString(";")
+}
+
+func writeIndexedValuePointerFieldReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
+	index, ok := unwrapParens(sel.X).(*ast.IndexExpr)
+	typeInfo := GetTypeInfo()
+	if !ok || typeInfo == nil {
+		return false
+	}
+	if _, ok := coreUnderlyingType(typeInfo.GetArrayOrSliceElemType(index.X)).(*types.Struct); !ok {
+		return false
+	}
+
+	// Evaluate the index before borrowing the collection. The index may
+	// read the collection itself, as in nodes[len(nodes)-1].Next.
+	out.WriteString("{ let __sequence = ")
+	if !writeNamedArrayInnerHandleClone(out, index.X) {
+		out.WriteString("(")
+		writeIndexedSequenceHandle(out, index.X)
+		out.WriteString(").clone()")
+	}
+	out.WriteString("; let __index = ")
+	writeExpressionAsUsize(out, index.Index)
+	out.WriteString("; let mut __sequence_guard = __sequence")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; ")
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if fieldInfo.IsPromoted {
+		writePromotedHandleAssignmentTarget(out, "__element", fieldInfo, false)
+	} else {
+		out.WriteString("__element.")
+		out.WriteString(fieldInfo.FieldName)
+	}
+	out.WriteString(" = ")
+	out.WriteString(valueName)
+	out.WriteString("; }")
+	return true
 }
 
 func writeGoPtrFieldSelectorHandleReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
@@ -8732,15 +8775,6 @@ func writeParallelPointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Ex
 }
 
 func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
-	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
-		valueName := tmpName + ".clone()"
-		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-		if writeGoPtrFieldSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-	}
 	if ident, ok := packageGlobalPointerIdent(lhs); ok {
 		out.WriteString("*")
 		out.WriteString(rustPackageGlobalName(ident.Name))
@@ -8750,10 +8784,7 @@ func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, 
 		out.WriteString(".clone());")
 		return
 	}
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = ")
-	out.WriteString(tmpName)
-	out.WriteString(".clone();")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, tmpName+".clone()")
 }
 
 func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {

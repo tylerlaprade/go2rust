@@ -40,6 +40,10 @@ impl std::fmt::Display for Node {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct NodeSlice(pub Rc<RefCell<Option<Vec<Node>>>>);
+
+
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -158,6 +162,26 @@ fn main() {
     let mut receiver = Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(9))), ..Default::default() })));
     let (mut cleared, __tmp_1) = (*receiver.borrow_mut().as_mut().unwrap()).clear_receiver(); *count.borrow_mut() = Some(__tmp_1);;
     println!("{} {} {}", format!("{}", cleared), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*receiver.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
+
+    let mut nodes = Rc::new(RefCell::new(Some(vec![Node { next: Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(10))), ..Default::default() }))).clone(), ..Default::default() }])));
+    let mut sliceAlias = (*nodes.borrow().as_ref().unwrap())[(0) as usize].clone().next.clone();
+    { let new_val = Rc::new(RefCell::new(None)); { let __sequence = (nodes).clone(); let __index = (((*nodes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize; let mut __sequence_guard = __sequence.borrow_mut(); let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; __element.next = new_val; } };
+    println!("{} {}", format!("{}", { let __nil_target = (*nodes.borrow().as_ref().unwrap())[(0) as usize].clone().next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", (*(*sliceAlias.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
+
+    let mut array = Rc::new(RefCell::new(Some([Node { next: Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(11))), ..Default::default() }))).clone(), ..Default::default() }])));
+    let mut arrayAlias = (*array.borrow().as_ref().unwrap())[(0) as usize].clone().next.clone();
+    {
+        let __tmp_0 = Rc::new(RefCell::new(None));
+        let __tmp_1 = 6;
+        { let __sequence = (array).clone(); let __index = (0) as usize; let mut __sequence_guard = __sequence.borrow_mut(); let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; __element.next = __tmp_0.clone(); }
+        *count.borrow_mut() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", { let __nil_target = (*array.borrow().as_ref().unwrap())[(0) as usize].clone().next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", (*(*arrayAlias.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
+
+    let mut named = Rc::new(RefCell::new(Some(NodeSlice(Rc::new(RefCell::new(Some(vec![Node { next: Rc::new(RefCell::new(Some(Node { value: Rc::new(RefCell::new(Some(12))), ..Default::default() }))).clone(), ..Default::default() }])))))));
+    let mut namedAlias = { let __seq_holder = { let __named_slice = (*named.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.next.clone();
+    { let new_val = Rc::new(RefCell::new(None)); { let __sequence = ({ let __named_slice = (*named.borrow().as_ref().unwrap()).0.clone(); __named_slice }).clone(); let __index = (0) as usize; let mut __sequence_guard = __sequence.borrow_mut(); let __element = &mut __sequence_guard.as_mut().unwrap()[__index]; __element.next = new_val; } };
+    println!("{} {}", format!("{}", { let __nil_target = { let __seq_holder = { let __named_slice = (*named.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", (*(*namedAlias.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {
