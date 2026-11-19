@@ -161,13 +161,100 @@ func TestGoCopyWithoutTypeInfoIsLoud(t *testing.T) {
 	if call, known := goValueCopyCallForExpr(ast.NewIdent("a")); known || call != "" {
 		t.Fatalf("goValueCopyCallForExpr without type info = %q, %v; want no call and not known", call, known)
 	}
-	if call, known := rangeElementGoValueCopyCall(ast.NewIdent("s")); known || call != "" {
-		t.Fatalf("rangeElementGoValueCopyCall without type info = %q, %v; want no call and not known", call, known)
+	if call, known := elementGoValueCopyCall(ast.NewIdent("s")); known || call != "" {
+		t.Fatalf("elementGoValueCopyCall without type info = %q, %v; want no call and not known", call, known)
 	}
 
 	var out strings.Builder
 	writeIdentValueClone(&out, ast.NewIdent("a"))
 	if out.String() != goValueCopyNeedsTypeInfo {
 		t.Fatalf("a copy without type info should be %q, got %q", goValueCopyNeedsTypeInfo, out.String())
+	}
+}
+
+const structStoreProgram = `package main
+
+type Point struct{ X, Y int }
+
+type Shape interface{ Area() int }
+
+type Rect struct{ W, H int }
+
+func (r Rect) Area() int { return r.W * r.H }
+
+func main() {
+	p := Point{1, 1}
+	s := []Point{{0, 0}}
+	s[0] = p
+	m := map[string]Point{}
+	m["a"] = p
+	got := m["a"]
+	r := Rect{2, 3}
+	var shape Shape = r
+	q := &p
+	c := *q
+	var d Point
+	d = *q
+	var e Point
+	e = s[0]
+	spread := append([]Point{}, s...)
+	copied := make([]Point, len(s))
+	copy(copied, s)
+	names := []string{"a"}
+	moreNames := append([]string{}, names...)
+	copy(moreNames, names)
+	_, _, _, _, _, _, _ = got, shape, c, d, e, spread, moreNames
+}
+`
+
+// Storing a struct in a slice, a map or an interface copies it, and so does
+// reading one back out of a map, a slice or a pointer. "s[0] = p" did not
+// compile before this (it moved p out of its cell), and the others shared the
+// struct between both sides.
+func TestStoringAndReadingAStructCopiesIt(t *testing.T) {
+	rust := transpileTypedRegression(t, structStoreProgram)
+
+	for what, want := range map[string]string{
+		"s[0] = p":               "[(0) as usize] = (*p.borrow().as_ref().unwrap()).__go_value_clone();",
+		`m["a"] = p`:             "let __map_value = { let __owned = p.borrow().as_ref().unwrap().__go_value_clone();",
+		`got := m["a"]`:          ".map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone())",
+		"var shape Shape = r":    "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>",
+		"c := *q":                "let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));",
+		"d = *q":                 "{ let new_val = { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone(); *d.borrow_mut() = Some(new_val); }",
+		"e = s[0]":               "{ let new_val = (*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); *e.borrow_mut() = Some(new_val); }",
+		"append(dst, s...)":      ".iter().map(|__go_elem| __go_elem.__go_value_clone()))",
+		"copy(copied, s)":        "(*copied.borrow_mut().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();",
+		"append(dst, names...)":  ".unwrap_or_default() }.iter().cloned())",
+		"copy(moreNames, names)": "(*moreNames.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// Without the type of the source slice there is no telling whether its
+// elements are structs, so the generated code stops instead of sharing them.
+func TestGoCopyOfElementsWithoutTypeInfoIsLoud(t *testing.T) {
+	previous := GetTypeInfo()
+	SetTypeInfo(nil)
+	defer SetTypeInfo(previous)
+
+	if got := goElementCopyIter(ast.NewIdent("s")); !strings.Contains(got, goValueCopyNeedsTypeInfo) {
+		t.Errorf("goElementCopyIter without type info = %q; want the type-info stop", got)
+	}
+	if got := copySourceElementCopy(ast.NewIdent("s"), false); got != "" {
+		t.Errorf("copySourceElementCopy without type info = %q; want no call", got)
+	}
+	if got := copySourceElementCopy(ast.NewIdent("s"), true); got != ".clone()" {
+		t.Errorf("copySourceElementCopy of a string = %q; want .clone()", got)
+	}
+	var loop strings.Builder
+	writeCopyLoop(&loop, "", "", func() { loop.WriteString("_dst[_i]") })
+	if !strings.Contains(loop.String(), "_dst[_i] = "+goValueCopyNeedsTypeInfo) {
+		t.Errorf("copy loop without an element copy = %q; want the type-info stop", loop.String())
 	}
 }

@@ -117,15 +117,28 @@ func writeValueOfVariableAsGoCopy(out *strings.Builder, expr ast.Expr) bool {
 	if copyCall == ".clone()" {
 		return false
 	}
-	TranspileExpression(out, expr)
-	out.WriteString(copyCall)
+	writeExpressionWithGoCopy(out, expr, copyCall)
 	return true
 }
 
-// rangeElementGoValueCopyCall is goValueCopyCallForType for the element type
-// of a slice or array that a range loop goes over. known is false when the
-// type checker has no type for the range expression.
-func rangeElementGoValueCopyCall(rangeExpr ast.Expr) (call string, known bool) {
+// writeExpressionWithGoCopy writes expr followed by copyCall, unless the
+// lowering of expr already ends in that copy: reading "*receiver" does, and
+// so does reading a locked variable, which wraps the copy in a block.
+func writeExpressionWithGoCopy(out *strings.Builder, expr ast.Expr, copyCall string) {
+	var value strings.Builder
+	TranspileExpression(&value, expr)
+	out.WriteString(value.String())
+	if strings.HasSuffix(value.String(), copyCall) || strings.HasSuffix(value.String(), copyCall+"; __v }") {
+		return
+	}
+	out.WriteString(copyCall)
+}
+
+// elementGoValueCopyCall is goValueCopyCallForType for the element type of
+// the slice or array rangeExpr: what a range loop, a spread append and copy()
+// take one element at a time. known is false when the type checker has no
+// type for the expression.
+func elementGoValueCopyCall(rangeExpr ast.Expr) (call string, known bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || rangeExpr == nil {
 		return "", false
@@ -164,17 +177,49 @@ func rangeExprIsArrayValue(rangeExpr ast.Expr) bool {
 	return isArray
 }
 
-// writeWrappedGoValueCopyOfElement writes the value of "s[i]" as a new
-// variable's cell when the element is a value whose Go copy is not Clone.
-// The ordinary read of an element ends in Clone, and for a struct that is a
-// second handle on the element's own fields: "e := s[0]; e.X = 1" changed
-// the slice. It reports false, and writes nothing, for any other expression.
+// goCopiedPlaceExpr reports whether expr reads an existing value in a way
+// whose ordinary lowering ends in Clone: an element of a slice or an array
+// ("s[i]") or the target of a pointer ("*p"). For a struct that Clone is a
+// second handle on the same fields, which is right when the read is the
+// base of a field access or a method call and wrong when the value is
+// stored somewhere else. It returns Go's copy call for the value, and
+// whether the type checker knew its type.
+func goCopiedPlaceExpr(expr ast.Expr) (copyCall string, known bool, isPlace bool) {
+	expr = unwrapParens(expr)
+	switch place := expr.(type) {
+	case *ast.IndexExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return "", false, true
+		}
+		sequenceType := typeInfo.GetType(place.X)
+		if sequenceType == nil {
+			return "", false, true
+		}
+		switch types.Unalias(sequenceType).Underlying().(type) {
+		case *types.Slice, *types.Array:
+		default:
+			// A map lookup, a generic instantiation and anything else keep
+			// their own lowering.
+			return "", true, false
+		}
+	case *ast.StarExpr:
+	default:
+		return "", true, false
+	}
+	copyCall, known = goValueCopyCallForExpr(expr)
+	return copyCall, known, true
+}
+
+// writeWrappedGoValueCopyOfElement writes the value of "s[i]" or "*p" as a
+// new variable's cell when the value is one whose Go copy is not Clone:
+// "e := s[0]; e.X = 1" changed the slice. It reports false, and writes
+// nothing, for any other expression.
 func writeWrappedGoValueCopyOfElement(out *strings.Builder, expr ast.Expr) bool {
-	index, ok := unwrapParens(expr).(*ast.IndexExpr)
-	if !ok {
+	copyCall, known, isPlace := goCopiedPlaceExpr(expr)
+	if !isPlace {
 		return false
 	}
-	copyCall, known := goValueCopyCallForExpr(index)
 	if !known {
 		WriteWrapperPrefix(out)
 		out.WriteString(goValueCopyNeedsTypeInfo)
@@ -184,23 +229,40 @@ func writeWrappedGoValueCopyOfElement(out *strings.Builder, expr ast.Expr) bool 
 	if copyCall == ".clone()" {
 		return false
 	}
-	sequenceType := GetTypeInfo().GetType(index.X)
-	if sequenceType == nil {
-		WriteWrapperPrefix(out)
-		out.WriteString(goValueCopyNeedsTypeInfo)
-		WriteWrapperSuffix(out)
-		return true
-	}
-	switch types.Unalias(sequenceType).Underlying().(type) {
-	case *types.Slice, *types.Array:
-	default:
-		// A map lookup, a generic instantiation and anything else keep
-		// their own lowering.
-		return false
-	}
 	WriteWrapperPrefix(out)
-	TranspileExpression(out, index)
-	out.WriteString(copyCall)
+	writeExpressionWithGoCopy(out, expr, copyCall)
 	WriteWrapperSuffix(out)
 	return true
+}
+
+// writeGoValueCopyOfElement is writeWrappedGoValueCopyOfElement without the
+// cell: the copied value itself, for an assignment to an existing variable.
+func writeGoValueCopyOfElement(out *strings.Builder, expr ast.Expr) bool {
+	copyCall, known, isPlace := goCopiedPlaceExpr(expr)
+	if !isPlace {
+		return false
+	}
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return true
+	}
+	if copyCall == ".clone()" {
+		return false
+	}
+	writeExpressionWithGoCopy(out, expr, copyCall)
+	return true
+}
+
+// goElementCopyIter returns the iterator over Go copies of the elements of
+// the slice expression sliceExpr, to follow the Rust value of that slice:
+// "append(dst, src...)" gives dst its own copy of every element of src.
+func goElementCopyIter(sliceExpr ast.Expr) string {
+	copyCall, known := elementGoValueCopyCall(sliceExpr)
+	if !known {
+		return ".iter().map(|_| " + goValueCopyNeedsTypeInfo + ")"
+	}
+	if copyCall == ".clone()" {
+		return ".iter().cloned()"
+	}
+	return ".iter().map(|__go_elem| __go_elem" + copyCall + ")"
 }

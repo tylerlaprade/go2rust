@@ -183,7 +183,7 @@ fn main() {
     let mut name = Rc::new(RefCell::new(Some(Ident { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() })));
     let mut bad = Rc::new(RefCell::new(Some(BadExpr {  })));
     let mut typ: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(None));
-    { let __iface_handle = Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
+    { let __iface_handle = Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
     {
         let (mut v, mut ok) = ({
         let val = typ.clone();
@@ -202,7 +202,7 @@ fn main() {
             println!("{} {}", format!("{}", "ident".to_string()), format!("{}", (*(*v.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));;
         }
     }
-    { let __iface_handle = Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = bad.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
+    { let __iface_handle = Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = bad.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
     {
         let (_, mut ok) = ({
         let val = typ.clone();

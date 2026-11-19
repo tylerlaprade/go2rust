@@ -2787,6 +2787,14 @@ run_xfail_test() {
     run_test "tests/struct_value_copy_goroutines"
 }
 
+@test "struct_value_copy_stored" {
+    run_test "tests/struct_value_copy_stored"
+}
+
+@test "struct_value_copy_stored_goroutines" {
+    run_test "tests/struct_value_copy_stored_goroutines"
+}
+
 @test "struct_zero_value_fields" {
     run_test "tests/struct_zero_value_fields"
 }

@@ -131,5 +131,5 @@ pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
 
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(rect { width: Rc::new(RefCell::new(Some(3.0))), height: Rc::new(RefCell::new(Some(4.0))), ..Default::default() })));
-    measure(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn geometry>))));
+    measure(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn geometry>))));
 }

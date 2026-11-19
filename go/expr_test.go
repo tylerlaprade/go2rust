@@ -8920,7 +8920,13 @@ func f() { _ = counts["x"] }`, 0)
 	TranspileExpression(&out, index)
 
 	got := out.String()
-	if strings.Contains(got, "type info required") {
+	// The read is still found from the syntax kind. Copying the value out of
+	// the map needs the value's type, which this setup does not have, so that
+	// one step says so instead of guessing between Clone and Go's copy.
+	if !strings.Contains(got, ".map(|_| "+goValueCopyNeedsTypeInfo+")") {
+		t.Fatalf("copying a map value without its type should say type info is required:\n%s", got)
+	}
+	if strings.Contains(strings.ReplaceAll(got, goValueCopyNeedsTypeInfo, ""), "type info required") {
 		t.Fatalf("package global map index should use syntax collection kind:\n%s", got)
 	}
 	if !strings.Contains(got, "counts.clone()") ||

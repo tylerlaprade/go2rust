@@ -4806,13 +4806,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if typ := typeInfo.GetType(expr); typ != nil {
 					if _, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
 						TranspileExpression(out, expr)
-						out.WriteString(".iter().cloned()")
+						out.WriteString(goElementCopyIter(expr))
 						return
 					}
 				}
 			} else {
 				writeSliceCloneOrEmpty(out, expr)
-				out.WriteString(".iter().cloned()")
+				out.WriteString(goElementCopyIter(expr))
 			}
 		}
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
@@ -4992,11 +4992,14 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			writeNamedSliceInnerHandleClone(out, call.Args[1])
 			out.WriteString("; let __src_guard = __src")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values.iter().cloned()); }; ")
+			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values")
+			out.WriteString(goElementCopyIter(call.Args[1]))
+			out.WriteString("); }; ")
 		} else {
 			out.WriteString("__values.extend(")
 			TranspileExpression(out, call.Args[1])
-			out.WriteString(".iter().cloned()); ")
+			out.WriteString(goElementCopyIter(call.Args[1]))
+			out.WriteString("); ")
 		}
 	} else if len(call.Args) == 2 {
 		out.WriteString("__values.push(")
@@ -5571,7 +5574,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			WriteBorrowMethod(out, false)
 			out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) };\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
-			writeCopyLoop(out, innerIndent, func() {
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 				out.WriteString("(*_dst_holder")
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap())[_i]")
@@ -5595,7 +5598,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			writeCopySourceValue(out, call.Args[1], srcIsString)
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
-			writeCopyLoop(out, innerIndent, func() {
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 				out.WriteString("(*")
 				TranspileExpressionContext(out, dstSlice.X, LValue)
 				WriteBorrowMethod(out, true)
@@ -5616,7 +5619,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			writeCopySourceValue(out, call.Args[1], srcIsString)
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst.len()")
-			writeCopyLoop(out, innerIndent, func() {
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 				out.WriteString("_dst[_i]")
 			})
 			finishCopyBlock(out, indent, innerIndent)
@@ -5633,7 +5636,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		writeCopyDestination(out, call.Args[0], false)
 		out.WriteString(".len(), _src.len());\n")
 		// Destination needs mutable borrow for assignment.
-		writeCopyLoop(out, innerIndent, func() {
+		writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
 			writeCopyDestination(out, call.Args[0], true)
 			out.WriteString("[_i]")
 		})
@@ -5672,7 +5675,7 @@ func writeCopyNamedSliceDestinationSlice(out *strings.Builder, dstSlice *ast.Sli
 	writeCopySourceValue(out, src, srcIsString)
 	out.WriteString(";\n")
 	writeCopyCountLine(out, innerIndent, "_dst_len")
-	writeCopyLoop(out, innerIndent, func() {
+	writeCopyLoop(out, innerIndent, copySourceElementCopy(src, srcIsString), func() {
 		out.WriteString("(*_dst_holder")
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())[_dst_start + _i]")
@@ -5694,13 +5697,35 @@ func writeCopyCountLine(out *strings.Builder, innerIndent string, dstLen string)
 	out.WriteString(", _src.len());\n")
 }
 
-func writeCopyLoop(out *strings.Builder, innerIndent string, writeDestination func()) {
+// copySourceElementCopy returns what follows "_src[_i]" to give the
+// destination of copy(dst, src) its own copy of one element, or "" when the
+// type checker has no type for src. The bytes of a string source are plain
+// values.
+func copySourceElementCopy(src ast.Expr, srcIsString bool) string {
+	if srcIsString {
+		return ".clone()"
+	}
+	copyCall, known := elementGoValueCopyCall(src)
+	if !known {
+		return ""
+	}
+	return copyCall
+}
+
+func writeCopyLoop(out *strings.Builder, innerIndent string, elementCopy string, writeDestination func()) {
 	out.WriteString(innerIndent)
 	out.WriteString("for _i in 0.._n {\n")
 	out.WriteString(innerIndent)
 	out.WriteString("    ")
 	writeDestination()
-	out.WriteString(" = _src[_i].clone();\n")
+	if elementCopy == "" {
+		out.WriteString(" = ")
+		out.WriteString(goValueCopyNeedsTypeInfo)
+	} else {
+		out.WriteString(" = _src[_i]")
+		out.WriteString(elementCopy)
+	}
+	out.WriteString(";\n")
 	out.WriteString(innerIndent)
 	out.WriteString("}\n")
 }

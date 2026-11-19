@@ -4723,7 +4723,12 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			TranspileExpression(out, ident)
 			return
 		}
-		writeScopedValueClone(out, varName)
+		// A value put into an interface is a copy of the variable.
+		if copyCall, known := goValueCopyCallForExpr(ident); known {
+			writeScopedValueCopy(out, varName, copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
+		}
 		return
 	}
 	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
@@ -11528,9 +11533,22 @@ func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, d
 		out.WriteString(".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())")
 		return
 	}
+	if valueType == nil {
+		// Without the value's type there is no telling Go's copy from Clone.
+		out.WriteString(".map(|_| ")
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		out.WriteString(").unwrap_or_else(|| ")
+		out.WriteString(defaultValue)
+		out.WriteString(")")
+		return
+	}
+	// Reading a map element copies it: "v := m[k]; v.X = 1" must not change
+	// the value in the map.
 	out.WriteString(".map(|__v| __v")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap().clone()).unwrap_or_else(|| ")
+	out.WriteString(".as_ref().unwrap()")
+	out.WriteString(goValueCopyCallForType(valueType))
+	out.WriteString(").unwrap_or_else(|| ")
 	out.WriteString(defaultValue)
 	out.WriteString(")")
 }

@@ -812,6 +812,8 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 		// Copied by value from an existing wrapped field or handle.
 	} else if writeValueOfVariableAsGoCopy(out, rhs) {
 		// A struct variable is copied into the slot.
+	} else if writeGoValueCopyOfElement(out, rhs) {
+		// So is an element of a slice or an array, and the target of a pointer.
 	} else {
 		TranspileExpression(out, rhs)
 	}
@@ -1145,6 +1147,12 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 			out.WriteString(".clone()")
 			return
 		}
+	}
+
+	// A struct held in a variable, or read from "s[i]" or "*p", is copied into
+	// the element: the element and its source are two values from here on.
+	if writeValueOfVariableAsGoCopy(out, rhs) || writeGoValueCopyOfElement(out, rhs) {
+		return
 	}
 
 	needsUnwrap := false
@@ -5164,6 +5172,12 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if writeFunctionMapValue(out, expr, nil, valueType) {
 		return
 	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		// A struct variable stored in a map is copied into it.
+		if copyCall, known := goValueCopyCallForExpr(ident); known && copyCall != ".clone()" && writeWrappedValueCopyFromIdent(out, ident) {
+			return
+		}
+	}
 	if ident, ok := expr.(*ast.Ident); ok &&
 		ident.Name != "_" && ident.Name != "nil" && isVarBare(ident.Name) &&
 		valueType != nil && !mapValueTypeKeepsHandle(valueType) {
@@ -7635,7 +7649,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
-	copyCall, known := rangeElementGoValueCopyCall(rangeExpr)
+	copyCall, known := elementGoValueCopyCall(rangeExpr)
 	if !known {
 		out.WriteString("; let __range_values: Vec<()> = ")
 		out.WriteString(goValueCopyNeedsTypeInfo)
@@ -7669,7 +7683,7 @@ func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, valu
 	if !ok || ident.Name == "_" {
 		return
 	}
-	copyCall, known := rangeElementGoValueCopyCall(rangeExpr)
+	copyCall, known := elementGoValueCopyCall(rangeExpr)
 	if !known || copyCall == ".clone()" {
 		return
 	}
@@ -7689,7 +7703,7 @@ func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, valu
 func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
 	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
 		out.WriteString(".into_iter()")
-	} else if copyCall, known := rangeElementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
+	} else if copyCall, known := elementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
 		// The loop variable is Go's copy of the element, taken when the
 		// iteration starts: the map runs once for each step of the loop.
 		out.WriteString(".iter().map(|__e| __e")
@@ -9743,16 +9757,20 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 			out.WriteString(ident.Name)
 			return
 		}
-		// Wrapped variable — unwrap and clone if needed
+		// Wrapped variable — unwrap and copy if needed. A value sent on a
+		// channel is a copy of the variable.
 		if isCopyType {
 			out.WriteString("(*")
 			out.WriteString(ident.Name)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
-		} else {
+		} else if copyCall, known := goValueCopyCallForExpr(ident); known {
 			out.WriteString(ident.Name)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().clone()")
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
 		}
 		return
 	}
@@ -9763,10 +9781,13 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 			TranspileExpression(out, expr)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
-		} else {
+		} else if copyCall, known := goValueCopyCallForExpr(expr); known {
 			TranspileExpression(out, expr)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().clone()")
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
 		}
 		return
 	}

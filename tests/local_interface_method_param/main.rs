@@ -194,6 +194,6 @@ impl Finder for finderPtr {
 fn main() {
     let mut key = Rc::new(RefCell::new(Some(namedKey { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     let mut finder = Rc::new(RefCell::new(Some(finder {  })));
-    let mut found = (*finder.borrow().as_ref().unwrap()).find(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Key>))));
+    let mut found = (*finder.borrow().as_ref().unwrap()).find(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Key>))));
     println!("{}", format!("{}", { let __v = (*found.borrow().as_ref().unwrap()).clone(); __v }));
 }
