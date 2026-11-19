@@ -2043,6 +2043,10 @@ run_xfail_test() {
     run_test "tests/print_boxed_composite_values"
 }
 
+@test "print_interface_value_twice_goroutines" {
+    run_test "tests/print_interface_value_twice_goroutines"
+}
+
 @test "print_nil_error_and_pointer" {
     run_test "tests/print_nil_error_and_pointer"
 }

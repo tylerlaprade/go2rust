@@ -80,7 +80,7 @@ fn main() {
     each(
         e.clone(),
         Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
-        println!("{}", format!("{}", format_any(v.lock().unwrap().as_ref().unwrap().as_ref())));
+        println!("{}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
     }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>)))
     );
 }

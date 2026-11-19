@@ -1,0 +1,15 @@
+started
+5|5
+int: 5
+5 5
+5 and 5
+text|text
+string: text
+text text
+text and text
+true|true
+bool: true
+true true
+true and true
+2.5 2.5 2.5
+true true
