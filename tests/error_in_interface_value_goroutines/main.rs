@@ -56,11 +56,6 @@ struct GoAnyTypeMetadata {
     pub elem_comparable: bool,
 }
 
-struct GoAnyMetadataBox {
-    pub value: Box<dyn Any + Send + Sync>,
-    pub metadata: GoAnyTypeMetadata,
-}
-
 fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
@@ -83,9 +78,13 @@ fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'static
     go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
 }
 
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
 fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
-    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
-    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any + Send + Sync>, metadata }) as Box<dyn Any + Send + Sync>
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any + Send + Sync>
 }
 
 fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
@@ -93,9 +92,6 @@ fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'stati
 }
 
 fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
-    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
-        return Some(__boxed.metadata);
-    }
     go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
@@ -338,7 +334,7 @@ fn main() {
     let mut plain = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bad".to_string())))));
     let mut wrapped = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("wrapped: {}", { let __text = match plain.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }))))));
 
-    let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } })));
+    let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } })));
     let (mut back, mut ok) = ({
         let val = boxed.clone();
         let guard = val.lock().unwrap();
@@ -356,7 +352,7 @@ fn main() {
     });
     println!("{} {} {}", format!("{}", ok), format!("{}", { let __left = back.clone(); let __right = plain.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }), format!("{}", { let __text = match back.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
-    let mut items = Arc::new(Mutex::new(Some(vec![{ let __err_holder = plain.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }, Box::new("text".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3) as Box<dyn Any + Send + Sync>, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }])));
+    let mut items = Arc::new(Mutex::new(Some(vec![{ let __err_holder = plain.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, Box::new("text".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3) as Box<dyn Any + Send + Sync>, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }])));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         println!("{}", format!("{}", format_any(item.as_ref())));
     } }
@@ -367,5 +363,5 @@ fn main() {
         println!("{}", format!("{}", format_any(other.as_ref())));
     } }
 
-    println!("{} {} {} {} {} {} {} {} {}", format!("{}", (*kind(Arc::new(Mutex::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } })))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some({ let __err_holder = wrapped.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } })))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some(Box::new(3) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some(Box::new("s".to_string()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some(Box::new(2.5) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {} {} {} {} {} {} {}", format!("{}", (*kind(Arc::new(Mutex::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } })))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some({ let __err_holder = wrapped.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } })))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some(Box::new(3) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some(Box::new("s".to_string()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Arc::new(Mutex::new(Some(Box::new(2.5) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
 }
