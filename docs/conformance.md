@@ -21,7 +21,7 @@ go build -o /tmp/go2rust ./go
 ./conformance.py --transpiler /tmp/go2rust --work /tmp/conf --out /tmp/conf/new.jsonl
 ```
 
-Nothing is written into the repository. The scratch directory holds the Cargo target directories, so a second run is faster. `--match REGEX` limits the run to matching paths, for example `--match '^ken/'`. `--keep` leaves the generated Rust of each test that does not pass in the scratch directory.
+Nothing is written into the repository. The scratch directory holds one test at a time per job, plus the Go build cache, and stays at a few hundred megabytes. `--match REGEX` limits the run to matching paths, for example `--match '^ken/'`. `--keep` leaves the generated Rust of each test that does not pass in the scratch directory.
 
 Each test ends in one outcome:
 

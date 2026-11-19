@@ -20,7 +20,8 @@ under one outcome:
   transpile-fail   go2rust exited non-zero or timed out
   skip-go          Go itself did not build, run cleanly, or finish
 
-Nothing is written into the repository.
+Nothing is written into the repository. The scratch directory holds one
+test at a time per job and the Go build cache, a few hundred megabytes.
 
   # run everything (about six minutes on two cores) and print a summary
   go build -o /tmp/go2rust ./go
@@ -103,14 +104,23 @@ def run_one(rel, args, worker_dir):
     shutil.copy(src, os.path.join(workdir, "main.go"))
     result = {"test": rel}
 
+    # Build to a file in the work directory, then run it. `go run` would keep
+    # a copy of every executable in the build cache, a few megabytes per test.
     go_env = dict(os.environ, GOCACHE=args.gocache, GOFLAGS="")
-    code, go_out, go_err, took = run(["go", "run", "main.go"], workdir, args.go_timeout, go_env)
+    go_binary = os.path.join(workdir, "go_reference")
+    code, _, go_err, took = run(["go", "build", "-o", go_binary, "main.go"], workdir, args.go_timeout, go_env)
+    go_out = b""
+    if code == 0:
+        code, go_out, go_err, ran = run([go_binary], workdir, args.go_timeout)
+        took += ran
     result["go_seconds"] = round(took, 2)
     if code != 0:
         result["outcome"] = "skip-go"
-        result["detail"] = "timeout" if code is None else go_err.decode("utf-8", "replace").strip().splitlines()[-1:][0:1]
+        lines = go_err.decode("utf-8", "replace").strip().splitlines()
+        result["detail"] = "timeout" if code is None else (lines[-1][:200] if lines else f"exit {code}")
         shutil.rmtree(workdir, ignore_errors=True)
         return result
+    os.remove(go_binary)
 
     code, _, err, took = run([args.transpiler, workdir], workdir, args.transpile_timeout, go_env)
     result["transpile_seconds"] = round(took, 2)
@@ -121,9 +131,12 @@ def run_one(rel, args, worker_dir):
         shutil.rmtree(workdir, ignore_errors=True)
         return result
 
-    target = os.path.join(worker_dir, "target")
+    # Each program is its own crate with no dependencies, so a shared target
+    # directory saves nothing and grows by a few megabytes per test. Keep the
+    # target inside the test's own directory, which is removed afterwards.
+    target = os.path.join(workdir, "target")
     cargo_env = dict(
-        os.environ, CARGO_TARGET_DIR=target,
+        os.environ, CARGO_TARGET_DIR=target, CARGO_INCREMENTAL="0",
         RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0",
     )
     code, _, err, took = run(["cargo", "build", "--quiet", "--offline"], workdir, args.build_timeout, cargo_env)
