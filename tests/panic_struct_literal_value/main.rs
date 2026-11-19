@@ -33,13 +33,20 @@ pub struct wrappedErr {
 
 impl wrappedErr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { err: self.err.clone(), tag: self.tag.clone() }
+        let __go_clone_0_0 = self.err.clone();
+        let __go_clone_1_0 = self.tag.clone();
+        Self {
+            err: __go_clone_0_0,
+            tag: __go_clone_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for wrappedErr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.err.borrow().as_ref().unwrap()), format_any(self.tag.borrow().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", match self.err.borrow().as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.tag.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

@@ -74,7 +74,7 @@ impl holder {
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.value.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }

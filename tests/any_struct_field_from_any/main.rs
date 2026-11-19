@@ -31,13 +31,17 @@ pub struct entry {
 
 impl entry {
     pub fn __go_value_clone(&self) -> Self {
-        Self { value: self.value.clone() }
+        let __go_clone_0_0 = self.value.clone();
+        Self {
+            value: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for entry {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", match self.value.lock().unwrap().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 

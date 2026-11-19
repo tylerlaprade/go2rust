@@ -16,7 +16,9 @@ impl Display for ObjKind {
 
 impl PartialEq for ObjKind {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -28,7 +30,9 @@ impl PartialEq<i32> for ObjKind {
 
 impl PartialOrd for ObjKind {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -89,6 +93,76 @@ impl std::ops::Sub<ObjKind> for i32 {
     type Output = ObjKind;
     fn sub(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for ObjKind {
+    type Output = ObjKind;
+    fn mul(self, other: Self) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for ObjKind {
+    type Output = ObjKind;
+    fn mul(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<ObjKind> for i32 {
+    type Output = ObjKind;
+    fn mul(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for ObjKind {
+    type Output = ObjKind;
+    fn div(self, other: Self) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for ObjKind {
+    type Output = ObjKind;
+    fn div(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<ObjKind> for i32 {
+    type Output = ObjKind;
+    fn div(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for ObjKind {
+    type Output = ObjKind;
+    fn neg(self) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for ObjKind {
+    type Output = ObjKind;
+    fn rem(self, other: Self) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for ObjKind {
+    type Output = ObjKind;
+    fn rem(self, other: i32) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<ObjKind> for i32 {
+    type Output = ObjKind;
+    fn rem(self, other: ObjKind) -> ObjKind {
+        ObjKind(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 
@@ -324,19 +398,46 @@ pub struct Object {
 
 impl Object {
     pub fn __go_value_clone(&self) -> Self {
-        Self { kind: { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, decl: self.decl.clone(), data: self.data.clone(), r#type: self.r#type.clone() }
+        let __go_clone_0_0 = { let __guard = self.kind.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = self.decl.clone();
+        let __go_clone_3_0 = self.data.clone();
+        let __go_clone_4_0 = self.r#type.clone();
+        Self {
+            kind: __go_clone_0_0,
+            name: __go_clone_1_0,
+            decl: __go_clone_2_0,
+            data: __go_clone_3_0,
+            r#type: __go_clone_4_0,
+        }
     }
 }
 
 
 impl Default for Object {
     fn default() -> Self {
-        Self { kind: Rc::new(RefCell::new(Some(ObjKind(Rc::new(RefCell::new(Some(0))))))), name: Rc::new(RefCell::new(Some(String::new()))), decl: Rc::new(RefCell::new(None)), data: Rc::new(RefCell::new(None)), r#type: Rc::new(RefCell::new(None)) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(ObjKind(Rc::new(RefCell::new(Some(0)))))));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(String::new())));
+        let __go_default_2_0 = Rc::new(RefCell::new(None));
+        let __go_default_3_0 = Rc::new(RefCell::new(None));
+        let __go_default_4_0 = Rc::new(RefCell::new(None));
+        Self {
+            kind: __go_default_0_0,
+            name: __go_default_1_0,
+            decl: __go_default_2_0,
+            data: __go_default_3_0,
+            r#type: __go_default_4_0,
+        }
     }
 }
 
 impl std::fmt::Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {}}}", (*self.kind.borrow().as_ref().unwrap()), (*self.name.borrow().as_ref().unwrap()), format_any(self.decl.borrow().as_ref().unwrap().as_ref()), format_any(self.data.borrow().as_ref().unwrap().as_ref()), format_any(self.r#type.borrow().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", (*self.kind.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_2 = format!("{}", match self.decl.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_3 = format!("{}", match self.data.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_4 = format!("{}", match self.r#type.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4)
     }
 }

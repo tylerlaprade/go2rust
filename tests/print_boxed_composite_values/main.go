@@ -23,6 +23,13 @@ type Node struct {
 
 func render(v interface{}) string { return fmt.Sprintf("%v", v) }
 
+// Outcome is the usual result struct: its error is nil unless something
+// failed.
+type Outcome struct {
+	Value int
+	Err   error
+}
+
 // show prints whatever it is given. The value arrives as an interface, so
 // the printer has to find out what it holds.
 func show(v interface{}) {
@@ -82,4 +89,15 @@ func main() {
 	var noNode *Node
 	show(&Node{Name: "end", Next: noNode})
 	show(p)
+
+	// The zero value of a struct has nil interface and error fields. They
+	// print as <nil>, whether the struct is printed directly or through an
+	// interface.
+	fmt.Println(Node{Name: "typed"})
+	show(Node{Name: "boxed"})
+	show(&Node{Name: "pointer"})
+	show(Node{Name: "full", Next: 3})
+	fmt.Println(Outcome{Value: 1})
+	show(Outcome{Value: 2})
+	show(Outcome{Value: 3, Err: fmt.Errorf("failed")})
 }
