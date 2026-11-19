@@ -7311,9 +7311,22 @@ var _ sync.Mutex
 	}
 	SetSourceStdlibReachable(loader.computeSourceStdlibReachable())
 
-	rust, _, _ := TranspileWithMapping(condFile, fset, &TypeInfo{info: syncPkg.TypesInfo, pkg: syncPkg.Types}, map[string]string{"sync": "sync"})
+	typeInfo := &TypeInfo{info: syncPkg.TypesInfo, pkg: syncPkg.Types}
+	modules := []string{"mutex", "cond"}
+	imports := packageSiblingItemImports(syncPkg.Syntax, modules, typeInfo)
+	if strings.Contains(strings.Join(imports["cond"], ", "), "Locker") {
+		t.Fatalf("pruned Locker still imported by cond: %v", imports["cond"])
+	}
+
+	rust, _, _ := TranspileWithMapping(condFile, fset, typeInfo, map[string]string{"sync": "sync"})
 	if strings.Contains(rust, "impl Locker for noCopy") {
 		t.Fatalf("pruned cross-file local interface should not get an impl block:\n%s", rust)
+	}
+
+	SetSourceStdlibReachable(nil)
+	imports = packageSiblingItemImports(syncPkg.Syntax, modules, typeInfo)
+	if !strings.Contains(strings.Join(imports["cond"], ", "), "Locker") {
+		t.Fatalf("reachable Locker missing from cond imports: %v", imports["cond"])
 	}
 }
 

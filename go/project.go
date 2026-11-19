@@ -818,7 +818,7 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 			ptr := types.NewPointer(named)
 			for _, name := range pkgScope.Names() {
 				ifTn, ok := pkgScope.Lookup(name).(*types.TypeName)
-				if !ok || ifTn == tn {
+				if !ok || ifTn == tn || sourceMappedDeclIsPruned(ifTn) {
 					continue
 				}
 				ifNamed, ok := ifTn.Type().(*types.Named)
