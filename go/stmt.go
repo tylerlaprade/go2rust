@@ -1,15366 +1,552 @@
-package main
-
-import (
-	"bytes"
-	"fmt"
-	"go/ast"
-	"go/format"
-	"go/token"
-	"go/types"
-	"slices"
-	"strings"
-)
-
-var currentReturnStatementIsTail bool
-var currentForceWrappedReturnSlots map[int]bool
-
-func pushForceWrappedReturnSlots(slots map[int]bool) func() {
-	prev := currentForceWrappedReturnSlots
-	currentForceWrappedReturnSlots = slots
-	return func() {
-		currentForceWrappedReturnSlots = prev
-	}
-}
-
-func returnSlotForcesWrappedValue(index int) bool {
-	if currentForceWrappedReturnSlots == nil {
-		return false
-	}
-	return currentForceWrappedReturnSlots[index]
-}
-
-func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
-	// Only flag the immediate return-as-tail position. A loop, type switch,
-	// or if statement that happens to be the last body statement contains
-	// nested return statements that must still emit explicit `return X;`,
-	// not become the body's trailing expression.
-	if _, isReturn := stmt.(*ast.ReturnStmt); isReturn {
-		prev := currentReturnStatementIsTail
-		currentReturnStatementIsTail = true
-		defer func() { currentReturnStatementIsTail = prev }()
-	}
-	TranspileStatement(out, stmt, fnType, fileSet, comments, lastPos, indent)
-}
-
-// returnExpressionsBorrowWrappedLocals reports whether any of the return
-// values would read a wrapped local through a .borrow()/lock() Ref temporary
-// whose lifetime, if extended to the function body by tail-expression rules,
-// would outlive the local it borrows from. Parameters drop after temporaries
-// so they remain safe in tail position; only `let`-declared wrapped locals
-// trigger the rejection.
-func returnExpressionsBorrowWrappedLocals(results []ast.Expr) bool {
-	for _, expr := range results {
-		if expressionReadsWrappedLocal(expr) {
-			return true
-		}
-	}
-	return false
-}
-
-func expressionReadsWrappedLocal(expr ast.Expr) bool {
-	found := false
-	ast.Inspect(expr, func(n ast.Node) bool {
-		if found {
-			return false
-		}
-		ident, ok := n.(*ast.Ident)
-		if !ok {
-			return true
-		}
-		if identIsWrappedFunctionLocal(ident) {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-// identIsWrappedFunctionLocal reports whether `ident` resolves to a variable
-// declared inside the current function body whose generated Rust value uses
-// the wrapper shape (Rc/Arc<RefCell/Mutex<Option<T>>>). Such reads in tail
-// position produce Ref temporaries that outlive the local under Rust's
-// tail-expression scoping rules, so the caller can fall back to an explicit
-// `return X;` to keep the temporary scoped to the statement.
-//
-// The transpiler's default short-decl path wraps locals even when the Go type
-// is a Copy scalar (so `&local` and re-binding stay correct). The VarTable
-// records the rare opt-outs (bare scalar slot from a bare-scalar call, range
-// vars, etc.) as WrapNone. Anything else that's a body-declared local is
-// assumed wrapped.
-func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
-	if ident == nil || ident.Name == "_" {
-		return false
-	}
-	if info := lookupVarInfo(ident.Name); info != nil {
-		return info.Source == SourceLocal && info.WrapLevel != WrapNone
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	obj := typeInfo.info.Uses[ident]
-	if obj == nil {
-		obj = typeInfo.info.Defs[ident]
-	}
-	v, ok := obj.(*types.Var)
-	if !ok || v == nil || v.IsField() {
-		return false
-	}
-	// Package globals are not function locals.
-	if v.Pkg() != nil && v.Parent() == v.Pkg().Scope() {
-		return false
-	}
-	// Names declared at or before the function body's opening brace are
-	// parameters, receivers, or enclosing-scope variables â€” they drop after
-	// the tail expression's temporaries, so they are safe.
-	if !currentFunctionBodyLbrace.IsValid() || v.Pos() <= currentFunctionBodyLbrace {
-		return false
-	}
-	return true
-}
-
-func fnHasMultipleResultSlots(fnType *ast.FuncType) bool {
-	if fnType == nil || fnType.Results == nil {
-		return false
-	}
-	total := 0
-	for _, result := range fnType.Results.List {
-		count := len(result.Names)
-		if count == 0 {
-			count = 1
-		}
-		total += count
-		if total > 1 {
-			return true
-		}
-	}
-	return false
-}
-
-func callReturnsMultipleResults(call *ast.CallExpr) bool {
-	if call == nil {
-		return false
-	}
-	sig, ok := callSignatureFromTypeInfo(call)
-	if !ok || sig.Results() == nil {
-		return false
-	}
-	return sig.Results().Len() > 1
-}
-
-func callSingleResultType(call *ast.CallExpr) types.Type {
-	if call == nil {
-		return nil
-	}
-	if sig, ok := callSignatureFromTypeInfo(call); ok && sig.Results() != nil && sig.Results().Len() == 1 {
-		return sig.Results().At(0).Type()
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil
-	}
-	if typ := typeInfo.GetType(call); typ != nil {
-		return typ
-	}
-	return nil
-}
-
-// returnExpressionEmissionStartsWithBlock reports whether the given return
-// value would emit Rust source that starts with `{`. Such expressions are
-// ambiguous when used as a tail expression: Rust parses the leading `{` as a
-// block statement, which breaks shapes like `{ ... } && { ... }` or
-// `{ ... } != "x"`.
-func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.BinaryExpr:
-		// In concurrent mode every binary expression (other than && / ||)
-		// lowers to `{ let __tmp_x = ...; __tmp_x op __tmp_y }`. A logical
-		// op then composes two such blocks, leaving the body starting with
-		// `{`.
-		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
-			return true
-		}
-		// Whatever the operator, the LHS is emitted first; if it would
-		// produce a leading `{`, the binary expression inherits the
-		// parsing ambiguity.
-		return returnExpressionEmissionStartsWithBlock(e.X)
-	case *ast.Ident:
-		return identExpressionEmissionStartsWithBlock(e)
-	case *ast.ParenExpr:
-		return returnExpressionEmissionStartsWithBlock(e.X)
-	case *ast.SelectorExpr:
-		// Named-type field accesses that need a value clone emit through
-		// `writeSyntaxNamedSelectorValue` as `{ let __selector_holder = ... }`.
-		if selectorSyntaxValueNeedsClone(e) {
-			return true
-		}
-		// Cloneable wrapped field accesses lower through
-		// `writeClonedWrappedExpression`, which also wraps the value in a
-		// `{ let __selector_holder = ... }` block.
-		if !isExpressionResultBare(expr) && isCloneableNonPointerExpr(expr) {
-			return true
-		}
-	case *ast.CallExpr:
-		// `len`/`cap` on a named slice/map lower as a `{ let __slice_holder
-		// = ... }` block, and the bare-scalar return emitter appends ` as
-		// i32` after the call â€” leaving the body's tail expression starting
-		// with `{`.
-		if isBareBuiltinCallName(e, "len") || isBareBuiltinCallName(e, "cap") {
-			if len(e.Args) > 0 && (isNamedSliceExpression(e.Args[0]) || isNamedMapExpression(e.Args[0])) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func identExpressionEmissionStartsWithBlock(ident *ast.Ident) bool {
-	if ident == nil || !NeedsConcurrentWrapper() || !isCloneableNonPointerIdent(ident) {
-		return false
-	}
-	if isCurrentReceiverIdent(ident) || isPackageGlobalIdent(ident) {
-		return false
-	}
-	if ident.Name == "true" || ident.Name == "false" || ident.Name == "_" {
-		return false
-	}
-	if isLocalConstantIdent(ident) || isConstIdent(ident) {
-		return false
-	}
-	if ident.Name[0] >= 'A' && ident.Name[0] <= 'Z' && ident.Name != "String" && lookupVarInfo(ident.Name) == nil && !isLocalVarIdent(ident) {
-		return false
-	}
-	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-		return false
-	}
-	return !isVarBare(ident.Name)
-}
-
-// namedReturnsUnwrapBareScalar reports whether the function has at least one
-// named return that lowers as a bare scalar slot fed by a wrapped local. Those
-// slots use `(*name.borrow().as_ref().unwrap())` at the return boundary, which
-// has the same lifetime issue as wrapped local reads inside explicit returns.
-func namedReturnsUnwrapBareScalar(fnType *ast.FuncType) bool {
-	if fnType == nil || fnType.Results == nil {
-		return false
-	}
-	for _, result := range fnType.Results.List {
-		if len(result.Names) == 0 {
-			continue
-		}
-		if !resultTypeExprIsBareScalar(result.Type) {
-			continue
-		}
-		for _, name := range result.Names {
-			if name.Name == "_" {
-				continue
-			}
-			return true
-		}
-	}
-	return false
-}
-
-func sameExpressionSyntax(a ast.Expr, b ast.Expr) bool {
-	var left bytes.Buffer
-	var right bytes.Buffer
-	if format.Node(&left, token.NewFileSet(), a) != nil {
-		return false
-	}
-	if format.Node(&right, token.NewFileSet(), b) != nil {
-		return false
-	}
-	return left.String() == right.String()
-}
-
-func registerBareShortDecl(lhs ast.Expr) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return
-	}
-	if vt := GetVarTable(); vt != nil {
-		vt.Register(ident.Name, &VarInfo{
-			WrapLevel: WrapNone,
-			Source:    SourceLocal,
-		})
-	}
-}
-
-func registerDefaultShortDeclBindings(lhs []ast.Expr) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return
-	}
-	vt := GetVarTable()
-	if vt == nil {
-		return
-	}
-	for _, expr := range lhs {
-		ident, ok := expr.(*ast.Ident)
-		if !ok || ident.Name == "_" || isVarDeclaredInCurrentScope(ident.Name) {
-			continue
-		}
-		obj, ok := typeInfo.info.Defs[ident]
-		if !ok || obj == nil {
-			continue
-		}
-		info := &VarInfo{
-			WrapLevel: WrapFull,
-			Source:    SourceLocal,
-		}
-		if typ := typeInfo.GetType(ident); typ != nil {
-			info.RustType = goTypesTypeToRust(typ)
-		}
-		vt.Register(ident.Name, info)
-	}
-}
-
-func shortDeclOuterRhsBindingNames(lhs []ast.Expr, rhs ast.Expr) []string {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || rhs == nil {
-		return nil
-	}
-	lhsDefs := make(map[string]types.Object)
-	for _, expr := range lhs {
-		ident, ok := expr.(*ast.Ident)
-		if !ok || ident.Name == "_" {
-			continue
-		}
-		obj := typeInfo.info.Defs[ident]
-		if obj == nil {
-			continue
-		}
-		lhsDefs[ident.Name] = obj
-	}
-	if len(lhsDefs) == 0 {
-		return nil
-	}
-	names := make([]string, 0, len(lhsDefs))
-	seen := make(map[string]bool)
-	ast.Inspect(rhs, func(node ast.Node) bool {
-		ident, ok := node.(*ast.Ident)
-		if !ok {
-			return true
-		}
-		lhsObj, ok := lhsDefs[ident.Name]
-		if !ok {
-			return true
-		}
-		rhsObj := typeInfo.info.Uses[ident]
-		if rhsObj == nil || rhsObj == lhsObj || seen[ident.Name] {
-			return true
-		}
-		seen[ident.Name] = true
-		names = append(names, ident.Name)
-		return true
-	})
-	return names
-}
-
-func hideShortDeclOuterRhsPrebindings(lhs []ast.Expr, rhs ast.Expr) func() {
-	names := shortDeclOuterRhsBindingNames(lhs, rhs)
-	vt := GetVarTable()
-	if len(names) == 0 || vt == nil || len(vt.scopes) == 0 {
-		return func() {}
-	}
-	scopeIndex := len(vt.scopes) - 1
-	saved := make(map[string]*VarInfo)
-	present := make(map[string]bool)
-	for _, name := range names {
-		if info, ok := vt.scopes[scopeIndex].vars[name]; ok {
-			saved[name] = info
-			present[name] = true
-			delete(vt.scopes[scopeIndex].vars, name)
-		}
-	}
-	return func() {
-		if scopeIndex >= len(vt.scopes) {
-			return
-		}
-		for _, name := range names {
-			if present[name] {
-				vt.scopes[scopeIndex].vars[name] = saved[name]
-			} else {
-				delete(vt.scopes[scopeIndex].vars, name)
-			}
-		}
-	}
-}
-
-func withShortDeclOuterRhsBindings(lhs []ast.Expr, rhs ast.Expr, emit func()) {
-	restore := hideShortDeclOuterRhsPrebindings(lhs, rhs)
-	defer restore()
-	emit()
-}
-
-const minStatementBuiltBinaryInitializerNodes = 4
-
-func writeStatementBuiltLogicalShortDecl(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	binary, ok := unwrapParens(rhs).(*ast.BinaryExpr)
-	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
-		return false
-	}
-	if !shouldStatementBuildLogicalCondition(binary) {
-		return false
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if _, ok := namedBoolType(typeInfo.GetType(binary)); ok {
-			return false
-		}
-	}
-
-	out.WriteString("let mut ")
-	TranspileExpressionContext(out, lhs, LValue)
-	out.WriteString(" = ")
-	WriteWrapperPrefix(out)
-	withShortDeclOuterRhsBindings([]ast.Expr{lhs}, rhs, func() {
-		nextTemp := 0
-		writeStatementBuiltLogicalConditionValue(out, binary, currentLineIndent(out), &nextTemp)
-	})
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeStatementBuiltConcurrentBinaryShortDecl(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	temps, result, ok := buildStatementBuiltConcurrentBinaryValue(rhs, []ast.Expr{lhs})
-	if !ok {
-		return false
-	}
-
-	out.WriteString(temps)
-	out.WriteString("let mut ")
-	TranspileExpressionContext(out, lhs, LValue)
-	out.WriteString(" = ")
-	WriteWrapperPrefix(out)
-	out.WriteString(result)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeStatementBuiltConcurrentBinaryReturnValue(out *strings.Builder, expr ast.Expr) bool {
-	temps, result, ok := buildStatementBuiltConcurrentBinaryValue(expr, nil)
-	if !ok {
-		return false
-	}
-	out.WriteString("{\n")
-	writeIndentedStatementBuiltBinaryTemps(out, temps, "            ")
-	out.WriteString("            ")
-	out.WriteString(result)
-	out.WriteString("\n        }")
-	return true
-}
-
-func writeIndentedStatementBuiltBinaryTemps(out *strings.Builder, temps string, indent string) {
-	temps = strings.TrimSuffix(temps, "\n")
-	if temps == "" {
-		return
-	}
-	for _, line := range strings.Split(temps, "\n") {
-		if line == "" {
-			continue
-		}
-		out.WriteString(indent)
-		out.WriteString(line)
-		out.WriteString("\n")
-	}
-}
-
-func buildStatementBuiltConcurrentBinaryValue(rhs ast.Expr, hiddenShortDeclLhs []ast.Expr) (string, string, bool) {
-	return buildStatementBuiltConcurrentBinaryValueWithMinNodes(rhs, hiddenShortDeclLhs, minStatementBuiltBinaryInitializerNodes)
-}
-
-func buildStatementBuiltConcurrentBinaryValueWithMinNodes(rhs ast.Expr, hiddenShortDeclLhs []ast.Expr, minNodes int) (string, string, bool) {
-	if !NeedsConcurrentWrapper() {
-		return "", "", false
-	}
-	binary, ok := unwrapParens(rhs).(*ast.BinaryExpr)
-	if !ok {
-		return "", "", false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return "", "", false
-	}
-	if countStatementBuiltConcurrentBinaryNodes(typeInfo, binary) < minNodes {
-		return "", "", false
-	}
-
-	var temps strings.Builder
-	nextTemp := 0
-	nextTempName := func() string {
-		name := fmt.Sprintf("__go_binary_%d", nextTemp)
-		nextTemp++
-		return name
-	}
-
-	var writeValue func(ast.Expr, *ast.BinaryExpr, ast.Expr) string
-	writeValue = func(expr ast.Expr, parent *ast.BinaryExpr, other ast.Expr) string {
-		if paren, ok := expr.(*ast.ParenExpr); ok {
-			return writeValue(paren.X, parent, other)
-		}
-		if binary, ok := expr.(*ast.BinaryExpr); ok && statementBuiltConcurrentBinaryCanBuildNode(typeInfo, binary) {
-			left := writeValue(binary.X, binary, binary.Y)
-			right := writeValue(binary.Y, binary, binary.X)
-			name := nextTempName()
-			temps.WriteString("let ")
-			temps.WriteString(name)
-			temps.WriteString(" = ")
-			temps.WriteString(left)
-			temps.WriteString(" ")
-			temps.WriteString(rustBinaryOp(binary.Op))
-			temps.WriteString(" ")
-			temps.WriteString(right)
-			temps.WriteString(";\n")
-			return name
-		}
-
-		name := nextTempName()
-		temps.WriteString("let ")
-		temps.WriteString(name)
-		temps.WriteString(" = ")
-		writeStatementBuiltConcurrentBinaryOperand(&temps, expr, other, parent)
-		temps.WriteString(";\n")
-		return name
-	}
-
-	var result string
-	emit := func() {
-		result = writeValue(binary, nil, nil)
-	}
-	if len(hiddenShortDeclLhs) > 0 {
-		withShortDeclOuterRhsBindings(hiddenShortDeclLhs, rhs, emit)
-	} else {
-		emit()
-	}
-	if result == "" {
-		return "", "", false
-	}
-
-	return temps.String(), result, true
-}
-
-func countStatementBuiltConcurrentBinaryNodes(typeInfo *TypeInfo, expr ast.Expr) int {
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok || !statementBuiltConcurrentBinaryCanBuildNode(typeInfo, binary) {
-		return 0
-	}
-	return 1 +
-		countStatementBuiltConcurrentBinaryNodes(typeInfo, binary.X) +
-		countStatementBuiltConcurrentBinaryNodes(typeInfo, binary.Y)
-}
-
-func statementBuiltConcurrentBinaryCanBuildNode(typeInfo *TypeInfo, expr *ast.BinaryExpr) bool {
-	if typeInfo == nil || expr == nil {
-		return false
-	}
-	if expr.Op == token.LAND || expr.Op == token.LOR {
-		return false
-	}
-	return isUnwrappedBasicIntegerType(typeInfo.GetType(expr))
-}
-
-func isUnwrappedBasicIntegerType(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
-		return false
-	}
-	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
-	return ok && isIntegerBasicKind(basic.Kind())
-}
-
-func writeStatementBuiltConcurrentBinaryOperand(out *strings.Builder, expr ast.Expr, other ast.Expr, parent *ast.BinaryExpr) {
-	typeInfo := GetTypeInfo()
-	if parent != nil {
-		if writeShiftCountPrimitiveOperand(out, expr, parent) {
-			return
-		}
-		if writeConstShiftLeftOperandForResult(out, expr, parent) {
-			return
-		}
-	}
-	if other != nil && writeConstExpressionForBinaryPeer(out, expr, other) {
-		return
-	}
-
-	var expected types.Type
-	if typeInfo != nil {
-		expected = typeInfo.GetType(expr)
-		if parent != nil {
-			if parent.Op == token.SHL || parent.Op == token.SHR {
-				if expr == parent.X {
-					if parentType := typeInfo.GetType(parent); parentType != nil {
-						expected = parentType
-					}
-				}
-			} else {
-				if parentType := typeInfo.GetType(parent); parentType != nil {
-					expected = parentType
-				}
-			}
-		}
-	}
-	writeBareCompoundAssignValueForOp(out, expr, expected, token.ILLEGAL)
-}
-
-func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
-		return false
-	}
-	var expected types.Type
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		expected = typeInfo.GetType(lhs)
-	}
-	out.WriteString("{ let new_val = ")
-	writeBareCompoundAssignValue(out, rhs, expected)
-	out.WriteString("; ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-const maxInlineWrappedSlotAssignmentLen = 240
-
-func expressionContainsFunctionValue(expr ast.Expr) bool {
-	switch e := unwrapParens(expr).(type) {
-	case *ast.Ident:
-		_, ok := functionValueSignature(e)
-		return ok
-	case *ast.SelectorExpr:
-		if _, ok := methodExpressionSignature(e); ok {
-			return true
-		}
-		if _, ok := pointerMethodValueSignature(e); ok {
-			return true
-		}
-		_, ok := selectorFunctionValueSignature(e)
-		return ok
-	case *ast.FuncLit:
-		return true
-	case *ast.CallExpr:
-		for _, arg := range e.Args {
-			if expressionContainsFunctionValue(arg) {
-				return true
-			}
-		}
-	case *ast.BinaryExpr:
-		return expressionContainsFunctionValue(e.X) || expressionContainsFunctionValue(e.Y)
-	case *ast.UnaryExpr:
-		return expressionContainsFunctionValue(e.X)
-	case *ast.StarExpr:
-		return expressionContainsFunctionValue(e.X)
-	case *ast.IndexExpr:
-		return expressionContainsFunctionValue(e.X) || expressionContainsFunctionValue(e.Index)
-	case *ast.SliceExpr:
-		if expressionContainsFunctionValue(e.X) {
-			return true
-		}
-		for _, bound := range []ast.Expr{e.Low, e.High, e.Max} {
-			if bound != nil && expressionContainsFunctionValue(bound) {
-				return true
-			}
-		}
-	case *ast.TypeAssertExpr:
-		return expressionContainsFunctionValue(e.X)
-	case *ast.CompositeLit:
-		for _, elt := range e.Elts {
-			if expressionContainsFunctionValue(elt) {
-				return true
-			}
-		}
-	case *ast.KeyValueExpr:
-		return expressionContainsFunctionValue(e.Key) || expressionContainsFunctionValue(e.Value)
-	}
-	return false
-}
-
-func writeWrappedSlotAssignmentBlock(out *strings.Builder, lhs ast.Expr, forceMultiline bool, writeValue func(*strings.Builder)) {
-	linePrefix := currentLineText(out)
-	valuePrefix := linePrefix + "{ let new_val = "
-	var value strings.Builder
-	value.WriteString(valuePrefix)
-	writeValue(&value)
-	valueText := strings.TrimPrefix(value.String(), valuePrefix)
-
-	targetPrefix := linePrefix + "{ let new_val = " + valueText + "; *"
-	var target strings.Builder
-	target.WriteString(targetPrefix)
-	TranspileExpressionContext(&target, lhs, LValue)
-	WriteBorrowMethod(&target, true)
-	targetText := "*" + strings.TrimPrefix(target.String(), targetPrefix)
-
-	inlineLen := len("{ let new_val = ") + len(valueText) + len("; ") + len(targetText) + len(" = Some(new_val); }")
-	multiline := forceMultiline && (strings.Contains(valueText, "\n") || strings.Contains(targetText, "\n") || inlineLen > maxInlineWrappedSlotAssignmentLen)
-	if !multiline {
-		out.WriteString("{ let new_val = ")
-		out.WriteString(valueText)
-		out.WriteString("; ")
-		out.WriteString(targetText)
-		out.WriteString(" = Some(new_val); }")
-		return
-	}
-
-	indent := currentLineIndent(out)
-	out.WriteString("{\n")
-	out.WriteString(indent)
-	out.WriteString("    let new_val = ")
-	out.WriteString(valueText)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("    ")
-	out.WriteString(targetText)
-	out.WriteString(" = Some(new_val);\n")
-	out.WriteString(indent)
-	out.WriteString("}")
-}
-
-func wrappedSlotAssignmentShouldUseMultiline(rhs ast.Expr) bool {
-	if expressionContainsFunctionValue(rhs) {
-		return true
-	}
-	return selectorCloneAssignmentValueShouldUseMultiline(rhs)
-}
-
-func selectorCloneAssignmentValueShouldUseMultiline(rhs ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	sel, ok := unwrapParens(rhs).(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	if _, ok := methodExpressionSignature(sel); ok {
-		return false
-	}
-	if !selectorChainContainsCall(sel) {
-		return false
-	}
-	if selectorSyntaxValueNeedsClone(sel) {
-		return true
-	}
-	if isExpressionResultBare(sel) {
-		return false
-	}
-	return isCloneableNonPointerExpr(sel)
-}
-
-func selectorChainContainsCall(sel *ast.SelectorExpr) bool {
-	found := false
-	ast.Inspect(sel.X, func(node ast.Node) bool {
-		if found {
-			return false
-		}
-		if _, ok := node.(*ast.CallExpr); ok {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-func wrappedSlotAssignmentRHSIsWrappedVar(rhs ast.Expr) bool {
-	rhsIdent, ok := rhs.(*ast.Ident)
-	if !ok || rhsIdent.Name == "true" || rhsIdent.Name == "false" || rhsIdent.Name == "nil" {
-		return false
-	}
-	if _, isRange := rangeLoopVars[rhsIdent.Name]; isRange {
-		return false
-	}
-	if _, isConst := localConstants[rhsIdent.Name]; isConst {
-		return false
-	}
-	return !isConstIdent(rhsIdent) && !isVarBare(rhsIdent.Name)
-}
-
-func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, rhsIsWrappedVar bool) {
-	if writeCurrentReceiverAssignmentValue(out, rhs) {
-		// Method receivers are Rust self, not wrapped locals named after the Go receiver.
-	} else if rhsIsWrappedVar {
-		// Use clone to avoid moving non-Copy types like String.
-		rhsIdent := rhs.(*ast.Ident)
-		rhsVarName := RustIdentForUse(rhsIdent)
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
-				rhsVarName = RustLocalIdent(renamed)
-			}
-		}
-		if copyCall, known := goValueCopyCallForExpr(rhsIdent); known {
-			out.WriteString(rhsVarName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()")
-			out.WriteString(copyCall)
-		} else {
-			out.WriteString(goValueCopyNeedsTypeInfo)
-		}
-	} else if writeNamedIntegerAssignmentValue(out, rhs) {
-		// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
-	} else if writeConstAssignmentValue(out, lhs, rhs) {
-		// Constants assigned to wrapped slots need the target type from go/types.
-	} else if writeByteConstAssignmentValue(out, lhs, rhs) {
-		// Byte constants assigned to byte slots need the same go/types context as call arguments.
-	} else if writeRangeIndexAssignmentValue(out, lhs, rhs) {
-		// Range indexes emit usize, but Go int assignment targets use i32.
-	} else if writeRangeCharAssignmentValue(out, lhs, rhs) {
-		// String range runes are Rust char but Go rune targets are i32.
-	} else if rhsIdent, ok := rhs.(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
-		// Reference-style range values must be cloned into ordinary wrapped assignment targets.
-	} else if writeOwnedExpressionValue(out, rhs) {
-		// Copied by value from an existing wrapped field or handle.
-	} else if writeValueOfVariableAsGoCopy(out, rhs) {
-		// A struct variable is copied into the slot.
-	} else if writeGoValueCopyOfElement(out, rhs) {
-		// So is an element of a slice or an array, and the target of a pointer.
-	} else {
-		TranspileExpression(out, rhs)
-	}
-}
-
-func typeIsPredeclaredMutableBareScalar(t types.Type) bool {
-	t = types.Unalias(t)
-	basic, ok := t.(*types.Basic)
-	if !ok || basic.Kind() == types.Bool {
-		return false
-	}
-	return basicKindIsCopyScalar(basic.Kind())
-}
-
-func bareScalarMutationTarget(expr ast.Expr) (*ast.Ident, types.Type, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
-		return nil, nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, nil, false
-	}
-	t := typeInfo.GetType(expr)
-	if !typeIsPredeclaredMutableBareScalar(t) {
-		return nil, nil, false
-	}
-	return ident, t, true
-}
-
-func writeBareScalarCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.Token, rhs ast.Expr) bool {
-	ident, expected, ok := bareScalarMutationTarget(lhs)
-	if !ok {
-		return false
-	}
-	out.WriteString("{ let __rhs = ")
-	writeBareCompoundAssignValueForOp(out, rhs, expected, op)
-	out.WriteString("; ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" = ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" ")
-	writeCompoundAssignOperator(out, op)
-	out.WriteString(" __rhs; }")
-	return true
-}
-
-func bareExternalIntegerMutationTarget(expr ast.Expr) (*ast.Ident, *types.Named, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
-		return nil, nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, nil, false
-	}
-	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok {
-		return nil, nil, false
-	}
-	if _, ok := externalIntegerRustTypeForNamed(named); !ok {
-		return nil, nil, false
-	}
-	return ident, named, true
-}
-
-func writeBareExternalIntegerCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.Token, rhs ast.Expr) bool {
-	ident, named, ok := bareExternalIntegerMutationTarget(lhs)
-	if !ok {
-		return false
-	}
-	out.WriteString("{ let __rhs = ")
-	writeBareCompoundAssignValueForOp(out, rhs, named, op)
-	out.WriteString("; ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" = ")
-	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString("(")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(".0 ")
-	writeCompoundAssignOperator(out, op)
-	out.WriteString(" __rhs); }")
-	return true
-}
-
-func bareNamedIntegerMutationTarget(expr ast.Expr) (*ast.Ident, *types.Named, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return nil, nil, false
-	}
-	if !isVarBare(ident.Name) {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-			return nil, nil, false
-		}
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, nil, false
-	}
-	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok || !isNamedIntegerType(named) {
-		return nil, nil, false
-	}
-	if _, ok := externalIntegerRustTypeForNamed(named); ok {
-		return nil, nil, false
-	}
-	return ident, named, true
-}
-
-func writeBareNamedIntegerCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.Token, rhs ast.Expr) bool {
-	ident, named, ok := bareNamedIntegerMutationTarget(lhs)
-	if !ok {
-		return false
-	}
-	out.WriteString("{ let __rhs = ")
-	writeBareCompoundAssignValueForOp(out, rhs, named, op)
-	out.WriteString("; ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" = ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" ")
-	writeCompoundAssignOperator(out, op)
-	out.WriteString(" __rhs; }")
-	return true
-}
-
-func writeBareScalarIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
-	ident, typ, ok := bareScalarMutationTarget(expr)
-	if !ok {
-		return false
-	}
-	step := "1"
-	if basic, ok := types.Unalias(typ).(*types.Basic); ok {
-		switch basic.Kind() {
-		case types.Float32, types.Float64:
-			step = "1.0"
-		}
-	}
-	out.WriteString("{ ")
-	out.WriteString(RustIdentForUse(ident))
-	if op == token.INC {
-		out.WriteString(" += ")
-	} else {
-		out.WriteString(" -= ")
-	}
-	out.WriteString(step)
-	out.WriteString("; }")
-	return true
-}
-
-func incDecStepForType(typ types.Type) string {
-	if basic, ok := types.Unalias(typ).(*types.Basic); ok {
-		switch basic.Kind() {
-		case types.Float32, types.Float64:
-			return "1.0"
-		}
-	}
-	return "1"
-}
-
-func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("/* ERROR: Cannot determine indexed inc/dec target - type information required */ ")
-		return true
-	}
-	if typeInfo.IsMap(indexExpr.X) {
-		return false
-	}
-	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
-	if elemType == nil {
-		out.WriteString("/* ERROR: Cannot determine indexed inc/dec element type - type information required */ unimplemented!(\"type info required for indexed inc/dec\")")
-		return true
-	}
-
-	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
-	// the 1, and did not compile.
-	out.WriteString("{ let __idx = ")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; ")
-	writeIndexedSequenceMutationGuard(out, indexExpr.X)
-	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
-	writeIndexedCurrentElementValue(out, elemType)
-	out.WriteString(" ")
-	if op == token.INC {
-		out.WriteString("+ ")
-	} else {
-		out.WriteString("- ")
-	}
-	out.WriteString(incDecStepForType(elemType))
-	out.WriteString("; }")
-	return true
-}
-
-func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
-	if lit == nil {
-		return false
-	}
-	if _, ok := lit.Type.(*ast.SelectorExpr); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(lit)
-	if typ == nil {
-		return false
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Struct, *types.Array:
-		return true
-	default:
-		return false
-	}
-}
-
-// writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
-// Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
-// the wrapper off a literal/expression.
-func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
-	if ident, ok := expr.(*ast.Ident); ok {
-		switch ident.Name {
-		case "nil", "true", "false":
-		default:
-			if _, isConst := localConstants[ident.Name]; !isConst {
-				if _, isRange := rangeLoopVars[ident.Name]; !isRange {
-					out.WriteString("(*")
-					out.WriteString(EscapeRustIdent(ident.Name))
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).clone()")
-					return
-				}
-			}
-		}
-	}
-	if call, ok := expr.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-			out.WriteString("(*")
-			TranspileExpression(out, call)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()")
-			return
-		}
-	}
-	var buf strings.Builder
-	TranspileExpression(&buf, expr)
-	s := buf.String()
-	wrapPrefix := GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(Some("
-	wrapSuffix := ")))"
-	if strings.HasPrefix(s, wrapPrefix) && strings.HasSuffix(s, wrapSuffix) {
-		out.WriteString(s[len(wrapPrefix) : len(s)-len(wrapSuffix)])
-		return
-	}
-	out.WriteString(s)
-}
-
-// writeBareAnyBox emits `Box::new(<value>) as Box<dyn Any...>`, boxing a concrete
-// expr into a bare Box<dyn Any> trait object (the element slot of a []any, which
-// stores bare boxes).
-func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
-	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
-		return
-	}
-	// An error goes into a []any element the way it goes into any other
-	// interface value.
-	if writeGoErrorInterfaceAnyBox(out, expr) {
-		return
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		RegisterAnyCloneType(typeInfo.GetType(expr))
-	}
-	out.WriteString("Box::new(")
-	// A value that keeps its handle when boxed keeps it in a []any element
-	// too, the same as every other way of storing it in an interface.
-	if !writeAnyHandleBoxInnerValue(out, expr) && !writeDefinedCollectionOwnedValue(out, expr) {
-		writeAnyBoxInnerValue(out, expr)
-	}
-	out.WriteString(") as ")
-	out.WriteString(rustAnyTraitObject())
-}
-
-func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && arraySliceElementExpectedStoresBareCollection(expected) {
-		out.WriteString(zeroValueForTypesType(expected))
-		return
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && isUnsafePointerLikeType(expected) {
-		out.WriteString(zeroValueForTypesType(expected))
-		return
-	}
-	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
-		return
-	}
-	if writeTypeParamArraySliceElementAssignmentValue(out, rhs, expected) {
-		return
-	}
-	// A []any element slot stores a bare Box<dyn Any>; box a concrete value into
-	// it. (A value already of interface type is handled by the local/stdlib
-	// interface paths or the generic clone below.)
-	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
-		ident, isIdent := rhs.(*ast.Ident)
-		if !isIdent || ident.Name != "nil" {
-			writeBareAnyBox(out, rhs)
-			return
-		}
-	}
-	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
-		return
-	}
-	if expected != nil && writeLocalInterfaceFieldValue(out, rhs, nil, expected) {
-		return
-	}
-	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
-		return
-	}
-	if writeBareValueForWrappedSlot(out, rhs) {
-		return
-	}
-	if expected != nil {
-		if named, ok := types.Unalias(expected).(*types.Named); ok && writeNamedIntegerValueForExpected(out, rhs, named) {
-			return
-		}
-	}
-	if expected != nil && writeRangeCharForExpectedType(out, rhs, expected) {
-		return
-	}
-
-	if ident, ok := rhs.(*ast.Ident); ok {
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
-			if expected != nil {
-				if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
-					out.WriteString(RustLocalIdent(ident.Name))
-					out.WriteString(" as i32")
-					return
-				}
-			}
-		}
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && strings.HasPrefix(varType, "&") {
-			out.WriteString(RustLocalIdent(ident.Name))
-			out.WriteString(".clone()")
-			return
-		}
-	}
-
-	// A struct held in a variable, or read from "s[i]" or "*p", is copied into
-	// the element: the element and its source are two values from here on.
-	if writeValueOfVariableAsGoCopy(out, rhs) || writeGoValueCopyOfElement(out, rhs) {
-		return
-	}
-
-	needsUnwrap := false
-	if _, ok := rhs.(*ast.SliceExpr); ok {
-		// A slice expression lowers to a wrapped handle, but a value-typed
-		// slice/array element slot (e.g. the inner []byte of [][]byte) stores a
-		// raw Vec, so the wrapped slice value must be unwrapped to match it
-		// (E0308 otherwise). The pointer- and interface-element cases are
-		// already handled by the helpers above this point.
-		needsUnwrap = true
-	} else if _, ok := rhs.(*ast.CompositeLit); ok && arraySliceElementExpectedStoresBareCollection(expected) {
-		needsUnwrap = true
-	} else if call, ok := rhs.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		if appendCallReturnsBareIndexedSlice(call) {
-			needsUnwrap = false
-		} else if callReturnsBareScalar(call) {
-			// Calls whose generated signature already returns a bare scalar
-			// don't need .borrow().as_ref().unwrap() at the assignment site.
-			needsUnwrap = false
-		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-			needsUnwrap = true
-		} else if typeInfo != nil && typeInfo.IsTypeConversion(call) {
-			// Type-driven conversions that emit bare values, such as Word(x),
-			// already match value-typed element slots.
-			needsUnwrap = false
-		} else if ident, ok := call.Fun.(*ast.Ident); ok {
-			if !isBuiltinCallTarget(ident) && !isFunctionName(ident) {
-				needsUnwrap = true
-			}
-		}
-	}
-
-	if needsUnwrap {
-		out.WriteString("(*")
-		TranspileExpression(out, rhs)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
-	} else {
-		TranspileExpression(out, rhs)
-	}
-}
-
-func indexedSequenceElementAssignmentType(typeInfo *TypeInfo, indexExpr *ast.IndexExpr) types.Type {
-	if typeInfo == nil || indexExpr == nil {
-		return nil
-	}
-	if elemType := typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X); elemType != nil {
-		return elemType
-	}
-	return typeInfo.GetType(indexExpr)
-}
-
-func arraySliceElementExpectedStoresBareCollection(expected types.Type) bool {
-	if expected == nil {
-		return false
-	}
-	switch types.Unalias(expected).Underlying().(type) {
-	case *types.Slice, *types.Map:
-		return true
-	default:
-		return false
-	}
-}
-
-func writeTypeParamArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
-	if _, ok := types.Unalias(expected).(*types.TypeParam); !ok {
-		return false
-	}
-	ident, ok := rhs.(*ast.Ident)
-	if !ok || ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) {
-		return false
-	}
-	name := RustIdentForUse(ident)
-	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && isWrappedRangeVarType(varType) {
-		if strings.HasPrefix(varType, "&") {
-			out.WriteString("(*")
-			out.WriteString(name)
-			out.WriteString(").clone()")
-		} else {
-			out.WriteString(name)
-			out.WriteString(".clone()")
-		}
-		return true
-	}
-	out.WriteString(name)
-	out.WriteString(".clone()")
-	return true
-}
-
-func writeTypeParamHandleInitializer(out *strings.Builder, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if _, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.TypeParam); !ok {
-		return false
-	}
-	if writePointerConstrainedTypeParamDerefInitializer(out, rhs, typeInfo) {
-		return true
-	}
-	return writeTypeParamHandleExpression(out, rhs)
-}
-
-func writeBareDirectTypeParamWrappedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || result == nil || expected == nil {
-		return false
-	}
-	expectedType := typeInfo.GetType(expected)
-	if expectedType == nil {
-		out.WriteString(`/* ERROR: Type information required for type-parameter return value */ unimplemented!("type info required for type-parameter return value")`)
-		return true
-	}
-	if !isDirectTypeParamType(expectedType) {
-		return false
-	}
-	actualType := typeInfo.GetType(result)
-	if actualType == nil {
-		out.WriteString(`/* ERROR: Type information required for type-parameter return value */ unimplemented!("type info required for type-parameter return value")`)
-		return true
-	}
-	if !isDirectTypeParamType(actualType) || !types.AssignableTo(actualType, expectedType) || !isExpressionResultBare(result) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	TranspileExpression(out, result)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writePointerConstrainedTypeParamDerefInitializer(out *strings.Builder, rhs ast.Expr, typeInfo *TypeInfo) bool {
-	star, ok := unwrapParens(rhs).(*ast.StarExpr)
-	if !ok || typeInfo == nil {
-		return false
-	}
-	if !goTypeParamHasPointerConstraint(typeInfo.GetType(star.X)) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	TranspileExpressionContext(out, star, RValue)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeNamedSliceSliceExprShortDeclInitializer(out *strings.Builder, rhs ast.Expr) bool {
-	if _, ok := rhs.(*ast.SliceExpr); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if _, _, ok := namedSliceTypeFromType(typeInfo.GetType(rhs)); !ok {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	TranspileExpression(out, rhs)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeByteConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	expected := typeInfo.GetType(lhs)
-	if expected == nil {
-		return false
-	}
-	if !isByteLikeGoType(expected) {
-		return false
-	}
-	return writeConstExpressionForExpectedGoType(out, rhs, expected)
-}
-
-func writeConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	expected := typeInfo.GetType(lhs)
-	if expected == nil {
-		if ident, ok := lhs.(*ast.Ident); ok {
-			if obj := typeInfo.GetObject(ident); obj != nil {
-				expected = obj.Type()
-			}
-		}
-	}
-	if expected == nil {
-		return false
-	}
-	return writeConstExpressionForExpectedGoType(out, rhs, expected)
-}
-
-func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
-	if isGoErrorType(expected) && writeGoErrorPointerDerefAssignmentValue(out, rhs) {
-		return true
-	}
-	if call, ok := rhs.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-			out.WriteString("(*")
-			TranspileExpression(out, rhs)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()")
-			return true
-		}
-	}
-	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
-		return true
-	}
-	if writeBareValueForWrappedSlot(out, rhs) {
-		return true
-	}
-	return false
-}
-
-func writeGoPtrBorrowOptionForPointerValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
-	info, ok := goPtrInfoForPointerType(expected)
-	if !ok || !goPtrHandleValueExpression(rhs) {
-		return false
-	}
-	var handle strings.Builder
-	if !writeGoPtrCallArgumentForInfo(&handle, rhs, info) {
-		return false
-	}
-	out.WriteString(handle.String())
-	out.WriteString(".borrow()")
-	return true
-}
-
-func goPtrHandleValueExpression(expr ast.Expr) bool {
-	switch e := unwrapParens(expr).(type) {
-	case *ast.Ident:
-		return isGoPtrIdent(e)
-	case *ast.CallExpr:
-		_, ok := goPtrResultInfoForCall(e, 0)
-		return ok
-	case *ast.SelectorExpr:
-		return generatedGoPtrFieldForSelector(e)
-	case *ast.IndexExpr:
-		_, ok := goPtrArrayFieldInfoForIndexExpr(e)
-		return ok
-	case *ast.StarExpr:
-		_, ok := goPtrSlotDerefResultInfo(e)
-		return ok
-	default:
-		return false
-	}
-}
-
-func writePointerDerefPointerHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || star == nil {
-		return false
-	}
-	expected := typeInfo.GetType(star)
-	if expected == nil {
-		return false
-	}
-	if _, ok := types.Unalias(expected).Underlying().(*types.Pointer); !ok {
-		return false
-	}
-	operandType := typeInfo.GetType(star.X)
-	if operandType == nil {
-		return false
-	}
-	operandPtr, ok := types.Unalias(operandType).Underlying().(*types.Pointer)
-	if !ok || !types.AssignableTo(expected, operandPtr.Elem()) {
-		return false
-	}
-
-	rhsIsNil := false
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		rhsIsNil = true
-	} else {
-		actual := typeInfo.GetType(rhs)
-		if actual == nil || !types.AssignableTo(actual, expected) {
-			return false
-		}
-	}
-
-	out.WriteString("{ ")
-	rhsIsGoPtrHandle := false
-	if rhsIsNil {
-		out.WriteString("let new_val = None; ")
-	} else {
-		out.WriteString("let new_val = ")
-		if writeGoPtrBorrowOptionForPointerValue(out, rhs, expected) {
-			rhsIsGoPtrHandle = true
-		} else {
-			writePointerHandleValueClone(out, rhs)
-		}
-		out.WriteString("; ")
-	}
-	out.WriteString("let __dst = ")
-	TranspileExpressionContext(out, star.X, LValue)
-	out.WriteString(".clone(); let __dst_guard = __dst")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; *__dst_guard.as_ref().unwrap()")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = ")
-	if rhsIsNil || rhsIsGoPtrHandle {
-		out.WriteString("new_val")
-	} else {
-		out.WriteString("(*new_val")
-		WriteBorrowMethod(out, false)
-		out.WriteString(").clone()")
-	}
-	out.WriteString("; }")
-	return true
-}
-
-func writeGoErrorPointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		writeErrorOptionFromHandleExpression(out, rhs)
-		return true
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if isGoErrorType(rhsType) {
-		writeErrorOptionFromHandleExpression(out, rhs)
-		return true
-	}
-	if isConcreteGoErrorValue(rhsType) {
-		out.WriteString("Some(")
-		writeConcreteErrorBox(out, rhs)
-		out.WriteString(")")
-		return true
-	}
-	return false
-}
-
-func writeWrappedConstVarInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	if _, ok := rhs.(*ast.BasicLit); ok {
-		return false
-	}
-	var raw strings.Builder
-	if !writeConstAssignmentValue(&raw, lhs, rhs) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString(raw.String())
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeRangeIndexAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	expected := typeInfo.GetType(lhs)
-	if expected == nil {
-		if ident, ok := lhs.(*ast.Ident); ok {
-			if obj := typeInfo.GetObject(ident); obj != nil {
-				expected = obj.Type()
-			}
-		}
-	}
-	return writeRangeIndexForExpectedType(out, rhs, expected)
-}
-
-func writeRangeCharAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return writeRangeCharForExpectedType(out, rhs, assignmentTargetType(typeInfo, lhs))
-}
-
-func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
-	if expected == nil {
-		return false
-	}
-	if _, ok := types.Unalias(expected).Underlying().(*types.Pointer); !ok {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("Default::default()")
-		return true
-	}
-	if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		TranspileExpression(out, rhs)
-		return true
-	}
-	if call, ok := rhs.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-			TranspileExpression(out, rhs)
-			return true
-		}
-	}
-	if !rhsIsPointerType(rhs) {
-		return false
-	}
-	switch rhs.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-		if ident, ok := packageGlobalPointerIdent(rhs); ok {
-			writePackageGlobalPointerHandleClone(out, ident)
-		} else if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
-		} else {
-			TranspileExpressionContext(out, rhs, LValue)
-			out.WriteString(".clone()")
-		}
-	case *ast.IndexExpr:
-		TranspileExpression(out, rhs)
-	default:
-		return false
-	}
-	return true
-}
-
-func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, lhs ast.Expr) bool {
-	if call == nil || !isBareBuiltinReturn(call) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil {
-		lhsType = typeInfo.GetType(call)
-	}
-	if lhsType == nil {
-		return false
-	}
-	basic, ok := types.Unalias(lhsType).Underlying().(*types.Basic)
-	if !ok || basic.Kind() != types.Int {
-		if !isBareBuiltinCallName(call, "min") && !isBareBuiltinCallName(call, "max") {
-			return false
-		}
-	}
-	WriteWrapperPrefix(out)
-	TranspileExpression(out, call)
-	if isBareBuiltinCallName(call, "len") || isBareBuiltinCallName(call, "cap") {
-		out.WriteString(" as i32")
-	}
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, registerBareScalar bool) {
-	if call, isCall := rhs.(*ast.CallExpr); isCall {
-		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
-			return
-		}
-		if callReturnsBareScalar(call) {
-			if registerBareScalar {
-				registerBareShortDecl(lhs)
-				TranspileExpression(out, call)
-			} else {
-				WriteWrapperPrefix(out)
-				TranspileExpression(out, call)
-				WriteWrapperSuffix(out)
-			}
-			return
-		}
-		writeCallExpressionForInitializer(out, call)
-		return
-	}
-	if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
-		// Plain slice expressions already return wrapped values; named-slice
-		// slice expressions emit a bare named value that the local wrapper stores.
-		if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
-			TranspileExpression(out, rhs)
-		}
-		return
-	}
-	if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		// Address-of expressions already return wrapped handles.
-		TranspileExpression(out, rhs)
-		return
-	}
-	if rhsIsPointerType(rhs) {
-		// Pointer identifiers in parallel short declarations copy the handle.
-		if !writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
-			TranspileExpressionContext(out, rhs, AddressOf)
-			out.WriteString(".clone()")
-		}
-		return
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
-		// Copied by value from an existing wrapped value.
-		return
-	}
-	if writeNamedIntegerWrappedInitializer(out, rhs) {
-		// Typed named integer constants need the named newtype, not the raw const.
-		return
-	}
-	WriteWrapperPrefix(out)
-	if !writeOwnedExpressionValue(out, rhs) {
-		TranspileExpression(out, rhs)
-	}
-	WriteWrapperSuffix(out)
-}
-
-func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
-	innerIndex, ok := indexExpr.X.(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.IsMap(innerIndex.X) {
-		return false
-	}
-	innerType := typeInfo.GetType(innerIndex)
-	if innerType == nil {
-		return false
-	}
-	switch types.Unalias(innerType).Underlying().(type) {
-	case *types.Array, *types.Slice:
-	default:
-		return false
-	}
-	containerType := typeInfo.GetType(innerIndex.X)
-	if containerType == nil {
-		return false
-	}
-	switch types.Unalias(containerType).Underlying().(type) {
-	case *types.Array, *types.Slice:
-	default:
-		return false
-	}
-
-	// Both indexes and the value are evaluated before the outer sequence is
-	// locked for writing: "grid[i][j] = grid[k][l]" reads the same grid.
-	//
-	// Go evaluates the outer sequence before its indexes. That shows when
-	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
-	// handle is then taken first and held, not locked.
-	holdsSequence := expressionCallsOrReceives(innerIndex.X)
-	out.WriteString("{ ")
-	if holdsSequence {
-		out.WriteString("let __seq = ")
-		TranspileExpressionContext(out, innerIndex.X, LValue)
-		out.WriteString(".clone(); ")
-	}
-	out.WriteString("let __outer_idx = ")
-	writeExpressionAsUsize(out, innerIndex.Index)
-	out.WriteString("; let __idx = ")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; let __rhs = ")
-	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
-	out.WriteString("; (*")
-	if holdsSequence {
-		out.WriteString("__seq")
-	} else {
-		TranspileExpressionContext(out, innerIndex.X, LValue)
-	}
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[__outer_idx][__idx] = __rhs; }")
-	return true
-}
-
-func writePointerDerefSequenceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
-	star, ok := unwrapParens(indexExpr.X).(*ast.StarExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("/* ERROR: Type information required for pointer sequence element assignment */ unimplemented!(\"type info required for pointer sequence element assignment\")")
-		return true
-	}
-	starType := typeInfo.GetType(star)
-	operandType := typeInfo.GetType(star.X)
-	if starType == nil || operandType == nil {
-		out.WriteString("/* ERROR: Type information required for pointer sequence element assignment */ unimplemented!(\"type info required for pointer sequence element assignment\")")
-		return true
-	}
-	if _, isNamed := starType.(*types.Named); isNamed {
-		return false
-	}
-	if !pointerDerefTargetsSequence(starType, operandType) {
-		return false
-	}
-
-	out.WriteString("{ let __slice_holder = ")
-	TranspileExpressionContext(out, star.X, LValue)
-	out.WriteString(".clone(); let mut __slice_guard = __slice_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; let __slice = __slice_guard.as_mut().unwrap(); __slice[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
-	elemType := indexedSequenceElementAssignmentType(typeInfo, indexExpr)
-	if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(indexExpr.X); ok {
-		if !writeSliceElemPtrSliceSlotValue(out, rhs, elemRustType) {
-			out.WriteString(`unimplemented!("type info required to lower pointer slice assignment")`)
-		}
-	} else {
-		writeArraySliceElementAssignmentValue(out, rhs, elemType)
-	}
-	out.WriteString("; }")
-	return true
-}
-
-func writeArrayElemPtrPointedArrayElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
-	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
-	if !ok || !arrayElemPtrIdentPointsToArray(ident) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("/* ERROR: Type information required for array element pointer indexed assignment */ unimplemented!(\"type info required for array element pointer indexed assignment\")")
-		return true
-	}
-	out.WriteString("{ let new_val = ")
-	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
-	out.WriteString("; (*")
-	writeArrayElemPtrBorrow(out, ident, true)
-	out.WriteString(".as_mut().unwrap())[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = new_val; }")
-	return true
-}
-
-func writeGoPtrPointedArrayElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
-	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
-	if !ok {
-		return false
-	}
-	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("/* ERROR: Type information required for GoPtr indexed array assignment */ unimplemented!(\"type info required for GoPtr indexed array assignment\")")
-		return true
-	}
-	out.WriteString("{ let new_val = ")
-	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
-	out.WriteString("; ")
-	out.WriteString(rustIdentForUseWithCapture(ident))
-	out.WriteString(".with_mut(|__seq| { __seq[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = new_val; }); }")
-	return true
-}
-
-func pointerDerefTargetsSequence(starType types.Type, operandType types.Type) bool {
-	switch coreUnderlyingType(starType).(type) {
-	case *types.Array, *types.Slice:
-	default:
-		return false
-	}
-	ptr, ok := types.Unalias(operandType).Underlying().(*types.Pointer)
-	if !ok {
-		return false
-	}
-	switch coreUnderlyingType(ptr.Elem()).(type) {
-	case *types.Array, *types.Slice:
-		return true
-	default:
-		return false
-	}
-}
-
-func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *ast.SelectorExpr, rhs ast.Expr) bool {
-	indexExpr, ok := sel.X.(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
-		return false
-	}
-	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
-	if elemType == nil {
-		return false
-	}
-	fieldType := typeInfo.GetType(sel)
-	if !arraySliceElementExpectedStoresBareCollection(fieldType) {
-		return false
-	}
-	fieldInfo := selectorFieldAccessInfo(sel)
-
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("{ *")
-		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = None; }")
-		return true
-	}
-
-	out.WriteString("{ let new_val = ")
-	writeArraySliceElementAssignmentValue(out, rhs, fieldType)
-	out.WriteString("; *")
-	writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(new_val); }")
-	return true
-}
-
-func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, elemType types.Type) {
-	if fieldInfo.IsPromoted {
-		out.WriteString("(*")
-		writeIndexedSequenceElementFieldBase(out, indexExpr, elemType)
-		for i, embedded := range fieldInfo.EmbeddedPath {
-			out.WriteString(".")
-			out.WriteString(ToSnakeCase(embedded))
-			WriteBorrowMethod(out, false)
-			if i < len(fieldInfo.EmbeddedPath)-1 {
-				out.WriteString(".as_ref().unwrap()")
-			} else {
-				out.WriteString(".as_ref().unwrap()).")
-			}
-		}
-		out.WriteString(fieldInfo.FieldName)
-		return
-	}
-	writeIndexedSequenceElementFieldBase(out, indexExpr, elemType)
-	out.WriteString(".")
-	out.WriteString(fieldInfo.FieldName)
-}
-
-func writeIndexedSequenceElementFieldBase(out *strings.Builder, indexExpr *ast.IndexExpr, elemType types.Type) {
-	if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
-		out.WriteString("(*")
-		writeIndexedSequenceElementValue(out, indexExpr)
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap())")
-		return
-	}
-	writeIndexedSequenceElementValue(out, indexExpr)
-}
-
-func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
-	out.WriteString("(*")
-	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-		writeNamedSliceInnerHandleClone(out, subj)
-	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-	}
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("]")
-}
-
-// writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
-// For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
-// For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
-func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
-	needsStrip := false
-	switch expr.(type) {
-	case *ast.CompositeLit:
-		needsStrip = true
-	case *ast.SliceExpr:
-		needsStrip = true
-	}
-
-	if needsStrip {
-		// Inline slice literal or slice expression - capture output and strip wrapper if present
-		var buf strings.Builder
-		indent := currentLineIndent(out)
-		buf.WriteString(indent)
-		TranspileExpressionContext(&buf, expr, RValue)
-		s := buf.String()
-		if indent != "" && strings.HasPrefix(s, indent) {
-			s = s[len(indent):]
-		}
-		// Strip Rc::new(RefCell::new(Some(...))) wrapper
-		outerWrapper := GetOuterWrapperType()
-		innerWrapper := GetInnerWrapperType()
-		prefix := outerWrapper + "::new(" + innerWrapper + "::new(Some("
-		suffix := ")))"
-		if strings.HasPrefix(s, prefix) && strings.HasSuffix(s, suffix) {
-			out.WriteString(s[len(prefix) : len(s)-len(suffix)])
-		} else {
-			out.WriteString(s)
-		}
-	} else if ident, ok := expr.(*ast.Ident); ok {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			out.WriteString(RustLocalIdent(ident.Name))
-			return
-		}
-		TranspileExpressionContext(out, expr, RValue)
-	} else {
-		TranspileExpressionContext(out, expr, RValue)
-	}
-}
-
-func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
-	typeInfo := GetTypeInfo()
-	if isConstantExpression(expr) {
-		if typeInfo != nil {
-			if expected := typeInfo.GetType(expr); expected != nil && writeConstExpressionForExpectedGoType(out, expr, expected) {
-				return
-			}
-		}
-		TranspileExpression(out, expr)
-		return
-	}
-	if call, ok := expr.(*ast.CallExpr); ok && typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-		out.WriteString("{ let __v = ")
-		TranspileExpression(out, call)
-		out.WriteString("; let __owned = (*__v")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone(); __owned }")
-		return
-	}
-	if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
-		out.WriteString("{ let __range_limit = ")
-		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone(); let __range_value = { let __range_guard = __range_limit")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; (*__range_guard.as_ref().unwrap()).clone() }; __range_value }")
-		return
-	}
-	writeUnwrappedRangeTarget(out, expr)
-}
-
-func writeRangeLengthExpression(out *strings.Builder, expr ast.Expr) {
-	if writePointerToArrayLen(out, expr) {
-		return
-	}
-	if rangeTargetNeedsWrappedSliceGuard(expr) {
-		out.WriteString("({ let __range_holder = ")
-		if isNamedSliceExpression(expr) {
-			writeNamedSliceInnerHandleClone(out, expr)
-		} else {
-			writeWrappedHandleExpression(out, expr)
-			out.WriteString(".clone()")
-		}
-		out.WriteString("; let __range_guard = __range_holder")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })")
-		return
-	}
-	writeUnwrappedRangeTarget(out, expr)
-	out.WriteString(".len()")
-}
-
-func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(typeExpr)
-	if typ == nil {
-		return false
-	}
-	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
-			return false
-		}
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
-		out.WriteString(" = ")
-		WriteWrappedNone(out)
-		return true
-	default:
-		return false
-	}
-}
-
-func writeWrappedZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(typeExpr)
-	if typ == nil {
-		return false
-	}
-	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
-			return false
-		}
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
-		return false
-	}
-	out.WriteString(" = ")
-	WriteWrapperPrefix(out)
-	out.WriteString(zeroValueForTypesType(typ))
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func isWrappedSliceRangeVar(name string) bool {
-	varType, ok := rangeLoopVars[name]
-	if !ok {
-		return false
-	}
-	prefix := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<Vec<"
-	return strings.HasPrefix(varType, prefix)
-}
-
-func isReferenceRangeTarget(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	varType, ok := rangeLoopVars[ident.Name]
-	return ok && (varType == "ref_value" || strings.HasPrefix(varType, "&"))
-}
-
-func rangeElementUsesCopied(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	if isNamedIntegerType(typ) {
-		return false
-	}
-	switch underlying := types.Unalias(typ).Underlying().(type) {
-	case *types.Basic:
-		info := underlying.Info()
-		return info&types.IsNumeric != 0 || info&types.IsBoolean != 0
-	case *types.Array:
-		return rangeElementUsesCopied(underlying.Elem())
-	default:
-		return false
-	}
-}
-
-func rangeElementUsesCopiedForExpr(expr ast.Expr, typ types.Type) bool {
-	if rangeElementUsesCopied(typ) {
-		return true
-	}
-	return rangeElementSyntaxUsesCopied(expr)
-}
-
-func rangeElementSyntaxUsesCopied(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.CompositeLit:
-		return rangeElementTypeSyntaxUsesCopied(e.Type)
-	case *ast.ParenExpr:
-		return rangeElementSyntaxUsesCopied(e.X)
-	default:
-		return false
-	}
-}
-
-func rangeElementTypeSyntaxUsesCopied(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.ArrayType:
-		return typeSyntaxIsRustCopyRangeElement(e.Elt)
-	case *ast.ParenExpr:
-		return rangeElementTypeSyntaxUsesCopied(e.X)
-	default:
-		return false
-	}
-}
-
-func typeSyntaxIsRustCopyRangeElement(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	switch ident.Name {
-	case "bool",
-		"byte", "rune",
-		"int", "int8", "int16", "int32", "int64",
-		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
-		"float32", "float64":
-		return true
-	default:
-		return false
-	}
-}
-
-func rangeElementUsesCloned(typ types.Type) bool {
-	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedIntegerType(typ)
-}
-
-func compositeLiteralRangeElemRustType(lit *ast.CompositeLit) (string, bool) {
-	if lit == nil {
-		return "", false
-	}
-	arrayType, ok := lit.Type.(*ast.ArrayType)
-	if !ok {
-		return "", false
-	}
-	return goCollectionElemTypeToRust(arrayType.Elt), true
-}
-
-func registerCompositeLiteralRangeElemType(lhs ast.Expr, lit *ast.CompositeLit) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return
-	}
-	switch typ := lit.Type.(type) {
-	case *ast.ArrayType:
-		elemRustType := goCollectionElemTypeToRust(typ.Elt)
-		localCollectionKinds[ident.Name] = "slice"
-		localRangeElemRustTypes[ident.Name] = elemRustType
-	case *ast.MapType:
-		localCollectionKinds[ident.Name] = "map"
-		localMapKeyRustTypes[ident.Name] = goMapKeyTypeToRustBase(typ.Key)
-		valueRustType := GoTypeToRust(typ.Value)
-		localMapValueRustTypes[ident.Name] = valueRustType
-		localMapValueKeepHandle[ident.Name] = mapValueTypeExprKeepsHandle(typ.Value) || rustMapValueTypeKeepsHandle(valueRustType)
-	}
-}
-
-func registerCompositeLiteralSyntaxVarInfo(lhs ast.Expr, lit *ast.CompositeLit) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" || lit == nil {
-		return
-	}
-	var rustType string
-	switch typ := lit.Type.(type) {
-	case *ast.Ident:
-		rustType = RustTypeNameForUse(typ.Name)
-	case *ast.SelectorExpr:
-		rustType = goTypeToRustBase(typ)
-	default:
-		return
-	}
-	if vt := GetVarTable(); vt != nil {
-		vt.Register(ident.Name, &VarInfo{
-			WrapLevel: WrapFull,
-			RustType:  rustType,
-			Source:    SourceLocal,
-		})
-	}
-}
-
-func localCollectionKind(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return "", false
-	}
-	kind, ok := localCollectionKinds[ident.Name]
-	return kind, ok
-}
-
-func localCollectionElemRustType(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || localCollectionKinds[ident.Name] != "slice" {
-		return "", false
-	}
-	elemType := localRangeElemRustTypes[ident.Name]
-	if elemType == "" {
-		return "", false
-	}
-	return elemType, true
-}
-
-func localMapRangeTypes(expr ast.Expr) (string, string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || localCollectionKinds[ident.Name] != "map" {
-		return "", "", false
-	}
-	keyType := localMapKeyRustTypes[ident.Name]
-	valueType := localMapValueRustTypes[ident.Name]
-	if keyType == "" || valueType == "" {
-		return "", "", false
-	}
-	return keyType, valueType, true
-}
-
-func registerStdlibCallCollectionInfo(lhs ast.Expr, call *ast.CallExpr) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" || call == nil {
-		return
-	}
-	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-		if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "strings" {
-			switch sel.Sel.Name {
-			case "Split", "Fields":
-				localCollectionKinds[ident.Name] = "slice"
-				localRangeElemRustTypes[ident.Name] = "String"
-			}
-		}
-	}
-	if fun, ok := call.Fun.(*ast.Ident); ok && fun.Name == "make" && len(call.Args) > 0 {
-		if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
-			localCollectionKinds[ident.Name] = "slice"
-			localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)
-		} else if mapType, ok := call.Args[0].(*ast.MapType); ok {
-			localCollectionKinds[ident.Name] = "map"
-			localMapKeyRustTypes[ident.Name] = goMapKeyTypeToRustBase(mapType.Key)
-			valueRustType := GoTypeToRust(mapType.Value)
-			localMapValueRustTypes[ident.Name] = valueRustType
-			localMapValueKeepHandle[ident.Name] = mapValueTypeExprKeepsHandle(mapType.Value) || rustMapValueTypeKeepsHandle(valueRustType)
-		} else if chanType, ok := call.Args[0].(*ast.ChanType); ok {
-			localCollectionKinds[ident.Name] = "channel"
-			localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(chanType.Value)
-		}
-	}
-}
-
-func registerCallResultSyntaxInfo(lhs ast.Expr, call *ast.CallExpr) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" || call == nil {
-		return
-	}
-	registerStdlibCallCollectionInfo(lhs, call)
-	if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
-		registerSliceElemPtrVar(ident.Name, info.elemRustType)
-		return
-	}
-	if info, ok := arrayElemPtrResultInfoForCall(call, 0); ok {
-		registerArrayElemPtrVar(ident.Name, info)
-		return
-	}
-	if arrayType, ok := call.Fun.(*ast.ArrayType); ok && arrayType.Len == nil {
-		localCollectionKinds[ident.Name] = "slice"
-		localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)
-		return
-	}
-	resultType := callSingleReturnTypeExpr(call)
-	if resultType == nil {
-		return
-	}
-	registerTypeExprCollectionInfo(ident.Name, resultType)
-	if vt := GetVarTable(); vt != nil {
-		rustType := goTypeToRustBase(resultType)
-		if functionRustType, ok := functionTypeRustNameFromTypeExpr(resultType); ok {
-			rustType = functionRustType
-		}
-		vt.Register(ident.Name, &VarInfo{
-			WrapLevel: WrapFull,
-			RustType:  rustType,
-			Source:    SourceLocal,
-		})
-	}
-}
-
-func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
-	if call == nil {
-		return
-	}
-
-	var resultTypes []string
-	if key, ok := stdlibCallKey(call.Fun); ok {
-		switch key {
-		case "context.WithCancel", "context.WithTimeout":
-			NeedGoContext()
-			resultTypes = []string{"GoContext", "GoCancelFunc"}
-		case "context.WithCancelCause":
-			NeedGoContext()
-			resultTypes = []string{"GoContext", "GoCancelCauseFunc"}
-		case "encoding/json.Marshal", "json.Marshal", "encoding/json.MarshalIndent", "json.MarshalIndent":
-			resultTypes = []string{"Vec<u8>", goTypeToRustBase(ast.NewIdent("error"))}
-		}
-	}
-	vt := GetVarTable()
-	if vt == nil {
-		return
-	}
-	if len(resultTypes) == 0 {
-		if results, ok := callResultTupleFromTypeInfo(call); ok {
-			for i := 0; i < results.Len() && i < len(lhs); i++ {
-				ident, ok := lhs[i].(*ast.Ident)
-				if !ok || ident.Name == "_" {
-					continue
-				}
-				if info, ok := sliceElemPtrResultInfoForCall(call, i); ok {
-					registerSliceElemPtrVar(ident.Name, info.elemRustType)
-					continue
-				}
-				if info, ok := arrayElemPtrResultInfoForCall(call, i); ok {
-					registerArrayElemPtrVar(ident.Name, info)
-					continue
-				}
-				if info, ok := goPtrResultInfoForCall(call, i); ok {
-					registerGoPtrVar(ident.Name, goPtrResultElemRustType(info), results.At(i).Type())
-					continue
-				}
-				resultType := types.Unalias(results.At(i).Type())
-				registerTypesCollectionInfo(ident.Name, resultType)
-				wrapLevel := WrapFull
-				if typeIsPredeclaredCopyScalar(resultType) {
-					wrapLevel = WrapNone
-				}
-				vt.Register(ident.Name, &VarInfo{
-					WrapLevel: wrapLevel,
-					RustType:  goTypesTypeToRust(resultType),
-					Source:    SourceLocal,
-				})
-			}
-		}
-		return
-	}
-	for i, rustType := range resultTypes {
-		if i >= len(lhs) {
-			return
-		}
-		ident, ok := lhs[i].(*ast.Ident)
-		if !ok || ident.Name == "_" {
-			continue
-		}
-		if rustType == "Vec<u8>" {
-			localCollectionKinds[ident.Name] = "slice"
-			localRangeElemRustTypes[ident.Name] = "u8"
-		}
-		vt.Register(ident.Name, &VarInfo{
-			WrapLevel: WrapFull,
-			RustType:  rustType,
-			Source:    SourceLocal,
-		})
-	}
-}
-
-func varInfoForStaticallyKnownInterfaceAssertionSource(typeAssert *ast.TypeAssertExpr) (*VarInfo, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeAssert == nil {
-		return nil, false
-	}
-	var targetType types.Type
-	source, _, targetType, ok := staticallyKnownInterfaceAssertionSourceAndTarget(typeAssert)
-	if !ok {
-		source, ok = staticallyKnownAnyInterfaceAssertionSource(typeAssert)
-	}
-	if !ok || source == nil {
-		return nil, false
-	}
-	sourceType := typeInfo.GetType(source)
-	if sourceType == nil {
-		return nil, false
-	}
-	resultType := sourceType
-	if targetType != nil {
-		resultType = targetType
-	}
-	info := &VarInfo{
-		WrapLevel: WrapFull,
-		RustType:  goTypesTypeToRust(resultType),
-		Source:    SourceLocal,
-		GoType:    resultType,
-	}
-	if ident, ok := source.(*ast.Ident); ok {
-		if sourceInfo := lookupVarInfo(ident.Name); sourceInfo != nil {
-			clone := *sourceInfo
-			clone.Source = SourceLocal
-			clone.RustType = goTypesTypeToRust(resultType)
-			clone.GoType = resultType
-			info = &clone
-		}
-	}
-	return info, true
-}
-
-func registerTypeAssertionResultInfo(lhs ast.Expr, typeAssert *ast.TypeAssertExpr) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return
-	}
-	info, ok := varInfoForStaticallyKnownInterfaceAssertionSource(typeAssert)
-	if !ok {
-		return
-	}
-	if vt := GetVarTable(); vt != nil {
-		vt.Register(ident.Name, info)
-	}
-}
-
-func callResultTupleFromTypeInfo(call *ast.CallExpr) (*types.Tuple, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && call != nil {
-		if results, ok := typeInfo.GetType(call).(*types.Tuple); ok {
-			return results, true
-		}
-	}
-	if sig, ok := callSignatureFromTypeInfo(call); ok {
-		return sig.Results(), true
-	}
-	return nil, false
-}
-
-func registerTypesCollectionInfo(name string, typ types.Type) {
-	if name == "_" || typ == nil {
-		return
-	}
-	switch ut := types.Unalias(typ).Underlying().(type) {
-	case *types.Slice:
-		localCollectionKinds[name] = "slice"
-		localRangeElemRustTypes[name] = goTypesCollectionElemTypeToRust(ut.Elem())
-	case *types.Array:
-		localCollectionKinds[name] = "array"
-		localRangeElemRustTypes[name] = goTypesCollectionElemTypeToRust(ut.Elem())
-	case *types.Map:
-		localCollectionKinds[name] = "map"
-		localMapKeyRustTypes[name] = goTypesMapKeyToRust(ut.Key())
-		valueRustType := goTypesMapValueToRust(ut.Elem())
-		localMapValueRustTypes[name] = valueRustType
-		localMapValueKeepHandle[name] = mapValueTypeKeepsHandle(ut.Elem()) || rustMapValueTypeKeepsHandle(valueRustType)
-	case *types.Chan:
-		localCollectionKinds[name] = "channel"
-		localRangeElemRustTypes[name] = goTypesCollectionElemTypeToRust(ut.Elem())
-	}
-}
-
-func shortDeclLHSUsesExistingBinding(lhs ast.Expr) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return false
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-		if _, ok := typeInfo.info.Uses[ident]; ok {
-			return true
-		}
-		if obj, ok := typeInfo.info.Defs[ident]; ok {
-			return obj == nil
-		}
-	}
-	return isVarDeclaredInCurrentScope(ident.Name)
-}
-
-func shortDeclExistingBareScalarType(lhs ast.Expr) (types.Type, bool) {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
-		return nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, false
-	}
-	typ := typeInfo.GetType(lhs)
-	if !typeIsPredeclaredCopyScalar(typ) {
-		return nil, false
-	}
-	return typ, true
-}
-
-func registerTypeExprCollectionInfo(name string, typeExpr ast.Expr) {
-	if name == "_" || typeExpr == nil {
-		return
-	}
-	switch typ := typeExpr.(type) {
-	case *ast.ArrayType:
-		if typ.Len == nil {
-			localCollectionKinds[name] = "slice"
-			localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
-		} else {
-			localCollectionKinds[name] = "array"
-			localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
-		}
-	case *ast.MapType:
-		localCollectionKinds[name] = "map"
-		localMapKeyRustTypes[name] = goMapKeyTypeToRustBase(typ.Key)
-		valueRustType := GoTypeToRust(typ.Value)
-		localMapValueRustTypes[name] = valueRustType
-		localMapValueKeepHandle[name] = mapValueTypeExprKeepsHandle(typ.Value) || rustMapValueTypeKeepsHandle(valueRustType)
-	case *ast.ChanType:
-		localCollectionKinds[name] = "channel"
-		localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Value)
-	case *ast.Ellipsis:
-		localCollectionKinds[name] = "slice"
-		localRangeElemRustTypes[name] = goCollectionElemTypeToRust(typ.Elt)
-	}
-}
-
-func pushFunctionLocalSyntaxInfo() func() {
-	prevRangeElemRustTypes := localRangeElemRustTypes
-	prevCollectionKinds := localCollectionKinds
-	prevMapKeyRustTypes := localMapKeyRustTypes
-	prevMapValueRustTypes := localMapValueRustTypes
-	prevMapValueKeepHandle := localMapValueKeepHandle
-	prevBareStructAliases := bareStructAliases
-	localRangeElemRustTypes = make(map[string]string)
-	localCollectionKinds = make(map[string]string)
-	localMapKeyRustTypes = make(map[string]string)
-	localMapValueRustTypes = make(map[string]string)
-	localMapValueKeepHandle = make(map[string]bool)
-	bareStructAliases = make(map[string]bool)
-	for name := range packageGlobalNames {
-		if rustType, ok := prevRangeElemRustTypes[name]; ok {
-			localRangeElemRustTypes[name] = rustType
-		}
-		if kind, ok := prevCollectionKinds[name]; ok {
-			localCollectionKinds[name] = kind
-		}
-		if rustType, ok := prevMapKeyRustTypes[name]; ok {
-			localMapKeyRustTypes[name] = rustType
-		}
-		if rustType, ok := prevMapValueRustTypes[name]; ok {
-			localMapValueRustTypes[name] = rustType
-		}
-		if keepHandle, ok := prevMapValueKeepHandle[name]; ok {
-			localMapValueKeepHandle[name] = keepHandle
-		}
-	}
-	return func() {
-		localRangeElemRustTypes = prevRangeElemRustTypes
-		localCollectionKinds = prevCollectionKinds
-		localMapKeyRustTypes = prevMapKeyRustTypes
-		localMapValueRustTypes = prevMapValueRustTypes
-		localMapValueKeepHandle = prevMapValueKeepHandle
-		bareStructAliases = prevBareStructAliases
-	}
-}
-
-func localMapKeyRustType(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || localCollectionKinds[ident.Name] != "map" {
-		return "", false
-	}
-	keyType := localMapKeyRustTypes[ident.Name]
-	hasKeyType := keyType != ""
-	return keyType, hasKeyType
-}
-
-func localMapValueSyntaxKeepsHandle(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || localCollectionKinds[ident.Name] != "map" {
-		return false
-	}
-	return localMapValueKeepHandle[ident.Name]
-}
-
-func mapValueTypeExprKeepsHandle(expr ast.Expr) bool {
-	switch typ := expr.(type) {
-	case *ast.StarExpr, *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.InterfaceType:
-		return true
-	case *ast.ArrayType:
-		return typ.Len == nil
-	case *ast.Ellipsis:
-		return true
-	case *ast.SelectorExpr:
-		return true
-	case *ast.Ident:
-		if typ.Name == "error" || typ.Name == "any" {
-			return true
-		}
-		if IsInterfaceType(typ.Name) || IsFunctionTypeAlias(typ.Name) {
-			return true
-		}
-		underlying := typeDefinitions[typ.Name]
-		return strings.HasPrefix(underlying, "[]") ||
-			strings.HasPrefix(underlying, "map[") ||
-			strings.HasPrefix(underlying, "*") ||
-			strings.HasPrefix(underlying, "chan ") ||
-			underlying == "func"
-	default:
-		return false
-	}
-}
-
-func trackedRangeElemRustType(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return "", false
-	}
-	elemRustType, ok := localRangeElemRustTypes[ident.Name]
-	if !ok {
-		return "", false
-	}
-	return elemRustType, true
-}
-
-func rustRangeElemUsesCopied(rustType string) bool {
-	switch rustType {
-	case "bool", "char",
-		"i8", "i16", "i32", "i64", "isize",
-		"u8", "u16", "u32", "u64", "usize",
-		"f32", "f64":
-		return true
-	default:
-		return false
-	}
-}
-
-func rangeValueTypeFromTrackedRustElem(rustType string) string {
-	if rustRangeElemUsesCopied(rustType) {
-		return rustType
-	}
-	return "&" + rustType
-}
-
-func rustVecElemType(rustType string) (string, bool) {
-	rustType = strings.TrimPrefix(rustType, "&")
-	if strings.HasPrefix(rustType, "Vec<") && strings.HasSuffix(rustType, ">") {
-		return strings.TrimSuffix(strings.TrimPrefix(rustType, "Vec<"), ">"), true
-	}
-	return "", false
-}
-
-func rangeVarSliceElemRustType(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return "", false
-	}
-	varType, ok := rangeLoopVars[ident.Name]
-	if !ok {
-		return "", false
-	}
-	return rustVecElemType(varType)
-}
-
-func trackedRangeElemValueType(expr ast.Expr) (string, bool, bool) {
-	elemRustType, ok := trackedRangeElemRustType(expr)
-	if !ok {
-		return "", false, false
-	}
-	valueType := rangeValueTypeFromTrackedRustElem(elemRustType)
-	needsCopied := rustRangeElemUsesCopied(elemRustType)
-	return valueType, needsCopied, true
-}
-
-func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
-	if body == nil || name == "" || name == "_" {
-		return false
-	}
-	assigned := false
-	ast.Inspect(body, func(n ast.Node) bool {
-		if assigned {
-			return false
-		}
-		switch node := n.(type) {
-		case *ast.FuncLit:
-			return false
-		case *ast.AssignStmt:
-			for _, lhs := range node.Lhs {
-				if ident, ok := lhs.(*ast.Ident); ok && ident.Name == name {
-					assigned = true
-					return false
-				}
-			}
-		case *ast.IncDecStmt:
-			if ident, ok := node.X.(*ast.Ident); ok && ident.Name == name {
-				assigned = true
-				return false
-			}
-		}
-		return true
-	})
-	return assigned
-}
-
-func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
-	return blockIdentAssigned(body, name)
-}
-
-func rangeEmptyInterfaceValueMovedByIndexedWriteback(s *ast.RangeStmt) bool {
-	if s == nil || s.Tok != token.DEFINE || !rangeSliceElementIsEmptyInterface(s.X) {
-		return false
-	}
-	rangeIdent, ok := unwrapParens(s.X).(*ast.Ident)
-	if !ok || rangeIdent.Name == "_" {
-		return false
-	}
-	keyIdent, ok := s.Key.(*ast.Ident)
-	if !ok || keyIdent.Name == "_" {
-		return false
-	}
-	valueIdent, ok := s.Value.(*ast.Ident)
-	if !ok || valueIdent.Name == "_" {
-		return false
-	}
-	if s.Body == nil || len(s.Body.List) == 0 {
-		return false
-	}
-	assign, ok := s.Body.List[len(s.Body.List)-1].(*ast.AssignStmt)
-	if !ok || assign.Tok != token.ASSIGN || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
-		return false
-	}
-	index, ok := assign.Lhs[0].(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	indexTarget, ok := unwrapParens(index.X).(*ast.Ident)
-	if !ok || indexTarget.Name != rangeIdent.Name {
-		return false
-	}
-	indexIdent, ok := unwrapParens(index.Index).(*ast.Ident)
-	if !ok || indexIdent.Name != keyIdent.Name {
-		return false
-	}
-	rhsIdent, ok := unwrapParens(assign.Rhs[0]).(*ast.Ident)
-	return ok && rhsIdent.Name == valueIdent.Name
-}
-
-func writeRangeBinding(out *strings.Builder, expr ast.Expr, mutable bool) {
-	if ident, ok := expr.(*ast.Ident); ok {
-		if mutable && ident.Name != "_" {
-			out.WriteString("mut ")
-		}
-		out.WriteString(RustLocalIdent(ident.Name))
-		return
-	}
-	TranspileExpression(out, expr)
-}
-
-func rangeAssignmentTempName(expr ast.Expr, fallback string) string {
-	if expr == nil {
-		return ""
-	}
-	if ident, ok := expr.(*ast.Ident); ok {
-		if ident.Name == "_" {
-			return ""
-		}
-		return "__range_" + ToSnakeCase(ident.Name)
-	}
-	return fallback
-}
-
-func writeRangePatternBinding(out *strings.Builder, expr ast.Expr, mutable bool, tempName string) {
-	if tempName != "" {
-		out.WriteString(tempName)
-		return
-	}
-	writeRangeBinding(out, expr, mutable)
-}
-
-func shortDeclNames(stmt ast.Stmt) []string {
-	assign, ok := stmt.(*ast.AssignStmt)
-	if !ok || assign.Tok != token.DEFINE {
-		return nil
-	}
-	names := make([]string, 0, len(assign.Lhs))
-	seen := make(map[string]bool)
-	for _, lhs := range assign.Lhs {
-		ident, ok := lhs.(*ast.Ident)
-		if !ok || ident.Name == "_" || seen[ident.Name] {
-			continue
-		}
-		seen[ident.Name] = true
-		names = append(names, ident.Name)
-	}
-	return names
-}
-
-func registerFullShortDecls(names []string) {
-	if len(names) == 0 {
-		return
-	}
-	vt := GetVarTable()
-	if vt == nil {
-		return
-	}
-	for _, name := range names {
-		vt.Register(name, &VarInfo{
-			WrapLevel: WrapFull,
-			Source:    SourceLocal,
-		})
-	}
-}
-
-func registerRangeLoopVar(name string, rustType string, goType types.Type) {
-	rangeLoopVars[name] = rustType
-	if goType != nil {
-		rangeLoopVarGoTypes[name] = goType
-	}
-}
-
-func deleteRangeLoopVar(name string) {
-	delete(rangeLoopVars, name)
-	delete(rangeLoopVarGoTypes, name)
-}
-
-func rangeLoopVarGoTypeIsPointer(name string) bool {
-	typ := rangeLoopVarGoTypes[name]
-	if typ == nil {
-		return false
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
-	return ok
-}
-
-func shadowRangeLoopVars(names []string) func() {
-	if len(names) == 0 {
-		return func() {}
-	}
-	saved := make(map[string]string)
-	savedGoTypes := make(map[string]types.Type)
-	for _, name := range names {
-		if varType, ok := rangeLoopVars[name]; ok {
-			saved[name] = varType
-			if goType := rangeLoopVarGoTypes[name]; goType != nil {
-				savedGoTypes[name] = goType
-			}
-			deleteRangeLoopVar(name)
-		}
-	}
-	return func() {
-		for name, varType := range saved {
-			rangeLoopVars[name] = varType
-			if goType := savedGoTypes[name]; goType != nil {
-				rangeLoopVarGoTypes[name] = goType
-			}
-		}
-	}
-}
-
-func funcLitParamNames(funcLit *ast.FuncLit) []string {
-	if funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
-		return nil
-	}
-	var names []string
-	for _, field := range funcLit.Type.Params.List {
-		for _, name := range field.Names {
-			if name != nil && name.Name != "_" {
-				names = append(names, name.Name)
-			}
-		}
-	}
-	return names
-}
-
-func pushFuncLitParamVarScope(funcLit *ast.FuncLit) func() {
-	vt := GetVarTable()
-	if vt == nil || funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
-		return func() {}
-	}
-	vt.PushScope()
-	for _, field := range funcLit.Type.Params.List {
-		for _, name := range field.Names {
-			if name == nil || name.Name == "_" {
-				continue
-			}
-			rustType := goTypeToRustBase(field.Type)
-			if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
-				rustType = functionRustType
-			}
-			registerTypeExprCollectionInfo(name.Name, field.Type)
-			if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
-				varInfo.RustType = rustType
-				vt.Register(name.Name, varInfo)
-			} else if _, ok := field.Type.(*ast.ChanType); ok {
-				vt.Register(name.Name, &VarInfo{
-					WrapLevel: WrapNone,
-					RustType:  rustType,
-					Source:    SourceParam,
-				})
-			} else if isSyncParam(field.Type) {
-				vt.Register(name.Name, &VarInfo{
-					WrapLevel: WrapNone,
-					RustType:  rustType,
-					Source:    SourceParam,
-				})
-			} else if typeExprIsRegisteredBareStructAlias(field.Type) {
-				vt.Register(name.Name, &VarInfo{
-					WrapLevel: WrapNone,
-					RustType:  rustType,
-					Source:    SourceParam,
-				})
-			} else if typeExprIsOrderedTypeParam(field.Type) {
-				vt.Register(name.Name, &VarInfo{
-					WrapLevel: WrapNone,
-					RustType:  rustType,
-					Source:    SourceParam,
-				})
-			} else {
-				vt.Register(name.Name, &VarInfo{
-					WrapLevel: WrapFull,
-					RustType:  rustType,
-					Source:    SourceParam,
-				})
-			}
-		}
-	}
-	return vt.PopScope
-}
-
-func shortDeclShadowsRangeVar(names []string) bool {
-	for _, name := range names {
-		if _, ok := rangeLoopVars[name]; ok {
-			return true
-		}
-	}
-	return false
-}
-
-func rangeTargetNeedsWrappedSliceGuard(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.Ident:
-		_, isRangeVar := rangeLoopVars[e.Name]
-		return !isRangeVar || isWrappedSliceRangeVar(e.Name)
-	case *ast.SelectorExpr:
-		return true
-	case *ast.CallExpr:
-		typeInfo := GetTypeInfo()
-		return typeInfo != nil && typeInfo.ReturnsWrappedValue(e)
-	case *ast.IndexExpr:
-		return mapIndexExpressionKeepsHandle(e)
-	case *ast.UnaryExpr:
-		typeInfo := GetTypeInfo()
-		return e.Op == token.AND && typeInfo != nil && typeInfo.IsPointerToArray(e)
-	default:
-		return false
-	}
-}
-
-// writeFunctionTypeAliasWrappedReturn emits the wrapped interface form for a
-// function-type-alias value being returned where a local interface is
-// expected. Uses the per-interface wrapper struct (FuncType+"As"+Iface) so
-// the return value satisfies Box<dyn Iface + Send + Sync>.
-func writeFunctionTypeAliasWrappedReturn(out *strings.Builder, result ast.Expr, funcTypeName, ifaceName string) {
-	WriteWrapperPrefix(out)
-	out.WriteString("Box::new(")
-	out.WriteString(funcTypeName)
-	out.WriteString("As")
-	out.WriteString(ifaceName)
-	out.WriteString("(")
-	if ident, ok := result.(*ast.Ident); ok {
-		if isCurrentReceiverIdent(ident) {
-			out.WriteString(currentReceiverRustName())
-			out.WriteString(".clone()")
-		} else {
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(".clone()")
-		}
-	} else {
-		TranspileExpressionContext(out, result, LValue)
-	}
-	out.WriteString(")) as ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	WriteWrapperSuffix(out)
-}
-
-func writeSourceMappedPointerLocalInterfaceBox(out *strings.Builder, result ast.Expr, expected types.Type, interfaceName string) bool {
-	var pointerWrapper strings.Builder
-	if !writeSourceMappedPointerInterfaceWrapperValue(&pointerWrapper, result, expected) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("Box::new(")
-	out.WriteString(pointerWrapper.String())
-	out.WriteString(") as ")
-	out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeCurrentPackagePointerTranspiledInterfaceBox(out *strings.Builder, result ast.Expr, expected types.Type, interfaceName string) bool {
-	var pointerWrapper strings.Builder
-	if !writeCurrentPackagePointerTranspiledInterfaceWrapperValue(&pointerWrapper, result, expected) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("Box::new(")
-	out.WriteString(pointerWrapper.String())
-	out.WriteString(") as ")
-	out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedTypeFromParamExpr(expected))
-	if !ok {
-		return false
-	}
-	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-		WriteWrappedNone(out)
-		return true
-	}
-	if isWrappedInterfaceSliceIndex(result) {
-		TranspileExpression(out, result)
-		return true
-	}
-	if mapIndexExpressionKeepsHandle(result) {
-		TranspileExpression(out, result)
-		return true
-	}
-	if isBareLocalInterfaceValue(result) {
-		WriteWrapperPrefix(out)
-		writeLocalInterfaceBareClone(out, result)
-		WriteWrapperSuffix(out)
-		return true
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		resultType := typeInfo.GetType(result)
-		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(resultType); ok {
-			targetType := expectedTypeFromParamExpr(expected)
-			if targetType != nil && types.AssignableTo(resultType, targetType) {
-				return writeLocalInterfaceReferenceCallArgument(out, result, targetType)
-			}
-		}
-		if funcTypeName, ok := functionTypeAliasNameFromTypes(typeInfo.GetType(result)); ok {
-			writeFunctionTypeAliasWrappedReturn(out, result, funcTypeName, interfaceName)
-			return true
-		}
-		targetType := expectedTypeFromParamExpr(expected)
-		if targetType != nil {
-			targetNamed, targetIsNamed := types.Unalias(targetType).(*types.Named)
-			sourceType := typeInfo.GetType(result)
-			if unary, ok := result.(*ast.UnaryExpr); ok && unary.Op == token.AND && sourceType != nil && types.AssignableTo(sourceType, targetType) {
-				if _, isComposite := unary.X.(*ast.CompositeLit); !isComposite {
-					WriteWrapperPrefix(out)
-					if !writeConcreteLocalInterfaceBox(out, result, interfaceName) {
-						return false
-					}
-					WriteWrapperSuffix(out)
-					return true
-				}
-			}
-			if targetIsNamed && targetNamed.Obj() != nil && sourceType != nil {
-				if targetInterface, ok := targetNamed.Underlying().(*types.Interface); ok {
-					sourceNamedType := sourceType
-					if ptr, ok := sourceType.(*types.Pointer); ok {
-						sourceNamedType = ptr.Elem()
-					}
-					sourceNamed, sourceIsNamed := types.Unalias(sourceNamedType).(*types.Named)
-					targetInterface.Complete()
-					if sourceIsNamed && sourceNamed.Obj() != targetNamed.Obj() && types.Implements(sourceType, targetInterface) {
-						if writeCurrentPackagePointerTranspiledInterfaceBox(out, result, targetType, interfaceName) {
-							return true
-						}
-						if writeSourceMappedPointerLocalInterfaceBox(out, result, targetType, interfaceName) {
-							return true
-						}
-						if call, ok := result.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-							WriteWrapperPrefix(out)
-							out.WriteString("Box::new((*")
-							TranspileExpression(out, call)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).clone()) as ")
-							out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-							WriteWrapperSuffix(out)
-							return true
-						}
-						if _, ok := result.(*ast.TypeAssertExpr); ok {
-							var boxed strings.Builder
-							if writeConcreteLocalInterfaceValue(&boxed, result, targetType, interfaceName) {
-								WriteWrapperPrefix(out)
-								out.WriteString(boxed.String())
-								WriteWrapperSuffix(out)
-								return true
-							}
-						}
-						// A conversion/constructor call producing a concrete value that
-						// implements the interface (e.g. `return boolVal(b)`) must be
-						// boxed; it isn't a wrapped-returning call handled above.
-						if _, ok := result.(*ast.CallExpr); ok {
-							var boxed strings.Builder
-							if writeConcreteLocalInterfaceValue(&boxed, result, targetType, interfaceName) {
-								WriteWrapperPrefix(out)
-								out.WriteString(boxed.String())
-								WriteWrapperSuffix(out)
-								return true
-							}
-						}
-						var boxed strings.Builder
-						if writeConcreteLocalInterfaceValue(&boxed, result, targetType, interfaceName) {
-							WriteWrapperPrefix(out)
-							out.WriteString(boxed.String())
-							WriteWrapperSuffix(out)
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-	if ident, ok := result.(*ast.Ident); ok && ident.Name != "_" {
-		WriteWrapperPrefix(out)
-		if !writeConcreteLocalInterfaceBox(out, result, interfaceName) {
-			out.WriteString("Box::new((*")
-			out.WriteString(RustIdentForUse(ident))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()) as ")
-			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-		}
-		WriteWrapperSuffix(out)
-		return true
-	}
-	if unary, ok := result.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		if composite, ok := unary.X.(*ast.CompositeLit); ok {
-			WriteWrapperPrefix(out)
-			out.WriteString("Box::new(")
-			TranspileExpressionContext(out, composite, AddressOf)
-			out.WriteString(") as ")
-			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-			WriteWrapperSuffix(out)
-			return true
-		}
-	}
-	if composite, ok := result.(*ast.CompositeLit); ok {
-		if _, isStructType := composite.Type.(*ast.Ident); isStructType {
-			WriteWrapperPrefix(out)
-			out.WriteString("Box::new(")
-			TranspileExpressionContext(out, composite, AddressOf)
-			out.WriteString(") as ")
-			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-			WriteWrapperSuffix(out)
-			return true
-		}
-	}
-	return false
-}
-
-func writeEmptyInterfaceReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	if !isEmptyInterfaceTypeExpr(expected) {
-		return false
-	}
-	writeEmptyInterfaceCallArgumentValue(out, result)
-	return true
-}
-
-func writeCurrentReceiverStorage(out *strings.Builder, ident *ast.Ident) bool {
-	if !isCurrentReceiverIdent(ident) {
-		return false
-	}
-	if _, isTypeDef := LookupTypeDefinition(currentReceiverType); !isTypeDef {
-		return false
-	}
-	out.WriteString(currentReceiverRustName())
-	out.WriteString(".0")
-	return true
-}
-
-func writeWrappedHandleExpression(out *strings.Builder, expr ast.Expr) {
-	if ident, ok := expr.(*ast.Ident); ok {
-		if writeCurrentReceiverStorage(out, ident) {
-			return
-		}
-		name := RustIdentForUse(ident)
-		if renamed, exists := captureRenameForIdent(ident); exists {
-			name = RustLocalIdent(renamed)
-		}
-		out.WriteString(name)
-		return
-	}
-	TranspileExpressionContext(out, expr, LValue)
-}
-
-func isIntegerRangeExpr(typeInfo *TypeInfo, expr ast.Expr) bool {
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	basic, ok := typ.Underlying().(*types.Basic)
-	return ok && basic.Info()&types.IsInteger != 0
-}
-
-func typeSwitchCaseRustType(typeInfo *TypeInfo, typeExpr ast.Expr) (rustType string, isNil bool) {
-	if ident, ok := typeExpr.(*ast.Ident); ok && ident.Name == "nil" {
-		return "", true
-	}
-	if typeInfo == nil {
-		return "", false
-	}
-	typ := typeInfo.GetType(typeExpr)
-	if typ == nil {
-		return "", false
-	}
-	if ptr, ok := typ.(*types.Pointer); ok {
-		return goTypesTypeToRust(ptr.Elem()), false
-	}
-	return goTypesTypeToRust(typ), false
-}
-
-func typeSwitchCasePointerWrapper(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (wrapperType string, ok bool) {
-	if typeInfo == nil {
-		return "", false
-	}
-	targetType := typeInfo.GetType(typeExpr)
-	if targetType == nil {
-		return "", false
-	}
-	wrapperType, _, ok = localInterfacePointerAssertionWrapperFor(subjectType, targetType)
-	if ok {
-		return wrapperType, true
-	}
-	return sourceMappedPointerInterfaceWrapperTypeForTypes(subjectType, targetType)
-}
-
-func typeSwitchSubjectIsNonEmptyInterface(subjectType types.Type) bool {
-	if subjectType == nil {
-		return false
-	}
-	iface, ok := types.Unalias(subjectType).Underlying().(*types.Interface)
-	return ok && iface.NumMethods() > 0
-}
-
-func sourceMappedPointerInterfaceWrapperTypeForTypes(sourceType types.Type, targetType types.Type) (string, bool) {
-	if sourceType == nil || targetType == nil {
-		return "", false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(sourceType); !ok {
-		return "", false
-	}
-	ptr, ok := types.Unalias(targetType).(*types.Pointer)
-	if !ok || !types.AssignableTo(ptr, sourceType) {
-		return "", false
-	}
-	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
-	if !ok || elemNamed.Obj() == nil || elemNamed.Obj().Pkg() == nil {
-		return "", false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.pkg != nil && elemNamed.Obj().Pkg() == typeInfo.pkg {
-		return "", false
-	}
-	if !isSourceMappedPackagePath(elemNamed.Obj().Pkg().Path()) {
-		return "", false
-	}
-	if !sourceMappedPointerWrapperAvailableForInterface(elemNamed, sourceType) {
-		return "", false
-	}
-	return sourceMappedPointerWrapperTypeName(elemNamed), true
-}
-
-func typeSwitchCaseResolvedType(typeInfo *TypeInfo, typeExpr ast.Expr) types.Type {
-	if typeInfo == nil || typeExpr == nil {
-		return nil
-	}
-	typ := typeInfo.GetType(typeExpr)
-	if ident, ok := typeExpr.(*ast.Ident); ok {
-		if obj, ok := typeInfo.GetObject(ident).(*types.TypeName); ok {
-			typ = obj.Type()
-		}
-	} else if sel, ok := typeExpr.(*ast.SelectorExpr); ok {
-		if obj, ok := typeInfo.GetObject(sel.Sel).(*types.TypeName); ok {
-			typ = obj.Type()
-		}
-	}
-	return typ
-}
-
-func typeSwitchNamedInterfaceFromType(typ types.Type) (*types.Interface, bool) {
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok {
-		return nil, false
-	}
-	iface, ok := named.Underlying().(*types.Interface)
-	if !ok || iface.NumMethods() == 0 {
-		return nil, false
-	}
-	return iface, true
-}
-
-func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
-	typ := typeSwitchCaseResolvedType(typeInfo, typeExpr)
-	if _, ok := localNamedInterfaceTypeNameFromTypes(typ); !ok {
-		return nil, false
-	}
-	return typeSwitchNamedInterfaceFromType(typ)
-}
-
-func typeSwitchCaseTranspiledInterface(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (*types.Interface, bool) {
-	if !typeSwitchSubjectIsNonEmptyInterface(subjectType) {
-		return nil, false
-	}
-	typ := typeSwitchCaseResolvedType(typeInfo, typeExpr)
-	if _, ok := localNamedInterfaceTypeNameFromTypes(typ); ok {
-		return nil, false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); !ok {
-		return nil, false
-	}
-	return typeSwitchNamedInterfaceFromType(typ)
-}
-
-// typeSwitchCaseInterface resolves a type-switch case expression to its method
-// set when the case denotes an interface with at least one method. It covers
-// named local interfaces (`case namer:`), source-mapped imported interfaces
-// used in switches over non-empty interface subjects (`case ast.Decl:`), and
-// anonymous interface literals (`case interface{ Name() string }:`).
-func typeSwitchCaseInterface(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (*types.Interface, bool) {
-	if iface, ok := typeSwitchCaseLocalInterface(typeInfo, typeExpr); ok {
-		return iface, true
-	}
-	if iface, ok := typeSwitchCaseTranspiledInterface(typeInfo, typeExpr, subjectType); ok {
-		return iface, true
-	}
-	return anonInterfaceMethodSet(typeExpr)
-}
-
-func typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (string, bool) {
-	targetType := typeSwitchCaseResolvedType(typeInfo, typeExpr)
-	return staticallyKnownInterfaceRewrapTargetForTypes(subjectType, targetType)
-}
-
-func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) bool {
-	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
-	if !ok {
-		return false
-	}
-	if canRewrapInterfaceSubject {
-		if _, ok := typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo, typeExpr, subjectType); ok {
-			out.WriteString("_ts_val.is_some()")
-			return true
-		}
-	}
-	candidates := localInterfaceAssertionCandidates(iface, subjectType)
-	if len(candidates) == 0 {
-		out.WriteString("false")
-		return true
-	}
-	for i, candidate := range candidates {
-		if i > 0 {
-			out.WriteString(" || ")
-		}
-		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-		out.WriteString(candidate.rustType)
-		out.WriteString(">()).is_some()")
-	}
-	return true
-}
-
-func typeSwitchInterfaceBindingFallbackRustType(typeInfo *TypeInfo, typeExpr ast.Expr, iface *types.Interface, candidates []localInterfaceAssertionCandidate) string {
-	if _, ok := typeExpr.(*ast.InterfaceType); ok {
-		if ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates); ifaceName != "" {
-			return goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName))
-		}
-	}
-	if typeInfo == nil {
-		return ""
-	}
-	if typ := typeInfo.GetType(typeExpr); typ != nil {
-		return goTypesTypeToRustWrapped(typ)
-	}
-	return ""
-}
-
-func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate) (string, bool) {
-	if _, ok := typeExpr.(*ast.InterfaceType); ok {
-		if ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates); ifaceName != "" {
-			return ifaceName, true
-		}
-		return "", false
-	}
-	if typeInfo == nil || typeExpr == nil {
-		return "", false
-	}
-	typ := typeSwitchCaseResolvedType(typeInfo, typeExpr)
-	if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(typ); ok {
-		return ifaceName, true
-	}
-	if !typeSwitchSubjectIsNonEmptyInterface(subjectType) {
-		return "", false
-	}
-	return transpiledNamedInterfaceTypeNameFromTypes(typ)
-}
-
-// writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
-// case (named or anonymous). Go gives the case variable the case type, even when
-// the matched value is rewrapped from a statically known interface subject.
-func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool, canRewrapInterfaceSubject bool) bool {
-	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
-	if !ok {
-		return false
-	}
-	candidates := localInterfaceAssertionCandidates(iface, subjectType)
-	out.WriteString("        let ")
-	if mutable {
-		out.WriteString("mut ")
-	}
-	out.WriteString(varName)
-	if canRewrapInterfaceSubject {
-		if ifaceName, ok := typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo, typeExpr, subjectType); ok {
-			out.WriteString(": ")
-			out.WriteString(goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName)))
-			out.WriteString(" = ")
-			writeStaticallyKnownInterfaceAssertionWrappedSome(out, "_ts_owned.as_ref().unwrap()", ifaceName)
-			out.WriteString(";\n")
-			return true
-		}
-	}
-	if len(candidates) > 0 {
-		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, subjectType, iface, candidates); ok {
-			out.WriteString(": ")
-			out.WriteString(goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName)))
-			out.WriteString(" = ")
-			for i, candidate := range candidates {
-				if i == 0 {
-					out.WriteString("if let Some(typed_val) = ")
-				} else {
-					out.WriteString(" else if let Some(typed_val) = ")
-				}
-				out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-				out.WriteString(candidate.rustType)
-				out.WriteString(">()) {\n")
-				out.WriteString("            ")
-				writeLocalInterfaceAssertionWrappedCandidateSuccess(out, ifaceName, candidate)
-				out.WriteString("\n")
-				out.WriteString("        }")
-			}
-			out.WriteString(" else {\n")
-			out.WriteString("            panic!(\"type switch interface case condition matched no concrete implementor\")\n")
-			out.WriteString("        };\n")
-			return true
-		}
-	}
-	if len(candidates) == 0 {
-		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, subjectType, iface, candidates); ok {
-			traitObject := rustLocalInterfaceTraitObject(ifaceName)
-			out.WriteString(": ")
-			out.WriteString(goTypesWrappedRustType(traitObject))
-			out.WriteString(" = ")
-			writeTypedWrappedNone(out, traitObject)
-			out.WriteString(";\n")
-			return true
-		}
-	}
-	if len(candidates) != 1 {
-		if fallbackType := typeSwitchInterfaceBindingFallbackRustType(typeInfo, typeExpr, iface, candidates); fallbackType != "" {
-			out.WriteString(": ")
-			out.WriteString(fallbackType)
-		}
-		out.WriteString(" = ")
-		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: type switch on interface case with %d concrete implementors needs a synthesized trait object\");\n", len(candidates)))
-		return true
-	}
-	out.WriteString(" = ")
-	WriteWrapperPrefix(out)
-	out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-	out.WriteString(candidates[0].rustType)
-	out.WriteString(">()).unwrap().clone()")
-	WriteWrapperSuffix(out)
-	out.WriteString(";\n")
-	return true
-}
-
-// typeSwitchCaseAnyHandleRustType reports the handle type a case of a type
-// switch over an empty interface has to downcast to, for case types whose
-// values keep their handle when boxed into the interface.
-func typeSwitchCaseAnyHandleRustType(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (string, bool) {
-	if typeInfo == nil || !isEmptyInterfaceType(subjectType) {
-		return "", false
-	}
-	caseType := typeInfo.GetType(typeExpr)
-	// An error whose dynamic type cannot be named is boxed as its own handle
-	// (see writeOpaqueGoErrorAnyBox). case error has to look for that handle,
-	// and its variable is the handle, the same error the box holds.
-	if isErrorInterfaceType(caseType) {
-		return rustGoErrorHandleType(), true
-	}
-	return anyBoxedHandleRustType(caseType)
-}
-
-func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) {
-	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
-	if isNil {
-		out.WriteString("_ts_is_nil")
-		return
-	}
-	if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, typeExpr, subjectType); ok {
-		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-		out.WriteString(wrapperType)
-		out.WriteString(">()).is_some()")
-		return
-	}
-	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
-		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-		out.WriteString(handleType)
-		out.WriteString(">()).is_some()")
-		return
-	}
-	if writeTypeSwitchLocalInterfaceCaseCondition(out, typeInfo, typeExpr, subjectType, canRewrapInterfaceSubject) {
-		return
-	}
-	if rustType == "" {
-		out.WriteString("unimplemented!(\"type info required for type switch case\")")
-		return
-	}
-	out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-	out.WriteString(rustType)
-	out.WriteString(">()).is_some()")
-}
-
-func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, originalBindingSubject string, isRangeVar bool, isStdlibRangeRef bool, mutable bool) {
-	out.WriteString("        let ")
-	if mutable {
-		out.WriteString("mut ")
-	}
-	out.WriteString(varName)
-	out.WriteString(" = ")
-	if isRangeVar {
-		out.WriteString("_ts_val.unwrap();\n")
-		if vt := GetVarTable(); vt != nil {
-			rustType := "&dyn Any"
-			if NeedsConcurrentWrapper() {
-				rustType = "&(dyn Any + Send + Sync)"
-			}
-			vt.Register(varName, &VarInfo{
-				WrapLevel: WrapNone,
-				RustType:  rustType,
-				Source:    SourceLocal,
-				IsRef:     true,
-			})
-		}
-		return
-	}
-	if isStdlibRangeRef {
-		WriteWrapperPrefix(out)
-		out.WriteString("(*_ts_val.unwrap()).clone()")
-		WriteWrapperSuffix(out)
-		out.WriteString(";\n")
-		return
-	}
-	bindingIsBare := isExpressionResultBare(expr)
-	if originalBindingSubject != "" {
-		out.WriteString(originalBindingSubject)
-	} else {
-		TranspileExpressionContext(out, expr, LValue)
-	}
-	out.WriteString(".clone();\n")
-	if vt := GetVarTable(); vt != nil {
-		wrapLevel := WrapFull
-		if bindingIsBare {
-			wrapLevel = WrapNone
-		}
-		info := &VarInfo{
-			WrapLevel: wrapLevel,
-			Source:    SourceLocal,
-		}
-		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			if typ := typeInfo.GetType(expr); typ != nil {
-				info.RustType = goTypesTypeToRust(typ)
-			}
-		}
-		vt.Register(varName, info)
-	}
-}
-
-func typeSwitchBareInterfaceSubjectNeedsClone(expr ast.Expr) bool {
-	if !isExpressionResultBare(expr) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Interface)
-	return ok
-}
-
-func isLocalInterfaceRefIdent(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	vt := GetVarTable()
-	if vt == nil {
-		return false
-	}
-	info := vt.Lookup(ident.Name)
-	return info != nil && info.IsRef
-}
-
-func isTranspiledInterfaceExpr(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	_, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
-	return ok
-}
-
-func pushTypeSwitchCaseVarScope(varName string, isTypedSingleCase bool) func() {
-	if varName == "" {
-		return func() {}
-	}
-	vt := GetVarTable()
-	if vt == nil {
-		return func() {}
-	}
-	vt.PushScope()
-	if isTypedSingleCase {
-		vt.Register(varName, &VarInfo{
-			WrapLevel: WrapFull,
-			Source:    SourceLocal,
-		})
-	}
-	return vt.PopScope
-}
-
-func typeSwitchCaseVarAssigned(caseClause *ast.CaseClause, varName string) bool {
-	if caseClause == nil || varName == "" {
-		return false
-	}
-	return blockIdentAssigned(&ast.BlockStmt{List: caseClause.Body}, varName)
-}
-
-func isUnsafePointerDerefAssignmentTarget(expr ast.Expr) bool {
-	star, ok := expr.(*ast.StarExpr)
-	if !ok {
-		return false
-	}
-	target := star.X
-	if paren, ok := target.(*ast.ParenExpr); ok {
-		target = paren.X
-	}
-	call, ok := target.(*ast.CallExpr)
-	if !ok || len(call.Args) != 1 {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isUnsafePointerLikeType(typeInfo.GetType(call.Args[0])) {
-		return false
-	}
-	if typ := typeInfo.GetType(call); typ != nil {
-		if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
-			return true
-		}
-	}
-	_, ok = pointerTypeConversionTarget(call.Fun)
-	return ok
-}
-
-func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
-	ident, ok := star.X.(*ast.Ident)
-	if !ok || !isCurrentReceiverIdent(ident) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		lhsType := typeInfo.GetType(star)
-		rhsType := typeInfo.GetType(rhs)
-		if lhsType != nil && rhsType != nil && !types.AssignableTo(rhsType, lhsType) {
-			return false
-		}
-	}
-	// For named-slice receivers (e.g. type ErrorList []*Error), the RHS
-	// may emit either a wrapped Arc<Mutex<Option<ErrorList>>> (when going
-	// through the generic wrap path) or a bare ErrorList constructor. *self
-	// expects the bare ErrorList, so unwrap only when the RHS produces a
-	// wrapped value.
-	if isNamedSliceExpression(star) {
-		rhsWrapped := false
-		if call, isCall := rhs.(*ast.CallExpr); isCall {
-			if isBuiltinCallNamed(call, "append") {
-				rhsWrapped = true
-			}
-		}
-		if rhsWrapped {
-			out.WriteString("{ let new_val = ")
-			TranspileExpression(out, rhs)
-			out.WriteString("; *self = new_val")
-			WriteBorrowMethod(out, true)
-			out.WriteString(".take().unwrap_or_default(); }")
-			return true
-		}
-		out.WriteString("{ let new_val = ")
-		TranspileExpression(out, rhs)
-		out.WriteString("; *self = new_val; }")
-		return true
-	}
-	if isNamedMapExpression(star) {
-		var targetNamed *types.Named
-		rhsIsNamedMap := false
-		if typeInfo != nil {
-			lhsType := typeInfo.GetType(star)
-			rhsType := typeInfo.GetType(rhs)
-			targetNamed, _, _ = namedMapTypeFromType(lhsType)
-			_, _, rhsIsNamedMap = namedMapTypeFromType(rhsType)
-		}
-		wrapUnnamedMap := targetNamed != nil && !rhsIsNamedMap
-		out.WriteString("{ let new_val = ")
-		TranspileExpression(out, rhs)
-		out.WriteString("; *self = ")
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
-			if wrapUnnamedMap {
-				out.WriteString(goTypesNamedTypeToRust(targetNamed))
-				out.WriteString("(")
-				out.WriteString("new_val")
-				out.WriteString(")")
-				out.WriteString("; }")
-				return true
-			}
-			out.WriteString("new_val")
-			WriteBorrowMethod(out, true)
-			out.WriteString(".take().unwrap_or_default()")
-			out.WriteString("; }")
-		} else {
-			if wrapUnnamedMap {
-				out.WriteString(goTypesNamedTypeToRust(targetNamed))
-				out.WriteString("(")
-			}
-			out.WriteString("new_val")
-			if wrapUnnamedMap {
-				out.WriteString(")")
-			}
-			out.WriteString("; }")
-		}
-		return true
-	}
-	out.WriteString("{ let new_val = ")
-	TranspileExpression(out, rhs)
-	out.WriteString("; *self = new_val; }")
-	return true
-}
-
-func isUnlabeledBreakStmt(stmt ast.Stmt) bool {
-	branch, ok := stmt.(*ast.BranchStmt)
-	return ok && branch.Tok == token.BREAK && branch.Label == nil
-}
-
-func pushBreakTarget(label string) func() {
-	breakTargetStack = append(breakTargetStack, label)
-	return func() {
-		breakTargetStack = breakTargetStack[:len(breakTargetStack)-1]
-	}
-}
-
-func currentBreakTarget() string {
-	if len(breakTargetStack) == 0 {
-		return ""
-	}
-	return breakTargetStack[len(breakTargetStack)-1]
-}
-
-func pushForPost(post ast.Stmt) func() {
-	hasPost := post != nil
-	if hasPost {
-		forPostStack = append(forPostStack, post)
-	}
-	forPostHasPostStack = append(forPostHasPostStack, hasPost)
-	return func() {
-		if forPostHasPostStack[len(forPostHasPostStack)-1] {
-			forPostStack = forPostStack[:len(forPostStack)-1]
-		}
-		forPostHasPostStack = forPostHasPostStack[:len(forPostHasPostStack)-1]
-	}
-}
-
-func currentForPost() ast.Stmt {
-	if len(forPostHasPostStack) == 0 || !forPostHasPostStack[len(forPostHasPostStack)-1] {
-		return nil
-	}
-	return forPostStack[len(forPostStack)-1]
-}
-
-func nextSwitchBreakLabel() string {
-	switchBreakLabelCounter++
-	return fmt.Sprintf("__go_switch_%d", switchBreakLabelCounter)
-}
-
-func switchTagNamedInterface(tag ast.Expr) (types.Type, string, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, "", false
-	}
-	tagType := typeInfo.GetType(tag)
-	if tagType == nil {
-		return nil, "", false
-	}
-	ifaceName, _, ok := namedInterfaceForTraitEquality(tagType)
-	if !ok || ifaceName == "" {
-		return nil, "", false
-	}
-	return tagType, ifaceName, true
-}
-
-func switchTagEmptyInterface(tag ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return isEmptyInterfaceType(typeInfo.GetType(tag))
-}
-
-func switchTagGoError(tag ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return isGoErrorType(typeInfo.GetType(tag))
-}
-
-func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType types.Type) {
-	var value strings.Builder
-	if !writeLocalInterfaceReferenceCallArgument(&value, tag, tagType) {
-		out.WriteString(`unimplemented!("type info required for interface switch tag")`)
-		return
-	}
-	out.WriteString(value.String())
-}
-
-func writeSwitchEmptyInterfaceTagHandle(out *strings.Builder, tag ast.Expr) {
-	if !writeEmptyInterfaceHandleClone(out, tag) {
-		out.WriteString(`unimplemented!("type info required for empty-interface switch tag")`)
-	}
-}
-
-func writeSwitchGoErrorTagHandle(out *strings.Builder, tag ast.Expr) {
-	if !writeGoErrorHandleValue(out, tag) {
-		out.WriteString(`unimplemented!("type info required for error switch tag")`)
-	}
-}
-
-func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
-	writePointerHandleExpression(out, tag)
-}
-
-func writeSwitchPointerDirectCaseComparison(out *strings.Builder, tag ast.Expr, caseExpr ast.Expr) {
-	// Bind the comparison result before the block ends. Left as the block's
-	// tail expression, the borrow guard it creates is dropped after
-	// __switch_val, which rustc rejects (E0597) under edition 2021.
-	out.WriteString("{ let __switch_val = ")
-	writeSwitchPointerTagHandle(out, tag)
-	out.WriteString("; let __switch_eq = ")
-	if info, ok := switchGoPtrInfo(tag); ok {
-		writeSwitchGoPtrCaseComparisonForInfo(out, "__switch_val", caseExpr, info)
-	} else {
-		writeSwitchPointerCaseComparison(out, "__switch_val", caseExpr)
-	}
-	out.WriteString("; __switch_eq }")
-}
-
-func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
-	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("(*")
-		out.WriteString(switchVal)
-		WriteBorrowMethod(out, false)
-		out.WriteString(").is_none()")
-		return
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(caseExpr) {
-		out.WriteString(`unimplemented!("type info required for pointer switch case")`)
-		return
-	}
-	trackWrapperImports()
-	out.WriteString("{ let __case = ")
-	writePointerHandleExpression(out, caseExpr)
-	out.WriteString("; let __switch_guard = ")
-	out.WriteString(switchVal)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __case_guard = __case")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __both_nil = (*__switch_guard).is_none() && (*__case_guard).is_none(); let __eq = __both_nil || ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&")
-	out.WriteString(switchVal)
-	out.WriteString(", &__case); __eq }")
-}
-
-func switchGoPtrElemRustType(tag ast.Expr) (string, bool) {
-	info, ok := switchGoPtrInfo(tag)
-	return info.elemRustType, ok
-}
-
-func switchGoPtrInfo(tag ast.Expr) (goPtrResultInfo, bool) {
-	ident, ok := unwrapParens(tag).(*ast.Ident)
-	if !ok {
-		return goPtrResultInfo{}, false
-	}
-	if info, ok := goPtrCandidateForDecl(ident); ok && info.elemRustType != "" {
-		return info, true
-	}
-	elemRustType, ok := goPtrVarElemRustType(ident.Name)
-	if !ok {
-		return goPtrResultInfo{}, false
-	}
-	info := goPtrResultInfo{elemRustType: elemRustType}
-	if varInfo, ok := goPtrVarInfo(ident.Name); ok && varInfo.GoType != nil {
-		if ptr, ok := types.Unalias(varInfo.GoType).Underlying().(*types.Pointer); ok {
-			info.elemType = ptr.Elem()
-		}
-	}
-	return info, true
-}
-
-func writeSwitchGoPtrCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr, elemRustType string) {
-	writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, caseExpr, goPtrResultInfo{elemRustType: elemRustType})
-}
-
-func writeSwitchGoPtrCaseComparisonForInfo(out *strings.Builder, switchVal string, caseExpr ast.Expr, info goPtrResultInfo) {
-	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString(switchVal)
-		out.WriteString(".is_nil()")
-		return
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(caseExpr) {
-		out.WriteString(`unimplemented!("type info required for GoPtr switch case")`)
-		return
-	}
-	out.WriteString("{ let __case = ")
-	if !writeGoPtrCallArgumentForInfo(out, caseExpr, info) {
-		out.WriteString(`unimplemented!("GoPtr switch case requires pointer-compatible value")`)
-	} else {
-		out.WriteString("; GoPtr::ptr_eq(&")
-		out.WriteString(switchVal)
-		out.WriteString(", &__case)")
-	}
-	out.WriteString(" }")
-}
-
-type switchInterfaceCaseKind int
-
-const (
-	switchInterfaceCaseWrappedInterface switchInterfaceCaseKind = iota
-	switchInterfaceCaseConcretePointer
-)
-
-func switchInterfaceCaseKindFor(caseExpr ast.Expr, tagType types.Type) (switchInterfaceCaseKind, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || tagType == nil {
-		return 0, false
-	}
-	caseType := typeInfo.GetType(caseExpr)
-	if caseType == nil {
-		return 0, false
-	}
-	if _, ok := types.Unalias(caseType).Underlying().(*types.Interface); ok && types.AssignableTo(caseType, tagType) {
-		return switchInterfaceCaseWrappedInterface, true
-	}
-	if concreteAssignableToInterface(caseType, tagType) {
-		return switchInterfaceCaseConcretePointer, true
-	}
-	if types.AssignableTo(caseType, tagType) {
-		return switchInterfaceCaseWrappedInterface, true
-	}
-	return 0, false
-}
-
-func writeSwitchInterfaceCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr, tagType types.Type, ifaceName string) {
-	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("(*")
-		out.WriteString(switchVal)
-		WriteBorrowMethod(out, false)
-		out.WriteString(").is_none()")
-		return
-	}
-
-	caseKind, ok := switchInterfaceCaseKindFor(caseExpr, tagType)
-	if !ok {
-		out.WriteString(`unimplemented!("type info required for interface switch case")`)
-		return
-	}
-
-	var right strings.Builder
-	if caseKind == switchInterfaceCaseConcretePointer {
-		writePointerConcreteInterfaceHandle(&right, caseExpr)
-	} else {
-		if !writeLocalInterfaceReferenceCallArgument(&right, caseExpr, tagType) {
-			out.WriteString(`unimplemented!("type info required for interface switch case")`)
-			return
-		}
-	}
-
-	out.WriteString("{ let __left_holder = ")
-	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __left_guard = __left_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_holder = ")
-	out.WriteString(right.String())
-	out.WriteString("; let __right_guard = __right_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => ")
-	if caseKind == switchInterfaceCaseConcretePointer {
-		out.WriteString("{ let __right_trait: ")
-		out.WriteString(rustLocalInterfaceParamBare(ifaceName))
-		out.WriteString(" = __right; __left.as_ref().__go_eq_")
-		out.WriteString(traitMethodSuffix(ifaceName))
-		out.WriteString("(__right_trait) }")
-	} else {
-		out.WriteString("__left.as_ref().__go_eq_")
-		out.WriteString(traitMethodSuffix(ifaceName))
-		out.WriteString("(__right.as_ref())")
-	}
-	out.WriteString(", (None, None) => true, _ => false }; __eq }")
-}
-
-func writeSwitchEmptyInterfaceCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
-	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("(*")
-		out.WriteString(switchVal)
-		WriteBorrowMethod(out, false)
-		out.WriteString(").is_none()")
-		return
-	}
-
-	NeedAnyEq()
-	out.WriteString("{ let __right_holder = ")
-	writeEmptyInterfaceCallArgumentValue(out, caseExpr)
-	out.WriteString("; go_any_eq(&")
-	out.WriteString(switchVal)
-	out.WriteString(", &__right_holder) }")
-}
-
-func writeSwitchGoErrorCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
-	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("(*")
-		out.WriteString(switchVal)
-		WriteBorrowMethod(out, false)
-		out.WriteString(").is_none()")
-		return
-	}
-
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString(`unimplemented!("type info required for error switch case")`)
-		return
-	}
-	caseType := typeInfo.GetType(caseExpr)
-	if isConcreteGoErrorValue(caseType) && isConstantExpression(caseExpr) {
-		if writeSwitchGoErrorConcreteCaseComparison(out, switchVal, caseExpr, caseType) {
-			return
-		}
-	}
-	if !isGoErrorType(caseType) {
-		out.WriteString(`unimplemented!("type info required for error switch case")`)
-		return
-	}
-
-	out.WriteString("{ let __left_holder = ")
-	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __left_guard = __left_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_holder = ")
-	if !writeGoErrorHandleValue(out, caseExpr) {
-		out.WriteString(`unimplemented!("type info required for error switch case")`)
-		out.WriteString("; ")
-	} else {
-		out.WriteString("; ")
-	}
-	out.WriteString("let __right_guard = __right_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => std::ptr::addr_eq(&**__left, &**__right), (None, None) => true, _ => false } }")
-}
-
-func writeSwitchGoErrorConcreteCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr, caseType types.Type) bool {
-	named, ok := types.Unalias(caseType).(*types.Named)
-	if !ok || !isNamedIntegerType(named) {
-		return false
-	}
-	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
-	if !ok || !isIntegerBasicKind(basic.Kind()) {
-		return false
-	}
-	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
-	if !ok {
-		return false
-	}
-	out.WriteString("{ let __err_holder = ")
-	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __err_guard = __err_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<")
-	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString(">()).map(|__e| *__e.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() == (")
-	if !writeConstExpressionWithRustIntegerOperands(out, caseExpr, rustType) {
-		TranspileConstExpr(out, caseExpr, 0)
-	}
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")).unwrap_or(false) }")
-	return true
-}
-
-func stmtContainsBreakForCurrentSwitch(stmt ast.Stmt) bool {
-	switch s := stmt.(type) {
-	case *ast.BranchStmt:
-		return s.Tok == token.BREAK && s.Label == nil
-	case *ast.BlockStmt:
-		return stmtListContainsBreakForCurrentSwitch(s.List)
-	case *ast.IfStmt:
-		if stmtListContainsBreakForCurrentSwitch(s.Body.List) {
-			return true
-		}
-		if s.Else != nil {
-			return stmtContainsBreakForCurrentSwitch(s.Else)
-		}
-		return false
-	case *ast.LabeledStmt:
-		return stmtContainsBreakForCurrentSwitch(s.Stmt)
-	case *ast.ForStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt:
-		return false
-	default:
-		return false
-	}
-}
-
-func stmtContainsBreakForCurrentLoop(stmt ast.Stmt) bool {
-	switch s := stmt.(type) {
-	case *ast.BranchStmt:
-		return s.Tok == token.BREAK && s.Label == nil
-	case *ast.BlockStmt:
-		return stmtListContainsBreakForCurrentLoop(s.List)
-	case *ast.IfStmt:
-		if stmtListContainsBreakForCurrentLoop(s.Body.List) {
-			return true
-		}
-		if s.Else != nil {
-			return stmtContainsBreakForCurrentLoop(s.Else)
-		}
-		return false
-	case *ast.LabeledStmt:
-		return stmtContainsBreakForCurrentLoop(s.Stmt)
-	case *ast.ForStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt, *ast.SelectStmt:
-		return false
-	default:
-		return false
-	}
-}
-
-func stmtListContainsBreakForCurrentLoop(stmts []ast.Stmt) bool {
-	for _, stmt := range stmts {
-		if stmtContainsBreakForCurrentLoop(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-func forStmtTerminates(stmt *ast.ForStmt) bool {
-	return stmt != nil && stmt.Cond == nil && stmt.Body != nil && !stmtListContainsBreakForCurrentLoop(stmt.Body.List)
-}
-
-func stmtListContainsBreakForCurrentSwitch(stmts []ast.Stmt) bool {
-	for _, stmt := range stmts {
-		if stmtContainsBreakForCurrentSwitch(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-func switchNeedsSyntheticBreakTarget(body *ast.BlockStmt) bool {
-	for _, stmt := range body.List {
-		caseClause, ok := stmt.(*ast.CaseClause)
-		if !ok {
-			continue
-		}
-		for _, bodyStmt := range caseClause.Body {
-			if isUnlabeledBreakStmt(bodyStmt) {
-				continue
-			}
-			if stmtContainsBreakForCurrentSwitch(bodyStmt) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func stmtTerminates(stmt ast.Stmt) bool {
-	switch s := stmt.(type) {
-	case *ast.ReturnStmt:
-		return true
-	case *ast.ExprStmt:
-		call, ok := s.X.(*ast.CallExpr)
-		return ok && isBuiltinCallNamed(call, "panic")
-	case *ast.BlockStmt:
-		return stmtListTerminates(s.List)
-	case *ast.SwitchStmt:
-		return switchStmtTerminates(s)
-	case *ast.TypeSwitchStmt:
-		return typeSwitchStmtTerminates(s)
-	case *ast.SelectStmt:
-		return selectStmtTerminates(s)
-	case *ast.ForStmt:
-		return forStmtTerminates(s)
-	case *ast.LabeledStmt:
-		return stmtTerminates(s.Stmt)
-	default:
-		return false
-	}
-}
-
-func stmtListTerminates(stmts []ast.Stmt) bool {
-	for _, stmt := range stmts {
-		if isUnlabeledBreakStmt(stmt) {
-			return false
-		}
-		if stmtTerminates(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-func lastNonEmptyStmt(stmts []ast.Stmt) ast.Stmt {
-	for i := len(stmts) - 1; i >= 0; i-- {
-		if _, ok := stmts[i].(*ast.EmptyStmt); ok {
-			continue
-		}
-		return stmts[i]
-	}
-	return nil
-}
-
-func stmtListFallsThrough(stmts []ast.Stmt) bool {
-	for i := len(stmts) - 1; i >= 0; i-- {
-		if _, ok := stmts[i].(*ast.EmptyStmt); ok {
-			continue
-		}
-		if branch, ok := stmts[i].(*ast.BranchStmt); ok {
-			return branch.Tok == token.FALLTHROUGH
-		}
-		return false
-	}
-	return false
-}
-
-func switchStmtTerminates(s *ast.SwitchStmt) bool {
-	hasDefault := false
-	nextTerminates := false
-	for i := len(s.Body.List) - 1; i >= 0; i-- {
-		stmt := s.Body.List[i]
-		clause, ok := stmt.(*ast.CaseClause)
-		if !ok {
-			return false
-		}
-		if len(clause.List) == 0 {
-			hasDefault = true
-		}
-		terminates := stmtListTerminates(clause.Body)
-		if stmtListFallsThrough(clause.Body) {
-			terminates = nextTerminates
-		}
-		if !terminates {
-			return false
-		}
-		nextTerminates = true
-	}
-	return hasDefault
-}
-
-func typeSwitchStmtTerminates(s *ast.TypeSwitchStmt) bool {
-	if s == nil || s.Body == nil {
-		return false
-	}
-	hasDefault := false
-	for _, stmt := range s.Body.List {
-		clause, ok := stmt.(*ast.CaseClause)
-		if !ok {
-			return false
-		}
-		if len(clause.List) == 0 {
-			hasDefault = true
-		}
-		if !stmtListTerminates(clause.Body) {
-			return false
-		}
-	}
-	return hasDefault
-}
-
-func selectStmtTerminates(s *ast.SelectStmt) bool {
-	if s == nil || s.Body == nil {
-		return false
-	}
-	if len(s.Body.List) == 0 {
-		return true
-	}
-	for _, stmt := range s.Body.List {
-		clause, ok := stmt.(*ast.CommClause)
-		if !ok || !stmtListTerminates(clause.Body) {
-			return false
-		}
-	}
-	return true
-}
-
-func stmtNeedsSeparatorBeforeFollowingStatement(stmt ast.Stmt) bool {
-	switch s := stmt.(type) {
-	case *ast.TypeSwitchStmt:
-		return typeSwitchStmtTerminates(s)
-	case *ast.BranchStmt:
-		return s.Tok == token.BREAK || s.Tok == token.CONTINUE || s.Tok == token.GOTO
-	default:
-		return false
-	}
-}
-
-func writeStatementSeparatorBeforeFollowingStatement(out *strings.Builder, stmt ast.Stmt, hasFollowing bool) {
-	if hasFollowing && stmtNeedsSeparatorBeforeFollowingStatement(stmt) {
-		out.WriteString(";")
-	}
-}
-
-func writeBareValueForWrappedSlot(out *strings.Builder, expr ast.Expr) bool {
-	sel, ok := expr.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(sel)
-	if typ == nil {
-		return false
-	}
-	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
-	if !ok {
-		return false
-	}
-	switch basic.Kind() {
-	case types.Bool, types.String,
-		types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
-		types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64,
-		types.Uintptr, types.Float32, types.Float64:
-	default:
-		return false
-	}
-	if ident, ok := sel.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
-		fieldInfo := selectorFieldAccessInfo(sel)
-		if fieldInfo.Found && writeGoPtrLocalFieldSelector(out, ident, fieldInfo, sel, RValue) {
-			return true
-		}
-	}
-	if !selectorRValueReturnsWrappedHandle(sel) {
-		TranspileExpression(out, sel)
-		return true
-	}
-	out.WriteString("{ let __v = ")
-	TranspileExpression(out, sel)
-	out.WriteString("; let __owned = (*__v")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone(); __owned }")
-	return true
-}
-
-func writeCurrentReceiverAssignmentValue(out *strings.Builder, expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	return writeCurrentReceiverClone(out, ident)
-}
-
-func assignmentRHSReturnsWrappedValue(rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.ReturnsWrappedValue(rhs) {
-		return false
-	}
-	if call, ok := rhs.(*ast.CallExpr); ok {
-		if isBareBuiltinReturn(call) {
-			return false
-		}
-		if typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
-			return false
-		}
-	}
-	return true
-}
-
-func writeCurrentReceiverNamedTypeAssignmentValue(out *strings.Builder, rhs ast.Expr) bool {
-	if currentReceiverObject == nil {
-		return false
-	}
-	named, ok := types.Unalias(currentReceiverObject.Type()).(*types.Named)
-	if !ok || named.Obj() == nil {
-		return false
-	}
-	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
-	if !ok || basic.Kind() != types.String {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("unimplemented!(\"type info required for named receiver assignment\")")
-		return true
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil || !types.AssignableTo(rhsType, named) {
-		return false
-	}
-	rustTypeName := goTypesNamedTypeToRust(named)
-	if rustTypeName == "" {
-		rustTypeName = RustTypeNameForUse(named.Obj().Name())
-	}
-	writeStringTypeDefinitionConstructor(out, rustTypeName, rhs)
-	return true
-}
-
-func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverRustAlias == "" {
-		return false
-	}
-	if currentReceiverRustAliasIsGoPtr {
-		out.WriteString("{ let new_val = ")
-		if !writeGoPtrCallArgumentForInfo(out, rhs, currentReceiverRustAliasGoPtrInfo) {
-			out.WriteString(`unimplemented!("GoPtr receiver assignment requires compatible pointer value")`)
-		}
-		out.WriteString("; ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = new_val; }")
-		return true
-	}
-	if currentReceiverRustAliasIsPointerHandle {
-		out.WriteString("{ let new_val = ")
-		if rhsIdent, ok := rhs.(*ast.Ident); ok && rhsIdent.Name == "nil" {
-			WriteWrappedNone(out)
-		} else if assignmentRHSReturnsWrappedValue(rhs) {
-			TranspileExpression(out, rhs)
-		} else if !writeOwnedExpressionValue(out, rhs) {
-			TranspileExpression(out, rhs)
-		}
-		out.WriteString("; ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = new_val; }")
-		return true
-	}
-	out.WriteString("{ let new_val = ")
-	if writeCurrentReceiverNamedTypeAssignmentValue(out, rhs) {
-		out.WriteString("; ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = new_val; }")
-		return true
-	}
-	if assignmentRHSReturnsWrappedValue(rhs) {
-		TranspileExpression(out, rhs)
-		out.WriteString("; let __moved_val = { let mut __guard = new_val")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __guard.take().unwrap() }; ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = __moved_val; }")
-		return true
-	}
-	if writeCurrentReceiverAssignmentValue(out, rhs) {
-		// Self-assigning the receiver copies the current local receiver value.
-	} else if !writeOwnedExpressionValue(out, rhs) {
-		TranspileExpression(out, rhs)
-	}
-	out.WriteString("; ")
-	out.WriteString(currentReceiverRustAlias)
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, rhsIdent *ast.Ident) bool {
-	if rhsIdent.Name == "_" || rhsIdent.Name == "nil" || rhsIdent.Name == "true" || rhsIdent.Name == "false" {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhsIdent)
-	if rhsType == nil {
-		return false
-	}
-	if _, ok := rhsType.Underlying().(*types.Signature); !ok {
-		return false
-	}
-	rhsName := RustIdentForUse(rhsIdent)
-	if currentCaptureRenames != nil {
-		if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
-			rhsName = RustLocalIdent(renamed)
-		}
-	}
-	out.WriteString("{ let new_val = ")
-	out.WriteString(rhsName)
-	out.WriteString(".clone(); ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-	out.WriteString(" }")
-	return true
-}
-
-func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool {
-	if ident.Name == "_" || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
-		return false
-	}
-	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-		return false
-	}
-	if _, isLocalConst := localConstants[ident.Name]; isLocalConst {
-		return false
-	}
-	if isConstIdent(ident) {
-		return false
-	}
-	if isVarBare(ident.Name) || rhsIsPointerType(ident) {
-		return false
-	}
-
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(ident)
-	if typ == nil {
-		return false
-	}
-
-	if !goTypeIsCopiedByValue(typ) {
-		return false
-	}
-	varName := RustIdentForUse(ident)
-	if currentCaptureRenames != nil {
-		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-			varName = RustLocalIdent(renamed)
-		}
-	}
-	out.WriteString("{ let __owned = ")
-	out.WriteString(varName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	out.WriteString(goValueCopyCallForType(typ))
-	out.WriteString("; ")
-	WriteWrapperPrefix(out)
-	out.WriteString("__owned")
-	WriteWrapperSuffix(out)
-	out.WriteString(" }")
-	return true
-}
-
-func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
-	if ident == nil || !isPackageGlobalIdent(ident) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsMap(ident) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("(*")
-	out.WriteString(rustPackageGlobalName(ident.Name))
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writePackageGlobalSliceWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
-	if ident == nil || !isPackageGlobalIdent(ident) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsSlice(ident) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("(*")
-	out.WriteString(rustPackageGlobalName(ident.Name))
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeWrappedOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	if !namedCollectionSelectorNeedsOwnedValue(expr, typ) && !goTypeIsCopiedByValue(typ) {
-		return false
-	}
-	var inner strings.Builder
-	if !writeOwnedExpressionValue(&inner, expr) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString(inner.String())
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func namedCollectionSelectorNeedsOwnedValue(expr ast.Expr, typ types.Type) bool {
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
-		return false
-	}
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok {
-		return false
-	}
-	switch named.Underlying().(type) {
-	case *types.Slice, *types.Map:
-		return true
-	default:
-		return false
-	}
-}
-
-func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsMap(expr) {
-		return false
-	}
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone()")
-	return true
-}
-
-func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsMap(lhs) {
-		return false
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("{ let new_val = ")
-		WriteWrappedNone(out)
-		out.WriteString("; ")
-		writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-		out.WriteString(" }")
-		return true
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
-		return false
-	}
-	if !typeInfo.IsMap(rhs) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	switch rhs.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-		TranspileExpressionContext(out, rhs, LValue)
-		out.WriteString(".clone()")
-	default:
-		TranspileExpression(out, rhs)
-	}
-	out.WriteString("; ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-	out.WriteString(" }")
-	return true
-}
-
-func writeNamedMapOptionClone(out *strings.Builder, rhs ast.Expr) {
-	out.WriteString("{ let __named_map_holder = ")
-	TranspileExpression(out, rhs)
-	out.WriteString("; let __named_map_guard = __named_map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__named_map_guard).clone() }")
-}
-
-func writeNamedMapAssignmentOptionValue(out *strings.Builder, targetNamed *types.Named, rhs ast.Expr, rhsType types.Type) {
-	if _, _, rhsIsNamedMap := namedMapTypeFromType(rhsType); rhsIsNamedMap {
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
-			writeNamedMapOptionClone(out, rhs)
-			return
-		}
-		out.WriteString("Some(")
-		if !writeOwnedExpressionValue(out, rhs) {
-			TranspileExpression(out, rhs)
-		}
-		out.WriteString(")")
-		return
-	}
-
-	out.WriteString("Some(")
-	out.WriteString(goTypesNamedTypeToRust(targetNamed))
-	out.WriteString("(")
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
-		TranspileExpression(out, rhs)
-	} else {
-		switch rhs.(type) {
-		case *ast.Ident, *ast.SelectorExpr:
-			TranspileExpressionContext(out, rhs, LValue)
-			out.WriteString(".clone()")
-		default:
-			TranspileExpression(out, rhs)
-		}
-	}
-	out.WriteString("))")
-}
-
-func writePackageGlobalNamedMapAssignment(out *strings.Builder, lhsIdent *ast.Ident, rhs ast.Expr, typeInfo *TypeInfo) bool {
-	lhsType := typeInfo.GetType(lhsIdent)
-	lhsNamed, _, ok := namedMapTypeFromType(lhsType)
-	if !ok {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil || underlyingMapType(rhsType) == nil || !types.AssignableTo(rhsType, lhsType) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	writeNamedMapAssignmentOptionValue(out, lhsNamed, rhs, rhsType)
-	out.WriteString("; *")
-	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writePackageGlobalNamedSliceAssignment(out *strings.Builder, lhsIdent *ast.Ident, rhs ast.Expr, typeInfo *TypeInfo) bool {
-	lhsType := typeInfo.GetType(lhsIdent)
-	lhsNamed, _, ok := namedSliceTypeFromType(lhsType)
-	if !ok {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil || underlyingSliceType(rhsType) == nil || !types.AssignableTo(rhsType, lhsType) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	if _, _, rhsIsNamedSlice := namedSliceTypeFromType(rhsType); rhsIsNamedSlice {
-		out.WriteString("Some(")
-		if !writeOwnedExpressionValue(out, rhs) {
-			TranspileExpression(out, rhs)
-		}
-		out.WriteString(")")
-	} else {
-		out.WriteString("Some(")
-		out.WriteString(goTypesNamedTypeToRust(lhsNamed))
-		out.WriteString("(")
-		writePlainSliceHandleForNamedSliceConversion(out, rhs)
-		out.WriteString("))")
-	}
-	out.WriteString("; *")
-	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writePackageGlobalCollectionAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	lhsIdent, ok := lhs.(*ast.Ident)
-	if !ok || !isPackageGlobalIdent(lhsIdent) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	lhsIsMap := typeInfo.IsMap(lhs)
-	lhsIsSlice := typeInfo.IsSlice(lhs)
-	if !lhsIsMap && !lhsIsSlice {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("{ let new_val = None; *")
-		out.WriteString(rustPackageGlobalName(lhsIdent.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = new_val; }")
-		return true
-	}
-	if lhsIsMap && writePackageGlobalNamedMapAssignment(out, lhsIdent, rhs, typeInfo) {
-		return true
-	}
-	if lhsIsSlice && writePackageGlobalNamedSliceAssignment(out, lhsIdent, rhs, typeInfo) {
-		return true
-	}
-	if lhsIsMap && !typeInfo.IsMap(rhs) || lhsIsSlice && !typeInfo.IsSlice(rhs) {
-		return false
-	}
-	out.WriteString("{ let new_val = { let __collection_holder = ")
-	TranspileExpressionContext(out, rhs, LValue)
-	out.WriteString(".clone(); let __collection_guard = __collection_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__collection_guard).clone() }; *")
-	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isPlainSliceExpression(lhs) || !isPlainSliceExpression(rhs) {
-		return false
-	}
-	if writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out, lhs, rhs) {
-		return true
-	}
-	if !sliceAssignmentRHSReturnsHandle(rhs) {
-		return false
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
-		return false
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && currentCaptureRenames != nil {
-		if _, captured := currentCaptureRenames[ident.Name]; captured {
-			return false
-		}
-	}
-	out.WriteString("{ let new_val = ")
-	if writePointerDerefSliceHandleClone(out, rhs, typeInfo) {
-		// Pointer-to-slice dereference is represented by the same slice handle.
-	} else {
-		switch rhs.(type) {
-		case *ast.Ident, *ast.SelectorExpr:
-			TranspileExpressionContext(out, rhs, LValue)
-			out.WriteString(".clone()")
-		default:
-			TranspileExpression(out, rhs)
-		}
-	}
-	out.WriteString("; ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-	out.WriteString(" }")
-	return true
-}
-
-func writePointerDerefSliceHandleClone(out *strings.Builder, rhs ast.Expr, typeInfo *TypeInfo) bool {
-	star, ok := unwrapParens(rhs).(*ast.StarExpr)
-	if !ok {
-		return false
-	}
-	starType := typeInfo.GetType(star)
-	operandType := typeInfo.GetType(star.X)
-	if starType == nil || operandType == nil {
-		out.WriteString(`unimplemented!("type info required for pointer slice assignment")`)
-		return true
-	}
-	if !pointerDerefTargetsSequence(starType, operandType) {
-		return false
-	}
-	TranspileExpressionContext(out, star.X, LValue)
-	out.WriteString(".clone()")
-	return true
-}
-
-func writePointerDerefSequenceHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString(`unimplemented!("type info required for pointer slice assignment")`)
-		return true
-	}
-	starType := typeInfo.GetType(star)
-	operandType := typeInfo.GetType(star.X)
-	if starType == nil || operandType == nil {
-		out.WriteString(`unimplemented!("type info required for pointer slice assignment")`)
-		return true
-	}
-	if _, isNamed := starType.(*types.Named); isNamed {
-		return false
-	}
-	if _, ok := coreUnderlyingType(starType).(*types.Slice); !ok {
-		return false
-	}
-	if !pointerDerefTargetsSequence(starType, operandType) {
-		return false
-	}
-
-	out.WriteString("{ ")
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("*")
-		TranspileExpressionContext(out, star.X, LValue)
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = None; }")
-		return true
-	}
-	out.WriteString("let new_val = ")
-	if writePointerDerefSliceHandleClone(out, rhs, typeInfo) {
-		// Pointer-to-slice dereference is represented by the same slice handle.
-	} else if writePlainSliceHandleClone(out, rhs) {
-		// Existing slice values are represented by handles; copy the handle before reading its option.
-	} else {
-		TranspileExpression(out, rhs)
-	}
-	out.WriteString("; let __cloned_val = { let __guard = new_val")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__guard).clone() }; *")
-	TranspileExpressionContext(out, star.X, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __cloned_val; }")
-	return true
-}
-
-func writePlainSliceHandleClone(out *strings.Builder, expr ast.Expr) bool {
-	if !isPlainSliceExpression(expr) {
-		return false
-	}
-	switch expr.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone()")
-		return true
-	default:
-		return false
-	}
-}
-
-func writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	call, ok := rhs.(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	lhsSlice, ok := types.Unalias(lhsType).Underlying().(*types.Slice)
-	if !ok || collectionElemRustTypeIsWrappedHandle(lhsSlice.Elem()) {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil || !types.AssignableTo(rhsType, lhsType) {
-		return false
-	}
-	sourceSig, ok := sourceFunctionSignatureForCall(call)
-	if !ok || sourceSig.Results() == nil || sourceSig.Results().Len() != 1 {
-		return false
-	}
-	resultElem, ok := goTypeParamSliceConstraintElem(sourceSig.Results().At(0).Type())
-	if !ok {
-		return false
-	}
-	if _, ok := types.Unalias(resultElem).(*types.TypeParam); !ok {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	if !writeSourceTypeParamSliceCallAsConcreteSlice(out, call) {
-		return false
-	}
-	out.WriteString("; ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-	out.WriteString(" }")
-	return true
-}
-
-func sliceAssignmentRHSReturnsHandle(rhs ast.Expr) bool {
-	switch rhs.(type) {
-	case *ast.TypeAssertExpr:
-		return false
-	default:
-		return true
-	}
-}
-
-func isPlainSliceExpression(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
-		return false
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Slice)
-	return ok
-}
-
-func writeSliceSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
-		return false
-	}
-	if _, ok := types.Unalias(typ).Underlying().(*types.Slice); !ok {
-		return false
-	}
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone()")
-	return true
-}
-
-func writeFunctionSelectorHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	rhsSel, ok := rhs.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isFunctionSignatureType(typeInfo.GetType(lhs)) || !isFunctionSignatureType(typeInfo.GetType(rhs)) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	if sig, ok := pointerMethodValueSignature(rhsSel); ok {
-		WriteWrapperPrefix(out)
-		writePointerMethodValueBox(out, rhsSel, sig)
-		WriteWrapperSuffix(out)
-	} else if sig, ok := selectorFunctionValueSignature(rhsSel); ok {
-		WriteWrapperPrefix(out)
-		writeFunctionValueExpressionBox(out, rhsSel, sig)
-		WriteWrapperSuffix(out)
-	} else {
-		TranspileExpressionContext(out, rhs, LValue)
-		out.WriteString(".clone()")
-	}
-	out.WriteString("; ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-	out.WriteString(" }")
-	return true
-}
-
-func functionValueCallAssignmentUsesReturnedSlot(lhs ast.Expr, call *ast.CallExpr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || call == nil {
-		return false
-	}
-	return isFunctionSignatureType(typeInfo.GetType(lhs)) && isFunctionSignatureType(callSingleResultType(call))
-}
-
-func writeFunctionPointerDerefCallAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
-	call, ok := rhs.(*ast.CallExpr)
-	if !ok || !functionValueCallAssignmentUsesReturnedSlot(star, call) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	TranspileExpression(out, rhs)
-	out.WriteString("; let __moved_val = { let mut __guard = new_val")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __guard.take() }; *")
-	TranspileExpressionContext(out, star.X, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __moved_val; }")
-	return true
-}
-
-func writeCallExpressionForInitializer(out *strings.Builder, call *ast.CallExpr) {
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
-		WriteWrapperPrefix(out)
-		TranspileExpression(out, call)
-		WriteWrapperSuffix(out)
-		return
-	}
-	TranspileExpression(out, call)
-}
-
-func isStdlibNamedInterfaceValueType(typ types.Type) bool {
-	named, ok := typ.(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return false
-	}
-	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
-		return false
-	}
-	_, ok = named.Underlying().(*types.Interface)
-	return ok
-}
-
-func writeStdlibInterfaceFieldValueCopy(out *strings.Builder, expr ast.Expr) bool {
-	sel, ok := expr.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isStdlibNamedInterfaceValueType(typeInfo.GetType(expr)) {
-		return false
-	}
-	out.WriteString("{ let __src = ")
-	TranspileExpressionContext(out, sel, LValue)
-	out.WriteString(".clone(); ")
-	out.WriteString("let __copied = (*__src")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone(); ")
-	WriteWrapperPrefix(out)
-	out.WriteString("__copied")
-	WriteWrapperSuffix(out)
-	out.WriteString(" }")
-	return true
-}
-
-func writeWrappedStdlibInterfaceRangeValueCopy(out *strings.Builder, ident *ast.Ident) bool {
-	varType, isRangeVar := rangeLoopVars[ident.Name]
-	if !isRangeVar || !strings.HasPrefix(varType, "&") {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isStdlibNamedInterfaceValueType(typeInfo.GetType(ident)) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	writeOwnedRangeValue(out, ident)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeWrappedReferenceRangeValueCopy(out *strings.Builder, ident *ast.Ident) bool {
-	varType, isRangeVar := rangeLoopVars[ident.Name]
-	if !isRangeVar {
-		return false
-	}
-	if varType != "ref_value" && (!strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType)) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(ident)
-	if typ == nil {
-		return false
-	}
-	if !isStdlibNamedInterfaceValueType(typ) {
-		switch types.Unalias(typ).Underlying().(type) {
-		case *types.Basic, *types.Struct, *types.Array:
-		default:
-			return false
-		}
-	}
-	WriteWrapperPrefix(out)
-	writeOwnedRangeValue(out, ident)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeWrappedBareStringRangeValueCopy(out *strings.Builder, ident *ast.Ident) bool {
-	varType, isRangeVar := rangeLoopVars[ident.Name]
-	if !isRangeVar || varType == "ref_value" || strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsString(ident) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	writeOwnedRangeValue(out, ident)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeRangeHandleReturnValue(out *strings.Builder, ident *ast.Ident) bool {
-	if ident == nil {
-		return false
-	}
-	if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !mapValueTypeKeepsHandle(typeInfo.GetType(ident)) {
-		return false
-	}
-	return writeOwnedRangeValue(out, ident)
-}
-
-func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
-	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
-		return
-	}
-	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
-		WriteWrappedNone(out)
-		return
-	}
-	if isPointerMapValueType(valueType) {
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
-			writePointerHandleExpression(out, expr)
-			return
-		}
-		if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-			if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
-				TranspileExpression(out, expr)
-				return
-			}
-		}
-	}
-	if isNilableWrappedMapValueType(valueType) && isTypedAssignmentSelfWrappingExpression(expr) {
-		TranspileExpression(out, expr)
-		return
-	}
-	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
-		return
-	}
-	if writeLocalInterfaceWrappedValue(out, expr, valueType) {
-		return
-	}
-	if writeFunctionMapValue(out, expr, nil, valueType) {
-		return
-	}
-	if ident, ok := expr.(*ast.Ident); ok {
-		// A struct variable stored in a map is copied into it.
-		if copyCall, known := goValueCopyCallForExpr(ident); known && copyCall != ".clone()" && writeWrappedValueCopyFromIdent(out, ident) {
-			return
-		}
-	}
-	if ident, ok := expr.(*ast.Ident); ok &&
-		ident.Name != "_" && ident.Name != "nil" && isVarBare(ident.Name) &&
-		valueType != nil && !mapValueTypeKeepsHandle(valueType) {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-			varName := RustIdentForUse(ident)
-			if currentCaptureRenames != nil {
-				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-					varName = RustLocalIdent(renamed)
-				}
-			}
-			WriteWrapperPrefix(out)
-			if writeLenCapCallArgumentForExpectedType(out, expr, valueType) {
-				// len/cap emits usize, but Go int map values use i32.
-			} else if writeRangeIndexForExpectedType(out, expr, valueType) {
-				// range indexes emit usize, but Go int map values use i32.
-			} else {
-				out.WriteString(varName)
-			}
-			if !rangeElementUsesCopied(valueType) {
-				out.WriteString(".clone()")
-			}
-			WriteWrapperSuffix(out)
-			return
-		}
-	}
-	if ident, ok := expr.(*ast.Ident); ok && isCloneableNonPointerExpr(ident) {
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			if isWrappedRangeVarType(varType) && !mapValueTypeKeepsHandle(valueType) {
-				WriteWrapperPrefix(out)
-				writeWrappedRangeValueClone(out, ident, varType)
-				WriteWrapperSuffix(out)
-				return
-			}
-			if varType == "ref_value" || strings.HasPrefix(varType, "&") {
-				WriteWrapperPrefix(out)
-				out.WriteString("(*")
-				out.WriteString(RustIdentForUse(ident))
-				out.WriteString(").clone()")
-				WriteWrapperSuffix(out)
-				return
-			}
-		}
-	}
-	if ident, ok := expr.(*ast.Ident); ok &&
-		ident.Name != "_" && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-				varName := RustIdentForUse(ident)
-				if currentCaptureRenames != nil {
-					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-						varName = RustLocalIdent(renamed)
-					}
-				}
-				if valueType != nil && !mapValueTypeKeepsHandle(valueType) {
-					// Go copies map values. For a value-typed variable, snapshot
-					// its current value into a fresh handle rather than aliasing
-					// the variable's handle, because the stored entry would track
-					// later mutations of the variable (e.g. a loop counter, as in
-					// go/token's `keywords[tokens[i]] = i`, which left every entry
-					// pointing at the loop's final value).
-					WriteWrapperPrefix(out)
-					out.WriteString("(*")
-					out.WriteString(varName)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).clone()")
-					WriteWrapperSuffix(out)
-					return
-				}
-				out.WriteString(varName)
-				out.WriteString(".clone()")
-				return
-			}
-		}
-	}
-	if call, ok := expr.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
-			TranspileExpression(out, expr)
-			return
-		}
-	}
-	if _, ok := expr.(*ast.SliceExpr); ok {
-		TranspileExpression(out, expr)
-		return
-	}
-	if sel, ok := expr.(*ast.SelectorExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(sel) {
-			TranspileExpressionContext(out, expr, LValue)
-			out.WriteString(".clone()")
-			return
-		}
-	}
-
-	WriteWrapperPrefix(out)
-	if writeLenCapCallArgumentForExpectedType(out, expr, valueType) {
-		// len/cap emits usize, but Go int map values use i32.
-	} else if writeRangeIndexForExpectedType(out, expr, valueType) {
-		// range indexes emit usize, but Go int map values use i32.
-	} else if ident, ok := expr.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
-		// range value cloned above
-	} else if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
-		// owned expression written above
-	} else {
-		TranspileExpression(out, expr)
-	}
-	WriteWrapperSuffix(out)
-}
-
-func isPointerMapValueType(valueType types.Type) bool {
-	if valueType == nil {
-		return false
-	}
-	_, ok := types.Unalias(valueType).Underlying().(*types.Pointer)
-	return ok
-}
-
-func writeMapKeyExpression(out *strings.Builder, expr ast.Expr) {
-	writeMapKeyExpressionWithType(out, expr, nil)
-}
-
-func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType types.Type) {
-	if keyType != nil && writeStdlibInterfaceComparableConversion(out, expr, keyType) {
-		return
-	}
-	if keyType != nil {
-		if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(keyType); ok {
-			out.WriteString(localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName)))
-			out.WriteString("::new(")
-			if !writeLocalInterfaceMapKeyHandle(out, expr, keyType) {
-				TranspileExpressionContext(out, expr, LValue)
-				out.WriteString(".clone()")
-			}
-			out.WriteString(")")
-			return
-		}
-	}
-	// Interface-typed map keys: wrap with GoLocalPtrKey to match the map's
-	// key type. The wrapped interface handle's identity is the Arc/Rc
-	// pointer, which matches Go's interface identity for pointer-backed
-	// dynamic values.
-	if keyType != nil {
-		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
-			NeedGoPtrKey()
-			out.WriteString("GoLocalPtrKey::new(")
-			if !writeLocalInterfaceMapKeyHandle(out, expr, keyType) {
-				TranspileExpressionContext(out, expr, LValue)
-				out.WriteString(".clone()")
-			}
-			out.WriteString(")")
-			return
-		}
-	}
-	if writeSliceElemPtrMapKeyExpression(out, expr) {
-		return
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
-		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
-		out.WriteString("::new(")
-		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone())")
-		return
-	}
-	if keyType != nil {
-		if isEmptyInterfaceType(keyType) {
-			NeedGoPtrKey()
-			out.WriteString("GoLocalPtrKey::new(")
-			TranspileExpressionContext(out, expr, LValue)
-			out.WriteString(".clone())")
-			return
-		}
-	}
-	if keyType != nil && writeMapKeyForExpectedType(out, expr, keyType) {
-		return
-	}
-	if writeOwnedMapKeyExpression(out, expr) {
-		return
-	}
-	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
-		return
-	}
-	TranspileExpression(out, expr)
-}
-
-func writeMapAssignmentKeyExpression(out *strings.Builder, key ast.Expr, keyType types.Type, rhs ast.Expr) {
-	if ident, ok := key.(*ast.Ident); ok && mapAssignmentKeyNeedsClone(ident, keyType, rhs) {
-		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(".clone()")
-		return
-	}
-	writeMapKeyExpressionWithType(out, key, keyType)
-}
-
-func writeMapAssignmentKeyExpressionWithRustType(out *strings.Builder, key ast.Expr, keyRustType string) bool {
-	keyHelper, ok := mapPointerKeyHelperFromRustType(keyRustType)
-	if !ok {
-		return false
-	}
-	if keyHelper == "GoLocalPtrKey" && writeSliceElemPtrMapKeyExpression(out, key) {
-		return true
-	}
-	out.WriteString(keyHelper)
-	out.WriteString("::new(")
-	TranspileExpressionContext(out, key, LValue)
-	out.WriteString(".clone())")
-	return true
-}
-
-func mapAssignmentKeyRequiresTypeDrivenConversion(keyType types.Type) bool {
-	if keyType == nil {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
-		return true
-	}
-	return isEmptyInterfaceType(keyType)
-}
-
-func mapAssignmentKeyNeedsClone(ident *ast.Ident, keyType types.Type, rhs ast.Expr) bool {
-	if ident == nil || rhs == nil || ident.Name == "_" || ident.Name == "nil" {
-		return false
-	}
-	if isCopyTypeExpression(ident) || !isCloneableNonPointerExpr(ident) {
-		return false
-	}
-	if isWrappedValueIdent(ident) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.IsPointer(ident) {
-		return false
-	}
-	if keyType != nil && stdlibInterfaceArgumentConversionExists(ident, keyType) {
-		return false
-	}
-	if mapAssignmentRangeKeyNeedsClone(ident) {
-		return true
-	}
-	return expressionReferencesIdentObject(rhs, ident)
-}
-
-func mapAssignmentRangeKeyNeedsClone(ident *ast.Ident) bool {
-	varType, isRangeVar := rangeLoopVars[ident.Name]
-	if !isRangeVar {
-		return false
-	}
-	if varType == "ref_value" || strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType) {
-		return false
-	}
-	return true
-}
-
-func expressionReferencesIdentObject(expr ast.Expr, ident *ast.Ident) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || expr == nil || ident == nil {
-		return false
-	}
-	target := typeInfo.GetObject(ident)
-	if target == nil {
-		return false
-	}
-	found := false
-	ast.Inspect(expr, func(n ast.Node) bool {
-		if found {
-			return false
-		}
-		usedIdent, ok := n.(*ast.Ident)
-		if !ok {
-			return true
-		}
-		if typeInfo.GetObject(usedIdent) == target {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-func isMapIndexExpression(expr ast.Expr) (*ast.IndexExpr, bool) {
-	indexExpr, ok := expr.(*ast.IndexExpr)
-	if !ok {
-		return nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.IsMap(indexExpr.X) {
-		return indexExpr, true
-	}
-	if kind, ok := localCollectionKind(indexExpr.X); ok {
-		return indexExpr, kind == "map"
-	}
-	return indexExpr, false
-}
-
-func isBareBuiltinReturn(call *ast.CallExpr) bool {
-	return isBareBuiltinCallName(call, "len") ||
-		isBareBuiltinCallName(call, "cap") ||
-		isBareBuiltinCallName(call, "min") ||
-		isBareBuiltinCallName(call, "max")
-}
-
-func expectsGoInt(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	return ok && ident.Name == "int"
-}
-
-func writeBareBuiltinReturnForExpectedType(out *strings.Builder, call *ast.CallExpr, expected ast.Expr) bool {
-	if !isBareBuiltinReturn(call) || !expectsGoInt(expected) {
-		return false
-	}
-	TranspileExpression(out, call)
-	out.WriteString(" as i32")
-	return true
-}
-
-func returnResultTypeExpr(fnType *ast.FuncType, index int) ast.Expr {
-	if fnType == nil || fnType.Results == nil || index < 0 {
-		return nil
-	}
-	for _, result := range fnType.Results.List {
-		count := len(result.Names)
-		if count == 0 {
-			count = 1
-		}
-		if index < count {
-			return result.Type
-		}
-		index -= count
-	}
-	return nil
-}
-
-func writeBareStructAliasValue(out *strings.Builder, expr ast.Expr) {
-	if writeOwnedExpressionValue(out, expr) {
-		return
-	}
-	TranspileExpression(out, expr)
-}
-
-func writeNamedSliceInnerHandleReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	return writeNamedSliceInnerHandleForExpectedType(out, result, expectedTypeFromParamExpr(expected))
-}
-
-func writeNamedSliceWrappedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	if _, ok := result.(*ast.SliceExpr); !ok {
-		return false
-	}
-	expectedType := expectedTypeFromParamExpr(expected)
-	expectedNamed, _, ok := namedSliceTypeFromType(expectedType)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("unimplemented!(\"type info required for named slice return\")")
-		return true
-	}
-	actual := typeInfo.GetType(result)
-	if actual == nil {
-		out.WriteString("unimplemented!(\"type info required for named slice return\")")
-		return true
-	}
-	if !types.AssignableTo(actual, expectedType) {
-		return false
-	}
-	actualNamed, _, ok := namedSliceTypeFromType(actual)
-	if !ok || !sameNamedTypeDefinition(actualNamed, expectedNamed) {
-		return false
-	}
-
-	WriteWrapperPrefix(out)
-	TranspileExpression(out, result)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func typeExprIsPointer(expr ast.Expr) bool {
-	if expr == nil {
-		return false
-	}
-	if _, ok := expr.(*ast.StarExpr); ok {
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
-	return ok
-}
-
-func writePointerNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" || !typeExprIsPointer(resultType) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(rhs) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	if isSliceElementAddress(rhs) {
-		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
-	} else if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
-	} else {
-		TranspileExpressionContext(out, rhs, AddressOf)
-		out.WriteString(".clone()")
-	}
-	out.WriteString("; ")
-	out.WriteString(RustLocalIdent(name.Name))
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writeDirectTypeParamNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" || resultType == nil || rhs == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	expected := typeInfo.GetType(resultType)
-	actual := typeInfo.GetType(rhs)
-	if expected == nil || actual == nil {
-		return false
-	}
-	if !isDirectTypeParamType(expected) || !isDirectTypeParamType(actual) || !types.AssignableTo(actual, expected) {
-		return false
-	}
-	out.WriteString(RustLocalIdent(name.Name))
-	out.WriteString(" = ")
-	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok {
-		out.WriteString(RustIdentForUse(ident))
-		out.WriteString(".clone()")
-		return true
-	}
-	if !writeTypeParamHandleExpression(out, rhs) {
-		out.WriteString(`/* ERROR: type-parameter named return assignment requires handle expression */ unimplemented!("type-parameter named return assignment")`)
-	}
-	return true
-}
-
-func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" {
-		return false
-	}
-	var converted strings.Builder
-	if !writeStdlibInterfaceCallArgumentConversion(&converted, rhs, expectedTypeFromParamExpr(resultType)) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	out.WriteString(converted.String())
-	out.WriteString("; let __moved_val = { let mut __guard = new_val")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __guard.take() }; *")
-	out.WriteString(RustLocalIdent(name.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __moved_val; }")
-	return true
-}
-
-func writeLocalInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" {
-		return false
-	}
-	var converted strings.Builder
-	if !writeLocalInterfaceConcreteReturnConversion(&converted, rhs, resultType) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	out.WriteString(converted.String())
-	out.WriteString("; let __moved_val = { let mut __guard = new_val")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __guard.take() }; *")
-	out.WriteString(RustLocalIdent(name.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __moved_val; }")
-	return true
-}
-
-func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || lhs == nil || rhs == nil {
-		return false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	rhsType := typeInfo.GetType(rhs)
-	if lhsType == nil || rhsType == nil {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(lhsType); !ok {
-		return false
-	}
-	rhsIsTranspiledInterface := false
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rhsType); ok {
-		rhsIsTranspiledInterface = true
-	}
-	if !rhsIsTranspiledInterface && !isBareLocalInterfaceValue(rhs) {
-		return false
-	}
-	if !types.AssignableTo(rhsType, lhsType) {
-		return false
-	}
-
-	if lhsIdent, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(lhsIdent) {
-		writePackageGlobalInterfaceHandleAssignment(out, lhsIdent, rhs, lhsType)
-		return true
-	}
-
-	writeTranspiledInterfaceSlotAssignmentFromHandle(out, lhs, func() {
-		writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, true)
-	})
-	return true
-}
-
-func writeLocalInterfaceHandleAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, lhsType types.Type, allowSelfCallClone bool) {
-	if isBareLocalInterfaceValue(rhs) {
-		WriteWrapperPrefix(out)
-		writeLocalInterfaceBareClone(out, rhs)
-		WriteWrapperSuffix(out)
-	} else if allowSelfCallClone && writeLocalInterfaceAssignedCallHandleClone(out, lhs, rhs) {
-		// RHS emitted by helper.
-	} else if writeLocalInterfaceReferenceCallArgument(out, rhs, lhsType) {
-		// Interface-to-interface assignment may need re-boxing when the Rust
-		// trait-object types differ, such as imported Expr assigned to positioner.
-	} else {
-		writeLocalInterfaceHandleClone(out, rhs)
-	}
-}
-
-func writePackageGlobalInterfaceHandleAssignment(out *strings.Builder, lhs *ast.Ident, rhs ast.Expr, lhsType types.Type) {
-	out.WriteString("{ let __iface_handle = ")
-	writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, false)
-	out.WriteString("; let __iface_value = { let __iface_guard = __iface_handle")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__iface_guard).clone() }; *")
-	out.WriteString(rustPackageGlobalName(lhs.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __iface_value; }")
-}
-
-func transpiledInterfaceHandleAssignmentTypes(lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || lhs == nil || rhs == nil {
-		return false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	rhsType := typeInfo.GetType(rhs)
-	if lhsType == nil || rhsType == nil {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(lhsType); !ok {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rhsType); !ok {
-		return false
-	}
-	return types.AssignableTo(rhsType, lhsType)
-}
-
-func writeTranspiledInterfaceAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
-	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
-		// Selector handle fields need the outer struct borrowed mutably before
-		// the field slot can be updated.
-	} else {
-		TranspileExpressionContext(out, lhs, LValue)
-	}
-}
-
-func writeTranspiledInterfaceSlotAssignmentFromHandle(out *strings.Builder, lhs ast.Expr, writeHandle func()) {
-	out.WriteString("{ let __iface_handle = ")
-	writeHandle()
-	out.WriteString("; let __iface_value = { let __iface_guard = __iface_handle")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__iface_guard).clone() }; *")
-	writeTranspiledInterfaceAssignmentTarget(out, lhs)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __iface_value; }")
-}
-
-func writeTranspiledInterfaceHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, value string) {
-	writeTranspiledInterfaceSlotAssignmentFromHandle(out, lhs, func() {
-		out.WriteString(value)
-	})
-}
-
-// writeConcreteToTranspiledInterfaceAssignment boxes a concrete value assigned
-// to an interface-typed target. writeLocalInterfaceHandleAssignment only covers
-// an interface LHS with an interface/bare-interface RHS (handle clone);
-// reassigning a concrete value (`typ = name` where typ is ast.Expr and name is
-// *ast.Ident) needs `Box::new(value) as Box<dyn Iface>` and works for an
-// imported interface (go_ast::Expr) too. go/parser hits this on nearly every
-// node-building path.
-func writeConcreteToTranspiledInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || lhs == nil || rhs == nil {
-		return false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	rhsType := typeInfo.GetType(rhs)
-	if lhsType == nil || rhsType == nil {
-		return false
-	}
-	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(lhsType)
-	if !ok {
-		return false
-	}
-	// Interface-to-interface and bare-interface RHS are the handle-clone case
-	// handled by writeLocalInterfaceHandleAssignment before this runs.
-	if _, rhsIsIface := transpiledNamedInterfaceTypeNameFromTypes(rhsType); rhsIsIface {
-		return false
-	}
-	if isBareLocalInterfaceValue(rhs) {
-		return false
-	}
-	// nil is handled earlier in the assignment dispatch.
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		return false
-	}
-	if !types.AssignableTo(rhsType, lhsType) {
-		return false
-	}
-	writeTranspiledInterfaceSlotAssignmentFromHandle(out, lhs, func() {
-		writeLocalInterfaceWrappedConstruction(out, rhs, ifaceName, lhsType)
-	})
-	return true
-}
-
-// writeConcreteToTranspiledInterfaceValue boxes a concrete rhs into the wrapped
-// transpiled-interface form when ifaceType is a transpiled named interface and
-// rhs is an assignable concrete (non-interface, non-nil) value. It emits only
-// the value (no `lhs =`), for use at initializer/return positions. Returns true
-// if it emitted.
-func writeConcreteToTranspiledInterfaceValue(out *strings.Builder, rhs ast.Expr, ifaceType types.Type) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || rhs == nil || ifaceType == nil {
-		return false
-	}
-	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(ifaceType)
-	if !ok {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil {
-		return false
-	}
-	// Interface-to-interface and bare-interface RHS keep the handle; nil is
-	// handled by the caller.
-	if _, rhsIsIface := transpiledNamedInterfaceTypeNameFromTypes(rhsType); rhsIsIface {
-		return false
-	}
-	if isBareLocalInterfaceValue(rhs) {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		return false
-	}
-	if !types.AssignableTo(rhsType, ifaceType) {
-		return false
-	}
-	writeLocalInterfaceWrappedConstruction(out, rhs, ifaceName, ifaceType)
-	return true
-}
-
-func writeTranspiledInterfaceInitializerValue(out *strings.Builder, rhs ast.Expr, ifaceType types.Type) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || rhs == nil || ifaceType == nil {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(ifaceType); !ok {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		return false
-	}
-	if !types.AssignableTo(rhsType, ifaceType) {
-		return false
-	}
-	return writeLocalInterfaceReferenceCallArgument(out, rhs, ifaceType)
-}
-
-func writeTranspiledInterfaceHandleClone(out *strings.Builder, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || rhs == nil {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if rhsType == nil {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rhsType); !ok {
-		return false
-	}
-	if isBareLocalInterfaceValue(rhs) {
-		WriteWrapperPrefix(out)
-		writeLocalInterfaceBareClone(out, rhs)
-		WriteWrapperSuffix(out)
-		return true
-	}
-	writeLocalInterfaceHandleClone(out, rhs)
-	return true
-}
-
-func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	lhsIdent, ok := lhs.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	call, ok := rhs.(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	recvIdent, ok := sel.X.(*ast.Ident)
-	if !ok || recvIdent.Name != lhsIdent.Name {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		lhsObj := typeInfo.GetObject(lhsIdent)
-		recvObj := typeInfo.GetObject(recvIdent)
-		if lhsObj != nil && recvObj != nil && lhsObj != recvObj {
-			return false
-		}
-	}
-
-	out.WriteString("{ let __recv = ")
-	TranspileExpressionContext(out, recvIdent, LValue)
-	out.WriteString(".clone(); let __result = ")
-	oldRenames := currentCaptureRenames
-	nextRenames := make(map[string]string, len(oldRenames)+1)
-	for name, renamed := range oldRenames {
-		nextRenames[name] = renamed
-	}
-	nextRenames[recvIdent.Name] = "__recv"
-	currentCaptureRenames = nextRenames
-	TranspileExpressionContext(out, rhs, LValue)
-	currentCaptureRenames = oldRenames
-	out.WriteString(".clone(); __result }")
-	return true
-}
-
-func writeErrorChannelNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" || !isGoErrorType(expectedTypeFromParamExpr(resultType)) {
-		return false
-	}
-	unary, ok := rhs.(*ast.UnaryExpr)
-	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	writeChannelExpression(out, unary.X)
-	out.WriteString(".recv().unwrap_or_default(); *")
-	out.WriteString(RustLocalIdent(name.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writeFunctionNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" {
-		return false
-	}
-	if _, ok := functionSignatureFromTypeExpr(resultType); !ok {
-		return false
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("*")
-		out.WriteString(RustLocalIdent(name.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = None")
-		return true
-	}
-	funcLit, ok := rhs.(*ast.FuncLit)
-	if !ok {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	TranspileFuncLitBox(out, funcLit)
-	out.WriteString("; *")
-	out.WriteString(RustLocalIdent(name.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(new_val); }")
-	return true
-}
-
-func writeFunctionReturnValue(out *strings.Builder, result ast.Expr, resultType ast.Expr) bool {
-	if _, ok := functionSignatureFromTypeExpr(resultType); !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString(`unimplemented!("type info required to lower function return value")`)
-		return true
-	}
-	typ := typeInfo.GetType(result)
-	if typ == nil {
-		out.WriteString(`unimplemented!("type info required to lower function return value")`)
-		return true
-	}
-	if !isFunctionSignatureType(typ) {
-		return false
-	}
-	return writeFunctionValueHandle(out, result)
-}
-
-func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	if !isPointerReturnExpression(result, expected) {
-		return false
-	}
-	if writeCurrentReceiverPointerHandleReturnValue(out, result, expected) {
-		return true
-	}
-	if writeSliceElemPtrReturnValue(out, result) {
-		return true
-	}
-	if indexExpr, ok := unwrapParens(result).(*ast.IndexExpr); ok {
-		indent := currentLineIndent(out)
-		if writeMultilineGenericConcurrentSequenceIndexValue(out, indexExpr, indent) {
-			return true
-		}
-	}
-	if isSliceElementAddress(result) {
-		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
-		return true
-	}
-	switch result.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-		if writeSourceMappedPackageGlobalPointerHandleClone(out, result) {
-			return true
-		}
-		TranspileExpressionContext(out, result, LValue)
-		out.WriteString(".clone()")
-	default:
-		TranspileExpression(out, result)
-	}
-	return true
-}
-
-func writeCurrentReceiverPointerHandleReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	ident, ok := result.(*ast.Ident)
-	if !ok || !currentReceiverRustAliasIsPointerHandle || !isCurrentReceiverIdent(ident) {
-		return false
-	}
-	if !isPointerReturnExpression(result, expected) {
-		return false
-	}
-	out.WriteString(currentReceiverRustName())
-	out.WriteString(".clone()")
-	return true
-}
-
-func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) {
-	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-		WriteWrappedNone(out)
-		return
-	}
-	if resultTypeExprIsBareScalar(expected) {
-		writeBareScalarReturnValue(out, result, expected)
-		return
-	}
-	if writeLocalInterfaceConcreteReturnConversion(out, result, expected) {
-		return
-	}
-	if writeStdlibInterfaceReturnConversion(out, result, expected) {
-		return
-	}
-	if writeGoErrorReturnValue(out, result, expected) {
-		return
-	}
-	if isConcreteErrorReturnValue(result, expected) {
-		WriteWrapperPrefix(out)
-		writeConcreteErrorBox(out, result)
-		WriteWrapperSuffix(out)
-		return
-	}
-	if writePointerReturnValue(out, result, expected) {
-		return
-	}
-	if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
-		TranspileExpression(out, result)
-		return
-	}
-	if _, ok := result.(*ast.SliceExpr); ok {
-		TranspileExpression(out, result)
-		return
-	}
-	if selectorExpressionKeepsHandle(result) {
-		TranspileExpressionContext(out, result, LValue)
-		out.WriteString(".clone()")
-		return
-	}
-	if mapIndexExpressionKeepsHandle(result) {
-		TranspileExpression(out, result)
-		return
-	}
-	if call, ok := result.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-			TranspileExpression(out, result)
-			return
-		}
-	}
-	if ident, ok := result.(*ast.Ident); ok {
-		if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
-			writePackageGlobalPointerHandleClone(out, globalIdent)
-			return
-		}
-		if writeRangeHandleReturnValue(out, ident) {
-			return
-		}
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(result) && !isConstIdent(ident) {
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(".clone()")
-			return
-		}
-	}
-
-	WriteWrapperPrefix(out)
-	if call, ok := result.(*ast.CallExpr); ok && writeBareBuiltinReturnForExpectedType(out, call, expected) {
-		// Builtin emitted in the expected Go result representation.
-	} else if writeExpressionForExpectedType(out, result, expected) {
-		// Constant or typed expression emitted in the expected representation.
-	} else if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-		out.WriteString(RustStringLiteral(lit.Value))
-		out.WriteString(".to_string()")
-	} else if !isCopyTypeExpression(result) && writeOwnedExpressionValue(out, result) {
-		// Owned non-copy value emitted above.
-	} else {
-		TranspileExpression(out, result)
-	}
-	WriteWrapperSuffix(out)
-}
-
-func returnResultsShouldUseMultiline(results []ast.Expr) bool {
-	if !NeedsConcurrentWrapper() || len(results) < 2 {
-		return false
-	}
-	for _, result := range results {
-		if compositeLiteralElementIsComplex(result) {
-			return true
-		}
-	}
-	return false
-}
-
-func writeNamedReturnAssignmentFromTemp(out *strings.Builder, name *ast.Ident, resultType ast.Expr, tempName string) {
-	if name == nil || name.Name == "_" {
-		return
-	}
-	if resultTypeExprIsBareScalar(resultType) {
-		out.WriteString("        *")
-		out.WriteString(RustLocalIdent(name.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = Some(")
-		out.WriteString(tempName)
-		out.WriteString(");\n")
-		return
-	}
-	if isGoErrorType(expectedTypeFromParamExpr(resultType)) {
-		out.WriteString("        { let __moved_val = { let mut __guard = ")
-		out.WriteString(tempName)
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __guard.take() }; *")
-		out.WriteString(RustLocalIdent(name.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = __moved_val; }\n")
-		return
-	}
-	out.WriteString("        ")
-	out.WriteString(RustLocalIdent(name.Name))
-	out.WriteString(" = ")
-	out.WriteString(tempName)
-	out.WriteString(";\n")
-}
-
-func writeNamedReturnValuesWithBlankTemps(out *strings.Builder, fnType *ast.FuncType, blankTemps []string) {
-	names := namedReturnIdents(fnType)
-	if len(names) == 0 {
-		return
-	}
-	if len(names) > 1 {
-		out.WriteString("(")
-	}
-	first := true
-	resultIndex := 0
-	for _, result := range fnType.Results.List {
-		for _, name := range result.Names {
-			if !first {
-				out.WriteString(", ")
-			}
-			first = false
-			if name.Name == "_" {
-				if resultIndex < len(blankTemps) && blankTemps[resultIndex] != "" {
-					out.WriteString(blankTemps[resultIndex])
-				} else if resultTypeExprIsBareScalar(result.Type) {
-					writeBareScalarZeroValue(out, result.Type)
-				} else {
-					writeNamedReturnZeroValue(out, result.Type)
-				}
-			} else {
-				if resultTypeExprIsBareScalar(result.Type) {
-					out.WriteString("(*")
-					out.WriteString(RustLocalIdent(name.Name))
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
-				} else {
-					out.WriteString(RustLocalIdent(name.Name))
-					out.WriteString(".clone()")
-				}
-			}
-			resultIndex++
-		}
-	}
-	if len(names) > 1 {
-		out.WriteString(")")
-	}
-}
-
-func namedTypeForTypeExpr(expr ast.Expr) (*types.Named, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || expr == nil {
-		return nil, false
-	}
-	if typ := typeInfo.GetType(expr); typ != nil {
-		if named, ok := typ.(*types.Named); ok {
-			return named, true
-		}
-	}
-	if typeInfo.info == nil {
-		return nil, false
-	}
-	switch e := expr.(type) {
-	case *ast.Ident:
-		if obj, ok := typeInfo.info.Uses[e].(*types.TypeName); ok {
-			if named, ok := obj.Type().(*types.Named); ok {
-				return named, true
-			}
-		}
-	case *ast.SelectorExpr:
-		if obj, ok := typeInfo.info.Uses[e.Sel].(*types.TypeName); ok {
-			if named, ok := obj.Type().(*types.Named); ok {
-				return named, true
-			}
-		}
-	}
-	return nil, false
-}
-
-func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || result == nil || expected == nil {
-		return false
-	}
-	targetNamed, ok := namedTypeForTypeExpr(expected)
-	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
-		return false
-	}
-	if !isStubBackedStdlibPackagePath(targetNamed.Obj().Pkg().Path()) {
-		return false
-	}
-	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
-	if !ok {
-		return false
-	}
-	sourceType := typeInfo.GetType(result)
-	if sourceType == nil {
-		return false
-	}
-	sourceNamedType := sourceType
-	if ptr, ok := sourceType.(*types.Pointer); ok {
-		sourceNamedType = ptr.Elem()
-	}
-	sourceNamed, ok := sourceNamedType.(*types.Named)
-	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
-		return false
-	}
-	if sourceNamed.Obj() == targetNamed.Obj() {
-		return false
-	}
-	if !isStubBackedStdlibPackagePath(sourceNamed.Obj().Pkg().Path()) {
-		return false
-	}
-	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) &&
-		!stdlibHelperTypeAllowsInterfaceConversion(
-			sourceNamed.Obj().Pkg().Path(),
-			sourceNamed.Obj().Name(),
-			targetNamed.Obj().Pkg().Path(),
-			targetNamed.Obj().Name(),
-		) {
-		return false
-	}
-	targetInterface.Complete()
-	if !types.Implements(sourceType, targetInterface) {
-		return false
-	}
-	targetRust := goTypesNamedTypeToRust(targetNamed)
-	sourceRust := goTypesNamedTypeToRust(sourceNamed)
-	RegisterExternalTypeStubConversion(targetRust, sourceRust)
-	return true
-}
-
-func writeStdlibInterfaceIdentReturnConversion(out *strings.Builder, ident *ast.Ident, expected ast.Expr) bool {
-	if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(expected)) {
-		return true
-	}
-	if !stdlibInterfaceReturnConversion(ident, expected) {
-		return false
-	}
-	varName := RustIdentForUse(ident)
-	if currentCaptureRenames != nil {
-		if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-			varName = RustLocalIdent(renamed)
-		}
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("(*")
-	out.WriteString(varName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone().into()")
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeStdlibInterfaceReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	if writeStdlibInterfaceCallArgumentConversion(out, result, expectedTypeFromParamExpr(expected)) {
-		return true
-	}
-
-	unaryExpr, ok := result.(*ast.UnaryExpr)
-	if !ok || unaryExpr.Op != token.AND {
-		return false
-	}
-	compositeLit, ok := unaryExpr.X.(*ast.CompositeLit)
-	if !ok {
-		return false
-	}
-	if !stdlibInterfaceReturnConversion(result, expected) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	TranspileExpressionContext(out, compositeLit, AddressOf)
-	out.WriteString(".into()")
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func isPointerReturnExpected(expected ast.Expr) bool {
-	if expected == nil {
-		return false
-	}
-	if _, ok := expected.(*ast.StarExpr); ok {
-		return true
-	}
-	expectedType := expectedTypeFromParamExpr(expected)
-	if expectedType == nil {
-		return false
-	}
-	_, ok := types.Unalias(expectedType).Underlying().(*types.Pointer)
-	return ok
-}
-
-func isPointerReturnExpression(result ast.Expr, expected ast.Expr) bool {
-	if !isPointerReturnExpected(expected) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsPointer(result)
-}
-
-func isSliceElementAddress(expr ast.Expr) bool {
-	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
-	if !ok || unary.Op != token.AND {
-		return false
-	}
-	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsSlice(indexExpr.X)
-}
-
-func writeStdlibInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	var value strings.Builder
-	if !writeStdlibInterfaceBareConversion(&value, rhs, lhsType) {
-		return false
-	}
-
-	out.WriteString("{ let new_val = ")
-	out.WriteString(value.String())
-	out.WriteString("; *")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(new_val); }")
-	return true
-}
-
-func isBuiltinCallNamed(call *ast.CallExpr, name string) bool {
-	ident, ok := call.Fun.(*ast.Ident)
-	if !ok || ident.Name != name {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	obj, ok := typeInfo.info.Uses[ident]
-	if !ok {
-		return false
-	}
-	builtin, ok := obj.(*types.Builtin)
-	return ok && builtin.Name() == name
-}
-
-func localMakeSliceTypeAnnotation(rhs ast.Expr) (string, bool) {
-	call, ok := rhs.(*ast.CallExpr)
-	if !ok || len(call.Args) < 2 || !isBuiltinCallNamed(call, "make") {
-		return "", false
-	}
-	arrayType, ok := call.Args[0].(*ast.ArrayType)
-	if !ok || arrayType.Len != nil {
-		return "", false
-	}
-	if structElt, ok := arrayType.Elt.(*ast.StructType); ok {
-		generateAnonymousStructType(structElt)
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return "", false
-	}
-	typ := typeInfo.GetType(call)
-	if typ == nil {
-		typ = typeInfo.GetType(call.Args[0])
-	}
-	if typ == nil {
-		return "", false
-	}
-	if typeContainsTypeParam(typ) {
-		return "", false
-	}
-	sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice)
-	if !ok {
-		return "", false
-	}
-	elem := sliceType.Elem()
-	if zeroValueForTypesType(elem) != "Default::default()" && !isGoErrorType(elem) && !isPointerTypeOrUnderlying(elem) {
-		return "", false
-	}
-	return goTypesTypeToRustWrapped(typ), true
-}
-
-func isPointerTypeOrUnderlying(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
-	return ok
-}
-
-func typeContainsTypeParam(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	switch t := types.Unalias(typ).(type) {
-	case *types.TypeParam:
-		return true
-	case *types.Named:
-		if args := t.TypeArgs(); args != nil {
-			for i := 0; i < args.Len(); i++ {
-				if typeContainsTypeParam(args.At(i)) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	switch t := types.Unalias(typ).Underlying().(type) {
-	case *types.Slice:
-		return typeContainsTypeParam(t.Elem())
-	case *types.Array:
-		return typeContainsTypeParam(t.Elem())
-	case *types.Pointer:
-		return typeContainsTypeParam(t.Elem())
-	case *types.Map:
-		return typeContainsTypeParam(t.Key()) || typeContainsTypeParam(t.Elem())
-	}
-	return false
-}
-
-func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.CompositeLit:
-		return isCompositeLitSelfWrapping(e)
-	case *ast.SliceExpr:
-		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			return typeInfo.ReturnsWrappedValue(e)
-		}
-		return true
-	case *ast.CallExpr:
-		return isBuiltinCallNamed(e, "make") && !isMakeChannelCall(e)
-	case *ast.IndexExpr:
-		return mapIndexExpressionKeepsHandle(e)
-	default:
-		return false
-	}
-}
-
-func isTypedAssignmentSelfWrappingExpression(expr ast.Expr) bool {
-	if lit, ok := expr.(*ast.CompositeLit); ok && lit.Type == nil {
-		return false
-	}
-	return isAssignmentSelfWrappingExpression(expr)
-}
-
-func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
-	indexExpr, ok := expr.(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsMap(indexExpr.X) && mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
-}
-
-func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
-	indexExpr, ok := expr.(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if typeInfo.IsMap(indexExpr.X) {
-		return false
-	}
-	_, ok = transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(indexExpr))
-	return ok
-}
-
-// goTypeIsCopiedByValue reports whether assigning a value of this type gives
-// the destination a value of its own: a string, a number, a bool, a struct
-// or an array, or a defined type over one of those. Every place that decides
-// between copying a value and sharing its handle asks here, so that they
-// cannot disagree.
-func goTypeIsCopiedByValue(typ types.Type) bool {
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Basic, *types.Struct, *types.Array:
-		return true
-	}
-	return false
-}
-
-// receiverFieldIsReturnedByCopy reports whether a field of the receiver is
-// a value that Go copies when a method returns it. The caller's variable is
-// then its own. Returning the field's handle would make the caller's
-// variable and the field one variable, so that "name := u.Name(); name =
-// strings.ToUpper(name)" changed the struct.
-//
-// known is false when the type checker has no type for the field. The
-// caller must not guess then: a wrong guess is a silent aliasing bug.
-func receiverFieldIsReturnedByCopy(expr ast.Expr) (copied bool, known bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false, false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false, false
-	}
-	return goTypeIsCopiedByValue(typ), true
-}
-
-func receiverFieldTypeIsKnown(expr ast.Expr) bool {
-	_, known := receiverFieldIsReturnedByCopy(expr)
-	return known
-}
-
-func receiverFieldIsCopied(expr ast.Expr) bool {
-	copied, _ := receiverFieldIsReturnedByCopy(expr)
-	return copied
-}
-
-func selectorExpressionKeepsHandle(expr ast.Expr) bool {
-	sel, ok := expr.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil {
-			return mapValueTypeKeepsHandle(typ)
-		}
-	}
-	fieldExpr, ok := selectorFieldTypeExpr(sel)
-	return ok && fieldExprKeepsHandle(fieldExpr)
-}
-
-func assignmentTargetIsEmptyInterface(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil {
-			return isEmptyInterfaceType(typ)
-		}
-	}
-	return isEmptyInterfaceValueExpr(expr)
-}
-
-func writeEmptyInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	if !assignmentTargetIsEmptyInterface(lhs) {
-		return false
-	}
-	if writeEmptyInterfaceIdentAssignment(out, lhs, rhs) {
-		return true
-	}
-	out.WriteString("{ ")
-	out.WriteString("let new_val = ")
-	writeInterfaceBoxedValue(out, rhs)
-	out.WriteString("; ")
-	out.WriteString("*")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(new_val); }")
-	return true
-}
-
-func selectorFieldTypeExpr(sel *ast.SelectorExpr) (ast.Expr, bool) {
-	typeName, ok := selectorBaseSyntaxTypeName(sel.X)
-	if !ok {
-		return nil, false
-	}
-	structDef := structDefs[typeName]
-	if structDef == nil {
-		structDef = structDefs[strings.TrimPrefix(typeName, "*")]
-	}
-	if structDef == nil {
-		return nil, false
-	}
-	fieldExpr := structDefFieldTypeExpr(structDef, sel.Sel.Name)
-	return fieldExpr, fieldExpr != nil
-}
-
-func structDefFieldTypeExpr(structDef *StructDef, fieldName string) ast.Expr {
-	if structDef == nil {
-		return nil
-	}
-	if len(structDef.FieldTypes) > 0 {
-		if fieldExpr := structDef.FieldTypes[fieldName]; fieldExpr != nil {
-			return fieldExpr
-		}
-		for name, fieldExpr := range structDef.FieldTypes {
-			if fieldExpr != nil && ToSnakeCase(name) == ToSnakeCase(fieldName) {
-				return fieldExpr
-			}
-		}
-	}
-	return findStructFieldExpr(structDef.ASTType, fieldName)
-}
-
-func selectorBaseSyntaxTypeName(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return "", false
-	}
-	if isCurrentReceiverIdent(ident) && currentReceiverType != "" {
-		return currentReceiverType, true
-	}
-	if vt := GetVarTable(); vt != nil {
-		if info := vt.Lookup(ident.Name); info != nil && info.RustType != "" {
-			return unwrapStoredRustType(info.RustType), true
-		}
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typeName, ok := localNamedTypeNameFromGoType(typeInfo.GetType(expr)); ok {
-			return typeName, true
-		}
-	}
-	return "", false
-}
-
-func selectorReceiverTypeKnown(sel *ast.SelectorExpr) bool {
-	if sel == nil {
-		return false
-	}
-	_, ok := selectorBaseSyntaxTypeName(sel.X)
-	return ok
-}
-
-func localNamedTypeNameFromGoType(typ types.Type) (string, bool) {
-	if typ == nil {
-		return "", false
-	}
-	typ = types.Unalias(typ)
-	if ptr, ok := typ.(*types.Pointer); ok {
-		return localNamedTypeNameFromGoType(ptr.Elem())
-	}
-	named, ok := typ.(*types.Named)
-	if !ok || named.Obj() == nil {
-		return "", false
-	}
-	return named.Obj().Name(), true
-}
-
-func expressionFunctionSignature(expr ast.Expr) (*types.Signature, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return nil, false
-	}
-	sig, ok := typ.Underlying().(*types.Signature)
-	return sig, ok
-}
-
-func funcLitAssignmentTargetNeedsClone(lhs ast.Expr, funcLit *ast.FuncLit) bool {
-	if lhs == nil || funcLit == nil {
-		return false
-	}
-	captured := capturedVarsForFuncLit(funcLit)
-	if len(captured) == 0 {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-
-	needsClone := false
-	var inspect func(ast.Node)
-	inspect = func(node ast.Node) {
-		if node == nil || needsClone {
-			return
-		}
-		ast.Inspect(node, func(n ast.Node) bool {
-			if n == nil || needsClone {
-				return false
-			}
-			switch node := n.(type) {
-			case *ast.SelectorExpr:
-				inspect(node.X)
-				return false
-			case *ast.Ident:
-				if !captured[node.Name] {
-					return true
-				}
-				obj, ok := typeInfo.GetObject(node).(*types.Var)
-				if ok && !isPackageScopeObject(obj) {
-					needsClone = true
-					return false
-				}
-			}
-			return true
-		})
-	}
-	inspect(lhs)
-	return needsClone
-}
-
-func functionTypeRustNameFromTypeExpr(expr ast.Expr) (string, bool) {
-	switch t := expr.(type) {
-	case *ast.FuncType:
-		return generateClosureType(t), true
-	case *ast.Ident:
-		if rustType, ok := FunctionTypeAliasBox(t.Name); ok {
-			return rustType, true
-		}
-		if IsFunctionTypeAlias(t.Name) {
-			return RustTypeNameForUse(t.Name), true
-		}
-		if underlying, isTypeDef := LookupTypeDefinition(t.Name); isTypeDef && underlying == "func" {
-			return RustTypeNameForUse(t.Name), true
-		}
-	}
-	return "", false
-}
-
-func expressionHasFunctionSignatureSyntax(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	info := lookupVarInfo(ident.Name)
-	if info == nil {
-		return false
-	}
-	rustType := strings.TrimPrefix(info.RustType, "&")
-	return isFunctionValueRustType(rustType)
-}
-
-func isFunctionValueRustType(rustType string) bool {
-	rustType = strings.TrimPrefix(rustType, "&")
-	switch rustType {
-	case "GoCancelFunc", "GoCancelCauseFunc":
-		return true
-	}
-	return strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType)
-}
-
-func fieldTypeExprCanBeFunctionValue(fieldExpr ast.Expr) bool {
-	if isFunctionSignatureTypeExpr(fieldExpr) {
-		return true
-	}
-	if _, ok := functionTypeRustNameFromTypeExpr(fieldExpr); ok {
-		return true
-	}
-	_, ok := namedFieldTypeFallbackFunctionRustName(fieldExpr)
-	return ok
-}
-
-func uniqueFunctionStructFieldTypeExpr(fieldName string) (ast.Expr, bool) {
-	var found ast.Expr
-	for _, def := range structDefs {
-		if def == nil || def.ASTType == nil {
-			continue
-		}
-		fieldExpr := structDefFieldTypeExpr(def, fieldName)
-		if fieldExpr == nil {
-			continue
-		}
-		if !fieldTypeExprCanBeFunctionValue(fieldExpr) {
-			continue
-		}
-		if found != nil {
-			return nil, false
-		}
-		found = fieldExpr
-	}
-	return found, found != nil
-}
-
-func callSingleReturnTypeExpr(call *ast.CallExpr) ast.Expr {
-	if call == nil {
-		return nil
-	}
-	ident, ok := call.Fun.(*ast.Ident)
-	if !ok {
-		return nil
-	}
-	sig := GetFunctionSignature(ident.Name)
-	if sig == nil || len(sig.Results) != 1 {
-		return nil
-	}
-	return sig.Results[0].Type
-}
-
-func functionSignatureFromTypeExpr(expr ast.Expr) (*types.Signature, bool) {
-	if _, ok := expr.(*ast.FuncType); ok {
-		return nil, true
-	}
-	typ := expectedTypeFromParamExpr(expr)
-	if typ == nil {
-		return nil, false
-	}
-	sig, ok := types.Unalias(typ).Underlying().(*types.Signature)
-	return sig, ok
-}
-
-func functionTypeExprUsesWrappedHandle(expr ast.Expr) (bool, bool) {
-	if expr == nil {
-		return false, true
-	}
-	if _, ok := expr.(*ast.FuncType); ok {
-		return false, true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false, false
-	}
-	typ := expectedTypeFromParamExpr(expr)
-	if typ == nil {
-		return false, false
-	}
-	_, ok := signatureFromType(typ)
-	return ok, true
-}
-
-func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
-	if writeCurrentReceiverLocalAssignment(out, lhs, rhs) {
-		return
-	}
-	out.WriteString("{ ")
-	out.WriteString("let new_val = ")
-	TranspileExpression(out, rhs)
-	out.WriteString("; let __moved_val = { let mut __guard = new_val")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __guard.take() }; ")
-	out.WriteString("*")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = __moved_val; }")
-}
-
-func writeCapturedCurrentReceiverAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || !isCurrentReceiverIdent(ident) || currentCaptureRenames == nil {
-		return false
-	}
-	renamed, ok := currentCaptureRenames[ident.Name]
-	if !ok || renamed == "" || renamed == ident.Name {
-		return false
-	}
-	target := RustLocalIdent(renamed)
-	typeInfo := GetTypeInfo()
-	out.WriteString("{ ")
-	call, isCall := rhs.(*ast.CallExpr)
-	if typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) && (!isCall || !isBareBuiltinReturn(call)) {
-		out.WriteString("let new_val = ")
-		TranspileExpression(out, rhs)
-		out.WriteString("; let __moved_val = { let mut __guard = new_val")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __guard.take().unwrap() }; ")
-		out.WriteString(target)
-		out.WriteString(" = __moved_val; }")
-		return true
-	}
-	out.WriteString(target)
-	out.WriteString(" = ")
-	TranspileExpression(out, rhs)
-	out.WriteString("; }")
-	return true
-}
-
-func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) {
-	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
-		return
-	}
-	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, true, nil) {
-		return
-	}
-	if writePointerHandleAssignmentFromTemp(out, lhs, tmpName) {
-		return
-	}
-	movedName := "__moved_" + strings.TrimLeft(tmpName, "_")
-	out.WriteString(" let ")
-	out.WriteString(movedName)
-	out.WriteString(" = { let mut __guard = ")
-	out.WriteString(tmpName)
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __guard.take() };")
-	out.WriteString(" *")
-	writeTempAssignmentTargetRef(out, lhs)
-	out.WriteString(" = ")
-	out.WriteString(movedName)
-	out.WriteString(";")
-}
-
-func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string, tmpBareScalar bool) {
-	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
-		return
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
-		out.WriteString(" ")
-		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(" = ")
-		out.WriteString(tmpName)
-		out.WriteString(".clone();")
-		return
-	}
-	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, !tmpBareScalar, nil) {
-		return
-	}
-	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, !tmpBareScalar) {
-		return
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
-		out.WriteString(" ")
-		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(" = ")
-		if tupleTempNeedsUnwrapForBareAssignment(lhs, tmpBareScalar) {
-			writeClonedTupleTempInner(out, tmpName)
-		} else {
-			out.WriteString(tmpName)
-		}
-		out.WriteString(";")
-		return
-	}
-	if tmpBareScalar {
-		out.WriteString(" *")
-		writeTempAssignmentTargetRef(out, lhs)
-		out.WriteString(" = Some(")
-		out.WriteString(tmpName)
-		out.WriteString(");")
-		return
-	}
-	writeMoveWrappedInnerAssignmentFromTemp(out, lhs, tmpName)
-}
-
-func writeMultilineTupleReassignment(out *strings.Builder, s *ast.AssignStmt) bool {
-	if s == nil || len(s.Rhs) != 1 || !tupleReassignmentCallShouldUseMultiline(s.Rhs[0]) {
-		return false
-	}
-	call, ok := unwrapParens(s.Rhs[0]).(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	indent := currentLineIndent(out)
-	out.WriteString("{\n")
-	out.WriteString(indent)
-	out.WriteString("    let (")
-	for i := range s.Lhs {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(fmt.Sprintf("__tmp_%d", i))
-	}
-	out.WriteString(") = ")
-	TranspileExpression(out, s.Rhs[0])
-	out.WriteString(";\n")
-	for i, lhs := range s.Lhs {
-		var line strings.Builder
-		tmpName := fmt.Sprintf("__tmp_%d", i)
-		if !writeTupleSliceElemPtrFieldAssignmentFromTemp(&line, lhs, tmpName, call, i) {
-			if !writeTupleSliceElemPtrVarAssignmentFromTemp(&line, lhs, tmpName, call, i) {
-				if !writeTupleGoPtrAssignmentFromTemp(&line, lhs, tmpName, call, i) {
-					writeTupleAssignmentFromTemp(&line, lhs, tmpName, callResultIsBareScalar(call, i))
-				}
-			}
-		}
-		writeIndentedTupleAssignmentText(out, line.String(), indent+"    ")
-	}
-	out.WriteString(indent)
-	out.WriteString("}")
-	return true
-}
-
-func tupleReassignmentCallShouldUseMultiline(rhs ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	call, ok := unwrapParens(rhs).(*ast.CallExpr)
-	if !ok {
-		return false
-	}
-	return methodCallReceiverIsTypedFieldSelector(call)
-}
-
-func methodCallReceiverIsTypedFieldSelector(call *ast.CallExpr) bool {
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	receiverSel, ok := unwrapParens(sel.X).(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	selection, ok := typeInfo.info.Selections[receiverSel]
-	return ok && selection.Kind() == types.FieldVal
-}
-
-func writeIndentedTupleAssignmentText(out *strings.Builder, text string, indent string) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return
-	}
-	out.WriteString(indent)
-	out.WriteString(text)
-	out.WriteString("\n")
-}
-
-func tupleTempNeedsUnwrapForBareAssignment(lhs ast.Expr, tmpBareScalar bool) bool {
-	if tmpBareScalar {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if typeInfo.IsString(lhs) {
-		return true
-	}
-	return typeIsPredeclaredCopyScalar(typeInfo.GetType(lhs))
-}
-
-func writeClonedTupleTempInner(out *strings.Builder, tmpName string) {
-	out.WriteString("{ let __tmp_holder = ")
-	out.WriteString(tmpName)
-	out.WriteString(".clone(); let __tmp_guard = __tmp_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__tmp_guard.as_ref().unwrap()).clone() }")
-}
-
-func writeTempAssignmentTargetRef(out *strings.Builder, lhs ast.Expr) {
-	if star, ok := lhs.(*ast.StarExpr); ok {
-		TranspileExpressionContext(out, star.X, LValue)
-		WriteBorrowMethod(out, true)
-		return
-	}
-	if ident, ok := lhs.(*ast.Ident); ok {
-		out.WriteString(rustIdentForUseWithCapture(ident))
-		WriteBorrowMethod(out, true)
-		return
-	}
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-}
-
-func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	var elemType types.Type
-	if typeInfo != nil {
-		if typeInfo.IsMap(indexExpr.X) {
-			return false
-		}
-		elemType = typeInfo.GetArrayOrSliceElemType(indexExpr.X)
-	} else {
-		out.WriteString(" /* ERROR: Cannot determine indexed assignment target - type information required */ unimplemented!(\"type info required for indexed assignment\")")
-		return true
-	}
-	elemKeepsHandle := indexedSequenceElementKeepsHandle(elemType)
-	if !elemKeepsHandle {
-		elemKeepsHandle = tupleTempAssignsHandleToElementBySyntax(indexExpr.X)
-	}
-	if writeGoPtrPointedArrayAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle) {
-		return true
-	}
-	// The index is evaluated before the sequence is locked for writing:
-	// "s[len(s)-1], x = a, b" reads the sequence in its index. A sequence
-	// that calls a function is evaluated before its index, as in Go: its
-	// handle is taken first and held.
-	holdsSequence := expressionCallsOrReceives(indexExpr.X)
-	writeSequenceHandle := func() {
-		if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-			writeNamedSliceInnerHandleClone(out, subj)
-		} else {
-			TranspileExpressionContext(out, indexExpr.X, LValue)
-		}
-	}
-	out.WriteString(" { ")
-	if holdsSequence {
-		out.WriteString("let __seq = ")
-		writeSequenceHandle()
-		out.WriteString(".clone(); ")
-	}
-	out.WriteString("let __idx = ")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; (*")
-	if holdsSequence {
-		out.WriteString("__seq")
-	} else {
-		writeSequenceHandle()
-	}
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[__idx] = ")
-	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-	out.WriteString("; }")
-	return true
-}
-
-func writeGoPtrPointedArrayAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool, rhs ast.Expr, elemKeepsHandle bool) bool {
-	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
-	if !ok {
-		return false
-	}
-	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
-		return false
-	}
-	out.WriteString(" ")
-	out.WriteString(rustIdentForUseWithCapture(ident))
-	out.WriteString(".with_mut(|__seq| { __seq[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] = ")
-	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-	out.WriteString("; });")
-	return true
-}
-
-func writeIndexedSequenceTempAssignmentValue(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool, rhs ast.Expr, elemKeepsHandle bool) {
-	if elemKeepsHandle {
-		out.WriteString(tmpName)
-	} else if tmpWrapped {
-		out.WriteString(tmpName)
-		WriteBorrowMethod(out, true)
-		out.WriteString(".take().unwrap_or_default()")
-	} else if rhs != nil {
-		writeIndexedSequenceBareTempValue(out, indexExpr, tmpName, rhs)
-	} else {
-		out.WriteString(tmpName)
-	}
-}
-
-func writeIndexedSequenceBareTempValue(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, rhs ast.Expr) {
-	if wrapper := parallelTempNamedIntegerWrap(indexExpr, rhs); wrapper != "" {
-		out.WriteString(wrapper)
-		out.WriteString("(")
-		WriteWrapperPrefix(out)
-		out.WriteString(tmpName)
-		if cast := parallelTempNamedIntegerCast(indexExpr); cast != "" {
-			out.WriteString(" as ")
-			out.WriteString(cast)
-		}
-		WriteWrapperSuffix(out)
-		out.WriteString(")")
-		return
-	}
-	out.WriteString(tmpName)
-	if cast := parallelTempBareCast(indexExpr, rhs); cast != "" {
-		out.WriteString(" as ")
-		out.WriteString(cast)
-	}
-}
-
-func indexedSequenceElementKeepsHandle(elemType types.Type) bool {
-	if elemType == nil {
-		return false
-	}
-	if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
-		return true
-	}
-	return rustMapValueTypeKeepsHandle(goTypesCollectionElemTypeToRust(elemType))
-}
-
-func tupleTempAssignsHandleToElementBySyntax(expr ast.Expr) bool {
-	elemType, ok := localCollectionElemRustType(expr)
-	return ok && rustMapValueTypeKeepsHandle(elemType)
-}
-
-func tupleTempAssignsHandleToElement(elemType types.Type) bool {
-	if elemType == nil {
-		return false
-	}
-	if isGoErrorType(elemType) {
-		return true
-	}
-	switch types.Unalias(elemType).Underlying().(type) {
-	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
-		return true
-	default:
-		return false
-	}
-}
-
-func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return false
-	}
-	varType, ok := rangeLoopVars[ident.Name]
-	if !ok || varType == "ref_value" || strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType) {
-		return false
-	}
-
-	var expected types.Type
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		expected = typeInfo.GetType(lhs)
-		if expected == nil {
-			if ident, ok := lhs.(*ast.Ident); ok {
-				if obj := typeInfo.GetObject(ident); obj != nil {
-					expected = obj.Type()
-				}
-			}
-		}
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); ok {
-		return false
-	}
-	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
-		out.WriteString("{ let new_val = ")
-		writeBareAnyBox(out, rhs)
-		out.WriteString("; ")
-		out.WriteString(RustIdentForUse(ident))
-		out.WriteString(" = new_val; }")
-		return true
-	}
-
-	out.WriteString("{ let new_val = ")
-	writeBareCompoundAssignValue(out, rhs, expected)
-	out.WriteString("; ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
-		return false
-	}
-	rhsIsPointer := typeInfo.IsPointer(rhs)
-	if !rhsIsPointer {
-		if ident, ok := rhs.(*ast.Ident); ok {
-			rhsIsPointer = rangeLoopVarGoTypeIsPointer(ident.Name)
-		}
-	}
-	if !rhsIsPointer {
-		return false
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
-		return false
-	}
-	if _, ok := lhs.(*ast.SelectorExpr); ok {
-		var unsupported strings.Builder
-		if writeUnsupportedSliceElemPointerHandleValue(&unsupported, rhs, "slice element pointer cannot assign to pointer field") {
-			out.WriteString("{ let new_val = ")
-			out.WriteString(unsupported.String())
-			out.WriteString("; ")
-			writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-			out.WriteString(" }")
-			return true
-		}
-	}
-	if ident, ok := packageGlobalPointerIdent(lhs); ok {
-		out.WriteString("{ let new_val = ")
-		writePointerHandleValueClone(out, rhs)
-		out.WriteString("; *")
-		out.WriteString(rustPackageGlobalName(ident.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = Some(new_val); }")
-		return true
-	}
-	out.WriteString("{ let new_val = ")
-	writePointerHandleValueClone(out, rhs)
-	out.WriteString("; ")
-	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
-	out.WriteString(" }")
-	return true
-}
-
-func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
-	if writeCurrentPointerReceiverHandleClone(out, rhs) {
-		return
-	}
-	if ident, ok := rhs.(*ast.Ident); ok && rangeLoopVarGoTypeIsPointer(ident.Name) {
-		varType := rangeLoopVars[ident.Name]
-		if strings.HasPrefix(varType, "&") {
-			out.WriteString("(*")
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(").clone()")
-			return
-		}
-	}
-	if ident, ok := packageGlobalPointerIdent(rhs); ok {
-		writePackageGlobalPointerHandleClone(out, ident)
-		return
-	}
-	if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
-		return
-	}
-	if sel, ok := unwrapParens(rhs).(*ast.SelectorExpr); ok {
-		if writeGoPtrSelectorReadHandle(out, sel) {
-			return
-		}
-	}
-	TranspileExpressionContext(out, rhs, AddressOf)
-	out.WriteString(".clone()")
-}
-
-func writeTypeParamWrappedIdentValueClone(out *strings.Builder, ident *ast.Ident, rustVarName string) bool {
-	if ident == nil || rustVarName == "" {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(ident)
-	if typ == nil {
-		out.WriteString(`/* ERROR: Type information required for type-parameter value clone */ unimplemented!("type info required for type-parameter value clone")`)
-		return true
-	}
-	if !isDirectTypeParamType(typ) {
-		return false
-	}
-	NeedGoValueClone()
-	out.WriteString("(*")
-	out.WriteString(rustVarName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).go_value_clone()")
-	return true
-}
-
-func writeCurrentPointerReceiverHandleClone(out *strings.Builder, rhs ast.Expr) bool {
-	ident, ok := unwrapParens(rhs).(*ast.Ident)
-	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverObject == nil {
-		return false
-	}
-	if _, isPtr := types.Unalias(currentReceiverObject.Type()).(*types.Pointer); !isPtr {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString(currentReceiverRustName())
-	out.WriteString(".clone()")
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writePackageGlobalPointerNilAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	rhsIdent, ok := rhs.(*ast.Ident)
-	if !ok || rhsIdent.Name != "nil" {
-		return false
-	}
-	lhsIdent, ok := packageGlobalPointerIdent(lhs)
-	if !ok {
-		return false
-	}
-	var lhsType types.Type
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		lhsType = typeInfo.GetType(lhs)
-	}
-	out.WriteString("*")
-	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(")
-	out.WriteString(zeroValueForTypesType(lhsType))
-	out.WriteString(")")
-	return true
-}
-
-func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
-	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
-		return
-	}
-	TranspileExpressionContext(out, lhs, LValue)
-}
-
-func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs ast.Expr, valueName string) {
-	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
-		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-		if writeGoPtrFieldSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-	}
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = ")
-	out.WriteString(valueName)
-	out.WriteString(";")
-}
-
-func writeGoPtrFieldSelectorHandleReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
-	base, ok := unwrapParens(sel.X).(*ast.SelectorExpr)
-	if !ok || !generatedGoPtrFieldForSelector(base) {
-		return false
-	}
-	fieldInfo := selectorFieldAccessInfo(sel)
-	out.WriteString("{ let __ptr_target = ")
-	writeGeneratedGoPtrFieldHandleClone(out, base)
-	out.WriteString("; __ptr_target.with_mut(|__ptr_value| { ")
-	if fieldInfo.IsPromoted {
-		writePromotedHandleAssignmentTarget(out, "__ptr_value", fieldInfo, false)
-	} else {
-		out.WriteString("__ptr_value.")
-		out.WriteString(fieldInfo.FieldName)
-	}
-	out.WriteString(" = ")
-	out.WriteString(valueName)
-	out.WriteString("; }); }")
-	return true
-}
-
-func selectorFieldAccessInfo(sel *ast.SelectorExpr) FieldAccessInfo {
-	fieldInfo := FieldAccessInfo{
-		FieldName: ToSnakeCase(sel.Sel.Name),
-	}
-	typeInfo := GetTypeInfo()
-	if typedFieldInfo, ok := fieldAccessInfoFromSelection(sel, typeInfo); ok {
-		return typedFieldInfo
-	}
-	if typeInfo == nil {
-		return fieldInfo
-	}
-	if t := typeInfo.GetType(sel.X); t != nil {
-		typeStr := t.String()
-		if idx := strings.LastIndex(typeStr, "."); idx >= 0 {
-			typeStr = typeStr[idx+1:]
-		}
-		typeStr = strings.TrimPrefix(typeStr, "*")
-		fieldInfo = resolveFieldAccess(typeStr, sel.Sel.Name)
-	}
-	return fieldInfo
-}
-
-func writePromotedHandleAssignmentTarget(out *strings.Builder, baseName string, fieldInfo FieldAccessInfo, baseWrapped bool) {
-	if baseWrapped {
-		out.WriteString("(*(*")
-		out.WriteString(baseName)
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).")
-	} else {
-		out.WriteString("(*")
-		out.WriteString(baseName)
-		out.WriteString(".")
-	}
-	for i, embedded := range fieldInfo.EmbeddedPath {
-		out.WriteString(ToSnakeCase(embedded))
-		WriteBorrowMethod(out, true)
-		if i < len(fieldInfo.EmbeddedPath)-1 {
-			out.WriteString(".as_mut().unwrap().")
-		} else {
-			out.WriteString(".as_mut().unwrap()).")
-		}
-	}
-	out.WriteString(fieldInfo.FieldName)
-}
-
-func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExpr) bool {
-	typeInfo := GetTypeInfo()
-	fieldInfo := selectorFieldAccessInfo(sel)
-
-	if ident, ok := sel.X.(*ast.Ident); ok {
-		if isCurrentReceiverIdent(ident) {
-			baseName := currentReceiverRustName()
-			fieldInfo := resolveFieldAccess(currentReceiverType, sel.Sel.Name)
-			if fieldInfo.IsPromoted {
-				writePromotedHandleAssignmentTarget(out, baseName, fieldInfo, false)
-				return true
-			}
-			out.WriteString(baseName)
-			out.WriteString(".")
-			out.WriteString(fieldInfo.FieldName)
-			return true
-		}
-
-		needsUnwrap := false
-		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
-			needsUnwrap = isWrappedRangeVarType(varType)
-			// rangeLoopVars is keyed by name and doesn't track shadowing.
-			// A short-decl like `d, ok := d.(*Foo)` shadows the outer range
-			// var with a wrapped-pointer Decl; trust go/types for that case.
-			if !needsUnwrap && identTypeIsWrappedPointer(ident) {
-				needsUnwrap = true
-			}
-		} else if !isLocalConstantIdent(ident) && !isVarBare(ident.Name) {
-			needsUnwrap = true
-		}
-
-		baseName := RustIdentForUse(ident)
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				baseName = RustLocalIdent(renamed)
-			}
-		}
-
-		if isSliceElemPtrVar(ident.Name) {
-			out.WriteString("(*")
-			writeSliceElemPtrBorrow(out, ident, true)
-			out.WriteString(".as_mut().unwrap()).")
-			out.WriteString(fieldInfo.FieldName)
-			return true
-		}
-		if isArrayElemPtrVar(ident.Name) {
-			out.WriteString("(*")
-			writeArrayElemPtrBorrow(out, ident, true)
-			out.WriteString(".as_mut().unwrap()).")
-			out.WriteString(fieldInfo.FieldName)
-			return true
-		}
-		if isGoPtrVar(ident.Name) {
-			if fieldInfo.IsPromoted {
-				writeGoPtrLocalPromotedFieldHandle(out, ident, fieldInfo)
-			} else {
-				writeGoPtrLocalFieldHandle(out, ident, fieldInfo)
-			}
-			return true
-		}
-		if globalIdent, ok := packageGlobalPointerIdent(ident); ok && !fieldInfo.IsPromoted {
-			writePackageGlobalPointerSelectorAssignmentTarget(out, globalIdent, fieldInfo)
-			return true
-		}
-		if fieldInfo.IsPromoted {
-			writePromotedHandleAssignmentTarget(out, baseName, fieldInfo, needsUnwrap)
-			return true
-		}
-		if needsUnwrap {
-			out.WriteString("(*")
-			out.WriteString(baseName)
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap()).")
-			out.WriteString(fieldInfo.FieldName)
-		} else {
-			out.WriteString(baseName)
-			out.WriteString(".")
-			out.WriteString(fieldInfo.FieldName)
-		}
-		return true
-	}
-
-	if _, ok := sel.X.(*ast.SelectorExpr); ok && !fieldInfo.IsPromoted {
-		out.WriteString("(*")
-		TranspileExpressionContext(out, sel.X, LValue)
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).")
-		out.WriteString(fieldInfo.FieldName)
-		return true
-	}
-
-	if typeInfo != nil && typeInfo.IsPointer(sel.X) {
-		if fieldInfo.IsPromoted {
-			out.WriteString("(*")
-			out.WriteString("(*")
-			TranspileExpressionContext(out, sel.X, LValue)
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())")
-			for i, embedded := range fieldInfo.EmbeddedPath {
-				out.WriteString(".")
-				out.WriteString(ToSnakeCase(embedded))
-				WriteBorrowMethod(out, true)
-				if i < len(fieldInfo.EmbeddedPath)-1 {
-					out.WriteString(".as_mut().unwrap()")
-				} else {
-					out.WriteString(".as_mut().unwrap()).")
-				}
-			}
-			out.WriteString(fieldInfo.FieldName)
-			return true
-		}
-		out.WriteString("(*")
-		TranspileExpressionContext(out, sel.X, LValue)
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap()).")
-		out.WriteString(fieldInfo.FieldName)
-		return true
-	}
-
-	return false
-}
-
-func writePackageGlobalPointerSelectorAssignmentTarget(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
-	out.WriteString("(*(*")
-	out.WriteString(rustPackageGlobalName(ident.Name))
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap())")
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap()).")
-	out.WriteString(fieldInfo.FieldName)
-}
-
-// rangeSliceElementIsEmptyInterface reports whether ranging rangeExpr yields
-// elements of an empty interface type (any / interface{}), which lower to
-// Box<dyn Any> â€” a non-Clone type the plain .cloned() materialization can't
-// snapshot.
-func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	t := typeInfo.GetType(rangeExpr)
-	if t == nil {
-		return false
-	}
-	slice, ok := types.Unalias(t).Underlying().(*types.Slice)
-	if !ok {
-		return false
-	}
-	return isEmptyInterfaceType(slice.Elem())
-}
-
-// writeRangeValuesMaterialization emits the `let __range_values = ...;
-// drop(__range_guard);` slice-range snapshot. A []any slice holds Box<dyn Any>
-// elements, which aren't Clone. When the loop writes each value back to its
-// indexed slot, move the element out of the slice; otherwise clone through
-// go_any_clone so ordinary range-copy semantics remain explicit.
-func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
-	if rangeSliceElementIsEmptyInterface(rangeExpr) {
-		if moveEmptyInterfaceValues {
-			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = Vec::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
-			WriteBorrowMethod(out, true)
-			out.WriteString("; let __range_value = std::mem::replace(&mut __range_guard.as_mut().unwrap()[__range_index], Box::new(()) as ")
-			out.WriteString(rustAnyTraitObject())
-			out.WriteString("); drop(__range_guard); __range_values.push(__range_value); } __range_values }; ")
-			return
-		}
-		NeedAnyClone()
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
-		return
-	}
-	copyCall, known := elementGoValueCopyCall(rangeExpr)
-	if !known {
-		out.WriteString("; let __range_values: Vec<()> = ")
-		out.WriteString(goValueCopyNeedsTypeInfo)
-		out.WriteString("; drop(__range_guard); ")
-		return
-	}
-	if copyCall != ".clone()" && rangeExprIsArrayValue(rangeExpr) {
-		// Go copies an array before it ranges over it, so the loop does not
-		// see writes made to the array while it runs. Cloning the array
-		// would clone each struct's handles and let those writes through.
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
-		out.WriteString(copyCall)
-		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
-		return
-	}
-	// A slice is not copied: each element is read when its turn comes. The
-	// snapshot holds second handles on the elements, so a field written
-	// during the loop is seen, and the loop variable takes its copy of the
-	// element at the start of its iteration (writeRangeOwnedValuesAdapter
-	// and writeRangeValueIterationCopy).
-	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
-}
-
-// writeRangeValueIterationCopy makes the loop variable of a range over
-// structs Go's copy of its element, at the start of the iteration. It is for
-// the loops that bind the variable to a reference to the element; without
-// it "p.X = 1" in the loop writes into the slice. The loops that bind an
-// owned value copy in writeRangeOwnedValuesAdapter.
-func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr) {
-	ident, ok := value.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return
-	}
-	copyCall, known := elementGoValueCopyCall(rangeExpr)
-	if !known || copyCall == ".clone()" {
-		return
-	}
-	name := RustLocalIdent(ident.Name)
-	out.WriteString("        let ")
-	out.WriteString(name)
-	out.WriteString(" = &")
-	out.WriteString(name)
-	out.WriteString(copyCall)
-	out.WriteString(";\n")
-}
-
-// writeMapRangeValueIterationCopy makes the value variable of a range over a
-// map of structs Go's copy of the map's value, at the start of the
-// iteration. The loop binds the variable to the map's own cell for that
-// value; without this "v.X = 1" in the loop writes into the map.
-func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type, value ast.Expr) {
-	ident, ok := value.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return
-	}
-	name := RustLocalIdent(ident.Name)
-	if valueType == nil {
-		out.WriteString("        let ")
-		out.WriteString(name)
-		out.WriteString(" = ")
-		WriteWrapperPrefix(out)
-		out.WriteString(goValueCopyNeedsTypeInfo)
-		WriteWrapperSuffix(out)
-		out.WriteString(";\n")
-		return
-	}
-	copyCall := goValueCopyCallForType(valueType)
-	if copyCall == ".clone()" {
-		return
-	}
-	out.WriteString("        let ")
-	out.WriteString(name)
-	out.WriteString(" = ")
-	WriteWrapperPrefix(out)
-	out.WriteString(name)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	out.WriteString(copyCall)
-	WriteWrapperSuffix(out)
-	out.WriteString(";\n")
-}
-
-// writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
-// loop values from a materialized range snapshot. A []any snapshot holds
-// Box<dyn Any> (not Clone), so it is consumed with into_iter; everything else
-// clones each element. enumerate adds the (index, value) pairing.
-func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
-	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
-		out.WriteString(".into_iter()")
-	} else if copyCall, known := elementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
-		// The loop variable is Go's copy of the element, taken when the
-		// iteration starts: the map runs once for each step of the loop.
-		out.WriteString(".iter().map(|__e| __e")
-		out.WriteString(copyCall)
-		out.WriteString(")")
-	} else {
-		out.WriteString(".iter().cloned()")
-	}
-	if enumerate {
-		out.WriteString(".enumerate()")
-	}
-}
-
-// writePointerShortDeclRhsValue emits the value for `lhs := rhs` where rhs is a
-// pointer-typed expression. A pointer variable already lowers to a wrapped
-// handle, so its handle is cloned to preserve aliasing. The current pointer
-// receiver, however, is `&self` (a bare borrow, not a handle), so a clone of it
-// is wrapped into a fresh handle (the clone shares the receiver's wrapped field
-// handles, like the defer-capture / method-value patterns).
-func writePointerShortDeclRhsValue(out *strings.Builder, rhs ast.Expr) {
-	if writeCurrentPointerReceiverHandleClone(out, rhs) {
-		return
-	}
-	if ident, ok := packageGlobalPointerIdent(rhs); ok {
-		writePackageGlobalPointerHandleClone(out, ident)
-		return
-	}
-	if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
-		return
-	}
-	TranspileExpressionContext(out, rhs, AddressOf)
-	out.WriteString(".clone()")
-}
-
-func tempHoldsWrappedValue(rhs ast.Expr) bool {
-	if isAssignmentSelfWrappingExpression(rhs) {
-		return true
-	}
-	if call, ok := rhs.(*ast.CallExpr); ok {
-		typeInfo := GetTypeInfo()
-		return typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call))
-	}
-	if sel, ok := rhs.(*ast.SelectorExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo == nil || typeInfo.info == nil {
-			return false
-		}
-		// Package-qualified consts/vars don't emit wrapped values.
-		if ident, ok := sel.X.(*ast.Ident); ok {
-			if obj, ok := typeInfo.info.Uses[ident]; ok {
-				if _, isPkg := obj.(*types.PkgName); isPkg {
-					return false
-				}
-			}
-		}
-		obj, ok := typeInfo.info.Uses[sel.Sel]
-		if !ok {
-			return false
-		}
-		field, isVar := obj.(*types.Var)
-		if !isVar {
-			return false
-		}
-		if _, _, ok := namedSliceTypeFromType(field.Type()); ok {
-			return false
-		}
-		// Handle-typed fields (pointer/slice/map/chan/func/interface) always keep
-		// their wrapped Arc<Mutex<Option<T>>> handle when read.
-		if selectorFieldValueKeepsHandle(field.Type()) {
-			return true
-		}
-		// A value-typed field (Basic, named scalars like token.Pos, structs,
-		// arrays) is unwrapped to a bare value snapshot when read into a parallel
-		// assignment temp: writeOwnedExpressionValue clones it out of the handle
-		// (isCloneableNonPointerExpr), and Go's parallel-assignment semantics
-		// require a value snapshot of the RHS rather than an alias to the field's
-		// handle. So the temp holds a value, not the wrapped handle, whether the
-		// field is read off the current receiver (self.field) or a wrapped pointer
-		// variable (v.field).
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && parallelTempTypeKeepsHandle(typeInfo.GetType(rhs))
-}
-
-func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return isGoErrorType(assignmentTargetType(typeInfo, lhs)) && isGoErrorType(typeInfo.GetType(rhs))
-}
-
-func isConcreteErrorInterfaceAssignment(lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if !isGoErrorType(assignmentTargetType(typeInfo, lhs)) {
-		return false
-	}
-	return isConcreteGoErrorValue(typeInfo.GetType(rhs))
-}
-
-func assignmentTargetType(typeInfo *TypeInfo, expr ast.Expr) types.Type {
-	if typeInfo == nil || expr == nil {
-		return nil
-	}
-	if typ := typeInfo.GetType(expr); typ != nil {
-		return typ
-	}
-	if ident, ok := expr.(*ast.Ident); ok {
-		if obj := typeInfo.GetObject(ident); obj != nil {
-			return obj.Type()
-		}
-	}
-	return nil
-}
-
-func isConcreteErrorReturnValue(result ast.Expr, expected ast.Expr) bool {
-	if expected == nil {
-		return false
-	}
-	targetType := expectedTypeFromParamExpr(expected)
-	if !isGoErrorType(targetType) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return isConcreteGoErrorValue(typeInfo.GetType(result))
-}
-
-func writeGoErrorReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	targetType := expectedTypeFromParamExpr(expected)
-	if !isGoErrorType(targetType) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(result)) {
-		return false
-	}
-	return writeGoErrorHandleValue(out, result)
-}
-
-func isGoErrorType(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	errorObj := types.Universe.Lookup("error")
-	if errorObj == nil {
-		return false
-	}
-	return types.Identical(typ, errorObj.Type())
-}
-
-func isConcreteGoErrorValue(typ types.Type) bool {
-	if typ == nil || isGoErrorType(typ) {
-		return false
-	}
-	errorObj := types.Universe.Lookup("error")
-	if errorObj == nil {
-		return false
-	}
-	errorInterface, ok := errorObj.Type().Underlying().(*types.Interface)
-	if !ok {
-		return false
-	}
-	errorInterface.Complete()
-	return types.Implements(typ, errorInterface)
-}
-
-func concreteGoErrorConversionOperand(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
-	call, ok := unwrapParens(expr).(*ast.CallExpr)
-	if !ok || typeInfo == nil || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
-		return nil, false
-	}
-	if !isGoErrorType(typeInfo.GetType(call)) || !isConcreteGoErrorValue(typeInfo.GetType(call.Args[0])) {
-		return nil, false
-	}
-	return call.Args[0], true
-}
-
-func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
-	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		if composite, ok := unary.X.(*ast.CompositeLit); ok {
-			TranspileExpressionContext(out, composite, AddressOf)
-			return
-		}
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil && isConcreteGoErrorValue(typ) {
-			if _, ok := types.Unalias(typ).(*types.Pointer); ok {
-				out.WriteString("(*")
-				TranspileExpressionContext(out, expr, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
-				return
-			}
-		}
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && isConstantExpression(expr) {
-		if named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok && isNamedIntegerType(named) {
-			if writeExpressionForExpectedTypesType(out, expr, named) {
-				return
-			}
-		}
-	}
-	if !writeOwnedExpressionValue(out, expr) {
-		TranspileExpression(out, expr)
-	}
-}
-
-// writeConcreteErrorVarInitializer writes the initializer of
-// "var name error = value" when value is not an error already but a struct
-// or pointer that implements error. It is boxed as an assignment to an error
-// variable boxes it.
-func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, value ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	valueType := typeInfo.GetType(value)
-	if !isGoErrorType(typeInfo.GetType(typeExpr)) || !isConcreteGoErrorValue(valueType) {
-		return false
-	}
-	// An interface that embeds error also implements error, but its value is
-	// a trait object, not a struct to box.
-	if types.IsInterface(valueType) {
-		return false
-	}
-	return writeGoErrorHandleValue(out, value)
-}
-
-func writeConcreteErrorBox(out *strings.Builder, expr ast.Expr) {
-	TrackImport("Error")
-	out.WriteString(rustErrorFromValueStart())
-	writeConcreteErrorValue(out, expr)
-	out.WriteString(rustErrorFromValueEnd())
-}
-
-func writeGoErrorHandleValue(out *strings.Builder, expr ast.Expr) bool {
-	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
-		writeEmptyErrorHandle(out)
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if isGoErrorType(typ) {
-		if errorObj := types.Universe.Lookup("error"); errorObj != nil {
-			if writeGoErrorCallArgument(out, expr, errorObj.Type()) {
-				return true
-			}
-		}
-		TranspileExpression(out, expr)
-		return true
-	}
-	if isConcreteGoErrorValue(typ) {
-		WriteWrapperPrefix(out)
-		writeConcreteErrorBox(out, expr)
-		WriteWrapperSuffix(out)
-		return true
-	}
-	return false
-}
-
-func writeConcreteErrorInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
-	out.WriteString("{ let new_val = ")
-	writeConcreteErrorBox(out, rhs)
-	out.WriteString("; *")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(new_val); }")
-}
-
-// writeErrorCopyAssignment assigns one error variable to another. The target
-// gets its own pointer to the same error and the source keeps its own, as in
-// Go, where "last = err" leaves err as it was.
-func writeErrorCopyAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
-	out.WriteString("{ let __rhs_holder = ")
-	TranspileExpressionContext(out, rhs, LValue)
-	out.WriteString(".clone(); let new_val = (*__rhs_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString(").clone(); *")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }")
-}
-
-// writeErrorHandleCopy writes a new handle that holds the same error as the
-// handle writeSource writes. An error variable that is passed, returned,
-// stored or used to start another variable is copied this way: the two
-// variables then change independently, and they are still the same error.
-func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
-	out.WriteString("{ let __err_source = ")
-	writeSource()
-	out.WriteString("; let __err_copy = (*__err_source")
-	WriteBorrowMethod(out, false)
-	out.WriteString(").clone(); ")
-	writeErrorHandleFromOptionValue(out, "__err_copy")
-	out.WriteString(" }")
-}
-
-// expressionCallsOrReceives reports whether evaluating expr calls a function
-// or receives from a channel, so that evaluating it one more time, or one
-// time less, changes what the program does.
-func expressionCallsOrReceives(expr ast.Expr) bool {
-	found := false
-	ast.Inspect(expr, func(node ast.Node) bool {
-		switch n := node.(type) {
-		case *ast.CallExpr:
-			found = true
-		case *ast.UnaryExpr:
-			if n.Op == token.ARROW {
-				found = true
-			}
-		case *ast.FuncLit:
-			return false
-		}
-		return !found
-	})
-	return found
-}
-
-// mapOperandHandleCanBeHeld reports whether the map operand of "m[k] op= v"
-// is a handle that can be cloned and held while the key and the operand are
-// evaluated. A package-level variable is not: it is a static that owns its
-// map, and cloning it copies the map. Without type information there is no
-// telling a package-level variable of another package from a field.
-func mapOperandHandleCanBeHeld(mapExpr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	switch operand := unwrapParens(mapExpr).(type) {
-	case *ast.Ident:
-		return !isPackageGlobalIdent(operand)
-	case *ast.SelectorExpr:
-		if variable, ok := typeInfo.info.Uses[operand.Sel].(*types.Var); ok && !variable.IsField() {
-			return false
-		}
-	}
-	return true
-}
-
-func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
-	typeInfo := GetTypeInfo()
-	defaultValue := "Default::default()"
-	var keyType types.Type
-	if typeInfo != nil {
-		keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
-		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
-	}
-
-	// The key and the operand are evaluated before the map is locked for
-	// writing. Either may read the map ("m[a] += m[b]"), and a read under the
-	// write lock panics, or hangs in a program with goroutines.
-	//
-	// Go evaluates the map operand first, so its handle is taken before the
-	// key and the operand, without locking it. A package-level map has no
-	// handle to take: it is written in place, and naming it calls nothing.
-	holdsMapHandle := mapOperandHandleCanBeHeld(indexExpr.X)
-	out.WriteString("{ ")
-	if holdsMapHandle {
-		out.WriteString("let __map_holder = ")
-		writeMapHandleCloneForOp(out, indexExpr.X)
-		out.WriteString("; ")
-	}
-	out.WriteString("let __key = ")
-	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
-	out.WriteString("; ")
-	operandIsRHS := op != token.INC && op != token.DEC && rhs != nil
-	if operandIsRHS {
-		out.WriteString("let __rhs = ")
-		TranspileExpression(out, rhs)
-		out.WriteString("; ")
-	}
-	out.WriteString("let mut __map_guard = ")
-	if holdsMapHandle {
-		out.WriteString("__map_holder")
-	} else {
-		writeMapHandleForOp(out, indexExpr.X)
-	}
-	WriteBorrowMethod(out, true)
-	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key")
-	out.WriteString(").or_insert_with(|| ")
-	WriteWrapperPrefix(out)
-	out.WriteString(defaultValue)
-	WriteWrapperSuffix(out)
-	out.WriteString("); let mut __value = __entry")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; * __value = Some((*__value.as_ref().unwrap()).clone() ")
-	switch op {
-	case token.INC, token.ADD_ASSIGN:
-		out.WriteString("+")
-	case token.DEC, token.SUB_ASSIGN:
-		out.WriteString("-")
-	case token.MUL_ASSIGN:
-		out.WriteString("*")
-	case token.QUO_ASSIGN:
-		out.WriteString("/")
-	case token.REM_ASSIGN:
-		out.WriteString("%")
-	case token.AND_ASSIGN:
-		out.WriteString("&")
-	case token.AND_NOT_ASSIGN:
-		out.WriteString("& !")
-	case token.OR_ASSIGN:
-		out.WriteString("|")
-	case token.XOR_ASSIGN:
-		out.WriteString("^")
-	case token.SHL_ASSIGN:
-		out.WriteString("<<")
-	case token.SHR_ASSIGN:
-		out.WriteString(">>")
-	default:
-		out.WriteString("+")
-	}
-	out.WriteString(" ")
-	if op == token.INC || op == token.DEC {
-		out.WriteString("1")
-	} else if operandIsRHS {
-		out.WriteString("__rhs")
-	} else {
-		out.WriteString("0")
-	}
-	out.WriteString("); }")
-}
-
-func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
-	switch op {
-	case token.ADD_ASSIGN:
-		out.WriteString("+")
-	case token.SUB_ASSIGN:
-		out.WriteString("-")
-	case token.MUL_ASSIGN:
-		out.WriteString("*")
-	case token.QUO_ASSIGN:
-		out.WriteString("/")
-	case token.REM_ASSIGN:
-		out.WriteString("%")
-	case token.AND_ASSIGN:
-		out.WriteString("&")
-	case token.AND_NOT_ASSIGN:
-		out.WriteString("& !")
-	case token.OR_ASSIGN:
-		out.WriteString("|")
-	case token.XOR_ASSIGN:
-		out.WriteString("^")
-	case token.SHL_ASSIGN:
-		out.WriteString("<<")
-	case token.SHR_ASSIGN:
-		out.WriteString(">>")
-	}
-}
-
-func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, op token.Token) bool {
-	switch op {
-	case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN,
-		token.AND_ASSIGN, token.AND_NOT_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN:
-	default:
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	lhsNamed, ok := types.Unalias(typeInfo.GetType(lhs)).(*types.Named)
-	if !ok || !isNamedIntegerType(lhsNamed) {
-		return false
-	}
-	return true
-}
-
-func compoundAssignRHSExpectedType(lhs ast.Expr, expected types.Type) types.Type {
-	if !currentReceiverScalarTypeDefinition() {
-		return expected
-	}
-	var ident *ast.Ident
-	switch e := unwrapParens(lhs).(type) {
-	case *ast.Ident:
-		ident = e
-	case *ast.StarExpr:
-		ident, _ = unwrapParens(e.X).(*ast.Ident)
-	}
-	if ident == nil || !isCurrentReceiverIdent(ident) {
-		return expected
-	}
-	named, ok := types.Unalias(expected).(*types.Named)
-	if !ok {
-		return expected
-	}
-	return named.Underlying()
-}
-
-func compoundAssignConstCanUseNamedInteger(expr ast.Expr, named *types.Named) bool {
-	if expr == nil || named == nil || !isConstantExpression(expr) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	exprType := typeInfo.GetType(expr)
-	if exprType == nil {
-		return false
-	}
-	if exprNamed, ok := types.Unalias(exprType).(*types.Named); ok {
-		return sameNamedTypeDefinition(exprNamed, named)
-	}
-	basic, ok := types.Unalias(exprType).(*types.Basic)
-	return ok && basic.Info()&types.IsUntyped != 0 && isIntegerBasicKind(basic.Kind())
-}
-
-func writeWrappedMutationTargetClone(out *strings.Builder, expr ast.Expr) {
-	out.WriteString("let __target = ")
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone(); ")
-}
-
-func writeWrappedMutationTargetPrelude(out *strings.Builder, expr ast.Expr) bool {
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
-		return false
-	}
-	writeWrappedMutationTargetClone(out, expr)
-	return true
-}
-
-func writeWrappedMutationTargetRef(out *strings.Builder, expr ast.Expr, mutable bool) {
-	switch e := expr.(type) {
-	case *ast.SelectorExpr:
-		out.WriteString("__target")
-	case *ast.StarExpr:
-		// `*p` mutation (increment/compound-assign): the pointer operand is
-		// itself the wrapper handle (Arc<Mutex<Option<T>>> /
-		// Rc<RefCell<Option<T>>>), so lock/borrow it directly to obtain a
-		// guard over Option<T>. Lower the operand as an LValue to get the bare
-		// handle place; lowering the StarExpr itself (or the operand as a
-		// value) would emit the fully-dereferenced scalar, and the trailing
-		// WriteBorrowMethod would then call .lock()/.borrow() on a scalar
-		// (E0599: no method named lock/borrow found for type i32).
-		TranspileExpressionContext(out, e.X, LValue)
-	default:
-		TranspileExpressionContext(out, expr, LValue)
-	}
-	WriteBorrowMethod(out, mutable)
-}
-
-func writeBareCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type) {
-	writeBareCompoundAssignValueForOp(out, expr, expected, token.ILLEGAL)
-}
-
-func writeBareStringSliceValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
-	if expected == nil {
-		return false
-	}
-	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok || basic.Kind() != types.String {
-		return false
-	}
-	slice, ok := expr.(*ast.SliceExpr)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsString(slice.X) {
-		return false
-	}
-	writeStringSliceValue(out, slice.X, slice.Low, slice.High)
-	return true
-}
-
-func rangeLoopVarIsUsize(name string) bool {
-	return rangeLoopVars[name] == "usize"
-}
-
-func rustCastForExpectedBasic(expected types.Type) string {
-	if expected == nil {
-		return ""
-	}
-	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok {
-		return ""
-	}
-	switch basic.Kind() {
-	case types.Int, types.Int32:
-		return "i32"
-	case types.Int8:
-		return "i8"
-	case types.Int16:
-		return "i16"
-	case types.Int64:
-		return "i64"
-	case types.Uint:
-		return rustUintType()
-	case types.Uint32:
-		return "u32"
-	case types.Uint8:
-		return "u8"
-	case types.Uint16:
-		return "u16"
-	case types.Uint64:
-		return "u64"
-	case types.Uintptr:
-		return "usize"
-	case types.Float32:
-		return "f32"
-	case types.Float64:
-		return "f64"
-	}
-	return ""
-}
-
-func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) {
-	if writeNamedIntegerConstCompoundAssignValue(out, expr, expected, op) {
-		return
-	}
-	if writeNamedIntegerCompoundAssignUnderlyingValue(out, expr, expected) {
-		return
-	}
-	if writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out, expr, expected) {
-		return
-	}
-	if writeBareStringSliceValue(out, expr, expected) {
-		return
-	}
-	if writeRuneLiteralAssignmentValue(out, expr, expected) {
-		return
-	}
-	if writeConstExpressionForExpectedGoType(out, expr, expected) {
-		return
-	}
-	if writeBareValueForWrappedSlot(out, expr) {
-		return
-	}
-	if ident, ok := expr.(*ast.Ident); ok {
-		_, isRangeVar := rangeLoopVars[ident.Name]
-		isLocalConst := isLocalConstantIdent(ident)
-		varName := rustIdentForUseWithCapture(ident)
-		if isRangeVar && rangeLoopVarIsUsize(ident.Name) && expected != nil {
-			if rustCast := rustCastForExpectedBasic(expected); rustCast != "" {
-				out.WriteString("(")
-				out.WriteString(varName)
-				out.WriteString(" as ")
-				out.WriteString(rustCast)
-				out.WriteString(")")
-				return
-			}
-		}
-		if isLocalConst {
-			if writeConstIdentForCompoundExpected(out, ident, expected, RustIdentForUse(ident)) {
-				return
-			}
-			out.WriteString(RustIdentForUse(ident))
-			return
-		}
-		if isConstIdent(ident) {
-			if writeConstIdentForCompoundExpected(out, ident, expected, rustConstName(ident.Name)) {
-				return
-			}
-			out.WriteString(rustConstName(ident.Name))
-			return
-		}
-		if isVarBare(ident.Name) {
-			if expected != nil {
-				if typeInfo := GetTypeInfo(); typeInfo != nil {
-					if expectedNamed, ok := types.Unalias(expected).(*types.Named); ok {
-						if exprNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok && sameNamedTypeDefinition(exprNamed, expectedNamed) {
-							if _, ok := externalIntegerRustTypeForNamed(expectedNamed); ok {
-								out.WriteString(varName)
-								out.WriteString(".0")
-								return
-							}
-						}
-					}
-				}
-			}
-			out.WriteString(varName)
-			return
-		}
-		if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
-			ident.Name != "nil" && ident.Name != "_" {
-			out.WriteString("(*")
-			out.WriteString(varName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
-				out.WriteString(".clone()")
-			}
-			return
-		}
-		out.WriteString(varName)
-		return
-	}
-	if lit, ok := expr.(*ast.BasicLit); ok {
-		if lit.Kind == token.INT {
-			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok {
-				switch basic.Kind() {
-				case types.Float32, types.Float64:
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
-					return
-				}
-			}
-		}
-		out.WriteString(lit.Value)
-		return
-	}
-	if call, ok := expr.(*ast.CallExpr); ok {
-		if expected != nil {
-			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
-				if isBareBuiltinCallName(call, "len") || isBareBuiltinCallName(call, "cap") {
-					TranspileExpression(out, call)
-					out.WriteString(" as i32")
-					return
-				}
-			}
-		}
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
-			out.WriteString("(*")
-			TranspileExpression(out, call)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
-				out.WriteString(".clone()")
-			}
-			return
-		}
-	}
-	if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
-		return
-	}
-	TranspileExpression(out, expr)
-}
-
-func writeRuneLiteralAssignmentValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
-	lit, ok := expr.(*ast.BasicLit)
-	if !ok || lit.Kind != token.CHAR || expected == nil {
-		return false
-	}
-	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok || basic.Kind() != types.Int32 {
-		return false
-	}
-	out.WriteString("(")
-	out.WriteString(RustCharLiteral(lit.Value))
-	out.WriteString(" as i32)")
-	return true
-}
-
-func writeNamedIntegerCompoundAssignUnderlyingValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
-	if expr == nil || expected == nil {
-		return false
-	}
-	switch expr.(type) {
-	case *ast.BasicLit, *ast.Ident:
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil {
-		return false
-	}
-	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) {
-		return false
-	}
-	expectedNamed, ok := types.Unalias(expected).(*types.Named)
-	if !ok || expectedNamed.Obj() == nil || expectedNamed.Obj().Pkg() != typeInfo.pkg {
-		return false
-	}
-	if _, ok := types.Unalias(expectedNamed.Underlying()).(*types.Basic); !ok {
-		return false
-	}
-	actualNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok || !sameNamedTypeDefinition(actualNamed, expectedNamed) {
-		return false
-	}
-	var value strings.Builder
-	TranspileExpression(&value, expr)
-	out.WriteString("(*")
-	out.WriteString("(")
-	out.WriteString(value.String())
-	out.WriteString(")")
-	out.WriteString(".0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
-	return true
-}
-
-func writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
-	if expr == nil || expected == nil {
-		return false
-	}
-	if isConstantExpression(expr) {
-		return false
-	}
-	expectedBasic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok || !isIntegerBasicKind(expectedBasic.Kind()) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) {
-		return false
-	}
-	actualNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok || !isNamedIntegerType(actualNamed) {
-		return false
-	}
-	if _, ok := externalIntegerRustTypeForNamed(actualNamed); ok {
-		return false
-	}
-	actualBasic, ok := types.Unalias(actualNamed.Underlying()).(*types.Basic)
-	if !ok || actualBasic.Kind() != expectedBasic.Kind() {
-		return false
-	}
-	var value strings.Builder
-	TranspileExpression(&value, expr)
-	out.WriteString("(*(")
-	out.WriteString(value.String())
-	out.WriteString(").0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()")
-	return true
-}
-
-func writeNamedIntegerConstCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) bool {
-	switch op {
-	case token.AND_ASSIGN, token.AND_NOT_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN:
-	default:
-		return false
-	}
-	if expected == nil {
-		return false
-	}
-	named, ok := types.Unalias(expected).(*types.Named)
-	if !ok || !compoundAssignConstCanUseNamedInteger(expr, named) {
-		return false
-	}
-	if _, ok := externalIntegerRustTypeForNamed(named); ok {
-		return writeExpressionForExpectedTypesType(out, expr, named)
-	}
-	return writeNamedIntegerConstForExpected(out, expr, named)
-}
-
-func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok || !isNamedIntegerType(named) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	if !writeNamedIntegerValueForExpected(out, expr, named) {
-		TranspileExpression(out, expr)
-	}
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeStringConstWrappedInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	expected := typeInfo.GetType(lhs)
-	if expected == nil {
-		if ident, ok := lhs.(*ast.Ident); ok {
-			if obj := typeInfo.GetObject(ident); obj != nil {
-				expected = obj.Type()
-			}
-		}
-	}
-	if !isBasicStringGoType(expected) {
-		return false
-	}
-	if _, ok := constStringLiteral(rhs); !ok {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	writeConstExpressionForExpectedString(out, rhs, expected)
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func writeNamedIntegerAssignmentValue(out *strings.Builder, expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok || !isNamedIntegerType(named) {
-		return false
-	}
-	if !writeNamedIntegerValueForExpected(out, expr, named) {
-		TranspileExpression(out, expr)
-	}
-	return true
-}
-
-func writeNamedIntegerIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
-	if !ok || !isNamedIntegerType(named) {
-		return false
-	}
-	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
-	if !ok {
-		return false
-	}
-	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
-	if !ok {
-		return false
-	}
-
-	out.WriteString("{ ")
-	writeWrappedMutationTargetPrelude(out, expr)
-	out.WriteString("let mut guard = ")
-	writeWrappedMutationTargetRef(out, expr, true)
-	// `guard.as_ref().unwrap().clone()` is already the named newtype value,
-	// and the generated `Add<scalar>`/`Sub<scalar>` impls return the newtype
-	// (see writeScalarTypeDefinitionNumericOps). Re-wrapping in another
-	// `NewType(wrap(...))` constructor would place a newtype where the inner
-	// Option expects the raw scalar (E0308). Lower it like a bare scalar
-	// increment and let the operator impl produce the newtype.
-	out.WriteString("; *guard = Some(guard.as_ref().unwrap().clone() ")
-	if op == token.INC {
-		out.WriteString("+")
-	} else {
-		out.WriteString("-")
-	}
-	out.WriteString(" 1 as ")
-	out.WriteString(rustType)
-	out.WriteString("); }")
-	return true
-}
-
-func writeIntegerTypeParamIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !goTypeParamHasIntegerConstraint(typeInfo.GetType(expr)) {
-		return false
-	}
-	NeedGoInteger()
-	out.WriteString("{ ")
-	writeWrappedMutationTargetPrelude(out, expr)
-	out.WriteString("let mut guard = ")
-	writeWrappedMutationTargetRef(out, expr, true)
-	out.WriteString("; *guard = Some(")
-	if op == token.INC {
-		out.WriteString("go_integer_add_one")
-	} else {
-		out.WriteString("go_integer_sub_one")
-	}
-	out.WriteString("(*guard.as_ref().unwrap())); }")
-	return true
-}
-
-func writeConstIdentForCompoundExpected(out *strings.Builder, ident *ast.Ident, expected types.Type, rustName string) bool {
-	if ident == nil || expected == nil {
-		return false
-	}
-	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok {
-		return false
-	}
-	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
-	if !ok {
-		return false
-	}
-	out.WriteString(rustName)
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	return true
-}
-
-func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("/* ERROR: Cannot determine indexed compound assignment target - type information required */ ")
-		return true
-	}
-	if typeInfo.IsMap(indexExpr.X) {
-		return false
-	}
-	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
-
-	out.WriteString("{ let __idx = ")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; let __rhs = ")
-	writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
-	out.WriteString("; ")
-	writeIndexedSequenceMutationGuard(out, indexExpr.X)
-	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
-	writeIndexedCurrentElementValue(out, elemType)
-	out.WriteString(" ")
-	writeCompoundAssignOperator(out, op)
-	out.WriteString(" __rhs; }")
-	return true
-}
-
-func writeIndexedSequenceMutationGuard(out *strings.Builder, expr ast.Expr) {
-	if subj := unwrapParens(expr); isNamedArrayExpression(subj) {
-		out.WriteString("let __seq_holder = ")
-		writeNamedArrayInnerHandleClone(out, subj)
-		out.WriteString("; let mut __seq_guard = __seq_holder")
-		WriteBorrowMethod(out, true)
-		return
-	}
-	if subj := unwrapParens(expr); isNamedSliceExpression(subj) {
-		out.WriteString("let __seq_holder = ")
-		writeNamedSliceInnerHandleClone(out, subj)
-		out.WriteString("; let mut __seq_guard = __seq_holder")
-		WriteBorrowMethod(out, true)
-		return
-	}
-	out.WriteString("let mut __seq_guard = ")
-	TranspileExpressionContext(out, expr, LValue)
-	WriteBorrowMethod(out, true)
-}
-
-func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) {
-	out.WriteString("__seq[__idx]")
-	if !typeIsPredeclaredCopyScalar(elemType) {
-		out.WriteString(".clone()")
-	}
-}
-
-// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" can replace
-// the target's Rust handle directly. This is the existing slice/map lowering:
-// it preserves shared backing storage but does not yet model a separately
-// addressable Go slice/map header (tracked by DEV-36).
-func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	switch target := lhs.(type) {
-	case *ast.Ident:
-		if target.Name == "_" || isPackageGlobalIdent(target) {
-			return false
-		}
-		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
-			return false
-		}
-		if currentCaptureRenames != nil {
-			if _, captured := currentCaptureRenames[target.Name]; captured {
-				return false
-			}
-		}
-	case *ast.SelectorExpr:
-	default:
-		return false
-	}
-	valueType := typeInfo.GetMapValueType(indexExpr.X)
-	if valueType == nil {
-		return false
-	}
-	switch types.Unalias(valueType).Underlying().(type) {
-	case *types.Slice:
-		return isPlainSliceExpression(lhs)
-	case *types.Map:
-		return typeInfo.IsMap(lhs) && !isNamedMapExpression(lhs)
-	}
-	return false
-}
-
-// mapCommaOkValueNeedsOwnCell reports whether a comma-ok map read must copy the
-// value into a fresh variable cell. Map entries and Go variables are distinct
-// locations even when their values are represented by Rust handles. Returning
-// the entry cell itself would make later assignments alias the map; rebinding
-// an existing target to that cell would also leave pointers to the target's old
-// cell stale.
-func mapCommaOkValueNeedsOwnCell(indexExpr *ast.IndexExpr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	valueType := typeInfo.GetMapValueType(indexExpr.X)
-	if valueType == nil {
-		return false
-	}
-	if isGoErrorType(valueType) {
-		return true
-	}
-	switch types.Unalias(valueType).Underlying().(type) {
-	case *types.Signature, *types.Interface:
-		return true
-	}
-	return false
-}
-
-func mapCommaOkValueIsChannel(indexExpr *ast.IndexExpr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	valueType := typeInfo.GetMapValueType(indexExpr.X)
-	return mapValueTypeIsChannel(valueType)
-}
-
-func mapCommaOkValueIsSliceOrMap(indexExpr *ast.IndexExpr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	valueType := typeInfo.GetMapValueType(indexExpr.X)
-	if valueType == nil {
-		return false
-	}
-	switch types.Unalias(valueType).Underlying().(type) {
-	case *types.Slice, *types.Map:
-		return true
-	}
-	return false
-}
-
-// writeMapCommaOkFoundValue writes the first result of "v, ok := m[k]" for a
-// key that is in the map, where the map's cell for the value is bound to v
-// in the generated match arm. A pointer, slice, map, channel, function or
-// interface value is its handle. Any other value is copied into a cell of
-// its own: handing out the map's cell let "v = 5" after the read change the
-// map, and let "v, ok = m[k]" into existing variables take the value out of
-// the map.
-func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool, valueDiscarded bool, heldInOwnCell bool) {
-	if valueDiscarded {
-		// "_, ok := m[k]" drops the value, so the handle will do.
-		out.WriteString("v.clone()")
-		return
-	}
-	if heldInOwnCell {
-		valueType := GetTypeInfo().GetMapValueType(indexExpr.X)
-		if sig, ok := signatureFromType(valueType); ok {
-			writeMapCommaOkFunctionValueCopy(out, sig)
-			return
-		}
-		// The value is about to be moved into an existing target. Moving it
-		// out of the map's own handle would empty the map entry, so the
-		// target gets a clone of what the handle holds, in a cell of its own.
-		out.WriteString("{ let __held = v")
-		WriteBorrowMethod(out, false)
-		if isEmptyInterfaceType(valueType) {
-			NeedAnyClone()
-			out.WriteString(".as_ref().map(|__value| go_any_clone(__value.as_ref())); ")
-		} else {
-			out.WriteString(".clone(); ")
-		}
-		WriteWrapperOptionPrefix(out)
-		out.WriteString("__held")
-		WriteWrapperOptionSuffix(out)
-		out.WriteString(" }")
-		return
-	}
-	if mapCommaOkValueIsChannel(indexExpr) {
-		// Map elements live in cells, but a channel local is the bare GoChannel
-		// handle. Copy that handle out of the element's cell; returning v.clone()
-		// would return the cell itself and does not type-check at the target.
-		out.WriteString("v")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().clone()")
-		return
-	}
-	if syntaxKeepsHandle {
-		out.WriteString("v.clone()")
-		return
-	}
-	var valueType types.Type
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		valueType = typeInfo.GetMapValueType(indexExpr.X)
-	}
-	if valueType == nil {
-		out.WriteString(goValueCopyNeedsTypeInfo)
-		return
-	}
-	if mapValueTypeKeepsHandle(valueType) {
-		out.WriteString("v.clone()")
-		return
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("v")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	out.WriteString(goValueCopyCallForType(valueType))
-	WriteWrapperSuffix(out)
-}
-
-// writeMapCommaOkFunctionValueCopy duplicates a function value without
-// sharing its variable cell. Rust trait-object closures are not Clone, so the
-// result receives an independent forwarding closure around the map entry's
-// callable cell. The entry itself is never rewritten: repeated reads therefore
-// stay flat instead of accumulating a recursively nested proxy chain.
-func writeMapCommaOkFunctionValueCopy(out *strings.Builder, sig *types.Signature) {
-	boxType := signatureToBoxDynFn(sig)
-	var args []string
-	for i := 0; i < sig.Params().Len(); i++ {
-		args = append(args, fmt.Sprintf("__arg%d", i))
-	}
-	writeProxy := func(sharedName string) {
-		out.WriteString("Box::new(move |")
-		out.WriteString(strings.Join(args, ", "))
-		out.WriteString("| { let mut __callable = ")
-		out.WriteString(sharedName)
-		WriteBorrowMethod(out, true)
-		out.WriteString("; (*__callable.as_mut().unwrap())(")
-		out.WriteString(strings.Join(args, ", "))
-		out.WriteString(") }) as ")
-		out.WriteString(boxType)
-	}
-
-	out.WriteString("{ let __target_callable = v.clone(); ")
-	WriteWrapperPrefix(out)
-	writeProxy("__target_callable")
-	WriteWrapperSuffix(out)
-	out.WriteString(" }")
-}
-
-func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
-	if syntaxKeepsHandle {
-		out.WriteString("Default::default()")
-		return
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("/* ERROR: Type information required for map comma-ok zero value */ unimplemented!(\"type info required for map comma-ok zero value\")")
-		return
-	}
-
-	valueType := typeInfo.GetMapValueType(indexExpr.X)
-	if valueType == nil {
-		out.WriteString("/* ERROR: Map value type required for map comma-ok zero value */ unimplemented!(\"map value type required for map comma-ok zero value\")")
-		return
-	}
-	if mapValueTypeKeepsHandle(valueType) {
-		out.WriteString("Default::default()")
-		return
-	}
-
-	WriteWrapperPrefix(out)
-	out.WriteString(zeroValueForTypesType(valueType))
-	WriteWrapperSuffix(out)
-}
-
-func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) {
-	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
-		return
-	}
-
-	tmpWrapped := tempHoldsWrappedValue(rhs)
-	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, tmpWrapped) {
-		return
-	}
-	if indexExpr, ok := lhs.(*ast.IndexExpr); ok {
-		typeInfo := GetTypeInfo()
-		if typeInfo == nil {
-			out.WriteString(" /* ERROR: Cannot determine indexed assignment target - type information required */ ")
-			return
-		}
-		if writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs) {
-			return
-		}
-	}
-	if transpiledInterfaceHandleAssignmentTypes(lhs, rhs) {
-		out.WriteString(" ")
-		writeTranspiledInterfaceHandleAssignmentTarget(out, lhs, tmpName)
-		return
-	}
-	if writeParallelSliceElemPtrAssignmentTarget(out, lhs, tmpName, rhs) {
-		return
-	}
-	if writeParallelNilAssignmentTarget(out, lhs, tmpName, rhs) {
-		return
-	}
-	if writeParallelPointerHandleAssignmentTarget(out, lhs, tmpName, rhs) {
-		return
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
-		out.WriteString(" ")
-		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(" = ")
-		if tmpWrapped {
-			out.WriteString("(*")
-			out.WriteString(tmpName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()")
-		} else {
-			out.WriteString(tmpName)
-		}
-		if cast := parallelTempBareCast(lhs, rhs); cast != "" {
-			out.WriteString(" as ")
-			out.WriteString(cast)
-		}
-		out.WriteString(";")
-		return
-	}
-
-	out.WriteString(" *")
-	writeTempAssignmentTargetRef(out, lhs)
-	out.WriteString(" = ")
-	if tmpWrapped {
-		out.WriteString(tmpName)
-		WriteBorrowMethod(out, true)
-		out.WriteString(".take();")
-	} else {
-		out.WriteString("Some(")
-		if wrapper := parallelTempNamedIntegerWrap(lhs, rhs); wrapper != "" {
-			out.WriteString(wrapper)
-			out.WriteString("(")
-			WriteWrapperPrefix(out)
-			out.WriteString(tmpName)
-			if cast := parallelTempNamedIntegerCast(lhs); cast != "" {
-				out.WriteString(" as ")
-				out.WriteString(cast)
-			}
-			WriteWrapperSuffix(out)
-			out.WriteString(")")
-		} else {
-			out.WriteString(tmpName)
-			if cast := parallelTempBareCast(lhs, rhs); cast != "" {
-				out.WriteString(" as ")
-				out.WriteString(cast)
-			}
-		}
-		out.WriteString(");")
-	}
-}
-
-func writeParallelAssignmentTargetLine(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr, indent string) {
-	var line strings.Builder
-	writeParallelAssignmentTarget(&line, lhs, tmpName, rhs)
-	text := strings.TrimLeft(line.String(), " \t")
-	if text == "" {
-		return
-	}
-	out.WriteString(indent)
-	out.WriteString(text)
-	out.WriteString("\n")
-}
-
-func writePointerHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
-		return false
-	}
-	switch lhs.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-	default:
-		return false
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
-		return false
-	}
-	out.WriteString(" ")
-	writePointerHandleAssignmentTempTarget(out, lhs, tmpName)
-	return true
-}
-
-func writeParallelPointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
-		return false
-	}
-	switch lhs.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-	default:
-		return false
-	}
-	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
-		return false
-	}
-	out.WriteString(" ")
-	writePointerHandleAssignmentTempTarget(out, lhs, tmpName)
-	return true
-}
-
-func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
-	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
-		valueName := tmpName + ".clone()"
-		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-		if writeGoPtrFieldSelectorHandleReplacement(out, sel, valueName) {
-			return
-		}
-	}
-	if ident, ok := packageGlobalPointerIdent(lhs); ok {
-		out.WriteString("*")
-		out.WriteString(rustPackageGlobalName(ident.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = Some(")
-		out.WriteString(tmpName)
-		out.WriteString(".clone());")
-		return
-	}
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = ")
-	out.WriteString(tmpName)
-	out.WriteString(".clone();")
-}
-
-func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || !isSliceElemPtrVar(ident.Name) {
-		return false
-	}
-	out.WriteString(" ")
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" = ")
-	if rhsIdent, ok := unwrapParens(rhs).(*ast.Ident); ok {
-		if rhsIdent.Name == "nil" {
-			out.WriteString("None")
-			out.WriteString(";")
-			return true
-		}
-		if isSliceElemPtrVar(rhsIdent.Name) {
-			out.WriteString(tmpName)
-			out.WriteString(";")
-			return true
-		}
-	}
-	if _, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs); sawSliceAddr {
-		out.WriteString("Some(")
-		out.WriteString(tmpName)
-		out.WriteString(");")
-		return true
-	}
-	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
-		if _, ok := sliceElemPtrReturnInfoForCall(call); ok {
-			out.WriteString(tmpName)
-			out.WriteString(";")
-			return true
-		}
-	}
-	out.WriteString("/* ERROR: slice element pointer assignment requires nil or &slice[index] */ unimplemented!(\"slice element pointer assignment\")")
-	out.WriteString(";")
-	return true
-}
-
-func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
-	ident, ok := rhs.(*ast.Ident)
-	if !ok || ident.Name != "nil" {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString(" /* ERROR: Type information required for parallel nil assignment */ unimplemented!(\"type info required for parallel nil assignment\");")
-		return true
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil {
-		out.WriteString(" /* ERROR: Type information required for parallel nil assignment target */ unimplemented!(\"type info required for parallel nil assignment target\");")
-		return true
-	}
-	if sel, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
-		out.WriteString(" ")
-		writePointerHandleAssignmentTargetFromValueName(out, sel, tmpName+".clone()")
-		return true
-	}
-	if target, ok := parallelNilGoPtrIdentAssignmentTarget(lhs, rhs); ok {
-		out.WriteString(" ")
-		out.WriteString(rustIdentForUseWithCapture(target))
-		out.WriteString(" = ")
-		out.WriteString(tmpName)
-		out.WriteString(".clone();")
-		return true
-	}
-	if !tupleTempAssignsHandleToElement(lhsType) {
-		return false
-	}
-	out.WriteString(" *")
-	writeTempAssignmentTargetRef(out, lhs)
-	out.WriteString(" = ")
-	out.WriteString(tmpName)
-	out.WriteString(";")
-	return true
-}
-
-func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, tmpWrapped bool) bool {
-	ident, ok := lhs.(*ast.Ident)
-	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverRustAlias == "" {
-		return false
-	}
-	out.WriteString(" ")
-	if tmpWrapped {
-		out.WriteString("{ let __moved_val = { let mut __guard = ")
-		out.WriteString(tmpName)
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __guard.take().unwrap() }; ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = __moved_val; }")
-		return true
-	}
-	out.WriteString(currentReceiverRustAlias)
-	out.WriteString(" = ")
-	out.WriteString(tmpName)
-	out.WriteString(";")
-	return true
-}
-
-func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
-	if _, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
-		out.WriteString("GoPtr::nil()")
-		return
-	}
-	if _, ok := parallelNilGoPtrIdentAssignmentTarget(lhs, rhs); ok {
-		out.WriteString("GoPtr::nil()")
-		return
-	}
-	writeParallelAssignmentTempValue(out, rhs)
-}
-
-func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
-	if writeParallelInterfaceHandleTempValue(out, rhs) {
-		return
-	}
-	if writeParallelHandleTempValue(out, rhs) {
-		return
-	}
-	if writeOwnedExpressionValue(out, rhs) {
-		return
-	}
-	TranspileExpression(out, rhs)
-}
-
-func parallelNilGoPtrFieldAssignmentTarget(lhs ast.Expr, rhs ast.Expr) (*ast.SelectorExpr, bool) {
-	ident, ok := unwrapParens(rhs).(*ast.Ident)
-	if !ok || ident.Name != "nil" {
-		return nil, false
-	}
-	sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
-	if !ok || !generatedGoPtrFieldForSelector(sel) {
-		return nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil || !tupleTempAssignsHandleToElement(lhsType) {
-		return nil, false
-	}
-	return sel, true
-}
-
-func parallelNilGoPtrIdentAssignmentTarget(lhs ast.Expr, rhs ast.Expr) (*ast.Ident, bool) {
-	rhsIdent, ok := unwrapParens(rhs).(*ast.Ident)
-	if !ok || rhsIdent.Name != "nil" {
-		return nil, false
-	}
-	lhsIdent, ok := unwrapParens(lhs).(*ast.Ident)
-	if !ok || lhsIdent.Name == "_" || !isGoPtrVar(lhsIdent.Name) {
-		return nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, false
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil {
-		if info, ok := goPtrVarInfo(lhsIdent.Name); ok {
-			lhsType = info.GoType
-		}
-	}
-	if lhsType == nil || !tupleTempAssignsHandleToElement(lhsType) {
-		return nil, false
-	}
-	return lhsIdent, true
-}
-
-func writeParallelInterfaceHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(rhs)); !ok {
-		return false
-	}
-	TranspileExpressionContext(out, rhs, LValue)
-	out.WriteString(".clone()")
-	return true
-}
-
-func writeParallelHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	rhsType := typeInfo.GetType(rhs)
-	if writeParallelNamedCollectionTempValue(out, rhs, rhsType) {
-		return true
-	}
-	if parallelTempTypeIsNamedCollection(rhsType) {
-		return false
-	}
-	if !parallelTempTypeKeepsHandle(rhsType) {
-		return false
-	}
-	switch expr := rhs.(type) {
-	case *ast.Ident:
-		if expr.Name == "nil" || expr.Name == "_" {
-			return false
-		}
-		if _, ok := types.Unalias(rhsType).Underlying().(*types.Pointer); ok {
-			writePointerShortDeclRhsValue(out, rhs)
-			return true
-		}
-		TranspileExpressionContext(out, rhs, LValue)
-		out.WriteString(".clone()")
-	case *ast.SelectorExpr:
-		writeSelectorHandleClone(out, expr)
-	case *ast.IndexExpr, *ast.TypeAssertExpr:
-		TranspileExpression(out, rhs)
-	default:
-		return false
-	}
-	return true
-}
-
-func writeParallelNamedCollectionTempValue(out *strings.Builder, rhs ast.Expr, rhsType types.Type) bool {
-	if !parallelTempTypeIsNamedCollection(rhsType) {
-		return false
-	}
-	ident, ok := rhs.(*ast.Ident)
-	if !ok || ident.Name == "nil" || ident.Name == "_" {
-		return false
-	}
-	if isCurrentReceiverIdent(ident) {
-		WriteWrapperPrefix(out)
-		out.WriteString(currentReceiverRustName())
-		out.WriteString(".clone()")
-		WriteWrapperSuffix(out)
-		return true
-	}
-	TranspileExpressionContext(out, rhs, LValue)
-	out.WriteString(".clone()")
-	return true
-}
-
-func parallelTempTypeIsNamedCollection(typ types.Type) bool {
-	if _, _, ok := namedSliceTypeFromType(typ); ok {
-		return true
-	}
-	if _, _, ok := namedMapTypeFromType(typ); ok {
-		return true
-	}
-	return false
-}
-
-func parallelTempTypeKeepsHandle(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature:
-		return true
-	default:
-		return false
-	}
-}
-
-func parallelTempNamedIntegerWrap(lhs ast.Expr, rhs ast.Expr) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return ""
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil {
-		return ""
-	}
-	named, ok := types.Unalias(lhsType).(*types.Named)
-	if !ok || !isNamedIntegerType(named) {
-		return ""
-	}
-	// RHS already a named-typed expression of the same type? Then no wrap.
-	// Named constants still emit as primitive const values, so they must be
-	// reconstructed at the assignment target.
-	if rhsType := typeInfo.GetType(rhs); rhsType != nil {
-		if rhsNamed, ok := types.Unalias(rhsType).(*types.Named); ok && rhsNamed.Obj() == named.Obj() {
-			if _, isLit := rhs.(*ast.BasicLit); !isLit && !isConstObjectExpr(rhs) {
-				return ""
-			}
-		}
-	}
-	return goTypesNamedTypeToRust(named)
-}
-
-func parallelTempNamedIntegerCast(lhs ast.Expr) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return ""
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil {
-		return ""
-	}
-	named, ok := types.Unalias(lhsType).(*types.Named)
-	if !ok {
-		return ""
-	}
-	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
-	if !ok {
-		return ""
-	}
-	cast, _ := rustCastTypeForDefinedUnderlying(basic.Name())
-	return cast
-}
-
-func isConstObjectExpr(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	switch e := expr.(type) {
-	case *ast.Ident:
-		_, ok := typeInfo.GetObject(e).(*types.Const)
-		return ok
-	case *ast.SelectorExpr:
-		_, ok := typeInfo.GetObject(e.Sel).(*types.Const)
-		return ok
-	default:
-		return false
-	}
-}
-
-func parallelTempBareCast(lhs ast.Expr, rhs ast.Expr) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return ""
-	}
-	lhsType := typeInfo.GetType(lhs)
-	if lhsType == nil {
-		return ""
-	}
-	lhsCast := rustCastForExpectedBasic(lhsType)
-	if lhsCast == "" {
-		return ""
-	}
-	rhsCast := rhsEmittedRustCast(rhs)
-	if rhsCast != "" && rhsCast == lhsCast {
-		return ""
-	}
-	if rhsCast == "" && lhsCast == "i32" {
-		// Untyped expression emits as i32 by default; matches LHS.
-		return ""
-	}
-	return lhsCast
-}
-
-// rhsEmittedRustCast returns the Rust basic type the RHS expression actually
-// emits, or "" if it's an untyped literal that defaults to i32. Unlike
-// rustCastForExpectedBasic(typeInfo.GetType(rhs)), this avoids Go's contextual
-// type adjustment (e.g. an untyped const taking the LHS type in a
-// multi-assignment) so we can decide whether an explicit cast is needed.
-func rhsEmittedRustCast(rhs ast.Expr) string {
-	if isBareLenCapCall(unwrapParens(rhs)) {
-		return "usize"
-	}
-	if _, ok := rhs.(*ast.BasicLit); ok {
-		return "" // untyped literal
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return ""
-	}
-	switch e := rhs.(type) {
-	case *ast.SelectorExpr:
-		if obj, ok := typeInfo.info.Uses[e.Sel]; ok {
-			return rustCastForExpectedBasic(obj.Type())
-		}
-	case *ast.Ident:
-		if obj, ok := typeInfo.info.Uses[e]; ok {
-			return rustCastForExpectedBasic(obj.Type())
-		}
-	}
-	if typ := typeInfo.GetType(rhs); typ != nil {
-		return rustCastForExpectedBasic(typ)
-	}
-	return ""
-}
-
-type mutexReceiverInfo struct {
-	expr         ast.Expr
-	fields       []string
-	sourceMapped bool
-}
-
-// mutexLockReceiver returns the receiver for a Lock() call on a sync.Mutex field.
-func mutexLockReceiver(expr ast.Expr) (mutexReceiverInfo, bool) {
-	return syncMutexMethodReceiver(expr, "Lock")
-}
-
-func mutexUnlockReceiver(expr ast.Expr) (mutexReceiverInfo, bool) {
-	return syncMutexMethodReceiver(expr, "Unlock")
-}
-
-func syncMutexMethodReceiver(expr ast.Expr, methodName string) (mutexReceiverInfo, bool) {
-	call, ok := expr.(*ast.CallExpr)
-	if !ok {
-		return mutexReceiverInfo{}, false
-	}
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || sel.Sel.Name != methodName {
-		return mutexReceiverInfo{}, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return mutexReceiverInfo{}, false
-	}
-	fieldType := typeInfo.GetType(sel.X)
-	if isSyncMutexType(fieldType) {
-		return mutexReceiverInfo{expr: sel.X, sourceMapped: isSourceMappedSyncMutexType(fieldType)}, true
-	}
-	if typeInfo.info == nil {
-		return mutexReceiverInfo{}, false
-	}
-	selection := typeInfo.info.Selections[sel]
-	if selection == nil {
-		return mutexReceiverInfo{}, false
-	}
-	fn, ok := selection.Obj().(*types.Func)
-	if !ok || fn.Name() != methodName {
-		return mutexReceiverInfo{}, false
-	}
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || sig.Recv() == nil || !isSyncMutexType(sig.Recv().Type()) {
-		return mutexReceiverInfo{}, false
-	}
-	indexes := selection.Index()
-	if len(indexes) < 2 {
-		return mutexReceiverInfo{}, false
-	}
-	fields, ok := promotedFieldPath(selection.Recv(), indexes[:len(indexes)-1])
-	if !ok {
-		return mutexReceiverInfo{}, false
-	}
-	return mutexReceiverInfo{expr: sel.X, fields: fields, sourceMapped: isSourceMappedSyncMutexType(sig.Recv().Type())}, true
-}
-
-func syncMutexNamedType(typ types.Type) (*types.Named, bool) {
-	if typ == nil {
-		return nil, false
-	}
-	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
-		typ = ptr.Elem()
-	}
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return nil, false
-	}
-	if named.Obj().Pkg().Path() != "sync" || named.Obj().Name() != "Mutex" {
-		return nil, false
-	}
-	return named, true
-}
-
-func isSyncMutexType(typ types.Type) bool {
-	_, ok := syncMutexNamedType(typ)
-	return ok
-}
-
-func isSourceMappedSyncMutexType(typ types.Type) bool {
-	named, ok := syncMutexNamedType(typ)
-	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
-}
-
-func isLocalSourceMappedSyncMutexFieldSelector(sel *ast.SelectorExpr) bool {
-	if sel == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	named, ok := syncMutexNamedType(typeInfo.GetType(sel))
-	if !ok || !isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
-		return false
-	}
-	selection := typeInfo.info.Selections[sel]
-	if selection == nil || selection.Kind() != types.FieldVal {
-		return false
-	}
-	field, ok := selection.Obj().(*types.Var)
-	return ok && field.Pkg() == named.Obj().Pkg()
-}
-
-func promotedFieldPath(recv types.Type, indexes []int) ([]string, bool) {
-	var fields []string
-	current := recv
-	for _, index := range indexes {
-		if ptr, ok := types.Unalias(current).(*types.Pointer); ok {
-			current = ptr.Elem()
-		}
-		structType, ok := types.Unalias(current).Underlying().(*types.Struct)
-		if !ok || index < 0 || index >= structType.NumFields() {
-			return nil, false
-		}
-		field := structType.Field(index)
-		fields = append(fields, ToSnakeCase(field.Name()))
-		current = field.Type()
-	}
-	return fields, len(fields) > 0
-}
-
-func mutexReceiverKey(receiver mutexReceiverInfo) (string, bool) {
-	var buf bytes.Buffer
-	if format.Node(&buf, token.NewFileSet(), receiver.expr) != nil {
-		return "", false
-	}
-	for _, field := range receiver.fields {
-		buf.WriteByte('.')
-		buf.WriteString(field)
-	}
-	return buf.String(), true
-}
-
-func mutexAliasIdentKey(expr ast.Expr) (string, types.Type, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok || ident.Name == "_" {
-		return "", nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return "", nil, false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return "", nil, false
-	}
-	if _, ok := types.Unalias(typ).(*types.Pointer); !ok {
-		return "", nil, false
-	}
-	return ident.Name, typ, true
-}
-
-func noteMutexGuardAliasAssignment(lhs ast.Expr, rhs ast.Expr) {
-	lhsKey, lhsType, ok := mutexAliasIdentKey(lhs)
-	if !ok {
-		return
-	}
-	rhsKey, rhsType, ok := mutexAliasIdentKey(rhs)
-	if !ok || !types.AssignableTo(rhsType, lhsType) {
-		return
-	}
-	type aliasUpdate struct {
-		from  string
-		to    string
-		guard string
-	}
-	var updates []aliasUpdate
-	for key, guardName := range activeMutexGuards {
-		if key == rhsKey {
-			updates = append(updates, aliasUpdate{from: key, to: lhsKey, guard: guardName})
-			continue
-		}
-		prefix := rhsKey + "."
-		if strings.HasPrefix(key, prefix) {
-			updates = append(updates, aliasUpdate{from: key, to: lhsKey + strings.TrimPrefix(key, rhsKey), guard: guardName})
-		}
-	}
-	for _, update := range updates {
-		delete(activeMutexGuards, update.from)
-		activeMutexGuards[update.to] = update.guard
-	}
-}
-
-func writeMutexReceiver(out *strings.Builder, receiver mutexReceiverInfo) {
-	if len(receiver.fields) == 0 {
-		TranspileExpressionContext(out, receiver.expr, LValue)
-		return
-	}
-	if ident, ok := unwrapParens(receiver.expr).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-		out.WriteString(currentReceiverRustName())
-	} else {
-		out.WriteString("(*")
-		TranspileExpressionContext(out, receiver.expr, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap())")
-	}
-	for _, field := range receiver.fields {
-		out.WriteString(".")
-		out.WriteString(field)
-	}
-}
-
-func mutexReceiverIsWrappedIdent(receiver mutexReceiverInfo) bool {
-	if len(receiver.fields) != 0 {
-		return false
-	}
-	_, ok := receiver.expr.(*ast.Ident)
-	return ok
-}
-
-func writeMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
-	if !mutexReceiverIsWrappedIdent(receiver) {
-		writeMutexReceiver(out, receiver)
-		return
-	}
-	out.WriteString("(*")
-	writeMutexReceiver(out, receiver)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap())")
-}
-
-func writeSourceMappedMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
-	if sel, ok := unwrapParens(receiver.expr).(*ast.SelectorExpr); ok && isLocalSourceMappedSyncMutexFieldSelector(sel) {
-		out.WriteString("(*")
-		writeMutexReceiver(out, receiver)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap())")
-		return
-	}
-	writeMutexReceiverRef(out, receiver)
-}
-
-func writeMutexReceiverCloneValue(out *strings.Builder, receiver mutexReceiverInfo) {
-	writeMutexReceiverRef(out, receiver)
-	out.WriteString(".clone()")
-}
-
-func cloneMutexGuards(guards map[string]string) map[string]string {
-	cloned := make(map[string]string, len(guards))
-	for key, guardName := range guards {
-		cloned[key] = guardName
-	}
-	return cloned
-}
-
-func mergeMutexGuardsAfterIf(before, thenGuards, elseGuards map[string]string) map[string]string {
-	merged := make(map[string]string)
-	for key, guardName := range before {
-		if thenGuard, ok := thenGuards[key]; !ok || thenGuard != guardName {
-			continue
-		}
-		if elseGuard, ok := elseGuards[key]; !ok || elseGuard != guardName {
-			continue
-		}
-		merged[key] = guardName
-	}
-	return merged
-}
-
-func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
-	receiver, ok := mutexLockReceiver(expr)
-	if !ok {
-		return false
-	}
-	if receiver.sourceMapped {
-		writeSourceMappedMutexReceiverRef(out, receiver)
-		out.WriteString(".lock();")
-		return true
-	}
-	if currentLoopDepth > 0 {
-		writeMutexReceiverRef(out, receiver)
-		out.WriteString(".lock();")
-		return true
-	}
-	id := stableStatementPosID(expr.Pos())
-	sourceName := fmt.Sprintf("__mutex_guard_source_%d", id)
-	guardName := fmt.Sprintf("__mutex_guard_%d", id)
-
-	out.WriteString("let ")
-	out.WriteString(sourceName)
-	out.WriteString(" = ")
-	writeMutexReceiverCloneValue(out, receiver)
-	out.WriteString("; ")
-	out.WriteString("let ")
-	out.WriteString(guardName)
-	out.WriteString(" = ")
-	out.WriteString(sourceName)
-	out.WriteString(".guard();")
-	if key, ok := mutexReceiverKey(receiver); ok {
-		activeMutexGuards[key] = guardName
-	}
-	return true
-}
-
-func stableStatementPosID(pos token.Pos) int {
-	if pos == token.NoPos {
-		return 0
-	}
-	ctx := GetTranspileContext()
-	if ctx != nil && ctx.File != nil && ctx.File.FileSet != nil {
-		position := ctx.File.FileSet.Position(pos)
-		if position.IsValid() {
-			return position.Offset
-		}
-	}
-	return int(pos)
-}
-
-func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
-	receiver, ok := mutexUnlockReceiver(expr)
-	if !ok {
-		return false
-	}
-	if receiver.sourceMapped {
-		writeSourceMappedMutexReceiverRef(out, receiver)
-		out.WriteString(".unlock();")
-		return true
-	}
-	key, ok := mutexReceiverKey(receiver)
-	if !ok {
-		return false
-	}
-	guardName, ok := activeMutexGuards[key]
-	if !ok {
-		writeMutexReceiverRef(out, receiver)
-		out.WriteString(".unlock();")
-		return true
-	}
-	out.WriteString("drop(")
-	out.WriteString(guardName)
-	out.WriteString(");")
-	delete(activeMutexGuards, key)
-	return true
-}
-
-// isMutexUnlockDefer checks if a defer statement is mu.Unlock() on a sync.Mutex
-func isMutexUnlockDefer(call *ast.CallExpr) bool {
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || sel.Sel.Name != "Unlock" {
-		return false
-	}
-	receiver, ok := syncMutexMethodReceiver(call, "Unlock")
-	return ok && !receiver.sourceMapped
-}
-
-// channelElementIsGoError reports whether a channel expression carries Go error values.
-func channelElementIsGoError(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	ch, ok := types.Unalias(typ).Underlying().(*types.Chan)
-	return ok && isGoErrorType(ch.Elem())
-}
-
-func writeErrorOptionFromHandleExpression(out *strings.Builder, expr ast.Expr) {
-	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
-		out.WriteString("None::<")
-		out.WriteString(rustErrorPayloadType())
-		out.WriteString(">")
-		return
-	}
-	out.WriteString("{ let __err_handle = ")
-	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
-		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(".clone()")
-	} else if call, ok := expr.(*ast.CallExpr); ok {
-		TranspileExpression(out, call)
-	} else {
-		TranspileExpressionContext(out, expr, LValue)
-		out.WriteString(".clone()")
-	}
-	out.WriteString("; let __err_value = (*__err_handle")
-	WriteBorrowMethod(out, false)
-	out.WriteString(").clone(); __err_value }")
-}
-
-func writeErrorHandleFromOptionValue(out *strings.Builder, value string) {
-	trackWrapperImports()
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(")
-		out.WriteString(value)
-		out.WriteString("))")
-		return
-	}
-	out.WriteString("Rc::new(RefCell::new(")
-	out.WriteString(value)
-	out.WriteString("))")
-}
-
-func writeErrorHandleFromChannelReceive(out *strings.Builder, channel ast.Expr) {
-	trackWrapperImports()
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(")
-	} else {
-		out.WriteString("Rc::new(RefCell::new(")
-	}
-	writeChannelExpression(out, channel)
-	out.WriteString(".recv().unwrap_or_default()))")
-}
-
-func writeErrorChannelReceiveReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	unary, ok := result.(*ast.UnaryExpr)
-	if !ok || unary.Op != token.ARROW {
-		return false
-	}
-	if !isGoErrorType(expectedTypeFromParamExpr(expected)) || !channelElementIsGoError(unary.X) {
-		return false
-	}
-	writeErrorHandleFromChannelReceive(out, unary.X)
-	return true
-}
-
-func writeEmptyErrorHandle(out *strings.Builder) {
-	trackWrapperImports()
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(None::<")
-		out.WriteString(rustErrorPayloadType())
-		out.WriteString(">))")
-		return
-	}
-	out.WriteString("Rc::new(RefCell::new(None::<")
-	out.WriteString(rustErrorPayloadType())
-	out.WriteString(">))")
-}
-
-func rustEmptyErrorHandleValue() string {
-	var out strings.Builder
-	writeEmptyErrorHandle(&out)
-	return out.String()
-}
-
-func isRightNilComparison(expr *ast.BinaryExpr) bool {
-	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
-		return false
-	}
-	ident, ok := expr.Y.(*ast.Ident)
-	return ok && ident.Name == "nil"
-}
-
-func expressionReturnsWrappedValueForExtraction(typeInfo *TypeInfo, expr ast.Expr) bool {
-	if typeInfo == nil || !typeInfo.ReturnsWrappedValue(expr) {
-		return false
-	}
-	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
-		return false
-	}
-	return true
-}
-
-func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	unary, ok := rhs.(*ast.UnaryExpr)
-	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(assignmentTargetType(typeInfo, lhs)) {
-		return false
-	}
-	out.WriteString("{ let new_val = ")
-	writeChannelExpression(out, unary.X)
-	out.WriteString(".recv().unwrap_or_default(); *")
-	TranspileExpressionContext(out, lhs, LValue)
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }")
-	return true
-}
-
-// transpileChannelValue writes a value suitable for sending on a channel.
-// Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
-func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
-	// For string literals, just output the value directly
-	if lit, ok := expr.(*ast.BasicLit); ok {
-		if lit.Kind == token.STRING {
-			out.WriteString(RustStringLiteral(lit.Value))
-			out.WriteString(".to_string()")
-		} else {
-			out.WriteString(lit.Value)
-		}
-		return
-	}
-
-	// For boolean identifiers (true/false), output directly
-	if ident, ok := expr.(*ast.Ident); ok {
-		if ident.Name == "true" || ident.Name == "false" {
-			out.WriteString(ident.Name)
-			return
-		}
-	}
-
-	// Check if this is a Copy type using TypeInfo
-	isCopyType := false
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil {
-		exprType := typeInfo.GetType(expr)
-		if exprType != nil {
-			if isGoErrorType(exprType) {
-				writeErrorOptionFromHandleExpression(out, expr)
-				return
-			}
-			if basic, ok := exprType.Underlying().(*types.Basic); ok {
-				switch basic.Kind() {
-				case types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
-					types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64,
-					types.Float32, types.Float64, types.Bool,
-					types.UntypedInt, types.UntypedFloat, types.UntypedBool:
-					isCopyType = true
-				}
-			}
-		}
-	}
-
-	if call, ok := expr.(*ast.CallExpr); ok {
-		if callReturnsWrappedBoolBySyntax(call) || (typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call)) {
-			out.WriteString("(*")
-			TranspileExpression(out, call)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-			if !isCopyType {
-				out.WriteString(".clone()")
-			}
-			return
-		}
-	}
-
-	// For identifiers that are wrapped, unwrap them
-	if ident, ok := expr.(*ast.Ident); ok {
-		// Check if it's a range loop variable, constant, or bare variable
-		if _, isRange := rangeLoopVars[ident.Name]; isRange {
-			out.WriteString(ident.Name)
-			return
-		}
-		if _, isConst := localConstants[ident.Name]; isConst {
-			out.WriteString(ident.Name)
-			return
-		}
-		if isVarBare(ident.Name) {
-			out.WriteString(ident.Name)
-			return
-		}
-		// Wrapped variable â€” unwrap and copy if needed. A value sent on a
-		// channel is a copy of the variable.
-		if isCopyType {
-			out.WriteString("(*")
-			out.WriteString(ident.Name)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-		} else if copyCall, known := goValueCopyCallForExpr(ident); known {
-			out.WriteString(ident.Name)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()")
-			out.WriteString(copyCall)
-		} else {
-			out.WriteString(goValueCopyNeedsTypeInfo)
-		}
-		return
-	}
-
-	if _, ok := expr.(*ast.SelectorExpr); ok {
-		if isCopyType {
-			out.WriteString("(*")
-			TranspileExpression(out, expr)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-		} else if copyCall, known := goValueCopyCallForExpr(expr); known {
-			TranspileExpression(out, expr)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()")
-			out.WriteString(copyCall)
-		} else {
-			out.WriteString(goValueCopyNeedsTypeInfo)
-		}
-		return
-	}
-
-	// An element of a slice or an array, and the target of a pointer, is
-	// copied when it is sent.
-	if writeGoValueCopyOfElement(out, expr) {
-		return
-	}
-
-	// For other expressions, try to unwrap
-	TranspileExpression(out, expr)
-}
-
-func callReturnsBareChannelValue(call *ast.CallExpr) bool {
-	if ident, ok := call.Fun.(*ast.Ident); ok {
-		switch ident.Name {
-		case "len", "cap":
-			return true
-		case "make":
-			return isMakeChannelCall(call)
-		}
-	}
-
-	if key, ok := stdlibCallKey(call.Fun); ok {
-		switch key {
-		case "time.After", "time.Tick", "context.WithTimeout", "context.WithCancel", "context.WithCancelCause":
-			return true
-		}
-	}
-
-	return false
-}
-
-func isMakeChannelCall(call *ast.CallExpr) bool {
-	if call == nil || len(call.Args) == 0 {
-		return false
-	}
-	ident, ok := call.Fun.(*ast.Ident)
-	if !ok || ident.Name != "make" {
-		return false
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-		if obj, ok := typeInfo.info.Uses[ident]; ok {
-			builtin, ok := obj.(*types.Builtin)
-			if !ok || builtin.Name() != "make" {
-				return false
-			}
-		}
-	}
-	if _, ok := call.Args[0].(*ast.ChanType); ok {
-		return true
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(call); typ != nil {
-			if _, ok := types.Unalias(typ).Underlying().(*types.Chan); ok {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// hasBlankLineBetween checks if there's more than one line between two positions
-func hasBlankLineBetween(fileSet *token.FileSet, pos1, pos2 token.Pos) bool {
-	if fileSet == nil || pos1 == token.NoPos || pos2 == token.NoPos {
-		return false
-	}
-
-	p1 := fileSet.Position(pos1)
-	p2 := fileSet.Position(pos2)
-
-	// If there's more than 1 line between the positions, there's at least one blank line
-	return p2.Line-p1.Line > 1
-}
-
-// outputCommentsBeforePos outputs any comments that appear before the given position
-func outputCommentsBeforePos(out *strings.Builder, comments []*ast.CommentGroup, fileSet *token.FileSet, pos token.Pos, indent string, lastPos *token.Pos) {
-	if fileSet == nil || pos == token.NoPos {
-		return
-	}
-
-	targetLine := fileSet.Position(pos).Line
-	startLine := 0
-	if *lastPos != token.NoPos {
-		startLine = fileSet.Position(*lastPos).Line
-	}
-
-	for _, cg := range comments {
-		cgLine := fileSet.Position(cg.Pos()).Line
-		// Output comments that are after our last position but before the current position
-		if cgLine > startLine && cgLine < targetLine {
-			for _, comment := range cg.List {
-				out.WriteString(indent)
-				out.WriteString(rustStatementCommentText(comment.Text))
-				out.WriteString("\n")
-				out.WriteString(indent)
-			}
-		}
-	}
-
-	*lastPos = pos
-}
-
-func rustStatementCommentText(text string) string {
-	if strings.HasPrefix(text, "///") {
-		return "//" + strings.TrimLeft(text[2:], "/")
-	}
-	if strings.HasPrefix(text, "//!") {
-		return "//" + text[3:]
-	}
-	return text
-}
-
-func outputComment(out *strings.Builder, cg *ast.CommentGroup, indent string, isDoc bool) {
-	if cg == nil {
-		return
-	}
-
-	for _, comment := range cg.List {
-		out.WriteString(indent)
-
-		text := comment.Text
-		if isDoc && strings.HasPrefix(text, "//") {
-			// Convert doc comment to Rust format
-			out.WriteString("///")
-			out.WriteString(text[2:]) // Skip the "//"
-		} else {
-			// Keep as-is for regular comments
-			out.WriteString(text)
-		}
-		out.WriteString("\n")
-	}
-}
-
-func funcLiteralParamType(funcLit *ast.FuncLit, index int) types.Type {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || funcLit == nil {
-		return nil
-	}
-	sig, ok := typeInfo.GetType(funcLit).(*types.Signature)
-	if !ok || sig.Params() == nil || index >= sig.Params().Len() {
-		return nil
-	}
-	return sig.Params().At(index).Type()
-}
-
-func writeDeferFuncLiteralArgumentCapture(out *strings.Builder, arg ast.Expr, expectedType types.Type) {
-	if expectedType != nil && mapValueTypeKeepsHandle(expectedType) {
-		if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
-			WriteWrappedNone(out)
-			return
-		}
-		if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedType) {
-			return
-		}
-		if writeLocalInterfaceWrappedValue(out, arg, expectedType) {
-			return
-		}
-		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			if argType := typeInfo.GetType(arg); argType != nil && mapValueTypeKeepsHandle(argType) && types.AssignableTo(argType, expectedType) {
-				TranspileExpressionContext(out, arg, LValue)
-				out.WriteString(".clone()")
-				return
-			}
-		}
-	}
-
-	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
-		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-				WriteWrapperPrefix(out)
-				out.WriteString("(*")
-				out.WriteString(ident.Name)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()")
-				WriteWrapperSuffix(out)
-				return
-			}
-			WriteWrapperPrefix(out)
-			TranspileExpression(out, arg)
-			WriteWrapperSuffix(out)
-			return
-		}
-		WriteWrapperPrefix(out)
-		TranspileExpression(out, arg)
-		WriteWrapperSuffix(out)
-		return
-	}
-
-	WriteWrapperPrefix(out)
-	if !writeOwnedExpressionValue(out, arg) {
-		TranspileExpression(out, arg)
-	}
-	WriteWrapperSuffix(out)
-}
-
-// TranspileStatementSimple is a wrapper for backward compatibility
-func TranspileStatementSimple(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
-	var lastPos token.Pos
-	TranspileStatement(out, stmt, fnType, fileSet, nil, &lastPos, "")
-}
-
-func transpileElseBranch(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
-	if elseIf, ok := stmt.(*ast.IfStmt); ok {
-		if elseIf.Init != nil {
-			transpileIfWithInitAsBlock(out, elseIf, fnType, fileSet)
-		} else {
-			TranspileStatementSimple(out, elseIf, fnType, fileSet)
-		}
-		return
-	}
-	if block, ok := stmt.(*ast.BlockStmt); ok {
-		out.WriteString("{\n")
-		popElseBodyScope := func() {}
-		if vt := GetVarTable(); vt != nil {
-			vt.PushScope()
-			popElseBodyScope = vt.PopScope
-		}
-		for _, stmt := range block.List {
-			out.WriteString("            ")
-			TranspileStatementSimple(out, stmt, fnType, fileSet)
-			out.WriteString(";\n")
-		}
-		popElseBodyScope()
-		out.WriteString("        }")
-	}
-}
-
-func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *ast.FuncType, fileSet *token.FileSet) {
-	if vt := GetVarTable(); vt != nil {
-		vt.PushScope()
-		defer vt.PopScope()
-	}
-	restoreRangeLoopVars := func() {}
-	defer func() {
-		restoreRangeLoopVars()
-	}()
-	out.WriteString("{\n        ")
-	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
-	restoreRangeLoopVars = shadowRangeLoopVars(shortDeclNames(stmt.Init))
-	out.WriteString(";\n        if ")
-	transpileCondition(out, stmt.Cond)
-	out.WriteString(" {\n")
-	beforeGuards := cloneMutexGuards(activeMutexGuards)
-	activeMutexGuards = cloneMutexGuards(beforeGuards)
-	popIfBodyScope := func() {}
-	if vt := GetVarTable(); vt != nil {
-		vt.PushScope()
-		popIfBodyScope = vt.PopScope
-	}
-	for _, bodyStmt := range stmt.Body.List {
-		out.WriteString("            ")
-		TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
-		out.WriteString(";\n")
-	}
-	popIfBodyScope()
-	thenGuards := cloneMutexGuards(activeMutexGuards)
-	out.WriteString("        }")
-	elseGuards := cloneMutexGuards(beforeGuards)
-	if stmt.Else != nil {
-		activeMutexGuards = cloneMutexGuards(beforeGuards)
-		out.WriteString(" else ")
-		transpileElseBranch(out, stmt.Else, fnType, fileSet)
-		elseGuards = cloneMutexGuards(activeMutexGuards)
-	}
-	activeMutexGuards = mergeMutexGuardsAfterIf(beforeGuards, thenGuards, elseGuards)
-	out.WriteString("\n    }")
-}
-
-const minStatementBuiltLogicalConditionNodes = 3
-const minStatementBuiltNegatedLogicalConditionNodes = 2
-const minStatementBuiltLogicalConditionOperandComplexity = 10
-const minStatementBuiltLogicalConditionFieldComparisons = 4
-const minStatementBuiltLogicalConditionFieldBitmaskComparisons = 2
-const minStatementBuiltLogicalConditionCallOperands = 4
-const concurrentFieldSelectorLogicalConditionComplexity = 4
-const concurrentFieldSelectorConversionLogicalConditionComplexity = 4
-const concurrentSequenceIndexLogicalConditionComplexity = 8
-const concurrentNamedIntegerLogicalComparisonOperandComplexity = 4
-const concurrentGoErrorLogicalComparisonComplexity = 10
-
-func transpileCondition(out *strings.Builder, expr ast.Expr) {
-	if shouldStatementBuildLogicalCondition(expr) {
-		nextTemp := 0
-		writeStatementBuiltLogicalConditionValue(out, expr, currentLineIndent(out), &nextTemp)
-		return
-	}
-	transpileConditionInline(out, expr)
-}
-
-func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	if unary, ok := unwrapParens(expr).(*ast.UnaryExpr); ok && unary.Op == token.NOT {
-		return shouldStatementBuildNegatedLogicalCondition(unary.X)
-	}
-	if countLogicalConditionNodes(expr) >= minStatementBuiltLogicalConditionNodes {
-		return true
-	}
-	if countLogicalConditionFieldComparisons(expr) >= minStatementBuiltLogicalConditionFieldComparisons {
-		return true
-	}
-	if countLogicalConditionFieldComparisons(expr) >= minStatementBuiltLogicalConditionNodes &&
-		countLogicalConditionFieldBitmaskComparisons(expr) >= minStatementBuiltLogicalConditionFieldBitmaskComparisons {
-		return true
-	}
-	if countLogicalConditionCallOperands(expr) >= minStatementBuiltLogicalConditionCallOperands {
-		return true
-	}
-	return logicalConditionHasComplexOperand(expr)
-}
-
-func shouldStatementBuildNegatedLogicalCondition(expr ast.Expr) bool {
-	if countLogicalConditionNodes(expr) >= minStatementBuiltNegatedLogicalConditionNodes {
-		return true
-	}
-	return shouldStatementBuildLogicalCondition(expr)
-}
-
-func countLogicalConditionNodes(expr ast.Expr) int {
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
-		return 0
-	}
-	return 1 +
-		countLogicalConditionNodes(binary.X) +
-		countLogicalConditionNodes(binary.Y)
-}
-
-func logicalConditionHasComplexOperand(expr ast.Expr) bool {
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
-		return false
-	}
-	if countLogicalConditionOperandComplexity(binary.X) >= minStatementBuiltLogicalConditionOperandComplexity {
-		return true
-	}
-	if countLogicalConditionOperandComplexity(binary.Y) >= minStatementBuiltLogicalConditionOperandComplexity {
-		return true
-	}
-	return logicalConditionHasComplexOperand(binary.X) || logicalConditionHasComplexOperand(binary.Y)
-}
-
-func countLogicalConditionFieldComparisons(expr ast.Expr) int {
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok {
-		return 0
-	}
-	if binary.Op == token.LAND || binary.Op == token.LOR {
-		return countLogicalConditionFieldComparisons(binary.X) + countLogicalConditionFieldComparisons(binary.Y)
-	}
-	if logicalConditionBinaryIsComparison(binary) && exprContainsTypedFieldSelector(binary) {
-		return 1
-	}
-	return 0
-}
-
-func countLogicalConditionFieldBitmaskComparisons(expr ast.Expr) int {
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok {
-		return 0
-	}
-	if binary.Op == token.LAND || binary.Op == token.LOR {
-		return countLogicalConditionFieldBitmaskComparisons(binary.X) + countLogicalConditionFieldBitmaskComparisons(binary.Y)
-	}
-	if logicalConditionBinaryIsComparison(binary) && exprContainsTypedFieldSelector(binary) && exprContainsBitwiseAnd(binary) {
-		return 1
-	}
-	return 0
-}
-
-func exprContainsBitwiseAnd(expr ast.Expr) bool {
-	switch e := unwrapParens(expr).(type) {
-	case *ast.BinaryExpr:
-		return e.Op == token.AND || exprContainsBitwiseAnd(e.X) || exprContainsBitwiseAnd(e.Y)
-	case *ast.CallExpr:
-		if exprContainsBitwiseAnd(e.Fun) {
-			return true
-		}
-		for _, arg := range e.Args {
-			if exprContainsBitwiseAnd(arg) {
-				return true
-			}
-		}
-	case *ast.IndexExpr:
-		return exprContainsBitwiseAnd(e.X) || exprContainsBitwiseAnd(e.Index)
-	case *ast.SliceExpr:
-		if exprContainsBitwiseAnd(e.X) {
-			return true
-		}
-		for _, bound := range []ast.Expr{e.Low, e.High, e.Max} {
-			if bound != nil && exprContainsBitwiseAnd(bound) {
-				return true
-			}
-		}
-	case *ast.SelectorExpr:
-		return exprContainsBitwiseAnd(e.X)
-	case *ast.UnaryExpr:
-		return exprContainsBitwiseAnd(e.X)
-	case *ast.StarExpr:
-		return exprContainsBitwiseAnd(e.X)
-	case *ast.TypeAssertExpr:
-		return exprContainsBitwiseAnd(e.X)
-	case *ast.CompositeLit:
-		for _, elt := range e.Elts {
-			if exprContainsBitwiseAnd(elt) {
-				return true
-			}
-		}
-	case *ast.KeyValueExpr:
-		return exprContainsBitwiseAnd(e.Key) || exprContainsBitwiseAnd(e.Value)
-	}
-	return false
-}
-
-func countLogicalConditionCallOperands(expr ast.Expr) int {
-	switch e := unwrapParens(expr).(type) {
-	case *ast.BinaryExpr:
-		if e.Op == token.LAND || e.Op == token.LOR {
-			return countLogicalConditionCallOperands(e.X) + countLogicalConditionCallOperands(e.Y)
-		}
-	case *ast.CallExpr:
-		return 1
-	}
-	return 0
-}
-
-func countLogicalConditionOperandComplexity(expr ast.Expr) int {
-	switch e := unwrapParens(expr).(type) {
-	case *ast.BinaryExpr:
-		if e.Op == token.LAND || e.Op == token.LOR {
-			return 0
-		}
-		count := 1 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Y)
-		if logicalConditionBinaryIsComparison(e) {
-			count += countNamedIntegerLogicalComparisonOperandComplexity(e.X)
-			count += countNamedIntegerLogicalComparisonOperandComplexity(e.Y)
-			count += countGoErrorLogicalComparisonComplexity(e)
-		}
-		return count
-	case *ast.CallExpr:
-		count := 2 + countLogicalConditionOperandComplexity(e.Fun)
-		for _, arg := range e.Args {
-			count += countLogicalConditionOperandComplexity(arg)
-		}
-		if logicalConditionCallConvertsFieldSelector(e) {
-			count += concurrentFieldSelectorConversionLogicalConditionComplexity
-		}
-		return count
-	case *ast.IndexExpr:
-		count := 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
-		if indexReadsConcurrentSequence(e) || indexReadsConcurrentString(e) {
-			count += concurrentSequenceIndexLogicalConditionComplexity
-		}
-		return count
-	case *ast.SelectorExpr:
-		if concurrentLogicalConditionSelectorIsField(e) {
-			return concurrentFieldSelectorLogicalConditionComplexity + countLogicalConditionOperandComplexity(e.X)
-		}
-		return 1 + countLogicalConditionOperandComplexity(e.X)
-	case *ast.SliceExpr:
-		count := 2 + countLogicalConditionOperandComplexity(e.X)
-		if e.Low != nil {
-			count += countLogicalConditionOperandComplexity(e.Low)
-		}
-		if e.High != nil {
-			count += countLogicalConditionOperandComplexity(e.High)
-		}
-		if e.Max != nil {
-			count += countLogicalConditionOperandComplexity(e.Max)
-		}
-		return count
-	case *ast.StarExpr:
-		return 1 + countLogicalConditionOperandComplexity(e.X)
-	case *ast.UnaryExpr:
-		return 1 + countLogicalConditionOperandComplexity(e.X)
-	case *ast.ParenExpr:
-		return countLogicalConditionOperandComplexity(e.X)
-	case *ast.Ident, *ast.BasicLit:
-		return 0
-	default:
-		if expr == nil {
-			return 0
-		}
-		return 1
-	}
-}
-
-func indexReadsConcurrentSequence(index *ast.IndexExpr) bool {
-	if index == nil || !NeedsConcurrentWrapper() {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return typeInfo.IsSlice(index.X) || typeInfo.IsArray(index.X) || typeInfo.IsPointerToArray(index.X)
-}
-
-func indexReadsConcurrentString(index *ast.IndexExpr) bool {
-	if index == nil || !NeedsConcurrentWrapper() {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return typeInfo.IsString(index.X)
-}
-
-func logicalConditionCallConvertsFieldSelector(call *ast.CallExpr) bool {
-	if call == nil || len(call.Args) != 1 || !NeedsConcurrentWrapper() {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
-		return false
-	}
-	return exprContainsTypedFieldSelector(call.Args[0])
-}
-
-func logicalConditionBinaryIsComparison(expr *ast.BinaryExpr) bool {
-	if expr == nil {
-		return false
-	}
-	return expr.Op == token.EQL || expr.Op == token.NEQ || expr.Op == token.LSS ||
-		expr.Op == token.GTR || expr.Op == token.LEQ || expr.Op == token.GEQ
-}
-
-func countNamedIntegerLogicalComparisonOperandComplexity(expr ast.Expr) int {
-	if expr == nil || !NeedsConcurrentWrapper() {
-		return 0
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return 0
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil || !isNamedIntegerType(typ) {
-		return 0
-	}
-	return concurrentNamedIntegerLogicalComparisonOperandComplexity
-}
-
-func countGoErrorLogicalComparisonComplexity(expr *ast.BinaryExpr) int {
-	if expr == nil || !NeedsConcurrentWrapper() || expr.Op != token.EQL && expr.Op != token.NEQ {
-		return 0
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return 0
-	}
-	leftType := typeInfo.GetType(expr.X)
-	rightType := typeInfo.GetType(expr.Y)
-	if isGoErrorType(leftType) && (isConcreteGoErrorValue(rightType) || isGoErrorType(rightType)) {
-		return concurrentGoErrorLogicalComparisonComplexity
-	}
-	if isGoErrorType(rightType) && isConcreteGoErrorValue(leftType) {
-		return concurrentGoErrorLogicalComparisonComplexity
-	}
-	return 0
-}
-
-func concurrentLogicalConditionSelectorIsField(sel *ast.SelectorExpr) bool {
-	if sel == nil || !NeedsConcurrentWrapper() {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	selection, ok := typeInfo.info.Selections[sel]
-	return ok && selection.Kind() == types.FieldVal
-}
-
-func currentLineIndent(out *strings.Builder) string {
-	line := currentLineText(out)
-	indentEnd := 0
-	for indentEnd < len(line) && (line[indentEnd] == ' ' || line[indentEnd] == '\t') {
-		indentEnd++
-	}
-	return line[:indentEnd]
-}
-
-func currentLineText(out *strings.Builder) string {
-	text := out.String()
-	lineStart := strings.LastIndex(text, "\n") + 1
-	return text[lineStart:]
-}
-
-func writeStatementBuiltLogicalConditionValue(out *strings.Builder, expr ast.Expr, indent string, nextTemp *int) {
-	if unary, ok := unwrapParens(expr).(*ast.UnaryExpr); ok && unary.Op == token.NOT && shouldStatementBuildNegatedLogicalCondition(unary.X) {
-		out.WriteString("!(")
-		writeStatementBuiltLogicalConditionValue(out, unary.X, indent, nextTemp)
-		out.WriteString(")")
-		return
-	}
-
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
-		transpileConditionInline(out, expr)
-		return
-	}
-
-	out.WriteString("{\n")
-	left := writeStatementBuiltLogicalConditionTemp(out, binary.X, indent+"    ", nextTemp)
-	out.WriteString(indent)
-	out.WriteString("    if ")
-	out.WriteString(left)
-	out.WriteString(" {\n")
-	if binary.Op == token.LAND {
-		right := writeStatementBuiltLogicalConditionTemp(out, binary.Y, indent+"        ", nextTemp)
-		out.WriteString(indent)
-		out.WriteString("        ")
-		out.WriteString(right)
-		out.WriteString("\n")
-		out.WriteString(indent)
-		out.WriteString("    } else {\n")
-		out.WriteString(indent)
-		out.WriteString("        false\n")
-	} else {
-		out.WriteString(indent)
-		out.WriteString("        true\n")
-		out.WriteString(indent)
-		out.WriteString("    } else {\n")
-		right := writeStatementBuiltLogicalConditionTemp(out, binary.Y, indent+"        ", nextTemp)
-		out.WriteString(indent)
-		out.WriteString("        ")
-		out.WriteString(right)
-		out.WriteString("\n")
-	}
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("}")
-}
-
-func writeStatementBuiltLogicalConditionTemp(out *strings.Builder, expr ast.Expr, indent string, nextTemp *int) string {
-	name := fmt.Sprintf("__go_cond_%d", *nextTemp)
-	*nextTemp++
-	out.WriteString(indent)
-	out.WriteString("let ")
-	out.WriteString(name)
-	out.WriteString(" = ")
-	if shouldWriteStatementBuiltLogicalConditionTemp(expr) {
-		writeStatementBuiltLogicalConditionValue(out, expr, indent, nextTemp)
-	} else {
-		transpileConditionInline(out, expr)
-	}
-	out.WriteString(";\n")
-	return name
-}
-
-func shouldWriteStatementBuiltLogicalConditionTemp(expr ast.Expr) bool {
-	if countLogicalConditionNodes(expr) > 0 {
-		return true
-	}
-	if unary, ok := unwrapParens(expr).(*ast.UnaryExpr); ok && unary.Op == token.NOT {
-		return shouldWriteStatementBuiltLogicalConditionTemp(unary.X)
-	}
-	return false
-}
-
-func transpileConditionInline(out *strings.Builder, expr ast.Expr) {
-	switch e := expr.(type) {
-	case *ast.ParenExpr:
-		out.WriteString("(")
-		transpileConditionInline(out, e.X)
-		out.WriteString(")")
-		return
-	case *ast.BinaryExpr:
-		if e.Op == token.LAND || e.Op == token.LOR {
-			transpileConditionInline(out, e.X)
-			out.WriteString(" ")
-			out.WriteString(rustBinaryOp(e.Op))
-			out.WriteString(" ")
-			transpileConditionInline(out, e.Y)
-			return
-		}
-	case *ast.UnaryExpr:
-		if e.Op == token.NOT {
-			out.WriteString("!")
-			transpileConditionInline(out, e.X)
-			return
-		}
-	case *ast.CallExpr:
-		if exprNeedsBoolWrapperUnwrap(e) {
-			writeUnwrappedBoolExpression(out, e)
-			return
-		}
-	}
-	if exprNeedsBoolWrapperUnwrap(expr) {
-		writeUnwrappedBoolExpression(out, expr)
-		return
-	}
-	TranspileExpression(out, expr)
-}
-
-func callReturnsWrappedBool(call *ast.CallExpr) bool {
-	if callReturnsWrappedBoolBySyntax(call) {
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || callReturnsBareChannelValue(call) || !typeInfo.ReturnsWrappedValue(call) {
-		return false
-	}
-	callType := typeInfo.GetType(call)
-	if callType == nil {
-		return false
-	}
-	basic, ok := callType.Underlying().(*types.Basic)
-	return ok && basic.Kind() == types.Bool
-}
-
-func callReturnsWrappedBoolBySyntax(call *ast.CallExpr) bool {
-	if call == nil {
-		return false
-	}
-	// With bare-scalar return widening, calls whose signature returns a
-	// predeclared bool now produce a bare Rust bool â€” they don't need the
-	// wrap-then-unwrap dance some call sites still apply.
-	if callReturnsBareScalar(call) {
-		return false
-	}
-	if ident, ok := call.Fun.(*ast.Ident); ok {
-		if sig := GetFunctionSignature(ident.Name); sig != nil && len(sig.Results) == 1 {
-			if resultIdent, ok := sig.Results[0].Type.(*ast.Ident); ok && resultIdent.Name == "bool" {
-				return true
-			}
-		}
-		if info := lookupVarInfo(ident.Name); info != nil && functionBoxTypeReturnsWrappedBool(info.RustType) {
-			return true
-		}
-	}
-	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-		if selectorMethodReturnsBoolBySyntax(sel) {
-			return true
-		}
-		if fieldExpr, ok := selectorFieldTypeExpr(sel); ok {
-			if ident, ok := fieldExpr.(*ast.Ident); ok {
-				if rustType, ok := FunctionTypeAliasBox(ident.Name); ok && functionBoxTypeReturnsWrappedBool(rustType) {
-					return true
-				}
-			}
-			if fnType, ok := fieldExpr.(*ast.FuncType); ok && fnType.Results != nil && len(fnType.Results.List) == 1 {
-				if resultIdent, ok := fnType.Results.List[0].Type.(*ast.Ident); ok && resultIdent.Name == "bool" {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func selectorMethodReturnsBoolBySyntax(sel *ast.SelectorExpr) bool {
-	sig := selectorMethodSignatureBySyntax(sel)
-	if sig == nil || len(sig.Results) != 1 {
-		return false
-	}
-	resultIdent, ok := sig.Results[0].Type.(*ast.Ident)
-	return ok && resultIdent.Name == "bool"
-}
-
-func selectorMethodSignatureBySyntax(sel *ast.SelectorExpr) *FunctionSignature {
-	if sel == nil {
-		return nil
-	}
-	typeName, ok := selectorBaseSyntaxTypeName(sel.X)
-	if !ok {
-		return uniqueMethodSignatureByName(sel.Sel.Name)
-	}
-
-	candidates := []string{typeName}
-	if strings.HasPrefix(typeName, "*") {
-		candidates = append(candidates, strings.TrimPrefix(typeName, "*"))
-	} else {
-		candidates = append(candidates, "*"+typeName)
-	}
-
-	for _, candidate := range candidates {
-		if sig := methodSignatureFromDecls(methodsForReceiverType(candidate), sel.Sel.Name); sig != nil {
-			return sig
-		}
-	}
-	return uniqueMethodSignatureByName(sel.Sel.Name)
-}
-
-func methodSignatureFromDecls(methods []*ast.FuncDecl, name string) *FunctionSignature {
-	for _, method := range methods {
-		if method == nil || method.Name == nil || method.Name.Name != name {
-			continue
-		}
-		return methodSignatureFromDecl(method)
-	}
-	return nil
-}
-
-func uniqueMethodSignatureByName(name string) *FunctionSignature {
-	var found *FunctionSignature
-	seen := make(map[*ast.FuncDecl]bool)
-	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil {
-		for _, methods := range ctx.Package.MethodsByType {
-			for _, method := range methods {
-				if seen[method] {
-					continue
-				}
-				seen[method] = true
-				if method == nil || method.Name == nil || method.Name.Name != name {
-					continue
-				}
-				if found != nil {
-					return nil
-				}
-				found = methodSignatureFromDecl(method)
-			}
-		}
-	}
-	for _, method := range currentTypeMethods {
-		if seen[method] {
-			continue
-		}
-		seen[method] = true
-		if method == nil || method.Name == nil || method.Name.Name != name {
-			continue
-		}
-		if found != nil {
-			return nil
-		}
-		found = methodSignatureFromDecl(method)
-	}
-	return found
-}
-
-func methodSignatureFromDecl(method *ast.FuncDecl) *FunctionSignature {
-	if method == nil || method.Type == nil {
-		return nil
-	}
-	var params []*ast.Field
-	if method.Type.Params != nil {
-		params = method.Type.Params.List
-	}
-	var results []*ast.Field
-	if method.Type.Results != nil {
-		results = method.Type.Results.List
-	}
-	return &FunctionSignature{Params: params, Results: results}
-}
-
-func functionBoxTypeReturnsWrappedBool(rustType string) bool {
-	rustType = strings.TrimPrefix(rustType, "&")
-	return strings.Contains(rustType, "-> "+GetOuterWrapperType()+"<"+GetInnerWrapperType()+"<Option<bool>>>")
-}
-
-func hasStatementPreprocessor() bool {
-	return statementPreprocessor != nil
-}
-
-func rangeTypeFacts(expr ast.Expr) (bool, bool, bool, bool, bool, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false, false, false, false, false, false
-	}
-	isMap := typeInfo.IsMap(expr)
-	isString := typeInfo.IsString(expr)
-	isInteger := isIntegerRangeExpr(typeInfo, expr)
-	isSlice := typeInfo.IsSlice(expr)
-	isArray := typeInfo.IsArray(expr)
-	if !isArray {
-		isArray = typeInfo.IsPointerToArray(expr)
-	}
-	isChannel := typeInfo.IsChannel(expr)
-	if !isString {
-		if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-			isString = true
-		}
-	}
-	return isMap, isString, isInteger, isSlice, isArray, isChannel
-}
-
-func rangeMapKeyValueTypes(expr ast.Expr) (types.Type, types.Type) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil, nil
-	}
-	valueType := typeInfo.GetMapValueType(expr)
-	if valueType == nil {
-		return nil, nil
-	}
-	keyType, _ := typeInfo.GetMapTypes(expr)
-	return keyType, valueType
-}
-
-func rangeExprGoType(expr ast.Expr) types.Type {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil
-	}
-	return typeInfo.GetType(expr)
-}
-
-func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil
-	}
-	return typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(expr)
-}
-
-func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
-	if fileSet != nil {
-		if ctx := GetTranspileContext(); ctx != nil && ctx.File != nil {
-			ctx.File.FileSet = fileSet
-		}
-	}
-	// Output any comments before this statement
-	if stmt != nil && comments != nil && lastPos != nil {
-		outputCommentsBeforePos(out, comments, fileSet, stmt.Pos(), indent, lastPos)
-	}
-
-	// Preprocess the statement to find closures and generate clone statements
-	// Skip defer/go statements as they handle captures themselves
-	var captureInfo *CaptureInfo
-	_, isDefer := stmt.(*ast.DeferStmt)
-	_, isGo := stmt.(*ast.GoStmt)
-	_, isIf := stmt.(*ast.IfStmt)
-	isSyncOnceDo := false
-	if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
-		if call, ok := exprStmt.X.(*ast.CallExpr); ok {
-			isSyncOnceDo = isSyncOnceDoFuncLitCall(call)
-		}
-	}
-	if !isDefer && !isGo && !isIf && !isSyncOnceDo && hasStatementPreprocessor() {
-		captureInfo = statementPreprocessor.PreprocessStatement(stmt, fnType)
-		if captureInfo != nil && len(captureInfo.CapturedVars) > 0 {
-			// Generate clone statements before the actual statement
-			statementPreprocessor.GenerateCloneStatements(out, captureInfo)
-
-			// Set up capture renames for this statement
-			oldCaptureRenames := snapshotCaptureRenames()
-			currentCaptureRenames = mergeCaptureRenames(oldCaptureRenames, captureInfo.CapturedVars)
-			defer func() { currentCaptureRenames = oldCaptureRenames }()
-		}
-	}
-
-	switch s := stmt.(type) {
-	case *ast.SendStmt:
-		// Channel send: ch <- val
-		writeChannelExpression(out, s.Chan)
-		out.WriteString(".send(")
-		// Unwrap the value if it's wrapped
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
-			// The value being sent needs to be unwrapped from its wrapper
-			transpileChannelValue(out, s.Value)
-		} else if call, ok := s.Value.(*ast.CallExpr); ok && callReturnsWrappedBoolBySyntax(call) {
-			transpileChannelValue(out, s.Value)
-		} else {
-			TranspileExpression(out, s.Value)
-		}
-		out.WriteString(");")
-
-	case *ast.ExprStmt:
-		// Check if this is a mutex Lock() call â€” needs guard binding
-		if writeMutexLockStatement(out, s.X) {
-			break
-		}
-		if writeMutexUnlockStatement(out, s.X) {
-			break
-		}
-		TranspileExpression(out, s.X)
-		out.WriteString(";")
-
-	case *ast.ReturnStmt:
-		if currentFunctionHasDefer && len(s.Results) > 0 && hasNamedReturns(fnType) {
-			names := namedReturnIdents(fnType)
-			blankTemps := make([]string, len(names))
-			out.WriteString("{\n")
-			if len(s.Results) == 1 && len(names) > 1 {
-				out.WriteString("        let (")
-				for i := range names {
-					if i > 0 {
-						out.WriteString(", ")
-					}
-					out.WriteString("mut __return_")
-					out.WriteString(fmt.Sprintf("%d", i))
-				}
-				out.WriteString(") = ")
-				TranspileExpression(out, s.Results[0])
-				out.WriteString(";\n")
-				for i, name := range names {
-					tempName := fmt.Sprintf("__return_%d", i)
-					if name.Name == "_" {
-						blankTemps[i] = tempName
-						continue
-					}
-					writeNamedReturnAssignmentFromTemp(out, name, returnResultTypeExpr(fnType, i), tempName)
-				}
-				out.WriteString("        // Execute deferred functions\n")
-				out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-				out.WriteString("            f();\n")
-				out.WriteString("        }\n")
-				out.WriteString("        return ")
-				writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
-				out.WriteString(";\n    }")
-				break
-			}
-			for i, result := range s.Results {
-				if i >= len(names) {
-					break
-				}
-				if names[i].Name == "_" {
-					tempName := fmt.Sprintf("__return_%d", i)
-					blankTemps[i] = tempName
-					out.WriteString("        let ")
-					out.WriteString(tempName)
-					out.WriteString(" = ")
-					writeBlankNamedReturnValue(out, result, returnResultTypeExpr(fnType, i))
-					out.WriteString(";\n")
-					continue
-				}
-				if ident, ok := result.(*ast.Ident); ok && ident.Name == names[i].Name {
-					continue
-				}
-				out.WriteString("        ")
-				resultType := returnResultTypeExpr(fnType, i)
-				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
-					!writeLocalInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
-					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
-					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
-					!writePointerNamedReturnAssignment(out, names[i], resultType, result) &&
-					!writeDirectTypeParamNamedReturnAssignment(out, names[i], resultType, result) {
-					TranspileStatementSimple(out, &ast.AssignStmt{
-						Lhs: []ast.Expr{names[i]},
-						Tok: token.ASSIGN,
-						Rhs: []ast.Expr{result},
-					}, fnType, fileSet)
-				}
-				out.WriteString(";\n")
-			}
-			out.WriteString("        // Execute deferred functions\n")
-			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-			out.WriteString("            f();\n")
-			out.WriteString("        }\n")
-			out.WriteString("        return ")
-			writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
-			out.WriteString(";\n    }")
-			break
-		}
-
-		tailReturn := currentReturnStatementIsTail && !currentFunctionHasDefer
-		if tailReturn {
-			// Tail expressions in a function body extend their temporaries
-			// to the body's scope, which outlives `let`-declared locals.
-			// `(*x.borrow().as_ref().unwrap())` patterns produce Ref
-			// temporaries whose drop depends on the wrapped local â€” if the
-			// local drops first, rustc rejects the body. Falling back to an
-			// explicit `return <expr>;` keeps the temporaries scoped to
-			// the statement so locals can drop afterward safely.
-			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results) {
-				tailReturn = false
-			} else if len(s.Results) == 0 && namedReturnsUnwrapBareScalar(fnType) {
-				// Naked returns lower named-return locals through the same
-				// (*x.borrow().as_ref().unwrap()) pattern when the slot is a
-				// bare scalar, with the same lifetime conflict.
-				tailReturn = false
-			} else if len(s.Results) > 0 && returnExpressionEmissionStartsWithBlock(s.Results[0]) {
-				// Emitting the return value as the body's trailing expression
-				// would leave the function body starting with `{`, which Rust
-				// parses as a statement-block rather than the LHS of a binary
-				// expression. Keep the explicit `return X;` shape so the
-				// expression is unambiguous.
-				tailReturn = false
-			}
-		}
-
-		// Execute defers before returning if needed
-		if currentFunctionHasDefer {
-			out.WriteString("{\n")
-			out.WriteString("        // Execute deferred functions\n")
-			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-			out.WriteString("            f();\n")
-			out.WriteString("        }\n")
-			out.WriteString("        return")
-		} else if !tailReturn {
-			out.WriteString("return")
-		}
-
-		// Handle naked return (no explicit values but function has named returns)
-		if len(s.Results) == 0 && fnType.Results != nil {
-			hasNamedReturns := false
-			for _, result := range fnType.Results.List {
-				if len(result.Names) > 0 {
-					hasNamedReturns = true
-					break
-				}
-			}
-
-			if hasNamedReturns {
-				if !tailReturn {
-					out.WriteString(" ")
-				}
-				writeNamedReturnValues(out, fnType)
-			}
-		} else if len(s.Results) > 0 {
-			if !tailReturn {
-				out.WriteString(" ")
-			}
-			// Check if we need a tuple for multiple return values
-			needsTuple := len(s.Results) > 1
-			multilineReturnTuple := needsTuple && returnResultsShouldUseMultiline(s.Results)
-			returnTupleIndent := ""
-			if needsTuple {
-				out.WriteString("(")
-				if multilineReturnTuple {
-					returnTupleIndent = currentLineIndent(out)
-					out.WriteString("\n")
-				}
-			}
-
-			// `return multiResultCall(...)` keeps a single Result expression.
-			// Capture it only when a slot needs typed conversion; otherwise the
-			// call's tuple can become the return value directly.
-			if len(s.Results) == 1 && fnHasMultipleResultSlots(fnType) {
-				if call, ok := s.Results[0].(*ast.CallExpr); ok && callReturnsMultipleResults(call) {
-					if !writeMultiResultCallReturnWithSlotConversions(out, call, fnType) {
-						TranspileExpression(out, call)
-					}
-					if currentFunctionHasDefer {
-						out.WriteString(";\n    }")
-					} else if !tailReturn {
-						out.WriteString(";")
-					}
-					break
-				}
-			}
-
-			for i, result := range s.Results {
-				if multilineReturnTuple {
-					if i > 0 {
-						out.WriteString(",\n")
-					}
-					out.WriteString(returnTupleIndent)
-					out.WriteString("    ")
-				} else if i > 0 {
-					out.WriteString(", ")
-				}
-
-				// Check if this is nil being returned
-				isNil := false
-				if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-					isNil = true
-				}
-
-				if writeSliceElemPtrSliceReturnValue(out, result, i) {
-					// Pointer-slice return slot preserves slice-element pointer values.
-				} else if writeSliceElemPtrResultReturnValue(out, result, i) {
-					// Pointer return slots can preserve slice-element identity in multi-result tuples.
-				} else if writeArrayElemPtrReturnValue(out, result, i) {
-					// Array-element pointer return slots preserve array identity and index.
-				} else if writeSliceElemPtrReturnValue(out, result) {
-					// Direct slice-element pointer returns use the narrower slice element representation.
-				} else if writeGoPtrReturnValue(out, result, i) {
-					// GoPtr return slots preserve pointer identity through local variables and fields.
-				} else if isNil {
-					WriteWrappedNone(out)
-				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-				} else if resultType := returnResultTypeExpr(fnType, i); typeExprIsRegisteredBareStructAlias(resultType) {
-					writeBareStructAliasValue(out, result)
-				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) && !returnSlotForcesWrappedValue(i) {
-					writeBareScalarReturnValue(out, result, resultType)
-				} else {
-					// Check if this is a field access on self (already wrapped)
-					if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
-						WriteWrapperPrefix(out)
-						writeConcreteErrorBox(out, result)
-						WriteWrapperSuffix(out)
-					} else if sel, ok := result.(*ast.SelectorExpr); ok {
-						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						selectorTemp := needsTuple
-						selectorTempName := fmt.Sprintf("__return_value_%d", i)
-						if selectorTemp {
-							out.WriteString("{ let ")
-							out.WriteString(selectorTempName)
-							out.WriteString(" = ")
-						}
-						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
-							// Function selector values are represented by cloneable handles or boxed method values.
-						} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(result)) && writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-							// An error held in a field is returned as a copy. The
-							// caller's variable is its own, so assigning to it
-							// does not change the field.
-						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldTypeIsKnown(result) {
-							// Without a type there is no telling a copied field
-							// from a shared one. Say so instead of guessing.
-							out.WriteString("unimplemented!(\"type info required to return a receiver field\")")
-						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !receiverFieldIsCopied(result) {
-							// Returning a receiver field that Go shares, such as a
-							// pointer, slice or map, clones the handle. Route through
-							// typed selector lowering so promoted fields traverse embeds.
-							TranspileExpressionContext(out, result, LValue)
-							out.WriteString(".clone()")
-						} else if writeSourceMappedPackageGlobalPointerHandleClone(out, result) {
-						} else if selectorExpressionKeepsHandle(result) {
-							TranspileExpressionContext(out, result, LValue)
-							out.WriteString(".clone()")
-						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-						} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(result) {
-							if !writeSourceMappedPackageGlobalPointerHandleClone(out, result) {
-								TranspileExpressionContext(out, result, LValue)
-								out.WriteString(".clone()")
-							}
-						} else if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(result)) && isEmptyInterfaceExpr(returnResultTypeExpr(fnType, i)) {
-							TranspileExpressionContext(out, result, LValue)
-							out.WriteString(".clone()")
-						} else if writeNamedIntegerWrappedInitializer(out, result) {
-							// Named integer constants returned through wrapped slots
-							// need to be wrapped in their newtype constructor.
-						} else {
-							// Regular selector - wrap it
-							WriteWrapperPrefix(out)
-							if !writeOwnedExpressionValue(out, result) {
-								TranspileExpression(out, result)
-							}
-							WriteWrapperSuffix(out)
-						}
-						if selectorTemp {
-							out.WriteString("; ")
-							out.WriteString(selectorTempName)
-							out.WriteString(" }")
-						}
-					} else if callExpr, ok := result.(*ast.CallExpr); ok {
-						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-
-						// Check if this is a function that returns an already-wrapped value
-						needsWrapping := true
-
-						// Check if it's errors.New or a function returning error
-						if sel, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-							if ident, ok := sel.X.(*ast.Ident); ok {
-								if ident.Name == "errors" && sel.Sel.Name == "New" {
-									needsWrapping = false
-								} else if ident.Name == "fmt" && sel.Sel.Name == "Errorf" {
-									needsWrapping = false
-								} else if ident.Name == "fmt" && sel.Sel.Name == "Sprintf" {
-									// fmt.Sprintf already wraps its result
-									needsWrapping = false
-								}
-							}
-						}
-						if GetStdlibHandler(callExpr) != nil && !isBareBuiltinReturn(callExpr) {
-							needsWrapping = false
-						}
-						if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(callExpr) && !isBareBuiltinReturn(callExpr) && (!typeInfo.IsTypeConversion(callExpr) || typeConversionEmitsWrappedValue(callExpr)) {
-							needsWrapping = false
-						}
-
-						// Check if it's a call to a user-defined function (already returns wrapped type)
-						if fnIdent, ok := callExpr.Fun.(*ast.Ident); ok {
-							if GetFunctionSignature(fnIdent.Name) != nil {
-								needsWrapping = false
-							}
-						}
-
-						// Check if it's a user function that returns error
-						if fnType.Results != nil && i < len(fnType.Results.List) {
-							if resultType, ok := fnType.Results.List[i].Type.(*ast.Ident); ok && resultType.Name == "error" {
-								// This position is an error type, and we have a function call
-								needsWrapping = false
-							}
-						}
-
-						if needsWrapping {
-							WriteWrapperPrefix(out)
-							var expected ast.Expr
-							if fnType.Results != nil && i < len(fnType.Results.List) {
-								expected = fnType.Results.List[i].Type
-							}
-							if !writeBareBuiltinReturnForExpectedType(out, callExpr, expected) {
-								TranspileExpression(out, result)
-							}
-							WriteWrapperSuffix(out)
-						} else {
-							// Already wrapped
-							TranspileExpression(out, result)
-						}
-					} else if _, ok := result.(*ast.FuncLit); ok {
-						// Function literal - already wrapped by TranspileFuncLit
-						TranspileExpression(out, result)
-					} else if ident, ok := result.(*ast.Ident); ok {
-						if writeSliceElemPtrSliceReturnValue(out, result, i) {
-							continue
-						}
-						if writeSliceElemPtrReturnValue(out, result) {
-							continue
-						}
-						if writeFunctionReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						if isCurrentReceiverIdent(ident) {
-							if writeCurrentReceiverPointerHandleReturnValue(out, ident, returnResultTypeExpr(fnType, i)) {
-								continue
-							}
-							if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))) {
-								continue
-							}
-							if writeLocalInterfaceConcreteReturnConversion(out, ident, returnResultTypeExpr(fnType, i)) {
-								continue
-							}
-							WriteWrapperPrefix(out)
-							out.WriteString(currentReceiverRustName())
-							out.WriteString(".clone()")
-							WriteWrapperSuffix(out)
-							continue
-						}
-						if writeStdlibInterfaceIdentReturnConversion(out, ident, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
-							writePackageGlobalPointerHandleClone(out, globalIdent)
-							continue
-						}
-						if writeRangeHandleReturnValue(out, ident) {
-							continue
-						}
-						if writeWrappedReferenceRangeValueCopy(out, ident) {
-							continue
-						}
-						if writeBareDirectTypeParamWrappedReturnValue(out, ident, returnResultTypeExpr(fnType, i)) {
-							continue
-						}
-						if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) && writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-							// An error variable is returned as a copy. The caller's
-							// variable is its own, so assigning to it does not
-							// change this one, which may be a package-level error.
-							continue
-						}
-						if writeWrappedValueCopyFromIdent(out, ident) {
-							continue
-						}
-						// Check if this is a wrapped variable that needs cloning
-						// Use a combination of TypeInfo and heuristics
-						isWrappedVariable := false
-
-						// First check TypeInfo
-						typeInfo := GetTypeInfo()
-						if isConstIdent(ident) {
-							isWrappedVariable = false
-						} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(result) {
-							isWrappedVariable = true
-						} else {
-							// Fallback: check if this looks like a local variable
-							// (not a special identifier and not a range variable)
-							if ident.Name != "true" && ident.Name != "false" && ident.Name != "nil" {
-								if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-									if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-										// This is likely a wrapped variable
-										isWrappedVariable = true
-									}
-								}
-							}
-						}
-
-						if isWrappedVariable {
-							// This is a wrapped variable - clone it to avoid move errors
-							// Check if this variable has been renamed (captured in closure)
-							varName := RustIdentForUse(ident)
-							if currentCaptureRenames != nil {
-								if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-									varName = RustLocalIdent(renamed)
-								}
-							}
-							out.WriteString(varName)
-							out.WriteString(".clone()")
-						} else {
-							// This needs wrapping (constants, literals, etc.)
-							if ident.Name == "nil" {
-								WriteWrappedNone(out)
-							} else {
-								var expected ast.Expr
-								if fnType.Results != nil && i < len(fnType.Results.List) {
-									expected = fnType.Results.List[i].Type
-								}
-								if isConstIdent(ident) {
-									writeWrappedExpressionForExpectedType(out, result, expected)
-								} else {
-									WriteWrapperPrefix(out)
-									// Cast usize range index to i32 when wrapping
-									if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
-										out.WriteString(EscapeRustIdent(ident.Name) + " as i32")
-									} else if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "ref_value" {
-										out.WriteString(EscapeRustIdent(ident.Name))
-										out.WriteString(".clone()")
-									} else {
-										TranspileExpression(out, result)
-									}
-									WriteWrapperSuffix(out)
-								}
-							}
-						}
-					} else if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-					} else if writeTypeParamNewDerefExpression(out, result) {
-					} else if writePointerReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-					} else if writeNamedIntegerWrappedInitializer(out, result) {
-					} else if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
-						// Slice and map literals already return wrapped values.
-						TranspileExpression(out, result)
-					} else if _, ok := result.(*ast.SliceExpr); ok {
-						// Slice expressions already return wrapped values (Arc<Mutex<Option<Vec<T>>>>)
-						TranspileExpression(out, result)
-					} else if mapIndexExpressionKeepsHandle(result) {
-						// Map values that are maps/slices/pointers/etc. already return cloneable handles.
-						TranspileExpression(out, result)
-					} else if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
-					} else if writeErrorChannelReceiveReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-					} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
-						// Check if this is address-of a struct literal
-						if unaryExpr.Op == token.AND {
-							if _, isCompositeLit := unaryExpr.X.(*ast.CompositeLit); isCompositeLit {
-								// Already wrapped by UnaryExpr handling, don't double-wrap
-								TranspileExpression(out, result)
-							} else {
-								// Regular address-of, already returns wrapped value
-								TranspileExpression(out, result)
-							}
-						} else {
-							// Other unary expressions, wrap them
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, result)
-							WriteWrapperSuffix(out)
-						}
-					} else if binExpr, ok := result.(*ast.BinaryExpr); ok {
-						if binExpr.Op == token.LAND || binExpr.Op == token.LOR {
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, result)
-							WriteWrapperSuffix(out)
-							continue
-						}
-						if binExpr.Op == token.ADD {
-							if isSyntaxStringConcatExpr(binExpr) {
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, result)
-								WriteWrapperSuffix(out)
-								continue
-							}
-							if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsString(binExpr) {
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, result)
-								WriteWrapperSuffix(out)
-								continue
-							}
-						}
-						if binExpr.Op == token.EQL || binExpr.Op == token.NEQ {
-							if isRightNilComparison(binExpr) {
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, result)
-								WriteWrapperSuffix(out)
-								continue
-							}
-							var cmp strings.Builder
-							if writeCurrentReceiverPointerComparison(&cmp, binExpr) {
-								WriteWrapperPrefix(out)
-								out.WriteString(cmp.String())
-								WriteWrapperSuffix(out)
-								continue
-							}
-							if writeGoErrorEquality(&cmp, binExpr) {
-								WriteWrapperPrefix(out)
-								out.WriteString(cmp.String())
-								WriteWrapperSuffix(out)
-								continue
-							}
-							if writeEmptyInterfaceEquality(&cmp, binExpr) {
-								WriteWrapperPrefix(out)
-								out.WriteString(cmp.String())
-								WriteWrapperSuffix(out)
-								continue
-							}
-							if writeLocalInterfaceEquality(&cmp, binExpr.X, binExpr.Y, binExpr.Op) {
-								WriteWrapperPrefix(out)
-								out.WriteString(cmp.String())
-								WriteWrapperSuffix(out)
-								continue
-							}
-						}
-
-						// Binary expressions need special handling to avoid multiple locks
-						// Check if operands are identifiers that would need unwrapping
-						needsExtraction := false
-						if ident, ok := binExpr.X.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
-							if _, isConst := localConstants[ident.Name]; !isConst {
-								if _, isRange := rangeLoopVars[ident.Name]; !isRange {
-									needsExtraction = true
-								}
-							}
-						}
-						if ident, ok := binExpr.Y.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "true" && ident.Name != "false" {
-							if _, isConst := localConstants[ident.Name]; !isConst {
-								if _, isRange := rangeLoopVars[ident.Name]; !isRange {
-									needsExtraction = true
-								}
-							}
-						}
-
-						if needsExtraction {
-							// Extract values first to avoid multiple locks
-							// We need both operands to be unwrapped for the binary operation
-							out.WriteString("{\n")
-
-							// Get TypeInfo to check if expressions return wrapped values
-							typeInfo := GetTypeInfo()
-							writeTempOperand := func(expr ast.Expr, other ast.Expr) {
-								if typeInfo != nil && writeStdlibInterfaceComparableConversion(out, expr, typeInfo.GetType(other)) {
-									// Concrete stdlib value converted for comparison with stdlib interface.
-								} else if writeLenCapBinaryOperand(out, expr, other) {
-									// len/cap emitted as Go int representation for this return expression.
-								} else if writeIntPeerForLenCapBinaryOperand(out, expr, other, typeInfo != nil && typeInfo.ReturnsWrappedValue(expr)) {
-									// typed int peer emitted as Go int representation for this return expression.
-								} else if writeNamedConstForBinaryPeer(out, expr, other) {
-									// typed named constants are constructed as their named newtype when compared with named values.
-								} else if sel, ok := expr.(*ast.SelectorExpr); ok && writeSyntaxNamedSelectorValue(out, sel) {
-									// Named selector fields need a syntax fallback when type info only proves the field is wrapped.
-								} else if expressionReturnsWrappedValueForExtraction(typeInfo, expr) {
-									// Expression returns wrapped value, unwrap it.
-									out.WriteString("(*")
-									writeExpressionForBorrow(out, expr)
-									WriteBorrowMethod(out, false)
-									out.WriteString(".as_ref().unwrap())")
-									if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {
-										out.WriteString(".clone()")
-									}
-								} else if !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
-									// Wrapped identifiers/selectors with owned values must clone out of the borrow.
-								} else {
-									// Either a literal/constant or an identifier that will unwrap itself in RValue context
-									TranspileExpressionContext(out, expr, RValue)
-								}
-							}
-
-							// Extract X operand
-							out.WriteString("            let __tmp_x = ")
-							writeTempOperand(binExpr.X, binExpr.Y)
-							out.WriteString(";\n")
-
-							// Extract Y operand
-							out.WriteString("            let __tmp_y = ")
-							writeTempOperand(binExpr.Y, binExpr.X)
-							out.WriteString(";\n")
-
-							out.WriteString("            ")
-							WriteWrapperPrefix(out)
-							out.WriteString("__tmp_x ")
-							out.WriteString(rustBinaryOp(binExpr.Op))
-							out.WriteString(" __tmp_y")
-							WriteWrapperSuffix(out)
-							out.WriteString("\n")
-							out.WriteString("        }")
-						} else {
-							// No extraction needed
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, result)
-							WriteWrapperSuffix(out)
-						}
-					} else {
-						// Check if this return position expects an error type
-						// and the result is a struct literal implementing Error
-						isErrorReturn := false
-						if fnType.Results != nil && i < len(fnType.Results.List) {
-							resultField := fnType.Results.List[i]
-							if resultType, ok := resultField.Type.(*ast.Ident); ok && resultType.Name == "error" {
-								if _, isComposite := result.(*ast.CompositeLit); isComposite {
-									isErrorReturn = true
-								}
-							}
-						}
-
-						if isErrorReturn {
-							// Struct implementing error interface - box it
-							TrackImport("Error")
-							WriteWrapperPrefix(out)
-							out.WriteString(rustErrorFromValueStart())
-							TranspileExpression(out, result)
-							out.WriteString(rustErrorFromValueEnd())
-							WriteWrapperSuffix(out)
-						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
-						} else if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
-							WriteWrapperPrefix(out)
-							writeConcreteErrorBox(out, result)
-							WriteWrapperSuffix(out)
-						} else {
-							// Wrap all other return values in Arc<Mutex<Option<>>>
-							WriteWrapperPrefix(out)
-
-							// Special handling for string literals
-							if writeExpressionForExpectedType(out, result, returnResultTypeExpr(fnType, i)) {
-							} else if lit, ok := result.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-								out.WriteString(RustStringLiteral(lit.Value))
-								out.WriteString(".to_string()")
-							} else {
-								TranspileExpression(out, result)
-							}
-
-							WriteWrapperSuffix(out)
-						}
-					}
-				}
-			}
-
-			if needsTuple {
-				if multilineReturnTuple {
-					out.WriteString("\n")
-					out.WriteString(returnTupleIndent)
-				}
-				out.WriteString(")")
-			}
-		} else if tailReturn {
-			out.WriteString("()")
-		}
-
-		// Close the defer execution block if needed
-		if currentFunctionHasDefer {
-			// The `;` after `return X` keeps the return value's temporaries
-			// scoped to the statement so the surrounding wrapped locals can
-			// drop afterward. Without it the block's tail expression rules
-			// extend Refs past the locals they borrow from.
-			out.WriteString(";\n    }")
-		} else if !tailReturn {
-			out.WriteString(";")
-		}
-
-	case *ast.AssignStmt:
-		if s.Tok == token.DEFINE {
-			registerDefaultShortDeclBindings(s.Lhs)
-		}
-
-		// Check if this is a map index assignment using type information
-		isMapIndexAssign := false
-		if len(s.Lhs) == 1 && len(s.Rhs) == 1 && s.Tok == token.ASSIGN {
-			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
-				// Use TypeInfo to determine if this is actually a map
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					isMapIndexAssign = typeInfo.IsMap(indexExpr.X)
-				}
-				if !isMapIndexAssign {
-					if kind, ok := localCollectionKind(indexExpr.X); ok {
-						isMapIndexAssign = kind == "map"
-					}
-				}
-				if !isMapIndexAssign && typeInfo == nil {
-					// Type info not available - can't determine if it's a map
-					// Generate an error comment to make this obvious
-					out.WriteString("/* ERROR: Cannot determine if map assignment - type information required */ ")
-				}
-			}
-		}
-
-		if isMapIndexAssign {
-			// Handle map[key] = value as map.insert(key, value)
-			if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok {
-				var keyType types.Type
-				var valueType types.Type
-				var keyRustType string
-				if syntaxKeyType, ok := localMapKeyRustType(indexExpr.X); ok {
-					keyRustType = syntaxKeyType
-				}
-				if typeInfo := GetTypeInfo(); typeInfo != nil {
-					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
-				}
-				out.WriteString("{ let __map_key = ")
-				if mapAssignmentKeyRequiresTypeDrivenConversion(keyType) || !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
-					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
-				}
-				out.WriteString("; let __map_value = ")
-				writeMapWrappedValue(out, s.Rhs[0], valueType)
-				out.WriteString("; (*")
-				// For map access, we need the raw identifier, not the unwrapped value
-				writeMapHandleForOp(out, indexExpr.X)
-				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
-			}
-		} else if isChannelAssignment(s) {
-			writeChannelAssignmentTarget(out, s.Lhs[0])
-			out.WriteString(" = ")
-			writeChannelAssignmentValue(out, s.Rhs[0])
-		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
-			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
-			s.Tok == token.AND_ASSIGN || s.Tok == token.AND_NOT_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
-			s.Tok == token.SHL_ASSIGN || s.Tok == token.SHR_ASSIGN {
-			// Compound assignment operators
-			if indexExpr, isMapIndex := isMapIndexExpression(s.Lhs[0]); isMapIndex {
-				writeMapElementUpdate(out, indexExpr, s.Tok, s.Rhs[0])
-			} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && writeIndexedCompoundAssign(out, indexExpr, s.Tok, s.Rhs[0]) {
-				// array/slice element compound assignment mutates the underlying sequence directly.
-			} else if writeBareExternalIntegerCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
-				// Bare external named integer locals mutate by rewrapping their primitive field.
-			} else if writeBareNamedIntegerCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
-				// Bare local named integer values use their generated operator impls directly.
-			} else if writeBareScalarCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
-				// Bare scalar locals mutate directly.
-			} else if writeGoPtrDerefCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
-				// Dereferenced GoPtr values mutate through the GoPtr handle.
-			} else {
-
-				isString := false
-				if s.Tok == token.ADD_ASSIGN {
-					typeInfo := GetTypeInfo()
-					if typeInfo != nil {
-						isString = typeInfo.IsString(s.Lhs[0])
-					}
-					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
-						isString = true
-					}
-					if !isString {
-						// Type info not available - check if RHS is a string literal at least
-						if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							isString = true
-							out.WriteString("/* WARNING: Assuming string type based on literal */ ")
-						}
-					}
-				}
-
-				if isString {
-					// For string +=, we need mutable access to the LHS
-					out.WriteString("{ ")
-					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
-					out.WriteString("(*")
-					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
-					out.WriteString(".as_mut().unwrap()).push_str(&")
-					writeStringAppendExpression(out, s.Rhs[0])
-					out.WriteString("); }")
-				} else {
-					// Numeric compound assignment for wrapped values.
-					// Evaluate RHS before taking the LHS borrow so RHS expressions
-					// that read LHS (e.g. `i += copy(dst[i:], src)`) don't deadlock
-					// on RefCell.
-					out.WriteString("{ ")
-					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
-					out.WriteString("let __rhs = ")
-					typeInfo := GetTypeInfo()
-					var expected types.Type
-					if typeInfo != nil {
-						expected = typeInfo.GetType(s.Lhs[0])
-					}
-					expected = compoundAssignRHSExpectedType(s.Lhs[0], expected)
-					writeBareCompoundAssignValueForOp(out, s.Rhs[0], expected, s.Tok)
-					out.WriteString("; let mut guard = ")
-					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
-					out.WriteString("; *guard = Some(")
-					if compoundAssignUsesOwnedNamedIntegerValue(s.Lhs[0], s.Tok) {
-						out.WriteString("guard.as_ref().unwrap().clone()")
-					} else {
-						out.WriteString("guard.as_ref().unwrap()")
-					}
-					out.WriteString(" ")
-
-					// Output the appropriate operator
-					switch s.Tok {
-					case token.ADD_ASSIGN:
-						out.WriteString("+")
-					case token.SUB_ASSIGN:
-						out.WriteString("-")
-					case token.MUL_ASSIGN:
-						out.WriteString("*")
-					case token.QUO_ASSIGN:
-						out.WriteString("/")
-					case token.REM_ASSIGN:
-						out.WriteString("%")
-					case token.AND_ASSIGN:
-						out.WriteString("&")
-					case token.AND_NOT_ASSIGN:
-						out.WriteString("& !")
-					case token.OR_ASSIGN:
-						out.WriteString("|")
-					case token.XOR_ASSIGN:
-						out.WriteString("^")
-					case token.SHL_ASSIGN:
-						out.WriteString("<<")
-					case token.SHR_ASSIGN:
-						out.WriteString(">>")
-					}
-
-					out.WriteString(" __rhs); }")
-				}
-			}
-		} else { // Check if we have multiple LHS with single RHS (tuple unpacking)
-			needsTupleUnpack := len(s.Lhs) > 1 && len(s.Rhs) == 1
-
-			// Check if this is a map access with existence check: value, ok := map[key]
-			isMapAccess := false
-			isTypeAssertion := false
-			isChannelRecv := false
-			if needsTupleUnpack && len(s.Lhs) == 2 {
-				if indexExpr, ok := s.Rhs[0].(*ast.IndexExpr); ok {
-					// Check if the indexed expression is a map
-					typeInfo := GetTypeInfo()
-					if typeInfo != nil {
-						isMapAccess = typeInfo.IsMap(indexExpr.X)
-					}
-					if !isMapAccess {
-						if kind, ok := localCollectionKind(indexExpr.X); ok {
-							isMapAccess = kind == "map"
-						}
-					}
-					if !isMapAccess && typeInfo == nil {
-						// Type info not available - cannot determine
-						out.WriteString("/* ERROR: Cannot determine if map access - type information required */ ")
-						isMapAccess = false
-					}
-				} else if _, ok := s.Rhs[0].(*ast.TypeAssertExpr); ok {
-					// This is a type assertion with comma-ok
-					isTypeAssertion = true
-				} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
-					// This is a channel receive with comma-ok: value, ok := <-ch
-					isChannelRecv = true
-				}
-			}
-
-			if isChannelRecv && needsTupleUnpack {
-				// Handle channel receive with comma-ok: value, ok := <-ch
-				unary := s.Rhs[0].(*ast.UnaryExpr)
-				isErrorChannelRecv := channelElementIsGoError(unary.X)
-				if s.Tok == token.DEFINE {
-					// Generate: let (value, ok) = match ch.recv() { ... }
-					out.WriteString("let (mut ")
-					if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					}
-					out.WriteString(", mut ")
-					if ident, ok := s.Lhs[1].(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					}
-					out.WriteString(") = match ")
-					TranspileExpression(out, unary.X)
-					out.WriteString(".recv() { Some(v) => (")
-					if isErrorChannelRecv {
-						writeErrorHandleFromOptionValue(out, "v")
-					} else {
-						WriteWrapperPrefix(out)
-						out.WriteString("v")
-						WriteWrapperSuffix(out)
-					}
-					out.WriteString(", ")
-					WriteWrapperPrefix(out)
-					out.WriteString("true")
-					WriteWrapperSuffix(out)
-					out.WriteString("), None => (")
-					if isErrorChannelRecv {
-						writeEmptyErrorHandle(out)
-					} else {
-						WriteWrapperPrefix(out)
-						out.WriteString("Default::default()")
-						WriteWrapperSuffix(out)
-					}
-					out.WriteString(", ")
-					WriteWrapperPrefix(out)
-					out.WriteString("false")
-					WriteWrapperSuffix(out)
-					out.WriteString(") }")
-				} else {
-					// Reassignment: value, ok = <-ch
-					out.WriteString("match ")
-					TranspileExpression(out, unary.X)
-					out.WriteString(".recv() { Some(v) => { *")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
-					if isErrorChannelRecv {
-						out.WriteString(" = v; *")
-					} else {
-						out.WriteString(" = Some(v); *")
-					}
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(true); }, None => { *")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
-					if isErrorChannelRecv {
-						out.WriteString(" = None::<")
-						out.WriteString(rustErrorPayloadType())
-						out.WriteString(">; *")
-					} else {
-						out.WriteString(" = Some(Default::default()); *")
-					}
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(false); } }")
-				}
-			} else if isTypeAssertion && needsTupleUnpack {
-				// Handle type assertion with comma-ok: value, ok := x.(Type)
-				typeAssert := s.Rhs[0].(*ast.TypeAssertExpr)
-
-				if s.Tok == token.DEFINE {
-					out.WriteString("let (")
-					// First variable for value
-					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
-						out.WriteString("mut ")
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						out.WriteString("_")
-					}
-					out.WriteString(", ")
-					// Second variable for ok
-					if ident, ok := s.Lhs[1].(*ast.Ident); ok && ident.Name != "_" {
-						out.WriteString("mut ")
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						out.WriteString("_")
-					}
-					out.WriteString(") = ")
-
-					// Generate type assertion code with comma-ok
-					TranspileTypeAssertionCommaOk(out, typeAssert)
-					registerTypeAssertionResultInfo(s.Lhs[0], typeAssert)
-					registerBareShortDecl(s.Lhs[1])
-				} else {
-					out.WriteString("{ let (__tmp_0, __tmp_1) = ")
-					TranspileTypeAssertionCommaOk(out, typeAssert)
-					out.WriteString(";")
-					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
-					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
-					out.WriteString(" }")
-				}
-			} else if isMapAccess && needsTupleUnpack {
-				// Handle map access with existence check
-				indexExpr := s.Rhs[0].(*ast.IndexExpr)
-				var keyType types.Type
-				var keyRustType string
-				valueKeepsHandle := mapValueSyntaxKeepsHandle(indexExpr.X)
-				if syntaxKeyType, ok := localMapKeyRustType(indexExpr.X); ok {
-					keyRustType = syntaxKeyType
-				}
-				if typeInfo := GetTypeInfo(); typeInfo != nil {
-					keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
-				}
-
-				if s.Tok == token.DEFINE {
-					out.WriteString("let (")
-					// First variable for value
-					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
-						out.WriteString("mut ")
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						out.WriteString("_")
-					}
-					out.WriteString(", ")
-					// Second variable for existence
-					if ident, ok := s.Lhs[1].(*ast.Ident); ok && ident.Name != "_" {
-						out.WriteString("mut ")
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						out.WriteString("_")
-					}
-					out.WriteString(") = ")
-				} else {
-					out.WriteString("{ let (__tmp_0, __tmp_1) = ")
-				}
-
-				// Generate the map access code.
-				mapIsBareValue := isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X))
-				if mapIsBareValue {
-					out.WriteString("match ")
-					TranspileExpression(out, indexExpr.X)
-					out.WriteString(".get(")
-				} else if NeedsConcurrentWrapper() {
-					out.WriteString("{ let __map = ")
-					writeOptionalClonedMapExpression(out, indexExpr.X)
-					out.WriteString("; match __map.as_ref().and_then(|__map| __map.get(")
-				} else {
-					out.WriteString("{ let __map_holder = ")
-					writeMapHandleCloneForOp(out, indexExpr.X)
-					out.WriteString("; let __map_guard = __map_holder")
-					WriteBorrowMethod(out, false)
-					out.WriteString("; match __map_guard.as_ref().and_then(|__map| __map.get(")
-				}
-				if !writeMapLookupKeyWithRustType(out, indexExpr.X, indexExpr.Index, keyRustType, keyType) {
-					writeMapLookupKeyWithMapExpr(out, indexExpr.X, indexExpr.Index, keyType)
-				}
-				if mapIsBareValue {
-					// "match map.get(key) {": only the call to get is open.
-					out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (")
-				} else {
-					out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (")
-				}
-				valueTarget, valueTargetIsIdent := s.Lhs[0].(*ast.Ident)
-				valueDiscarded := valueTargetIsIdent && valueTarget.Name == "_"
-				// A comma-ok read creates a distinct Go variable. Handle values
-				// therefore get a fresh Rust cell instead of aliasing the map
-				// entry's cell. This is also required for assignments through a
-				// variable whose address has already escaped.
-				takesOverHandle := s.Tok != token.DEFINE && mapCommaOkAssignTakesOverHandle(s.Lhs[0], indexExpr)
-				heldInOwnCell := !valueDiscarded && mapCommaOkValueNeedsOwnCell(indexExpr)
-				if s.Tok != token.DEFINE && !valueDiscarded && !takesOverHandle && mapCommaOkValueIsSliceOrMap(indexExpr) {
-					heldInOwnCell = true
-				}
-				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueDiscarded, heldInOwnCell)
-				out.WriteString(", ")
-				out.WriteString("true")
-				out.WriteString("), None => (")
-				writeMapCommaOkMissingValue(out, indexExpr, valueKeepsHandle)
-				out.WriteString(", ")
-				out.WriteString("false")
-				out.WriteString(") }")
-				if !isExpressionResultBare(indexExpr.X) && (NeedsConcurrentWrapper() || !isBareMapSelectorExpression(indexExpr.X)) {
-					out.WriteString(" }")
-				}
-				if s.Tok == token.DEFINE {
-					registerBareShortDecl(s.Lhs[1])
-				} else {
-					out.WriteString(";")
-					if takesOverHandle {
-						out.WriteString(" ")
-						writePointerHandleAssignmentTargetFromValueName(out, s.Lhs[0], "__tmp_0")
-					} else {
-						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
-					}
-					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
-					out.WriteString(" }")
-				}
-			} else if needsTupleUnpack {
-				if s.Tok == token.DEFINE {
-					existingShortDeclLHS := make([]bool, len(s.Lhs))
-					wrappedScalarTempLHS := make([]bool, len(s.Lhs))
-					anyExistingShortDeclLHS := false
-					anyWrappedScalarTempLHS := false
-					var tupleCall *ast.CallExpr
-					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-						tupleCall = call
-					}
-					for i, lhs := range s.Lhs {
-						if shortDeclLHSUsesExistingBinding(lhs) {
-							existingShortDeclLHS[i] = true
-							anyExistingShortDeclLHS = true
-							continue
-						}
-						if tupleCall != nil && callResultNeedsBareScalarUnwrapFromGeneratedWrapper(tupleCall, i) {
-							wrappedScalarTempLHS[i] = true
-							anyWrappedScalarTempLHS = true
-						}
-					}
-					out.WriteString("let ")
-					out.WriteString("(")
-					for i, lhs := range s.Lhs {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						if existingShortDeclLHS[i] || wrappedScalarTempLHS[i] {
-							out.WriteString(fmt.Sprintf("__tmp_%d", i))
-							continue
-						}
-						// Don't add mut before blank identifier
-						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
-							out.WriteString("mut ")
-						}
-						TranspileExpressionContext(out, lhs, LValue)
-					}
-					out.WriteString(")")
-
-					out.WriteString(" = ")
-
-					withShortDeclOuterRhsBindings(s.Lhs, s.Rhs[0], func() {
-						TranspileExpression(out, s.Rhs[0])
-					})
-					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-						registrationLHS := s.Lhs
-						if anyExistingShortDeclLHS || anyWrappedScalarTempLHS {
-							registrationLHS = append([]ast.Expr(nil), s.Lhs...)
-							for i := range registrationLHS {
-								if existingShortDeclLHS[i] {
-									registrationLHS[i] = ast.NewIdent("_")
-								}
-							}
-						}
-						registerCallTupleResultSyntaxInfo(registrationLHS, call)
-						if anyExistingShortDeclLHS || anyWrappedScalarTempLHS {
-							out.WriteString(";")
-						}
-						for i, lhs := range s.Lhs {
-							if existingShortDeclLHS[i] {
-								writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), callResultIsBareScalar(call, i))
-								continue
-							}
-							if wrappedScalarTempLHS[i] {
-								if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
-									out.WriteString(" let mut ")
-									out.WriteString(RustLocalIdent(ident.Name))
-									out.WriteString(" = ")
-									writeClonedTupleTempInner(out, fmt.Sprintf("__tmp_%d", i))
-									out.WriteString(";")
-								}
-							}
-						}
-					}
-				} else {
-					if !writeMultilineTupleReassignment(out, s) {
-						out.WriteString("{ let (")
-						for i := range s.Lhs {
-							if i > 0 {
-								out.WriteString(", ")
-							}
-							out.WriteString(fmt.Sprintf("__tmp_%d", i))
-						}
-						out.WriteString(") = ")
-						TranspileExpression(out, s.Rhs[0])
-						out.WriteString(";")
-						for i, lhs := range s.Lhs {
-							tmpBareScalar := false
-							if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-								if writeTupleSliceElemPtrFieldAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
-									continue
-								}
-								if writeTupleSliceElemPtrVarAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
-									continue
-								}
-								if writeTupleGoPtrAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), call, i) {
-									continue
-								}
-								tmpBareScalar = callResultIsBareScalar(call, i)
-							}
-							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), tmpBareScalar)
-						}
-						out.WriteString(" }")
-					}
-				}
-			} else if len(s.Lhs) > 1 && len(s.Rhs) > 1 {
-				// Multiple assignments - need to handle specially
-				// For now, just handle the simple case of parallel assignment
-				if s.Tok == token.DEFINE {
-					existingShortDeclLHS := make([]bool, len(s.Lhs))
-					existingBareScalarType := make([]types.Type, len(s.Lhs))
-					anyExistingShortDeclLHS := false
-					for i, lhs := range s.Lhs {
-						if !shortDeclLHSUsesExistingBinding(lhs) {
-							continue
-						}
-						existingShortDeclLHS[i] = true
-						anyExistingShortDeclLHS = true
-						if typ, ok := shortDeclExistingBareScalarType(lhs); ok {
-							existingBareScalarType[i] = typ
-						}
-					}
-					out.WriteString("let (")
-					for i, lhs := range s.Lhs {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						if existingShortDeclLHS[i] {
-							out.WriteString(fmt.Sprintf("__tmp_%d", i))
-							continue
-						}
-						// Don't add mut before blank identifier
-						if ident, ok := lhs.(*ast.Ident); !ok || ident.Name != "_" {
-							out.WriteString("mut ")
-						}
-						TranspileExpressionContext(out, lhs, LValue)
-					}
-					out.WriteString(") = (")
-					for i, rhs := range s.Rhs {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						if existingShortDeclLHS[i] && existingBareScalarType[i] != nil {
-							writeBareCompoundAssignValue(out, rhs, existingBareScalarType[i])
-							continue
-						}
-						writeMultiRhsShortDeclInitializer(out, s.Lhs[i], rhs, !existingShortDeclLHS[i])
-					}
-					out.WriteString(")")
-					if anyExistingShortDeclLHS {
-						out.WriteString(";")
-						for i, lhs := range s.Lhs {
-							if !existingShortDeclLHS[i] {
-								continue
-							}
-							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), existingBareScalarType[i] != nil)
-						}
-					}
-				} else {
-					// For reassignment, use temporaries to handle swaps correctly
-					indent := currentLineIndent(out)
-					out.WriteString("{\n")
-					// First, capture all RHS values into temporaries
-					for i, rhs := range s.Rhs {
-						out.WriteString(indent)
-						out.WriteString("    ")
-						out.WriteString(fmt.Sprintf("let __tmp_%d = ", i))
-						writeParallelAssignmentTempValueForTarget(out, s.Lhs[i], rhs)
-						out.WriteString(";\n")
-					}
-					// Then assign all LHS from temporaries
-					for i, lhs := range s.Lhs {
-						writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
-					}
-					out.WriteString(indent)
-					out.WriteString("}")
-				}
-			} else {
-				// Single assignment
-				// Check if we're assigning to just blank identifier
-				if len(s.Lhs) == 1 {
-					if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name == "_" {
-						// Assignment to _ only - just evaluate the RHS for side effects
-						out.WriteString("let _ = ")
-						for i, rhs := range s.Rhs {
-							if i > 0 {
-								out.WriteString(", ")
-							}
-							TranspileExpression(out, rhs)
-						}
-					} else {
-						// Normal single assignment
-						if s.Tok == token.ASSIGN {
-							// Assignment to wrapped variable
-							if ident, ok := s.Lhs[0].(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
-								TranspileExpressionContext(out, ident, LValue)
-								out.WriteString(" = ")
-								if !writeSliceElemPtrOptionValue(out, s.Rhs[0]) {
-									out.WriteString("/* ERROR: slice element pointer assignment requires nil or &slice[index] */ unimplemented!(\"slice element pointer assignment\")")
-								}
-							} else if ident, ok := s.Lhs[0].(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
-								TranspileExpressionContext(out, ident, LValue)
-								out.WriteString(" = ")
-								if !writeArrayElemPtrOptionValue(out, s.Rhs[0]) {
-									out.WriteString("/* ERROR: array element pointer assignment requires nil or &array[index] */ unimplemented!(\"array element pointer assignment\")")
-								}
-							} else if writeErrorChannelReceiveAssignment(out, s.Lhs[0], s.Rhs[0]) {
-							} else if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
-								// Check if LHS is a dereference (*p = value)
-								// Assignment through pointer: *p = value
-								if writeCurrentReceiverDerefAssignment(out, star, s.Rhs[0]) {
-									// Pointer-receiver self is already &mut T, not a wrapped pointer handle.
-								} else if ident, ok := star.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
-									out.WriteString("{ ")
-									out.WriteString("let new_val = ")
-									if !writeSliceElemPtrDerefAssignmentValue(out, star, s.Rhs[0]) {
-										TranspileExpression(out, s.Rhs[0])
-									}
-									out.WriteString("; *")
-									out.WriteString(RustIdentForUse(ident))
-									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
-								} else if ident, ok := star.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
-									out.WriteString("{ ")
-									out.WriteString("let new_val = ")
-									var expected types.Type
-									if typeInfo := GetTypeInfo(); typeInfo != nil {
-										expected = typeInfo.GetType(star)
-									}
-									if !writePointerDerefAssignmentValue(out, s.Rhs[0], expected) {
-										TranspileExpression(out, s.Rhs[0])
-									}
-									out.WriteString("; *")
-									out.WriteString(RustIdentForUse(ident))
-									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
-								} else if writeGoPtrSlotDerefAssignment(out, star, s.Rhs[0]) {
-									// Pointer-to-GoPtr-slot assignment replaces the GoPtr stored in the slot.
-								} else if ident, ok := star.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
-									writeGoPtrDerefAssignment(out, ident, star, s.Rhs[0])
-								} else if writeGoPtrFieldDerefAssignment(out, star, s.Rhs[0]) {
-									// Dereference assignment through a generated GoPtr field mutates the selected pointee.
-								} else if writePointerDerefSequenceHandleAssignment(out, star, s.Rhs[0]) {
-									// Pointer-to-slice assignment writes the RHS slice option into the pointee handle.
-								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {
-									// Pointer-to-pointer assignment writes through the pointer handle stored in the slot.
-								} else if writeFunctionPointerDerefCallAssignment(out, star, s.Rhs[0]) {
-									// Pointer-to-function assignment writes the returned function option into the slot.
-								} else if isUnsafePointerDerefAssignmentTarget(star) {
-									out.WriteString("{ ")
-									out.WriteString("unimplemented!(\"unsafe.Pointer dereference assignment\"); }")
-								} else {
-									out.WriteString("{ ")
-									out.WriteString("let new_val = ")
-									var expected types.Type
-									if typeInfo := GetTypeInfo(); typeInfo != nil {
-										expected = typeInfo.GetType(star)
-									}
-									if !writePointerDerefAssignmentValue(out, s.Rhs[0], expected) {
-										TranspileExpression(out, s.Rhs[0])
-									}
-									out.WriteString("; ")
-									out.WriteString("*")
-									TranspileExpressionContext(out, star.X, LValue)
-									WriteBorrowMethod(out, true)
-									if isGoErrorType(expected) {
-										out.WriteString(" = new_val; }")
-									} else {
-										out.WriteString(" = Some(new_val); }")
-									}
-								}
-							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
-								// Array/slice element assignment: arr[i] = value
-								if writePointerDerefSequenceElementAssignment(out, indexExpr, s.Rhs[0]) {
-									// Pointer-to-slice/array element assignment mutates the pointee handle.
-								} else if writeGoPtrPointedArrayElementAssignment(out, indexExpr, s.Rhs[0]) {
-									// GoPtr pointer-to-array element assignment mutates through the GoPtr handle.
-								} else if writeArrayElemPtrPointedArrayElementAssignment(out, indexExpr, s.Rhs[0]) {
-									// Array element pointer to an array mutates the pointed-to array value.
-								} else if writeNestedSliceElementAssignment(out, indexExpr, s.Rhs[0]) {
-									// Nested slice element assignment emitted by helper.
-								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
-									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {
-										// "x[i] = append(x[i], v)" is written as the append
-										// alone, which evaluates i once. Go evaluates the i
-										// of the target as well, and first; that shows when
-										// i calls a function.
-										if expressionCallsOrReceives(indexExpr.Index) {
-											out.WriteString("{ let _ = ")
-											writeExpressionAsUsize(out, indexExpr.Index)
-											out.WriteString("; ")
-											TranspileExpression(out, call)
-											out.WriteString("; }")
-										} else {
-											TranspileExpression(out, call)
-										}
-									} else {
-										out.WriteString("(*")
-										TranspileExpressionContext(out, indexExpr.X, LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(".as_mut().unwrap())[")
-										writeExpressionAsUsize(out, indexExpr.Index)
-										out.WriteString("] = ")
-										TranspileExpression(out, call)
-									}
-								} else {
-									// The index and the value are evaluated before the
-									// sequence is locked for writing. Either may read the
-									// sequence ("s[len(s)-1] = x", "s[0] = s[1]"), and a
-									// read under the write lock panics, or hangs in a
-									// program with goroutines.
-									//
-									// Go evaluates the sequence operand before the
-									// index. That shows when the operand calls a
-									// function ("rows()[i()] = v()"), so its handle is
-									// then taken first and held, not locked. An operand
-									// that calls something is never a package-level
-									// variable, which has no handle to take.
-									holdsSequence := expressionCallsOrReceives(indexExpr.X)
-									writeSequenceHandle := func() {
-										if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-											writeNamedSliceInnerHandleClone(out, subj)
-										} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
-											writeNamedArrayInnerHandleClone(out, subj)
-										} else {
-											TranspileExpressionContext(out, indexExpr.X, LValue)
-										}
-									}
-									out.WriteString("{ ")
-									if holdsSequence {
-										out.WriteString("let __seq = ")
-										writeSequenceHandle()
-										out.WriteString(".clone(); ")
-									}
-									out.WriteString("let __idx = ")
-									writeExpressionAsUsize(out, indexExpr.Index)
-									out.WriteString("; let __rhs = ")
-
-									var elemType types.Type
-									if typeInfo := GetTypeInfo(); typeInfo != nil {
-										elemType = indexedSequenceElementAssignmentType(typeInfo, indexExpr)
-									}
-									if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(indexExpr.X); ok {
-										if !writeSliceElemPtrSliceSlotValue(out, s.Rhs[0], elemRustType) {
-											out.WriteString(`unimplemented!("type info required to lower pointer slice assignment")`)
-										}
-									} else if fieldInfo, ok := sliceElemPtrSliceFieldInfoForIndexExpr(indexExpr); ok {
-										if !writeSliceElemPtrSliceSlotValue(out, s.Rhs[0], sliceElemPtrSliceFieldElemRustType(fieldInfo)) {
-											out.WriteString(`unimplemented!("type info required to lower pointer slice field assignment")`)
-										}
-									} else if info, ok := goPtrArrayFieldInfoForIndexExpr(indexExpr); ok {
-										if !writeGoPtrCallArgumentForInfo(out, s.Rhs[0], goPtrResultInfo{elemRustType: info.elemRustType, elemType: info.elemType}) {
-											out.WriteString(`unimplemented!("type info required to lower GoPtr array field assignment")`)
-										}
-									} else {
-										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
-									}
-
-									out.WriteString("; (*")
-									if holdsSequence {
-										out.WriteString("__seq")
-									} else {
-										writeSequenceHandle()
-									}
-									WriteBorrowMethod(out, true)
-									out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
-								}
-							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
-								// Collection field on an indexed struct element mutates that element in place.
-							} else {
-								// Direct assignment: x = value
-								noteMutexGuardAliasAssignment(s.Lhs[0], s.Rhs[0])
-								// Check if RHS is nil
-								if writePackageGlobalCollectionAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Package-global map/slice slots copy the current option value, preserving nil.
-								} else if writeMapHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Map assignment replaces the map handle, matching Go map-header semantics.
-								} else if writePackageGlobalPointerNilAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Package-global pointer nil preserves the global slot and replaces the stored handle.
-								} else if writeSliceElemPtrFieldAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// GoPtr fields preserve pointer identity for slice element addresses.
-								} else if writeGoPtrAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// GoPtr locals preserve pointer identity across pointer assignment.
-								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
-									// Assigning nil to pointer
-									out.WriteString("*")
-									TranspileExpressionContext(out, s.Lhs[0], LValue)
-									WriteBorrowMethod(out, true)
-									out.WriteString(" = None")
-								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Pointer assignment replaces the handle to preserve aliasing.
-								} else if writeSliceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Slice assignment replaces the handle to preserve slice-header aliasing.
-								} else if writeCurrentReceiverLocalAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Reassigned Go value receivers are mutable Rust local copies, not wrapper slots.
-								} else if writeCapturedCurrentReceiverAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Captured value receivers are bare closure-local copies, not wrapper slots.
-								} else if writeLocalInterfaceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Local interface assignment copies the existing interface handle.
-								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Assigned range variables are local bare Rust bindings, not wrapper handles.
-								} else if writeBareScalarAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Bare scalar locals stay bare when reassigned.
-								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Converted concrete stdlib values assigned through a stdlib interface handle.
-								} else if isConcreteErrorInterfaceAssignment(s.Lhs[0], s.Rhs[0]) {
-									writeConcreteErrorInterfaceAssignment(out, s.Lhs[0], s.Rhs[0])
-								} else if writeConcreteToTranspiledInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Concrete value reassigned into an interface-typed target boxes into the interface handle.
-								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
-									if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
-										if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
-											// Addressed composite literals assigned to any must box the concrete value.
-										} else {
-											writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
-										}
-									} else {
-										// Special case: p = &x where p is a pointer
-										// We need to extract the value from x, not clone the whole Arc
-										out.WriteString("{ ")
-										out.WriteString("let new_val = (*")
-										TranspileExpressionContext(out, unary.X, LValue)
-										WriteBorrowMethod(out, false)
-										out.WriteString(").clone(); ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = new_val; }")
-									}
-								} else if funcLit, ok := s.Rhs[0].(*ast.FuncLit); ok {
-									_, isFuncLHS := expressionFunctionSignature(s.Lhs[0])
-									if isFuncLHS || expressionHasFunctionSignatureSyntax(s.Lhs[0]) {
-										out.WriteString("{ ")
-										cloneFuncLitTarget := funcLitAssignmentTargetNeedsClone(s.Lhs[0], funcLit)
-										if cloneFuncLitTarget {
-											out.WriteString("let __func_lit_target = ")
-											TranspileExpressionContext(out, s.Lhs[0], LValue)
-											out.WriteString(".clone(); ")
-										}
-										out.WriteString("let new_val = ")
-										TranspileFuncLitBox(out, funcLit)
-										out.WriteString("; ")
-										out.WriteString("*")
-										if cloneFuncLitTarget {
-											out.WriteString("__func_lit_target")
-										} else {
-											TranspileExpressionContext(out, s.Lhs[0], LValue)
-										}
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
-									} else {
-										out.WriteString("{ ")
-										out.WriteString("let new_val = ")
-										TranspileExpression(out, s.Rhs[0])
-										out.WriteString("; ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
-									}
-								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
-									writeErrorCopyAssignment(out, s.Lhs[0], s.Rhs[0])
-								} else if writeFunctionSelectorHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Function selector values are represented by handles; copy the handle.
-								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
-									if sig, isFuncValue := functionValueSignature(rhsIdent); isFuncValue {
-										out.WriteString("{ ")
-										out.WriteString("let new_val = ")
-										writeFunctionValueBox(out, rhsIdent, sig)
-										out.WriteString("; ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
-									} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
-										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
-									} else {
-										if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
-											// Assignment to interface{} boxes non-interface values and clones interface handles.
-										} else if writeFunctionTypedIdentFieldAssignment(out, s.Lhs[0], rhsIdent) {
-											// Function-typed values aren't Clone via .as_ref().clone(); share
-											// the outer Arc handle instead.
-										} else {
-											// Check if RHS is a wrapped variable - use clone for non-Copy types
-											rhsIsWrappedVar := false
-											if rhsIdent.Name != "true" && rhsIdent.Name != "false" && rhsIdent.Name != "nil" {
-												if _, isRange := rangeLoopVars[rhsIdent.Name]; !isRange {
-													if _, isConst := localConstants[rhsIdent.Name]; !isConst {
-														if !isConstIdent(rhsIdent) && !isVarBare(rhsIdent.Name) {
-															rhsIsWrappedVar = true
-														}
-													}
-												}
-											}
-											out.WriteString("{ ")
-											out.WriteString("let new_val = ")
-											if writeCurrentReceiverAssignmentValue(out, s.Rhs[0]) {
-												// Method receivers are Rust self, not wrapped locals named after the Go receiver.
-											} else if rhsIsWrappedVar {
-												// Use clone to avoid moving non-Copy types like String
-												rhsVarName := RustIdentForUse(rhsIdent)
-												if currentCaptureRenames != nil {
-													if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
-														rhsVarName = RustLocalIdent(renamed)
-													}
-												}
-												if writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
-													// A value of a type parameter has its own lowering.
-												} else if copyCall, known := goValueCopyCallForExpr(rhsIdent); known {
-													out.WriteString(rhsVarName)
-													WriteBorrowMethod(out, false)
-													out.WriteString(".as_ref().unwrap()")
-													out.WriteString(copyCall)
-												} else {
-													out.WriteString(goValueCopyNeedsTypeInfo)
-												}
-											} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-												// Constants assigned to wrapped slots need the target type from go/types.
-											} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-												// Byte constants assigned to byte slots need the same go/types context as call arguments.
-											} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-												// Range indexes emit usize, but Go int assignment targets use i32.
-											} else if writeRangeCharAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-												// String range runes are Rust char but Go rune targets are i32.
-											} else if writeOwnedRangeValue(out, rhsIdent) {
-												// Reference-style range values must be cloned into ordinary wrapped assignment targets.
-											} else {
-												TranspileExpression(out, s.Rhs[0])
-											}
-											out.WriteString("; ")
-											out.WriteString("*")
-											TranspileExpressionContext(out, s.Lhs[0], LValue)
-											WriteBorrowMethod(out, true)
-											out.WriteString(" = Some(new_val); }")
-										}
-									}
-								} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
-									writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
-								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-									// Check if it's an append call using TypeInfo
-									isAppend := false
-									isErrorFunc := false
-									typeInfo := GetTypeInfo()
-									if typeInfo != nil && typeInfo.info != nil {
-										if ident, ok := call.Fun.(*ast.Ident); ok {
-											// Check if this is the builtin append function
-											if obj, ok := typeInfo.info.Uses[ident]; ok {
-												if builtin, ok := obj.(*types.Builtin); ok {
-													isAppend = builtin.Name() == "append"
-												}
-											}
-										}
-									}
-
-									// Check if it's fmt.Errorf or errors.New which return error types
-									if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-										if pkg, ok := sel.X.(*ast.Ident); ok {
-											if (pkg.Name == "fmt" && sel.Sel.Name == "Errorf") ||
-												(pkg.Name == "errors" && sel.Sel.Name == "New") {
-												isErrorFunc = true
-											}
-										}
-									}
-
-									// Check if the LHS variable is an error type -
-									// user functions returning error already return wrapped values
-									if !isErrorFunc && typeInfo != nil {
-										if lhsType := typeInfo.GetType(s.Lhs[0]); lhsType != nil {
-											if named, ok := lhsType.(*types.Named); ok && named.Obj().Name() == "error" {
-												isErrorFunc = true
-											}
-										}
-									}
-
-									if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
-										// Assignment to interface{} boxes non-interface values before error-call handling.
-									} else if functionValueCallAssignmentUsesReturnedSlot(s.Lhs[0], call) {
-										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
-									} else if isAppend {
-										if isNamedSliceExpression(s.Rhs[0]) {
-											writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
-										} else {
-											// append() returns the same wrapped type, don't wrap in Some()
-											// Just execute the append for its side effect
-											TranspileExpression(out, s.Rhs[0])
-										}
-									} else if isErrorFunc {
-										// Error functions return the full wrapped type: the error handle.
-										// Just replace the Rc pointer directly
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										out.WriteString(" = ")
-										TranspileExpression(out, s.Rhs[0])
-									} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
-										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
-									} else { // Regular function call
-										isLenCapCall := isBareLenCapCall(s.Rhs[0])
-										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], wrappedSlotAssignmentShouldUseMultiline(s.Rhs[0]), func(valueOut *strings.Builder) {
-											TranspileExpression(valueOut, s.Rhs[0])
-											if isLenCapCall {
-												valueOut.WriteString(" as i32")
-											}
-										})
-									}
-								} else {
-									if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
-										// Assignment to interface{} boxes non-interface values and clones interface handles.
-									} else {
-										rhsIsWrappedVar := wrappedSlotAssignmentRHSIsWrappedVar(s.Rhs[0])
-										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], wrappedSlotAssignmentShouldUseMultiline(s.Rhs[0]), func(valueOut *strings.Builder) {
-											writeRegularWrappedSlotAssignmentValue(valueOut, s.Lhs[0], s.Rhs[0], rhsIsWrappedVar)
-										})
-									}
-								}
-							}
-						} else {
-							// Check if this is a channel variable definition
-							isChannelVar := false
-							if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
-								if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
-									typeInfo := GetTypeInfo()
-									if typeInfo != nil {
-										// Check if LHS has channel type
-										if typeInfo.IsChannel(s.Rhs[0]) {
-											isChannelVar = true
-											rustType := ""
-											if callExpr, ok := s.Rhs[0].(*ast.CallExpr); ok && len(callExpr.Args) > 0 {
-												rustType = GoTypeToRust(callExpr.Args[0])
-											} else if typ := typeInfo.GetType(s.Rhs[0]); typ != nil {
-												rustType = goTypesTypeToRust(typ)
-											}
-											// Register as bare variable
-											if vt := GetVarTable(); vt != nil {
-												vt.Register(lhsIdent.Name, &VarInfo{
-													WrapLevel: WrapNone,
-													RustType:  rustType,
-													Source:    SourceLocal,
-												})
-											}
-										}
-									}
-									if !isChannelVar {
-										if callExpr, ok := s.Rhs[0].(*ast.CallExpr); ok && isMakeChannelCall(callExpr) {
-											isChannelVar = true
-											registerStdlibCallCollectionInfo(lhsIdent, callExpr)
-											if vt := GetVarTable(); vt != nil {
-												vt.Register(lhsIdent.Name, &VarInfo{
-													WrapLevel: WrapNone,
-													RustType:  GoTypeToRust(callExpr.Args[0]),
-													Source:    SourceLocal,
-												})
-											}
-										}
-									}
-								}
-							}
-
-							if isChannelVar {
-								// Channel variables are bare - no wrapping
-								out.WriteString("let mut ")
-								TranspileExpressionContext(out, s.Lhs[0], LValue)
-								out.WriteString(" = ")
-								TranspileExpression(out, s.Rhs[0])
-							} else {
-								// Check for slice element pointer short declaration
-								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
-								isSliceElemPtrShortDecl := false
-								var sliceElemPtrRustType string
-								isGoPtrShortDecl := false
-								var goPtrShortDeclElemRustType string
-								var goPtrShortDeclInfo goPtrResultInfo
-								isArrayElemPtrShortDecl := false
-								var arrayElemPtrShortDeclInfo arrayElemPtrInfo
-								if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
-									if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok && lhsIdent.Name != "_" {
-										if elemType, ok := sliceElemPtrCandidateForDecl(lhsIdent); ok {
-											if rhsOk, sawSliceAddr := isSliceElemPtrAssignmentValue(s.Rhs[0]); rhsOk && sawSliceAddr {
-												isSliceElemPtrShortDecl = true
-												sliceElemPtrRustType = elemType
-												registerSliceElemPtrVar(lhsIdent.Name, sliceElemPtrRustType)
-											}
-										}
-										if !isSliceElemPtrShortDecl {
-											if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-												if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
-													isSliceElemPtrShortDecl = true
-													sliceElemPtrRustType = info.elemRustType
-													registerSliceElemPtrVar(lhsIdent.Name, sliceElemPtrRustType)
-												}
-											}
-										}
-										if !isSliceElemPtrShortDecl && !isGoPtrShortDecl {
-											if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
-												if info, ok := goPtrResultInfoForCall(call, 0); ok {
-													isGoPtrShortDecl = true
-													goPtrShortDeclInfo = info
-													goPtrShortDeclElemRustType = goPtrResultElemRustType(info)
-													var goType types.Type
-													if typeInfo := GetTypeInfo(); typeInfo != nil {
-														goType = typeInfo.GetType(s.Rhs[0])
-													}
-													registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
-												}
-											}
-										}
-										if !isSliceElemPtrShortDecl && !isGoPtrShortDecl {
-											if rhsIdent, ok := unwrapParens(s.Rhs[0]).(*ast.Ident); ok && isGoPtrVar(rhsIdent.Name) {
-												if elemRustType, ok := goPtrVarElemRustType(rhsIdent.Name); ok {
-													isGoPtrShortDecl = true
-													goPtrShortDeclInfo = goPtrInfoForLocalIdent(rhsIdent, elemRustType)
-													goPtrShortDeclElemRustType = goPtrResultElemRustType(goPtrShortDeclInfo)
-													var goType types.Type
-													if typeInfo := GetTypeInfo(); typeInfo != nil {
-														goType = typeInfo.GetType(s.Rhs[0])
-													}
-													registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
-												}
-											}
-										}
-										if !isSliceElemPtrShortDecl {
-											if sel, ok := unwrapParens(s.Rhs[0]).(*ast.SelectorExpr); ok {
-												if info, ok := sliceElemPtrFieldInfoForSelector(sel); ok {
-													isGoPtrShortDecl = true
-													goPtrShortDeclInfo = goPtrResultInfo{elemRustType: info.elemRustType, elemType: info.elemType}
-													goPtrShortDeclElemRustType = goPtrResultElemRustType(goPtrShortDeclInfo)
-													var goType types.Type
-													if typeInfo := GetTypeInfo(); typeInfo != nil {
-														goType = typeInfo.GetType(s.Rhs[0])
-													}
-													registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
-												}
-											}
-										}
-										if !isSliceElemPtrShortDecl && !isGoPtrShortDecl {
-											if info, ok := goPtrSlotDerefResultInfo(s.Rhs[0]); ok {
-												isGoPtrShortDecl = true
-												goPtrShortDeclInfo = info
-												goPtrShortDeclElemRustType = goPtrResultElemRustType(info)
-												var goType types.Type
-												if typeInfo := GetTypeInfo(); typeInfo != nil {
-													goType = typeInfo.GetType(s.Rhs[0])
-												}
-												registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
-											}
-										}
-										if !isSliceElemPtrShortDecl {
-											if info, ok := arrayElemPtrCandidateForDecl(lhsIdent); ok {
-												if _, rhsOk, sawArrayAddr := isArrayElemPtrAssignmentValue(s.Rhs[0]); rhsOk && sawArrayAddr {
-													isArrayElemPtrShortDecl = true
-													arrayElemPtrShortDeclInfo = info
-													registerArrayElemPtrVar(lhsIdent.Name, arrayElemPtrShortDeclInfo)
-												}
-											}
-										}
-										if !isSliceElemPtrShortDecl && !isGoPtrShortDecl && !isArrayElemPtrShortDecl {
-											if info, ok := goPtrCandidateForDecl(lhsIdent); ok {
-												isGoPtrShortDecl = true
-												goPtrShortDeclInfo = info
-												goPtrShortDeclElemRustType = goPtrResultElemRustType(info)
-												var goType types.Type
-												if typeInfo := GetTypeInfo(); typeInfo != nil {
-													goType = typeInfo.GetType(s.Rhs[0])
-												}
-												registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
-											}
-										}
-									}
-								}
-								// Pre-register short-decl LHS idents so writeIdentExpression
-								// emits the local name (with _local suffix if it shadows a
-								// package global) instead of the package-global path.
-								if s.Tok == token.DEFINE {
-									for _, lhs := range s.Lhs {
-										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
-											if isPackageGlobalName(ident.Name) {
-												if vt := GetVarTable(); vt != nil && vt.Lookup(ident.Name) == nil {
-													vt.Register(ident.Name, &VarInfo{
-														WrapLevel: WrapFull,
-														Source:    SourceLocal,
-													})
-												}
-											}
-										}
-									}
-								}
-								if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 &&
-									(writeStatementBuiltLogicalShortDecl(out, s.Lhs[0], s.Rhs[0]) ||
-										writeStatementBuiltConcurrentBinaryShortDecl(out, s.Lhs[0], s.Rhs[0])) {
-									// The helper emitted the complete declaration.
-								} else {
-									// Regular assignment or definition
-									for i, lhs := range s.Lhs {
-										if i > 0 {
-											out.WriteString(", ")
-										}
-										if s.Tok == token.DEFINE {
-											out.WriteString("let mut ")
-										}
-										TranspileExpressionContext(out, lhs, LValue)
-										if isSliceElemPtrShortDecl && i == 0 {
-											out.WriteString(": Option<GoSliceElemPtr<")
-											out.WriteString(sliceElemPtrRustType)
-											out.WriteString(">>")
-										} else if isGoPtrShortDecl && i == 0 {
-											out.WriteString(": GoPtr<")
-											out.WriteString(goPtrShortDeclElemRustType)
-											out.WriteString(">")
-										} else if isArrayElemPtrShortDecl && i == 0 {
-											out.WriteString(": ")
-											out.WriteString(arrayElemPtrOptionRustType(arrayElemPtrShortDeclInfo))
-										} else if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
-											if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
-												if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(ident); ok {
-													out.WriteString(": ")
-													out.WriteString(sliceElemPtrSliceRustType(elemRustType))
-												} else if rustType, ok := arrayElemAddressPointerRustType(s.Rhs[0]); ok {
-													out.WriteString(": ")
-													out.WriteString(rustType)
-												} else if rustType, ok := localMakeSliceTypeAnnotation(s.Rhs[0]); ok {
-													out.WriteString(": ")
-													out.WriteString(rustType)
-												}
-											}
-										}
-									}
-
-									out.WriteString(" = ")
-
-									for i, rhs := range s.Rhs {
-										if i > 0 {
-											out.WriteString(", ")
-										}
-										if s.Tok == token.DEFINE {
-											// Check if RHS is nil
-											if isGoPtrShortDecl && i == 0 {
-												wroteGoPtrInitializer := false
-												withShortDeclOuterRhsBindings(s.Lhs, rhs, func() {
-													wroteGoPtrInitializer = writeGoPtrCallArgumentForInfo(out, rhs, goPtrShortDeclInfo)
-												})
-												if !wroteGoPtrInitializer {
-													out.WriteString(`unimplemented!("GoPtr initializer requires compatible pointer value")`)
-												}
-											} else if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
-												WriteWrappedNone(out)
-											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-												if isSliceElemPtrShortDecl && i == 0 {
-													out.WriteString("Some(")
-													TranspileExpression(out, rhs)
-													out.WriteString(")")
-												} else if isArrayElemPtrShortDecl && i == 0 {
-													if !writeArrayElemPtrOptionValue(out, rhs) {
-														out.WriteString("/* ERROR: array element pointer initializer requires nil or &array[index] */ unimplemented!(\"array element pointer initializer\")")
-													}
-												} else {
-													// Taking address - don't wrap, the & operator will handle it
-													TranspileExpression(out, rhs)
-												}
-											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
-												writeErrorHandleFromChannelReceive(out, unary.X)
-											} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
-												if i < len(s.Lhs) {
-													registerCallResultSyntaxInfo(s.Lhs[i], callExpr)
-												}
-												if i < len(s.Lhs) {
-													if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
-														if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(lhsIdent); ok && isBuiltinCallNamed(callExpr, "make") {
-															writeSliceElemPtrSliceMake(out, callExpr, elemRustType)
-															continue
-														}
-													}
-												}
-												if len(s.Lhs) == 1 && writeBareBuiltinShortDeclInitializer(out, callExpr, s.Lhs[0]) {
-													continue
-												}
-												if len(s.Lhs) == 1 && callReturnsBareScalar(callExpr) {
-													registerBareShortDecl(s.Lhs[0])
-													TranspileExpression(out, callExpr)
-													continue
-												}
-												// len()/cap() return bare primitives â€” register LHS as bare
-												if callIdent, ok := callExpr.Fun.(*ast.Ident); ok {
-													if callIdent.Name == "len" || callIdent.Name == "cap" {
-														typeInfo := GetTypeInfo()
-														if typeInfo != nil && typeInfo.info != nil {
-															if obj, ok := typeInfo.info.Uses[callIdent]; ok {
-																if builtin, ok := obj.(*types.Builtin); ok && (builtin.Name() == "len" || builtin.Name() == "cap") {
-																	if len(s.Lhs) == 1 {
-																		if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
-																			if vt := GetVarTable(); vt != nil {
-																				vt.Register(lhsIdent.Name, &VarInfo{
-																					WrapLevel: WrapNone,
-																					Source:    SourceLocal,
-																				})
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
-												if len(s.Lhs) == 1 {
-													if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok {
-														if target, ok := pointerTypeConversionTarget(callExpr.Fun); ok && isFunctionSignatureTypeExpr(target) {
-															if vt := GetVarTable(); vt != nil {
-																vt.Register(lhsIdent.Name, &VarInfo{
-																	WrapLevel: WrapFull,
-																	RustType:  "function_signature_pointer",
-																	Source:    SourceLocal,
-																})
-															}
-														} else if rustType, ok := functionTypeRustNameFromTypeExpr(callSingleReturnTypeExpr(callExpr)); ok {
-															if vt := GetVarTable(); vt != nil {
-																vt.Register(lhsIdent.Name, &VarInfo{
-																	WrapLevel: WrapFull,
-																	RustType:  rustType,
-																	Source:    SourceLocal,
-																})
-															}
-														}
-													}
-												}
-												// Function calls already return wrapped values, don't wrap again
-												withShortDeclOuterRhsBindings(s.Lhs, rhs, func() {
-													writeCallExpressionForInitializer(out, callExpr)
-												})
-											} else if funcLit, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
-												if i < len(s.Lhs) {
-													if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
-														if vt := GetVarTable(); vt != nil {
-															vt.Register(lhsIdent.Name, &VarInfo{
-																WrapLevel: WrapFull,
-																RustType:  generateFuncLitClosureType(funcLit),
-																Source:    SourceLocal,
-															})
-														}
-													}
-												}
-												// Function literals are already wrapped by TranspileFuncLit
-												TranspileExpression(out, rhs)
-											} else if compositeLit, isCompositeLit := rhs.(*ast.CompositeLit); isCompositeLit {
-												if i < len(s.Lhs) {
-													registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
-													registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
-												}
-												// Check if it's a struct literal vs array/slice/map literal
-												isStructLiteral := false
-												if _, ok := compositeLit.Type.(*ast.Ident); ok {
-													isStructLiteral = true
-												} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-													isStructLiteral = true
-												}
-												if compositeLiteralEmitsBareStructValue(compositeLit) {
-													registerBareShortDecl(s.Lhs[0])
-												}
-
-												if isStructLiteral {
-													// Struct literals need to be wrapped
-													WriteWrapperPrefix(out)
-													TranspileExpression(out, rhs)
-													WriteWrapperSuffix(out)
-												} else {
-													// Array/slice/map literals already wrap themselves
-													TranspileExpression(out, rhs)
-												}
-											} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
-												// Plain slice expressions already return wrapped values; named-slice
-												// slice expressions emit a bare named value that the local wrapper stores.
-												if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
-													TranspileExpression(out, rhs)
-												}
-											} else if writeTypeParamHandleInitializer(out, rhs) {
-												// Type-parameter values are represented by handles; clone the handle into the new local.
-											} else if isWrappedInterfaceSliceIndex(rhs) {
-												// IndexExpr on a slice of wrapped local-interface
-												// elements returns the same wrapped handle the
-												// variable should hold; re-wrapping double-wraps.
-												TranspileExpression(out, rhs)
-											} else if mapIndexExpressionKeepsHandle(rhs) {
-												// Map values that are maps/slices/pointers/etc. already return cloneable handles.
-												TranspileExpression(out, rhs)
-											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(rhs)) && writeFunctionValueHandle(out, rhs) {
-												// Function values are already represented by cloneable handles.
-											} else if writeConcurrentMapSelectorHandleClone(out, rhs) {
-												// Concurrent map fields are map handles; clone the handle.
-											} else if writeSliceSelectorHandleClone(out, rhs) {
-												// Slice fields are already wrapped handles; clone the handle.
-											} else if writeTranspiledInterfaceHandleClone(out, rhs) {
-												// Existing named-interface values are already represented by a handle.
-											} else if writeEmptyInterfaceHandleClone(out, rhs) {
-												// Existing interface values are already represented by a handle.
-											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {
-												// Existing error values are already represented by a handle.
-											} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
-												// Copied by value from an existing stdlib interface field.
-											} else if writeStringConstWrappedInitializer(out, s.Lhs[i], rhs) {
-												// Untyped string constants default to owned Go strings in local variables.
-											} else if writeWrappedOwnedExpressionValue(out, rhs) {
-												// Copied by value from an existing wrapped field or handle.
-											} else if writeWrappedGoValueCopyOfElement(out, rhs) {
-												// An element of a slice, array or map of structs is copied into the new variable.
-											} else if ident, ok := rhs.(*ast.Ident); ok {
-												if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
-													writeWrappedFunctionValueBox(out, ident, sig)
-												} else if writeWrappedStdlibInterfaceRangeValueCopy(out, ident) {
-													// Range values over stdlib-interface slices are references; clone into the new wrapper.
-												} else if writeWrappedReferenceRangeValueCopy(out, ident) {
-													// Reference-style range values need an owned clone for wrapped short declarations.
-												} else if writeWrappedBareStringRangeValueCopy(out, ident) {
-													// Bare string range values need cloning before storing in a new wrapper.
-												} else if writePackageGlobalMapWrappedValueCopy(out, ident) {
-													// Package-global maps are stored as global values; clone the current map into the local wrapper.
-												} else if writePackageGlobalSliceWrappedValueCopy(out, ident) {
-													// Package-global slices are stored as global values; clone the current slice into the local wrapper.
-												} else if writeWrappedValueCopyFromIdent(out, ident) {
-													// Copied by value from an existing wrapped value
-												} else if writeNamedIntegerWrappedInitializer(out, rhs) {
-													// Typed named integer const identifiers need the named newtype, not the raw const.
-												} else if rhsIsPointerType(rhs) {
-													// RHS is a pointer-typed variable (e.g., z := y where y is *int)
-													// Clone the Rc to preserve aliasing instead of copying the inner value
-													writePointerShortDeclRhsValue(out, rhs)
-												} else {
-													// Wrap new variables
-													WriteWrapperPrefix(out)
-													TranspileExpression(out, rhs)
-													WriteWrapperSuffix(out)
-												}
-											} else if rhsIsPointerType(rhs) {
-												// RHS is a pointer-typed variable (e.g., z := y where y is *int)
-												// Clone the Rc to preserve aliasing instead of copying the inner value
-												writePointerShortDeclRhsValue(out, rhs)
-											} else if writeStringConstWrappedInitializer(out, s.Lhs[i], rhs) {
-												// Untyped string constants default to owned Go strings in local variables.
-											} else if writeNamedIntegerWrappedInitializer(out, rhs) {
-												// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
-											} else {
-												// Wrap new variables
-												WriteWrapperPrefix(out)
-												TranspileExpression(out, rhs)
-												WriteWrapperSuffix(out)
-											}
-										} else {
-											TranspileExpression(out, rhs)
-										}
-									}
-								}
-							} // end else (non-channel var)
-						}
-					}
-				} else {
-					// Multiple LHS
-					for i, lhs := range s.Lhs {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						if s.Tok == token.DEFINE {
-							out.WriteString("let mut ")
-						}
-						TranspileExpression(out, lhs)
-					}
-
-					out.WriteString(" = ")
-
-					for i, rhs := range s.Rhs {
-						if i > 0 {
-							out.WriteString(", ")
-						}
-						if s.Tok == token.DEFINE {
-							// Check if RHS is an expression that already returns wrapped values
-							if call, isCall := rhs.(*ast.CallExpr); isCall {
-								if i < len(s.Lhs) && writeBareBuiltinShortDeclInitializer(out, call, s.Lhs[i]) {
-									continue
-								}
-								// Function calls already return wrapped values, don't wrap again
-								writeCallExpressionForInitializer(out, call)
-							} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
-								// Plain slice expressions already return wrapped values; named-slice
-								// slice expressions emit a bare named value that the local wrapper stores.
-								if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
-									TranspileExpression(out, rhs)
-								}
-							} else if writeTypeParamHandleInitializer(out, rhs) {
-								// Type-parameter values are represented by handles; clone the handle into the new local.
-							} else if mapIndexExpressionKeepsHandle(rhs) {
-								// Map values that are maps/slices/pointers/etc. already return cloneable handles.
-								TranspileExpression(out, rhs)
-							} else if writeNamedIntegerWrappedInitializer(out, rhs) {
-								// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
-							} else {
-								// Wrap new variables in Arc<Mutex<Option<>>>
-								WriteWrapperPrefix(out)
-								TranspileExpression(out, rhs)
-								WriteWrapperSuffix(out)
-							}
-						} else {
-							TranspileExpression(out, rhs)
-						}
-					}
-				}
-			}
-		}
-		out.WriteString(";")
-	case *ast.DeclStmt:
-		if genDecl, ok := s.Decl.(*ast.GenDecl); ok {
-			switch genDecl.Tok {
-			case token.VAR:
-			specLoop:
-				for _, spec := range genDecl.Specs {
-					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-						// Multi-name, single function call: var q, r = divmod(a, b)
-						// Generate: let (mut q, mut r) = divmod(a, b);
-						if len(valueSpec.Names) > 1 && len(valueSpec.Values) == 1 {
-							if callExpr, isCall := valueSpec.Values[0].(*ast.CallExpr); isCall {
-								// Record bare-scalar tuple slot info so later uses
-								// of the LHS names don't synthesize .borrow()/.lock().
-								lhsExprs := make([]ast.Expr, len(valueSpec.Names))
-								for i, name := range valueSpec.Names {
-									lhsExprs[i] = name
-								}
-								registerCallTupleResultSyntaxInfo(lhsExprs, callExpr)
-								out.WriteString("let (")
-								for i, name := range valueSpec.Names {
-									if i > 0 {
-										out.WriteString(", ")
-									}
-									if name.Name != "_" {
-										out.WriteString("mut ")
-									}
-									out.WriteString(RustLocalIdent(name.Name))
-								}
-								out.WriteString(") = ")
-								TranspileExpression(out, valueSpec.Values[0])
-								out.WriteString(";")
-								continue specLoop
-							}
-						}
-						for i, name := range valueSpec.Names {
-							registerTypeExprCollectionInfo(name.Name, valueSpec.Type)
-							if rustType, ok := functionTypeRustNameFromTypeExpr(valueSpec.Type); ok {
-								if vt := GetVarTable(); vt != nil {
-									vt.Register(name.Name, &VarInfo{
-										WrapLevel: WrapFull,
-										RustType:  rustType,
-										Source:    SourceLocal,
-									})
-								}
-							}
-							// Check if this is a sync type - bare, not wrapped
-							isSyncType := false
-							if sel, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
-								if pkgIdent, ok := sel.X.(*ast.Ident); ok && pkgIdent.Name == "sync" {
-									if isBareSyncTypeName(sel.Sel.Name) {
-										isSyncType = true
-										rustType := ""
-										switch sel.Sel.Name {
-										case "WaitGroup":
-											NeedWaitGroup()
-											rustType = "WaitGroup"
-										case "Mutex":
-											NeedGoMutex()
-											rustType = "GoMutex"
-										case "Once":
-											NeedGoOnce()
-											rustType = "GoOnce"
-										}
-										if vt := GetVarTable(); vt != nil {
-											vt.Register(name.Name, &VarInfo{
-												WrapLevel: WrapNone,
-												RustType:  rustType,
-												Source:    SourceLocal,
-											})
-										}
-									}
-								}
-							}
-
-							if name.Name == "_" {
-								out.WriteString("let ")
-							} else {
-								out.WriteString("let mut ")
-							}
-							out.WriteString(RustLocalIdent(name.Name))
-							sliceElemPtrRustType, isSliceElemPtr := sliceElemPtrCandidateForDecl(name)
-							arrayElemPtrInfo, isArrayElemPtr := arrayElemPtrCandidateForDecl(name)
-							goPtrInfo, isGoPtr := goPtrCandidateForDecl(name)
-							goPtrArrayLocalInfo, isGoPtrArrayLocal := goPtrArrayLocalInfoForDecl(name)
-							if isSliceElemPtr {
-								registerSliceElemPtrVar(name.Name, sliceElemPtrRustType)
-							} else if valueSpec.Type == nil && len(valueSpec.Values) > i {
-								if call, ok := valueSpec.Values[i].(*ast.CallExpr); ok {
-									if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
-										isSliceElemPtr = true
-										sliceElemPtrRustType = info.elemRustType
-										registerSliceElemPtrVar(name.Name, sliceElemPtrRustType)
-									}
-								}
-							}
-							if isArrayElemPtr {
-								registerArrayElemPtrVar(name.Name, arrayElemPtrInfo)
-							}
-							if isGoPtr && !isSliceElemPtr && !isArrayElemPtr {
-								registerGoPtrVar(name.Name, goPtrResultElemRustType(goPtrInfo), nil)
-							}
-							if isGoPtrArrayLocal {
-								if vt := GetVarTable(); vt != nil {
-									vt.Register(name.Name, &VarInfo{
-										WrapLevel: WrapFull,
-										RustType:  goPtrArrayFieldRustType(goPtrArrayLocalInfo),
-										Source:    SourceLocal,
-									})
-								}
-							}
-
-							// Add type annotation if type is specified (skip for sync types and local interfaces)
-							isLocalInterface := false
-							if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok && localInterfaces[typeIdent.Name] {
-								isLocalInterface = true
-							}
-							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isArrayElemPtr && !isGoPtr && !isGoPtrArrayLocal && !isLocalInterface {
-								if _, isFunctionType := functionTypeRustNameFromTypeExpr(valueSpec.Type); !isFunctionType {
-									if vt := GetVarTable(); vt != nil {
-										vt.Register(name.Name, &VarInfo{
-											WrapLevel: WrapFull,
-											RustType:  GoTypeToRust(valueSpec.Type),
-											Source:    SourceLocal,
-										})
-									}
-								}
-							}
-							if valueSpec.Type != nil && !isSyncType && !isLocalInterface {
-								out.WriteString(": ")
-								if isSliceElemPtr {
-									out.WriteString("Option<GoSliceElemPtr<")
-									out.WriteString(sliceElemPtrRustType)
-									out.WriteString(">>")
-								} else if isArrayElemPtr {
-									out.WriteString(arrayElemPtrOptionRustType(arrayElemPtrInfo))
-								} else if isGoPtr {
-									out.WriteString("GoPtr<")
-									out.WriteString(goPtrResultElemRustType(goPtrInfo))
-									out.WriteString(">")
-								} else if isGoPtrArrayLocal {
-									out.WriteString(goPtrArrayFieldRustType(goPtrArrayLocalInfo))
-								} else if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok {
-									out.WriteString(sliceElemPtrSliceRustType(elemRustType))
-								} else {
-									out.WriteString(GoTypeToRust(valueSpec.Type))
-								}
-							} else if valueSpec.Type == nil && !isSliceElemPtr && !isArrayElemPtr && !isGoPtr && len(valueSpec.Values) > i {
-								if rustType, ok := localMakeSliceTypeAnnotation(valueSpec.Values[i]); ok {
-									out.WriteString(": ")
-									out.WriteString(rustType)
-								}
-							}
-
-							if len(valueSpec.Values) > i {
-								out.WriteString(" = ")
-								// Check if value is nil
-								if isSliceElemPtr {
-									if !writeSliceElemPtrOptionValue(out, valueSpec.Values[i]) {
-										out.WriteString("/* ERROR: slice element pointer initializer requires nil or &slice[index] */ unimplemented!(\"slice element pointer initializer\")")
-									}
-								} else if isArrayElemPtr {
-									if !writeArrayElemPtrOptionValue(out, valueSpec.Values[i]) {
-										out.WriteString("/* ERROR: array element pointer initializer requires nil or &array[index] */ unimplemented!(\"array element pointer initializer\")")
-									}
-								} else if isGoPtr {
-									if !writeGoPtrCallArgumentForInfo(out, valueSpec.Values[i], goPtrInfo) {
-										out.WriteString(`unimplemented!("GoPtr initializer requires compatible pointer value")`)
-									}
-								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
-									// Initializing with nil
-									WriteWrappedNone(out)
-								} else if valueSpec.Type != nil && writeConcreteErrorVarInitializer(out, valueSpec.Type, valueSpec.Values[i]) {
-									// A struct or pointer that implements error, stored in an error variable.
-								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
-									// Values assigned into a transpiled named interface variable may need re-boxing.
-								} else if valueSpec.Type != nil && writeConcreteToTranspiledInterfaceValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
-									// Concrete value boxed into a transpiled named interface variable.
-								} else if valueSpec.Type != nil && writeStdlibInterfaceCallArgumentConversion(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
-									// Converted concrete stdlib values assigned to a stdlib interface variable.
-								} else if valueSpec.Type != nil && isEmptyInterfaceTypeExpr(valueSpec.Type) {
-									writeEmptyInterfaceCallArgumentValue(out, valueSpec.Values[i])
-								} else if isLocalInterface {
-									// Assigning to a local interface variable - keep wrapped, just clone the Rc
-									if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
-										out.WriteString(ident.Name + ".clone()")
-									} else {
-										TranspileExpression(out, valueSpec.Values[i])
-									}
-								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
-									registerCallResultSyntaxInfo(name, call)
-									if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok && isBuiltinCallNamed(call, "make") {
-										writeSliceElemPtrSliceMake(out, call, elemRustType)
-									} else if valueSpec.Type == nil && callReturnsBareScalar(call) {
-										registerBareShortDecl(name)
-										TranspileExpression(out, call)
-									} else if writeBareBuiltinShortDeclInitializer(out, call, name) {
-										// len/cap/min/max var initializers use normal Go value wrappers.
-									} else {
-										// Function calls already return wrapped values, don't wrap again
-										writeCallExpressionForInitializer(out, call)
-									}
-								} else if funcLit, isFuncLit := valueSpec.Values[i].(*ast.FuncLit); isFuncLit {
-									if valueSpec.Type == nil {
-										if vt := GetVarTable(); vt != nil {
-											vt.Register(name.Name, &VarInfo{
-												WrapLevel: WrapFull,
-												RustType:  generateFuncLitClosureType(funcLit),
-												Source:    SourceLocal,
-											})
-										}
-										TranspileExpression(out, valueSpec.Values[i])
-									} else if _, directFuncType := valueSpec.Type.(*ast.FuncType); directFuncType {
-										TranspileFuncLitBox(out, funcLit)
-									} else if usesWrappedHandle, hasTypeInfo := functionTypeExprUsesWrappedHandle(valueSpec.Type); usesWrappedHandle {
-										WriteWrapperPrefix(out)
-										TranspileFuncLitBox(out, funcLit)
-										WriteWrapperSuffix(out)
-									} else if !hasTypeInfo {
-										out.WriteString(`unimplemented!("type info required to lower function literal initializer")`)
-									} else {
-										TranspileExpression(out, valueSpec.Values[i])
-									}
-								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
-									registerCompositeLiteralSyntaxVarInfo(name, compositeLit)
-									// Check if it's a struct literal vs array/slice/map literal
-									isStructLiteral := false
-									if _, ok := compositeLit.Type.(*ast.Ident); ok {
-										isStructLiteral = true
-									} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-										isStructLiteral = true
-									}
-
-									if isStructLiteral {
-										// Struct literals need to be wrapped
-										WriteWrapperPrefix(out)
-										TranspileExpression(out, valueSpec.Values[i])
-										WriteWrapperSuffix(out)
-									} else {
-										// Array/slice/map literals already wrap themselves
-										TranspileExpression(out, valueSpec.Values[i])
-									}
-								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
-									// Address-of operator already produces wrapped value
-									TranspileExpression(out, valueSpec.Values[i])
-								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) {
-									// Map values that are maps/slices/pointers/etc. already return cloneable handles.
-									TranspileExpression(out, valueSpec.Values[i])
-								} else if writeConcurrentMapSelectorHandleClone(out, valueSpec.Values[i]) {
-									// Concurrent map fields are map handles; clone the handle.
-								} else if writeSliceSelectorHandleClone(out, valueSpec.Values[i]) {
-									// Slice fields are already wrapped handles; clone the handle.
-								} else if writeNamedIntegerWrappedInitializer(out, valueSpec.Values[i]) {
-									// Inferred named-integer vars store the named value, not the emitted primitive const.
-								} else if valueSpec.Type != nil && writeWrappedConstVarInitializer(out, name, valueSpec.Values[i]) {
-									// Typed const initializers are cast through the LHS type from go/types.
-								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
-									isInterface := false
-									if valueSpec.Type != nil {
-										isInterface = isEmptyInterfaceTypeExpr(valueSpec.Type)
-									}
-									if isInterface {
-										// For interface{}, box the value
-										WriteWrapperPrefix(out)
-										writeInterfaceBoxedValue(out, valueSpec.Values[i])
-										WriteWrapperSuffix(out)
-									} else if sig, isFuncValue := functionValueSignature(ident); isFuncValue {
-										writeWrappedFunctionValueBox(out, ident, sig)
-									} else if writeWrappedStdlibInterfaceRangeValueCopy(out, ident) {
-										// Range values over stdlib-interface slices are references; clone into the new wrapper.
-									} else if writeWrappedBareStringRangeValueCopy(out, ident) {
-										// Bare string range values need cloning before storing in a new wrapper.
-									} else if writePackageGlobalMapWrappedValueCopy(out, ident) {
-										// Package-global maps are stored as global values; clone the current map into the local wrapper.
-									} else if writePackageGlobalSliceWrappedValueCopy(out, ident) {
-										// Package-global slices are stored as global values; clone the current slice into the local wrapper.
-									} else if writeWrappedValueCopyFromIdent(out, ident) {
-										// Copied by value from an existing wrapped value
-									} else {
-										if valueSpec.Type != nil {
-											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
-													WriteWrapperPrefix(out)
-													out.WriteString(typeIdent.Name)
-													out.WriteString("(")
-													WriteWrapperPrefix(out)
-													isFloatType := underlyingType == "float64" || underlyingType == "float32"
-													if isFloatType {
-														if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-															out.WriteString(lit.Value + ".0")
-														} else {
-															TranspileExpression(out, valueSpec.Values[i])
-														}
-													} else {
-														TranspileExpression(out, valueSpec.Values[i])
-													}
-													WriteWrapperSuffix(out)
-													out.WriteString(")")
-													WriteWrapperSuffix(out)
-												} else {
-													WriteWrapperPrefix(out)
-													TranspileExpression(out, valueSpec.Values[i])
-													WriteWrapperSuffix(out)
-												}
-											} else {
-												WriteWrapperPrefix(out)
-												TranspileExpression(out, valueSpec.Values[i])
-												WriteWrapperSuffix(out)
-											}
-										} else {
-											WriteWrapperPrefix(out)
-											TranspileExpression(out, valueSpec.Values[i])
-											WriteWrapperSuffix(out)
-										}
-									}
-								} else {
-									// Check if the target type is interface{}
-									isInterface := false
-									if valueSpec.Type != nil {
-										isInterface = isEmptyInterfaceTypeExpr(valueSpec.Type)
-									}
-
-									if isInterface {
-										// For interface{}, box the value
-										WriteWrapperPrefix(out)
-										writeInterfaceBoxedValue(out, valueSpec.Values[i])
-										WriteWrapperSuffix(out)
-									} else if valueSpec.Type != nil {
-										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
-												WriteWrapperPrefix(out)
-												out.WriteString(typeIdent.Name)
-												out.WriteString("(")
-												WriteWrapperPrefix(out)
-												// Check if int literal needs float conversion
-												isFloatType := underlyingType == "float64" || underlyingType == "float32"
-												if isFloatType {
-													if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-														out.WriteString(lit.Value + ".0")
-													} else {
-														TranspileExpression(out, valueSpec.Values[i])
-													}
-												} else {
-													TranspileExpression(out, valueSpec.Values[i])
-												}
-												WriteWrapperSuffix(out)
-												out.WriteString(")")
-												WriteWrapperSuffix(out)
-											} else {
-												WriteWrapperPrefix(out)
-												TranspileExpression(out, valueSpec.Values[i])
-												WriteWrapperSuffix(out)
-											}
-										} else {
-											WriteWrapperPrefix(out)
-											TranspileExpression(out, valueSpec.Values[i])
-											WriteWrapperSuffix(out)
-										}
-									} else {
-										WriteWrapperPrefix(out)
-										TranspileExpression(out, valueSpec.Values[i])
-										WriteWrapperSuffix(out)
-									}
-								}
-							} else {
-								// Default initialization for uninitialized vars
-								if isSliceElemPtr {
-									out.WriteString(" = None")
-								} else if isArrayElemPtr {
-									out.WriteString(" = None")
-								} else if isGoPtr {
-									out.WriteString(" = GoPtr::nil()")
-								} else if isGoPtrArrayLocal {
-									out.WriteString(" = ")
-									writeGoPtrArrayFieldDefaultValue(out, goPtrArrayLocalInfo)
-								} else if valueSpec.Type != nil && writeNilZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
-									// nil zero value supplied from go/types
-								} else if valueSpec.Type != nil && !isSyncType && writeWrappedZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
-									// non-nil zero value supplied from go/types
-								} else if valueSpec.Type != nil {
-									switch t := valueSpec.Type.(type) {
-									case *ast.Ident:
-										switch t.Name {
-										case "string":
-											out.WriteString(" = ")
-											WriteWrapperPrefix(out)
-											out.WriteString("String::new()")
-											WriteWrapperSuffix(out)
-										case "int":
-											out.WriteString(" = ")
-											WriteWrapperPrefix(out)
-											out.WriteString("0")
-											WriteWrapperSuffix(out)
-										default:
-											// Named function types have nil zero value in Go
-											if IsTypeAlias(t.Name) {
-												typeInfo := GetTypeInfo()
-												if IsFunctionTypeAlias(t.Name) || (typeInfo != nil && typeInfo.IsFunctionType(t)) {
-													out.WriteString(" = ")
-													WriteWrappedNone(out)
-												} else {
-													out.WriteString(" = ")
-													WriteWrapperPrefix(out)
-													out.WriteString("Default::default()")
-													WriteWrapperSuffix(out)
-												}
-											} else {
-												out.WriteString(" = ")
-												WriteWrapperPrefix(out)
-												out.WriteString("Default::default()")
-												WriteWrapperSuffix(out)
-											}
-										}
-									case *ast.StarExpr:
-										// Pointer type - initialize with None
-										out.WriteString(" = ")
-										WriteWrappedNone(out)
-									case *ast.InterfaceType:
-										// interface{} - initialize with None
-										if len(t.Methods.List) == 0 {
-											out.WriteString(" = ")
-											WriteWrappedNone(out)
-										}
-									case *ast.StructType:
-										// Anonymous struct type - initialize with default
-										out.WriteString(" = ")
-										WriteWrapperPrefix(out)
-										out.WriteString("Default::default()")
-										WriteWrapperSuffix(out)
-									case *ast.ArrayType:
-										out.WriteString(" = ")
-										if t.Len == nil {
-											// Slices default to nil in Go; preserve that distinction from []T{}.
-											WriteWrappedNone(out)
-										} else {
-											WriteWrapperPrefix(out)
-											out.WriteString(zeroValueForGoType(t))
-											WriteWrapperSuffix(out)
-										}
-									case *ast.MapType:
-										// Initialize map variable with empty map (Go nil map)
-										TrackImport("BTreeMap")
-										out.WriteString(" = ")
-										WriteWrapperPrefix(out)
-										out.WriteString("BTreeMap::new()")
-										WriteWrapperSuffix(out)
-									case *ast.FuncType:
-										// Function variables have a nil zero value in Go.
-										out.WriteString(" = ")
-										WriteWrappedNone(out)
-									case *ast.SelectorExpr:
-										// Package-qualified types like sync.WaitGroup, strings.Builder
-										if pkgIdent, ok := t.X.(*ast.Ident); ok {
-											if pkgIdent.Name == "sync" {
-												switch t.Sel.Name {
-												case "WaitGroup":
-													NeedWaitGroup()
-													out.WriteString(" = WaitGroup::new()")
-												case "Mutex":
-													NeedGoMutex()
-													out.WriteString(" = GoMutex::new()")
-												case "Once":
-													NeedGoOnce()
-													out.WriteString(" = GoOnce::new()")
-												}
-											} else if pkgIdent.Name == "strings" && t.Sel.Name == "Builder" {
-												out.WriteString(" = ")
-												WriteWrapperPrefix(out)
-												out.WriteString("String::new()")
-												WriteWrapperSuffix(out)
-											} else if pkgIdent.Name == "bytes" && t.Sel.Name == "Buffer" {
-												out.WriteString(" = ")
-												WriteWrapperPrefix(out)
-												out.WriteString("Default::default()")
-												WriteWrapperSuffix(out)
-											}
-										}
-									}
-								}
-							}
-							out.WriteString(";")
-						}
-					}
-				}
-			case token.CONST:
-				// Handle local const declarations - keep original case
-				transpileConstDeclWithCase(out, genDecl, false)
-			case token.TYPE:
-				// Handle local type declarations
-				for _, spec := range genDecl.Specs {
-					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-						// Skip local interface type declarations - they can't be Rust type aliases
-						if _, isIface := typeSpec.Type.(*ast.InterfaceType); isIface {
-							localInterfaces[typeSpec.Name.Name] = true
-							continue
-						}
-						if structType, isStruct := typeSpec.Type.(*ast.StructType); isStruct {
-							structDef := &StructDef{
-								Fields:        make(map[string]string),
-								FieldTypes:    make(map[string]ast.Expr),
-								EmbeddedTypes: []string{},
-								ASTType:       structType,
-							}
-							for _, field := range structType.Fields.List {
-								if len(field.Names) > 0 {
-									for _, name := range field.Names {
-										structDef.Fields[name.Name] = "regular"
-										structDef.FieldTypes[name.Name] = field.Type
-									}
-								} else {
-									typeName := getEmbeddedFieldName(field.Type)
-									structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
-								}
-							}
-							structDefs[typeSpec.Name.Name] = structDef
-							RegisterTypeAlias(typeSpec.Name.Name)
-							RegisterBareStructAlias(typeSpec.Name.Name)
-							out.WriteString("type ")
-							out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
-							out.WriteString(" = ")
-							out.WriteString(goTypeToRustBase(typeSpec.Type))
-							out.WriteString(";")
-							continue
-						}
-						// For now, just generate type aliases inside functions
-						// These should be hoisted to module level in a real implementation
-						RegisterTypeAlias(typeSpec.Name.Name)
-						if _, isFuncType := typeSpec.Type.(*ast.FuncType); isFuncType {
-							RegisterFunctionTypeAlias(typeSpec.Name.Name)
-						}
-						out.WriteString("type ")
-						out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
-						out.WriteString(" = ")
-						out.WriteString(GoTypeToRust(typeSpec.Type))
-						out.WriteString(";")
-					}
-				}
-			}
-		}
-
-	case *ast.ForStmt:
-		shortNames := shortDeclNames(s.Init)
-		wrapForScope := shortDeclShadowsRangeVar(shortNames)
-		var popForInitScope func()
-		if s.Init != nil {
-			if vt := GetVarTable(); vt != nil {
-				vt.PushScope()
-				popForInitScope = vt.PopScope
-				registerFullShortDecls(shortNames)
-			}
-		}
-		restoreRangeLoopVars := func() {}
-		if wrapForScope {
-			out.WriteString("{\n    ")
-		}
-		if s.Init != nil {
-			TranspileStatementSimple(out, s.Init, fnType, fileSet)
-			restoreRangeLoopVars = shadowRangeLoopVars(shortNames)
-			out.WriteString("\n    ")
-		}
-
-		// Emit loop label if set by LabeledStmt
-		var currentLoopLabel string
-		if pendingLoopLabel != "" {
-			currentLoopLabel = pendingLoopLabel
-			out.WriteString("'" + pendingLoopLabel + ": ")
-			// Track post-statement for labeled continue
-			if s.Post != nil {
-				labeledLoopPost[pendingLoopLabel] = s.Post
-			}
-			pendingLoopLabel = ""
-		}
-		if s.Cond != nil {
-			out.WriteString("while ")
-			transpileCondition(out, s.Cond)
-		} else {
-			out.WriteString("loop")
-		}
-		out.WriteString(" {\n")
-		popForPost := pushForPost(s.Post)
-		restoreLoopBreakTarget := pushBreakTarget("")
-
-		currentLoopDepth++
-		var prevStmt ast.Stmt
-		var forBodyLastPos token.Pos = s.Body.Lbrace
-		if stmtListHasPlannedGoto(s.Body.List) {
-			prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
-		} else {
-			for i, stmt := range s.Body.List {
-				// Add blank line if there was one in the source
-				if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
-					out.WriteString("\n")
-				}
-
-				out.WriteString("        ")
-				TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
-				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1 || s.Post != nil)
-				out.WriteString("\n")
-
-				prevStmt = stmt
-			}
-		}
-
-		// Add the post statement (increment) if present
-		if s.Post != nil {
-			out.WriteString("        ")
-			TranspileStatementSimple(out, s.Post, fnType, fileSet)
-			out.WriteString("\n")
-		}
-		currentLoopDepth--
-		restoreLoopBreakTarget()
-		popForPost()
-
-		out.WriteString("    }")
-
-		// Clean up label tracking
-		if currentLoopLabel != "" {
-			delete(labeledLoopPost, currentLoopLabel)
-		}
-		if wrapForScope {
-			out.WriteString("\n    }")
-		}
-		restoreRangeLoopVars()
-		if popForInitScope != nil {
-			popForInitScope()
-		}
-
-	case *ast.BlockStmt:
-		out.WriteString("{\n")
-		var prevStmt ast.Stmt
-		var blockLastPos token.Pos = s.Lbrace
-		for i, stmt := range s.List {
-			// Add blank line if there was one in the source
-			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
-				out.WriteString("\n")
-			}
-
-			out.WriteString(indent)
-			out.WriteString("    ")
-			// Pass comments through for nested blocks
-			TranspileStatement(out, stmt, fnType, fileSet, comments, &blockLastPos, indent+"    ")
-			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.List)-1)
-			out.WriteString("\n")
-
-			prevStmt = stmt
-		}
-		out.WriteString(indent)
-		out.WriteString("}")
-
-	case *ast.EmptyStmt:
-		return
-
-	case *ast.IncDecStmt:
-		if indexExpr, isMapIndex := isMapIndexExpression(s.X); isMapIndex {
-			writeMapElementUpdate(out, indexExpr, s.Tok, nil)
-		} else if indexExpr, ok := s.X.(*ast.IndexExpr); ok && writeIndexedIncDec(out, indexExpr, s.Tok) {
-			// array/slice element inc/dec mutates the underlying sequence directly.
-		} else if writeIntegerTypeParamIncDec(out, s.X, s.Tok) {
-			// Generic integer increments use the typed helper instead of a raw Rust integer literal.
-		} else if writeNamedIntegerIncDec(out, s.X, s.Tok) {
-			// Named integer arithmetic returns the underlying scalar; preserve the named wrapper on mutation.
-		} else if writeBareScalarIncDec(out, s.X, s.Tok) {
-			// Bare scalar locals mutate directly.
-		} else {
-			// For wrapped variables, we need to update the value inside
-			step := "1"
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
-				step = incDecStepForType(typeInfo.GetType(s.X))
-			}
-			out.WriteString("{ ")
-			writeWrappedMutationTargetPrelude(out, s.X)
-			out.WriteString("let mut guard = ")
-			writeWrappedMutationTargetRef(out, s.X, true)
-			out.WriteString("; ")
-			out.WriteString("*guard = Some(guard.as_ref().unwrap() ")
-			if s.Tok == token.INC {
-				out.WriteString("+ ")
-			} else {
-				out.WriteString("- ")
-			}
-			out.WriteString(step)
-			out.WriteString("); }")
-		}
-
-	case *ast.RangeStmt:
-		// Track range loop variables so we don't try to unwrap them
-		var keyName, valueName string
-		keyAssigned := false
-		valueAssigned := false
-		rangeAssignsExisting := s.Tok == token.ASSIGN
-
-		// Use type information to determine what we're iterating over
-		isMap := false
-		isString := false
-		isInteger := false
-		isSlice := false
-		isArray := false
-		isChannel := false
-
-		isMap, isString, isInteger, isSlice, isArray, isChannel = rangeTypeFacts(s.X)
-		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel {
-			if lit, ok := s.X.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-				isString = true
-			} else if kind, ok := localCollectionKind(s.X); ok {
-				switch kind {
-				case "map":
-					isMap = true
-				case "slice":
-					isSlice = true
-				case "channel":
-					isChannel = true
-				}
-			} else if ident, ok := s.X.(*ast.Ident); ok && lookupVarInfo(ident.Name) != nil && strings.TrimPrefix(lookupVarInfo(ident.Name).RustType, "&") == "String" {
-				isString = true
-			} else if _, ok := rangeVarSliceElemRustType(s.X); ok {
-				isSlice = true
-			} else if _, ok := trackedRangeElemRustType(s.X); ok {
-				isSlice = true
-			}
-		}
-		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel {
-			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
-			out.WriteString("unimplemented!(\"type info required for range statement\");")
-			return
-		}
-		popForPost := pushForPost(nil)
-
-		rangeValuesVar := ""
-		rangePrelude := ""
-		// Set when the loop binds its value variable to a reference to the
-		// element rather than to an owned value.
-		rangeValueBoundByReference := false
-		stringRangeValueTemp := ""
-		closeRangeGuard := false
-		needsSliceValues := !(s.Key != nil && s.Value == nil)
-		moveEmptyInterfaceRangeValues := rangeEmptyInterfaceValueMovedByIndexedWriteback(s)
-		if needsSliceValues && !isMap && !isString && isSlice && isNamedSliceExpression(s.X) {
-			out.WriteString("{ let __range_holder = ")
-			writeNamedSliceInnerHandleClone(out, s.X)
-			out.WriteString("; let __range_guard = __range_holder")
-			WriteBorrowMethod(out, false)
-			writeRangeValuesMaterialization(out, s.X, moveEmptyInterfaceRangeValues)
-			rangeValuesVar = "__range_values"
-			closeRangeGuard = true
-		} else if needsSliceValues && !isMap && !isString && isArray && isNamedArrayExpression(s.X) {
-			out.WriteString("{ let __range_holder = ")
-			writeNamedArrayInnerHandleClone(out, s.X)
-			out.WriteString("; let __range_guard = __range_holder")
-			WriteBorrowMethod(out, false)
-			writeRangeValuesMaterialization(out, s.X, moveEmptyInterfaceRangeValues)
-			rangeValuesVar = "__range_values"
-			closeRangeGuard = true
-		} else if needsSliceValues && !isMap && !isString && (isSlice || isArray) {
-			if ident, ok := unwrapParens(s.X).(*ast.Ident); ok && arrayElemPtrIdentPointsToArray(ident) {
-				out.WriteString("{ let __range_values = ")
-				writeArrayElemPtrPointedArrayClone(out, ident)
-				out.WriteString("; ")
-				rangeValuesVar = "__range_values"
-				closeRangeGuard = true
-			} else if rangeTargetNeedsWrappedSliceGuard(s.X) {
-				out.WriteString("{ let __range_holder = ")
-				writeWrappedHandleExpression(out, s.X)
-				out.WriteString(".clone(); let __range_guard = __range_holder")
-				WriteBorrowMethod(out, false)
-				writeRangeValuesMaterialization(out, s.X, moveEmptyInterfaceRangeValues)
-				rangeValuesVar = "__range_values"
-				closeRangeGuard = true
-			}
-		}
-
-		// Emit loop label if set by LabeledStmt
-		if pendingLoopLabel != "" {
-			out.WriteString("'" + pendingLoopLabel + ": ")
-			pendingLoopLabel = ""
-		}
-		// Handle for range loops
-		out.WriteString("for ")
-
-		// Channel range: for val := range ch
-		if isChannel {
-			// Register value variable as range loop var
-			if s.Key != nil {
-				if ident, ok := s.Key.(*ast.Ident); ok && ident.Name != "_" {
-					valueName = ident.Name
-					rangeLoopVars[valueName] = "channel_val"
-				}
-			}
-			if valueName != "" {
-				out.WriteString(RustLocalIdent(valueName))
-			} else {
-				out.WriteString("_")
-			}
-			out.WriteString(" in ")
-			TranspileExpression(out, s.X)
-			out.WriteString(".clone()")
-			out.WriteString(" {\n")
-			restoreLoopBreakTarget := pushBreakTarget("")
-
-			currentLoopDepth++
-			var rangeBodyLastPos token.Pos = s.Body.Lbrace
-			for i, stmt := range s.Body.List {
-				out.WriteString("        ")
-				TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
-				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
-				out.WriteString("\n")
-			}
-			currentLoopDepth--
-
-			out.WriteString("    }")
-			restoreLoopBreakTarget()
-
-			if valueName != "" {
-				delete(rangeLoopVars, valueName)
-			}
-			break
-		}
-
-		// Determine types based on what we're iterating over
-		keyType := "usize" // Default for slice indices
-		valueType := "T"   // Generic placeholder
-		keyRangeVarType := keyType
-		var mapKeyType types.Type
-		var mapValueGoType types.Type
-		mapKeyNeedsValueBinding := false
-		mapKeyNeedsWrappedBinding := false
-
-		if isMap {
-			keyType = "String"
-			valueType = GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<T>>>"
-			keyRangeVarType = keyType
-			if localKeyType, localValueType, ok := localMapRangeTypes(s.X); ok {
-				keyType = localKeyType
-				keyRangeVarType = localKeyType
-				valueType = localValueType
-			}
-			if key, mapValueType := rangeMapKeyValueTypes(s.X); mapValueType != nil {
-				mapKeyType = key
-				mapValueGoType = mapValueType
-				if mapKeyType != nil {
-					keyType = goTypesMapKeyToRust(mapKeyType)
-					keyRangeVarType = keyType
-					if _, ok := types.Unalias(mapKeyType).Underlying().(*types.Pointer); ok {
-						keyRangeVarType = goTypesTypeToRust(mapKeyType)
-						mapKeyNeedsValueBinding = true
-					} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(mapKeyType); ok {
-						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
-						mapKeyNeedsValueBinding = true
-					} else if isEmptyInterfaceType(mapKeyType) {
-						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
-						mapKeyNeedsValueBinding = true
-					} else if isStdlibNamedInterfaceValueType(mapKeyType) {
-						keyRangeVarType = goTypesTypeToRustWrapped(mapKeyType)
-						mapKeyNeedsWrappedBinding = true
-					}
-				}
-				valueType = goTypesMapValueToRust(mapValueType)
-			}
-			if mapKeyType != nil {
-				keyType = goTypesMapKeyToRust(mapKeyType)
-			}
-		} else if isInteger {
-			if rangeType := rangeExprGoType(s.X); rangeType != nil {
-				keyType = goTypesTypeToRust(rangeType)
-			} else {
-				keyType = "i32"
-			}
-		} else if isString {
-			valueType = "char"
-		} else if isSlice || isArray {
-			// Check if it's a slice of interface{} or named interface
-			elemType := rangeArrayOrSliceElemType(s.X)
-			if elemType != nil {
-				if isGoErrorType(elemType) {
-					valueType = goTypesTypeToRustWrapped(elemType)
-				} else if _, ok := types.Unalias(elemType).(*types.TypeParam); ok {
-					valueType = "&" + goTypesTypeToRustWrapped(elemType)
-				} else if isStdlibNamedInterfaceValueType(elemType) {
-					valueType = "&" + goTypesTypeToRust(elemType)
-				} else if _, ok := elemType.Underlying().(*types.Pointer); ok {
-					valueType = "&" + goTypesTypeToRust(elemType)
-				} else if _, ok := elemType.Underlying().(*types.Slice); ok {
-					valueType = "&" + goTypesTypeToRust(elemType)
-				} else if _, ok := elemType.Underlying().(*types.Array); ok {
-					if rangeElementUsesCopied(elemType) {
-						valueType = goTypesTypeToRust(elemType)
-					} else {
-						valueType = "&" + goTypesTypeToRust(elemType)
-					}
-				} else if _, ok := elemType.Underlying().(*types.Map); ok {
-					valueType = "&" + goTypesTypeToRust(elemType)
-				} else if _, ok := elemType.Underlying().(*types.Struct); ok {
-					valueType = "&" + goTypesTypeToRust(elemType)
-				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {
-					if intf.NumMethods() == 0 {
-						// It's []interface{} - elements are Box<dyn Any>
-						// When iterating with &, we get &Box<dyn Any>
-						valueType = "&" + rustAnyTraitObject()
-					} else if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok {
-						// Local named interface slice elements are wrapped to
-						// preserve Go's nullable interface semantics, so the
-						// range value is &Rc<RefCell<Option<Box<dyn Trait>>>>.
-						valueType = "&" + goTypesTypeToRustWrapped(elemType)
-					} else {
-						// It's a slice of named interface - elements are Box<dyn InterfaceName>
-						// We need to get the interface name
-						if namedType, ok := elemType.(*types.Named); ok {
-							valueType = "&" + rustLocalInterfaceTraitObject(namedType.Obj().Name())
-						} else {
-							// Generic named interface
-							valueType = "&Box<dyn Trait>"
-						}
-					}
-				} else if elemRustType, ok := trackedRangeElemRustType(s.X); ok {
-					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
-				}
-			}
-			if elemType == nil {
-				if elemRustType, ok := trackedRangeElemRustType(s.X); ok {
-					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
-				} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok {
-					valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
-				}
-			}
-		}
-		if !isMap {
-			keyRangeVarType = keyType
-		}
-		keyBindingTemp := ""
-		valueBindingTemp := ""
-		if rangeAssignsExisting {
-			keyBindingTemp = rangeAssignmentTempName(s.Key, "__range_key")
-			valueBindingTemp = rangeAssignmentTempName(s.Value, "__range_value")
-		}
-		var keyBindingGoType types.Type
-		var valueBindingGoType types.Type
-		if keyBindingTemp != "" {
-			switch {
-			case isMap:
-				keyBindingGoType = mapKeyType
-			case isString || isSlice || isArray:
-				keyBindingGoType = types.Typ[types.Int]
-			case isInteger:
-				keyBindingGoType = rangeExprGoType(s.X)
-				if keyBindingGoType == nil {
-					keyBindingGoType = types.Typ[types.Int]
-				}
-			}
-		}
-		if valueBindingTemp != "" {
-			switch {
-			case isMap:
-				valueBindingGoType = mapValueGoType
-			case isString:
-				valueBindingGoType = types.Typ[types.Int32]
-			case isSlice || isArray:
-				valueBindingGoType = rangeArrayOrSliceElemType(s.X)
-			}
-		}
-
-		var popRangeVarScope func()
-		if vt := GetVarTable(); vt != nil {
-			vt.PushScope()
-			popRangeVarScope = vt.PopScope
-		}
-
-		keyRangeRegistered := false
-		keyTempRegistered := false
-		valueRangeRegistered := false
-		valueTempRegistered := false
-		if s.Key != nil {
-			if ident, ok := s.Key.(*ast.Ident); ok {
-				keyName = ident.Name
-				keyAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, keyName)
-				if keyBindingTemp != "" {
-					registerRangeLoopVar(keyBindingTemp, keyRangeVarType, keyBindingGoType)
-					keyTempRegistered = true
-				} else {
-					registerRangeLoopVar(keyName, keyRangeVarType, nil)
-					keyRangeRegistered = true
-					if keyName != "_" {
-						if vt := GetVarTable(); vt != nil {
-							vt.Register(keyName, &VarInfo{
-								WrapLevel: WrapNone,
-								RustType:  keyRangeVarType,
-								Source:    SourceRangeKey,
-							})
-						}
-					}
-				}
-			} else if keyBindingTemp != "" {
-				registerRangeLoopVar(keyBindingTemp, keyRangeVarType, keyBindingGoType)
-				keyTempRegistered = true
-			}
-		}
-		// Track whether we need .copied() on the iterator to get owned values
-		needsCopied := false
-		needsCloned := false
-		if s.Value != nil {
-			if ident, ok := s.Value.(*ast.Ident); ok {
-				valueName = ident.Name
-				valueAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, valueName)
-				registeredValueType := valueType
-				// When using iter().enumerate(), the value is a reference
-				// For basic/Copy types, use .copied() to get owned values
-				if s.Key != nil && !isMap && !isString {
-					// Check if element type is a numeric/bool (Rust Copy) type
-					elemType := rangeArrayOrSliceElemType(s.X)
-					if rangeElementUsesCopiedForExpr(s.X, elemType) {
-						needsCopied = true
-					}
-					if elemType == nil {
-						if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
-							needsCopied = true
-						} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
-							needsCopied = true
-						}
-					}
-					if rangeElementUsesCloned(elemType) {
-						needsCloned = true
-					}
-					if valueType == "T" {
-						if trackedValueType, trackedNeedsCopied, ok := trackedRangeElemValueType(s.X); ok {
-							valueType = trackedValueType
-							if trackedNeedsCopied {
-								needsCopied = true
-							}
-						} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok {
-							valueType = rangeValueTypeFromTrackedRustElem(elemRustType)
-							if rustRangeElemUsesCopied(elemRustType) {
-								needsCopied = true
-							}
-						}
-					}
-					if valueAssigned && strings.HasPrefix(valueType, "&") && !isWrappedRangeVarType(valueType) {
-						registeredValueType = strings.TrimPrefix(valueType, "&")
-					} else if valueType == "T" && (needsCopied || needsCloned || valueAssigned) {
-						registeredValueType = valueType
-					} else if valueType == "T" {
-						registeredValueType = "ref_value"
-					} else {
-						registeredValueType = valueType
-					}
-				} else if valueAssigned && strings.HasPrefix(valueType, "&") {
-					registeredValueType = strings.TrimPrefix(valueType, "&")
-				} else if !rangeAssignsExisting && isString && valueAssigned && valueName != "_" {
-					registeredValueType = "i32"
-					stringRangeValueTemp = "__range_" + ToSnakeCase(valueName)
-					rangePrelude = fmt.Sprintf("        let mut %s = %s as i32;\n", RustLocalIdent(valueName), stringRangeValueTemp)
-				} else {
-					registeredValueType = valueType
-				}
-				if valueBindingTemp != "" {
-					registerRangeLoopVar(valueBindingTemp, registeredValueType, valueBindingGoType)
-					valueTempRegistered = true
-				} else {
-					registerRangeLoopVar(valueName, registeredValueType, nil)
-					valueRangeRegistered = true
-					if valueName != "_" {
-						if vt := GetVarTable(); vt != nil {
-							vt.Register(valueName, &VarInfo{
-								WrapLevel: WrapNone,
-								RustType:  registeredValueType,
-								Source:    SourceRangeVal,
-							})
-						}
-					}
-				}
-			} else if valueBindingTemp != "" {
-				registerRangeLoopVar(valueBindingTemp, valueType, valueBindingGoType)
-				valueTempRegistered = true
-			}
-		}
-		writeRangeKeyBinding := func() {
-			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
-		}
-		writeRangeValueBinding := func() {
-			writeRangePatternBinding(out, s.Value, valueAssigned, valueBindingTemp)
-		}
-		writeMapRangeKeyBinding := func() {
-			if keyBindingTemp != "" {
-				out.WriteString(keyBindingTemp)
-				return
-			}
-			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
-				out.WriteString("__range_key")
-				return
-			}
-			writeRangeKeyBinding()
-		}
-		writeStringRangeValueBinding := func() {
-			if valueBindingTemp != "" {
-				out.WriteString(valueBindingTemp)
-				return
-			}
-			if stringRangeValueTemp != "" {
-				out.WriteString(stringRangeValueTemp)
-				return
-			}
-			writeRangeValueBinding()
-		}
-		if !rangeAssignsExisting && (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
-			var prelude strings.Builder
-			prelude.WriteString("        let ")
-			if keyAssigned {
-				prelude.WriteString("mut ")
-			}
-			prelude.WriteString(RustLocalIdent(keyName))
-			prelude.WriteString(" = ")
-			if mapKeyNeedsValueBinding {
-				prelude.WriteString("__range_key.value()")
-			} else {
-				WriteWrapperPrefix(&prelude)
-				prelude.WriteString("__range_key.clone()")
-				WriteWrapperSuffix(&prelude)
-			}
-			prelude.WriteString(";\n")
-			rangePrelude = prelude.String()
-		}
-		appendRangeAssignmentPrelude := func(target ast.Expr, tempName string) {
-			if target == nil || tempName == "" {
-				return
-			}
-			var prelude strings.Builder
-			prelude.WriteString("        ")
-			assign := &ast.AssignStmt{
-				Lhs: []ast.Expr{target},
-				Tok: token.ASSIGN,
-				Rhs: []ast.Expr{ast.NewIdent(tempName)},
-			}
-			TranspileStatement(&prelude, assign, fnType, fileSet, comments, nil, "        ")
-			if strings.HasSuffix(strings.TrimSpace(prelude.String()), ";") {
-				prelude.WriteString("\n")
-			} else {
-				prelude.WriteString(";\n")
-			}
-			rangePrelude += prelude.String()
-		}
-		if rangeAssignsExisting {
-			appendRangeAssignmentPrelude(s.Key, keyBindingTemp)
-			appendRangeAssignmentPrelude(s.Value, valueBindingTemp)
-		}
-		writeMapRangeSource := func() {
-			if !isNamedMapExpression(s.X) && (isExpressionResultBare(s.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(s.X))) {
-				out.WriteString("(")
-				TranspileExpression(out, s.X)
-				out.WriteString(").clone()")
-				return
-			}
-			out.WriteString("{ let __range_holder = ")
-			if isNamedMapExpression(s.X) {
-				writeNilTolerantNamedMapInnerHandleClone(out, s.X)
-			} else if ident, ok := s.X.(*ast.Ident); ok {
-				name := RustIdentForUse(ident)
-				if renamed, ok := captureRenameForIdent(ident); ok && renamed != "" {
-					name = RustLocalIdent(renamed)
-				}
-				out.WriteString(name)
-				out.WriteString(".clone()")
-			} else {
-				TranspileExpressionContext(out, s.X, LValue)
-				out.WriteString(".clone()")
-			}
-			out.WriteString("; let __range_guard = __range_holder")
-			WriteBorrowMethod(out, false)
-			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map }")
-		}
-
-		if isInteger {
-			if s.Value != nil {
-				out.WriteString("/* ERROR: integer range permits at most one iteration variable */\n")
-				out.WriteString("unimplemented!(\"invalid integer range\")")
-			} else {
-				if s.Key != nil {
-					writeRangeKeyBinding()
-				} else {
-					out.WriteString("_")
-				}
-				out.WriteString(" in 0..(")
-				writeIntegerRangeLimit(out, s.X)
-				out.WriteString(")")
-			}
-		} else if isString {
-			// String iteration - iterate over chars
-			// Check if the range target is already a bare string (no wrapping needed).
-			_, isStringLit := s.X.(*ast.BasicLit)
-			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X)
-			if s.Key != nil && s.Value != nil {
-				// for i, c := range str
-				out.WriteString("(")
-				writeRangeKeyBinding()
-				out.WriteString(", ")
-				writeStringRangeValueBinding()
-				if isBareStringRangeSource {
-					out.WriteString(") in ")
-					TranspileExpression(out, s.X)
-					out.WriteString(".char_indices()")
-				} else {
-					out.WriteString(") in (*")
-					// Use raw identifier to avoid double-unwrapping
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
-				}
-			} else if s.Value != nil {
-				// for _, c := range str
-				writeStringRangeValueBinding()
-				if isBareStringRangeSource {
-					out.WriteString(" in ")
-					TranspileExpression(out, s.X)
-					out.WriteString(".chars()")
-				} else {
-					out.WriteString(" in (*")
-					// Use raw identifier to avoid double-unwrapping
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
-				}
-			} else if s.Key != nil {
-				// for i := range str
-				out.WriteString("(")
-				writeRangeKeyBinding()
-				out.WriteString(", _) in ")
-				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
-					out.WriteString(".char_indices()")
-				} else {
-					out.WriteString("(*")
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
-				}
-			} else {
-				// for range str
-				out.WriteString("_ in ")
-				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
-					out.WriteString(".chars()")
-				} else {
-					out.WriteString("(*")
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
-				}
-			}
-		} else if isMap {
-			// Map iteration - need to unwrap the Arc<Mutex<Option<HashMap>>>
-			if s.Key != nil && s.Value != nil {
-				// for k, v := range map
-				out.WriteString("(")
-				writeMapRangeKeyBinding()
-				out.WriteString(", ")
-				writeRangeValueBinding()
-				out.WriteString(") in ")
-				writeMapRangeSource()
-			} else if s.Value != nil {
-				// for _, v := range map (values only)
-				out.WriteString("(_, ")
-				writeRangeValueBinding()
-				out.WriteString(") in ")
-				writeMapRangeSource()
-			} else if s.Key != nil {
-				// for k := range map (keys only)
-				out.WriteString("(")
-				writeMapRangeKeyBinding()
-				out.WriteString(", _) in ")
-				writeMapRangeSource()
-			} else {
-				// for range map
-				out.WriteString("_ in ")
-				writeMapRangeSource()
-			}
-		} else {
-			// Array/slice iteration
-			if s.Key != nil && s.Value != nil {
-				// Check if key is blank identifier
-				if keyIdent, ok := s.Key.(*ast.Ident); ok && keyIdent.Name == "_" {
-					// for _, v := range arr - just iterate values
-					writeRangeValueBinding()
-					// For numeric/bool (Rust Copy) types, use .iter().copied()
-					// to get owned values instead of &(...) which gives references
-					elemTypeV := rangeArrayOrSliceElemType(s.X)
-					valCopied := rangeElementUsesCopiedForExpr(s.X, elemTypeV)
-					valCloned := rangeElementUsesCloned(elemTypeV)
-					if elemTypeV == nil {
-						if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
-							valCopied = true
-						} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
-							valCopied = true
-						}
-					}
-					if valCloned {
-						out.WriteString(" in ")
-						if rangeValuesVar != "" {
-							out.WriteString(rangeValuesVar)
-						} else {
-							writeUnwrappedRangeTarget(out, s.X)
-						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
-					} else if valCopied {
-						out.WriteString(" in ")
-						if rangeValuesVar != "" {
-							out.WriteString(rangeValuesVar)
-						} else {
-							writeUnwrappedRangeTarget(out, s.X)
-						}
-						out.WriteString(".iter().copied()")
-					} else if valueAssigned {
-						out.WriteString(" in ")
-						if rangeValuesVar != "" {
-							out.WriteString(rangeValuesVar)
-						} else {
-							writeUnwrappedRangeTarget(out, s.X)
-						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
-					} else {
-						rangeValueBoundByReference = valueBindingTemp == ""
-						out.WriteString(" in ")
-						if rangeValuesVar != "" {
-							out.WriteString(rangeValuesVar)
-							out.WriteString(".iter()")
-						} else if isReferenceRangeTarget(s.X) {
-							writeUnwrappedRangeTarget(out, s.X)
-							out.WriteString(".iter()")
-						} else {
-							out.WriteString("&")
-							writeUnwrappedRangeTarget(out, s.X)
-						}
-					}
-				} else {
-					// for i, v := range arr
-					out.WriteString("(")
-					// Just output the identifier names, don't wrap them
-					writeRangeKeyBinding()
-					out.WriteString(", ")
-					writeRangeValueBinding()
-					out.WriteString(") in ")
-					// Need to unwrap the collection
-					if rangeValuesVar != "" {
-						out.WriteString(rangeValuesVar)
-					} else {
-						writeUnwrappedRangeTarget(out, s.X)
-					}
-					if needsCloned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
-					} else if needsCopied {
-						out.WriteString(".iter().copied().enumerate()")
-					} else if valueAssigned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
-					} else {
-						rangeValueBoundByReference = valueBindingTemp == ""
-						out.WriteString(".iter().enumerate()")
-					}
-				}
-			} else if s.Value != nil {
-				// for _, v := range arr
-				writeRangeValueBinding()
-				// For numeric/bool (Rust Copy) types, use .iter().copied()
-				elemTypeV2 := rangeArrayOrSliceElemType(s.X)
-				valCopied2 := rangeElementUsesCopiedForExpr(s.X, elemTypeV2)
-				valCloned2 := rangeElementUsesCloned(elemTypeV2)
-				if elemTypeV2 == nil {
-					if elemRustType, ok := trackedRangeElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
-						valCopied2 = true
-					} else if elemRustType, ok := rangeVarSliceElemRustType(s.X); ok && rustRangeElemUsesCopied(elemRustType) {
-						valCopied2 = true
-					}
-				}
-				if valCloned2 {
-					out.WriteString(" in ")
-					if rangeValuesVar != "" {
-						out.WriteString(rangeValuesVar)
-					} else {
-						writeUnwrappedRangeTarget(out, s.X)
-					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
-				} else if valCopied2 {
-					out.WriteString(" in ")
-					if rangeValuesVar != "" {
-						out.WriteString(rangeValuesVar)
-					} else {
-						writeUnwrappedRangeTarget(out, s.X)
-					}
-					out.WriteString(".iter().copied()")
-				} else if valueAssigned {
-					out.WriteString(" in ")
-					if rangeValuesVar != "" {
-						out.WriteString(rangeValuesVar)
-					} else {
-						writeUnwrappedRangeTarget(out, s.X)
-					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
-				} else {
-					rangeValueBoundByReference = valueBindingTemp == ""
-					out.WriteString(" in ")
-					if rangeValuesVar != "" {
-						out.WriteString(rangeValuesVar)
-						out.WriteString(".iter()")
-					} else if isReferenceRangeTarget(s.X) {
-						writeUnwrappedRangeTarget(out, s.X)
-						out.WriteString(".iter()")
-					} else {
-						out.WriteString("&")
-						writeUnwrappedRangeTarget(out, s.X)
-					}
-				}
-			} else if s.Key != nil {
-				// for i := range arr
-				writeRangeKeyBinding()
-				out.WriteString(" in 0..(")
-				if rangeValuesVar != "" {
-					out.WriteString(rangeValuesVar)
-					out.WriteString(".len()")
-				} else {
-					writeRangeLengthExpression(out, s.X)
-				}
-				out.WriteString(")")
-			} else {
-				// for range arr
-				out.WriteString("_ in ")
-				if rangeValuesVar != "" {
-					out.WriteString(rangeValuesVar)
-				} else {
-					writeUnwrappedRangeTarget(out, s.X)
-				}
-				out.WriteString(".iter()")
-			}
-		}
-		out.WriteString(" {\n")
-		out.WriteString(rangePrelude)
-		if rangeValueBoundByReference {
-			writeRangeValueIterationCopy(out, s.X, s.Value)
-		}
-		if isMap && valueBindingTemp == "" {
-			writeMapRangeValueIterationCopy(out, mapValueGoType, s.Value)
-		}
-		restoreLoopBreakTarget := pushBreakTarget("")
-
-		currentLoopDepth++
-		var rangeBodyLastPos token.Pos = s.Body.Lbrace
-		for i, stmt := range s.Body.List {
-			out.WriteString("        ")
-			TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
-			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
-			out.WriteString("\n")
-		}
-		currentLoopDepth--
-
-		out.WriteString("    }")
-		restoreLoopBreakTarget()
-		if closeRangeGuard {
-			out.WriteString(" }")
-		}
-
-		// Clean up range loop variables
-		if keyRangeRegistered && keyName != "" {
-			deleteRangeLoopVar(keyName)
-		}
-		if keyTempRegistered && keyBindingTemp != "" {
-			deleteRangeLoopVar(keyBindingTemp)
-		}
-		if valueRangeRegistered && valueName != "" {
-			deleteRangeLoopVar(valueName)
-		}
-		if valueTempRegistered && valueBindingTemp != "" {
-			deleteRangeLoopVar(valueBindingTemp)
-		}
-		if popRangeVarScope != nil {
-			popRangeVarScope()
-		}
-		popForPost()
-
-	case *ast.IfStmt:
-		// Handle init statement if present
-		if s.Init != nil {
-			transpileIfWithInitAsBlock(out, s, fnType, fileSet)
-			return
-		}
-		beforeGuards := cloneMutexGuards(activeMutexGuards)
-
-		out.WriteString("if ")
-		transpileCondition(out, s.Cond)
-		out.WriteString(" {\n")
-
-		// Use comment-aware transpilation for the body
-		activeMutexGuards = cloneMutexGuards(beforeGuards)
-		popIfBodyScope := func() {}
-		if vt := GetVarTable(); vt != nil {
-			vt.PushScope()
-			popIfBodyScope = vt.PopScope
-		}
-		var ifBodyLastPos token.Pos = s.Body.Lbrace
-		for i, stmt := range s.Body.List {
-			out.WriteString("        ")
-			TranspileStatement(out, stmt, fnType, fileSet, comments, &ifBodyLastPos, "        ")
-			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
-			out.WriteString("\n")
-		}
-		popIfBodyScope()
-		thenGuards := cloneMutexGuards(activeMutexGuards)
-
-		out.WriteString("    }")
-
-		elseGuards := cloneMutexGuards(beforeGuards)
-		if s.Else != nil {
-			activeMutexGuards = cloneMutexGuards(beforeGuards)
-			out.WriteString(" else ")
-			if elseIf, ok := s.Else.(*ast.IfStmt); ok {
-				// else if case
-				if elseIf.Init != nil {
-					transpileIfWithInitAsBlock(out, elseIf, fnType, fileSet)
-				} else {
-					// No init statement, handle normally
-					TranspileStatementSimple(out, elseIf, fnType, fileSet)
-				}
-			} else if block, ok := s.Else.(*ast.BlockStmt); ok {
-				// else block
-				out.WriteString("{\n")
-				popElseBodyScope := func() {}
-				if vt := GetVarTable(); vt != nil {
-					vt.PushScope()
-					popElseBodyScope = vt.PopScope
-				}
-				var elseBodyLastPos token.Pos = block.Lbrace
-				for i, stmt := range block.List {
-					out.WriteString("        ")
-					TranspileStatement(out, stmt, fnType, fileSet, comments, &elseBodyLastPos, "        ")
-					writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(block.List)-1)
-					out.WriteString("\n")
-				}
-				popElseBodyScope()
-				out.WriteString("    }")
-			}
-			elseGuards = cloneMutexGuards(activeMutexGuards)
-		}
-		activeMutexGuards = mergeMutexGuardsAfterIf(beforeGuards, thenGuards, elseGuards)
-
-	case *ast.SwitchStmt:
-		// Handle init statement if present
-		if s.Init != nil {
-			TranspileStatementSimple(out, s.Init, fnType, fileSet)
-			out.WriteString("\n    ")
-		}
-
-		needsBreakTarget := switchNeedsSyntheticBreakTarget(s.Body)
-		var restoreBreakTarget func()
-		if needsBreakTarget {
-			breakLabel := nextSwitchBreakLabel()
-			restoreBreakTarget = pushBreakTarget(breakLabel)
-			out.WriteString("'")
-			out.WriteString(breakLabel)
-			out.WriteString(": loop {\n        ")
-		}
-
-		// Check if any case has fallthrough
-		hasFallthrough := false
-		for _, stmt := range s.Body.List {
-			if caseClause, ok := stmt.(*ast.CaseClause); ok {
-				for _, bodyStmt := range caseClause.Body {
-					if branch, ok := bodyStmt.(*ast.BranchStmt); ok && branch.Tok == token.FALLTHROUGH {
-						hasFallthrough = true
-						break
-					}
-				}
-				if hasFallthrough {
-					break
-				}
-			}
-		}
-
-		var switchTagInterfaceType types.Type
-		var switchTagInterfaceName string
-		switchTagIsInterface := false
-		switchTagIsEmptyInterface := false
-		switchTagIsGoError := false
-		switchTagIsPointer := false
-		switchTagGoPtrInfo := goPtrResultInfo{}
-		switchTagIsGoPtr := false
-		if s.Tag != nil {
-			switchTagInterfaceType, switchTagInterfaceName, switchTagIsInterface = switchTagNamedInterface(s.Tag)
-			switchTagIsEmptyInterface = switchTagEmptyInterface(s.Tag)
-			switchTagIsGoError = switchTagGoError(s.Tag)
-			if info, ok := switchGoPtrInfo(s.Tag); ok {
-				switchTagGoPtrInfo = info
-				switchTagIsGoPtr = true
-			}
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
-				switchTagIsPointer = typeInfo.IsPointer(s.Tag)
-			}
-		}
-
-		if hasFallthrough {
-			// Rust match doesn't support fallthrough â€” use if-chain with flags
-			out.WriteString("{\n")
-
-			if s.Tag != nil {
-				out.WriteString("        let _switch_val = ")
-				if switchTagIsEmptyInterface {
-					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
-				} else if switchTagIsInterface {
-					writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
-				} else if switchTagIsGoError {
-					writeSwitchGoErrorTagHandle(out, s.Tag)
-				} else if switchTagIsPointer {
-					writeSwitchPointerTagHandle(out, s.Tag)
-				} else {
-					writeSwitchTagValue(out, s.Tag)
-				}
-				out.WriteString(";\n")
-			}
-			out.WriteString("        let mut _fallthrough = false;\n")
-			out.WriteString("        let mut _matched = false;\n")
-
-			for _, stmt := range s.Body.List {
-				if caseClause, ok := stmt.(*ast.CaseClause); ok {
-					out.WriteString("        ")
-					if len(caseClause.List) == 0 {
-						// default case
-						out.WriteString("if !_matched || _fallthrough {\n")
-					} else {
-						out.WriteString("if !_matched && (")
-						for i, expr := range caseClause.List {
-							if i > 0 {
-								out.WriteString(" || ")
-							}
-							if s.Tag != nil {
-								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
-								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
-								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
-								} else {
-									out.WriteString("_switch_val == ")
-									writeSwitchCaseValueForTag(out, expr, s.Tag)
-								}
-							} else {
-								writeSwitchCaseValue(out, expr)
-							}
-						}
-						out.WriteString(") || _fallthrough {\n")
-					}
-
-					out.WriteString("            _matched = true;\n")
-					out.WriteString("            _fallthrough = false;\n")
-
-					// Case body â€” replace fallthrough with flag set
-					var caseBodyLastPos token.Pos = caseClause.Colon
-					for _, bodyStmt := range caseClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						if branch, ok := bodyStmt.(*ast.BranchStmt); ok && branch.Tok == token.FALLTHROUGH {
-							out.WriteString("            _fallthrough = true;\n")
-							continue
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-
-					out.WriteString("        }\n")
-				}
-			}
-
-			if switchStmtTerminates(s) {
-				out.WriteString("        unreachable!()\n")
-			}
-			out.WriteString("    }")
-		} else {
-			// Standard match-based code (no fallthrough)
-
-			// Check if any case is nil (pointer nil-check switch)
-			hasNilCase := false
-			if s.Tag != nil {
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						for _, expr := range caseClause.List {
-							if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
-								hasNilCase = true
-								break
-							}
-						}
-					}
-				}
-			}
-			tagIsPointer := false
-			if hasNilCase {
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					tagIsPointer = typeInfo.IsPointer(s.Tag)
-				}
-			}
-
-			if hasNilCase && tagIsPointer {
-				// Pointer nil-check switch: generate if-else chain
-				var nonDefaultClauses []*ast.CaseClause
-				var defaultClause *ast.CaseClause
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if len(caseClause.List) == 0 {
-							defaultClause = caseClause
-						} else {
-							nonDefaultClauses = append(nonDefaultClauses, caseClause)
-						}
-					}
-				}
-				for i, caseClause := range nonDefaultClauses {
-					if i == 0 {
-						out.WriteString("if ")
-					} else {
-						out.WriteString(" else if ")
-					}
-					for j, expr := range caseClause.List {
-						if j > 0 {
-							out.WriteString(" || ")
-						}
-						writeSwitchPointerDirectCaseComparison(out, s.Tag, expr)
-					}
-					out.WriteString(" {\n")
-					var caseBodyLastPos token.Pos = caseClause.Colon
-					for _, bodyStmt := range caseClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
-				}
-				if defaultClause != nil {
-					if len(nonDefaultClauses) > 0 {
-						out.WriteString(" else {\n")
-					} else {
-						out.WriteString("{\n")
-					}
-					var caseBodyLastPos token.Pos = defaultClause.Colon
-					for _, bodyStmt := range defaultClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
-				}
-			} else {
-				// Use an if/else chain instead of Rust match patterns. Go case
-				// expressions can be strings, calls, named constants, or other
-				// non-pattern values, so explicit comparisons are the general form.
-				if s.Tag != nil {
-					out.WriteString("{ let _switch_val = ")
-					if switchTagIsEmptyInterface {
-						writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
-					} else if switchTagIsInterface {
-						writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
-					} else if switchTagIsGoError {
-						writeSwitchGoErrorTagHandle(out, s.Tag)
-					} else if switchTagIsPointer {
-						writeSwitchPointerTagHandle(out, s.Tag)
-					} else {
-						writeSwitchTagValue(out, s.Tag)
-					}
-					out.WriteString(";\n    ")
-				}
-
-				emittedCase := false
-				var defaultClause *ast.CaseClause
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if len(caseClause.List) == 0 {
-							defaultClause = caseClause
-							continue
-						}
-						if emittedCase {
-							out.WriteString(" else ")
-						}
-						out.WriteString("if ")
-						for i, expr := range caseClause.List {
-							if i > 0 {
-								out.WriteString(" || ")
-							}
-							if s.Tag != nil {
-								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
-								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
-								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
-								} else {
-									out.WriteString("_switch_val == (")
-									writeSwitchCaseValueForTag(out, expr, s.Tag)
-									out.WriteString(")")
-								}
-							} else {
-								transpileCondition(out, expr)
-							}
-						}
-						out.WriteString(" {\n")
-
-						var caseBodyLastPos token.Pos = caseClause.Colon
-						for _, bodyStmt := range caseClause.Body {
-							if isUnlabeledBreakStmt(bodyStmt) {
-								break
-							}
-							out.WriteString("            ")
-							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-							out.WriteString("\n")
-						}
-
-						out.WriteString("        }")
-						emittedCase = true
-					}
-				}
-
-				if defaultClause != nil {
-					if emittedCase {
-						out.WriteString(" else {\n")
-					} else {
-						out.WriteString("{\n")
-					}
-					var caseBodyLastPos token.Pos = defaultClause.Colon
-					for _, bodyStmt := range defaultClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
-				}
-
-				if s.Tag != nil {
-					out.WriteString("\n    }")
-				}
-			}
-		}
-		if needsBreakTarget {
-			out.WriteString(";\n        break;\n    }")
-			restoreBreakTarget()
-		}
-
-	case *ast.BranchStmt:
-		switch s.Tok {
-		case token.BREAK:
-			out.WriteString("break")
-			if s.Label != nil {
-				out.WriteString(" '" + ToSnakeCase(s.Label.Name))
-			} else if target := currentBreakTarget(); target != "" {
-				out.WriteString(" '")
-				out.WriteString(target)
-			}
-		case token.CONTINUE:
-			// In Go, `continue label` executes the for-loop's post-statement.
-			// In Rust, `continue 'label` does not, so emit it explicitly.
-			if s.Label != nil {
-				label := ToSnakeCase(s.Label.Name)
-				if postStmt, ok := labeledLoopPost[label]; ok {
-					TranspileStatementSimple(out, postStmt, fnType, fileSet)
-					out.WriteString("; ")
-				}
-				out.WriteString("continue '" + label)
-			} else {
-				if postStmt := currentForPost(); postStmt != nil {
-					TranspileStatementSimple(out, postStmt, fnType, fileSet)
-					out.WriteString("; ")
-				}
-				out.WriteString("continue")
-			}
-		case token.GOTO:
-			if s.Label != nil {
-				label := ToSnakeCase(s.Label.Name)
-				if mode, ok := currentGotoLabelModes[label]; ok {
-					out.WriteString(mode)
-					out.WriteString(" '")
-					out.WriteString(label)
-					out.WriteString(";")
-				} else {
-					out.WriteString("// TODO: unsupported goto ")
-					out.WriteString(label)
-				}
-			} else {
-				out.WriteString("// TODO: malformed goto")
-			}
-		case token.FALLTHROUGH:
-			out.WriteString("// TODO: fallthrough not supported")
-		}
-
-	case *ast.SelectStmt:
-		// Select statement â€” poll-based approach
-		hasDefault := false
-		var commClauses []*ast.CommClause
-		for _, stmt := range s.Body.List {
-			if cc, ok := stmt.(*ast.CommClause); ok {
-				commClauses = append(commClauses, cc)
-				if cc.Comm == nil {
-					hasDefault = true
-				}
-			}
-		}
-
-		out.WriteString("loop {\n")
-		restoreSelectBreakTarget := pushBreakTarget("")
-
-		for _, cc := range commClauses {
-			if cc.Comm == nil {
-				// Default case â€” handled at the end
-				continue
-			}
-
-			// Determine the type of communication
-			switch comm := cc.Comm.(type) {
-			case *ast.AssignStmt:
-				// case val := <-ch or case val, ok := <-ch
-				if len(comm.Rhs) == 1 {
-					if unary, ok := comm.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
-						out.WriteString("        if let Some(")
-						// Variable name(s)
-						if len(comm.Lhs) == 1 {
-							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
-								out.WriteString(EscapeRustIdent(ident.Name))
-								// Register as range var so it's not unwrapped
-								rangeLoopVars[ident.Name] = "select_val"
-							}
-						} else if len(comm.Lhs) == 2 {
-							// val, ok := <-ch â€” just bind val
-							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
-								out.WriteString(EscapeRustIdent(ident.Name))
-								rangeLoopVars[ident.Name] = "select_val"
-							}
-						}
-						out.WriteString(") = ")
-						writeChannelExpression(out, unary.X)
-						out.WriteString(".try_recv() {\n")
-
-						// Handle ok variable if present
-						if len(comm.Lhs) == 2 {
-							if okIdent, ok := comm.Lhs[1].(*ast.Ident); ok && okIdent.Name != "_" {
-								out.WriteString("            let mut ")
-								out.WriteString(EscapeRustIdent(okIdent.Name))
-								out.WriteString(" = ")
-								WriteWrapperPrefix(out)
-								out.WriteString("true")
-								WriteWrapperSuffix(out)
-								out.WriteString(";\n")
-							}
-						}
-
-						// Wrap the received value if needed for use in body
-						if len(comm.Lhs) >= 1 {
-							if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
-								out.WriteString("            let mut ")
-								out.WriteString(EscapeRustIdent(ident.Name))
-								out.WriteString(" = ")
-								if channelElementIsGoError(unary.X) {
-									writeErrorHandleFromOptionValue(out, EscapeRustIdent(ident.Name))
-								} else {
-									WriteWrapperPrefix(out)
-									out.WriteString(EscapeRustIdent(ident.Name))
-									WriteWrapperSuffix(out)
-								}
-								out.WriteString(";\n")
-								// Now it's wrapped, remove from rangeLoopVars
-								delete(rangeLoopVars, ident.Name)
-							}
-						}
-
-						// Body
-						for _, bodyStmt := range cc.Body {
-							out.WriteString("            ")
-							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
-							out.WriteString("\n")
-						}
-						if !stmtListTerminates(cc.Body) {
-							out.WriteString("            break;\n")
-						}
-						out.WriteString("        }\n")
-					}
-				}
-
-			case *ast.ExprStmt:
-				// case <-ch (receive without assignment)
-				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
-					out.WriteString("        if let Some(_) = ")
-					writeChannelExpression(out, unary.X)
-					out.WriteString(".try_recv() {\n")
-
-					for _, bodyStmt := range cc.Body {
-						out.WriteString("            ")
-						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
-						out.WriteString("\n")
-					}
-					if !stmtListTerminates(cc.Body) {
-						out.WriteString("            break;\n")
-					}
-					out.WriteString("        }\n")
-				}
-
-			case *ast.SendStmt:
-				// case ch <- val (send case) â€” use try_send for non-blocking
-				out.WriteString("        if ")
-				writeChannelExpression(out, comm.Chan)
-				out.WriteString(".try_send(")
-				transpileChannelValue(out, comm.Value)
-				out.WriteString(") {\n")
-
-				for _, bodyStmt := range cc.Body {
-					out.WriteString("            ")
-					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
-					out.WriteString("\n")
-				}
-				if !stmtListTerminates(cc.Body) {
-					out.WriteString("            break;\n")
-				}
-				out.WriteString("        }\n")
-			}
-		}
-
-		// Default case
-		if hasDefault {
-			for _, cc := range commClauses {
-				if cc.Comm == nil {
-					for _, bodyStmt := range cc.Body {
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×¿t÷”èµ©hºÚn¶X§zÍ\XÚØYÙHXZ[‚‚š[\Ü
+‚H˜ž]\È‚‚H™›]‚‚H™ÛËØ\Ý‚‚H™ÛËÙ›Ü›X]‚‚H™ÛËÝÚÙ[ˆ‚‚H™ÛËÝ\\È‚‚HœÛXÙ\È‚‚HœÝš[™ÜÈ‚ŠB‚˜\ˆÝ\œ™[™]\›”Ý][Y[\ÕZ[›ÛÛ˜\ˆÝ\œ™[›Ü˜ÙUÜ˜\Y™]\›”ÛÝÈX\Ú[X›ÛÛ‚™[˜È\Ú›Ü˜ÙUÜ˜\Y™]\›”ÛÝÊÛÝÈX\Ú[X›ÛÛ
+H[˜Ê
+HÂ‚\™]ˆHÝ\œ™[›Ü˜ÙUÜ˜\Y™]\›”ÛÝÂ‚XÝ\œ™[›Ü˜ÙUÜ˜\Y™]\›”ÛÝÈHÛÝÂ‚\™]\›ˆ[˜Ê
+HÂ‚BXÝ\œ™[›Ü˜ÙUÜ˜\Y™]\›”ÛÝÈH™]‚‚_BŸB‚™[˜È™]\›”ÛÝ›Ü˜Ù\ÕÜ˜\Y˜[YJ[™^[
+H›ÛÛÂ‚ZYˆÝ\œ™[›Ü˜ÙUÜ˜\Y™]\›”ÛÝÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆÝ\œ™[›Ü˜ÙUÜ˜\Y™]\›”ÛÝÖÚ[™^BŸB‚™[˜È˜[œÜ[UZ[Ý][Y[
+Ý]
+œÝš[™ÜËZ[\‹Ý]\Ý”Ý]›•\H
+˜\Ý‘[˜Õ\Kš[TÙ]
+ÚÙ[‹‘š[TÙ]ÛÛ[Y[È×J˜\ÝÛÛ[Y[Ü›Ý\\ÝÜÈ
+ÚÙ[‹”ÜË[™[Ýš[™ÊHÂ‚KËÈÛ›H›YÈH[[YYX]H™]\›‹X\Ë]Z[ÜÚ][Û‹ˆHÛÜ\HÝÚ]Ú‚KËÈÜˆYˆÝ][Y[]\[œÈÈ™HH\Ý›ÙHÝ][Y[ÛÛZ[œÂ‚KËÈ™\ÝY™]\›ˆÝ][Y[È]]\ÝÝ[[Z]^XÚ]™]\›ˆØ‚KËÈ›Ý™XÛÛYHH›ÙIÜÈ˜Z[[™È^™\ÜÚ[Û‹‚‚ZYˆË\Ô™]\›ˆHÝ]Š
+˜\Ý”™]\›”Ý]
+NÈ\Ô™]\›ˆÂ‚B\™]ˆHÝ\œ™[™]\›”Ý][Y[\ÕZ[‚BXÝ\œ™[™]\›”Ý][Y[\ÕZ[HYB‚BYY™\ˆ[˜Ê
+HÈÝ\œ™[™]\›”Ý][Y[\ÕZ[H™]ˆJ
+B‚_B‚U˜[œÜ[TÝ][Y[
+Ý]Ý]›•\Kš[TÙ]ÛÛ[Y[Ë\ÝÜË[™[
+BŸB‚‹ËÈ™]\›‘^™\ÜÚ[ÛœÐ›Üœ›ÝÕÜ˜\YØØ[È™\ÜÈÚ]\ˆ[žHÙˆH™]\›‚‹ËÈ˜[Y\ÈÛÝ[™XYHÜ˜\YØØ[›ÝYÚH˜›Üœ›ÝÊ
+KÛØÚÊ
+H™Yˆ[\Ü˜\žB‹ËÈÚÜÙHY™][YKYˆ^[™YÈH[˜Ý[Ûˆ›ÙHžHZ[Y^™\ÜÚ[Ûˆ[\Ë‹ËÈÛÝ[Ý]]™HHØØ[]›Üœ›ÝÜÈœ›ÛKˆ\˜[Y]\œÈ›ÜY\ˆ[\Ü˜\šY\Â‹ËÈÛÈ^H™[XZ[ˆØY™H[ˆZ[ÜÚ][ÛŽÈÛ›H]YXÛ\™YÜ˜\YØØ[Â‹ËÈšYÙÙ\ˆH™Z™XÝ[Û‹‚™[˜È™]\›‘^™\ÜÚ[ÛœÐ›Üœ›ÝÕÜ˜\YØØ[Ê™\Ý[È×X\Ý‘^ŠH›ÛÛÂ‚Y›ÜˆË^ˆH˜[™ÙH™\Ý[ÈÂ‚BZYˆ^™\ÜÚ[Û”™XYÕÜ˜\YØØ[
+^ŠHÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜È^™\ÜÚ[Û”™XYÕÜ˜\YØØ[
+^ˆ\Ý‘^ŠH›ÛÛÂ‚Y›Ý[™H˜[ÙB‚X\Ý’[œÜXÝ
+^‹[˜Êˆ\Ý“›ÙJH›ÛÛÂ‚BZYˆ›Ý[™Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BZY[ÚÈH‹Š
+˜\Ý’Y[
+B‚BZYˆ[ÚÈÂ‚BB\™]\›ˆYB‚B_B‚BZYˆY[\ÕÜ˜\Y[˜Ý[Û“ØØ[
+Y[
+HÂ‚BBY›Ý[™HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ›Ý[™ŸB‚‹ËÈY[\ÕÜ˜\Y[˜Ý[Û“ØØ[™\ÜÈÚ]\ˆY[™\ÛÛ™\ÈÈH˜\šXX›B‹ËÈXÛ\™Y[œÚYHHÝ\œ™[[˜Ý[Ûˆ›ÙHÚÜÙHÙ[™\˜]Y\Ý˜[YH\Ù\Â‹ËÈHÜ˜\\ˆÚ\H
+˜ËÐ\˜Ï™YÙ[Ó]]^Ü[ÛŠKˆÝXÚ™XYÈ[ˆZ[‹ËÈÜÚ][Ûˆ›ÙXÙH™Yˆ[\Ü˜\šY\È]Ý]]™HHØØ[[™\ˆ\Ý	ÜÂ‹ËÈZ[Y^™\ÜÚ[ÛˆØÛÜ[™È[\ËÛÈHØ[\ˆØ[ˆ˜[˜XÚÈÈ[ˆ^XÚ]‹ËÈ™]\›ˆØÈÙY\H[\Ü˜\žHØÛÜYÈHÝ][Y[‚‹ËÂ‹ËÈH˜[œÜ[\‰ÜÈY˜][ÚÜYXÛ]Ü˜\ÈØØ[È]™[ˆÚ[ˆHÛÈ\B‹ËÈ\ÈHÛÜHØØ[\ˆ
+ÛÈ	›ØØ[[™™KXš[™[™ÈÝ^HÛÜœ™XÝ
+KˆH˜\•X›B‹ËÈ™XÛÜ™ÈH˜\™HÜ[Ý]È
+˜\™HØØ[\ˆÛÝœ›ÛHH˜\™K\ØØ[\ˆØ[˜[™ÙB‹ËÈ˜\œË]ËŠH\ÈÜ˜\›Û™Kˆ[ž][™È[ÙH]	ÜÈH›ÙKYXÛ\™YØØ[\Â‹ËÈ\ÜÝ[YYÜ˜\Y‚™[˜ÈY[\ÕÜ˜\Y[˜Ý[Û“ØØ[
+Y[
+˜\Ý’Y[
+H›ÛÛÂ‚ZYˆY[OHš[Y[“˜[YHOH—ÈˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ[™›ÈHÛÚÝ\˜\’[™›ÊY[“˜[YJNÈ[™›ÈOHš[Â‚B\™]\›ˆ[™›Ë”ÛÝ\˜ÙHOHÛÝ\˜ÙSØØ[	‰ˆ[™›Ë•Ü˜\]™[OHÜ˜\›Û™B‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[ØšˆH\R[™›Ëš[™›Ë•\Ù\ÖÚY[B‚ZYˆØšˆOHš[Â‚B[ØšˆH\R[™›Ëš[™›Ë‘YœÖÚY[B‚_B‚]‹ÚÈHØš‹Š
+\\Ë•˜\ŠB‚ZYˆ[ÚÈˆOHš[‹’\ÑšY[
+
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚KËÈXÚØYÙHÛØ˜[È\™H›Ý[˜Ý[ÛˆØØ[Ë‚‚ZYˆ‹”ÙÊ
+HOHš[	‰ˆ‹”\™[
+
+HOH‹”ÙÊ
+K”ØÛÜJ
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚KËÈ˜[Y\ÈXÛ\™Y]Üˆ™Y›Ü™HH[˜Ý[Ûˆ›ÙIÜÈÜ[š[™Èœ˜XÙH\™B‚KËÈ\˜[Y]\œË™XÙZ]™\œËÜˆ[˜ÛÜÚ[™Ë\ØÛÜH˜\šXX›\È8 %^H›ÜY\‚‚KËÈHZ[^™\ÜÚ[Û‰ÜÈ[\Ü˜\šY\ËÛÈ^H\™HØY™K‚‚ZYˆXÝ\œ™[[˜Ý[Û›ÙSœ˜XÙK’\Õ˜[Y
+
+H‹”ÜÊ
+HHÝ\œ™[[˜Ý[Û›ÙSœ˜XÙHÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆYBŸB‚™[˜È›’\Ó][\T™\Ý[ÛÝÊ›•\H
+˜\Ý‘[˜Õ\JH›ÛÛÂ‚ZYˆ›•\HOHš[›•\K”™\Ý[ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]Ý[H‚Y›ÜˆË™\Ý[H˜[™ÙH›•\K”™\Ý[Ë“\ÝÂ‚BXÛÝ[H[Š™\Ý[“˜[Y\ÊB‚BZYˆÛÝ[OHÂ‚BBXÛÝ[HB‚B_B‚B]Ý[
+ÏHÛÝ[‚BZYˆÝ[ˆHÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈØ[™]\›œÓ][\T™\Ý[ÊØ[
+˜\ÝØ[^ŠH›ÛÛÂ‚ZYˆØ[OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\ÚYËÚÈHØ[ÚYÛ˜]\™Qœ›ÛU\R[™›ÊØ[
+B‚ZYˆ[ÚÈÚYË”™\Ý[Ê
+HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆÚYË”™\Ý[Ê
+K“[Š
+HˆBŸB‚™[˜ÈØ[Ú[™ÛT™\Ý[\JØ[
+˜\ÝØ[^ŠH\\Ë•\HÂ‚ZYˆØ[OHš[Â‚B\™]\›ˆš[‚_B‚ZYˆÚYËÚÈHØ[ÚYÛ˜]\™Qœ›ÛU\R[™›ÊØ[
+NÈÚÈ	‰ˆÚYË”™\Ý[Ê
+HOHš[	‰ˆÚYË”™\Ý[Ê
+K“[Š
+HOHHÂ‚B\™]\›ˆÚYË”™\Ý[Ê
+K]
+
+K•\J
+B‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆš[‚_B‚ZYˆ\H\R[™›Ë‘Ù]\JØ[
+NÈ\OHš[Â‚B\™]\›ˆ\‚_B‚\™]\›ˆš[ŸB‚‹ËÈ™]\›‘^™\ÜÚ[Û‘[Z\ÜÚ[Û”Ý\ÕÚ]›ØÚÈ™\ÜÈÚ]\ˆHÚ]™[ˆ™]\›‚‹ËÈ˜[YHÛÝ[[Z]\ÝÛÝ\˜ÙH]Ý\ÈÚ]ØˆÝXÚ^™\ÜÚ[ÛœÈ\™B‹ËÈ[XšYÝ[Ý\ÈÚ[ˆ\ÙY\ÈHZ[^™\ÜÚ[ÛŽˆ\Ý\œÙ\ÈHXY[™ÈØ\ÈB‹ËÈ›ØÚÈÝ][Y[ÚXÚœ™XZÜÈÚ\\ÈZÙHÈ‹‹ˆH	‰ˆÈ‹‹ˆXÜ‚‹ËÈÈ‹‹ˆHOHž˜‚™[˜È™]\›‘^™\ÜÚ[Û‘[Z\ÜÚ[Û”Ý\ÕÚ]›ØÚÊ^ˆ\Ý‘^ŠH›ÛÛÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚BKËÈ[ˆÛÛ˜Ý\œ™[[ÙH]™\žHš[˜\žH^™\ÜÚ[Ûˆ
+Ý\ˆ[ˆ	‰ˆÈ
+B‚BKËÈÝÙ\œÈÈÈ]×Ý\ÞH‹‹ŽÈ×Ý\ÞÜ×Ý\ÞHXˆHÙÚXØ[‚BKËÈÜ[ˆÛÛ\ÜÙ\ÈÛÈÝXÚ›ØÚÜËX]š[™ÈH›ÙHÝ\[™ÈÚ]‚BKËÈØ‚‚BZYˆ™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+H	‰ˆK“ÜOHÚÙ[‹“S‘	‰ˆK“ÜOHÚÙ[‹“ÔˆÂ‚BB\™]\›ˆYB‚B_B‚BKËÈÚ]]™\ˆHÜ\˜]Ü‹HÈ\È[Z]Yš\œÝÈYˆ]ÛÝ[‚BKËÈ›ÙXÙHHXY[™ÈØHš[˜\žH^™\ÜÚ[Ûˆ[š\š]ÈB‚BKËÈ\œÚ[™È[XšYÝZ]K‚‚B\™]\›ˆ™]\›‘^™\ÜÚ[Û‘[Z\ÜÚ[Û”Ý\ÕÚ]›ØÚÊK–
+B‚XØ\ÙH
+˜\Ý’Y[‚‚B\™]\›ˆY[^™\ÜÚ[Û‘[Z\ÜÚ[Û”Ý\ÕÚ]›ØÚÊJB‚XØ\ÙH
+˜\Ý”\™[‘^Ž‚‚B\™]\›ˆ™]\›‘^™\ÜÚ[Û‘[Z\ÜÚ[Û”Ý\ÕÚ]›ØÚÊK–
+B‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚BKËÈ˜[YY]\HšY[XØÙ\ÜÙ\È]™YYH˜[YHÛÛ™H[Z]›ÝYÚ‚BKËÈÜš]TÞ[^˜[YYÙ[XÝÜ•˜[YX\ÈÈ]×ÜÙ[XÝÜ—ÚÛ\ˆH‹‹ˆX‚‚BZYˆÙ[XÝÜ”Þ[^˜[YS™YYÐÛÛ™JJHÂ‚BB\™]\›ˆYB‚B_B‚BKËÈÛÛ™XX›HÜ˜\YšY[XØÙ\ÜÙ\ÈÝÙ\ˆ›ÝYÚ‚BKËÈÜš]PÛÛ™YÜ˜\Y^™\ÜÚ[Û˜ÚXÚ[ÛÈÜ˜\ÈH˜[YH[ˆB‚BKËÈÈ]×ÜÙ[XÝÜ—ÚÛ\ˆH‹‹ˆX›ØÚË‚‚BZYˆZ\Ñ^™\ÜÚ[Û”™\Ý[˜\™J^ŠH	‰ˆ\ÐÛÛ™XX›S›Û”Ú[\‘^Š^ŠHÂ‚BB\™]\›ˆYB‚B_B‚XØ\ÙH
+˜\ÝØ[^Ž‚‚BKËÈ[˜ØØ\ÛˆH˜[YYÛXÙKÛX\ÝÙ\ˆ\ÈHÈ]×ÜÛXÙWÚÛ\‚‚BKËÈH‹‹ˆX›ØÚË[™H˜\™K\ØØ[\ˆ™]\›ˆ[Z]\ˆ\[™È\Â‚BKËÈLÌ˜Y\ˆHØ[8 %X]š[™ÈH›ÙIÜÈZ[^™\ÜÚ[ÛˆÝ\[™Â‚BKËÈÚ]Ø‚‚BZYˆ\Ð˜\™PZ[[Ø[˜[YJK›[ˆŠH\Ð˜\™PZ[[Ø[˜[YJK˜Ø\ŠHÂ‚BBZYˆ[ŠK\™ÜÊHˆ	‰ˆ
+\Ó˜[YYÛXÙQ^™\ÜÚ[ÛŠK\™ÜÖÌJH\Ó˜[YYX\^™\ÜÚ[ÛŠK\™ÜÖÌJJHÂ‚BBB\™]\›ˆYB‚BB_B‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈY[^™\ÜÚ[Û‘[Z\ÜÚ[Û”Ý\ÕÚ]›ØÚÊY[
+˜\Ý’Y[
+H›ÛÛÂ‚ZYˆY[OHš[S™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HZ\ÐÛÛ™XX›S›Û”Ú[\’Y[
+Y[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\ÐÝ\œ™[™XÙZ]™\’Y[
+Y[
+H\ÔXÚØYÙQÛØ˜[Y[
+Y[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆY[“˜[YHOHYHˆY[“˜[YHOH™˜[ÙHˆY[“˜[YHOH—ÈˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\ÓØØ[ÛÛœÝ[Y[
+Y[
+H\ÐÛÛœÝY[
+Y[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆY[“˜[YVÌHH	ÐIÈ	‰ˆY[“˜[YVÌHH	Ö‰È	‰ˆY[“˜[YHOH”Ýš[™Èˆ	‰ˆÛÚÝ\˜\’[™›ÊY[“˜[YJHOHš[	‰ˆZ\ÓØØ[˜\’Y[
+Y[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\Ô˜[™ÙU˜\ˆH˜[™ÙSÛÜ˜\œÖÚY[“˜[YWNÈ\Ô˜[™ÙU˜\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆZ\Õ˜\˜\™JY[“˜[YJBŸB‚‹ËÈ˜[YY™]\›œÕ[Ü˜\˜\™TØØ[\ˆ™\ÜÈÚ]\ˆH[˜Ý[Ûˆ\È]X\ÝÛ™B‹ËÈ˜[YY™]\›ˆ]ÝÙ\œÈ\ÈH˜\™HØØ[\ˆÛÝ™YžHHÜ˜\YØØ[ˆÜÙB‹ËÈÛÝÈ\ÙH
+
+›˜[YK˜›Üœ›ÝÊ
+K˜\×Ü™YŠ
+K[Ü˜\
+
+JX]H™]\›ˆ›Ý[™\žKÚXÚ‹ËÈ\ÈHØ[YHY™][YH\ÜÝYH\ÈÜ˜\YØØ[™XYÈ[œÚYH^XÚ]™]\›œË‚™[˜È˜[YY™]\›œÕ[Ü˜\˜\™TØØ[\Š›•\H
+˜\Ý‘[˜Õ\JH›ÛÛÂ‚ZYˆ›•\HOHš[›•\K”™\Ý[ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚Y›ÜˆË™\Ý[H˜[™ÙH›•\K”™\Ý[Ë“\ÝÂ‚BZYˆ[Š™\Ý[“˜[Y\ÊHOHÂ‚BBXÛÛ[YB‚B_B‚BZYˆ\™\Ý[\Q^’\Ð˜\™TØØ[\Š™\Ý[•\JHÂ‚BBXÛÛ[YB‚B_B‚BY›ÜˆË˜[YHH˜[™ÙH™\Ý[“˜[Y\ÈÂ‚BBZYˆ˜[YK“˜[YHOH—ÈˆÂ‚BBBXÛÛ[YB‚BB_B‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈØ[YQ^™\ÜÚ[Û”Þ[^
+H\Ý‘^‹ˆ\Ý‘^ŠH›ÛÛÂ‚]˜\ˆYž]\ËY™™\‚‚]˜\ˆšYÚž]\ËY™™\‚‚ZYˆ›Ü›X]“›ÙJ	›YÚÙ[‹“™]Ñš[TÙ]
+
+KJHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ›Ü›X]“›ÙJ	œšYÚÚÙ[‹“™]Ñš[TÙ]
+
+KŠHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY”Ýš[™Ê
+HOHšYÚ”Ýš[™Ê
+BŸB‚™[˜È™YÚ\Ý\˜\™TÚÜXÛ
+È\Ý‘^ŠHÂ‚ZY[ÚÈHËŠ
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH—ÈˆÂ‚B\™]\›‚‚_B‚ZYˆHÙ]˜\•X›J
+NÈOHš[Â‚B]”™YÚ\Ý\ŠY[“˜[YK	•˜\’[™›ÞÂ‚BBUÜ˜\]™[ˆÜ˜\›Û™K‚BBTÛÝ\˜ÙNˆÛÝ\˜ÙSØØ[‚B_JB‚_BŸB‚™[˜È™YÚ\Ý\‘Y˜][ÚÜXÛš[™[™ÜÊÈ×X\Ý‘^ŠHÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›‚‚_B‚]HÙ]˜\•X›J
+B‚ZYˆOHš[Â‚B\™]\›‚‚_B‚Y›ÜˆË^ˆH˜[™ÙHÈÂ‚BZY[ÚÈH^‹Š
+˜\Ý’Y[
+B‚BZYˆ[ÚÈY[“˜[YHOH—Èˆ\Õ˜\‘XÛ\™Y[Ý\œ™[ØÛÜJY[“˜[YJHÂ‚BBXÛÛ[YB‚B_B‚B[Øš‹ÚÈH\R[™›Ëš[™›Ë‘YœÖÚY[B‚BZYˆ[ÚÈØšˆOHš[Â‚BBXÛÛ[YB‚B_B‚BZ[™›ÈH	•˜\’[™›ÞÂ‚BBUÜ˜\]™[ˆÜ˜\[‚BBTÛÝ\˜ÙNˆÛÝ\˜ÙSØØ[‚B_B‚BZYˆ\H\R[™›Ë‘Ù]\JY[
+NÈ\OHš[Â‚BBZ[™›Ë”\Ý\HHÛÕ\\Õ\UÔ\Ý
+\
+B‚B_B‚B]”™YÚ\Ý\ŠY[“˜[YK[™›ÊB‚_BŸB‚™[˜ÈÚÜXÛÝ]\”šÐš[™[™Ó˜[Y\ÊÈ×X\Ý‘^‹šÈ\Ý‘^ŠH×\Ýš[™ÈÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[šÈOHš[Â‚B\™]\›ˆš[‚_B‚[ÑYœÈHXZÙJX\ÜÝš[™×]\\Ë“Øš™XÝ
+B‚Y›ÜˆË^ˆH˜[™ÙHÈÂ‚BZY[ÚÈH^‹Š
+˜\Ý’Y[
+B‚BZYˆ[ÚÈY[“˜[YHOH—ÈˆÂ‚BBXÛÛ[YB‚B_B‚B[ØšˆH\R[™›Ëš[™›Ë‘YœÖÚY[B‚BZYˆØšˆOHš[Â‚BBXÛÛ[YB‚B_B‚B[ÑYœÖÚY[“˜[YWHHØš‚‚_B‚ZYˆ[ŠÑYœÊHOHÂ‚B\™]\›ˆš[‚_B‚[˜[Y\ÈHXZÙJ×\Ýš[™Ë[ŠÑYœÊJB‚\ÙY[ˆHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚X\Ý’[œÜXÝ
+šË[˜Ê›ÙH\Ý“›ÙJH›ÛÛÂ‚BZY[ÚÈH›ÙKŠ
+˜\Ý’Y[
+B‚BZYˆ[ÚÈÂ‚BB\™]\›ˆYB‚B_B‚B[ÓØš‹ÚÈHÑYœÖÚY[“˜[YWB‚BZYˆ[ÚÈÂ‚BB\™]\›ˆYB‚B_B‚B\šÓØšˆH\R[™›Ëš[™›Ë•\Ù\ÖÚY[B‚BZYˆšÓØšˆOHš[šÓØšˆOHÓØšˆÙY[–ÚY[“˜[YWHÂ‚BB\™]\›ˆYB‚B_B‚B\ÙY[–ÚY[“˜[YWHHYB‚B[˜[Y\ÈH\[™
+˜[Y\ËY[“˜[YJB‚B\™]\›ˆYB‚_JB‚\™]\›ˆ˜[Y\ÂŸB‚™[˜ÈYTÚÜXÛÝ]\”šÔ™Xš[™[™ÜÊÈ×X\Ý‘^‹šÈ\Ý‘^ŠH[˜Ê
+HÂ‚[˜[Y\ÈHÚÜXÛÝ]\”šÐš[™[™Ó˜[Y\ÊËšÊB‚]HÙ]˜\•X›J
+B‚ZYˆ[Š˜[Y\ÊHOHOHš[[ŠœØÛÜ\ÊHOHÂ‚B\™]\›ˆ[˜Ê
+HßB‚_B‚\ØÛÜR[™^H[ŠœØÛÜ\ÊHHB‚\Ø]™YHXZÙJX\ÜÝš[™×J•˜\’[™›ÊB‚\™\Ù[HXZÙJX\ÜÝš[™×X›ÛÛ
+B‚Y›ÜˆË˜[YHH˜[™ÙH˜[Y\ÈÂ‚BZYˆ[™›ËÚÈHœØÛÜ\ÖÜØÛÜR[™^K˜\œÖÛ˜[YWNÈÚÈÂ‚BB\Ø]™YÛ˜[YWHH[™›Â‚BB\™\Ù[Û˜[YWHHYB‚BBY[]JœØÛÜ\ÖÜØÛÜR[™^K˜\œË˜[YJB‚B_B‚_B‚\™]\›ˆ[˜Ê
+HÂ‚BZYˆØÛÜR[™^H[ŠœØÛÜ\ÊHÂ‚BB\™]\›‚‚B_B‚BY›ÜˆË˜[YHH˜[™ÙH˜[Y\ÈÂ‚BBZYˆ™\Ù[Û˜[YWHÂ‚BBB]œØÛÜ\ÖÜØÛÜR[™^K˜\œÖÛ˜[YWHHØ]™YÛ˜[YWB‚BB_H[ÙHÂ‚BBBY[]JœØÛÜ\ÖÜØÛÜR[™^K˜\œË˜[YJB‚BB_B‚B_B‚_BŸB‚™[˜ÈÚ]ÚÜXÛÝ]\”šÐš[™[™ÜÊÈ×X\Ý‘^‹šÈ\Ý‘^‹[Z][˜Ê
+JHÂ‚\™\ÝÜ™HHYTÚÜXÛÝ]\”šÔ™Xš[™[™ÜÊËšÊB‚YY™\ˆ™\ÝÜ™J
+B‚Y[Z]
+
+BŸB‚˜ÛÛœÝZ[”Ý][Y[Z[š[˜\žR[š]X[^™\“›Ù\ÈH‚™[˜ÈÜš]TÝ][Y[Z[ÙÚXØ[ÚÜXÛ
+Ý]
+œÝš[™ÜËZ[\‹È\Ý‘^‹šÈ\Ý‘^ŠH›ÛÛÂ‚Xš[˜\žKÚÈH[Ü˜\\™[œÊšÊKŠ
+˜\Ýš[˜\žQ^ŠB‚ZYˆ[ÚÈ
+š[˜\žK“ÜOHÚÙ[‹“S‘	‰ˆš[˜\žK“ÜOHÚÙ[‹“ÔŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\ÚÝ[Ý][Y[Z[ÙÚXØ[ÛÛ™][ÛŠš[˜\žJHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BZYˆËÚÈH˜[YY›ÛÛ\J\R[™›Ë‘Ù]\Jš[˜\žJJNÈÚÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚_B‚‚[Ý]•Üš]TÝš[™Ê›]]]ŠB‚U˜[œÜ[Q^™\ÜÚ[ÛÛÛ^
+Ý]Ë˜[YJB‚[Ý]•Üš]TÝš[™ÊˆHŠB‚UÜš]UÜ˜\\”™Yš^
+Ý]
+B‚]Ú]ÚÜXÛÝ]\”šÐš[™[™ÜÊ×X\Ý‘^žÛßKšË[˜Ê
+HÂ‚B[™^[\H‚B]Üš]TÝ][Y[Z[ÙÚXØ[ÛÛ™][Û•˜[YJÝ]š[˜\žKÝ\œ™[[™R[™[
+Ý]
+K	›™^[\
+B‚_JB‚UÜš]UÜ˜\\”ÝY™š^
+Ý]
+B‚\™]\›ˆYBŸB‚™[˜ÈÜš]TÝ][Y[Z[ÛÛ˜Ý\œ™[š[˜\žTÚÜXÛ
+Ý]
+œÝš[™ÜËZ[\‹È\Ý‘^‹šÈ\Ý‘^ŠH›ÛÛÂ‚][\Ë™\Ý[ÚÈHZ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žU˜[YJšË×X\Ý‘^žÛßJB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚‚[Ý]•Üš]TÝš[™Ê[\ÊB‚[Ý]•Üš]TÝš[™Ê›]]]ŠB‚U˜[œÜ[Q^™\ÜÚ[ÛÛÛ^
+Ý]Ë˜[YJB‚[Ý]•Üš]TÝš[™ÊˆHŠB‚UÜš]UÜ˜\\”™Yš^
+Ý]
+B‚[Ý]•Üš]TÝš[™Ê™\Ý[
+B‚UÜš]UÜ˜\\”ÝY™š^
+Ý]
+B‚\™]\›ˆYBŸB‚™[˜ÈÜš]TÝ][Y[Z[ÛÛ˜Ý\œ™[š[˜\žT™]\›•˜[YJÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^ŠH›ÛÛÂ‚][\Ë™\Ý[ÚÈHZ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žU˜[YJ^‹š[
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]•Üš]TÝš[™Êž×ˆŠB‚]Üš]R[™[YÝ][Y[Z[š[˜\žU[\ÊÝ][\ËˆŠB‚[Ý]•Üš]TÝš[™ÊˆŠB‚[Ý]•Üš]TÝš[™Ê™\Ý[
+B‚[Ý]•Üš]TÝš[™Ê—ˆHŠB‚\™]\›ˆYBŸB‚™[˜ÈÜš]R[™[YÝ][Y[Z[š[˜\žU[\ÊÝ]
+œÝš[™ÜËZ[\‹[\ÈÝš[™Ë[™[Ýš[™ÊHÂ‚][\ÈHÝš[™ÜË•š[TÝY™š^
+[\Ë—ˆŠB‚ZYˆ[\ÈOHˆˆÂ‚B\™]\›‚‚_B‚Y›ÜˆË[™HH˜[™ÙHÝš[™ÜË”Ü]
+[\Ë—ˆŠHÂ‚BZYˆ[™HOHˆˆÂ‚BBXÛÛ[YB‚B_B‚B[Ý]•Üš]TÝš[™Ê[™[
+B‚B[Ý]•Üš]TÝš[™Ê[™JB‚B[Ý]•Üš]TÝš[™Ê—ˆŠB‚_BŸB‚™[˜ÈZ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žU˜[YJšÈ\Ý‘^‹Y[”ÚÜXÛÈ×X\Ý‘^ŠH
+Ýš[™ËÝš[™Ë›ÛÛ
+HÂ‚\™]\›ˆZ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žU˜[YUÚ]Z[“›Ù\ÊšËY[”ÚÜXÛËZ[”Ý][Y[Z[š[˜\žR[š]X[^™\“›Ù\ÊBŸB‚™[˜ÈZ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žU˜[YUÚ]Z[“›Ù\ÊšÈ\Ý‘^‹Y[”ÚÜXÛÈ×X\Ý‘^‹Z[“›Ù\È[
+H
+Ýš[™ËÝš[™Ë›ÛÛ
+HÂ‚ZYˆS™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HÂ‚B\™]\›ˆˆ‹ˆ‹˜[ÙB‚_B‚Xš[˜\žKÚÈH[Ü˜\\™[œÊšÊKŠ
+˜\Ýš[˜\žQ^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆˆ‹ˆ‹˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆˆ‹ˆ‹˜[ÙB‚_B‚ZYˆÛÝ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žS›Ù\Ê\R[™›Ëš[˜\žJHZ[“›Ù\ÈÂ‚B\™]\›ˆˆ‹ˆ‹˜[ÙB‚_B‚‚]˜\ˆ[\ÈÝš[™ÜËZ[\‚‚[™^[\H‚[™^[\˜[YHH[˜Ê
+HÝš[™ÈÂ‚B[˜[YHH›]”Üš[Š—×ÙÛ×Øš[˜\žWÉY‹™^[\
+B‚B[™^[\
+ÊÂ‚B\™]\›ˆ˜[YB‚_B‚‚]˜\ˆÜš]U˜[YH[˜Ê\Ý‘^‹
+˜\Ýš[˜\žQ^‹\Ý‘^ŠHÝš[™Â‚]Üš]U˜[YHH[˜Ê^ˆ\Ý‘^‹\™[
+˜\Ýš[˜\žQ^‹Ý\ˆ\Ý‘^ŠHÝš[™ÈÂ‚BZYˆ\™[‹ÚÈH^‹Š
+˜\Ý”\™[‘^ŠNÈÚÈÂ‚BB\™]\›ˆÜš]U˜[YJ\™[‹–\™[Ý\ŠB‚B_B‚BZYˆš[˜\žKÚÈH^‹Š
+˜\Ýš[˜\žQ^ŠNÈÚÈ	‰ˆÝ][Y[Z[ÛÛ˜Ý\œ™[š[˜\žPØ[Z[›ÙJ\R[™›Ëš[˜\žJHÂ‚BB[YHÜš]U˜[YJš[˜\žK–š[˜\žKš[˜\žK–JB‚BB\šYÚHÜš]U˜[YJš[˜\žK–Kš[˜\žKš[˜\žK–
+B‚BB[˜[YHH™^[\˜[YJ
+B‚BB][\Ë•Üš]TÝš[™Ê›]ŠB‚BB][\Ë•Üš]TÝš[™Ê˜[YJB‚BB][\Ë•Üš]TÝš[™ÊˆHŠB‚BB][\Ë•Üš]TÝš[™ÊY
+B‚BB][\Ë•Üš]TÝš[™ÊˆŠB‚BB][\Ë•Üš]TÝš[™Ê\Ýš[˜\žSÜ
+š[˜\žK“Ü
+JB‚BB][\Ë•Üš]TÝš[™ÊˆŠB‚BB][\Ë•Üš]TÝš[™ÊšYÚ
+B‚BB][\Ë•Üš]TÝš[™ÊŽ×ˆŠB‚BB\™]\›ˆ˜[YB‚B_B‚‚B[˜[YHH™^[\˜[YJ
+B‚B][\Ë•Üš]TÝš[™Ê›]ŠB‚B][\Ë•Üš]TÝš[™Ê˜[YJB‚B][\Ë•Üš]TÝš[™ÊˆHŠB‚B]Üš]TÝ][Y[Z[ÛÛ˜Ý\œ™[š[˜\žSÜ\˜[™
+	[\Ë^‹Ý\‹\™[
+B‚B][\Ë•Üš]TÝš[™ÊŽ×ˆŠB‚B\™]\›ˆ˜[YB‚_B‚‚]˜\ˆ™\Ý[Ýš[™Â‚Y[Z]H[˜Ê
+HÂ‚B\™\Ý[HÜš]U˜[YJš[˜\žKš[š[
+B‚_B‚ZYˆ[ŠY[”ÚÜXÛÊHˆÂ‚B]Ú]ÚÜXÛÝ]\”šÐš[™[™ÜÊY[”ÚÜXÛËšË[Z]
+B‚_H[ÙHÂ‚BY[Z]
+
+B‚_B‚ZYˆ™\Ý[OHˆˆÂ‚B\™]\›ˆˆ‹ˆ‹˜[ÙB‚_B‚‚\™]\›ˆ[\Ë”Ýš[™Ê
+K™\Ý[YBŸB‚™[˜ÈÛÝ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žS›Ù\Ê\R[™›È
+•\R[™›Ë^ˆ\Ý‘^ŠH[Â‚Xš[˜\žKÚÈH[Ü˜\\™[œÊ^ŠKŠ
+˜\Ýš[˜\žQ^ŠB‚ZYˆ[ÚÈ\Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žPØ[Z[›ÙJ\R[™›Ëš[˜\žJHÂ‚B\™]\›ˆ‚_B‚\™]\›ˆH
+Â‚BXÛÝ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žS›Ù\Ê\R[™›Ëš[˜\žK–
+H
+Â‚BXÛÝ[Ý][Y[Z[ÛÛ˜Ý\œ™[š[˜\žS›Ù\Ê\R[™›Ëš[˜\žK–JBŸB‚™[˜ÈÝ][Y[Z[ÛÛ˜Ý\œ™[š[˜\žPØ[Z[›ÙJ\R[™›È
+•\R[™›Ë^ˆ
+˜\Ýš[˜\žQ^ŠH›ÛÛÂ‚ZYˆ\R[™›ÈOHš[^ˆOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ^‹“ÜOHÚÙ[‹“S‘^‹“ÜOHÚÙ[‹“ÔˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ\Õ[Ü˜\Y˜\ÚXÒ[YÙ\•\J\R[™›Ë‘Ù]\J^ŠJBŸB‚™[˜È\Õ[Ü˜\Y˜\ÚXÒ[YÙ\•\J\\\Ë•\JH›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\Ó˜[YYH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë“˜[YY
+NÈ\Ó˜[YYÂ‚B\™]\›ˆ˜[ÙB‚_B‚X˜\ÚXËÚÈH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ
+\\Ë˜\ÚXÊB‚\™]\›ˆÚÈ	‰ˆ\Ò[YÙ\˜\ÚXÒÚ[™
+˜\ÚXË’Ú[™
+
+JBŸB‚™[˜ÈÜš]TÝ][Y[Z[ÛÛ˜Ý\œ™[š[˜\žSÜ\˜[™
+Ý]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹Ý\ˆ\Ý‘^‹\™[
+˜\Ýš[˜\žQ^ŠHÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\™[OHš[Â‚BZYˆÜš]TÚYÛÝ[š[Z]]™SÜ\˜[™
+Ý]^‹\™[
+HÂ‚BB\™]\›‚‚B_B‚BZYˆÜš]PÛÛœÝÚYYÜ\˜[™›Ü”™\Ý[
+Ý]^‹\™[
+HÂ‚BB\™]\›‚‚B_B‚_B‚ZYˆÝ\ˆOHš[	‰ˆÜš]PÛÛœÝ^™\ÜÚ[Û‘›Üš[˜\žTY\ŠÝ]^‹Ý\ŠHÂ‚B\™]\›‚‚_B‚‚]˜\ˆ^XÝY\\Ë•\B‚ZYˆ\R[™›ÈOHš[Â‚BY^XÝYH\R[™›Ë‘Ù]\J^ŠB‚BZYˆ\™[OHš[Â‚BBZYˆ\™[“ÜOHÚÙ[‹”Ò\™[“ÜOHÚÙ[‹”ÒˆÂ‚BBBZYˆ^ˆOH\™[–Â‚BBBBZYˆ\™[\HH\R[™›Ë‘Ù]\J\™[
+NÈ\™[\HOHš[Â‚BBBBBY^XÝYH\™[\B‚BBBB_B‚BBB_B‚BB_H[ÙHÂ‚BBBZYˆ\™[\HH\R[™›Ë‘Ù]\J\™[
+NÈ\™[\HOHš[Â‚BBBBY^XÝYH\™[\B‚BBB_B‚BB_B‚B_B‚_B‚]Üš]P˜\™PÛÛ\Ý[™\ÜÚYÛ•˜[YQ›Ü“Ü
+Ý]^‹^XÝYÚÙ[‹’SQÐS
+BŸB‚™[˜ÈÜš]P˜\™TØØ[\\ÜÚYÛ›Y[
+Ý]
+œÝš[™ÜËZ[\‹È\Ý‘^‹šÈ\Ý‘^ŠH›ÛÛÂ‚ZY[ÚÈHËŠ
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH—ÈˆZ\Õ˜\˜\™JY[“˜[YJHÂ‚B\™]\›ˆ˜[ÙB‚_B‚]˜\ˆ^XÝY\\Ë•\B‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BY^XÝYH\R[™›Ë‘Ù]\JÊB‚_B‚[Ý]•Üš]TÝš[™ÊžÈ]™]×Ý˜[HŠB‚]Üš]P˜\™PÛÛ\Ý[™\ÜÚYÛ•˜[YJÝ]šË^XÝY
+B‚[Ý]•Üš]TÝš[™ÊŽÈŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™ÊˆH™]×Ý˜[ÈHŠB‚\™]\›ˆYBŸB‚˜ÛÛœÝX^[›[™UÜ˜\YÛÝ\ÜÚYÛ›Y[[ˆH‚™[˜È^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJ^ˆ\Ý‘^ŠH›ÛÛÂ‚\ÝÚ]ÚHH[Ü˜\\™[œÊ^ŠKŠ\JHÂ‚XØ\ÙH
+˜\Ý’Y[‚‚BWËÚÈH[˜Ý[Û•˜[YTÚYÛ˜]\™JJB‚B\™]\›ˆÚÂ‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚BZYˆËÚÈHY]Ù^™\ÜÚ[Û”ÚYÛ˜]\™JJNÈÚÈÂ‚BB\™]\›ˆYB‚B_B‚BZYˆËÚÈHÚ[\“Y]Ù˜[YTÚYÛ˜]\™JJNÈÚÈÂ‚BB\™]\›ˆYB‚B_B‚BWËÚÈHÙ[XÝÜ‘[˜Ý[Û•˜[YTÚYÛ˜]\™JJB‚B\™]\›ˆÚÂ‚XØ\ÙH
+˜\Ý‘[˜Ó]‚‚B\™]\›ˆYB‚XØ\ÙH
+˜\ÝØ[^Ž‚‚BY›ÜˆË\™ÈH˜[™ÙHK\™ÜÈÂ‚BBZYˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJ\™ÊHÂ‚BBB\™]\›ˆYB‚BB_B‚B_B‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚B\™]\›ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–
+H^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–JB‚XØ\ÙH
+˜\Ý•[˜\žQ^Ž‚‚B\™]\›ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–
+B‚XØ\ÙH
+˜\Ý”Ý\‘^Ž‚‚B\™]\›ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–
+B‚XØ\ÙH
+˜\Ý’[™^^Ž‚‚B\™]\›ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–
+H^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK’[™^
+B‚XØ\ÙH
+˜\Ý”ÛXÙQ^Ž‚‚BZYˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–
+HÂ‚BB\™]\›ˆYB‚B_B‚BY›ÜˆË›Ý[™H˜[™ÙH×X\Ý‘^žÙK“ÝËK’YÚK“X^HÂ‚BBZYˆ›Ý[™OHš[	‰ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJ›Ý[™
+HÂ‚BBB\™]\›ˆYB‚BB_B‚B_B‚XØ\ÙH
+˜\Ý•\P\ÜÙ\^Ž‚‚B\™]\›ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK–
+B‚XØ\ÙH
+˜\ÝÛÛ\ÜÚ]S]‚‚BY›ÜˆË[H˜[™ÙHK‘[ÈÂ‚BBZYˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJ[
+HÂ‚BBB\™]\›ˆYB‚BB_B‚B_B‚XØ\ÙH
+˜\Ý’Ù^U˜[YQ^Ž‚‚B\™]\›ˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK’Ù^JH^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJK•˜[YJB‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÜš]UÜ˜\YÛÝ\ÜÚYÛ›Y[›ØÚÊÝ]
+œÝš[™ÜËZ[\‹È\Ý‘^‹›Ü˜ÙS][[[™H›ÛÛÜš]U˜[YH[˜Ê
+œÝš[™ÜËZ[\ŠJHÂ‚[[™T™Yš^HÝ\œ™[[™U^
+Ý]
+B‚]˜[YT™Yš^H[™T™Yš^
+ÈžÈ]™]×Ý˜[H‚‚]˜\ˆ˜[YHÝš[™ÜËZ[\‚‚]˜[YK•Üš]TÝš[™Ê˜[YT™Yš^
+B‚]Üš]U˜[YJ	˜[YJB‚]˜[YU^HÝš[™ÜË•š[T™Yš^
+˜[YK”Ýš[™Ê
+K˜[YT™Yš^
+B‚‚]\™Ù]™Yš^H[™T™Yš^
+ÈžÈ]™]×Ý˜[Hˆ
+È˜[YU^
+ÈŽÈ
+ˆ‚‚]˜\ˆ\™Ù]Ýš[™ÜËZ[\‚‚]\™Ù]•Üš]TÝš[™Ê\™Ù]™Yš^
+B‚U˜[œÜ[Q^™\ÜÚ[ÛÛÛ^
+	\™Ù]Ë˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+	\™Ù]YJB‚]\™Ù]^HŠˆˆ
+ÈÝš[™ÜË•š[T™Yš^
+\™Ù]”Ýš[™Ê
+K\™Ù]™Yš^
+B‚‚Z[›[™S[ˆH[ŠžÈ]™]×Ý˜[HŠH
+È[Š˜[YU^
+H
+È[ŠŽÈŠH
+È[Š\™Ù]^
+H
+È[ŠˆHÛÛYJ™]×Ý˜[
+NÈHŠB‚[][[[™HH›Ü˜ÙS][[[™H	‰ˆ
+Ýš[™ÜËÛÛZ[œÊ˜[YU^—ˆŠHÝš[™ÜËÛÛZ[œÊ\™Ù]^—ˆŠH[›[™S[ˆˆX^[›[™UÜ˜\YÛÝ\ÜÚYÛ›Y[[ŠB‚ZYˆ[][[[™HÂ‚B[Ý]•Üš]TÝš[™ÊžÈ]™]×Ý˜[HŠB‚B[Ý]•Üš]TÝš[™Ê˜[YU^
+B‚B[Ý]•Üš]TÝš[™ÊŽÈŠB‚B[Ý]•Üš]TÝš[™Ê\™Ù]^
+B‚B[Ý]•Üš]TÝš[™ÊˆHÛÛYJ™]×Ý˜[
+NÈHŠB‚B\™]\›‚‚_B‚‚Z[™[HÝ\œ™[[™R[™[
+Ý]
+B‚[Ý]•Üš]TÝš[™Êž×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™Êˆ]™]×Ý˜[HŠB‚[Ý]•Üš]TÝš[™Ê˜[YU^
+B‚[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆŠB‚[Ý]•Üš]TÝš[™Ê\™Ù]^
+B‚[Ý]•Üš]TÝš[™ÊˆHÛÛYJ™]×Ý˜[
+N×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊŸHŠBŸB‚™[˜ÈÜ˜\YÛÝ\ÜÚYÛ›Y[ÚÝ[\ÙS][[[™JšÈ\Ý‘^ŠH›ÛÛÂ‚ZYˆ^™\ÜÚ[ÛÛÛZ[œÑ[˜Ý[Û•˜[YJšÊHÂ‚B\™]\›ˆYB‚_B‚\™]\›ˆÙ[XÝÜÛÛ™P\ÜÚYÛ›Y[˜[YTÚÝ[\ÙS][[[™JšÊBŸB‚™[˜ÈÙ[XÝÜÛÛ™P\ÜÚYÛ›Y[˜[YTÚÝ[\ÙS][[[™JšÈ\Ý‘^ŠH›ÛÛÂ‚ZYˆS™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\Ù[ÚÈH[Ü˜\\™[œÊšÊKŠ
+˜\Ý”Ù[XÝÜ‘^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆËÚÈHY]Ù^™\ÜÚ[Û”ÚYÛ˜]\™JÙ[
+NÈÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\Ù[XÝÜÚZ[ÛÛZ[œÐØ[
+Ù[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÙ[XÝÜ”Þ[^˜[YS™YYÐÛÛ™JÙ[
+HÂ‚B\™]\›ˆYB‚_B‚ZYˆ\Ñ^™\ÜÚ[Û”™\Ý[˜\™JÙ[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ\ÐÛÛ™XX›S›Û”Ú[\‘^ŠÙ[
+BŸB‚™[˜ÈÙ[XÝÜÚZ[ÛÛZ[œÐØ[
+Ù[
+˜\Ý”Ù[XÝÜ‘^ŠH›ÛÛÂ‚Y›Ý[™H˜[ÙB‚X\Ý’[œÜXÝ
+Ù[–[˜Ê›ÙH\Ý“›ÙJH›ÛÛÂ‚BZYˆ›Ý[™Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BZYˆËÚÈH›ÙKŠ
+˜\ÝØ[^ŠNÈÚÈÂ‚BBY›Ý[™HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ›Ý[™ŸB‚™[˜ÈÜ˜\YÛÝ\ÜÚYÛ›Y[’Ò\ÕÜ˜\Y˜\ŠšÈ\Ý‘^ŠH›ÛÛÂ‚\šÒY[ÚÈHšËŠ
+˜\Ý’Y[
+B‚ZYˆ[ÚÈšÒY[“˜[YHOHYHˆšÒY[“˜[YHOH™˜[ÙHˆšÒY[“˜[YHOH›š[ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\Ô˜[™ÙHH˜[™ÙSÛÜ˜\œÖÜšÒY[“˜[YWNÈ\Ô˜[™ÙHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÐÛÛœÝHØØ[ÛÛœÝ[ÖÜšÒY[“˜[YWNÈ\ÐÛÛœÝÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆZ\ÐÛÛœÝY[
+šÒY[
+H	‰ˆZ\Õ˜\˜\™JšÒY[“˜[YJBŸB‚™[˜ÈÜš]T™YÝ[\•Ü˜\YÛÝ\ÜÚYÛ›Y[˜[YJÝ]
+œÝš[™ÜËZ[\‹È\Ý‘^‹šÈ\Ý‘^‹šÒ\ÕÜ˜\Y˜\ˆ›ÛÛ
+HÂ‚ZYˆÜš]PÝ\œ™[™XÙZ]™\\ÜÚYÛ›Y[˜[YJÝ]šÊHÂ‚BKËÈY]Ù™XÙZ]™\œÈ\™H\ÝÙ[‹›ÝÜ˜\YØØ[È˜[YYY\ˆHÛÈ™XÙZ]™\‹‚‚_H[ÙHYˆšÒ\ÕÜ˜\Y˜\ˆÂ‚BKËÈ\ÙHÛÛ™HÈ]›ÚY[Ýš[™È›Û‹PÛÜH\\ÈZÙHÝš[™Ë‚‚B\šÒY[HšËŠ
+˜\Ý’Y[
+B‚B\šÕ˜\“˜[YHH\ÝY[›Ü•\ÙJšÒY[
+B‚BZYˆÝ\œ™[Ø\\™T™[˜[Y\ÈOHš[Â‚BBZYˆ™[˜[YY^\ÝÈHÝ\œ™[Ø\\™T™[˜[Y\ÖÜšÒY[“˜[YWNÈ^\ÝÈÂ‚BBB\šÕ˜\“˜[YHH\ÝØØ[Y[
+™[˜[YY
+B‚BB_B‚B_B‚BZYˆÛÜPØ[Û›ÝÛˆHÛÕ˜[YPÛÜPØ[›Ü‘^ŠšÒY[
+NÈÛ›ÝÛˆÂ‚BB[Ý]•Üš]TÝš[™ÊšÕ˜\“˜[YJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+HŠB‚BB[Ý]•Üš]TÝš[™ÊÛÜPØ[
+B‚B_H[ÙHÂ‚BB[Ý]•Üš]TÝš[™ÊÛÕ˜[YPÛÜS™YYÕ\R[™›ÊB‚B_B‚_H[ÙHYˆÜš]S˜[YY[YÙ\\ÜÚYÛ›Y[˜[YJÝ]šÊHÂ‚BKËÈ˜[YY[YÙ\ˆ\š]Y]XÈ™]\›œÈH[™\›Z[™ÈØØ[\ŽÈ\ÜÚYÛ›Y[ÈÝÜ™HH˜[YY˜[YH[ˆH^\Ý[™ÈÜ˜\\‹‚‚_H[ÙHYˆÜš]PÛÛœÝ\ÜÚYÛ›Y[˜[YJÝ]ËšÊHÂ‚BKËÈÛÛœÝ[È\ÜÚYÛ™YÈÜ˜\YÛÝÈ™YYH\™Ù]\Hœ›ÛHÛËÝ\\Ë‚‚_H[ÙHYˆÜš]Pž]PÛÛœÝ\ÜÚYÛ›Y[˜[YJÝ]ËšÊHÂ‚BKËÈž]HÛÛœÝ[È\ÜÚYÛ™YÈž]HÛÝÈ™YYHØ[YHÛËÝ\\ÈÛÛ^\ÈØ[\™Ý[Y[Ë‚‚_H[ÙHYˆÜš]T˜[™ÙR[™^\ÜÚYÛ›Y[˜[YJÝ]ËšÊHÂ‚BKËÈ˜[™ÙH[™^\È[Z]\Ú^™K]ÛÈ[\ÜÚYÛ›Y[\™Ù]È\ÙHLÌ‹‚‚_H[ÙHYˆÜš]T˜[™ÙPÚ\\ÜÚYÛ›Y[˜[YJÝ]ËšÊHÂ‚BKËÈÝš[™È˜[™ÙH[™\È\™H\ÝÚ\ˆ]ÛÈ[™H\™Ù]È\™HLÌ‹‚‚_H[ÙHYˆšÒY[ÚÈHšËŠ
+˜\Ý’Y[
+NÈÚÈ	‰ˆÜš]SÝÛ™Y˜[™ÙU˜[YJÝ]šÒY[
+HÂ‚BKËÈ™Y™\™[˜ÙK\Ý[H˜[™ÙH˜[Y\È]\Ý™HÛÛ™Y[ÈÜ™[˜\žHÜ˜\Y\ÜÚYÛ›Y[\™Ù]Ë‚‚_H[ÙHYˆÜš]SÝÛ™Y^™\ÜÚ[Û•˜[YJÝ]šÊHÂ‚BKËÈÛÜYYžH˜[YHœ›ÛH[ˆ^\Ý[™ÈÜ˜\YšY[Üˆ[™K‚‚_H[ÙHYˆÜš]U˜[YSÙ•˜\šXX›P\ÑÛÐÛÜJÝ]šÊHÂ‚BKËÈHÝXÝ˜\šXX›H\ÈÛÜYY[ÈHÛÝ‚‚_H[ÙHYˆÜš]QÛÕ˜[YPÛÜSÙ‘[[Y[
+Ý]šÊHÂ‚BKËÈÛÈ\È[ˆ[[Y[ÙˆHÛXÙHÜˆ[ˆ\œ˜^K[™H\™Ù]ÙˆHÚ[\‹‚‚_H[ÙHÂ‚BU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]šÊB‚_BŸB‚™[˜È\R\Ô™YXÛ\™Y]]X›P˜\™TØØ[\Š\\Ë•\JH›ÛÛÂ‚]H\\Ë•[˜[X\Ê
+B‚X˜\ÚXËÚÈHŠ
+\\Ë˜\ÚXÊB‚ZYˆ[ÚÈ˜\ÚXË’Ú[™
+
+HOH\\Ë›ÛÛÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ˜\ÚXÒÚ[™\ÐÛÜTØØ[\Š˜\ÚXË’Ú[™
+
+JBŸB‚™[˜È˜\™TØØ[\“]]][Û•\™Ù]
+^ˆ\Ý‘^ŠH
+
+˜\Ý’Y[\\Ë•\K›ÛÛ
+HÂ‚ZY[ÚÈH^‹Š
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH—ÈˆZ\Õ˜\˜\™JY[“˜[YJHÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆš[š[˜[ÙB‚_B‚]H\R[™›Ë‘Ù]\J^ŠB‚ZYˆ]\R\Ô™YXÛ\™Y]]X›P˜\™TØØ[\Š
+HÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚\™]\›ˆY[YBŸB‚™[˜ÈÜš]P˜\™TØØ[\ÛÛ\Ý[™\ÜÚYÛŠÝ]
+œÝš[™ÜËZ[\‹È\Ý‘^‹ÜÚÙ[‹•ÚÙ[‹šÈ\Ý‘^ŠH›ÛÛÂ‚ZY[^XÝYÚÈH˜\™TØØ[\“]]][Û•\™Ù]
+ÊB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]•Üš]TÝš[™ÊžÈ]×ÜšÈHŠB‚]Üš]P˜\™PÛÛ\Ý[™\ÜÚYÛ•˜[YQ›Ü“Ü
+Ý]šË^XÝYÜ
+B‚[Ý]•Üš]TÝš[™ÊŽÈŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™ÊˆHŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™ÊˆŠB‚]Üš]PÛÛ\Ý[™\ÜÚYÛ“Ü\˜]ÜŠÝ]Ü
+B‚[Ý]•Üš]TÝš[™Êˆ×ÜšÎÈHŠB‚\™]\›ˆYBŸB‚™[˜È˜\™Q^\›˜[[YÙ\“]]][Û•\™Ù]
+^ˆ\Ý‘^ŠH
+
+˜\Ý’Y[
+\\Ë“˜[YY›ÛÛ
+HÂ‚ZY[ÚÈH^‹Š
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH—ÈˆZ\Õ˜\˜\™JY[“˜[YJHÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆš[š[˜[ÙB‚_B‚[˜[YYÚÈH\\Ë•[˜[X\Ê\R[™›Ë‘Ù]\J^ŠJKŠ
+\\Ë“˜[YY
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚ZYˆËÚÈH^\›˜[[YÙ\”\Ý\Q›Ü“˜[YY
+˜[YY
+NÈ[ÚÈÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚\™]\›ˆY[˜[YYYBŸB‚™[˜ÈÜš]P˜\™Q^\›˜[[YÙ\ÛÛ\Ý[™\ÜÚYÛŠÝ]
+œÝš[™ÜËZ[\‹È\Ý‘^‹ÜÚÙ[‹•ÚÙ[‹šÈ\Ý‘^ŠH›ÛÛÂ‚ZY[˜[YYÚÈH˜\™Q^\›˜[[YÙ\“]]][Û•\™Ù]
+ÊB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]•Üš]TÝš[™ÊžÈ]×ÜšÈHŠB‚]Üš]P˜\™PÛÛ\Ý[™\ÜÚYÛ•˜[YQ›Ü“Ü
+Ý]šË˜[YYÜ
+B‚[Ý]•Üš]TÝš[™ÊŽÈŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™ÊˆHŠB‚[Ý]•Üš]TÝš[™ÊÛÕ\\Ó˜[YY\UÔ\Ý
+˜[YY
+JB‚[Ý]•Üš]TÝš[™ÊŠŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™Ê‹ŒŠB‚]Üš]PÛÛ\Ý[™\ÜÚYÛ“Ü\˜]ÜŠÝ]Ü
+B‚[Ý]•Üš]TÝš[™Êˆ×ÜšÊNÈHŠB‚\™]\›ˆYBŸB‚™[˜È˜\™S˜[YY[YÙ\“]]][Û•\™Ù]
+^ˆ\Ý‘^ŠH
+
+˜\Ý’Y[
+\\Ë“˜[YY›ÛÛ
+HÂ‚ZY[ÚÈH^‹Š
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH—ÈˆÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚ZYˆZ\Õ˜\˜\™JY[“˜[YJHÂ‚BZYˆË\Ô˜[™ÙU˜\ˆH˜[™ÙSÛÜ˜\œÖÚY[“˜[YWNÈZ\Ô˜[™ÙU˜\ˆÂ‚BB\™]\›ˆš[š[˜[ÙB‚B_B‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆš[š[˜[ÙB‚_B‚[˜[YYÚÈH\\Ë•[˜[X\Ê\R[™›Ë‘Ù]\J^ŠJKŠ
+\\Ë“˜[YY
+B‚ZYˆ[ÚÈZ\Ó˜[YY[YÙ\•\J˜[YY
+HÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚ZYˆËÚÈH^\›˜[[YÙ\”\Ý\Q›Ü“˜[YY
+˜[YY
+NÈÚÈÂ‚B\™]\›ˆš[š[˜[ÙB‚_B‚\™]\›ˆY[˜[YYYBŸB‚™[˜ÈÜš]P˜\™S˜[YY[YÙ\ÛÛ\Ý[™\ÜÚYÛŠÝ]
+œÝš[™ÜËZ[\‹È\Ý‘^‹ÜÚÙ[‹•ÚÙ[‹šÈ\Ý‘^ŠH›ÛÛÂ‚ZY[˜[YYÚÈH˜\™S˜[YY[YÙ\“]]][Û•\™Ù]
+ÊB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]•Üš]TÝš[™ÊžÈ]×ÜšÈHŠB‚]Üš]P˜\™PÛÛ\Ý[™\ÜÚYÛ•˜[YQ›Ü“Ü
+Ý]šË˜[YYÜ
+B‚[Ý]•Üš]TÝš[™ÊŽÈŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™ÊˆHŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚[Ý]•Üš]TÝš[™ÊˆŠB‚]Üš]PÛÛ\Ý[™\ÜÚYÛ“Ü\˜]ÜŠÝ]Ü
+B‚[Ý]•Üš]TÝš[™Êˆ×ÜšÎÈHŠB‚\™]\›ˆYBŸB‚™[˜ÈÜš]P˜\™TØØ[\’[˜ÑXÊÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹ÜÚÙ[‹•ÚÙ[ŠH›ÛÛÂ‚ZY[\ÚÈH˜\™TØØ[\“]]][Û•\™Ù]
+^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\Ý\HŒH‚‚ZYˆ˜\ÚXËÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë˜\ÚXÊNÈÚÈÂ‚B\ÝÚ]Ú˜\ÚXË’Ú[™
+
+HÂ‚BXØ\ÙH\\Ë‘›Ø]Ì‹\\Ë‘›Ø]‚‚BB\Ý\HŒKŒ‚‚B_B‚_B‚[Ý]•Üš]TÝš[™ÊžÈŠB‚[Ý]•Üš]TÝš[™Ê\ÝY[›Ü•\ÙJY[
+JB‚ZYˆÜOHÚÙ[‹’SÈÂ‚B[Ý]•Üš]TÝš[™Êˆ
+ÏHŠB‚_H[ÙHÂ‚B[Ý]•Üš]TÝš[™ÊˆOHŠB‚_B‚[Ý]•Üš]TÝš[™ÊÝ\
+B‚[Ý]•Üš]TÝš[™ÊŽÈHŠB‚\™]\›ˆYBŸB‚™[˜È[˜ÑXÔÝ\›Ü•\J\\\Ë•\JHÝš[™ÈÂ‚ZYˆ˜\ÚXËÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë˜\ÚXÊNÈÚÈÂ‚B\ÝÚ]Ú˜\ÚXË’Ú[™
+
+HÂ‚BXØ\ÙH\\Ë‘›Ø]Ì‹\\Ë‘›Ø]‚‚BB\™]\›ˆŒKŒ‚‚B_B‚_B‚\™]\›ˆŒH‚ŸB‚™[˜ÈÜš]R[™^Y[˜ÑXÊÝ]
+œÝš[™ÜËZ[\‹[™^^ˆ
+˜\Ý’[™^^‹ÜÚÙ[‹•ÚÙ[ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B[Ý]•Üš]TÝš[™Ê‹ÊˆT”“ÔŽˆØ[››Ý]\›Z[™H[™^Y[˜ËÙXÈ\™Ù]H\H[™›Ü›X][Ûˆ™\]Z\™Y
+‹ÈŠB‚B\™]\›ˆYB‚_B‚ZYˆ\R[™›Ë’\ÓX\
+[™^^‹–
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚Y[[U\HH\R[™›Ë‘Ù]\œ˜^SÜ”ÛXÙQ[[U\J[™^^‹–
+B‚ZYˆ[[U\HOHš[Â‚B[Ý]•Üš]TÝš[™Ê‹ÊˆT”“ÔŽˆØ[››Ý]\›Z[™H[™^Y[˜ËÙXÈ[[Y[\HH\H[™›Ü›X][Ûˆ™\]Z\™Y
+‹È[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[™^Y[˜ËÙX×ŠHŠB‚B\™]\›ˆYB‚_B‚‚KËÈH[™^\È\™[\Ú\ÙY™Y›Ü™HHØ\ÝˆœÖÛ[ŠÊKLWJÊÈˆØ\ÝÛ›B‚KËÈHK[™Y›ÝÛÛ\[K‚‚[Ý]•Üš]TÝš[™ÊžÈ]×ÚYHŠB‚]Üš]Q^™\ÜÚ[Û\Õ\Ú^™JÝ][™^^‹’[™^
+B‚[Ý]•Üš]TÝš[™ÊŽÈŠB‚]Üš]R[™^YÙ\]Y[˜ÙS]]][Û‘ÝX\™
+Ý][™^^‹–
+B‚[Ý]•Üš]TÝš[™ÊŽÈ]×ÜÙ\HH×ÜÙ\WÙÝX\™˜\×Û]]
+
+K[Ü˜\
+
+NÈ×ÜÙ\V××ÚYHHŠB‚]Üš]R[™^YÝ\œ™[[[Y[˜[YJÝ][[U\JB‚[Ý]•Üš]TÝš[™ÊˆŠB‚ZYˆÜOHÚÙ[‹’SÈÂ‚B[Ý]•Üš]TÝš[™ÊŠÈŠB‚_H[ÙHÂ‚B[Ý]•Üš]TÝš[™Ê‹HŠB‚_B‚[Ý]•Üš]TÝš[™Ê[˜ÑXÔÝ\›Ü•\J[[U\JJB‚[Ý]•Üš]TÝš[™ÊŽÈHŠB‚\™]\›ˆYBŸB‚™[˜ÈÛÛ\ÜÚ]S]\˜[[Z]Ð˜\™TÝXÝ˜[YJ]
+˜\ÝÛÛ\ÜÚ]S]
+H›ÛÛÂ‚ZYˆ]OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆËÚÈH]•\KŠ
+˜\Ý”Ù[XÝÜ‘^ŠNÈ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\R[™›Ë‘Ù]\J]
+B‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\ÝÚ]Ú\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ\JHÂ‚XØ\ÙH
+\\Ë”ÝXÝ
+\\Ë\œ˜^N‚‚B\™]\›ˆYB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚‹ËÈÜš]P[žP›Þ[›™\•˜[YH[Z]ÈHÝÛ™YÛÛ˜Ü™]H˜[YHÈ›Þ[ÈH›Þ[‚‹ËÈ[žO‹[Ü˜\[™ÈHÜ˜\Y˜\šXX›HÜˆÜ˜\Y\™]\›š[™ÈØ[ÜˆÝš\[™Â‹ËÈHÜ˜\\ˆÙ™ˆH]\˜[Ù^™\ÜÚ[Û‹‚™[˜ÈÜš]P[žP›Þ[›™\•˜[YJÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^ŠHÂ‚ZYˆY[ÚÈH^‹Š
+˜\Ý’Y[
+NÈÚÈÂ‚B\ÝÚ]ÚY[“˜[YHÂ‚BXØ\ÙH›š[‹YH‹™˜[ÙHŽ‚‚BYY˜][‚‚BBZYˆË\ÐÛÛœÝHØØ[ÛÛœÝ[ÖÚY[“˜[YWNÈZ\ÐÛÛœÝÂ‚BBBZYˆË\Ô˜[™ÙHH˜[™ÙSÛÜ˜\œÖÚY[“˜[YWNÈZ\Ô˜[™ÙHÂ‚BBBB[Ý]•Üš]TÝš[™ÊŠ
+ˆŠB‚BBBB[Ý]•Üš]TÝš[™Ê\ØØ\T\ÝY[
+Y[“˜[YJJB‚BBBBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BBBB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JK˜ÛÛ™J
+HŠB‚BBBB\™]\›‚‚BBB_B‚BB_B‚B_B‚_B‚ZYˆØ[ÚÈH^‹Š
+˜\ÝØ[^ŠNÈÚÈÂ‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[	‰ˆ\R[™›Ë”™]\›œÕÜ˜\Y˜[YJØ[
+H	‰ˆZ\Ð˜\™PZ[[”™]\›ŠØ[
+H	‰ˆ
+]\R[™›Ë’\Õ\PÛÛ™\œÚ[ÛŠØ[
+H\PÛÛ™\œÚ[Û‘[Z]ÕÜ˜\Y˜[YJØ[
+JHÂ‚BB[Ý]•Üš]TÝš[™ÊŠ
+ˆŠB‚BBU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]Ø[
+B‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JK˜ÛÛ™J
+HŠB‚BB\™]\›‚‚B_B‚_B‚]˜\ˆYˆÝš[™ÜËZ[\‚‚U˜[œÜ[Q^™\ÜÚ[ÛŠ	˜Y‹^ŠB‚\ÈHY‹”Ýš[™Ê
+B‚]Ü˜\™Yš^HÙ]Ý]\•Ü˜\\•\J
+H
+ÈŽŽ›™]Êˆ
+ÈÙ][›™\•Ü˜\\•\J
+H
+ÈŽŽ›™]ÊÛÛYJ‚‚]Ü˜\ÝY™š^HŠJJH‚‚ZYˆÝš[™ÜË’\Ô™Yš^
+ËÜ˜\™Yš^
+H	‰ˆÝš[™ÜË’\ÔÝY™š^
+ËÜ˜\ÝY™š^
+HÂ‚B[Ý]•Üš]TÝš[™ÊÖÛ[ŠÜ˜\™Yš^
+Hˆ[ŠÊK[[ŠÜ˜\ÝY™š^
+WJB‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™ÊÊBŸB‚‹ËÈÜš]P˜\™P[žP›Þ[Z]È›ÞŽ›™]Ê˜[YOŠH\È›Þ[ˆ[žK‹‹˜›Þ[™ÈHÛÛ˜Ü™]B‹ËÈ^ˆ[ÈH˜\™H›Þ[ˆ[žOˆ˜Z]Øš™XÝ
+H[[Y[ÛÝÙˆH×X[žKÚXÚ‹ËÈÝÜ™\È˜\™H›Þ\ÊK‚™[˜ÈÜš]P˜\™P[žP›Þ
+Ý]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^ŠHÂ‚ZYˆÜš]TÝX’[\™˜XÙU\PÛÛ™\œÚ[Û[žP›Þ
+Ý]^ŠHÂ‚B\™]\›‚‚_B‚KËÈ[ˆ\œ›ÜˆÛÙ\È[ÈH×X[žH[[Y[HØ^H]ÛÙ\È[È[žHÝ\‚‚KËÈ[\™˜XÙH˜[YK‚‚ZYˆÜš]QÛÑ\œ›Ü’[\™˜XÙP[žP›Þ
+Ý]^ŠHÂ‚B\™]\›‚‚_B‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BT™YÚ\Ý\[žPÛÛ™U\J\R[™›Ë‘Ù]\J^ŠJB‚_B‚[Ý]•Üš]TÝš[™Ê›ÞŽ›™]ÊŠB‚KËÈH˜[YH]ÙY\È]È[™HÚ[ˆ›ÞYÙY\È][ˆH×X[žH[[Y[‚KËÈÛËHØ[YH\È]™\žHÝ\ˆØ^HÙˆÝÜš[™È][ˆ[ˆ[\™˜XÙK‚‚ZYˆ]Üš]P[žR[™P›Þ[›™\•˜[YJÝ]^ŠH	‰ˆ]Üš]QYš[™YÛÛXÝ[Û“ÝÛ™Y˜[YJÝ]^ŠHÂ‚B]Üš]P[žP›Þ[›™\•˜[YJÝ]^ŠB‚_B‚[Ý]•Üš]TÝš[™ÊŠH\ÈŠB‚[Ý]•Üš]TÝš[™Ê\Ý[žU˜Z]Øš™XÝ
+
+JBŸB‚™[˜ÈÜš]P\œ˜^TÛXÙQ[[Y[\ÜÚYÛ›Y[˜[YJÝ]
+œÝš[™ÜËZ[\‹šÈ\Ý‘^‹^XÝY\\Ë•\JHÂ‚ZYˆY[ÚÈHšËŠ
+˜\Ý’Y[
+NÈÚÈ	‰ˆY[“˜[YHOH›š[ˆ	‰ˆ\œ˜^TÛXÙQ[[Y[^XÝYÝÜ™\Ð˜\™PÛÛXÝ[ÛŠ^XÝY
+HÂ‚B[Ý]•Üš]TÝš[™Ê™\›Õ˜[YQ›Ü•\\Õ\J^XÝY
+JB‚B\™]\›‚‚_B‚ZYˆY[ÚÈHšËŠ
+˜\Ý’Y[
+NÈÚÈ	‰ˆY[“˜[YHOH›š[ˆ	‰ˆ\Õ[œØY™TÚ[\“ZÙU\J^XÝY
+HÂ‚B[Ý]•Üš]TÝš[™Ê™\›Õ˜[YQ›Ü•\\Õ\J^XÝY
+JB‚B\™]\›‚‚_B‚ZYˆ\ÑÛÑ\œ›Ü•\J^XÝY
+H	‰ˆÜš]QÛÑ\œ›Ü’[™U˜[YJÝ]šÊHÂ‚B\™]\›‚‚_B‚ZYˆÜš]U\T\˜[P\œ˜^TÛXÙQ[[Y[\ÜÚYÛ›Y[˜[YJÝ]šË^XÝY
+HÂ‚B\™]\›‚‚_B‚KËÈH×X[žH[[Y[ÛÝÝÜ™\ÈH˜\™H›Þ[ˆ[žOŽÈ›ÞHÛÛ˜Ü™]H˜[YH[Â‚KËÈ]ˆ
+H˜[YH[™XYHÙˆ[\™˜XÙH\H\È[™YžHHØØ[ÜÝX‚‚KËÈ[\™˜XÙH]ÈÜˆHÙ[™\šXÈÛÛ™H™[ÝËŠB‚ZYˆ\Ñ[\R[\™˜XÙU\J^XÝY
+H	‰ˆZ\Ñ[\R[\™˜XÙU˜[YQ^ŠšÊHÂ‚BZY[\ÒY[HšËŠ
+˜\Ý’Y[
+B‚BZYˆZ\ÒY[Y[“˜[YHOH›š[ˆÂ‚BB]Üš]P˜\™P[žP›Þ
+Ý]šÊB‚BB\™]\›‚‚B_B‚_B‚ZYˆÜš]TÚ[\\œ˜^TÛXÙQ[[Y[\ÜÚYÛ›Y[˜[YJÝ]šË^XÝY
+HÂ‚B\™]\›‚‚_B‚ZYˆ^XÝYOHš[	‰ˆÜš]SØØ[[\™˜XÙQšY[˜[YJÝ]šËš[^XÝY
+HÂ‚B\™]\›‚‚_B‚ZYˆ^XÝYOHš[	‰ˆÜš]PÛÛœÝ^™\ÜÚ[Û‘›Ü‘^XÝYÛÕ\JÝ]šË^XÝY
+HÂ‚B\™]\›‚‚_B‚ZYˆÜš]P˜\™U˜[YQ›Ü•Ü˜\YÛÝ
+Ý]šÊHÂ‚B\™]\›‚‚_B‚ZYˆ^XÝYOHš[Â‚BZYˆ˜[YYÚÈH\\Ë•[˜[X\Ê^XÝY
+KŠ
+\\Ë“˜[YY
+NÈÚÈ	‰ˆÜš]S˜[YY[YÙ\•˜[YQ›Ü‘^XÝY
+Ý]šË˜[YY
+HÂ‚BB\™]\›‚‚B_B‚_B‚ZYˆ^XÝYOHš[	‰ˆÜš]T˜[™ÙPÚ\‘›Ü‘^XÝY\JÝ]šË^XÝY
+HÂ‚B\™]\›‚‚_B‚‚ZYˆY[ÚÈHšËŠ
+˜\Ý’Y[
+NÈÚÈÂ‚BZYˆ˜\•\K\Ô˜[™ÙU˜\ˆH˜[™ÙSÛÜ˜\œÖÚY[“˜[YWNÈ\Ô˜[™ÙU˜\ˆ	‰ˆ˜\•\HOH\Ú^™HˆÂ‚BBZYˆ^XÝYOHš[Â‚BBBZYˆ˜\ÚXËÚÈH\\Ë•[˜[X\Ê^XÝY
+K•[™\›Z[™Ê
+KŠ
+\\Ë˜\ÚXÊNÈÚÈ	‰ˆ˜\ÚXË’Ú[™
+
+HOH\\Ë’[Â‚BBBB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+Y[“˜[YJJB‚BBBB[Ý]•Üš]TÝš[™Êˆ\ÈLÌˆŠB‚BBBB\™]\›‚‚BBB_B‚BB_B‚B_B‚BZYˆ˜\•\K\Ô˜[™ÙU˜\ˆH˜[™ÙSÛÜ˜\œÖÚY[“˜[YWNÈ\Ô˜[™ÙU˜\ˆ	‰ˆÝš[™ÜË’\Ô™Yš^
+˜\•\K‰ˆŠHÂ‚BB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+Y[“˜[YJJB‚BB[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+HŠB‚BB\™]\›‚‚B_B‚_B‚‚KËÈHÝXÝ[[ˆH˜\šXX›KÜˆ™XYœ›ÛHœÖÚWHˆÜˆŠœ‹\ÈÛÜYY[Â‚KËÈH[[Y[ˆH[[Y[[™]ÈÛÝ\˜ÙH\™HÛÈ˜[Y\Èœ›ÛH\™HÛ‹‚‚ZYˆÜš]U˜[YSÙ•˜\šXX›P\ÑÛÐÛÜJÝ]šÊHÜš]QÛÕ˜[YPÛÜSÙ‘[[Y[
+Ý]šÊHÂ‚B\™]\›‚‚_B‚‚[™YYÕ[Ü˜\H˜[ÙB‚ZYˆËÚÈHšËŠ
+˜\Ý”ÛXÙQ^ŠNÈÚÈÂ‚BKËÈHÛXÙH^™\ÜÚ[ÛˆÝÙ\œÈÈHÜ˜\Y[™K]H˜[YK]\Y‚BKËÈÛXÙKØ\œ˜^H[[Y[ÛÝ
+K™ËˆH[›™\ˆ×Xž]HÙˆ×V×Xž]JHÝÜ™\ÈB‚BKËÈ˜]È™XËÛÈHÜ˜\YÛXÙH˜[YH]\Ý™H[Ü˜\YÈX]Ú]‚BKËÈ
+LÌÝ\Ú\ÙJKˆHÚ[\‹H[™[\™˜XÙKY[[Y[Ø\Ù\È\™B‚BKËÈ[™XYH[™YžHH[\œÈX›Ý™H\ÈÚ[‚‚B[™YYÕ[Ü˜\HYB‚_H[ÙHYˆËÚÈHšËŠ
+˜\ÝÛÛ\ÜÚ]S]
+NÈÚÈ	‰ˆ\œ˜^TÛXÙQ[[Y[^XÝYÝÜ™\Ð˜\™PÛÛXÝ[ÛŠ^XÝY
+HÂ‚B[™YYÕ[Ü˜\HYB‚_H[ÙHYˆØ[ÚÈHšËŠ
+˜\ÝØ[^ŠNÈÚÈÂ‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\[™Ø[™]\›œÐ˜\™R[™^YÛXÙJØ[
+HÂ‚BB[™YYÕ[Ü˜\H˜[ÙB‚B_H[ÙHYˆØ[™]\›œÐ˜\™TØØ[\ŠØ[
+HÂ‚BBKËÈØ[ÈÚÜÙHÙ[™\˜]YÚYÛ˜]\™H[™XYH™]\›œÈH˜\™HØØ[\‚‚BBKËÈÛ‰Ý™YY˜›Üœ›ÝÊ
+K˜\×Ü™YŠ
+K[Ü˜\
+
+H]H\ÜÚYÛ›Y[Ú]K‚‚BB[™YYÕ[Ü˜\H˜[ÙB‚B_H[ÙHYˆ\R[™›ÈOHš[	‰ˆ\R[™›Ë”™]\›œÕÜ˜\Y˜[YJØ[
+H	‰ˆ
+]\R[™›Ë’\Õ\PÛÛ™\œÚ[ÛŠØ[
+H\PÛÛ™\œÚ[Û‘[Z]ÕÜ˜\Y˜[YJØ[
+JHÂ‚BB[™YYÕ[Ü˜\HYB‚B_H[ÙHYˆ\R[™›ÈOHš[	‰ˆ\R[™›Ë’\Õ\PÛÛ™\œÚ[ÛŠØ[
+HÂ‚BBKËÈ\KYš]™[ˆÛÛ™\œÚ[ÛœÈ][Z]˜\™H˜[Y\ËÝXÚ\ÈÛÜ™
+
+K‚BBKËÈ[™XYHX]Ú˜[YK]\Y[[Y[ÛÝË‚‚BB[™YYÕ[Ü˜\H˜[ÙB‚B_H[ÙHYˆY[ÚÈHØ[‘[‹Š
+˜\Ý’Y[
+NÈÚÈÂ‚BBZYˆZ\ÐZ[[Ø[\™Ù]
+Y[
+H	‰ˆZ\Ñ[˜Ý[Û“˜[YJY[
+HÂ‚BBB[™YYÕ[Ü˜\HYB‚BB_B‚B_B‚_B‚‚ZYˆ™YYÕ[Ü˜\Â‚B[Ý]•Üš]TÝš[™ÊŠ
+ˆŠB‚BU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]šÊB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JK˜ÛÛ™J
+HŠB‚_H[ÙHÂ‚BU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]šÊB‚_BŸB‚™[˜È[™^YÙ\]Y[˜ÙQ[[Y[\ÜÚYÛ›Y[\J\R[™›È
+•\R[™›Ë[™^^ˆ
+˜\Ý’[™^^ŠH\\Ë•\HÂ‚ZYˆ\R[™›ÈOHš[[™^^ˆOHš[Â‚B\™]\›ˆš[‚_B‚ZYˆ[[U\HH\R[™›Ë‘Ù]\œ˜^SÜ”ÛXÙQ[[U\T™\Ù\š[™Õ\T\˜[J[™^^‹–
+NÈ[[U\HOHš[Â‚B\™]\›ˆ[[U\B‚_B‚\™]\›ˆ\R[™›Ë‘Ù]\J[™^^ŠBŸB‚™[˜È\œ˜^TÛXÙQ[[Y[^XÝYÝÜ™\Ð˜\™PÛÛXÝ[ÛŠ^XÝY\\Ë•\JH›ÛÛÂ‚ZYˆ^XÝYOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\ÝÚ]Ú\\Ë•[˜[X\Ê^XÝY
+K•[™\›Z[™Ê
+KŠ\JHÂ‚XØ\ÙH
+\\Ë”ÛXÙK
+\\Ë“X\‚‚B\™]\›ˆYB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÜš]U\T\˜[P\œ˜^TÛXÙQ[[Y[\ÜÚYÛ›Y[˜[YJÝ]
+œÝš[™ÜËZ[\‹šÈ\Ý‘^‹^XÝY\\Ë•\JH›ÛÛÂ‚ZYˆËÚÈH\\Ë•[˜[X\Ê^XÝY
+KŠ
+\\Ë•\T\˜[JNÈ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZY[ÚÈHšËŠ
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH—ÈˆY[“˜[YHOH›š[ˆ\ÐÛÛœÝY[
+Y[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚[˜[YHH\ÝY[›Ü•\ÙJY[
+B‚ZYˆ˜\•\K\Ô˜[™ÙU˜\ˆH˜[™ÙSÛÜ˜\œÖÚY[“˜[YWNÈ\Ô˜[™ÙU˜\ˆ	‰ˆ\ÕÜ˜\Y˜[™ÙU˜\•\J˜\•\JHÂ‚BZYˆÝš[™ÜË’\Ô™Yš^
+˜\•\K‰ˆŠHÂ‚BB[Ý]•Üš]TÝš[™ÊŠ
+ˆŠB‚BB[Ý]•Üš]TÝš[™Ê˜[YJB‚BB[Ý]•Üš]TÝšuç=æÚ$z{-®éÜj×e cc.Body {
 						out.WriteString("        ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						out.WriteString("\n")

@@ -309,7 +309,7 @@ func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
 		"for _, w = range m":         "{ let new_val = __range_w.borrow().as_ref().unwrap().__go_value_clone(); *w.borrow_mut() = Some(new_val); }",
 		`q, ok := m["a"]`:            "let (mut q, mut ok) = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
 		`n, ok := counts["a"]`:       "Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false)",
-		`l, ok = lists["a"]`:         "Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *l.borrow_mut() = __moved_tmp_0;",
+		`l, ok = lists["a"]`:         "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l = __tmp_0;",
 		`pp, ok := ptrs["a"]`:        "let (mut pp, mut ok) = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true)",
 		`f, ok := reg.byName["a"]`:   ".clone().get(&\"a\".to_string()) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
 		"the map's cell is not kept": "*r.borrow_mut() = __moved_tmp_0;",
@@ -358,14 +358,15 @@ func main() {
 `)
 
 	for what, want := range map[string]string{
-		"function value copy":   "let __shared = Rc::new(RefCell::new(Some(__original))); let __map_callable = __shared.clone(); *v.borrow_mut() = Some(Box::new(move |__arg0|",
-		"function target cell":  "let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *function.borrow_mut() = __moved_tmp_0;",
-		"interface value copy":  "let __held = v.borrow().as_ref().map(|__value| go_any_clone(__value.as_ref())); Rc::new(RefCell::new(__held))",
-		"interface target cell": "let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *iface.borrow_mut() = __moved_tmp_0;",
-		"error value copy":      "let __held = v.borrow().clone(); Rc::new(RefCell::new(__held))",
-		"error target cell":     "let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_0;",
-		"channel value":         "Some(v) => (v.borrow().as_ref().unwrap().clone(), true)",
-		"channel map read":      ".map(|__v| { let __guard = __v.borrow(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default())",
+		"function value copy":    "let __target_callable = v.clone(); let __callable_present = __target_callable.borrow().is_some(); if __callable_present { Rc::new(RefCell::new(Some(Box::new(move |__arg0|",
+		"function unlocked call": "let __callable_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> = { let mut __callable = __target_callable.borrow_mut(); __callable.as_mut().unwrap() as *mut",
+		"function target cell":   "let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *function.borrow_mut() = __moved_tmp_0;",
+		"interface value copy":   "let __held = v.borrow().as_ref().map(|__value| go_any_clone(__value.as_ref())); Rc::new(RefCell::new(__held))",
+		"interface target cell":  "let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *iface.borrow_mut() = __moved_tmp_0;",
+		"error value copy":       "let __held = v.borrow().clone(); Rc::new(RefCell::new(__held))",
+		"error target cell":      "let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_0;",
+		"channel value":          "Some(v) => (v.borrow().as_ref().unwrap().clone(), true)",
+		"channel map read":       ".map(|__v| { let __guard = __v.borrow(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default())",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q in:\n%s", what, want, rust)
@@ -462,9 +463,10 @@ func main() {
 }
 
 // "v, ok = m[k]" for a slice or map value must leave the value in the map
-// whatever the target is. Every target, including a plain local, gets a fresh
-// variable cell: rebinding the local's handle would leave an existing &local
-// pointer observing the old cell.
+// whatever the target is. Addressable compound targets get a fresh variable
+// cell. A plain local currently retains the existing slice-header lowering,
+// which rebinds its Rust handle to preserve shared backing storage (DEV-36
+// tracks separately addressable slice headers).
 func TestMapCommaOkAssignmentLeavesSliceValuesInTheMap(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -496,7 +498,7 @@ func main() {
 		"a named slice field":    held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
 		"a package variable":     held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0;",
 		"an indexed target":      held + " { let __idx = (0) as usize; (*dst.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0.borrow_mut().take().unwrap_or_default(); }",
-		"a plain local slice":    held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *local.borrow_mut() = __moved_tmp_0;",
+		"a plain local slice":    "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; local = __tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)

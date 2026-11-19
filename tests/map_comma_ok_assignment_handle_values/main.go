@@ -5,6 +5,19 @@ import (
 	"fmt"
 )
 
+var recursiveFunctions map[string]func(int) int
+
+func recursiveCall(n int) int {
+	if n == 0 {
+		return 0
+	}
+	next, found := recursiveFunctions["k"]
+	if !found || next == nil {
+		return -100
+	}
+	return 1 + next(n-1)
+}
+
 // A two-result map read copies the function, interface, error, or channel
 // handle into an existing variable. It must not take that handle out of the
 // map's own value cell.
@@ -24,6 +37,13 @@ func main() {
 	fmt.Println("function repeated", function("new ") == "new function", functions["k"]("map ") == "map function", &function == functionPointer)
 	function, ok = functions["missing"]
 	fmt.Println("function missing", ok, function == nil, functions["k"]("map ") == "map function", &function == functionPointer)
+	nilFunctions := map[string]func(){"k": nil}
+	var nilFunction func()
+	nilFunction, ok = nilFunctions["k"]
+	fmt.Println("function nil", ok, nilFunction == nil, nilFunctions["k"] == nil)
+	recursiveFunctions = map[string]func(int) int{"k": recursiveCall}
+	recur, ok := recursiveFunctions["k"]
+	fmt.Println("function recursive", ok, recur(4), recursiveFunctions["k"](3))
 
 	interfaces := map[string]any{"k": "interface"}
 	var iface any = "old interface"
@@ -45,4 +65,13 @@ func main() {
 	channel := make(chan int)
 	channel, ok = channels["k"]
 	fmt.Println("channel", ok, channel != nil, channels["k"] != nil)
+	channelValues := map[string]chan int{"copy": channels["k"]}
+	shortChannel, shortOK := channelValues["copy"]
+	shortChannel, shortOK = channelValues["copy"]
+	fmt.Println("channel short", shortOK, shortChannel != nil)
+	channelInterfaces := map[string]any{"k": channels["k"]}
+	var channelInterface any
+	channelInterface, ok = channelInterfaces["k"]
+	channelInterface.(chan int) <- 17
+	fmt.Println("channel interface", ok, <-channelInterfaces["k"].(chan int))
 }

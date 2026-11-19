@@ -1,8 +1,12 @@
 function true true true true
 function repeated true true true
 function missing false true true true
+function nil true true true
+function recursive true 4 3
 interface true interface interface true
 interface missing false true interface true
 error true error error true
 error missing false true error true
 channel true true true
+channel short true true
+channel interface true 17

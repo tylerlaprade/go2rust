@@ -1015,6 +1015,9 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		}
 		return handleType, true
 	}
+	if channel, ok := typ.(*types.Chan); ok {
+		return goTypesTypeToRust(channel), true
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false

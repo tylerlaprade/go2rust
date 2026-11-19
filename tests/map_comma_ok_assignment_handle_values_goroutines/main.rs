@@ -21,6 +21,7 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<GoChannel<i32>>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
@@ -172,10 +173,39 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+pub(crate) static recursiveFunctions: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *recursiveFunctions.lock().unwrap() = Some(BTreeMap::new());
+}
+
+
+pub fn recursive_call(n: Arc<Mutex<Option<i32>>>) -> i32 {
+    if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+        return 0;
+    }
+    let (mut next, mut found) = { let __map = { let __map_holder = recursiveFunctions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); let __callable_present = __target_callable.lock().unwrap().is_some(); if __callable_present { Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let __callable_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> = { let mut __callable = __target_callable.lock().unwrap(); __callable.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> }; let __callable = unsafe { &mut *__callable_ptr }; (*__callable)(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>))) } else { Default::default() } }, true), None => (Default::default(), false) } };
+    if !found || { let __nil_result = (*next.lock().unwrap()).is_none(); __nil_result } {
+        return -(100);
+    }
+    return { let __tmp_x = 1; let __tmp_y = {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> = {
+            let mut __f_guard = next.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })))
+        )
+    }; __tmp_x + __tmp_y };
+}
+
 /// This is the concurrent-wrapper twin of the ordinary fixture. The map's
 /// entry must keep its handle when comma-ok assignment writes an existing
 /// variable.
 fn main() {
+    __go_init_all();
     let mut functions = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Box::new(move |prefix: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*prefix.lock().unwrap().as_ref().unwrap()).clone(); __v }, "function".to_string()))));
     }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))))]))));
@@ -184,7 +214,7 @@ fn main() {
     }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
     let mut functionPointer = function.clone();
     let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let mut __callable = __target_callable.lock().unwrap(); (*__callable.as_mut().unwrap())(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *function.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); let __callable_present = __target_callable.lock().unwrap().is_some(); if __callable_present { Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let __callable_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __callable = __target_callable.lock().unwrap(); __callable.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __callable = unsafe { &mut *__callable_ptr }; (*__callable)(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))) } else { Default::default() } }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *function.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
     println!("{} {} {} {} {}", format!("{}", "function".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = (*{
         let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = {
             let mut __f_guard = function.lock().unwrap();
@@ -203,7 +233,7 @@ fn main() {
     }));
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100000; __tmp_x < __tmp_y } {
-        { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let mut __callable = __target_callable.lock().unwrap(); (*__callable.as_mut().unwrap())(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *function.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); let __callable_present = __target_callable.lock().unwrap().is_some(); if __callable_present { Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let __callable_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __callable = __target_callable.lock().unwrap(); __callable.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __callable = unsafe { &mut *__callable_ptr }; (*__callable)(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))) } else { Default::default() } }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *function.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         std::panic::panic_any(Box::new("function disappeared during repeated map reads".to_string()) as Box<dyn Any + Send + Sync>);
     }
@@ -225,7 +255,7 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
     }));
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let mut __callable = __target_callable.lock().unwrap(); (*__callable.as_mut().unwrap())(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *function.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); let __callable_present = __target_callable.lock().unwrap().is_some(); if __callable_present { Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let __callable_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __callable = __target_callable.lock().unwrap(); __callable.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __callable = unsafe { &mut *__callable_ptr }; (*__callable)(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))) } else { Default::default() } }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *function.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
     println!("{} {} {} {} {}", format!("{}", "function missing".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*function.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = (*{ let __f_holder = { let __map = { let __map_holder = functions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some("map ".to_string())))) }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "map function".to_string(); __tmp_x == __tmp_y }), format!("{}", {
         let __left = function.clone();
         let __right = functionPointer.clone();
@@ -233,12 +263,28 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
     }));
+    let mut nilFunctions = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>::from([("k".to_string(), Arc::new(Mutex::new(None)))]))));
+    let mut nilFunction: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = nilFunctions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); let __callable_present = __target_callable.lock().unwrap().is_some(); if __callable_present { Arc::new(Mutex::new(Some(Box::new(move || { let __callable_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __callable = __target_callable.lock().unwrap(); __callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __callable = unsafe { &mut *__callable_ptr }; (*__callable)() }) as Box<dyn FnMut() -> () + Send + Sync>))) } else { Default::default() } }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *nilFunction.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+    println!("{} {} {} {}", format!("{}", "function nil".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*nilFunction.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*{ let __map = { let __map_holder = nilFunctions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).is_none(); __nil_result }));
+    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<i32>>>| -> i32 { recursive_call(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>))))])))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *recursiveFunctions.lock().unwrap() = new_val; };
+    let (mut recur, mut ok) = { let __map = { let __map_holder = recursiveFunctions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __target_callable = v.clone(); let __callable_present = __target_callable.lock().unwrap().is_some(); if __callable_present { Arc::new(Mutex::new(Some(Box::new(move |__arg0| { let __callable_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> = { let mut __callable = __target_callable.lock().unwrap(); __callable.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> }; let __callable = unsafe { &mut *__callable_ptr }; (*__callable)(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>))) } else { Default::default() } }, true), None => (Default::default(), false) } };
+    println!("{} {} {} {}", format!("{}", "function recursive".to_string()), format!("{}", ok), format!("{}", {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> = {
+            let mut __f_guard = recur.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            Arc::new(Mutex::new(Some(4)))
+        )
+    }), format!("{}", { let __f_holder = { let __map = { let __map_holder = recursiveFunctions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(3)))) }));
 
     let mut interfaces = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Box::new("interface".to_string()) as Box<dyn Any + Send + Sync>))))]))));
     let mut iface: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("old interface".to_string()) as Box<dyn Any + Send + Sync>)));
     let mut interfacePointer = iface.clone();
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = interfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().as_ref().map(|__value| go_any_clone(__value.as_ref())); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *iface.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
-    println!("{} {} {} {} {}", format!("{}", "interface".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = interfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().as_ref().map(|__value| go_any_clone(__value.as_ref())); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *iface.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
+    println!("{} {} {} {} {}", format!("{}", "interface".to_string()), format!("{}", ok), format!("{}", ({
         let val = iface.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -261,8 +307,8 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
     }));
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = interfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().as_ref().map(|__value| go_any_clone(__value.as_ref())); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *iface.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
-    println!("{} {} {} {} {}", format!("{}", "interface missing".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*iface.lock().unwrap()).is_none(); __nil_result }), format!("{}", ({
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = interfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().as_ref().map(|__value| go_any_clone(__value.as_ref())); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *iface.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
+    println!("{} {} {} {} {}", format!("{}", "interface missing".to_string()), format!("{}", ok), format!("{}", { let __nil_result = (*iface.lock().unwrap()).is_none(); __nil_result }), format!("{}", ({
         let val = { let __map = { let __map_holder = interfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -281,16 +327,16 @@ fn main() {
     let mut errorsByName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("error".to_string()))))))]))));
     let mut err = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("old error".to_string())))));
     let mut errorPointer = err.clone();
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().clone(); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
-    println!("{} {} {} {} {}", format!("{}", "error".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", {
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().clone(); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
+    println!("{} {} {} {} {}", format!("{}", "error".to_string()), format!("{}", ok), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", {
         let __left = err.clone();
         let __right = errorPointer.clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
     }));
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().clone(); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
-    println!("{} {} {} {} {}", format!("{}", "error missing".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", {
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().clone(); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
+    println!("{} {} {} {} {}", format!("{}", "error missing".to_string()), format!("{}", ok), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __map = { let __map_holder = errorsByName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", {
         let __left = err.clone();
         let __right = errorPointer.clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
@@ -300,6 +346,35 @@ fn main() {
 
     let mut channels = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<GoChannel<i32>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(GoChannel::<i32>::new_buffered(1 as usize)))))]))));
     let mut channel = GoChannel::<i32>::new();
-    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = channels.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.lock().unwrap().as_ref().unwrap().clone(), true), None => (Default::default(), false) } }; channel = __tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
-    println!("{} {} {} {}", format!("{}", "channel".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", !channel.is_nil()), format!("{}", !{ let __map = { let __map_holder = channels.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| { let __guard = __v.lock().unwrap(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default()) }.is_nil()));
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = channels.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.lock().unwrap().as_ref().unwrap().clone(), true), None => (Default::default(), false) } }; channel = __tmp_0; ok = __tmp_1; };
+    println!("{} {} {} {}", format!("{}", "channel".to_string()), format!("{}", ok), format!("{}", !channel.is_nil()), format!("{}", !{ let __map = { let __map_holder = channels.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| { let __guard = __v.lock().unwrap(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default()) }.is_nil()));
+    let mut channelValues = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<GoChannel<i32>>>>>::from([("copy".to_string(), Arc::new(Mutex::new(Some({ let __map = { let __map_holder = channels.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| { let __guard = __v.lock().unwrap(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default()) }))))]))));
+    let (mut shortChannel, mut shortOK) = { let __map = { let __map_holder = channelValues.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"copy".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.lock().unwrap().as_ref().unwrap().clone(), true), None => (Default::default(), false) } };
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = channelValues.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"copy".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.lock().unwrap().as_ref().unwrap().clone(), true), None => (Default::default(), false) } }; shortChannel = __tmp_0; shortOK = __tmp_1; };
+    println!("{} {} {}", format!("{}", "channel short".to_string()), format!("{}", shortOK), format!("{}", !shortChannel.is_nil()));
+    let mut channelInterfaces = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Box::new({ let __map = { let __map_holder = channels.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| { let __guard = __v.lock().unwrap(); __guard.as_ref().cloned().unwrap_or_default() }).unwrap_or_else(|| Default::default()) }.clone()) as Box<dyn Any + Send + Sync>))))]))));
+    let mut channelInterface: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = channelInterfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"k".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().as_ref().map(|__value| go_any_clone(__value.as_ref())); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *channelInterface.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
+    ({
+        let val = channelInterface.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<GoChannel<i32>>().expect("type assertion failed").clone()
+        } else {
+            panic!("type assertion on nil interface")
+        }
+    }).send(17);
+    println!("{} {} {}", format!("{}", "channel interface".to_string()), format!("{}", ok), format!("{}", ({
+        let val = { let __map = { let __map_holder = channelInterfaces.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<GoChannel<i32>>().expect("type assertion failed").clone()
+        } else {
+            panic!("type assertion on nil interface")
+        }
+    }).recv().unwrap_or_default()));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }
