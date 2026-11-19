@@ -9,21 +9,30 @@ import (
 // handle into an existing variable. It must not take that handle out of the
 // map's own value cell.
 func main() {
-	functions := map[string]func() string{"k": func() string { return "function" }}
-	var function func() string
+	functions := map[string]func(string) string{"k": func(prefix string) string { return prefix + "function" }}
+	function := func(prefix string) string { return prefix + "old function" }
+	functionPointer := &function
 	var ok bool
 	function, ok = functions["k"]
-	fmt.Println("function", ok, function != nil, functions["k"] != nil)
+	fmt.Println("function", ok, function("new ") == "new function", functions["k"]("map ") == "map function", &function == functionPointer)
+	function, ok = functions["missing"]
+	fmt.Println("function missing", ok, function == nil, functions["k"]("map ") == "map function", &function == functionPointer)
 
 	interfaces := map[string]any{"k": "interface"}
-	var iface any
+	var iface any = "old interface"
+	interfacePointer := &iface
 	iface, ok = interfaces["k"]
-	fmt.Println("interface", ok, iface != nil, interfaces["k"] != nil)
+	fmt.Println("interface", ok, iface.(string), interfaces["k"].(string), &iface == interfacePointer)
+	iface, ok = interfaces["missing"]
+	fmt.Println("interface missing", ok, iface == nil, interfaces["k"].(string), &iface == interfacePointer)
 
 	errorsByName := map[string]error{"k": errors.New("error")}
-	var err error
+	err := errors.New("old error")
+	errorPointer := &err
 	err, ok = errorsByName["k"]
-	fmt.Println("error", ok, err != nil, errorsByName["k"] != nil)
+	fmt.Println("error", ok, err.Error(), errorsByName["k"].Error(), &err == errorPointer)
+	err, ok = errorsByName["missing"]
+	fmt.Println("error missing", ok, err == nil, errorsByName["k"].Error(), &err == errorPointer)
 
 	channels := map[string]chan int{"k": make(chan int, 1)}
 	channel := make(chan int)

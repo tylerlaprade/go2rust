@@ -8851,43 +8851,26 @@ func writeIndexedCurrentElementValue(out *strings.Builder, elemType types.Type) 
 	}
 }
 
-// mapCommaOkAssignTakesOverHandle reports whether "v, ok = m[k]" can replace
-// the target's Rust handle directly. Besides slices and maps, function and
-// interface values (including error) are represented by a handle which is
-// also the Go value. Rebinding that handle leaves the map's value cell intact;
-// moving its contents into the target would empty the map entry.
-func mapCommaOkAssignTakesOverHandle(lhs ast.Expr, indexExpr *ast.IndexExpr) bool {
+// mapCommaOkValueNeedsOwnCell reports whether a comma-ok map read must copy the
+// value into a fresh variable cell. Map entries and Go variables are distinct
+// locations even when their values are represented by Rust handles. Returning
+// the entry cell itself would make later assignments alias the map; rebinding
+// an existing target to that cell would also leave pointers to the target's old
+// cell stale.
+func mapCommaOkValueNeedsOwnCell(indexExpr *ast.IndexExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false
-	}
-	switch target := lhs.(type) {
-	case *ast.Ident:
-		if target.Name == "_" || isPackageGlobalIdent(target) {
-			return false
-		}
-		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
-			return false
-		}
-		if currentCaptureRenames != nil {
-			if _, captured := currentCaptureRenames[target.Name]; captured {
-				return false
-			}
-		}
-	case *ast.SelectorExpr:
-	default:
 		return false
 	}
 	valueType := typeInfo.GetMapValueType(indexExpr.X)
 	if valueType == nil {
 		return false
 	}
+	if isGoErrorType(valueType) {
+		return true
+	}
 	switch types.Unalias(valueType).Underlying().(type) {
-	case *types.Slice:
-		return isPlainSliceExpression(lhs)
-	case *types.Map:
-		return typeInfo.IsMap(lhs) && !isNamedMapExpression(lhs)
-	case *types.Signature, *types.Interface:
+	case *types.Slice, *types.Map, *types.Signature, *types.Interface:
 		return true
 	}
 	return false
@@ -8936,12 +8919,22 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 		return
 	}
 	if heldInOwnCell {
+		valueType := GetTypeInfo().GetMapValueType(indexExpr.X)
+		if sig, ok := signatureFromType(valueType); ok {
+			writeMapCommaOkFunctionValueCopy(out, sig)
+			return
+		}
 		// The value is about to be moved into an existing target. Moving it
 		// out of the map's own handle would empty the map entry, so the
 		// target gets a clone of what the handle holds, in a cell of its own.
 		out.WriteString("{ let __held = v")
 		WriteBorrowMethod(out, false)
-		out.WriteString(".clone(); ")
+		if isEmptyInterfaceType(valueType) {
+			NeedAnyClone()
+			out.WriteString(".as_ref().map(|__value| go_any_clone(__value.as_ref())); ")
+		} else {
+			out.WriteString(".clone(); ")
+		}
 		WriteWrapperOptionPrefix(out)
 		out.WriteString("__held")
 		WriteWrapperOptionSuffix(out)
@@ -8979,6 +8972,47 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 	out.WriteString(".as_ref().unwrap()")
 	out.WriteString(goValueCopyCallForType(valueType))
 	WriteWrapperSuffix(out)
+}
+
+// writeMapCommaOkFunctionValueCopy duplicates a function value without
+// sharing its variable cell. Rust trait-object closures are not Clone, so the
+// original callable is moved into a shared cell and both the map entry and the
+// result receive independent forwarding closures. Reassigning either variable
+// then leaves the other alone, while both copies retain Go's shared closure
+// environment.
+func writeMapCommaOkFunctionValueCopy(out *strings.Builder, sig *types.Signature) {
+	boxType := signatureToBoxDynFn(sig)
+	var args []string
+	for i := 0; i < sig.Params().Len(); i++ {
+		args = append(args, fmt.Sprintf("__arg%d", i))
+	}
+	writeProxy := func(sharedName string) {
+		out.WriteString("Box::new(move |")
+		out.WriteString(strings.Join(args, ", "))
+		out.WriteString("| { let mut __callable = ")
+		out.WriteString(sharedName)
+		WriteBorrowMethod(out, true)
+		out.WriteString("; (*__callable.as_mut().unwrap())(")
+		out.WriteString(strings.Join(args, ", "))
+		out.WriteString(") }) as ")
+		out.WriteString(boxType)
+	}
+
+	out.WriteString("{ let __original = { let mut __entry = v")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __entry.take() }; match __original { None => Default::default(), Some(__original) => { let __shared = ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__original")
+	WriteWrapperSuffix(out)
+	out.WriteString("; let __map_callable = __shared.clone(); *v")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	writeProxy("__map_callable")
+	out.WriteString("); let __target_callable = __shared.clone(); ")
+	WriteWrapperPrefix(out)
+	writeProxy("__target_callable")
+	WriteWrapperSuffix(out)
+	out.WriteString(" } } }")
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
@@ -12122,12 +12156,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				valueTarget, valueTargetIsIdent := s.Lhs[0].(*ast.Ident)
 				valueDiscarded := valueTargetIsIdent && valueTarget.Name == "_"
-				// "v, ok = m[k]" for a slice or map value: a plain slice or
-				// map variable takes over the entry's handle. Every other
-				// target (a named slice, a package variable, "dst[i]") gets a
-				// clone of the value in a cell of its own to move it from.
-				takesOverHandle := s.Tok != token.DEFINE && mapCommaOkAssignTakesOverHandle(s.Lhs[0], indexExpr)
-				heldInOwnCell := s.Tok != token.DEFINE && !valueDiscarded && !takesOverHandle && mapCommaOkValueIsSliceOrMap(indexExpr)
+				// A comma-ok read creates a distinct Go variable. Handle values
+				// therefore get a fresh Rust cell instead of aliasing the map
+				// entry's cell. This is also required for assignments through a
+				// variable whose address has already escaped.
+				heldInOwnCell := !valueDiscarded && mapCommaOkValueNeedsOwnCell(indexExpr)
 				writeMapCommaOkFoundValue(out, indexExpr, valueKeepsHandle, valueDiscarded, heldInOwnCell)
 				out.WriteString(", ")
 				out.WriteString("true")
@@ -12143,12 +12176,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					registerBareShortDecl(s.Lhs[1])
 				} else {
 					out.WriteString(";")
-					if takesOverHandle {
-						out.WriteString(" ")
-						writePointerHandleAssignmentTargetFromValueName(out, s.Lhs[0], "__tmp_0")
-					} else {
-						writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
-					}
+					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
 					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
 					out.WriteString(" }")
 				}

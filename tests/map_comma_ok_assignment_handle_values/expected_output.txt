@@ -1,4 +1,7 @@
-function true true true
-interface true true true
-error true true true
+function true true true true
+function missing false true true true
+interface true interface interface true
+interface missing false true interface true
+error true error error true
+error missing false true error true
 channel true true true
