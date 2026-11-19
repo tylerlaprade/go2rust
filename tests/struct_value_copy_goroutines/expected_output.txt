@@ -13,3 +13,9 @@ value receiver, no result {base 80}
 getter {{1 0}} {{9 0}}
 pointer field shared {3 1} {3 1}
 pointer field replaced {3 1} {8 8}
+range over a slice, field written in the loop 1
+range over a slice, field written in the loop 9
+range over a slice, the slice afterwards [{1 1} {9 2}]
+range over an array, field written in the loop 1
+range over an array, field written in the loop 2
+range over an array, the array afterwards [{1 1} {9 2}]

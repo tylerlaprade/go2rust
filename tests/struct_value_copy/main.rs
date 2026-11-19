@@ -334,7 +334,8 @@ fn main() {
     { let new_val = 50; *(*e.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice element".to_string()), format!("{}", format_slice(&points)), format!("{}", (*e.borrow().as_ref().unwrap())));
 
-    { let __range_holder = points.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = points.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+        let p = &p.__go_value_clone();
         { let new_val = 60; *p.x.borrow_mut() = Some(new_val); };
     } }
     println!("{} {}", format!("{}", "range value".to_string()), format!("{}", format_slice(&points)));
@@ -368,4 +369,26 @@ fn main() {
     println!("{} {} {}", format!("{}", "pointer field shared".to_string()), format!("{}", { let __v = (*(*n1.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }));
     { let new_val = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(8))), y: Rc::new(RefCell::new(Some(8))), ..Default::default() }))).clone(); (*n2.borrow_mut().as_mut().unwrap()).p = new_val; };
     println!("{} {} {}", format!("{}", "pointer field replaced".to_string()), format!("{}", { let __v = (*(*n1.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }));
+
+        // A range over a slice reads each element when its turn comes, so it
+        // sees a field that the loop itself wrote. The loop variable is still a
+        // copy: writing to it does not change the slice.
+    let mut seen = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
+    { let __range_holder = seen.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+        let p = &p.__go_value_clone();
+        { let new_val = 9; *(*seen.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
+        println!("{} {}", format!("{}", "range over a slice, field written in the loop".to_string()), format!("{}", (*p.x.borrow().as_ref().unwrap())));
+        { let new_val = 99; *p.x.borrow_mut() = Some(new_val); };
+    } }
+    println!("{} {}", format!("{}", "range over a slice, the slice afterwards".to_string()), format!("{}", format_slice(&seen)));
+
+        // A range over an array works on a copy of the array.
+    let mut fixed = Rc::new(RefCell::new(Some([Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
+    { let __range_holder = fixed.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+        let p = &p.__go_value_clone();
+        { let new_val = 9; *(*fixed.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
+        println!("{} {}", format!("{}", "range over an array, field written in the loop".to_string()), format!("{}", (*p.x.borrow().as_ref().unwrap())));
+        { let new_val = 99; *p.x.borrow_mut() = Some(new_val); };
+    } }
+    println!("{} {}", format!("{}", "range over an array, the array afterwards".to_string()), format!("{}", format_slice(&fixed)));
 }

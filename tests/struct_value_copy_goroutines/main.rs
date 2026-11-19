@@ -488,7 +488,8 @@ fn main() {
     { let new_val = 50; *(*e.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice element".to_string()), format!("{}", format_slice(&points)), format!("{}", { let __v = (*e.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
-    { let __range_holder = points.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = points.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+        let p = &p.__go_value_clone();
         { let new_val = 60; *p.x.lock().unwrap() = Some(new_val); };
     } }
     println!("{} {}", format!("{}", "range value".to_string()), format!("{}", format_slice(&points)));
@@ -525,4 +526,26 @@ fn main() {
     println!("{} {} {}", format!("{}", "pointer field shared".to_string()), format!("{}", { let __v = (*(*n1.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*n2.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     { let new_val = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(8))), y: Arc::new(Mutex::new(Some(8))), ..Default::default() }))).clone(); (*n2.lock().unwrap().as_mut().unwrap()).p = new_val; };
     println!("{} {} {}", format!("{}", "pointer field replaced".to_string()), format!("{}", { let __v = (*(*n1.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*n2.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+        // A range over a slice reads each element when its turn comes, so it
+        // sees a field that the loop itself wrote. The loop variable is still a
+        // copy: writing to it does not change the slice.
+    let mut seen = Arc::new(Mutex::new(Some(vec![Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Point { x: Arc::new(Mutex::new(Some(2))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
+    { let __range_holder = seen.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+        let p = &p.__go_value_clone();
+        { let new_val = 9; *{ let __seq = { let __seq_holder = seen.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
+        println!("{} {}", format!("{}", "range over a slice, field written in the loop".to_string()), format!("{}", (*p.x.lock().unwrap().as_ref().unwrap())));
+        { let new_val = 99; *p.x.lock().unwrap() = Some(new_val); };
+    } }
+    println!("{} {}", format!("{}", "range over a slice, the slice afterwards".to_string()), format!("{}", format_slice(&seen)));
+
+        // A range over an array works on a copy of the array.
+    let mut fixed = Arc::new(Mutex::new(Some([Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Point { x: Arc::new(Mutex::new(Some(2))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
+    { let __range_holder = fixed.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+        let p = &p.__go_value_clone();
+        { let new_val = 9; *{ let __seq = { let __seq_holder = fixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
+        println!("{} {}", format!("{}", "range over an array, field written in the loop".to_string()), format!("{}", (*p.x.lock().unwrap().as_ref().unwrap())));
+        { let new_val = 99; *p.x.lock().unwrap() = Some(new_val); };
+    } }
+    println!("{} {}", format!("{}", "range over an array, the array afterwards".to_string()), format!("{}", format_slice(&fixed)));
 }

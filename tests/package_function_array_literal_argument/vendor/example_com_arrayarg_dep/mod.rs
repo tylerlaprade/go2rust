@@ -44,9 +44,11 @@ pub fn of(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Item>>> {
 pub fn make(r#static: Rc<RefCell<Option<[Item; 3]>>>, labels: Rc<RefCell<Option<Vec<Item>>>>) -> i32 {
     let mut total = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = r#static.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+        let item = &item.__go_value_clone();
         { let __rhs = (*item.v.borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    { let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+    { let __range_holder = labels.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+        let item = &item.__go_value_clone();
         { let __rhs = (*item.v.borrow().as_ref().unwrap()); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());

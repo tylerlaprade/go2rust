@@ -599,7 +599,8 @@ fn main() {
         // Iterate through employees
     println!("{}", format!("{}", "\n=== Department employees ===".to_string()));
 
-    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
+    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
+        let emp = &emp.__go_value_clone();
         print!("Employee {}: {}\n", i as i32 + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
         print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone());

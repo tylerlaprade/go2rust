@@ -788,10 +788,14 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 				rhsVarName = RustLocalIdent(renamed)
 			}
 		}
-		out.WriteString(rhsVarName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()")
-		out.WriteString(goValueCopyCallForExpr(rhsIdent))
+		if copyCall, known := goValueCopyCallForExpr(rhsIdent); known {
+			out.WriteString(rhsVarName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+			out.WriteString(copyCall)
+		} else {
+			out.WriteString(goValueCopyNeedsTypeInfo)
+		}
 	} else if writeNamedIntegerAssignmentValue(out, rhs) {
 		// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
 	} else if writeConstAssignmentValue(out, lhs, rhs) {
@@ -806,9 +810,10 @@ func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, 
 		// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 	} else if writeOwnedExpressionValue(out, rhs) {
 		// Copied by value from an existing wrapped field or handle.
+	} else if writeValueOfVariableAsGoCopy(out, rhs) {
+		// A struct variable is copied into the slot.
 	} else {
 		TranspileExpression(out, rhs)
-		writeGoValueCopyOfVariable(out, rhs)
 	}
 }
 
@@ -7630,16 +7635,51 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
-	if copyCall := rangeElementGoValueCopyCall(rangeExpr); copyCall != ".clone()" {
-		// The loop variable is a copy of the element. Cloning the slice
-		// would clone each struct's handles, and "p.X = 1" in the loop
-		// would write into the slice.
+	copyCall, known := rangeElementGoValueCopyCall(rangeExpr)
+	if !known {
+		out.WriteString("; let __range_values: Vec<()> = ")
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		out.WriteString("; drop(__range_guard); ")
+		return
+	}
+	if copyCall != ".clone()" && rangeExprIsArrayValue(rangeExpr) {
+		// Go copies an array before it ranges over it, so the loop does not
+		// see writes made to the array while it runs. Cloning the array
+		// would clone each struct's handles and let those writes through.
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
 		out.WriteString(copyCall)
 		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
+	// A slice is not copied: each element is read when its turn comes. The
+	// snapshot holds second handles on the elements, so a field written
+	// during the loop is seen, and the loop variable takes its copy of the
+	// element at the start of its iteration (writeRangeOwnedValuesAdapter
+	// and writeRangeValueIterationCopy).
 	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
+}
+
+// writeRangeValueIterationCopy makes the loop variable of a range over
+// structs Go's copy of its element, at the start of the iteration. It is for
+// the loops that bind the variable to a reference to the element; without
+// it "p.X = 1" in the loop writes into the slice. The loops that bind an
+// owned value copy in writeRangeOwnedValuesAdapter.
+func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr) {
+	ident, ok := value.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	copyCall, known := rangeElementGoValueCopyCall(rangeExpr)
+	if !known || copyCall == ".clone()" {
+		return
+	}
+	name := RustLocalIdent(ident.Name)
+	out.WriteString("        let ")
+	out.WriteString(name)
+	out.WriteString(" = &")
+	out.WriteString(name)
+	out.WriteString(copyCall)
+	out.WriteString(";\n")
 }
 
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
@@ -7649,6 +7689,12 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
 	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
 		out.WriteString(".into_iter()")
+	} else if copyCall, known := rangeElementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
+		// The loop variable is Go's copy of the element, taken when the
+		// iteration starts: the map runs once for each step of the loop.
+		out.WriteString(".iter().map(|__e| __e")
+		out.WriteString(copyCall)
+		out.WriteString(")")
 	} else {
 		out.WriteString(".iter().cloned()")
 	}
@@ -12185,11 +12231,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														rhsVarName = RustLocalIdent(renamed)
 													}
 												}
-												if !writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
+												if writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
+													// A value of a type parameter has its own lowering.
+												} else if copyCall, known := goValueCopyCallForExpr(rhsIdent); known {
 													out.WriteString(rhsVarName)
 													WriteBorrowMethod(out, false)
 													out.WriteString(".as_ref().unwrap()")
-													out.WriteString(goValueCopyCallForExpr(rhsIdent))
+													out.WriteString(copyCall)
+												} else {
+													out.WriteString(goValueCopyNeedsTypeInfo)
 												}
 											} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Constants assigned to wrapped slots need the target type from go/types.
@@ -13503,6 +13553,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		rangeValuesVar := ""
 		rangePrelude := ""
+		// Set when the loop binds its value variable to a reference to the
+		// element rather than to an owned value.
+		rangeValueBoundByReference := false
 		stringRangeValueTemp := ""
 		closeRangeGuard := false
 		needsSliceValues := !(s.Key != nil && s.Value == nil)
@@ -14102,6 +14155,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 					} else {
+						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
@@ -14135,6 +14189,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else if valueAssigned {
 						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
 					} else {
+						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(".iter().enumerate()")
 					}
 				}
@@ -14177,6 +14232,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 				} else {
+					rangeValueBoundByReference = valueBindingTemp == ""
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
@@ -14213,6 +14269,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 		out.WriteString(rangePrelude)
+		if rangeValueBoundByReference {
+			writeRangeValueIterationCopy(out, s.X, s.Value)
+		}
 		restoreLoopBreakTarget := pushBreakTarget("")
 
 		currentLoopDepth++

@@ -1229,7 +1229,9 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
 	out.WriteString("::new(")
-	if copyCall := goValueCopyCallForExpr(fieldType); copyCall != ".clone()" {
+	if copyCall, known := goValueCopyCallForExpr(fieldType); !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+	} else if copyCall != ".clone()" {
 		// A struct inside the struct, or an array of them, is a value too:
 		// the copy gets its own.
 		out.WriteString("(*__guard).as_ref().map(|__go_field| __go_field")

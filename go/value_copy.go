@@ -58,14 +58,25 @@ func goValueCopyCallForType(typ types.Type) string {
 	return ".clone()"
 }
 
-// goValueCopyCallForExpr is goValueCopyCallForType for the type of expr. With
-// no type information it is Clone, which is what was written before.
-func goValueCopyCallForExpr(expr ast.Expr) string {
+// goValueCopyNeedsTypeInfo is written in place of a copy whose type the type
+// checker did not supply. Choosing Clone there would be a guess, and a wrong
+// guess is the bug this file exists to fix: a struct that silently shares its
+// fields.
+const goValueCopyNeedsTypeInfo = `unimplemented!("type info required to copy a value")`
+
+// goValueCopyCallForExpr is goValueCopyCallForType for the type of expr.
+// known is false when there is no type for expr; the caller then writes
+// goValueCopyNeedsTypeInfo instead of a copy.
+func goValueCopyCallForExpr(expr ast.Expr) (call string, known bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || expr == nil {
-		return ".clone()"
+		return "", false
 	}
-	return goValueCopyCallForType(typeInfo.GetType(expr))
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return "", false
+	}
+	return goValueCopyCallForType(typ), true
 }
 
 // currentReceiverIsStructValue reports whether the method being written has
@@ -81,46 +92,76 @@ func currentReceiverIsStructValue() bool {
 	return typeNeedsGoValueClone(typ)
 }
 
-// writeGoValueCopyOfVariable finishes the value of a variable that was just
-// written as an ordinary read. The read ends in Clone, which for a struct is
-// a second handle on the same fields; this appends Go's copy when that is a
-// different operation. It does nothing for an expression that is not a
-// variable, or whose copy is Clone.
-func writeGoValueCopyOfVariable(out *strings.Builder, expr ast.Expr) {
+// writeValueOfVariableAsGoCopy writes the value of expr for an assignment
+// when expr is a variable whose Go copy is not Clone, and reports whether it
+// did. The ordinary read of a variable ends in Clone, which for a struct is a
+// second handle on the same fields, so Go's copy is applied to it. For any
+// other expression it writes nothing and reports false.
+func writeValueOfVariableAsGoCopy(out *strings.Builder, expr ast.Expr) bool {
 	ident, ok := unwrapParens(expr).(*ast.Ident)
 	if !ok {
-		return
+		return false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
-		return
+		return false
 	}
 	if _, isVariable := typeInfo.info.Uses[ident].(*types.Var); !isVariable {
-		return
+		return false
 	}
-	if copyCall := goValueCopyCallForExpr(ident); copyCall != ".clone()" {
-		out.WriteString(copyCall)
+	copyCall, known := goValueCopyCallForExpr(ident)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return true
 	}
+	if copyCall == ".clone()" {
+		return false
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(copyCall)
+	return true
 }
 
 // rangeElementGoValueCopyCall is goValueCopyCallForType for the element type
-// of a slice or array that a range loop goes over.
-func rangeElementGoValueCopyCall(rangeExpr ast.Expr) string {
+// of a slice or array that a range loop goes over. known is false when the
+// type checker has no type for the range expression.
+func rangeElementGoValueCopyCall(rangeExpr ast.Expr) (call string, known bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || rangeExpr == nil {
-		return ".clone()"
+		return "", false
 	}
 	typ := typeInfo.GetType(rangeExpr)
 	if typ == nil {
-		return ".clone()"
+		return "", false
 	}
 	switch seq := types.Unalias(typ).Underlying().(type) {
 	case *types.Slice:
-		return goValueCopyCallForType(seq.Elem())
+		return goValueCopyCallForType(seq.Elem()), true
 	case *types.Array:
-		return goValueCopyCallForType(seq.Elem())
+		return goValueCopyCallForType(seq.Elem()), true
+	case *types.Pointer:
+		if array, ok := types.Unalias(seq.Elem()).Underlying().(*types.Array); ok {
+			return goValueCopyCallForType(array.Elem()), true
+		}
 	}
-	return ".clone()"
+	return ".clone()", true
+}
+
+// rangeExprIsArrayValue reports whether a range loop goes over an array
+// value. Go copies the array before the loop starts, so the loop does not see
+// writes made to the array while it runs. Over a slice, or a pointer to an
+// array, each element is read when its turn comes.
+func rangeExprIsArrayValue(rangeExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || rangeExpr == nil {
+		return false
+	}
+	typ := typeInfo.GetType(rangeExpr)
+	if typ == nil {
+		return false
+	}
+	_, isArray := types.Unalias(typ).Underlying().(*types.Array)
+	return isArray
 }
 
 // writeWrappedGoValueCopyOfElement writes the value of "s[i]" as a new
@@ -133,17 +174,22 @@ func writeWrappedGoValueCopyOfElement(out *strings.Builder, expr ast.Expr) bool 
 	if !ok {
 		return false
 	}
-	copyCall := goValueCopyCallForExpr(index)
+	copyCall, known := goValueCopyCallForExpr(index)
+	if !known {
+		WriteWrapperPrefix(out)
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		WriteWrapperSuffix(out)
+		return true
+	}
 	if copyCall == ".clone()" {
 		return false
 	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	sequenceType := typeInfo.GetType(index.X)
+	sequenceType := GetTypeInfo().GetType(index.X)
 	if sequenceType == nil {
-		return false
+		WriteWrapperPrefix(out)
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		WriteWrapperSuffix(out)
+		return true
 	}
 	switch types.Unalias(sequenceType).Underlying().(type) {
 	case *types.Slice, *types.Array:

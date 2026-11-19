@@ -3120,7 +3120,12 @@ func writeScopedIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 	if writeScopedTypeParamIdentValueClone(out, ident, handle) {
 		return
 	}
-	writeScopedValueCopy(out, handle, goValueCopyCallForExpr(ident))
+	copyCall, known := goValueCopyCallForExpr(ident)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
+	writeScopedValueCopy(out, handle, copyCall)
 }
 
 func writeScopedValueClone(out *strings.Builder, handle string) {
@@ -7094,11 +7099,16 @@ func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
 			name = RustLocalIdent(renamed)
 		}
 	}
+	copyCall, known := goValueCopyCallForExpr(ident)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
 	out.WriteString("(*")
 	out.WriteString(name)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
-	out.WriteString(goValueCopyCallForExpr(ident))
+	out.WriteString(copyCall)
 }
 
 func writeCurrentReceiverValueClone(out *strings.Builder, ident *ast.Ident) bool {

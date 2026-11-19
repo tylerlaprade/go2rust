@@ -39,6 +39,7 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+        let item = &item.__go_value_clone();
         println!("{} {}", format!("{}", (*item.name.borrow().as_ref().unwrap()).clone()), format!("{}", (*item.value.borrow().as_ref().unwrap())));
     } }
 }

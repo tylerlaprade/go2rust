@@ -108,4 +108,24 @@ func main() {
 	fmt.Println("pointer field shared", *n1.P, *n2.P)
 	n2.P = &Point{8, 8}
 	fmt.Println("pointer field replaced", *n1.P, *n2.P)
+
+	// A range over a slice reads each element when its turn comes, so it
+	// sees a field that the loop itself wrote. The loop variable is still a
+	// copy: writing to it does not change the slice.
+	seen := []Point{{1, 1}, {2, 2}}
+	for _, p := range seen {
+		seen[1].X = 9
+		fmt.Println("range over a slice, field written in the loop", p.X)
+		p.X = 99
+	}
+	fmt.Println("range over a slice, the slice afterwards", seen)
+
+	// A range over an array works on a copy of the array.
+	fixed := [2]Point{{1, 1}, {2, 2}}
+	for _, p := range fixed {
+		fixed[1].X = 9
+		fmt.Println("range over an array, field written in the loop", p.X)
+		p.X = 99
+	}
+	fmt.Println("range over an array, the array afterwards", fixed)
 }

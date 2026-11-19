@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/ast"
 	"strings"
 	"testing"
 )
@@ -39,6 +40,9 @@ func main() {
 	}
 	arr := [2]Point{a, a}
 	arr2 := arr
+	for _, q := range arr {
+		q.X = 1
+	}
 	name := "x"
 	other := name
 	_, _, _, _, _ = b, c, e, arr2, other
@@ -57,7 +61,8 @@ func TestGoCopyOfAStructUsesTheCopyHelper(t *testing.T) {
 		"c = a":                    "{ let new_val = a.borrow().as_ref().unwrap().__go_value_clone(); *c.borrow_mut() = Some(new_val); }",
 		"use(a)":                   "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }",
 		"e := points[0]":           "[(0) as usize].clone().__go_value_clone()",
-		"range value":              "__v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()",
+		"range over a slice":       "for p in __range_values.iter() {\n        let p = &p.__go_value_clone();",
+		"range over an array":      "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default();",
 		"arr2 := arr":              "arr.borrow().as_ref().unwrap().each_ref().map(|__go_elem| __go_elem.__go_value_clone())",
 		"a struct inside a struct": "(*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone())",
 		"an array inside a struct": "(*__guard).as_ref().map(|__go_field| __go_field.each_ref().map(|__go_elem| __go_elem.__go_value_clone()))",
@@ -119,5 +124,50 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q in:\n%s", want, rust)
 		}
+	}
+}
+
+// A range over a slice reads each element when its turn comes, so the
+// snapshot taken before the loop must stay a set of second handles: a deep
+// copy there would hide a field that the loop writes to a later element.
+func TestRangeOverASliceOfStructsReadsEachElementInTurn(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type P struct{ X int }
+
+func main() {
+	s := []P{{1}, {2}}
+	for _, p := range s {
+		s[1].X = 9
+		println(p.X)
+	}
+}
+`)
+	if !strings.Contains(rust, "let __range_values = __range_guard.as_ref().cloned().unwrap_or_default();") {
+		t.Errorf("the slice must not be copied before the loop:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let p = &p.__go_value_clone();") {
+		t.Errorf("the loop variable should be Go's copy of its element, taken in the loop:\n%s", rust)
+	}
+}
+
+// With no type for a value, a copy site must say so instead of choosing
+// Clone, which for a struct would silently share its fields.
+func TestGoCopyWithoutTypeInfoIsLoud(t *testing.T) {
+	previous := GetTypeInfo()
+	SetTypeInfo(nil)
+	defer SetTypeInfo(previous)
+
+	if call, known := goValueCopyCallForExpr(ast.NewIdent("a")); known || call != "" {
+		t.Fatalf("goValueCopyCallForExpr without type info = %q, %v; want no call and not known", call, known)
+	}
+	if call, known := rangeElementGoValueCopyCall(ast.NewIdent("s")); known || call != "" {
+		t.Fatalf("rangeElementGoValueCopyCall without type info = %q, %v; want no call and not known", call, known)
+	}
+
+	var out strings.Builder
+	writeIdentValueClone(&out, ast.NewIdent("a"))
+	if out.String() != goValueCopyNeedsTypeInfo {
+		t.Fatalf("a copy without type info should be %q, got %q", goValueCopyNeedsTypeInfo, out.String())
 	}
 }
