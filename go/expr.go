@@ -8543,7 +8543,7 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
 	if len(candidates) == 0 {
-		out.WriteString(`panic!("type info required: error-to-any has no visible dynamic error implementors")`)
+		writeOpaqueGoErrorAnyBox(out)
 	} else {
 		for i, candidate := range candidates {
 			if i == 0 {
@@ -8557,10 +8557,27 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 			writeGoAnyMetadataBox(out, "typed_val.clone()", candidate)
 			out.WriteString(" }")
 		}
-		out.WriteString(` else { panic!("type info required: error-to-any for unknown dynamic error type") }`)
+		out.WriteString(" else { ")
+		writeOpaqueGoErrorAnyBox(out)
+		out.WriteString(" }")
 	}
 	out.WriteString(" } }")
 	return true
+}
+
+// writeOpaqueGoErrorAnyBox boxes an error whose dynamic type is not one of
+// the error types this package can name, such as the value errors.New or
+// fmt.Errorf returns. The box holds the error's own handle, so the error is
+// still an error when it comes back out: it is not a string, its Error method
+// has not run, and asserting it back to error yields the same error.
+//
+// The handle is the one the source expression holds. Assigning a new error to
+// that variable afterwards is visible through the box, which Go would not
+// allow; a plain error copy (e2 := e1) shares its handle the same way today.
+func writeOpaqueGoErrorAnyBox(out *strings.Builder) {
+	RegisterOpaqueErrorAnyPayload()
+	out.WriteString("Box::new(__err_holder.clone()) as ")
+	out.WriteString(rustAnyTraitObject())
 }
 
 func goErrorInterfaceAnyBoxShouldUseMultiline(candidates []localInterfaceAssertionCandidate) bool {
@@ -8601,7 +8618,9 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	out.WriteString(indent)
 	out.WriteString("            } else {\n")
 	out.WriteString(indent)
-	out.WriteString("                panic!(\"type info required: error-to-any for unknown dynamic error type\")\n")
+	out.WriteString("                ")
+	writeOpaqueGoErrorAnyBox(out)
+	out.WriteString("\n")
 	out.WriteString(indent)
 	out.WriteString("            }\n")
 	out.WriteString(indent)
@@ -14530,6 +14549,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						continue
 					}
+					// An error goes into a []any literal the way it goes into
+					// any other interface value.
+					if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
+						if multilineCollectionLiteral {
+							out.WriteString(",\n")
+						}
+						continue
+					}
 					out.WriteString("Box::new(")
 					elementKeepsAnyHandle := false
 					if isEmptyInterfaceType(elemType) {
@@ -14559,9 +14586,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					} else {
 						TranspileExpression(out, elt)
 					}
-					out.WriteString(") as Box<dyn ")
-					out.WriteString(interfaceName)
-					out.WriteString(">")
+					if isEmptyInterfaceType(elemType) {
+						// In a program with goroutines an interface value is
+						// Box<dyn Any + Send + Sync>. Every element has to be
+						// that type, or the slice cannot be copied or ranged.
+						out.WriteString(") as ")
+						out.WriteString(rustAnyTraitObject())
+					} else {
+						out.WriteString(") as Box<dyn ")
+						out.WriteString(interfaceName)
+						out.WriteString(">")
+					}
 				} else {
 					if elemType == nil && writeArraySliceLiteralElementValueWithSyntaxType(out, elt, arrayType.Elt) {
 						continue
@@ -20787,7 +20822,18 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
-	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString("            ")
+	if targetIsError && typeAssertionSourceIsEmptyInterface(e.X) {
+		// An error whose dynamic type cannot be named sits in the box as its
+		// own handle (see writeOpaqueGoErrorAnyBox). Asserting it back to
+		// error hands out that handle, so it is still the same error.
+		out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">() {\n")
+		out.WriteString("                (typed_val.clone(), true)\n")
+		out.WriteString("            } else ")
+	}
+	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
 	out.WriteString(rustType)
 	out.WriteString(">() {\n")
 	out.WriteString("                (")
@@ -20820,6 +20866,14 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString(")\n")
 	out.WriteString("        }\n")
 	out.WriteString("    })")
+}
+
+func typeAssertionSourceIsEmptyInterface(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isEmptyInterfaceType(typeInfo.GetType(expr))
 }
 
 func isFunctionTypeAliasValue(expr ast.Expr) bool {

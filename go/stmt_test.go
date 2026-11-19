@@ -9920,6 +9920,73 @@ func pass(err error) {
 	}
 }
 
+func TestOpaqueErrorPassedToAnyKeepsItsHandle(t *testing.T) {
+	source := `package main
+
+import "errors"
+
+func take(v any) {}
+
+func pass() {
+	err := errors.New("opaque")
+	take(err)
+	var boxed any = err
+	if back, ok := boxed.(error); ok {
+		_ = back
+	}
+}
+`
+	rust := transpileTypedRegression(t, source)
+	// The message is read when the error is printed, never when it is put in
+	// the interface value: Error is user code, and a string in the box would
+	// answer x.(string).
+	if strings.Contains(rust, `Box::new(format!("{}", __err))`) {
+		t.Fatalf("error-to-any lowering should not box the error's message:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(__err_holder.clone()) as Box<dyn Any>") {
+		t.Fatalf("error-to-any lowering should box the error's own handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "error-to-any has no visible dynamic error implementors") {
+		t.Fatalf("error-to-any lowering should not panic for an error it cannot name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "any_val.downcast_ref::<Rc<RefCell<Option<Box<dyn StdError>>>>>()") {
+		t.Fatalf("asserting an interface value to error should look for the error handle:\n%s", rust)
+	}
+}
+
+func TestTypeSwitchErrorCaseFindsTheBoxedErrorHandle(t *testing.T) {
+	source := `package main
+
+import "errors"
+
+func kind(v any) string {
+	switch x := v.(type) {
+	case error:
+		return x.Error()
+	}
+	return "other"
+}
+
+func use() string {
+	return kind(errors.New("opaque"))
+}
+`
+	rust := transpileTypedRegression(t, source)
+	// An error the package cannot name is boxed as its own handle. A case
+	// that looked for a bare Box<dyn StdError> would never match it, and the
+	// switch would take the default branch without a word.
+	handle := "__v.downcast_ref::<Rc<RefCell<Option<Box<dyn StdError>>>>>()"
+	if !strings.Contains(rust, "_ts_val.and_then(|__v| "+handle+").is_some()") {
+		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let x = _ts_val.and_then(|__v| "+handle+").unwrap().clone();") {
+		t.Fatalf("the case variable should be the error handle the interface value holds:\n%s", rust)
+	}
+	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
+		t.Fatalf("case error should not look for a bare boxed error:\n%s", rust)
+	}
+}
+
 func TestConcurrentPanicErrorPayloadBreaksDowncastChainAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

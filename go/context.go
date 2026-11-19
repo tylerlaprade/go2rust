@@ -936,7 +936,8 @@ func RegisterAnyCloneType(typ types.Type) {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
 		helpers.anyCloneTypes[rustType] = true
-		if arm, ok := anyFormatArmForType(typ); ok {
+		arm, hasArm := anyFormatArmForType(typ)
+		if hasArm {
 			if helpers.anyFormatArms == nil {
 				helpers.anyFormatArms = make(map[string]anyFormatArm)
 			}
@@ -944,7 +945,8 @@ func RegisterAnyCloneType(typ types.Type) {
 		}
 		// The same payload type is what %T sees when the value comes back out
 		// of the interface, so record what Go calls it.
-		if goName, ok := goDynamicTypeName(typ); ok {
+		goName, hasName := goDynamicTypeName(typ)
+		if hasName {
 			if helpers.anyTypeNames == nil {
 				helpers.anyTypeNames = make(map[string]string)
 			}
@@ -952,7 +954,44 @@ func RegisterAnyCloneType(typ types.Type) {
 				helpers.anyTypeNames[rustType] = goName
 			}
 		}
+		// Another package of the program may be the one that prints or
+		// copies this value.
+		if anyPayloadGoTypeIsShareable(typ) {
+			if !hasName {
+				goName = ""
+			}
+			recordProgramAnyCase(rustType, arm, hasArm, goName)
+		}
 	}
+}
+
+// RegisterOpaqueErrorAnyPayload records that the program boxes an error
+// handle into an empty interface, which is how an error travels when its
+// dynamic type cannot be named (see writeOpaqueGoErrorAnyBox). The handle is
+// copied by cloning it, and printed by asking the error for its message at
+// the moment it is printed.
+func RegisterOpaqueErrorAnyPayload() {
+	helpers := activeHelperTracker()
+	if helpers == nil {
+		return
+	}
+	rustType := rustGoErrorHandleType()
+	if helpers.anyCloneTypes == nil {
+		helpers.anyCloneTypes = make(map[string]bool)
+	}
+	helpers.anyCloneTypes[rustType] = true
+	if helpers.anyFormatArms == nil {
+		helpers.anyFormatArms = make(map[string]anyFormatArm)
+	}
+	var expr strings.Builder
+	expr.WriteString("match (*v")
+	WriteBorrowMethod(&expr, false)
+	expr.WriteString(`).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }`)
+	arm := anyFormatArm{expr: expr.String()}
+	helpers.anyFormatArms[rustType] = arm
+	// The handle is the same type in every package, so the package that
+	// receives the error can carry the same cases.
+	recordProgramAnyCase(rustType, arm, true, "")
 }
 
 func anyCloneRustType(typ types.Type) (string, bool) {

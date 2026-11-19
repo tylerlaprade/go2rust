@@ -181,7 +181,7 @@ pub fn as_any(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Arc<M
                 } else if let Some(typed_val) = __err.downcast_ref::<gammaErr>() {
                     go_box_any_with_metadata(typed_val.clone(), "struct", true)
                 } else {
-                    panic!("type info required: error-to-any for unknown dynamic error type")
+                    Box::new(__err_holder.clone()) as Box<dyn Any + Send + Sync>
                 }
             }
         }
