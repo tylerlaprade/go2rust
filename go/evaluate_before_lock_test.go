@@ -124,6 +124,11 @@ func main() {
 	rows := func() []int { return row }
 	rows()[idx()] = operand()
 	row[0] = operand()
+	table := func() [][]int { return grid }
+	table()[idx()][0] = operand()
+	var extra int
+	rows()[idx()], extra = operand(), 1
+	_ = extra
 }
 `)
 	for what, want := range map[string]string{
@@ -135,6 +140,8 @@ func main() {
 		"a sequence that is a call is held first":  "{ let __seq = { let __f_ptr",
 		"the held sequence is locked last":         "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
 		"a plain sequence is not held":             "; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
+		"a nested sequence that is a call":         "; (*__seq.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
+		"a call among several targets":             "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; }",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)

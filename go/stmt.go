@@ -1673,14 +1673,29 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 
 	// Both indexes and the value are evaluated before the outer sequence is
 	// locked for writing: "grid[i][j] = grid[k][l]" reads the same grid.
-	out.WriteString("{ let __outer_idx = ")
+	//
+	// Go evaluates the outer sequence before its indexes. That shows when
+	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
+	// handle is then taken first and held, not locked.
+	holdsSequence := expressionCallsOrReceives(innerIndex.X)
+	out.WriteString("{ ")
+	if holdsSequence {
+		out.WriteString("let __seq = ")
+		TranspileExpressionContext(out, innerIndex.X, LValue)
+		out.WriteString(".clone(); ")
+	}
+	out.WriteString("let __outer_idx = ")
 	writeExpressionAsUsize(out, innerIndex.Index)
 	out.WriteString("; let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
 	out.WriteString("; (*")
-	TranspileExpressionContext(out, innerIndex.X, LValue)
+	if holdsSequence {
+		out.WriteString("__seq")
+	} else {
+		TranspileExpressionContext(out, innerIndex.X, LValue)
+	}
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[__outer_idx][__idx] = __rhs; }")
 	return true
@@ -7062,14 +7077,30 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 		return true
 	}
 	// The index is evaluated before the sequence is locked for writing:
-	// "s[len(s)-1], x = a, b" reads the sequence in its index.
-	out.WriteString(" { let __idx = ")
+	// "s[len(s)-1], x = a, b" reads the sequence in its index. A sequence
+	// that calls a function is evaluated before its index, as in Go: its
+	// handle is taken first and held.
+	holdsSequence := expressionCallsOrReceives(indexExpr.X)
+	writeSequenceHandle := func() {
+		if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+			writeNamedSliceInnerHandleClone(out, subj)
+		} else {
+			TranspileExpressionContext(out, indexExpr.X, LValue)
+		}
+	}
+	out.WriteString(" { ")
+	if holdsSequence {
+		out.WriteString("let __seq = ")
+		writeSequenceHandle()
+		out.WriteString(".clone(); ")
+	}
+	out.WriteString("let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("; (*")
-	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
-		writeNamedSliceInnerHandleClone(out, subj)
+	if holdsSequence {
+		out.WriteString("__seq")
 	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
+		writeSequenceHandle()
 	}
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[__idx] = ")

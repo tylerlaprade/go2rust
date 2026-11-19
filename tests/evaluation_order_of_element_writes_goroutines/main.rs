@@ -376,6 +376,51 @@ fn main() {
     }; (*__seq.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "element of what a function returned:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&s)));
 
+    let mut table = Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4]])));
+    let mut order_closure_clone = order.clone(); let table_closure_clone = table.clone(); let mut getTable = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Vec<Vec<i32>>>>> {
+        { (*order_closure_clone.lock().unwrap().as_mut().unwrap()).push_str(&"table ".to_string()); };
+        return table_closure_clone.clone();
+    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Vec<Vec<i32>>>>> + Send + Sync>)));
+    { let new_val = "".to_string(); *order.lock().unwrap() = Some(new_val); };
+    { let __seq = {
+        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Vec<Vec<i32>>>>> + Send + Sync> = {
+            let mut __f_guard = getTable.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Vec<Vec<i32>>>>> + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    }.clone(); let __outer_idx = ({
+        let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+            let mut __f_guard = idx.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    }) as usize; let __idx = ({
+        let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+            let mut __f_guard = idx.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    }) as usize; let __rhs = {
+        let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+            let mut __f_guard = value.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    }; (*__seq.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "element of a slice of slices that a function returned:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone()));
+
     { let new_val = "".to_string(); *order.lock().unwrap() = Some(new_val); };
     { let new_val = { let __append_target = s.clone(); let __append_values = vec![
         {

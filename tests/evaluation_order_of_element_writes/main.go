@@ -35,6 +35,12 @@ func main() {
 	get()[idx()] = value()
 	fmt.Println("element of what a function returned:", order, s)
 
+	table := [][]int{{1, 2}, {3, 4}}
+	getTable := func() [][]int { order += "table "; return table }
+	order = ""
+	getTable()[idx()][idx()] = value()
+	fmt.Println("element of a slice of slices that a function returned:", order, table[0][0])
+
 	order = ""
 	s = append(s, value(), idx())
 	fmt.Println("append:", order, s)
