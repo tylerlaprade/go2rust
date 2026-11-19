@@ -12,7 +12,7 @@ pub trait Expr: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Expr> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_expr()
+        Expr::__go_clone_box_expr(self.as_ref())
     }
 }
 
@@ -23,20 +23,27 @@ pub struct Ident {
 
 impl Ident {
     pub fn __go_value_clone(&self) -> Self {
-        Self { name: { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            name: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Ident {
     fn default() -> Self {
-        Self { name: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            name: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.name.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -48,13 +55,17 @@ pub struct StarExpr {
 
 impl StarExpr {
     pub fn __go_value_clone(&self) -> Self {
-        Self { x: self.x.clone() }
+        let __go_clone_0_0 = self.x.clone();
+        Self {
+            x: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for StarExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.x.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -66,13 +77,17 @@ pub struct Field {
 
 impl Field {
     pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: self.r#type.clone() }
+        let __go_clone_0_0 = self.r#type.clone();
+        Self {
+            r#type: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.r#type.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.r#type.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -85,7 +100,7 @@ impl Ident {
 
 impl Expr for Ident {
     fn pos(&self) -> i32 {
-        1
+        Ident::pos(self)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -102,6 +117,37 @@ impl Expr for Ident {
     }
 }
 
+#[derive(Clone)]
+pub struct IdentPtr(pub Rc<RefCell<Option<Ident>>>);
+
+impl std::fmt::Display for IdentPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Expr for IdentPtr {
+    fn pos(&self) -> i32 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        Ident::pos(__recv)
+    }
+    fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
+        Box::new(self.clone()) as Box<dyn Expr>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_expr(&self, other: &dyn Expr) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<IdentPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 impl StarExpr {
     pub fn pos(&self) -> i32 {
         2
@@ -110,7 +156,7 @@ impl StarExpr {
 
 impl Expr for StarExpr {
     fn pos(&self) -> i32 {
-        2
+        StarExpr::pos(self)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
         Box::new(self.clone()) as Box<dyn Expr>
@@ -127,24 +173,55 @@ impl Expr for StarExpr {
     }
 }
 
+#[derive(Clone)]
+pub struct StarExprPtr(pub Rc<RefCell<Option<StarExpr>>>);
+
+impl std::fmt::Display for StarExprPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl Expr for StarExprPtr {
+    fn pos(&self) -> i32 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        StarExpr::pos(__recv)
+    }
+    fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
+        Box::new(self.clone()) as Box<dyn Expr>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_expr(&self, other: &dyn Expr) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<StarExprPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> Rc<RefCell<Option<String>>> {
-    let mut t = Rc::new(RefCell::new(Some((*(*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.borrow().as_ref().unwrap()).clone())));
+    let mut t = (*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.clone();
     {
         let (mut p, _) = ({
         let val = t.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<StarExpr>() {
-            (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+            if let Some(typed_val) = <dyn Expr>::__go_as_any(any_val.as_ref()).downcast_ref::<StarExprPtr>() {
+                (typed_val.0.clone(), true)
             } else {
-                (Rc::new(RefCell::new(None::<StarExpr>)), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<StarExpr>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(None::<StarExpr>)), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<StarExpr>)), false)
         }
     });;
-        if (*p.borrow()).is_some() {
-            t = (*p.borrow().as_ref().unwrap()).x.clone();;
+        if { let __nil_result = (*p.borrow()).is_some(); __nil_result } {
+            { let __iface_handle = { let __field = (*p.borrow().as_ref().unwrap()).x.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *t.borrow_mut() = __iface_value; };;
         }
     }
     {
@@ -152,16 +229,16 @@ pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> R
         let val = t.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<Ident>() {
-            (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
+            if let Some(typed_val) = <dyn Expr>::__go_as_any(any_val.as_ref()).downcast_ref::<IdentPtr>() {
+                (typed_val.0.clone(), true)
             } else {
-                (Rc::new(RefCell::new(None::<Ident>)), Rc::new(RefCell::new(Some(false))))
+                (Rc::new(RefCell::new(None::<Ident>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(None::<Ident>)), Rc::new(RefCell::new(Some(false))))
+            (Rc::new(RefCell::new(None::<Ident>)), false)
         }
     });;
-        if (*id.borrow()).is_some() {
+        if { let __nil_result = (*id.borrow()).is_some(); __nil_result } {
             return Rc::new(RefCell::new(Some({ let __selector_holder = (*id.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
         }
     }
@@ -169,6 +246,6 @@ pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> R
 }
 
 fn main() {
-    let mut fields = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Field { r#type: Rc::new(RefCell::new(Some(Box::new(StarExpr { x: Rc::new(RefCell::new(Some(Box::new(Ident { name: Rc::new(RefCell::new(Some("hello".to_string()))), ..Default::default() }) as Box<dyn Expr>))), ..Default::default() }) as Box<dyn Expr>))), ..Default::default() })))])));
+    let mut fields = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Field { r#type: Rc::new(RefCell::new(Some(Box::new(StarExprPtr(Rc::new(RefCell::new(Some(StarExpr { x: Rc::new(RefCell::new(Some(Box::new(IdentPtr(Rc::new(RefCell::new(Some(Ident { name: Rc::new(RefCell::new(Some("hello".to_string()))), ..Default::default() }))).clone())) as Box<dyn Expr>))), ..Default::default() }))).clone())) as Box<dyn Expr>))), ..Default::default() })))])));
     println!("{}", format!("{}", (*unwrap(fields.clone()).borrow().as_ref().unwrap())));
 }

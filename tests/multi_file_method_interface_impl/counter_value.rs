@@ -1,5 +1,4 @@
-use crate::counter_step::*;
-use crate::iface::*;
+use crate::{counter_step::{Counter}};
 
 impl crate::counter_step::Counter {
     pub fn value(&self) -> i32 {

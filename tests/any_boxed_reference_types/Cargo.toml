@@ -1,0 +1,8 @@
+[package]
+name = "any_boxed_reference_types"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_boxed_reference_types"
+path = "main.rs"

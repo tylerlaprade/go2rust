@@ -5,23 +5,27 @@ use std::rc::{Rc};
 
 #[derive(Clone, Default)]
 pub struct holder {
-    pub err: Rc<RefCell<Option<Box<dyn StdError>>>>,
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
 }
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { err: self.err.clone() }
+        let __go_clone_0_0 = self.err.clone();
+        Self {
+            err: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.err.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", match self.err.borrow().as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 fn main() {
-    let mut h = Rc::new(RefCell::new(Some(holder { err: Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("boom".to_string())))), ..Default::default() })));
+    let mut h = Rc::new(RefCell::new(Some(holder { err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))), ..Default::default() })));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*h.borrow().as_ref().unwrap()).err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }

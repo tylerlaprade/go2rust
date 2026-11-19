@@ -38,13 +38,17 @@ pub struct cache {
 
 impl cache {
     pub fn __go_value_clone(&self) -> Self {
-        Self { index: self.index.clone() }
+        let __go_clone_0_0 = self.index.clone();
+        Self {
+            index: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for cache {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_map(&self.index))
+        let __go_fmt_0 = format!("{}", format_map(&self.index));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -56,28 +60,35 @@ pub struct position {
 
 impl position {
     pub fn __go_value_clone(&self) -> Self {
-        Self { filename: { let __guard = self.filename.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.filename.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            filename: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for position {
     fn default() -> Self {
-        Self { filename: Rc::new(RefCell::new(Some(String::new()))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
+        Self {
+            filename: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for position {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.filename.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.filename.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
 
 impl cache {
     pub fn off(&mut self, s: Rc<RefCell<Option<String>>>) -> u64 {
-        let (mut off, mut ok) = match (*self.index.borrow().as_ref().unwrap()).get(&(*s.borrow().as_ref().unwrap()).clone()) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), Rc::new(RefCell::new(Some(true)))), None => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(false)))) };
-        if !(*ok.borrow().as_ref().unwrap()) {
+        let (mut off, mut ok) = { let __map_holder = self.index.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&(*s.borrow().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };
+        if !ok {
         { let new_val = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).len() as u64))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *off.borrow_mut() = __moved_val; };
         { let __map_key = (*s.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some((*off.borrow().as_ref().unwrap()).clone()))); (*self.index.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }

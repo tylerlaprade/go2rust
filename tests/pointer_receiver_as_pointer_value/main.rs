@@ -10,20 +10,32 @@ pub struct node {
 
 impl node {
     pub fn __go_value_clone(&self) -> Self {
-        Self { next: self.next.clone(), v: { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = self.next.clone();
+        let __go_clone_1_0 = { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            next: __go_clone_0_0,
+            v: __go_clone_1_0,
+        }
     }
 }
 
 
 impl Default for node {
     fn default() -> Self {
-        Self { next: Rc::new(RefCell::new(None)), v: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(None));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            next: __go_default_0_0,
+            v: __go_default_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.next.borrow().as_ref().unwrap()), (*self.v.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", { let __guard = self.next.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", (*self.v.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -32,7 +44,7 @@ impl node {
     pub fn walk(&self) -> i32 {
         let mut y = Rc::new(RefCell::new(Some(self.clone())));
         let mut sum = Rc::new(RefCell::new(Some(0)));
-        while (*y.borrow()).is_some() {
+        while { let __nil_result = (*y.borrow()).is_some(); __nil_result } {
         { let __rhs = (*(*y.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = (*y.borrow().as_ref().unwrap()).next.clone(); y = new_val; };
     }
@@ -41,8 +53,11 @@ impl node {
 }
 
 fn main() {
-    let mut c = Rc::new(RefCell::new(Some(node { v: Rc::new(RefCell::new(Some(3 as i32))), ..Default::default() })));
-    let mut b = Rc::new(RefCell::new(Some(node { v: Rc::new(RefCell::new(Some(2 as i32))), next: c.clone(), ..Default::default() })));
-    let mut a = Rc::new(RefCell::new(Some(node { v: Rc::new(RefCell::new(Some(1 as i32))), next: b.clone(), ..Default::default() })));
-    eprintln!("{}", format!("{}", (*a.borrow().as_ref().unwrap()).walk()));
+    let mut c = Rc::new(RefCell::new(Some(node { v: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
+    let mut b = Rc::new(RefCell::new(Some(node { v: Rc::new(RefCell::new(Some(2))), next: c.clone(), ..Default::default() })));
+    let mut a = Rc::new(RefCell::new(Some(node { v: Rc::new(RefCell::new(Some(1))), next: b.clone(), ..Default::default() })));
+    {
+            let __go_print_arg_0 = format!("{}", (*a.borrow().as_ref().unwrap()).walk());
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

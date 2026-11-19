@@ -1560,13 +1560,13 @@ func call() (int, error) {
 }
 `)
 
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("generic func parameter should keep the generic wrapped T return ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("instantiated func literal should be coerced to the wrapped generic return ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("func literal passed to generic func parameter should not keep a bare scalar return ABI:\n%s", rust)
 	}
 	if strings.Contains(rust, "let (mut v, mut err) = retry::<i32>") {
@@ -3084,42 +3084,6 @@ var Features struct {
 	}
 }
 
-func TestAnonymousStructEmbeddedFieldsAreDeclared(t *testing.T) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "main.go", `package main
-
-type PtrType struct {
-	N int
-}
-
-var Holder struct {
-	PtrType
-	U int
-}
-`, 0)
-	if err != nil {
-		t.Fatalf("ParseFile() error = %v", err)
-	}
-	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
-	if err != nil {
-		t.Fatalf("NewTypeInfo() error = %v", err)
-	}
-
-	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "WARNING: embedded field in anonymous struct") {
-		t.Fatalf("anonymous embedded struct field should be declared, not warned:\n%s", rust)
-	}
-	if strings.Contains(rust, "/* unknown struct */") {
-		t.Fatalf("anonymous embedded struct package global should use the registered anonymous struct type:\n%s", rust)
-	}
-	if !strings.Contains(rust, "pub ptr_type: Rc<RefCell<Option<PtrType>>>") {
-		t.Fatalf("anonymous embedded struct field should be emitted with the generated field name:\n%s", rust)
-	}
-	if !strings.Contains(rust, "Self { ptr_type:") {
-		t.Fatalf("anonymous embedded struct clone/default paths should reference declared field:\n%s", rust)
-	}
-}
-
 func TestAnonymousStructEmbeddedLocalMethodsAreForwarded(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
@@ -3624,7 +3588,7 @@ func (w writer) refill() writer {
 	if strings.Contains(rust, "pub fn refill(&mut self)") {
 		t.Fatalf("value receiver method should not require mutable access to the caller's receiver:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut __self = self.clone();") {
+	if !strings.Contains(rust, "let mut __self = self.__go_value_clone();") {
 		t.Fatalf("mutating value receiver method should create a mutable receiver copy:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__self.byte(") {

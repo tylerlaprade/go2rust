@@ -197,7 +197,7 @@ pub fn capture(re: Rc<RefCell<Option<GoRegexp>>>, text: Rc<RefCell<Option<String
 
 fn main() {
     __go_init_all();
-    let mut modMatches = capture((*modFlagRegexp.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some("-mod=vendor".to_string()))));
+    let mut modMatches = capture({ let __arg_holder = modFlagRegexp.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }, Rc::new(RefCell::new(Some("-mod=vendor".to_string()))));
     println!("{}", format!("{}", (*modMatches.borrow().as_ref().unwrap())[(1) as usize].clone()));
     println!("{}", format!("{}", (*{ let __recv_holder = (*modFlagRegexp.borrow().as_ref().unwrap()).clone(); let __result = (*__recv_holder.borrow_mut().as_mut().unwrap()).find_string_submatch(Rc::new(RefCell::new(Some("-mod vendor".to_string())))); __result }.borrow().as_ref().unwrap())[(1) as usize].clone()));
 

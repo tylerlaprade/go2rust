@@ -13,7 +13,9 @@ impl Display for Marker {
 
 impl PartialEq for Marker {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -25,7 +27,9 @@ impl PartialEq<i32> for Marker {
 
 impl PartialOrd for Marker {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -86,6 +90,76 @@ impl std::ops::Sub<Marker> for i32 {
     type Output = Marker;
     fn sub(self, other: Marker) -> Marker {
         Marker(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Marker {
+    type Output = Marker;
+    fn mul(self, other: Self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Marker {
+    type Output = Marker;
+    fn mul(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Marker> for i32 {
+    type Output = Marker;
+    fn mul(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Marker {
+    type Output = Marker;
+    fn div(self, other: Self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Marker {
+    type Output = Marker;
+    fn div(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Marker> for i32 {
+    type Output = Marker;
+    fn div(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Marker {
+    type Output = Marker;
+    fn neg(self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Marker {
+    type Output = Marker;
+    fn rem(self, other: Self) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Marker {
+    type Output = Marker;
+    fn rem(self, other: i32) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Marker> for i32 {
+    type Output = Marker;
+    fn rem(self, other: Marker) -> Marker {
+        Marker(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
     }
 }
 

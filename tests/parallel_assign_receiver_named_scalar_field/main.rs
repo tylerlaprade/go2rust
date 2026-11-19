@@ -17,7 +17,9 @@ impl Display for Pos {
 
 impl PartialEq for Pos {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -29,7 +31,9 @@ impl PartialEq<i32> for Pos {
 
 impl PartialOrd for Pos {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 
@@ -391,20 +395,27 @@ pub struct scanner {
 
 impl scanner {
     pub fn __go_value_clone(&self) -> Self {
-        Self { nl_pos: { let __guard = self.nl_pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.nl_pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            nl_pos: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for scanner {
     fn default() -> Self {
-        Self { nl_pos: Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0))))))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Pos(Rc::new(RefCell::new(Some(0)))))));
+        Self {
+            nl_pos: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for scanner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.nl_pos.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.nl_pos.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -415,8 +426,15 @@ impl scanner {
     let mut tok: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
     let mut lit: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
 
-        { let __tmp_0 = { let __selector_holder = self.nl_pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = 9; let __tmp_2 = "x".to_string(); *pos.borrow_mut() = Some(__tmp_0); *tok.borrow_mut() = Some(__tmp_1); *lit.borrow_mut() = Some(__tmp_2); };
-        return (pos, (*tok.borrow().as_ref().unwrap()), lit);
+        {
+            let __tmp_0 = { let __selector_holder = self.nl_pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_1 = 9;
+            let __tmp_2 = "x".to_string();
+            *pos.borrow_mut() = Some(__tmp_0);
+            *tok.borrow_mut() = Some(__tmp_1);
+            *lit.borrow_mut() = Some(__tmp_2);
+        };
+        return (pos.clone(), (*tok.borrow().as_ref().unwrap()), lit.clone());
     }
 }
 

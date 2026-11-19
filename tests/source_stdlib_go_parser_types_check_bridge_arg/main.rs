@@ -24,21 +24,17 @@ pub struct localVarDecl {
 
 impl localVarDecl {
     pub fn __go_value_clone(&self) -> Self {
-        Self { spec: self.spec.clone() }
+        let __go_clone_0_0 = self.spec.clone();
+        Self {
+            spec: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for localVarDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { let __guard = self.spec.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
-    }
-}
-
-impl GoJsonDecode for localVarDecl {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
+        let __go_fmt_0 = format!("{}", { let __guard = self.spec.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -134,8 +130,21 @@ pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Sen
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ValueSpecPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ValueSpecPtr>()).unwrap().0.clone();
-        if { let __tmp_x = { let __selector_holder = (*d.lock().unwrap().as_ref().unwrap()).tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32)))); __tmp_x == __tmp_y } {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(localVarDecl { spec: s.clone(), ..Default::default() }) as Box<dyn localDecl + Send + Sync>)))) };
+        if {
+            let __tmp_x = { let __selector_holder = (*d.lock().unwrap().as_ref().unwrap()).tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))));
+            __tmp_x == __tmp_y
+        } {
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync> = {
+                let mut __f_guard = f.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(Box::new(localVarDecl { spec: s.clone(), ..Default::default() }) as Box<dyn localDecl + Send + Sync>)))
+            )
+        };
     };
     }
     }
@@ -145,7 +154,9 @@ pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Sen
 }
 
 pub fn local_decl_stmt(d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>) {
-    local_walk_decl(d.clone(), Arc::new(Mutex::new(Some(Box::new(move |d: Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>| {
+    local_walk_decl(
+        d.clone(),
+        Arc::new(Mutex::new(Some(Box::new(move |d: Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>| {
         {
     let _ts_subject = d.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -166,45 +177,47 @@ pub fn local_decl_stmt(d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + 
         println!("{}", format!("{}", "local unknown".to_string()));;
     }
     }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>)))
+    );
 }
 
 fn main() {
-    cmp::__go_init_all();
-    container_heap::__go_init_all();
-    go_ast::__go_init_all();
-    go_constant::__go_init_all();
-    go_parser::__go_init_all();
-    go_scanner::__go_init_all();
-    go_token::__go_init_all();
-    go_types::__go_init_all();
-    go_version::__go_init_all();
-    internal_abi::__go_init_all();
-    internal_buildcfg::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    internal_filepathlite::__go_init_all();
-    internal_godebug::__go_init_all();
-    internal_godebugs::__go_init_all();
-    internal_goexperiment::__go_init_all();
-    internal_gover::__go_init_all();
-    internal_goversion::__go_init_all();
-    internal_race::__go_init_all();
-    internal_stringslite::__go_init_all();
-    internal_sync::__go_init_all();
-    internal_types_errors::__go_init_all();
-    math::__go_init_all();
-    math_big::__go_init_all();
-    math_bits::__go_init_all();
-    path_filepath::__go_init_all();
-    slices::__go_init_all();
-    sort::__go_init_all();
-    strconv::__go_init_all();
-    strings::__go_init_all();
-    sync::__go_init_all();
-    sync_atomic::__go_init_all();
-    unicode::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
+    ::container_heap::__go_init_all();
+    ::go_ast::__go_init_all();
+    ::go_constant::__go_init_all();
+    ::go_parser::__go_init_all();
+    ::go_scanner::__go_init_all();
+    ::go_token::__go_init_all();
+    ::go_types::__go_init_all();
+    ::go_version::__go_init_all();
+    ::internal_abi::__go_init_all();
+    ::internal_buildcfg::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_filepathlite::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
+    ::internal_goexperiment::__go_init_all();
+    ::internal_gover::__go_init_all();
+    ::internal_goversion::__go_init_all();
+    ::internal_race::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::internal_sync::__go_init_all();
+    ::internal_types_errors::__go_init_all();
+    ::math::__go_init_all();
+    ::math_big::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::path_filepath::__go_init_all();
+    ::slices::__go_init_all();
+    ::sort::__go_init_all();
+    ::strconv::__go_init_all();
+    ::strings::__go_init_all();
+    ::sync::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut fset = go_token::new_file_set();
     let (mut file, mut err) = go_parser::parse_file(fset.clone(), Arc::new(Mutex::new(Some("input.go".to_string()))), Arc::new(Mutex::new(Some(Box::new("package main\nvar x int\n".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(go_parser::interface::Mode(Arc::new(Mutex::new(Some(0 as u64))))))));
@@ -233,9 +246,18 @@ fn main() {
     }
     }
     local_decl_stmt({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone());
-    let (mut pkg, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default()))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).check(Arc::new(Mutex::new(Some("main".to_string()))), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), Arc::new(Mutex::new(None))); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+    let (mut pkg, __tmp_1) = {
+        let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default())));
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).check(
+            Arc::new(Mutex::new(Some("main".to_string()))),
+            fset.clone(),
+            Arc::new(Mutex::new(Some(vec![file.clone()]))),
+            Arc::new(Mutex::new(None)),
+        );
+        __result
+    }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{}", format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
+        println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __recv = pkg.clone(); let __recv_ptr: *const go_types::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::package::Package }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));
 }

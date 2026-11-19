@@ -13,20 +13,32 @@ pub struct RangeTable {
 
 impl RangeTable {
     pub fn __go_value_clone(&self) -> Self {
-        Self { lo: { let __guard = self.lo.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, hi: { let __guard = self.hi.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.lo.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.hi.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            lo: __go_clone_0_0,
+            hi: __go_clone_0_1,
+        }
     }
 }
 
 
 impl Default for RangeTable {
     fn default() -> Self {
-        Self { lo: Rc::new(RefCell::new(Some(0))), hi: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_0_1 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            lo: __go_default_0_0,
+            hi: __go_default_0_1,
+        }
     }
 }
 
 impl std::fmt::Display for RangeTable {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.lo.borrow().as_ref().unwrap()), (*self.hi.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.lo.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.hi.borrow().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
@@ -73,7 +85,7 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    println!("{} {}", format!("{}", (*(*(*Tables.borrow().as_ref().unwrap()).get(&"C".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).lo.borrow().as_ref().unwrap())), format!("{}", (*(*(*Tables.borrow().as_ref().unwrap()).get(&"C".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).hi.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*(*{ let __map_holder = Tables.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"C".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).lo.borrow().as_ref().unwrap())), format!("{}", (*(*{ let __map_holder = Tables.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"C".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).hi.borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

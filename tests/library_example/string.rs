@@ -1,5 +1,3 @@
-use crate::math::*;
-
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
@@ -11,5 +9,5 @@ pub fn repeat(s: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i32>>>) -> Rc
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&(*s.borrow().as_ref().unwrap())); };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return Rc::new(RefCell::new(Some(result.borrow().as_ref().unwrap().clone())));
+    return { let __owned = result.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
 }

@@ -11,6 +11,6 @@ fn main() {
     { let __range_holder = roots().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, root) in __range_values.iter().enumerate() {
         { let __map_key = (*root).clone(); let __map_value = Rc::new(RefCell::new(Some(i as i32))); (*rootMap.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
-    println!("{}", format!("{}", (*rootMap.borrow().as_ref().unwrap()).get(&"alpha".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)));
-    println!("{}", format!("{}", (*rootMap.borrow().as_ref().unwrap()).get(&"beta".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0)));
+    println!("{}", format!("{}", { let __map_holder = rootMap.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"alpha".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{}", format!("{}", { let __map_holder = rootMap.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"beta".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 }

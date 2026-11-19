@@ -76,8 +76,8 @@ func wrap() error {
 		strings.Contains(rust, "ErrNotFound.borrow().as_ref().unwrap()).clone()).borrow()") {
 		t.Fatalf("fmt.Errorf should not clone the boxed error before formatting it:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}\", (*os_exec::ErrNotFound.lock().unwrap().as_ref().unwrap()))") &&
-		!strings.Contains(rust, "format!(\"{}\", (*os_exec::ErrNotFound.borrow().as_ref().unwrap()))") {
+	if !strings.Contains(rust, "match os_exec::ErrNotFound.lock().unwrap().as_ref() { Some(__value) => format!(\"{}\", __value)") &&
+		!strings.Contains(rust, "match os_exec::ErrNotFound.borrow().as_ref() { Some(__value) => format!(\"{}\", __value)") {
 		t.Fatalf("fmt.Errorf should format the package-global error handle directly:\n%s", rust)
 	}
 }
@@ -1149,7 +1149,7 @@ func forceConcurrent(ch chan bool) {
 	if strings.Contains(rust, ".next.clone(); __field }.lock().unwrap().as_ref().unwrap()).lock().unwrap()") {
 		t.Fatalf("printing a pointer selector should not unwrap the pointee and then lock it again:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{}", format!("&{}", (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field }.lock().unwrap().as_ref().unwrap())))`) {
+	if !strings.Contains(rust, `format!("{}", { let __text = match { let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field }.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })`) {
 		t.Fatalf("printing a pointer selector should format the selector handle once:\n%s", rust)
 	}
 }
@@ -1745,5 +1745,51 @@ func alloc() *[]int {
 	}
 	if !strings.Contains(rust, "Vec::<i32>::default()") {
 		t.Fatalf("new([]T) should emit a turbofish default constructor:\n%s", rust)
+	}
+}
+
+// In a program with goroutines a print argument that reads an interface{}
+// variable locks it. The lock has to end with the argument, or a statement
+// that prints the same variable twice waits on itself forever.
+func TestInterfaceValuePrintArgumentEndsItsLock(t *testing.T) {
+	describe := `package main
+
+import "fmt"
+
+func describe(v interface{}) {
+	fmt.Printf("%v|%v\n", v, v)
+	fmt.Println(v, v)
+	fmt.Printf("%T: %v\n", v, v)
+}
+`
+	// Without goroutines a borrow can be shared, and the text is unchanged.
+	plain := transpileTypedRegression(t, describe+`
+func main() {
+	describe(5)
+}
+`)
+	if !strings.Contains(plain, `print!("{}|{}\n", format_any(v.borrow().as_ref().unwrap().as_ref()), format_any(v.borrow().as_ref().unwrap().as_ref()));`) {
+		t.Fatalf("the sequential form should not change:\n%s", plain)
+	}
+
+	locked := transpileTypedConcurrentRegression(t, describe+`
+func main() {
+	done := make(chan bool)
+	go func() { done <- true }()
+	<-done
+	describe(5)
+}
+`)
+	want := `print!("{}|{}\n", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text });`
+	if !strings.Contains(locked, want) {
+		t.Fatalf("missing %q in:\n%s", want, locked)
+	}
+	// %T reads the variable as well.
+	wantType := `print!("{}: {}\n", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text });`
+	if !strings.Contains(locked, wantType) {
+		t.Fatalf("missing %q in:\n%s", wantType, locked)
+	}
+	if strings.Contains(locked, "format_any(v.lock().unwrap().as_ref().unwrap().as_ref()), ") {
+		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)
 	}
 }
