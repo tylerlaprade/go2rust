@@ -2011,6 +2011,10 @@ run_xfail_test() {
     run_test "tests/positional_struct_nil_slice_field"
 }
 
+@test "print_interface_value_twice_goroutines" {
+    run_test "tests/print_interface_value_twice_goroutines"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
 }
