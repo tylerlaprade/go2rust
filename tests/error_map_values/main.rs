@@ -44,7 +44,7 @@ impl customError {
 impl StdError for customError {}
 
 
-pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn accept(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if { let __nil_result = (*err.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", "nil".to_string()));
         return;
@@ -53,14 +53,14 @@ pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
 }
 
 fn main() {
-    let mut errs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn StdError>>>>>::from([("one".to_string(), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("one".to_string()))))), ("nil".to_string(), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))]))));
-    { let __map_key = "two".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::new(customError { msg: Rc::new(RefCell::new(Some("two".to_string()))), ..Default::default() }) as Box<dyn StdError>))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = "nil".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("three".to_string())))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    let mut errs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn StdError>>>>>::from([("one".to_string(), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("one".to_string())))))), ("nil".to_string(), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))]))));
+    { let __map_key = "two".to_string(); let __map_value = Rc::new(RefCell::new(Some(Rc::new(customError { msg: Rc::new(RefCell::new(Some("two".to_string()))), ..Default::default() }) as Rc<dyn StdError>))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "nil".to_string(); let __map_value = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("three".to_string()))))); (*errs.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     {
         let mut err = { let __map_holder = errs.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"one".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
         if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-            accept(err.clone());;
+            accept({ let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) });;
         }
     }
     accept({ let __map_holder = errs.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"two".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) });

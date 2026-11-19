@@ -174,7 +174,10 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			return fmt.Errorf("failed to load packages: %v", err)
 		}
 
-		// Transpile external packages
+		// Transpile external packages. TranspileAll starts collecting the
+		// interface cases the program's packages share; they are needed
+		// until the last helper of this project is written.
+		defer endProgramAnyCases()
 		if err := loader.TranspileAll(); err != nil {
 			return fmt.Errorf("failed to transpile dependencies: %v", err)
 		}
@@ -472,6 +475,12 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("error writing %s: %v", module.path, err)
 		}
+	}
+
+	// Every package has now said which values it puts into an interface.
+	// Give the dependencies that were written too early the cases they lack.
+	if packageLoader != nil {
+		packageLoader.RetranslatePackagesMissingSharedAnyCases()
 	}
 
 	if pg.useSharedStdlibStubCrate {

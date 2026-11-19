@@ -152,13 +152,13 @@ impl<T> Iterator for GoChannel<T> {
 #[derive(Clone)]
 struct GoContext {
     done: GoChannel<bool>,
-    err: std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>,
+    err: std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>,
     cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
     label: String,
 }
 
 type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
+type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>) -> () + Send + Sync>;
 
 impl GoContext {
     fn background() -> GoContext {
@@ -182,7 +182,7 @@ impl GoContext {
     fn with_timeout(parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
         let label = format!("{}.WithDeadline", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<std::sync::Arc<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         let context = GoContext {
@@ -198,7 +198,7 @@ impl GoContext {
         std::thread::spawn(move || {
             std::thread::sleep(duration);
             if !timeout_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *timeout_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context deadline exceeded".to_string()));
+                *timeout_err.lock().unwrap() = Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("context deadline exceeded".to_string())));
                 timeout_done.send(true);
                 timeout_done.close();
             }
@@ -209,7 +209,7 @@ impl GoContext {
         let cancel_cancelled = cancelled.clone();
         let cancel: GoCancelFunc = std::sync::Arc::new(move || {
             if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string()));
+                *cancel_err.lock().unwrap() = Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string())));
                 cancel_done.send(true);
                 cancel_done.close();
             }
@@ -224,7 +224,7 @@ impl GoContext {
     fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
         let label = format!("{}.WithCancel", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<std::sync::Arc<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         let context = GoContext {
@@ -239,7 +239,7 @@ impl GoContext {
         let cancel_cancelled = cancelled.clone();
         let cancel: GoCancelFunc = std::sync::Arc::new(move || {
             if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string()));
+                *cancel_err.lock().unwrap() = Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string())));
                 cancel_done.send(true);
                 cancel_done.close();
             }
@@ -254,7 +254,7 @@ impl GoContext {
     fn with_cancel_cause(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelCauseFunc>>>) {
         let label = format!("{}.WithCancelCause", GoContext::parent_label(&parent));
         let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>));
+        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<std::sync::Arc<dyn std::error::Error + Send + Sync>>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         let context = GoContext {
@@ -269,7 +269,7 @@ impl GoContext {
         let cancel_cancelled = cancelled.clone();
         let cancel: GoCancelCauseFunc = Box::new(move |_cause| {
             if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string()));
+                *cancel_err.lock().unwrap() = Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("context canceled".to_string())));
                 cancel_done.send(true);
                 cancel_done.close();
             }
@@ -285,7 +285,7 @@ impl GoContext {
         self.done.clone()
     }
 
-    fn err(&self) -> Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>> {
+    fn err(&self) -> Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>> {
         self.err.clone()
     }
 }
@@ -302,17 +302,26 @@ impl std::fmt::Debug for GoContext {
     }
 }
 
-pub fn fail(ctx: Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+pub fn fail(ctx: Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
     (*ctx.lock().unwrap().as_ref().unwrap()).err()
 }
 
 fn main() {
     let (mut ctx, mut cancel) = GoContext::with_cancel(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
-    { let __f_ptr: *mut GoCancelFunc = { let mut __f_guard = cancel.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut GoCancelFunc }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    {
+        let __f_ptr: *mut GoCancelFunc = {
+            let mut __f_guard = cancel.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut GoCancelFunc
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
 
     let mut err = fail(ctx.clone());
-    if (*err.lock().unwrap()).is_some() {
-        println!("{}", format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
     println!("{}", format!("{}", "no error".to_string()));

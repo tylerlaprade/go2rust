@@ -93,6 +93,12 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+// Prints a value held inside the one being printed. Nothing this program
+// puts in an interface prints differently there.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any(value)
+}
+
 /// Named struct with anonymous struct field
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -546,7 +552,7 @@ impl Default for AnonymousStruct9 {
 impl std::fmt::Display for AnonymousStruct9 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.key.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", format_any(self.value.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_1 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

@@ -43,10 +43,10 @@ impl customError {
 impl StdError for customError {}
 
 
-pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
+pub fn accept(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }
 
 fn main() {
-    accept(Rc::new(RefCell::new(Some(Box::new(customError { msg: Rc::new(RefCell::new(Some("boom".to_string()))), ..Default::default() }) as Box<dyn StdError>))));
+    accept(Rc::new(RefCell::new(Some(Rc::new(customError { msg: Rc::new(RefCell::new(Some("boom".to_string()))), ..Default::default() }) as Rc<dyn StdError>))));
 }

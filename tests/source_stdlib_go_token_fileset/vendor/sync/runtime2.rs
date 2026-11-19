@@ -9,6 +9,7 @@ use crate::{
     GoSliceElemPtr,
     GoSliceElemRef,
     format_any,
+    format_any_nested,
     format_slice,
     format_slice_values,
     format_slice_wrapped,
