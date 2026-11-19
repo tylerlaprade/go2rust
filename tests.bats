@@ -3031,6 +3031,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
+@test "XFAIL: flag_writer_output" {
+    run_xfail_test "tests/XFAIL/flag_writer_output"
+}
+
 @test "XFAIL: generic_type_param_method_call" {
     run_xfail_test "tests/XFAIL/generic_type_param_method_call"
 }

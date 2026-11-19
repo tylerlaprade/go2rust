@@ -196,6 +196,11 @@ in the first place.
 - Fixture: `tests/external_stdlib_variadic/`,
   `tests/external_stub_closure_capture/`,
   `tests/embedded_external_method_promotion/`,
+  `tests/XFAIL/flag_writer_output/` source-maps `flag` and demonstrates the
+  remaining boundary directly: `flag.FlagSet.Parse` writes its parse error
+  through a user-defined `io.Writer`, emits the unexpanded `-%s`, and then
+  panics in `io_Writer.__go_write_bytes` before the writer receives the
+  message,
   `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`,
   `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`,
   `go/stdlib_test.go:TestSourceMappedBytesBufferToExternalIoWriterIsLoud`,
@@ -204,7 +209,8 @@ in the first place.
   `go/stdlib_test.go:TestSourceMappedStringsBuilderAsSourceMappedIoWriterBoxesPointerWrapper`
 - Removal trigger: non-source-mapped `io.Writer` signatures either source-map
   the stdlib path or emit loud unsupported paths without hand-written writer
-  behavior; then delete `writeIoWriterStub`.
+  behavior; source-translated `flag` can call a source-translated `io.Writer`
+  implementation without the external stub; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
 ### io-readcloser-close-dispatch
