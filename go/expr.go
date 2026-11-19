@@ -21181,7 +21181,11 @@ func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr,
 	var args strings.Builder
 	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
 	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
-	if !writeMethodCallArguments(&args, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+	argumentCount := len(call.Args)
+	if writeMethodCallArguments(&args, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		signature, _ := callSignatureFromTypeInfo(call)
+		argumentCount = signature.Params().Len()
+	} else {
 		for i, arg := range call.Args {
 			if i > 0 {
 				args.WriteString(", ")
@@ -21195,14 +21199,26 @@ func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr,
 			}
 		}
 	}
+	// Go evaluates arguments before entering the method. An argument may
+	// access the same slice that with_mut borrows for the receiver.
+	names := make([]string, argumentCount)
+	for i := range names {
+		names[i] = fmt.Sprintf("__go_method_args.%d", i)
+	}
+	arguments := strings.Join(names, ", ")
+	if argumentCount > 0 {
+		out.WriteString("let __go_method_args = (")
+		out.WriteString(args.String())
+		out.WriteString(",); ")
+	}
 	if nilHelper != "" {
 		out.WriteString("if __recv_field.is_nil() { ")
 		out.WriteString(nilHelper)
 		out.WriteString("(")
 		WriteWrappedNone(out)
-		if args.Len() > 0 {
+		if argumentCount > 0 {
 			out.WriteString(", ")
-			out.WriteString(args.String())
+			out.WriteString(arguments)
 		}
 		out.WriteString(") } else { ")
 	}
@@ -21215,7 +21231,7 @@ func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr,
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 
-	out.WriteString(args.String())
+	out.WriteString(arguments)
 	if needsMut {
 		out.WriteString(")); __result")
 	} else {
@@ -21679,8 +21695,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		// A pointer method on (*p) operates on p's storage. Use the pointer
+		// dispatch below; a value receiver still requires the Go value copy.
+		receiver := sel.X
+		if deref, ok := unwrapParens(receiver).(*ast.StarExpr); ok {
+			if methodHasPointerReceiver(selectedMethodFuncFromTypeInfo(GetTypeInfo(), sel)) {
+				receiver = unwrapParens(deref.X)
+			}
+		}
 		// Check if the receiver is a simple identifier (local variable)
-		if ident, ok := sel.X.(*ast.Ident); ok {
+		if ident, ok := receiver.(*ast.Ident); ok {
 			if wrote, shouldClose := writePackageGlobalIdentMethodReceiver(out, ident, sel); wrote {
 				// Package-global pointer receiver handled above.
 				closeReceiverBlock = shouldClose
@@ -21834,12 +21858,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".")
 				}
 			}
-		} else if receiverSel, ok := sel.X.(*ast.SelectorExpr); ok && isPackageVarSelector(receiverSel) {
+		} else if receiverSel, ok := receiver.(*ast.SelectorExpr); ok && isPackageVarSelector(receiverSel) {
 			wrote, shouldClose := writePackageGlobalSelectorMethodReceiver(out, receiverSel, sel)
 			if wrote {
 				closeReceiverBlock = shouldClose
 			}
-		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
+		} else if fieldSel, ok := receiver.(*ast.SelectorExpr); ok {
 			if writeElemPtrCallResultFieldMethodCall(out, fieldSel, sel, call) {
 				return
 			}
@@ -21877,7 +21901,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".as_ref().unwrap()).")
 				}
 			}
-		} else if receiverCall, ok := sel.X.(*ast.CallExpr); ok {
+		} else if receiverCall, ok := receiver.(*ast.CallExpr); ok {
 			writeElemPtrCallResultReceiver := func(needsMut bool) {
 				multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
 				receiverBlockIndent := ""
@@ -21923,7 +21947,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString("; let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
 				}
 				closeReceiverBlock = true
-			} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
+			} else if methodReceiverExpressionNeedsUnwrap(receiver) {
 				needsMut := methodCallNeedsMutableReceiver(sel)
 				multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
 				receiverBlockIndent := ""
@@ -21945,7 +21969,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if multilineReceiverBlock {
 					receiverExprIndent = receiverBlockIndent + "    "
 				}
-				writeMethodReceiverTempExpression(out, sel.X, receiverExprIndent)
+				writeMethodReceiverTempExpression(out, receiver, receiverExprIndent)
 				restoreForceInnerClones()
 				if multilineReceiverBlock {
 					out.WriteString(";\n")
@@ -21964,10 +21988,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				closeReceiverBlock = true
 			} else {
-				TranspileExpression(out, sel.X)
+				TranspileExpression(out, receiver)
 				out.WriteString(".")
 			}
-		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
+		} else if methodReceiverExpressionNeedsUnwrap(receiver) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
 			multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
 			receiverBlockIndent := ""
@@ -21980,7 +22004,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("{ let __recv = ")
 			}
 			restoreForceInnerClones := func() {}
-			if _, ok := sel.X.(*ast.CallExpr); ok {
+			if _, ok := receiver.(*ast.CallExpr); ok {
 				prevForceInnerClones := forceInnerFuncLitCaptureClones
 				forceInnerFuncLitCaptureClones = true
 				restoreForceInnerClones = func() {
@@ -21991,7 +22015,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if multilineReceiverBlock {
 				receiverExprIndent = receiverBlockIndent + "    "
 			}
-			writeMethodReceiverTempExpression(out, sel.X, receiverExprIndent)
+			writeMethodReceiverTempExpression(out, receiver, receiverExprIndent)
 			restoreForceInnerClones()
 			if multilineReceiverBlock {
 				out.WriteString(";\n")
@@ -22009,7 +22033,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".as_ref().unwrap()).")
 			}
 			closeReceiverBlock = true
-		} else if methodReceiverExpressionShouldUseMultiline(sel.X) {
+		} else if methodReceiverExpressionShouldUseMultiline(receiver) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
 			receiverBlockIndent := currentLineIndent(out)
 			out.WriteString("{\n")
@@ -22019,7 +22043,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				out.WriteString("    let __recv = ")
 			}
-			writeMethodReceiverTempExpression(out, sel.X, receiverBlockIndent+"    ")
+			writeMethodReceiverTempExpression(out, receiver, receiverBlockIndent+"    ")
 			out.WriteString(";\n")
 			out.WriteString(receiverBlockIndent)
 			out.WriteString("    let __result = __recv.")
@@ -22028,7 +22052,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			closeReceiverBlock = true
 		} else {
 			// Other complex expression - just transpile it
-			TranspileExpression(out, sel.X)
+			TranspileExpression(out, receiver)
 			out.WriteString(".")
 		}
 

@@ -34,5 +34,6 @@ func main() {
 	h.Current = &nodes[0]
 	fmt.Println(h.Current.Get())
 	fmt.Println(h.Current.Add(delta()))
+	fmt.Println(h.Current.Add(h.Current.Get()))
 	fmt.Println(nodes[0].Value)
 }
