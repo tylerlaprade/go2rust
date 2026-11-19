@@ -91,6 +91,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isSlice                   bool
 		isMap                     bool
 		isInterface               bool
+		isError                   bool
 		isFunction                bool
 		funcSlice                 bool
 		anySlice                  bool
@@ -119,6 +120,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isSlice := field.Type.(*ast.ArrayType)
 		_, isMap := field.Type.(*ast.MapType)
 		isInterface := isEmptyInterfaceExpr(field.Type)
+		isError := structDisplayFieldIsError(field.Type)
 		isFunction := isFunctionSignatureTypeExpr(field.Type)
 		funcSlice := arrayFieldContainsFunction(field.Type)
 		anySlice := sliceFieldContainsEmptyInterface(field.Type)
@@ -149,6 +151,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					isSlice:                   isSlice,
 					isMap:                     isMap,
 					isInterface:               isInterface,
+					isError:                   isError,
 					isFunction:                isFunction,
 					funcSlice:                 funcSlice,
 					anySlice:                  anySlice,
@@ -205,11 +208,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	writeDisplayFieldValue := func(f fieldEntry) {
 		if f.isInterface {
+			// A nil interface field prints as <nil>. The zero value of a
+			// struct has one, so this is the common case, not a corner.
 			NeedFormatAny()
-			out.WriteString("format_any(self.")
+			out.WriteString("match self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap().as_ref())")
+			out.WriteString(".as_ref() { Some(__v) => format_any(__v.as_ref()), None => \"<nil>\".to_string() }")
+		} else if f.isError {
+			// The same for an error field: nil until something fails.
+			out.WriteString("match self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref() { Some(__v) => format!(\"{}\", __v), None => \"<nil>\".to_string() }")
 		} else if f.isFunction {
 			out.WriteString("\"<func>\"")
 		} else if f.funcSlice {
@@ -309,6 +320,18 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	writeStructDisplayWriteCall(out, len(fields))
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+// structDisplayFieldIsError reports whether a struct field's declared type is
+// the predeclared error interface.
+func structDisplayFieldIsError(expr ast.Expr) bool {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			return isErrorInterfaceType(typ)
+		}
+	}
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "error"
 }
 
 func writeStructDisplayWriteCall(out *strings.Builder, fieldCount int) {

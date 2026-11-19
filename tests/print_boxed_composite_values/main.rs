@@ -111,7 +111,11 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Node>() {
+        format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<NotFound>() {
+        format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<Outcome>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Point>() {
         format!("{}", v)
@@ -159,7 +163,9 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Node>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<NotFound>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Outcome>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Point>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Point>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
@@ -309,7 +315,47 @@ impl Default for Node {
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", format_any(self.next.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_1 = format!("{}", match self.next.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
+/// Outcome is the usual result struct: its error is nil unless something
+/// failed.
+#[derive(Clone)]
+pub struct Outcome {
+    pub value: Rc<RefCell<Option<i32>>>,
+    pub err: Rc<RefCell<Option<Box<dyn StdError>>>>,
+}
+
+impl Outcome {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.value.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_1_0 = self.err.clone();
+        Self {
+            value: __go_clone_0_0,
+            err: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Outcome {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            value: __go_default_0_0,
+            err: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Outcome {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.value.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", match self.err.borrow().as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
@@ -393,4 +439,15 @@ fn main() {
     let mut noNode: Rc<RefCell<Option<Node>>> = Rc::new(RefCell::new(None));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("end".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(noNode.clone()) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(p.clone()) as Box<dyn Any>))));
+
+        // The zero value of a struct has nil interface and error fields. They
+        // print as <nil>, whether the struct is printed directly or through an
+        // interface.
+    println!("{}", format!("{}", Node { name: Rc::new(RefCell::new(Some("typed".to_string()))), ..Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("boxed".to_string()))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("pointer".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("full".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
+    println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(1))), ..Default::default() }));
+    show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(3))), err: Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("failed"))))), ..Default::default() }) as Box<dyn Any>))));
 }

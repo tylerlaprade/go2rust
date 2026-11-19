@@ -33,7 +33,7 @@ pub trait Reader: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Reader + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_reader()
+        Reader::__go_clone_box_reader(self.as_ref())
     }
 }
 
@@ -45,13 +45,20 @@ pub struct holder {
 
 impl holder {
     pub fn __go_value_clone(&self) -> Self {
-        Self { reader: self.reader.clone(), value: self.value.clone() }
+        let __go_clone_0_0 = self.reader.clone();
+        let __go_clone_1_0 = self.value.clone();
+        Self {
+            reader: __go_clone_0_0,
+            value: __go_clone_1_0,
+        }
     }
 }
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.reader.lock().unwrap().as_ref().unwrap()), format_any(self.value.lock().unwrap().as_ref().unwrap().as_ref()))
+        let __go_fmt_0 = format!("{}", (*self.reader.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", match self.value.lock().unwrap().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 

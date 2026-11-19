@@ -273,7 +273,7 @@ impl Holder {
 
 impl std::fmt::Display for Holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.v.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.v.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
@@ -298,8 +298,8 @@ impl Pair {
 
 impl std::fmt::Display for Pair {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", format_any(self.left.borrow().as_ref().unwrap().as_ref()));
-        let __go_fmt_1 = format!("{}", format_any(self.right.borrow().as_ref().unwrap().as_ref()));
+        let __go_fmt_0 = format!("{}", match self.left.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_1 = format!("{}", match self.right.borrow().as_ref() { Some(__v) => format_any(__v.as_ref()), None => "<nil>".to_string() });
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
