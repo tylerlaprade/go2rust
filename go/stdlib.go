@@ -413,7 +413,12 @@ func transpileBuiltinPrintMacro(out *strings.Builder, call *ast.CallExpr, macro 
 		out.WriteString("            let __go_print_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
+		// Go's low-level print/println builtins use an implementation-specific
+		// scientific float format, not fmt's default %v/%g representation.
+		previousSuppressFloat := suppressGoDefaultFloatFormat
+		suppressGoDefaultFloatFormat = true
 		transpilePrintArgString(out, arg)
+		suppressGoDefaultFloatFormat = previousSuppressFloat
 		out.WriteString(";\n")
 	}
 	out.WriteString("            ")
@@ -522,6 +527,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.GetType(arg) != nil {
 		argType := typeInfo.GetType(arg)
+		if writeGoDefaultFloatFormat(out, arg, argType) {
+			return
+		}
 		if writeGoErrorFormatArg(out, arg, argType) {
 			return
 		}
@@ -590,6 +598,23 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		}
 
 		if typeInfo.IsMap(arg) {
+			if mapType, ok := types.Unalias(argType).Underlying().(*types.Map); ok {
+				if bits, isFloat := goPrimitiveFloatBits(mapType.Elem()); isFloat {
+					NeedGoFloatMapFormat()
+					if bits == 32 {
+						out.WriteString("format_float32_map_values(&")
+					} else {
+						out.WriteString("format_float64_map_values(&")
+					}
+					if ident, ok := arg.(*ast.Ident); ok {
+						writeCollectionFormatHandleIdent(out, ident)
+					} else if !writeAnyHandleAssertionHandle(out, arg) {
+						TranspileExpression(out, arg)
+					}
+					out.WriteString(")")
+					return
+				}
+			}
 			NeedFormatMap()
 			TrackImport("Display")
 			TrackImport("Ord")
@@ -631,6 +656,15 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			NeedFormatSlice()
 			TrackImport("Display")
 			elemType = typeInfo.GetArrayOrSliceElemType(arg)
+			if bits, isFloat := goPrimitiveFloatBits(elemType); isFloat {
+				NeedGoFloatSliceFormat()
+				if bits == 32 {
+					writeFormatSliceCall(out, arg, "format_float32_slice", "format_float32_slice_values")
+				} else {
+					writeFormatSliceCall(out, arg, "format_float64_slice", "format_float64_slice_values")
+				}
+				return
+			}
 			if _, isLocalNamedInterface := transpiledNamedInterfaceTypeNameFromTypes(elemType); isLocalNamedInterface {
 				// Local named interface slice elements are wrapped as
 				// Rc<RefCell<Option<Box<dyn Trait>>>>; use the wrapped stringer
@@ -1441,7 +1475,10 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
-func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
+func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string, defaultFloatArgs map[int]bool) {
+	previousSuppressFloat := suppressGoDefaultFloatFormat
+	suppressGoDefaultFloatFormat = !defaultFloatArgs[argIndex]
+	defer func() { suppressGoDefaultFloatFormat = previousSuppressFloat }()
 	isTypeNameArg := false
 	for _, tnIdx := range typeNameIndices {
 		if tnIdx == argIndex {
@@ -1522,11 +1559,13 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var defaultFloatArgs map[int]bool
 	if len(call.Args) > formatArgIndex {
 		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			defaultFloatArgs = formatDefaultFloatArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1543,7 +1582,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 					}
 					var arg strings.Builder
 					withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
-						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, defaultFloatArgs)
 					})
 					args = append(args, arg.String())
 				}
@@ -1579,7 +1618,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			if !shouldSkip {
 				out.WriteString(", ")
 				withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
-					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, defaultFloatArgs)
 				})
 			}
 		}
@@ -2145,6 +2184,14 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 		out.WriteString(")")
 		return
 	}
+	var assertionHandle strings.Builder
+	if writeAnyHandleAssertionHandle(&assertionHandle, arg) {
+		out.WriteString(wrappedHelper)
+		out.WriteString("(&")
+		out.WriteString(assertionHandle.String())
+		out.WriteString(")")
+		return
+	}
 	out.WriteString(wrappedHelper)
 	out.WriteString("(&")
 	TranspileExpression(out, arg)
@@ -2175,12 +2222,14 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var defaultFloatArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			defaultFloatArgs = formatDefaultFloatArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2197,7 +2246,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 					}
 					var arg strings.Builder
 					withPrintArgPlusV(plusVArgs[i-1], func() {
-						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, defaultFloatArgs)
 					})
 					args = append(args, arg.String())
 				}
@@ -2234,7 +2283,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			if !shouldSkip {
 				out.WriteString(", ")
 				withPrintArgPlusV(plusVArgs[i-1], func() {
-					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, defaultFloatArgs)
 				})
 			}
 		}
@@ -2285,6 +2334,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var defaultFloatArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
@@ -2292,6 +2342,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			// Convert Go format verbs to Rust
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			defaultFloatArgs = formatDefaultFloatArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2328,7 +2379,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				withPrintArgPlusV(plusVArgs[i-1], func() {
-					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, defaultFloatArgs)
 				})
 			}
 		}

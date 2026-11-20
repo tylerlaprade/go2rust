@@ -111,6 +111,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		goPtrArray                bool
 		interfaceSlice            bool
 		zeroLenArray              bool
+		floatBits                 int
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -138,6 +139,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isPointer := structDisplayFieldIsPointer(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		zeroLenArray := structDisplayFieldIsZeroLenArray(field.Type)
+		floatBits := 0
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			floatBits, _ = goPrimitiveFloatBits(typeInfo.GetType(field.Type))
+		}
 		if isChannel {
 			continue
 		}
@@ -172,6 +177,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					goPtrArray:                goPtrArrayField,
 					interfaceSlice:            interfaceSlice,
 					zeroLenArray:              zeroLenArray,
+					floatBits:                 floatBits,
 				})
 			}
 		} else {
@@ -205,6 +211,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				goPtrArray:                goPtrArrayField,
 				interfaceSlice:            interfaceSlice,
 				zeroLenArray:              zeroLenArray,
+				floatBits:                 floatBits,
 			})
 		}
 	}
@@ -233,6 +240,17 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
 			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+		} else if f.floatBits != 0 {
+			NeedGoFloatFormat()
+			if f.floatBits == 32 {
+				out.WriteString("go_format_float32(")
+			} else {
+				out.WriteString("go_format_float64(")
+			}
+			out.WriteString("(*self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()))")
 		} else if f.isMap && f.mapOpaque {
 			out.WriteString("\"<map>\"")
 		} else if f.isMap {
@@ -318,7 +336,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	// and a struct value in a field passes it on.
 	plusV := packageFormatsWithPlusV() && len(fields) > 0
 	plainField := func(f fieldEntry) bool {
-		return !f.isInterface && !f.isError && !f.isFunction && !f.funcSlice && !f.isMap && !f.zeroLenArray &&
+		return !f.isInterface && !f.isError && !f.isFunction && !f.funcSlice && f.floatBits == 0 && !f.isMap && !f.zeroLenArray &&
 			!f.nestedSliceWrapped && !f.nestedPointerSlice && !f.nestedPointerSliceWrapped && !f.nestedSlice &&
 			!f.goPtr && !f.goPtrSlice && !f.goPtrArray && !f.ptrToPtrSlice && !f.ptrToSlice && !f.ptrSlice &&
 			!f.anySlice && !f.interfaceSlice && !f.isPointer && !f.isSlice

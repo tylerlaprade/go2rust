@@ -9314,7 +9314,7 @@ func writeAnyHandleAssertionHandle(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	if _, isElement := anySliceElementAssertionSource(e.X); isElement {
-		return false
+		return writeAnySliceElementPointerHandleAssertionValue(out, e, handleType)
 	}
 	out.WriteString("({ let val = ")
 	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
@@ -10309,6 +10309,16 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 		return true
 	}
 	if _, isNamed := types.Unalias(expected).(*types.Named); !isNamed {
+		var floatValue strings.Builder
+		if writeConstExpressionForExpectedFloat(&floatValue, value, expected) {
+			out.WriteString(floatValue.String())
+			if rustType, ok := rustFloatTypeForGoType(expected); ok && rustType == "f32" {
+				// A collection literal otherwise leaves Rust to infer an
+				// unconstrained decimal as f64, losing Go's float32 element type.
+				out.WriteString("f32")
+			}
+			return true
+		}
 		if writeConstExpressionForExpectedInteger(out, value, expected) {
 			return true
 		}

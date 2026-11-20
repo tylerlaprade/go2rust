@@ -1167,6 +1167,14 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "float_default_format" {
+    run_test "tests/float_default_format"
+}
+
+@test "float_default_format_goroutines" {
+    run_test "tests/float_default_format_goroutines"
+}
+
 @test "fmt_errorf_interface_field" {
     run_test "tests/fmt_errorf_interface_field"
 }
@@ -3609,6 +3617,10 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
+}
+
+@test "XFAIL: float_default_rounding_tie" {
+    run_xfail_test "tests/XFAIL/float_default_rounding_tie"
 }
 
 @test "XFAIL: http_client" {

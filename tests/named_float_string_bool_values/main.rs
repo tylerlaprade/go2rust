@@ -5,6 +5,63 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+// Go's default float rendering is strconv.FormatFloat(v, 'g', -1, bitSize):
+// use the shortest identifying digits, switching to exponent notation below
+// 1e-4 and at 1e6.
+fn go_format_float_digits(exponent_form: &str) -> (String, i32) {
+    let (mantissa, exponent) = exponent_form.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    (digits, exponent.parse().unwrap())
+}
+
+fn go_format_float_exponent(digits: &str, exponent: i32) -> String {
+    let mut out = String::new();
+    out.push_str(&digits[..1]);
+    if digits.len() > 1 {
+        out.push('.');
+        out.push_str(&digits[1..]);
+    }
+    out.push('e');
+    out.push(if exponent < 0 { '-' } else { '+' });
+    out.push_str(&format!("{:02}", exponent.abs()));
+    out
+}
+
+fn go_format_float_magnitude(shortest: &str) -> String {
+    let (digits, exponent) = go_format_float_digits(shortest);
+    if exponent < -4 || exponent >= 6 {
+        return go_format_float_exponent(&digits, exponent);
+    }
+    if exponent < 0 {
+        return format!("0.{}{}", "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}", digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}.{}", &digits[..whole], &digits[whole..])
+}
+
+fn go_format_float64(value: f64) -> String {
+    if value.is_nan() { return "NaN".to_string(); }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { "-Inf" } else { "+Inf" }.to_string();
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    format!("{}{}", sign, go_format_float_magnitude(&format!("{:e}", magnitude)))
+}
+
+fn go_format_float32(value: f32) -> String {
+    if value.is_nan() { return "NaN".to_string(); }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { "-Inf" } else { "+Inf" }.to_string();
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    format!("{}{}", sign, go_format_float_magnitude(&format!("{:e}", magnitude)))
+}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -79,9 +136,9 @@ fn format_any(value: &dyn Any) -> String {
     } else if let Some(v) = value.downcast_ref::<i64>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<f64>() {
-        v.to_string()
+        go_format_float64(*v)
     } else if let Some(v) = value.downcast_ref::<f32>() {
-        v.to_string()
+        go_format_float32(*v)
     } else if let Some(v) = value.downcast_ref::<String>() {
         v.clone()
     } else if let Some(v) = value.downcast_ref::<&str>() {
@@ -1496,8 +1553,8 @@ pub fn describe(e: Rc<RefCell<Option<Enabled>>>) -> Rc<RefCell<Option<String>>> 
 
 fn main() {
     let mut boiling = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(100.0 as f64)))))));
-    println!("{} {} {}", format!("{}", { let __v = (*boiling.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Rc::new(RefCell::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*f_to_c(Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212.0)))))))).borrow().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
+    println!("{} {} {}", format!("{}", { let __v = (*boiling.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", go_format_float64((*(*c_to_f(Rc::new(RefCell::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))), format!("{}", (*f_to_c(Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212.0)))))))).borrow().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", go_format_float64((*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap()))), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
     let mut temps = Rc::new(RefCell::new(Some(vec![Celsius(Rc::new(RefCell::new(Some(20.5)))), Celsius(Rc::new(RefCell::new(Some(18.0)))), Celsius(Rc::new(RefCell::new(Some(25.25))))])));
     println!("{}", format!("{}", (*average(temps.clone()).borrow().as_ref().unwrap())));
     let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
@@ -1530,13 +1587,13 @@ fn main() {
         print!("{}{}{}", format!("{}", (*x.place.borrow().as_ref().unwrap()).clone()), format!("{}", (*x.temp.borrow().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
     } }
     println!();
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(0) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).max((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(2) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", go_format_float64((*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(0) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).max((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(2) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64)))).borrow().as_ref().unwrap()))));
     let mut byPlace = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Celsius>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1.25))))))))]))));
     { let __map_key = "y".to_string(); let __map_value = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(((*{ let __map_holder = byPlace.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Rc::new(RefCell::new(Some(0.0))))) }.0.borrow().as_ref().unwrap()) * 2.0)))))))); (*byPlace.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"y".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Rc::new(RefCell::new(Some(0.0))))) }), format!("{}", (*byPlace.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
     let (mut a, mut b) = (Rc::new(RefCell::new(Some(Meters(Rc::new(RefCell::new(Some(7.0 as f64))))))), Rc::new(RefCell::new(Some(Meters(Rc::new(RefCell::new(Some(2.0 as f64))))))));
-    println!("{} {} {}", format!("{}", Meters(Rc::new(RefCell::new(Some(((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) / (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))), format!("{}", Meters(Rc::new(RefCell::new(Some((((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 2.0) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))), format!("{}", Meters(Rc::new(RefCell::new(Some(((((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))) * (((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))))));
+    println!("{} {} {}", format!("{}", go_format_float64(((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) / (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))), format!("{}", go_format_float64((((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 2.0) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))), format!("{}", go_format_float64(((((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))) * (((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
 
     let mut col = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some(RED.to_string())))))));
     println!("{} {} {} {} {}", format!("{}", { let __v = (*col.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.borrow().as_ref().unwrap()).upper().borrow().as_ref().unwrap())), format!("{}", ((*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()), format!("{}", (*col.borrow().as_ref().unwrap()) == Color(Rc::new(RefCell::new(Some(RED.to_string()))))), format!("{}", (*col.borrow().as_ref().unwrap()) != Color(Rc::new(RefCell::new(Some(GREEN.to_string()))))));
