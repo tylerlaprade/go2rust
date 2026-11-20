@@ -1266,7 +1266,7 @@ pub fn group_by___user__int(xs: Rc<RefCell<Option<Vec<User>>>>, key: Rc<RefCell<
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
         let mut k = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64> = { let mut __f_guard = key.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*x).__go_value_clone())))) };
-        { let __map_key = k; let __map_value = { let __slice = { let __map_holder = out.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&k).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*x).__go_value_clone(); (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*out.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = k; let __map_value = { let __slice = { let __map_holder = out.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&k).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*x).__go_value_clone(); let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*out.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     return out.clone();
 }

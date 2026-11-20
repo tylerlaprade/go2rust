@@ -503,6 +503,14 @@ run_xfail_test() {
     run_test "tests/append_nil_to_nested_slice"
 }
 
+@test "append_result_is_a_new_header" {
+    run_test "tests/append_result_is_a_new_header"
+}
+
+@test "append_result_is_a_new_header_goroutines" {
+    run_test "tests/append_result_is_a_new_header_goroutines"
+}
+
 @test "append_selector_slice_expansion" {
     run_test "tests/append_selector_slice_expansion"
 }

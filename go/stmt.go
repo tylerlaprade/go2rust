@@ -13074,7 +13074,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Array element pointer to an array mutates the pointed-to array value.
 								} else if writeNestedSliceElementAssignment(out, indexExpr, s.Rhs[0]) {
 									// Nested slice element assignment emitted by helper.
-								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
+								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) && !goSliceModeEnabled() {
+									// With GoSlice, append(x[i], v) is a new header that the
+									// ordinary element assignment below stores.
 									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {
 										// "x[i] = append(x[i], v)" is written as the append
 										// alone, which evaluates i once. Go evaluates the i

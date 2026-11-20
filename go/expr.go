@@ -1126,6 +1126,11 @@ func isExpressionResultBare(expr ast.Expr) bool {
 		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsTypeConversion(e) && !typeConversionEmitsWrappedValue(e) {
 			return true
 		}
+		// append(s[i], ...) on an element of a slice or array of slices
+		// is the element's new header, which is held bare.
+		if appendCallReturnsBareIndexedSlice(e) {
+			return true
+		}
 		// Calls whose signature has a single bare-scalar result lower to a
 		// bare Rust value at the call site; their consumers must not wrap
 		// the result through .borrow().as_ref().unwrap().
