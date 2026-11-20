@@ -96,6 +96,38 @@ func TestGoCopyLeavesHandlesAndPlainValuesAlone(t *testing.T) {
 	}
 }
 
+// A type assertion produces a copy of the dynamic value. Rust's derived
+// Clone only clones the field cells of a translated struct, so using it here
+// made mutating the asserted value also mutate the value still held by the
+// interface.
+func TestTypeAssertionOfStructUsesGoValueCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Record struct{ Name string }
+
+func main() {
+	var x any = Record{Name: "before"}
+	one := x.(Record)
+	two, ok := x.(Record)
+	var scalar any = 7
+	n := scalar.(int)
+	_, _, _, _ = one, two, ok, n
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Record>()") ||
+		!strings.Contains(rust, ")).__go_value_clone()") {
+		t.Fatalf("single-value struct assertion should make a Go value copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if let Some(typed_val) = any_val.downcast_ref::<Record>() {\n                (Rc::new(RefCell::new(Some(typed_val.__go_value_clone()))), true)") {
+		t.Fatalf("comma-ok struct assertion should make a Go value copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<i32>()") ||
+		!strings.Contains(rust, ")).clone()") {
+		t.Fatalf("plain scalar assertion should keep the ordinary clone path:\n%s", rust)
+	}
+}
+
 func TestGoValueCopyCallForType(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
