@@ -1,4 +1,4 @@
-# Go slices as shared headers (`GO2RUST_GOSLICE=1`)
+# Go slices as shared headers
 
 A Go slice is two things: a backing array that slices share, and a header
 (offset, length, capacity) that each variable owns. The default lowering has
@@ -9,8 +9,9 @@ only one of them. Each slice is a `Vec<T>` behind a cell, so:
 - `t := s[1:3]` copies the elements, so a write through `t` is lost;
 - `row := grid[0]` copies the row (DEV-71).
 
-DEV-36 tracks this. `GO2RUST_GOSLICE=1` turns on the replacement. Without the
-variable, the generated code is unchanged.
+DEV-36 tracked this. Slices now lower to `GoSlice<T>`, described below.
+`GO2RUST_GOSLICE=0` restores the old lowering while its last code paths are
+removed.
 
 ## The runtime type
 

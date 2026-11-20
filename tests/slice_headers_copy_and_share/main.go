@@ -4,10 +4,7 @@ import "fmt"
 
 // A Go slice is a header (offset, length, capacity) over a backing array.
 // Assigning or passing a slice copies the header: writes to the elements are
-// shared, but append, reslicing and nil change only the copy. The default
-// lowering keeps one Vec per slice value, so each half of that is right in
-// some operations and wrong in others (DEV-36). GO2RUST_GOSLICE=1 makes all
-// of it right; this fixture passes there.
+// shared, but append, reslicing and nil change only the copy (DEV-36).
 
 func grow(xs []int) {
 	xs = append(xs, 9)

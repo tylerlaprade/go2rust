@@ -616,10 +616,7 @@ fn __go_init_globals() {
 
 /// A slice assigned to a package variable, or to an element of a slice of
 /// slices, is the same slice afterwards: a write through one name shows
-/// through the other. The generated code gives these two targets elements of
-/// their own, because a package-level slice and an element of [][]int each
-/// hold their elements directly instead of a handle that could be shared
-/// (DEV-36). The last case does not compile yet.
+/// through the other, because the two headers share a backing array (DEV-36).
 fn main() {
     __go_init_all();
     let mut lists = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64, 2i64]))))]))));
