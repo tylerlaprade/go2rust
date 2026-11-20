@@ -2631,6 +2631,14 @@ run_xfail_test() {
     run_test "tests/range_return_struct_value"
 }
 
+@test "range_rune_arithmetic" {
+    run_test "tests/range_rune_arithmetic"
+}
+
+@test "range_rune_arithmetic_goroutines" {
+    run_test "tests/range_rune_arithmetic_goroutines"
+}
+
 @test "range_selector_string_values" {
     run_test "tests/range_selector_string_values"
 }

@@ -13987,6 +13987,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeNamedFloatArithmeticValue(out, e) {
 			return
 		}
+		if writeRangeRuneArithmetic(out, e) {
+			return
+		}
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()
