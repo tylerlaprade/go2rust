@@ -932,7 +932,7 @@ pub fn recover_value(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, orig
         let original_defer_captured = original.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         classify_recovered(result_defer_captured.clone(), original_defer_captured.clone());
     }));
-        std::panic::panic_any({ let __any_holder = value.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) });
+        { let __any_holder = value.clone(); let __any_guard = __any_holder.lock().unwrap(); match __any_guard.as_ref() { Some(__any_value) => std::panic::panic_any(go_any_clone(__any_value.as_ref())), None => { let __go_panic_nil = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("panic called with nil argument".to_string()))))); std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) } } };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1249,6 +1249,64 @@ pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<M
     }
 }
 
+pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let mut recovered = go_recover();
+        let (mut err, mut ok) = ({
+        let val = recovered.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
+                ({ let __err_source = typed_val; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }, true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
+                (Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone()))))), true)
+            } else {
+                (Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(std::string::String::new()))))), false)
+            }
+        } else {
+            (Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(std::string::String::new()))))), false)
+        }
+    });
+        if !ok {
+        { let new_val = "nil false".to_string(); *result_defer_captured.lock().unwrap() = Some(new_val); };
+        return;
+    }
+        { let new_val = Arc::new(Mutex::new(Some(format!("nil {} {}", format!("{}", ok), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *result_defer_captured.lock().unwrap() = __moved_val; };
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        if { let __v = (*useLiteral.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        { let __go_panic_nil = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("panic called with nil argument".to_string()))))); std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) };
+    }
+        let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
+        { let __any_holder = value.clone(); let __any_guard = __any_holder.lock().unwrap(); match __any_guard.as_ref() { Some(__any_value) => std::panic::panic_any(go_any_clone(__any_value.as_ref())), None => { let __go_panic_nil = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("panic called with nil argument".to_string()))))); std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) } } };
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            std::panic::set_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            std::panic::set_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
 fn main() {
         // Force the synchronized representation; the paired fixture covers the
         // same panic payloads with local Rc/RefCell wrappers.
@@ -1275,4 +1333,6 @@ fn main() {
     println!("{} {}", format!("{}", "probe".to_string()), format!("{}", (*probe().lock().unwrap().as_ref().unwrap())));
     let (mut outer, mut probed) = normal_probe_cannot_recover_outer();
     println!("{} {} {}", format!("{}", "scoped".to_string()), format!("{}", { let __v = (*outer.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*probed.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "dynamic".to_string()), format!("{}", (*recover_nil_value(Arc::new(Mutex::new(Some(false)))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*recover_nil_value(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap())));
 }

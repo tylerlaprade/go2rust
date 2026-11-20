@@ -896,7 +896,7 @@ pub fn recover_value(value: Rc<RefCell<Option<Box<dyn Any>>>>, original: Rc<RefC
         let original_defer_captured = original.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         classify_recovered(result_defer_captured.clone(), original_defer_captured.clone());
     }));
-        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); let __any_ref = __any_guard.as_ref().expect("nil interface in panic argument").as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) };
+        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) }, None => { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, "panic called with nil argument".to_string()) } } };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1213,6 +1213,64 @@ pub fn normal_probe_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, Rc<R
     }
 }
 
+pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
+
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let mut recovered = go_recover();
+        let (mut err, mut ok) = ({
+        let val = recovered.clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
+                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
+                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
+            } else {
+                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+            }
+        } else {
+            (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+        }
+    });
+        if !ok {
+        { let new_val = "nil false".to_string(); *result_defer_captured.borrow_mut() = Some(new_val); };
+        return;
+    }
+        { let new_val = Rc::new(RefCell::new(Some(format!("nil {} {}", ok, (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *result_defer_captured.borrow_mut() = __moved_val; };
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        if (*useLiteral.borrow().as_ref().unwrap()) {
+        { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, "panic called with nil argument".to_string()) };
+    }
+        let mut value: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
+        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) }, None => { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, "panic called with nil argument".to_string()) } } };
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            std::panic::set_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            std::panic::set_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
 fn main() {
     println!("{}", format!("{}", (*recover_value(Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }))), Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
     let mut structValue = Rc::new(RefCell::new(Some(payload { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
@@ -1230,4 +1288,6 @@ fn main() {
     println!("{} {}", format!("{}", "probe".to_string()), format!("{}", (*probe().borrow().as_ref().unwrap())));
     let (mut outer, mut probed) = normal_probe_cannot_recover_outer();
     println!("{} {} {}", format!("{}", "scoped".to_string()), format!("{}", { let __v = (*outer.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*probed.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "dynamic".to_string()), format!("{}", (*recover_nil_value(Rc::new(RefCell::new(Some(false)))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*recover_nil_value(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap())));
 }

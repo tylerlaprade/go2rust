@@ -1423,6 +1423,63 @@ func fail() {
 	}
 }
 
+func TestPanicNilUsesGoRuntimeErrorPayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail() {
+	var value any
+	panic(value)
+}
+`)
+
+	for _, want := range []string{
+		`panic called with nil argument`,
+		`go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>`,
+		`match __any_guard.as_ref()`,
+		`None => { let __go_panic_nil =`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("panic(nil interface) should preserve Go's non-nil error payload; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestConcurrentPanicNilUsesSendSyncErrorPayload(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func fail() {
+	go func() {}()
+	var value any
+	panic(value)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	for _, want := range []string{
+		`panic called with nil argument`,
+		`std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>)`,
+		`match __any_guard.as_ref()`,
+		`None => { let __go_panic_nil =`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("concurrent panic(nil interface) should preserve Go's Send + Sync error payload; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestConcurrentPanicAnyUsesPanicAnyPayload(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

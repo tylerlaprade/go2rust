@@ -101,6 +101,23 @@ func normalProbeCannotRecoverOuter() (outer, probed string) {
 	panic("outer")
 }
 
+func recoverNilValue(useLiteral bool) (result string) {
+	defer func() {
+		recovered := recover()
+		err, ok := recovered.(error)
+		if !ok {
+			result = "nil false"
+			return
+		}
+		result = fmt.Sprintf("nil %t %s", ok, err.Error())
+	}()
+	if useLiteral {
+		panic(nil)
+	}
+	var value any
+	panic(value)
+}
+
 func main() {
 	// Force the synchronized representation; the paired fixture covers the
 	// same panic payloads with local Rc/RefCell wrappers.
@@ -122,4 +139,6 @@ func main() {
 	fmt.Println("probe", probe())
 	outer, probed := normalProbeCannotRecoverOuter()
 	fmt.Println("scoped", outer, probed)
+	fmt.Println("dynamic", recoverNilValue(false))
+	fmt.Println("literal", recoverNilValue(true))
 }
