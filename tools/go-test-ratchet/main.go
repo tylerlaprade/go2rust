@@ -15,9 +15,10 @@ import (
 )
 
 type testEvent struct {
-	Action string
-	Test   string
-	Output string
+	Action  string
+	Package string
+	Test    string
+	Output  string
 }
 
 func main() {
@@ -104,6 +105,7 @@ func runGoTests(packagePattern string, stdout, stderr io.Writer) (map[string]str
 
 	failures := make(map[string]struct{})
 	activeTests := make(map[string]struct{})
+	packages := make(map[string]struct{})
 	outputByTest := make(map[string]*strings.Builder)
 	var packageOutput strings.Builder
 	decoder := json.NewDecoder(pipe)
@@ -117,6 +119,9 @@ func runGoTests(packagePattern string, stdout, stderr io.Writer) (map[string]str
 			_ = cmd.Process.Kill()
 			_ = cmd.Wait()
 			return nil, nil, fmt.Errorf("decode go test JSON: %w", err)
+		}
+		if event.Package != "" {
+			packages[event.Package] = struct{}{}
 		}
 		if event.Output != "" {
 			if event.Test == "" {
@@ -136,6 +141,9 @@ func runGoTests(packagePattern string, stdout, stderr io.Writer) (map[string]str
 	}
 
 	testErr := cmd.Wait()
+	if err := validateSinglePackage(packages); err != nil {
+		return nil, testErr, err
+	}
 	if len(activeTests) != 0 {
 		return nil, testErr, fmt.Errorf("go test ended without terminal events for: %s", strings.Join(sortedSet(activeTests), ", "))
 	}
@@ -151,6 +159,13 @@ func runGoTests(packagePattern string, stdout, stderr io.Writer) (map[string]str
 		fmt.Fprint(stdout, outputByTest[name].String())
 	}
 	return failures, testErr, nil
+}
+
+func validateSinglePackage(packages map[string]struct{}) error {
+	if len(packages) <= 1 {
+		return nil
+	}
+	return fmt.Errorf("package pattern selected multiple packages; run the ratchet once per package: %s", strings.Join(sortedSet(packages), ", "))
 }
 
 func topLevelTestName(name string) string {

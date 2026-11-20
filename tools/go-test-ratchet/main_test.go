@@ -43,6 +43,19 @@ func TestIncompleteRunIsRejectedAfterKnownFailure(t *testing.T) {
 	}
 }
 
+func TestMultiPackageSelectionsAreRejected(t *testing.T) {
+	err := validateSinglePackage(set("example.com/one", "example.com/two"))
+	if err == nil {
+		t.Fatal("validateSinglePackage() unexpectedly succeeded")
+	}
+	if want := "package pattern selected multiple packages; run the ratchet once per package: example.com/one, example.com/two"; err.Error() != want {
+		t.Fatalf("validateSinglePackage() error = %q, want %q", err, want)
+	}
+	if err := validateSinglePackage(set("example.com/one")); err != nil {
+		t.Fatalf("validateSinglePackage() rejected one package: %v", err)
+	}
+}
+
 func TestLoadKnownFailuresRejectsDuplicatesAndSubtests(t *testing.T) {
 	for _, testCase := range []struct {
 		name string
