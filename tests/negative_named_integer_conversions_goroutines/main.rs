@@ -279,8 +279,15 @@ impl<T> Iterator for GoChannel<T> {
 pub(crate) const STEP: i32 = 5;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct I8(pub Arc<Mutex<Option<i8>>>);
+
+impl Clone for I8 {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        I8(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for I8 {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -661,8 +668,15 @@ impl Ord for I8 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Level(pub Arc<Mutex<Option<i32>>>);
+
+impl Clone for Level {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Level(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Level {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1043,8 +1057,15 @@ impl Ord for Level {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct U8(pub Arc<Mutex<Option<u8>>>);
+
+impl Clone for U8 {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        U8(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for U8 {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1418,8 +1439,15 @@ impl Ord for U8 {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Big(pub Arc<Mutex<Option<i64>>>);
+
+impl Clone for Big {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Big(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Big {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

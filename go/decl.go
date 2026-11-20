@@ -87,6 +87,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
 		name                      string
+		goName                    string
 		isEmbedded                bool
 		isSlice                   bool
 		isMap                     bool
@@ -147,6 +148,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, name.Name)
 				fields = append(fields, fieldEntry{
 					name:                      rustStructFieldName(name, fieldIndex, nameIndex),
+					goName:                    name.Name,
 					isEmbedded:                false,
 					isSlice:                   isSlice,
 					isMap:                     isMap,
@@ -180,6 +182,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, typeName)
 			fields = append(fields, fieldEntry{
 				name:                      typeName,
+				goName:                    typeName,
 				isEmbedded:                true,
 				isSlice:                   isSlice,
 				isMap:                     isMap,
@@ -311,17 +314,105 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		}
 	}
 
+	// %+v is written as {:#}: the alternate flag asks for the field names,
+	// and a struct value in a field passes it on.
+	plusV := packageFormatsWithPlusV() && len(fields) > 0
+	plainField := func(f fieldEntry) bool {
+		return !f.isInterface && !f.isError && !f.isFunction && !f.funcSlice && !f.isMap && !f.zeroLenArray &&
+			!f.nestedSliceWrapped && !f.nestedPointerSlice && !f.nestedPointerSliceWrapped && !f.nestedSlice &&
+			!f.goPtr && !f.goPtrSlice && !f.goPtrArray && !f.ptrToPtrSlice && !f.ptrToSlice && !f.ptrSlice &&
+			!f.anySlice && !f.interfaceSlice && !f.isPointer && !f.isSlice
+	}
+	if plusV {
+		out.WriteString("        let __go_plus = f.alternate();\n")
+	}
 	for i, f := range fields {
 		out.WriteString("        let __go_fmt_")
 		out.WriteString(fmt.Sprintf("%d", i))
+		if plusV && plainField(f) {
+			out.WriteString(" = if __go_plus { format!(\"{:#}\", ")
+			writeDisplayFieldValue(f)
+			out.WriteString(") } else { format!(\"{}\", ")
+			writeDisplayFieldValue(f)
+			out.WriteString(") };\n")
+			continue
+		}
 		out.WriteString(" = format!(\"{}\", ")
 		writeDisplayFieldValue(f)
 		out.WriteString(");\n")
 	}
 
+	if plusV {
+		out.WriteString("        if __go_plus {\n")
+		out.WriteString("            return write!(f, \"{{")
+		for i, f := range fields {
+			if i > 0 {
+				out.WriteString(" ")
+			}
+			out.WriteString(f.goName)
+			out.WriteString(":{}")
+		}
+		out.WriteString("}}\"")
+		for i := range fields {
+			out.WriteString(", __go_fmt_")
+			out.WriteString(fmt.Sprintf("%d", i))
+		}
+		out.WriteString(");\n")
+		out.WriteString("        }\n")
+	}
 	writeStructDisplayWriteCall(out, len(fields))
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+var packageFormatsWithPlusVCache = map[*types.Info]bool{}
+
+// packageFormatsWithPlusV reports whether a string constant of the package
+// holds a %+v verb. Only then do struct Display impls learn the field-name
+// form, so programs that never ask for it get the impls they had.
+func packageFormatsWithPlusV() bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if uses, ok := packageFormatsWithPlusVCache[typeInfo.info]; ok {
+		return uses
+	}
+	uses := false
+	for _, tv := range typeInfo.info.Types {
+		if tv.Value == nil || tv.Value.Kind() != constant.String {
+			continue
+		}
+		if formatHasPlusV(constant.StringVal(tv.Value)) {
+			uses = true
+			break
+		}
+	}
+	packageFormatsWithPlusVCache[typeInfo.info] = uses
+	return uses
+}
+
+func formatHasPlusV(format string) bool {
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		plus := false
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0123456789.*", format[j]) >= 0 {
+			if format[j] == '+' {
+				plus = true
+			}
+			j++
+		}
+		if j < len(format) && format[j] == 'v' && plus {
+			return true
+		}
+		if j < len(format) && format[j] == '%' {
+			i = j
+		}
+	}
+	return false
 }
 
 // structDisplayFieldIsError reports whether a struct field's declared type is
@@ -5888,20 +5979,32 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
 			canDeriveDebug := typeDefinitionCanDeriveDebug(typeSpec)
 			customDefault, hasCustomDefault := typeDefinitionCustomDefaultValue(typeSpec)
-			if canDeriveDebug && !hasCustomDefault {
-				out.WriteString("#[derive(Debug, Clone, Default)]\n")
-			} else if canDeriveDebug {
-				out.WriteString("#[derive(Debug, Clone)]\n")
-			} else if hasCustomDefault {
-				out.WriteString("#[derive(Clone)]\n")
-			} else {
-				out.WriteString("#[derive(Clone, Default)]\n")
+			// A copy of a number, string or bool is a value of its own: a
+			// pointer method on the copy must not change the original.
+			copiesValue := typeDefinitionCopiesScalarValue(t)
+			derives := []string{}
+			if canDeriveDebug {
+				derives = append(derives, "Debug")
+			}
+			if !copiesValue {
+				derives = append(derives, "Clone")
+			}
+			if !hasCustomDefault {
+				derives = append(derives, "Default")
+			}
+			if len(derives) > 0 {
+				out.WriteString("#[derive(")
+				out.WriteString(strings.Join(derives, ", "))
+				out.WriteString(")]\n")
 			}
 			out.WriteString("pub struct ")
 			out.WriteString(rustTypeName)
 			out.WriteString("(pub ")
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(");\n")
+			if copiesValue {
+				writeScalarTypeDefinitionValueClone(out, rustTypeName)
+			}
 			if hasCustomDefault {
 				out.WriteString("\nimpl Default for ")
 				out.WriteString(rustTypeName)
@@ -6428,6 +6531,47 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
 		writeScalarTypeDefinitionShiftOps(out, rustTypeName)
 	}
+}
+
+// typeDefinitionCopiesScalarValue reports whether a type definition is
+// over a bool, number or string, "type Counter int".
+func typeDefinitionCopiesScalarValue(t ast.Expr) bool {
+	ident, ok := t.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0
+}
+
+// writeScalarTypeDefinitionValueClone gives a scalar newtype a Clone that
+// copies the value into a handle of its own. The derived Clone shared the
+// handle, so `b := a; b.Inc()` with a pointer method changed a as well.
+func writeScalarTypeDefinitionValueClone(out *strings.Builder, rustTypeName string) {
+	out.WriteString("\nimpl Clone for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn clone(&self) -> Self {\n")
+	out.WriteString("        let __value = (*self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone();\n")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("        ")
+		out.WriteString(rustTypeName)
+		out.WriteString("(Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new(__value)))\n")
+	} else {
+		out.WriteString("        ")
+		out.WriteString(rustTypeName)
+		out.WriteString("(Rc::new(RefCell::new(__value)))\n")
+	}
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
 }
 
 // writeScalarTypeDefinitionStringOps gives a type the package defines as a

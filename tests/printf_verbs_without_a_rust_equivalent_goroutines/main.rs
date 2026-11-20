@@ -880,8 +880,15 @@ impl std::fmt::Display for Rect {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Celsius(pub Arc<Mutex<Option<f64>>>);
+
+impl Clone for Celsius {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Celsius(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Celsius {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

@@ -681,8 +681,15 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 }
 use __go_runtime_format::go_sprintf;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
+
+impl Clone for Celsius {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Celsius {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

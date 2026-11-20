@@ -8,8 +8,15 @@ pub const BLUE: i32 = 2;
 pub const YELLOW: i32 = 3;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Color(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Color {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Color(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

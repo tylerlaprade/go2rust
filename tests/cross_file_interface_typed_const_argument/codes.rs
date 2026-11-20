@@ -20,8 +20,15 @@ impl Clone for Box<dyn Code> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct CodeVal(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for CodeVal {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        CodeVal(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for CodeVal {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

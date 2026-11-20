@@ -155,8 +155,15 @@ pub const FIELD: i8 = 1;
 pub const METHOD: i8 = 2;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Kind(pub Arc<Mutex<Option<i8>>>);
+
+impl Clone for Kind {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Kind(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Kind {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
