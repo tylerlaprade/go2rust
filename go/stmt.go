@@ -12094,7 +12094,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						isString = true
 					}
 					// A named string newtype concatenates through its Add impl.
-					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(typeInfo.GetType(s.Lhs[0]))
+					// In a method of the type itself, `*n += "!"` updates the String
+					// the receiver holds, which push_str does.
+					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(compoundAssignRHSExpectedType(s.Lhs[0], typeInfo.GetType(s.Lhs[0])))
 					if namedStringNewtype {
 						isString = false
 					}
@@ -16491,6 +16493,10 @@ func writeUnsupportedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, target
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	// A named string appends the String it holds.
+	if writeNamedStringNewtypeInnerValue(out, rhs) {
+		return
+	}
 	if writeBareStringSliceValue(out, rhs, types.Typ[types.String]) {
 		return
 	}

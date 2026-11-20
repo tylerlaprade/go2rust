@@ -736,7 +736,7 @@ impl Celsius {
 
 impl Name {
     pub fn shout(&mut self) {
-        { let __rhs = "!".to_string(); let mut guard = self.0.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
+        { (*self.0.borrow_mut().as_mut().unwrap()).push_str(&"!".to_string()); };
     }
 }
 
