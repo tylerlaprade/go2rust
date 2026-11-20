@@ -2508,12 +2508,25 @@ func writeGenericOwnMethodImpls(out *strings.Builder, rustTypeName string, typeS
 type genericMethodBoundKind int
 
 const (
-	genericMethodBoundNone         genericMethodBoundKind = 0
-	genericMethodBoundGoValueClone genericMethodBoundKind = 1 << 0
-	genericMethodBoundRustClone    genericMethodBoundKind = 1 << 1
+	genericMethodBoundNone                  genericMethodBoundKind = 0
+	genericMethodBoundGoValueClone          genericMethodBoundKind = 1 << 0
+	genericMethodBoundRustClone             genericMethodBoundKind = 1 << 1
+	genericMethodBoundGoTypeParamFieldClone genericMethodBoundKind = 1 << 2
 )
 
 func rustGenericMethodImplGenerics(typeSpec *ast.TypeSpec, boundKind genericMethodBoundKind) rustTypeGenerics {
+	if boundKind&genericMethodBoundGoTypeParamFieldClone != 0 {
+		if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
+			return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustCloneGoValueCloneAndGoTypeParamFieldCloneTypeParam)
+		}
+		if boundKind&genericMethodBoundRustClone != 0 {
+			return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustCloneAndGoTypeParamFieldCloneTypeParam)
+		}
+		if boundKind&genericMethodBoundGoValueClone != 0 {
+			return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustGoValueCloneAndGoTypeParamFieldCloneTypeParam)
+		}
+		return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustGoTypeParamFieldCloneTypeParam)
+	}
 	if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
 		return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustCloneAndGoValueCloneTypeParam)
 	}
@@ -2552,6 +2565,9 @@ func genericMethodBoundKinds(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		if genericMethodUsesDirectTypeParamValue(method) {
 			boundKind |= genericMethodBoundGoValueClone
 		}
+		if genericFunctionUsesNestedTypeParamFieldClone(method) {
+			boundKind |= genericMethodBoundGoTypeParamFieldClone
+		}
 		boundKinds[method] = boundKind
 	}
 	if len(methodByObject) == 0 {
@@ -2562,7 +2578,7 @@ func genericMethodBoundKinds(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]gene
 	for changed {
 		changed = false
 		for _, method := range typeMethods {
-			if boundKinds[method]&genericMethodBoundRustClone != 0 && boundKinds[method]&genericMethodBoundGoValueClone != 0 {
+			if genericMethodBoundIsComplete(boundKinds[method]) {
 				continue
 			}
 			calledBound := methodCalledBoundKind(typeInfo, method, methodByObject, methodByName, boundKinds)
@@ -2626,6 +2642,9 @@ func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		if genericFunctionUsesDirectTypeParamValue(fn) {
 			boundKind |= genericMethodBoundGoValueClone
 		}
+		if genericFunctionUsesNestedTypeParamFieldClone(fn) {
+			boundKind |= genericMethodBoundGoTypeParamFieldClone
+		}
 		boundKinds[fn] = boundKind
 	}
 	if len(functionByObject) == 0 {
@@ -2636,7 +2655,7 @@ func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]gene
 	for changed {
 		changed = false
 		for _, fn := range functions {
-			if boundKinds[fn]&genericMethodBoundRustClone != 0 && boundKinds[fn]&genericMethodBoundGoValueClone != 0 {
+			if genericMethodBoundIsComplete(boundKinds[fn]) {
 				continue
 			}
 			calledBound := functionCalledBoundKind(typeInfo, fn, functionByObject, boundKinds)
@@ -2651,6 +2670,11 @@ func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		}
 	}
 	return boundKinds
+}
+
+func genericMethodBoundIsComplete(boundKind genericMethodBoundKind) bool {
+	const all = genericMethodBoundGoValueClone | genericMethodBoundRustClone | genericMethodBoundGoTypeParamFieldClone
+	return boundKind&all == all
 }
 
 func collectLocalInterfaceGoValueCloneTypes(files []*ast.File, boundKinds map[*ast.FuncDecl]genericMethodBoundKind) map[string]bool {
@@ -2832,7 +2856,7 @@ func functionCalledBoundKind(typeInfo *TypeInfo, fn *ast.FuncDecl, functionByObj
 	}
 	calledBound := genericMethodBoundNone
 	ast.Inspect(fn.Body, func(node ast.Node) bool {
-		if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 || node == nil {
+		if genericMethodBoundIsComplete(calledBound) || node == nil {
 			return false
 		}
 		call, ok := node.(*ast.CallExpr)
@@ -2850,7 +2874,7 @@ func functionCalledBoundKind(typeInfo *TypeInfo, fn *ast.FuncDecl, functionByObj
 		nextBound := calledBound | boundKinds[target]
 		if nextBound != calledBound {
 			calledBound = nextBound
-			if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 {
+			if genericMethodBoundIsComplete(calledBound) {
 				return false
 			}
 		}
@@ -2865,7 +2889,7 @@ func methodCalledBoundKind(typeInfo *TypeInfo, method *ast.FuncDecl, methodByObj
 	}
 	calledBound := genericMethodBoundNone
 	ast.Inspect(method.Body, func(node ast.Node) bool {
-		if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 || node == nil {
+		if genericMethodBoundIsComplete(calledBound) || node == nil {
 			return false
 		}
 		call, ok := node.(*ast.CallExpr)
@@ -2888,7 +2912,7 @@ func methodCalledBoundKind(typeInfo *TypeInfo, method *ast.FuncDecl, methodByObj
 			nextBound := calledBound | boundKinds[target]
 			if nextBound != calledBound {
 				calledBound = nextBound
-				if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 {
+				if genericMethodBoundIsComplete(calledBound) {
 					return false
 				}
 			}
@@ -2907,6 +2931,93 @@ func genericMethodUsesDirectTypeParamValue(method *ast.FuncDecl) bool {
 		return true
 	}
 	return methodBodyUsesDirectTypeParamValue(typeInfo, method.Body)
+}
+
+func genericFunctionUsesNestedTypeParamFieldClone(fn *ast.FuncDecl) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || fn == nil || fn.Type == nil {
+		return false
+	}
+	// A value receiver is copied before the method body runs. When that
+	// receiver is a generic struct whose value contains a type parameter, the
+	// implicit self.__go_value_clone() needs the same bound as an explicit
+	// assignment of the receiver value. Pointer receivers only clone their
+	// handle and do not need the stronger bound.
+	if fn.Recv != nil {
+		for _, field := range fn.Recv.List {
+			receiverType := field.Type
+			for {
+				paren, ok := receiverType.(*ast.ParenExpr)
+				if !ok {
+					break
+				}
+				receiverType = paren.X
+			}
+			if _, pointerReceiver := receiverType.(*ast.StarExpr); !pointerReceiver && exprUsesNestedTypeParamFieldClone(typeInfo, receiverType) {
+				return true
+			}
+		}
+	}
+	if fieldListUsesNestedTypeParamFieldClone(typeInfo, fn.Type.Params) || fieldListUsesNestedTypeParamFieldClone(typeInfo, fn.Type.Results) {
+		return true
+	}
+	if fn.Body == nil {
+		return false
+	}
+	usesBound := false
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		if usesBound || node == nil {
+			return false
+		}
+		check := func(exprs []ast.Expr) {
+			for _, expr := range exprs {
+				if exprUsesNestedTypeParamFieldClone(typeInfo, expr) {
+					usesBound = true
+					return
+				}
+			}
+		}
+		switch n := node.(type) {
+		case *ast.ReturnStmt:
+			check(n.Results)
+		case *ast.AssignStmt:
+			check(n.Rhs)
+		case *ast.ValueSpec:
+			check(n.Values)
+		case *ast.CallExpr:
+			check(n.Args)
+		}
+		return !usesBound
+	})
+	return usesBound
+}
+
+func fieldListUsesNestedTypeParamFieldClone(typeInfo *TypeInfo, fields *ast.FieldList) bool {
+	if fields == nil {
+		return false
+	}
+	for _, field := range fields.List {
+		if field != nil && exprUsesNestedTypeParamFieldClone(typeInfo, field.Type) {
+			return true
+		}
+	}
+	return false
+}
+
+func exprUsesNestedTypeParamFieldClone(typeInfo *TypeInfo, expr ast.Expr) bool {
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	if _, direct := types.Unalias(typ).(*types.TypeParam); direct {
+		return false
+	}
+	params := make(map[string]bool)
+	collectGoTypeParamFieldCloneParams(typ, params, make(map[types.Type]bool))
+	return len(params) > 0
 }
 
 func genericSignatureUsesGoPtrDirectTypeParam(fn *ast.FuncDecl) bool {
@@ -3746,6 +3857,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 
 	writeStructGoValueCloneTraitImpls(&body, &first, types, prunedTypeNames)
+	writeNamedGoTypeParamFieldCloneTraitImpls(&body, &first, types, prunedTypeNames)
 
 	// Now build the final output with only needed imports
 	var output strings.Builder
@@ -3814,7 +3926,7 @@ func writeStructGoValueCloneTraitImpls(out *strings.Builder, first *bool, types 
 			out.WriteString("\n\n")
 		}
 		*first = false
-		generics := rustTypeGenericsForStructTypeSpec(t.typeSpec, t.structType)
+		generics := rustTypeGenericsForStructGoValueClone(t.typeSpec, t.structType)
 		generateStructGoValueClone(out, t.name, generics)
 	}
 }
@@ -3828,6 +3940,69 @@ func structGoValueCloneTraitImplsNeeded() bool {
 		return true
 	}
 	return false
+}
+
+func writeNamedGoTypeParamFieldCloneTraitImpls(out *strings.Builder, first *bool, typeSpecs []struct {
+	spec *ast.TypeSpec
+	decl *ast.GenDecl
+}, prunedTypeNames map[string]bool) {
+	helpers := activeHelperTracker()
+	if helpers == nil || !helpers.needsGoTypeParamFieldClone {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	for _, item := range typeSpecs {
+		typeSpec := item.spec
+		if typeSpec == nil || typeSpec.Name == nil || typeSpec.Assign != 0 || prunedTypeNames[typeSpec.Name.Name] || typeSpec.TypeParams != nil {
+			continue
+		}
+		obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+		if !ok || obj == nil {
+			continue
+		}
+		named, ok := types.Unalias(obj.Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		keepsHandle := false
+		customValueClone := false
+		switch named.Underlying().(type) {
+		case *types.Basic:
+		case *types.Array:
+			customValueClone = true
+		case *types.Slice, *types.Map, *types.Pointer, *types.Chan:
+			keepsHandle = true
+		default:
+			continue
+		}
+		if !*first {
+			out.WriteString("\n\n")
+		}
+		*first = false
+		rustName := RustTypeNameForUse(typeSpec.Name.Name)
+		out.WriteString("impl GoValueClone for ")
+		out.WriteString(rustName)
+		out.WriteString(" {\n    fn go_value_clone(&self) -> Self { self")
+		if customValueClone {
+			out.WriteString(".__go_value_clone()")
+		} else {
+			out.WriteString(".clone()")
+		}
+		out.WriteString(" }\n}\n\nimpl GoTypeParamFieldClone for ")
+		out.WriteString(rustName)
+		out.WriteString(" {\n    const GO_COPY_KEEPS_HANDLE: bool = ")
+		if keepsHandle {
+			out.WriteString("true")
+		} else {
+			out.WriteString("false")
+		}
+		out.WriteString(";\n")
+		writeGoTypeParamFieldCloneMethod(out, keepsHandle)
+		out.WriteString("}")
+	}
 }
 
 func reserveFileRustTypeNames(imports *ImportTracker, types []struct {
