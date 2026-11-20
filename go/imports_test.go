@@ -117,6 +117,58 @@ func TestPanicRecoverRuntimeLivesInSharedStdlibHelpers(t *testing.T) {
 	}
 }
 
+func TestSingleThreadRuntimeFaultKeepsUncaughtDiagnostic(t *testing.T) {
+	previousDetector := globalConcurrencyDetector
+	SetConcurrencyDetector(NewConcurrencyDetector())
+	t.Cleanup(func() { SetConcurrencyDetector(previousDetector) })
+
+	helper := (&HelperTracker{needsPanicRecover: true}).GenerateSharedStdlibHelperModule()
+	for _, want := range []string{
+		"(go_runtime_error_payload(__text.clone()), Some(__text))",
+		"go_panic_any_local(__payload, __message, __formatter)",
+	} {
+		if !strings.Contains(helper, want) {
+			t.Fatalf("single-thread panic runtime should retain %q for an uncaught runtime fault:\n%s", want, helper)
+		}
+	}
+}
+
+func TestSingleThreadUnrecoveredRuntimeFaultResumesWithDiagnostic(t *testing.T) {
+	if _, err := exec.LookPath("rustc"); err != nil {
+		t.Skip("rustc is not available")
+	}
+	previousDetector := globalConcurrencyDetector
+	SetConcurrencyDetector(NewConcurrencyDetector())
+	t.Cleanup(func() { SetConcurrencyDetector(previousDetector) })
+
+	helper := (&HelperTracker{needsPanicRecover: true}).GenerateHelperModule()
+	harness := `
+fn main() {
+    let caught = std::panic::catch_unwind(|| {
+        panic!("index out of bounds: the len is 1 but the index is 2")
+    }).unwrap_err();
+    go_store_panic_payload(caught);
+    let resumed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        go_resume_unrecovered_panic()
+    })).unwrap_err();
+    let message = resumed.downcast::<String>().expect("resumed panic should retain its diagnostic");
+    assert_eq!(*message, "runtime error: index out of range [2] with length 1");
+}
+`
+	dir := t.TempDir()
+	source := filepath.Join(dir, "main.rs")
+	if err := os.WriteFile(source, []byte(helper+harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	binary := filepath.Join(dir, "unrecovered-runtime-fault-test")
+	if output, err := exec.Command("rustc", "--edition=2021", source, "-o", binary).CombinedOutput(); err != nil {
+		t.Fatalf("rustc failed: %v\n%s", err, output)
+	}
+	if output, err := exec.Command(binary).CombinedOutput(); err != nil {
+		t.Fatalf("runtime-fault harness failed: %v\n%s", err, output)
+	}
+}
+
 func TestPanicHookSuppressionIsThreadLocalAndRestoresDiagnostics(t *testing.T) {
 	if _, err := exec.LookPath("rustc"); err != nil {
 		t.Skip("rustc is not available")
