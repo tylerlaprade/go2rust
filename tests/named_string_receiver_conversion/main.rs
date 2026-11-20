@@ -3,8 +3,15 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct internalError(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for internalError {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        internalError(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for internalError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

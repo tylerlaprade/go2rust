@@ -16,8 +16,15 @@ impl Clone for Box<dyn Value> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct boolVal(pub Rc<RefCell<Option<bool>>>);
+
+impl Clone for boolVal {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        boolVal(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for boolVal {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

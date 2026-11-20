@@ -9,8 +9,15 @@ pub const ADD: i32 = 12;
 /// to a raw scalar (pub const Add: i32 = 12), but the method-call receiver was
 /// treated as a wrapped handle -> .borrow()/.lock() on i32 (E0599). Mirrors
 /// token.ADD.String() on a source-transpiled go/token.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Tok(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Tok {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Tok(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Tok {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

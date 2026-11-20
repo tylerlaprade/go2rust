@@ -6,8 +6,15 @@ use std::rc::{Rc};
 /// operand of a parallel assignment must snapshot it as a value, not treat the
 /// temp as the field's wrapped handle. Mirrors go/scanner's auto-semicolon
 /// `pos, tok, lit = s.something, token.SEMICOLON, "\n"`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Pos(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Pos {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Pos(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Pos {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

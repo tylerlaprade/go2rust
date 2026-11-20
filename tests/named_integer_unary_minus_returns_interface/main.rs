@@ -19,8 +19,15 @@ impl Clone for Box<dyn Value> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct int64Val(pub Rc<RefCell<Option<i64>>>);
+
+impl Clone for int64Val {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        int64Val(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for int64Val {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
