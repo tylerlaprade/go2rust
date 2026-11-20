@@ -156,7 +156,7 @@ pub fn dependency_defer_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, 
         ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let __go_panic_text = format!("{}", "outer".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "outer".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {

@@ -12,6 +12,7 @@ replacement true B
 probe nil
 scoped outer nil
 depth true direct
+lazy true
 dynamic nil true panic called with nil argument
 literal nil true panic called with nil argument
 go literal true without args

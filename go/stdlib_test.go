@@ -1390,14 +1390,14 @@ func fail(value any) {
 }
 `)
 
-	if !strings.Contains(rust, "go_panic_any_local(") || !strings.Contains(rust, "go_any_clone(") || !strings.Contains(rust, "format_any(") {
+	if !strings.Contains(rust, "go_panic_any_local(") || !strings.Contains(rust, "go_any_clone(") || !strings.Contains(rust, "Some(format_any)") {
 		t.Fatalf("panic(any) should preserve the local payload through the panic runtime:\n%s", rust)
 	}
 	for _, want := range []string{
 		"static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>>",
-		"static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>>",
-		"fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> !",
-		"std::panic::panic_any(__message)",
+		"static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, Option<String>, Option<fn(&(dyn Any)) -> String>)>>",
+		"fn go_panic_any_local(\n    __payload: Box<dyn Any>,\n    __message: Option<String>",
+		"std::panic::panic_any(__panic_message)",
 		"if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }",
 	} {
 		if !strings.Contains(rust, want) {
@@ -1415,7 +1415,7 @@ func fail() {
 `)
 
 	if !strings.Contains(rust, `let __go_panic_text = format!("{}", "attempt to divide by zero".to_string())`) ||
-		!strings.Contains(rust, `go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text)`) {
+		!strings.Contains(rust, `go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None)`) {
 		t.Fatalf("explicit string panic should use typed local transport:\n%s", rust)
 	}
 	if strings.Contains(rust, `panic!("attempt to divide by zero")`) {

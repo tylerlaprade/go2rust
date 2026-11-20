@@ -613,9 +613,27 @@ struct GoPanicHookSuppression;
 
 thread_local! {
     static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
 
 static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
 
 fn go_suppress_panic_hook() -> GoPanicHookSuppression {
     __GO_PANIC_HOOK_INIT.call_once(|| {
@@ -639,24 +657,43 @@ impl Drop for GoPanicHookSuppression {
 
 struct GoLocalPanicFrame {
     payload: Option<Box<dyn Any>>,
-    message: String,
-    recoverable: bool,
+    message: Option<String>,
+    formatter: Option<fn(&(dyn Any)) -> String>,
+    recover_depth: Option<usize>,
 }
 
 thread_local! {
     static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
-    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, Option<String>, Option<fn(&(dyn Any)) -> String>)>> = RefCell::new(None);
 }
 
-fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
-    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
-    std::panic::panic_any(__message)
+fn go_panic_any_local(
+    __payload: Box<dyn Any>,
+    __message: Option<String>,
+    __formatter: Option<fn(&(dyn Any)) -> String>,
+) -> ! {
+    // A user String/Error formatter can itself panic. Go does not call it
+    // while recover is still possible. An active generated catch has a panic
+    // hook suppression guard, including when the catch lives in a caller, so
+    // carry a marker through those catches and retain the lazy formatter with
+    // the typed payload.
+    let __report_now = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() == 0);
+    let __panic_message = if __report_now {
+        __message.clone().unwrap_or_else(|| {
+            __formatter.map(|format| format(__payload.as_ref()))
+                .unwrap_or_else(|| "unrecovered Go panic".to_string())
+        })
+    } else {
+        "unrecovered Go panic".to_string()
+    };
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message, __formatter)));
+    std::panic::panic_any(__panic_message)
 }
 
 fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
     let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().and_then(|frame| {
-            if frame.recoverable { frame.payload.take() } else { None }
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
         })
     });
     Rc::new(RefCell::new(__payload))
@@ -665,8 +702,8 @@ fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
 fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
     let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().map(|frame| {
-            let previous = frame.recoverable;
-            frame.recoverable = recoverable;
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
             previous
         })
     });
@@ -674,7 +711,7 @@ fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<d
     if let Some(previous) = previous {
         __GO_RECOVER_PAYLOADS.with(|stack| {
             if let Some(frame) = stack.borrow_mut().last_mut() {
-                frame.recoverable = previous;
+                frame.recover_depth = previous;
             }
         });
     }
@@ -682,11 +719,12 @@ fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<d
 }
 
 fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
-    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+	if let Some((__go_payload, __message, __formatter)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
         __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
             payload: Some(__go_payload),
             message: __message,
-            recoverable: false,
+            formatter: __formatter,
+            recover_depth: None,
         }));
         return;
     }
@@ -697,12 +735,12 @@ fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
             Err(__payload) => __payload as Box<dyn Any>,
         },
     };
-    let __message = __payload.downcast_ref::<String>().cloned()
-        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+	let __message = __payload.downcast_ref::<String>().cloned();
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
         payload: Some(__payload),
         message: __message,
-        recoverable: false,
+        formatter: None,
+        recover_depth: None,
     }));
 }
 
@@ -724,10 +762,10 @@ fn go_runtime_error_text(__text: String) -> String {
 }
 
 fn go_resume_unrecovered_panic() {
-    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+	if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, formatter: __formatter, .. }) =
         __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
     {
-        go_panic_any_local(__payload, __message)
+		go_panic_any_local(__payload, __message, __formatter)
     }
 }
 
@@ -834,7 +872,7 @@ impl std::fmt::Display for GoTime {
 
 pub fn sink(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
     if ((*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) != (1 as i64) {
-        { let __go_panic_text = format!("{}", "unexpected argument count".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "unexpected argument count".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }
     let (mut value, mut ok) = ({
         let __idx = (0) as usize;
@@ -848,7 +886,7 @@ if let Some(typed_val) = any_val.downcast_ref::<GoTime>() {
         }
     });
     if !ok || (*value.borrow().as_ref().unwrap()).unix_nano() != 1_000_000_002 as i64 {
-        { let __go_panic_text = format!("{}", "unexpected time value".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "unexpected time value".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }
     (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
 }

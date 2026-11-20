@@ -9,6 +9,12 @@ type payload struct {
 	value int
 }
 
+type lazyPayload struct{}
+
+func (*lazyPayload) String() string {
+	panic("formatted while recover was still possible")
+}
+
 func classifyRecovered(result *string, original *payload) {
 	switch recovered := recover().(type) {
 	case error:
@@ -114,6 +120,14 @@ func onlyDirectDeferredCallCanRecover() (result string) {
 	panic("direct")
 }
 
+func formatterRunsOnlyForUncaughtPanic() (result string) {
+	defer func() {
+		_, ok := recover().(*lazyPayload)
+		result = fmt.Sprintf("lazy %t", ok)
+	}()
+	panic(&lazyPayload{})
+}
+
 func recoverNilValue(useLiteral bool) (result string) {
 	defer func() {
 		recovered := recover()
@@ -174,6 +188,7 @@ func main() {
 	outer, probed := normalProbeCannotRecoverOuter()
 	fmt.Println("scoped", outer, probed)
 	fmt.Println(onlyDirectDeferredCallCanRecover())
+	fmt.Println(formatterRunsOnlyForUncaughtPanic())
 	fmt.Println("dynamic", recoverNilValue(false))
 	fmt.Println("literal", recoverNilValue(true))
 	recoverInGoroutineLiterals()

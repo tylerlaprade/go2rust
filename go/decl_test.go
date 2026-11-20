@@ -4053,7 +4053,9 @@ func main() {
 	}
 }
 
-// A program that never calls recover() keeps its functions as they were.
+// A program that never calls recover() does not wrap its whole function body,
+// but every ordinary-return defer still masks any panic frame in a caller
+// package before it invokes an arbitrary callback.
 func TestNoCatchUnwindWithoutRecover(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -4064,7 +4066,10 @@ func main() {
 	fmt.Println("hi")
 }
 `)
-	if strings.Contains(rust, "catch_unwind") {
-		t.Fatalf("no catch_unwind without recover():\n%s", rust)
+	if strings.Contains(rust, "let __go_panic_result =") {
+		t.Fatalf("no function-body catch_unwind without recover():\n%s", rust)
+	}
+	if !strings.Contains(rust, "if let Err(__go_defer_panic) = go_call_deferred(f, false)") {
+		t.Fatalf("ordinary-return defers must mask a caller package's panic frame:\n%s", rust)
 	}
 }

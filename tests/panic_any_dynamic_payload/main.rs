@@ -636,6 +636,8 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
         match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<lazyPayload>>>>() {
+        match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<payload>>>>() {
         go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else if let Some(v) = value.downcast_ref::<payload>() {
@@ -663,6 +665,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<lazyPayload>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<payload>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<payload>() { return Box::new(v.__go_value_clone()) as Box<dyn Any>; }
 
@@ -717,18 +720,37 @@ impl Drop for GoPanicHookSuppression {
 
 struct GoLocalPanicFrame {
     payload: Option<Box<dyn Any>>,
-    message: String,
+    message: Option<String>,
+    formatter: Option<fn(&(dyn Any)) -> String>,
     recover_depth: Option<usize>,
 }
 
 thread_local! {
     static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
-    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, Option<String>, Option<fn(&(dyn Any)) -> String>)>> = RefCell::new(None);
 }
 
-fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
-    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
-    std::panic::panic_any(__message)
+fn go_panic_any_local(
+    __payload: Box<dyn Any>,
+    __message: Option<String>,
+    __formatter: Option<fn(&(dyn Any)) -> String>,
+) -> ! {
+    // A user String/Error formatter can itself panic. Go does not call it
+    // while recover is still possible. An active generated catch has a panic
+    // hook suppression guard, including when the catch lives in a caller, so
+    // carry a marker through those catches and retain the lazy formatter with
+    // the typed payload.
+    let __report_now = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() == 0);
+    let __panic_message = if __report_now {
+        __message.clone().unwrap_or_else(|| {
+            __formatter.map(|format| format(__payload.as_ref()))
+                .unwrap_or_else(|| "unrecovered Go panic".to_string())
+        })
+    } else {
+        "unrecovered Go panic".to_string()
+    };
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message, __formatter)));
+    std::panic::panic_any(__panic_message)
 }
 
 fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
@@ -760,10 +782,11 @@ fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<d
 }
 
 fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
-    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+	if let Some((__go_payload, __message, __formatter)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
         __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
             payload: Some(__go_payload),
             message: __message,
+            formatter: __formatter,
             recover_depth: None,
         }));
         return;
@@ -775,11 +798,11 @@ fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
             Err(__payload) => __payload as Box<dyn Any>,
         },
     };
-    let __message = __payload.downcast_ref::<String>().cloned()
-        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+	let __message = __payload.downcast_ref::<String>().cloned();
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
         payload: Some(__payload),
         message: __message,
+        formatter: None,
         recover_depth: None,
     }));
 }
@@ -802,10 +825,10 @@ fn go_runtime_error_text(__text: String) -> String {
 }
 
 fn go_resume_unrecovered_panic() {
-    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+	if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, formatter: __formatter, .. }) =
         __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
     {
-        go_panic_any_local(__payload, __message)
+		go_panic_any_local(__payload, __message, __formatter)
     }
 }
 
@@ -933,6 +956,31 @@ impl std::fmt::Display for payload {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct lazyPayload {
+}
+
+impl lazyPayload {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for lazyPayload {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
+    }
+}
+
+
+impl lazyPayload {
+    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
+        let __go_function_depth_guard = go_enter_function();
+        { let __go_panic_text = format!("{}", "formatted while recover was still possible".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
+    }
+}
+
 pub fn classify_recovered(result: Rc<RefCell<Option<String>>>, original: Rc<RefCell<Option<payload>>>) {
     let __go_function_depth_guard = go_enter_function();
     {
@@ -987,7 +1035,7 @@ pub fn recover_value(value: Rc<RefCell<Option<Box<dyn Any>>>>, original: Rc<RefC
         let original_defer_captured = original.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         classify_recovered(result_defer_captured.clone(), original_defer_captured.clone());
     }));
-        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) }, None => { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, "panic called with nil argument".to_string()) } } };
+        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), None, Some(format_any)) }, None => { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, Some("panic called with nil argument".to_string()), None) } } };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1035,7 +1083,7 @@ pub fn inner_panic() {
         __defer_stack.push(Box::new(move || {
         print_recovered(Rc::new(RefCell::new(Some("inner".to_string()))));
     }));
-        { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1070,7 +1118,7 @@ pub fn outer_panic() {
         ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1163,7 +1211,7 @@ pub fn explicit_runtime_text() -> Rc<RefCell<Option<String>>> {
         let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         save_outer_panic(result_defer_captured.clone());
     }));
-        { let __go_panic_text = format!("{}", "attempt to divide by zero".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "attempt to divide by zero".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1186,7 +1234,7 @@ pub fn explicit_runtime_text() -> Rc<RefCell<Option<String>>> {
 
 pub fn panic_b() {
     let __go_function_depth_guard = go_enter_function();
-    { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+    { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
 }
 
 pub fn replacement_panic() {
@@ -1201,7 +1249,7 @@ pub fn replacement_panic() {
         __defer_stack.push(Box::new(move || {
         panic_b();
     }));
-        { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1291,7 +1339,7 @@ pub fn normal_probe_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, Rc<R
         ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let __go_panic_text = format!("{}", "outer".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "outer".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1334,7 +1382,56 @@ pub fn only_direct_deferred_call_can_recover() -> Rc<RefCell<Option<String>>> {
         ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let __go_panic_text = format!("{}", "direct".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        { let __go_panic_text = format!("{}", "direct".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) };
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            drop(__go_panic_hook_guard);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            drop(__go_panic_hook_guard);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
+pub fn formatter_runs_only_for_uncaught_panic() -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
+
+    let __go_panic_hook_guard = go_suppress_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
+        let (_, mut ok) = ({
+        let val = go_recover().clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<lazyPayload>>>>() {
+                (typed_val.clone(), true)
+            } else {
+                (Rc::new(RefCell::new(None::<lazyPayload>)), false)
+            }
+        } else {
+            (Rc::new(RefCell::new(None::<lazyPayload>)), false)
+        }
+    });
+        { let new_val = Rc::new(RefCell::new(Some(format!("lazy {}", ok)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *result_defer_captured.borrow_mut() = __moved_val; };
+        ()
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        go_panic_any_local(Box::new(Rc::new(RefCell::new(Some(lazyPayload {  }))).clone()) as Box<dyn Any>, None, Some(format_any));
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1391,10 +1488,10 @@ pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Op
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         if (*useLiteral.borrow().as_ref().unwrap()) {
-        { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, "panic called with nil argument".to_string()) };
+        { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, Some("panic called with nil argument".to_string()), None) };
     }
         let mut value: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
-        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) }, None => { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, "panic called with nil argument".to_string()) } } };
+        { let __any_holder = value.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), None, Some(format_any)) }, None => { let __go_panic_nil = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("panic called with nil argument".to_string()))))); go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, Some("panic called with nil argument".to_string()), None) } } };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1434,6 +1531,7 @@ fn main() {
     let (mut outer, mut probed) = normal_probe_cannot_recover_outer();
     println!("{} {} {}", format!("{}", "scoped".to_string()), format!("{}", { let __v = (*outer.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*probed.borrow().as_ref().unwrap()).clone(); __v }));
     println!("{}", format!("{}", (*only_direct_deferred_call_can_recover().borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*formatter_runs_only_for_uncaught_panic().borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "dynamic".to_string()), format!("{}", (*recover_nil_value(Rc::new(RefCell::new(Some(false)))).borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*recover_nil_value(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap())));
 }

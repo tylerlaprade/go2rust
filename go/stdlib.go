@@ -7108,9 +7108,9 @@ func writePanicNilPayload(out *strings.Builder) {
 		return
 	}
 	NeedPanicRecover()
-	out.WriteString("; go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, ")
+	out.WriteString("; go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, Some(")
 	out.WriteString(message)
-	out.WriteString(".to_string()) }")
+	out.WriteString(".to_string()), None) }")
 }
 
 func writeLocalStringPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
@@ -7127,7 +7127,7 @@ func writeLocalStringPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 	NeedPanicRecover()
 	out.WriteString("{ let __go_panic_text = format!(")
 	writePanicDisplayArg(out, arg)
-	out.WriteString("); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) }")
+	out.WriteString("); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) }")
 	return true
 }
 
@@ -7161,9 +7161,6 @@ func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
-	if !isEmptyInterfaceValueExpr(arg) {
-		return false
-	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		return false
 	}
@@ -7182,6 +7179,12 @@ func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
 	NeedPanicRecover()
 	NeedAnyClone()
 	NeedFormatAny()
+	if !isEmptyInterfaceValueExpr(arg) {
+		out.WriteString("go_panic_any_local(")
+		writeInterfaceBoxedValue(out, arg)
+		out.WriteString(", None, Some(format_any))")
+		return true
+	}
 	return writeLocalPanicAnyPayloadArg(out, arg)
 }
 
@@ -7196,9 +7199,7 @@ func writeLocalPanicAnyPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 		}
 		out.WriteString("go_panic_any_local(go_any_clone(")
 		writeRef()
-		out.WriteString("), format_any(")
-		writeRef()
-		out.WriteString("))")
+		out.WriteString("), None, Some(format_any))")
 		return true
 	}
 	if !isEmptyInterfaceValueExpr(arg) {
@@ -7208,7 +7209,7 @@ func writeLocalPanicAnyPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".clone(); let __any_guard = __any_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) }, None => ")
+	out.WriteString("; match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), None, Some(format_any)) }, None => ")
 	writePanicNilPayload(out)
 	out.WriteString(" } }")
 	return true

@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
 #[allow(unused_macros)]
@@ -618,9 +619,241 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
+        match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
+}
+
+fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+
+    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+
+struct GoPanicHookSuppression;
+
+thread_local! {
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+struct GoLocalPanicFrame {
+    payload: Option<Box<dyn Any>>,
+    message: Option<String>,
+    formatter: Option<fn(&(dyn Any)) -> String>,
+    recover_depth: Option<usize>,
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, Option<String>, Option<fn(&(dyn Any)) -> String>)>> = RefCell::new(None);
+}
+
+fn go_panic_any_local(
+    __payload: Box<dyn Any>,
+    __message: Option<String>,
+    __formatter: Option<fn(&(dyn Any)) -> String>,
+) -> ! {
+    // A user String/Error formatter can itself panic. Go does not call it
+    // while recover is still possible. An active generated catch has a panic
+    // hook suppression guard, including when the catch lives in a caller, so
+    // carry a marker through those catches and retain the lazy formatter with
+    // the typed payload.
+    let __report_now = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() == 0);
+    let __panic_message = if __report_now {
+        __message.clone().unwrap_or_else(|| {
+            __formatter.map(|format| format(__payload.as_ref()))
+                .unwrap_or_else(|| "unrecovered Go panic".to_string())
+        })
+    } else {
+        "unrecovered Go panic".to_string()
+    };
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message, __formatter)));
+    std::panic::panic_any(__panic_message)
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
+        })
+    });
+    Rc::new(RefCell::new(__payload))
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recover_depth = previous;
+            }
+        });
+    }
+    result
+}
+
+fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+	if let Some((__go_payload, __message, __formatter)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+            payload: Some(__go_payload),
+            message: __message,
+            formatter: __formatter,
+            recover_depth: None,
+        }));
+        return;
+    }
+    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Err(__payload) => __payload as Box<dyn Any>,
+        },
+    };
+	let __message = __payload.downcast_ref::<String>().cloned();
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+        payload: Some(__payload),
+        message: __message,
+        formatter: None,
+        recover_depth: None,
+    }));
+}
+
+fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(__payload);
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+fn go_resume_unrecovered_panic() {
+	if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, formatter: __formatter, .. }) =
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
+    {
+		go_panic_any_local(__payload, __message, __formatter)
+    }
+}
+
+#[derive(Clone, Copy)]
+struct GoAnyTypeMetadata {
+    pub kind: &'static str,
+    pub comparable: bool,
+    pub elem_kind: Option<&'static str>,
+    pub elem_comparable: bool,
+}
+
+fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_key(value: &dyn Any) -> usize {
+    value as *const dyn Any as *const () as usize
+}
+
+fn go_register_any_type<T: Any + 'static>(kind: &'static str, comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_register_any_type_with_elem<T: Any + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
+}
+
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
+fn go_box_any_with_metadata<T: Any + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any> {
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any>
+}
+
+fn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, comparable: bool) {
+    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
+    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
+        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
@@ -648,6 +881,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 // the one text the method returns.
 fn go_format_is_text(__value: &dyn Any) -> bool {
     false
+        || __value.is::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()
 }
 
 // The basic value a newtype such as "type Level int" holds, boxed.
@@ -1265,7 +1499,7 @@ pub(super) fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<d
 use __go_runtime_format::{go_sprintf, go_sprintf_spread};
 
 pub fn panicf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-    panic!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, true));
+    go_panic_any_local({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, true))))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, None, Some(format_any));
 }
 
 fn main() {
