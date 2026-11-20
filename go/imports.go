@@ -150,6 +150,9 @@ type HelperTracker struct {
 	needsFormatAny                       bool
 	needsFormatAnySlice                  bool
 	needsFormatAnyNested                 bool
+	needsGoFloatFormat                   bool
+	needsGoFloatSliceFormat              bool
+	needsGoFloatMapFormat                bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
 	needsPanicRecover                    bool
@@ -298,6 +301,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	// so it needs them even when no typed print site asked for them.
 	needsFormatAnyPointer := false
 	if ht.needsFormatAny {
+		ht.needsGoFloatFormat = true
 		for _, arm := range anyFormatArms {
 			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
 			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
@@ -306,6 +310,9 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 	if needsFormatAnyPointer {
 		generateAnyPointerFormatter(&result)
+	}
+	if ht.needsGoFloatFormat {
+		generateGoFloatFormatter(&result, ht.needsGoFloatSliceFormat, ht.needsGoFloatMapFormat)
 	}
 
 	if ht.needsFormatMap {
@@ -515,6 +522,9 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatSlice ||
 		ht.needsFormatAny ||
 		ht.needsFormatAnySlice ||
+		ht.needsGoFloatFormat ||
+		ht.needsGoFloatSliceFormat ||
+		ht.needsGoFloatMapFormat ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
 		ht.needsPanicRecover ||
@@ -652,6 +662,15 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatAnyNested {
 		add("format_any_nested")
+	}
+	if ht.needsGoFloatFormat {
+		add("go_format_float32", "go_format_float64")
+	}
+	if ht.needsGoFloatSliceFormat {
+		add("format_float32_slice", "format_float64_slice", "format_float32_slice_values", "format_float64_slice_values")
+	}
+	if ht.needsGoFloatMapFormat {
+		add("format_float32_map_values", "format_float64_map_values")
 	}
 	if ht.needsAnyEq {
 		add("go_any_eq")
@@ -1113,9 +1132,9 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<i64>() {\n")
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f64>() {\n")
-	out.WriteString("        v.to_string()\n")
+	out.WriteString("        go_format_float64(*v)\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f32>() {\n")
-	out.WriteString("        v.to_string()\n")
+	out.WriteString("        go_format_float32(*v)\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<String>() {\n")
 	out.WriteString("        v.clone()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<&str>() {\n")

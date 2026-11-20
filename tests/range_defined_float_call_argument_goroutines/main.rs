@@ -3,6 +3,63 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 
+// Go's default float rendering is strconv.FormatFloat(v, 'g', -1, bitSize):
+// use the shortest identifying digits, switching to exponent notation below
+// 1e-4 and at 1e6.
+fn go_format_float_digits(exponent_form: &str) -> (String, i32) {
+    let (mantissa, exponent) = exponent_form.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    (digits, exponent.parse().unwrap())
+}
+
+fn go_format_float_exponent(digits: &str, exponent: i32) -> String {
+    let mut out = String::new();
+    out.push_str(&digits[..1]);
+    if digits.len() > 1 {
+        out.push('.');
+        out.push_str(&digits[1..]);
+    }
+    out.push('e');
+    out.push(if exponent < 0 { '-' } else { '+' });
+    out.push_str(&format!("{:02}", exponent.abs()));
+    out
+}
+
+fn go_format_float_magnitude(shortest: &str) -> String {
+    let (digits, exponent) = go_format_float_digits(shortest);
+    if exponent < -4 || exponent >= 6 {
+        return go_format_float_exponent(&digits, exponent);
+    }
+    if exponent < 0 {
+        return format!("0.{}{}", "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}", digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}.{}", &digits[..whole], &digits[whole..])
+}
+
+fn go_format_float64(value: f64) -> String {
+    if value.is_nan() { return "NaN".to_string(); }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { "-Inf" } else { "+Inf" }.to_string();
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    format!("{}{}", sign, go_format_float_magnitude(&format!("{:e}", magnitude)))
+}
+
+fn go_format_float32(value: f32) -> String {
+    if value.is_nan() { return "NaN".to_string(); }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { "-Inf" } else { "+Inf" }.to_string();
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    format!("{}{}", sign, go_format_float_magnitude(&format!("{:e}", magnitude)))
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -344,14 +401,14 @@ fn main() {
     });
     started.recv().unwrap_or_default();
     let mut temps = Arc::new(Mutex::new(Some(vec![Celsius(Arc::new(Mutex::new(Some(20.5)))), Celsius(Arc::new(Mutex::new(Some(22.0)))), Celsius(Arc::new(Mutex::new(Some(19.5))))])));
-    println!("{}", format!("{}", (*sum_by(
-        temps.clone(),
-        Arc::new(Mutex::new(Some(Box::new(move |c: Arc<Mutex<Option<Celsius>>>| -> Arc<Mutex<Option<Celsius>>> {
+    println!("{}", format!("{}", go_format_float64({ let __named_float = *(*sum_by(
+    temps.clone(),
+    Arc::new(Mutex::new(Some(Box::new(move |c: Arc<Mutex<Option<Celsius>>>| -> Arc<Mutex<Option<Celsius>>> {
         return {
             let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone();
             let __tmp_y = Celsius(Arc::new(Mutex::new(Some(2.0))));
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };
     }) as Box<dyn FnMut(Arc<Mutex<Option<Celsius>>>) -> Arc<Mutex<Option<Celsius>>> + Send + Sync>)))
-    ).lock().unwrap().as_ref().unwrap())));
+).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float })));
 }

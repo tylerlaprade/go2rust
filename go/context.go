@@ -849,6 +849,27 @@ func NeedFormatAnyNested() {
 	}
 }
 
+// NeedGoFloatFormat marks that Go's default %v/%g float formatting is needed.
+func NeedGoFloatFormat() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFloatFormat = true
+	}
+}
+
+func NeedGoFloatSliceFormat() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFloatFormat = true
+		helpers.needsGoFloatSliceFormat = true
+	}
+}
+
+func NeedGoFloatMapFormat() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFloatFormat = true
+		helpers.needsGoFloatMapFormat = true
+	}
+}
+
 // NeedAnyEq marks that we need the go_any_eq helper.
 func NeedAnyEq() {
 	if helpers := activeHelperTracker(); helpers != nil {

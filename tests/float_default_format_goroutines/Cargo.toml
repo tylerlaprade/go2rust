@@ -1,0 +1,11 @@
+[package]
+name = "float_default_format_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "float_default_format_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

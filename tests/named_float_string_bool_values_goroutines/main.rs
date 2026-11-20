@@ -5,6 +5,63 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+
+// Go's default float rendering is strconv.FormatFloat(v, 'g', -1, bitSize):
+// use the shortest identifying digits, switching to exponent notation below
+// 1e-4 and at 1e6.
+fn go_format_float_digits(exponent_form: &str) -> (String, i32) {
+    let (mantissa, exponent) = exponent_form.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    (digits, exponent.parse().unwrap())
+}
+
+fn go_format_float_exponent(digits: &str, exponent: i32) -> String {
+    let mut out = String::new();
+    out.push_str(&digits[..1]);
+    if digits.len() > 1 {
+        out.push('.');
+        out.push_str(&digits[1..]);
+    }
+    out.push('e');
+    out.push(if exponent < 0 { '-' } else { '+' });
+    out.push_str(&format!("{:02}", exponent.abs()));
+    out
+}
+
+fn go_format_float_magnitude(shortest: &str) -> String {
+    let (digits, exponent) = go_format_float_digits(shortest);
+    if exponent < -4 || exponent >= 6 {
+        return go_format_float_exponent(&digits, exponent);
+    }
+    if exponent < 0 {
+        return format!("0.{}{}", "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}", digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}.{}", &digits[..whole], &digits[whole..])
+}
+
+fn go_format_float64(value: f64) -> String {
+    if value.is_nan() { return "NaN".to_string(); }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { "-Inf" } else { "+Inf" }.to_string();
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    format!("{}{}", sign, go_format_float_magnitude(&format!("{:e}", magnitude)))
+}
+
+fn go_format_float32(value: f32) -> String {
+    if value.is_nan() { return "NaN".to_string(); }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { "-Inf" } else { "+Inf" }.to_string();
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    format!("{}{}", sign, go_format_float_magnitude(&format!("{:e}", magnitude)))
+}
 fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -79,9 +136,9 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     } else if let Some(v) = value.downcast_ref::<i64>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<f64>() {
-        v.to_string()
+        go_format_float64(*v)
     } else if let Some(v) = value.downcast_ref::<f32>() {
-        v.to_string()
+        go_format_float32(*v)
     } else if let Some(v) = value.downcast_ref::<String>() {
         v.clone()
     } else if let Some(v) = value.downcast_ref::<&str>() {
@@ -1671,8 +1728,8 @@ fn main() {
     started.recv().unwrap_or_default();
 
     let mut boiling = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(100.0 as f64)))))));
-    println!("{} {} {}", format!("{}", { let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Arc::new(Mutex::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*f_to_c(Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some(212.0)))))))).lock().unwrap().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).sqrt()))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3; __tmp_x / __tmp_y }), format!("{}", Celsius(Arc::new(Mutex::new(Some(-{ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))), format!("{}", Celsius(Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))));
+    println!("{} {} {}", format!("{}", { let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", go_format_float64({ let __named_float = *(*c_to_f(Arc::new(Mutex::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float })), format!("{}", (*f_to_c(Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some(212.0)))))))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", go_format_float64((*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).sqrt()))).lock().unwrap().as_ref().unwrap()))), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3; __tmp_x / __tmp_y }), format!("{}", Celsius(Arc::new(Mutex::new(Some(-{ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))), format!("{}", Celsius(Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))));
     let mut temps = Arc::new(Mutex::new(Some(vec![Celsius(Arc::new(Mutex::new(Some(20.5)))), Celsius(Arc::new(Mutex::new(Some(18.0)))), Celsius(Arc::new(Mutex::new(Some(25.25))))])));
     println!("{}", format!("{}", (*average(temps.clone()).lock().unwrap().as_ref().unwrap())));
     let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>| -> bool {
@@ -1727,13 +1784,13 @@ fn main() {
         print!("{}{}{}", format!("{}", (*x.place.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*x.temp.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
     } }
     println!();
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *(*{ let __seq = { let __seq_holder = rs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.temp.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).max((*Arc::new(Mutex::new(Some({ let __named_float = *(*{ let __seq = { let __seq_holder = rs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.temp.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64)))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", go_format_float64((*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *(*{ let __seq = { let __seq_holder = rs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.temp.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).max((*Arc::new(Mutex::new(Some({ let __named_float = *(*{ let __seq = { let __seq_holder = rs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.temp.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64)))).lock().unwrap().as_ref().unwrap()))));
     let mut byPlace = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Celsius>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1.25))))))))]))));
     { let __map_key = "y".to_string(); let __map_value = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(({ let __named_float = *{ let __map = { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Arc::new(Mutex::new(Some(0.0))))) }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 2.0)))))))); (*byPlace.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", { let __map = { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"y".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Arc::new(Mutex::new(Some(0.0))))) }), format!("{}", (*byPlace.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
     let (mut a, mut b) = (Arc::new(Mutex::new(Some(Meters(Arc::new(Mutex::new(Some(7.0 as f64))))))), Arc::new(Mutex::new(Some(Meters(Arc::new(Mutex::new(Some(2.0 as f64))))))));
-    println!("{} {} {}", format!("{}", Meters(Arc::new(Mutex::new(Some(({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } / { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))))), format!("{}", Meters(Arc::new(Mutex::new(Some((({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 2.0) + { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))))), format!("{}", Meters(Arc::new(Mutex::new(Some(((({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } - { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })) * (({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } + { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))))))));
+    println!("{} {} {}", format!("{}", go_format_float64(({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } / { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))), format!("{}", go_format_float64((({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 2.0) + { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))), format!("{}", go_format_float64(((({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } - { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })) * (({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } + { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))));
 
     let mut col = Arc::new(Mutex::new(Some(Color(Arc::new(Mutex::new(Some(RED.to_string())))))));
     println!("{} {} {} {} {}", format!("{}", { let __v = (*col.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.lock().unwrap().as_ref().unwrap()).upper().lock().unwrap().as_ref().unwrap())), format!("{}", ((*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()), format!("{}", { let __tmp_x = (*col.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Color(Arc::new(Mutex::new(Some(RED.to_string())))); __tmp_x == __tmp_y }), format!("{}", { let __tmp_x = (*col.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Color(Arc::new(Mutex::new(Some(GREEN.to_string())))); __tmp_x != __tmp_y }));
