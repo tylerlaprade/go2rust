@@ -794,14 +794,19 @@ fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
         }));
         return;
     }
-    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
-        Ok(__text) => go_runtime_error_payload(go_runtime_error_text(__text.to_string())),
+    let (__payload, __message): (Box<dyn Any>, Option<String>) = match __payload.downcast::<&'static str>() {
+        Ok(__text) => {
+            let __text = go_runtime_error_text(__text.to_string());
+            (go_runtime_error_payload(__text.clone()), Some(__text))
+        }
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => go_runtime_error_payload(go_runtime_error_text(*__text)),
-            Err(__payload) => __payload as Box<dyn Any>,
+            Ok(__text) => {
+                let __text = go_runtime_error_text(*__text);
+                (go_runtime_error_payload(__text.clone()), Some(__text))
+            }
+            Err(__payload) => (__payload as Box<dyn Any>, None),
         },
     };
-	let __message = __payload.downcast_ref::<String>().cloned();
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
         payload: Some(__payload),
         message: __message,
