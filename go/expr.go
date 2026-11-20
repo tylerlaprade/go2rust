@@ -9320,14 +9320,35 @@ func writeBareAnyReferenceBoxClone(out *strings.Builder, expr ast.Expr) bool {
 	NeedAnyClone()
 	out.WriteString("go_any_clone(")
 	out.WriteString(rustIdentForUseWithCapture(ident))
+	if rangeVarIsAnyBoxRef(ident) {
+		// &Box<dyn Any> would coerce to a &dyn Any of the Box itself.
+		out.WriteString(".as_ref()")
+	}
 	out.WriteString(")")
 	return true
+}
+
+// rangeVarIsAnyBoxRef reports whether ident is the value of a range over a
+// []interface{}: a reference to the element's Box<dyn Any>, not a cell.
+func rangeVarIsAnyBoxRef(ident *ast.Ident) bool {
+	varType, ok := rangeLoopVars[ident.Name]
+	if !ok || identShadowsRangeVar(ident) || isWrappedRangeVarType(varType) {
+		return false
+	}
+	if !strings.Contains(varType, "Box<dyn Any") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(ident))
 }
 
 func isBareAnyReferenceExpr(expr ast.Expr) bool {
 	ident, ok := unwrapParens(expr).(*ast.Ident)
 	if !ok || ident.Name == "nil" {
 		return false
+	}
+	if rangeVarIsAnyBoxRef(ident) {
+		return true
 	}
 	vt := GetVarTable()
 	if vt == nil {

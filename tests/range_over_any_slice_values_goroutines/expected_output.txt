@@ -1,0 +1,15 @@
+a
+1
+2.5
+true
+0 a
+1 1
+2 2.5
+3 true
+s a
+int 1
+1
+float64 2.5
+2.5
+bool true
+true

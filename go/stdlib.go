@@ -383,12 +383,17 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 	} else if info := lookupVarInfo(ident.Name); info != nil && info.WrapLevel == WrapNone {
 		rustType = strings.TrimPrefix(info.RustType, "&")
 	}
-	if !strings.Contains(rustType, "Box<dyn Any") {
-		return false
+	if strings.Contains(rustType, "Box<dyn Any") {
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".as_ref()")
+		return true
 	}
-	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(".as_ref()")
-	return true
+	// The value a type switch's default case binds is the payload itself.
+	if isBareAnyReferenceExpr(ident) {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		return true
+	}
+	return false
 }
 
 // Helper function to unwrap arguments for print statements

@@ -466,7 +466,7 @@ fn main() {
 
     println!("{}", format!("{}", "=== Processing values ===".to_string()));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for val in __range_values.iter() {
-        process_value(val.clone());
+        process_value(Rc::new(RefCell::new(Some(go_any_clone(val.as_ref())))));
     } }
 
     println!("{}", format!("{}", "\n=== Assertion without check ===".to_string()));
@@ -500,7 +500,7 @@ fn main() {
         print!("Bool: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
         let v = _ts_val.unwrap();
-        print!("Other: {} = {}\n", __go_type_name(v), format_any(v.borrow().as_ref().unwrap().as_ref()));;
+        print!("Other: {} = {}\n", __go_type_name(v), format_any(v));;
     }
     }
     } }
