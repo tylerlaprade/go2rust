@@ -693,7 +693,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_any_clone")
 	}
 	if ht.needsPanicRecover {
-		add("go_recover", "go_replace_panic_payload", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
+		add("GoPanicHookSuppression", "go_recover", "go_replace_panic_payload", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_suppress_panic_hook")
 		if !NeedsConcurrentWrapper() {
 			add("go_panic_any_local")
 		}
@@ -1283,6 +1283,7 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 }
 
 func generatePanicRecoverHelper(out *strings.Builder) {
+	generatePanicHookSuppressionHelper(out)
 	if !NeedsConcurrentWrapper() {
 		generateSingleThreadPanicRecoverHelper(out)
 		return
@@ -1417,6 +1418,49 @@ thread_local! {
 	out.WriteString(`fn go_resume_unrecovered_panic() {
     if let Some(GoPanicFrame { payload: Some(payload), .. }) = __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop()) {
         std::panic::panic_any(payload);
+    }
+}
+`)
+}
+
+// generatePanicHookSuppressionHelper installs one process-wide forwarding
+// hook and suppresses it only on the thread currently executing a generated
+// catch_unwind. Swapping the global hook for every call races when goroutines
+// overlap and can accidentally leave the process with a no-op hook.
+func generatePanicHookSuppressionHelper(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`struct GoPanicHookSuppression;
+
+thread_local! {
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+`)
+	out.WriteString(visibility)
+	out.WriteString(`fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
     }
 }
 `)

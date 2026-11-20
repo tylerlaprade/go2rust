@@ -48,8 +48,7 @@ pub fn call(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         classify(result_defer_captured.clone());
@@ -67,7 +66,7 @@ pub fn call(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -77,7 +76,7 @@ pub fn call(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             result.clone()
         }

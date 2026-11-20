@@ -670,6 +670,34 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
+struct GoPanicHookSuppression;
+
+thread_local! {
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
 struct GoPanicFrame {
     payload: Option<Box<dyn Any + Send + Sync>>,
     recoverable: bool,
@@ -926,8 +954,7 @@ pub fn recover_value(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, orig
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let original_defer_captured = original.clone(); let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         classify_recovered(result_defer_captured.clone(), original_defer_captured.clone());
@@ -936,7 +963,7 @@ pub fn recover_value(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, orig
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -946,7 +973,7 @@ pub fn recover_value(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, orig
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             result.clone()
         }
@@ -973,8 +1000,7 @@ pub fn print_recovered(label: Arc<Mutex<Option<String>>>) {
 pub fn inner_panic() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         print_recovered(Arc::new(Mutex::new(Some("inner".to_string()))));
@@ -983,7 +1009,7 @@ pub fn inner_panic() {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -993,7 +1019,7 @@ pub fn inner_panic() {
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -1003,8 +1029,7 @@ pub fn inner_panic() {
 pub fn outer_panic() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
@@ -1016,7 +1041,7 @@ pub fn outer_panic() {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1026,7 +1051,7 @@ pub fn outer_panic() {
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -1057,8 +1082,7 @@ pub fn nested_panic() -> Arc<Mutex<Option<String>>> {
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         save_outer_panic(result_defer_captured.clone());
@@ -1076,7 +1100,7 @@ pub fn nested_panic() -> Arc<Mutex<Option<String>>> {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1086,7 +1110,7 @@ pub fn nested_panic() -> Arc<Mutex<Option<String>>> {
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             result.clone()
         }
@@ -1098,8 +1122,7 @@ pub fn explicit_runtime_text() -> Arc<Mutex<Option<String>>> {
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         save_outer_panic(result_defer_captured.clone());
@@ -1108,7 +1131,7 @@ pub fn explicit_runtime_text() -> Arc<Mutex<Option<String>>> {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1118,7 +1141,7 @@ pub fn explicit_runtime_text() -> Arc<Mutex<Option<String>>> {
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             result.clone()
         }
@@ -1132,8 +1155,7 @@ pub fn panic_b() {
 pub fn replacement_panic() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         print_recovered(Arc::new(Mutex::new(Some("replacement".to_string()))));
@@ -1145,7 +1167,7 @@ pub fn replacement_panic() {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1155,7 +1177,7 @@ pub fn replacement_panic() {
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -1176,8 +1198,7 @@ pub fn probe() -> Arc<Mutex<Option<String>>> {
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         save_probe(result_defer_captured.clone());
@@ -1194,7 +1215,7 @@ pub fn probe() -> Arc<Mutex<Option<String>>> {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1204,7 +1225,7 @@ pub fn probe() -> Arc<Mutex<Option<String>>> {
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             result.clone()
         }
@@ -1217,8 +1238,7 @@ pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<M
     let mut outer: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     let mut probed: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let outer_defer_captured = outer.clone(); __defer_stack.push(Box::new(move || {
         save_outer_panic(outer_defer_captured.clone());
@@ -1232,7 +1252,7 @@ pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<M
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1242,7 +1262,7 @@ pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<M
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             (outer.clone(), probed.clone())
         }
@@ -1254,8 +1274,7 @@ pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Opti
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
@@ -1290,7 +1309,7 @@ pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Opti
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1300,7 +1319,7 @@ pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Opti
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             result.clone()
         }

@@ -4035,6 +4035,7 @@ func main() {
 }
 `)
 	for _, want := range []string{
+		"let __go_panic_hook_guard = go_suppress_panic_hook();",
 		"let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {",
 		"go_recover()",
 		"fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {",
@@ -4043,6 +4044,9 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)
 		}
+	}
+	if strings.Count(rust, "std::panic::take_hook()") != 1 || strings.Contains(rust, "std::panic::set_hook(__go_previous_panic_hook)") {
+		t.Fatalf("generated recover catches must not swap the process-wide panic hook per call:\n%s", rust)
 	}
 	if strings.Contains(rust, "None::<Box<dyn Any>>));") {
 		t.Fatalf("recover() must not be a literal nil:\n%s", rust)
