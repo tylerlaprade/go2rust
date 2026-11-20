@@ -8710,6 +8710,14 @@ func writeBoolLiteral(out *strings.Builder, value bool) {
 }
 
 func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	return writeGoErrorInterfaceAnyBoxWithHolder(out, expr, "")
+}
+
+// writeGoErrorInterfaceAnyBoxWithHolder is the error-to-any conversion with
+// an optional already-evaluated error handle. Panic lowering uses the latter
+// so it can distinguish a nil error without evaluating the Go expression
+// twice.
+func writeGoErrorInterfaceAnyBoxWithHolder(out *strings.Builder, expr ast.Expr, holder string) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !isErrorInterfaceType(typeInfo.GetType(expr)) {
 		return false
@@ -8723,11 +8731,11 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
 	candidates := goErrorAnyBoxCandidates(localInterfaceAssertionCandidates(errorIface, typeInfo.GetType(expr)))
 	if goErrorInterfaceAnyBoxShouldUseMultiline(candidates) {
-		writeGoErrorInterfaceAnyBoxMultiline(out, expr, candidates)
+		writeGoErrorInterfaceAnyBoxMultiline(out, expr, holder, candidates)
 		return true
 	}
 	out.WriteString("{ let __err_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
+	writeGoErrorAnyBoxHolder(out, expr, holder)
 	out.WriteString(".clone(); let __err_guard = __err_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
@@ -8754,6 +8762,14 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeGoErrorAnyBoxHolder(out *strings.Builder, expr ast.Expr, holder string) {
+	if holder != "" {
+		out.WriteString(holder)
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+}
+
 // writeOpaqueGoErrorAnyBox boxes an error whose dynamic type is not one of
 // the error types this package can name, such as the value errors.New or
 // fmt.Errorf returns. The box holds an error handle, so the error is still
@@ -8775,12 +8791,12 @@ func goErrorInterfaceAnyBoxShouldUseMultiline(candidates []localInterfaceAsserti
 	return len(candidates) >= 3
 }
 
-func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, candidates []localInterfaceAssertionCandidate) {
+func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, holder string, candidates []localInterfaceAssertionCandidate) {
 	indent := currentLineIndent(out)
 	out.WriteString("{\n")
 	out.WriteString(indent)
 	out.WriteString("    let __err_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
+	writeGoErrorAnyBoxHolder(out, expr, holder)
 	out.WriteString(".clone();\n")
 	out.WriteString(indent)
 	out.WriteString("    let __err_guard = __err_holder")

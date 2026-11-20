@@ -190,6 +190,24 @@ func recoverSliceElement() (result string) {
 	panic(values[0])
 }
 
+func recoverNilError() (result string) {
+	defer func() {
+		recovered, ok := recover().(error)
+		result = fmt.Sprintf("nil error %t %v", ok, recovered)
+	}()
+	var value error
+	panic(value)
+}
+
+func recoverBoundsError() (result string) {
+	defer func() {
+		recovered, ok := recover().(error)
+		result = fmt.Sprintf("bounds error %t %v", ok, recovered)
+	}()
+	values := []any{"element"}
+	panic(values[1])
+}
+
 func main() {
 	fmt.Println(recoverValue(errors.New("boom"), nil))
 	structValue := payload{7}
@@ -216,4 +234,6 @@ func main() {
 	fmt.Println(recoverShadowedString("shadowed"))
 	fmt.Println(recoverShadowedInt(17))
 	fmt.Println(recoverSliceElement())
+	fmt.Println(recoverNilError())
+	fmt.Println(recoverBoundsError())
 }

@@ -872,6 +872,9 @@ func NeedPanicRecover() {
 		TrackImport("Any")
 		TrackImport("RefCell")
 		trackWrapperImports()
+		// Rust panics raised by generated bounds/division checks become Go
+		// runtime errors when recovered, rather than ordinary strings.
+		RegisterOpaqueErrorAnyPayload()
 	}
 	markSharedStdlibHelper(func(helpers *HelperTracker) {
 		helpers.needsPanicRecover = true

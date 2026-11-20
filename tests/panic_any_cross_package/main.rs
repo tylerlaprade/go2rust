@@ -137,7 +137,7 @@ pub fn dependency_defer_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, 
         let mut outer_defer_captured = outer.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let __go_function_depth_guard = go_enter_function();
-        { let new_val = Rc::new(RefCell::new(Some(format!("{}", format!("{}", format_any((go_recover()).borrow().as_ref().unwrap().as_ref())))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *outer_defer_captured.borrow_mut() = __moved_val; };
+        { let new_val = Rc::new(RefCell::new(Some(format!("{}", format!("{}", { let __any_holder = go_recover().clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() } }))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *outer_defer_captured.borrow_mut() = __moved_val; };
         ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
@@ -189,7 +189,7 @@ pub fn dependency_intermediate_cannot_recover_outer() -> (Rc<RefCell<Option<Stri
         let mut outer_defer_captured = outer.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let __go_function_depth_guard = go_enter_function();
-        { let new_val = Rc::new(RefCell::new(Some(format!("{}", format!("{}", format_any((go_recover()).borrow().as_ref().unwrap().as_ref())))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *outer_defer_captured.borrow_mut() = __moved_val; };
+        { let new_val = Rc::new(RefCell::new(Some(format!("{}", format!("{}", { let __any_holder = go_recover().clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() } }))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *outer_defer_captured.borrow_mut() = __moved_val; };
         ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));

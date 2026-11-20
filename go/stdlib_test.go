@@ -1444,6 +1444,77 @@ func fail() {
 	}
 }
 
+func TestPanicNilErrorUsesGoRuntimeErrorPayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail(value error) {
+	panic(value)
+}
+`)
+
+	for _, want := range []string{
+		`let __go_error_holder = value.clone()`,
+		`let __go_error_is_nil = { let __go_error_guard = __go_error_holder.borrow(); __go_error_guard.is_none() }`,
+		`if __go_error_is_nil`,
+		`panic called with nil argument`,
+		`go_panic_any_local(`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("panic(error) should evaluate once and distinguish nil from a non-nil dynamic error; missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Count(rust, `let __go_error_holder = value.clone()`) != 1 {
+		t.Fatalf("panic(error) should evaluate the argument exactly once:\n%s", rust)
+	}
+}
+
+func TestRuntimeFaultRecoveryUsesErrorPayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail(values []int) {
+	defer func() {
+		_ = recover()
+	}()
+	_ = values[1]
+}
+`)
+
+	for _, want := range []string{
+		`Ok(__text) => go_runtime_error_payload(go_runtime_error_text(*__text))`,
+		`fn go_runtime_error_payload(text: String) -> Box<dyn Any>`,
+		`Box::new(std::rc::Rc::new(std::cell::RefCell::new(Some(`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("Rust runtime faults should recover as Go error values; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestUnrecoveredGoroutinePanicTerminationCannotBeInterrupted(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	done := make(chan bool)
+	go func() { panic("boom") }()
+	<-done
+}
+`)
+
+	for _, want := range []string{
+		`std::panic::catch_unwind(std::panic::AssertUnwindSafe(||`,
+		`"unrecovered Go panic (formatting failed)".to_string()`,
+		`std::io::Write::write_fmt(`,
+		`std::process::exit(2)`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("unrecovered goroutine panic termination missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, `eprintln!("panic:`) {
+		t.Fatalf("unrecovered goroutine panic must not let a stderr write panic bypass exit(2):\n%s", rust)
+	}
+}
+
 func TestPanicAnyExternalStubStructUsesRustClone(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1897,14 +1968,15 @@ func describe(v interface{}) {
 	fmt.Printf("%T: %v\n", v, v)
 }
 `
-	// Without goroutines a borrow can be shared, and the text is unchanged.
+	// Without goroutines each value argument still gets its own short borrow.
 	plain := transpileTypedRegression(t, describe+`
 func main() {
 	describe(5)
 }
 `)
-	if !strings.Contains(plain, `print!("{}|{}\n", format_any(v.borrow().as_ref().unwrap().as_ref()), format_any(v.borrow().as_ref().unwrap().as_ref()));`) {
-		t.Fatalf("the sequential form should not change:\n%s", plain)
+	plainArg := `{ let __any_holder = v.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() } }`
+	if got := strings.Count(plain, plainArg); got != 5 {
+		t.Fatalf("sequential interface value arguments should each use a nil-safe short borrow; got %d:\n%s", got, plain)
 	}
 
 	locked := transpileTypedConcurrentRegression(t, describe+`
@@ -1915,14 +1987,14 @@ func main() {
 	describe(5)
 }
 `)
-	want := `print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
-	if !strings.Contains(locked, want) {
-		t.Fatalf("missing %q in:\n%s", want, locked)
+	lockedArg := `{ let __any_holder = v.clone(); let __any_guard = __any_holder.lock().unwrap(); match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() } }`
+	if got := strings.Count(locked, lockedArg); got != 5 {
+		t.Fatalf("concurrent interface value arguments should each use a nil-safe short lock; got %d:\n%s", got, locked)
 	}
 	// %T reads the variable as well.
-	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
+	wantType := `format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name })`
 	if !strings.Contains(locked, wantType) {
-		t.Fatalf("missing %q in:\n%s", wantType, locked)
+		t.Fatalf("missing type-name argument %q in:\n%s", wantType, locked)
 	}
 	if strings.Contains(locked, "format_any(v.lock().unwrap().as_ref().unwrap().as_ref()), ") {
 		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)

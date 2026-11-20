@@ -190,6 +190,24 @@ func recoverSliceElement() (result string) {
 	panic(values[0])
 }
 
+func recoverNilError() (result string) {
+	defer func() {
+		recovered, ok := recover().(error)
+		result = fmt.Sprintf("nil error %t %v", ok, recovered)
+	}()
+	var value error
+	panic(value)
+}
+
+func recoverBoundsError() (result string) {
+	defer func() {
+		recovered, ok := recover().(error)
+		result = fmt.Sprintf("bounds error %t %v", ok, recovered)
+	}()
+	values := []any{"element"}
+	panic(values[1])
+}
+
 func recoverInGoroutineLiterals() {
 	done := make(chan string)
 	go func() {
@@ -212,8 +230,8 @@ func recoverInGoroutineLiterals() {
 
 	go func() int {
 		defer func() {
-			recover()
-			done <- "go result recovered"
+			value, ok := recover().(string)
+			done <- fmt.Sprintf("go result recovered %t", ok && value == "result")
 		}()
 		panic("result")
 	}()
@@ -221,8 +239,8 @@ func recoverInGoroutineLiterals() {
 
 	go func(code int) int {
 		defer func() {
-			recover()
-			done <- fmt.Sprintf("go result arg %d recovered", code)
+			value, ok := recover().(string)
+			done <- fmt.Sprintf("go result arg %d recovered %t", code, ok && value == "result arg")
 		}()
 		panic("result arg")
 	}(2)
@@ -269,5 +287,9 @@ func main() {
 	fmt.Println(recoverShadowedInt(17))
 	fmt.Println(recoverSliceElement())
 	fmt.Println(recoverAndReadInterface("same"))
+	var nilValue any
+	fmt.Println(recoverAndReadInterface(nilValue))
+	fmt.Println(recoverNilError())
+	fmt.Println(recoverBoundsError())
 	recoverInGoroutineLiterals()
 }

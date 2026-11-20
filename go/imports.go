@@ -1372,14 +1372,14 @@ thread_local! {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            go_push_panic_payload(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>);
+            go_push_panic_payload(go_runtime_error_payload(go_runtime_error_text(*value)));
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            go_push_panic_payload(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>);
+            go_push_panic_payload(go_runtime_error_payload(go_runtime_error_text(value.to_string())));
             return;
         }
         Err(payload) => payload,
@@ -1408,6 +1408,7 @@ thread_local! {
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
 }
 `)
+	writeGoRuntimeErrorPayloadHelper(out, visibility, true)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_replace_panic_payload(payload: Box<dyn Any + Send>) {
@@ -1443,7 +1444,10 @@ thread_local! {
                         Err(payload) => match payload.downcast::<bool>() {
                             Ok(value) => Box::new(*value),
                             Err(_) => {
-                                eprintln!("panic: unrecovered Go panic");
+                                let _ = std::io::Write::write_fmt(
+                                    &mut std::io::stderr(),
+                                    format_args!("panic: unrecovered Go panic\n"),
+                                );
                                 std::process::exit(2)
                             }
                         },
@@ -1457,7 +1461,13 @@ thread_local! {
         match payload.downcast::<Box<dyn Any + Send + Sync>>() {
             Ok(boxed) => payload = *boxed,
             Err(value) => {
-                eprintln!("panic: {}", formatter(value.as_ref()));
+                let message = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    formatter(value.as_ref())
+                })).unwrap_or_else(|_| "unrecovered Go panic (formatting failed)".to_string());
+                let _ = std::io::Write::write_fmt(
+                    &mut std::io::stderr(),
+                    format_args!("panic: {}\n", message),
+                );
                 std::process::exit(2)
             }
         }
@@ -1631,9 +1641,9 @@ thread_local! {
         return;
     }
     let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
-        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
+        Ok(__text) => go_runtime_error_payload(go_runtime_error_text(__text.to_string())),
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Ok(__text) => go_runtime_error_payload(go_runtime_error_text(*__text)),
             Err(__payload) => __payload as Box<dyn Any>,
         },
     };
@@ -1646,6 +1656,7 @@ thread_local! {
     }));
 }
 `)
+	writeGoRuntimeErrorPayloadHelper(out, visibility, false)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
@@ -1683,6 +1694,30 @@ func writeGoRuntimeErrorText(out *strings.Builder, visibility string) {
     __text
 }
 `)
+}
+
+// writeGoRuntimeErrorPayloadHelper boxes a Rust-generated panic as the same
+// opaque error-handle representation used by ordinary Go errors. Explicit Go
+// panic strings bypass this helper through the typed panic paths above.
+func writeGoRuntimeErrorPayloadHelper(out *strings.Builder, visibility string, concurrent bool) {
+	anyType := "Box<dyn Any>"
+	outer := "std::rc::Rc::new(std::cell::RefCell::new("
+	if concurrent {
+		anyType = "Box<dyn Any + Send + Sync>"
+		outer = "std::sync::Arc::new(std::sync::Mutex::new("
+	}
+	errorValue := rustErrorFromTextFor("std::error::Error", concurrent, "text")
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString("fn go_runtime_error_payload(text: String) -> ")
+	out.WriteString(anyType)
+	out.WriteString(" {\n    Box::new(")
+	out.WriteString(outer)
+	out.WriteString("Some(")
+	out.WriteString(errorValue)
+	out.WriteString(")))) as ")
+	out.WriteString(anyType)
+	out.WriteString("\n}\n")
 }
 
 func generateGoValueClone(out *strings.Builder) {

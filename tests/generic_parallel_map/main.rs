@@ -8,6 +8,7 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -689,6 +690,8 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
+        match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
@@ -804,14 +807,14 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            go_push_panic_payload(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>);
+            go_push_panic_payload(go_runtime_error_payload(go_runtime_error_text(*value)));
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            go_push_panic_payload(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>);
+            go_push_panic_payload(go_runtime_error_payload(go_runtime_error_text(value.to_string())));
             return;
         }
         Err(payload) => payload,
@@ -838,6 +841,10 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
         Err(_payload) => _payload,
     };
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_runtime_error_payload(text: String) -> Box<dyn Any + Send + Sync> {
+    Box::new(std::sync::Arc::new(std::sync::Mutex::new(Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from(text)))))) as Box<dyn Any + Send + Sync>
 }
 
 fn go_replace_panic_payload(payload: Box<dyn Any + Send>) {
@@ -880,7 +887,10 @@ fn go_terminate_unrecovered_goroutine_panic(
                         Err(payload) => match payload.downcast::<bool>() {
                             Ok(value) => Box::new(*value),
                             Err(_) => {
-                                eprintln!("panic: unrecovered Go panic");
+                                let _ = std::io::Write::write_fmt(
+                                    &mut std::io::stderr(),
+                                    format_args!("panic: unrecovered Go panic\n"),
+                                );
                                 std::process::exit(2)
                             }
                         },
@@ -894,7 +904,13 @@ fn go_terminate_unrecovered_goroutine_panic(
         match payload.downcast::<Box<dyn Any + Send + Sync>>() {
             Ok(boxed) => payload = *boxed,
             Err(value) => {
-                eprintln!("panic: {}", formatter(value.as_ref()));
+                let message = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    formatter(value.as_ref())
+                })).unwrap_or_else(|_| "unrecovered Go panic (formatting failed)".to_string());
+                let _ = std::io::Write::write_fmt(
+                    &mut std::io::stderr(),
+                    format_args!("panic: {}\n", message),
+                );
                 std::process::exit(2)
             }
         }

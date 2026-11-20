@@ -20,3 +20,5 @@ named true false kept
 shadow string true shadowed
 shadow int true 17
 slice panic true element
+nil error true panic called with nil argument
+bounds error true runtime error: index out of range [1] with length 1
