@@ -981,8 +981,12 @@ impl Default for Point {
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.y.borrow().as_ref().unwrap()));
+        let __go_plus = f.alternate();
+        let __go_fmt_0 = if __go_plus { format!("{:#}", (*self.x.borrow().as_ref().unwrap())) } else { format!("{}", (*self.x.borrow().as_ref().unwrap())) };
+        let __go_fmt_1 = if __go_plus { format!("{:#}", (*self.y.borrow().as_ref().unwrap())) } else { format!("{}", (*self.y.borrow().as_ref().unwrap())) };
+        if __go_plus {
+            return write!(f, "{{X:{} Y:{}}}", __go_fmt_0, __go_fmt_1);
+        }
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

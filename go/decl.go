@@ -87,6 +87,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
 		name                      string
+		goName                    string
 		isEmbedded                bool
 		isSlice                   bool
 		isMap                     bool
@@ -147,6 +148,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, name.Name)
 				fields = append(fields, fieldEntry{
 					name:                      rustStructFieldName(name, fieldIndex, nameIndex),
+					goName:                    name.Name,
 					isEmbedded:                false,
 					isSlice:                   isSlice,
 					isMap:                     isMap,
@@ -180,6 +182,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, typeName)
 			fields = append(fields, fieldEntry{
 				name:                      typeName,
+				goName:                    typeName,
 				isEmbedded:                true,
 				isSlice:                   isSlice,
 				isMap:                     isMap,
@@ -311,17 +314,105 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		}
 	}
 
+	// %+v is written as {:#}: the alternate flag asks for the field names,
+	// and a struct value in a field passes it on.
+	plusV := packageFormatsWithPlusV() && len(fields) > 0
+	plainField := func(f fieldEntry) bool {
+		return !f.isInterface && !f.isError && !f.isFunction && !f.funcSlice && !f.isMap && !f.zeroLenArray &&
+			!f.nestedSliceWrapped && !f.nestedPointerSlice && !f.nestedPointerSliceWrapped && !f.nestedSlice &&
+			!f.goPtr && !f.goPtrSlice && !f.goPtrArray && !f.ptrToPtrSlice && !f.ptrToSlice && !f.ptrSlice &&
+			!f.anySlice && !f.interfaceSlice && !f.isPointer && !f.isSlice
+	}
+	if plusV {
+		out.WriteString("        let __go_plus = f.alternate();\n")
+	}
 	for i, f := range fields {
 		out.WriteString("        let __go_fmt_")
 		out.WriteString(fmt.Sprintf("%d", i))
+		if plusV && plainField(f) {
+			out.WriteString(" = if __go_plus { format!(\"{:#}\", ")
+			writeDisplayFieldValue(f)
+			out.WriteString(") } else { format!(\"{}\", ")
+			writeDisplayFieldValue(f)
+			out.WriteString(") };\n")
+			continue
+		}
 		out.WriteString(" = format!(\"{}\", ")
 		writeDisplayFieldValue(f)
 		out.WriteString(");\n")
 	}
 
+	if plusV {
+		out.WriteString("        if __go_plus {\n")
+		out.WriteString("            return write!(f, \"{{")
+		for i, f := range fields {
+			if i > 0 {
+				out.WriteString(" ")
+			}
+			out.WriteString(f.goName)
+			out.WriteString(":{}")
+		}
+		out.WriteString("}}\"")
+		for i := range fields {
+			out.WriteString(", __go_fmt_")
+			out.WriteString(fmt.Sprintf("%d", i))
+		}
+		out.WriteString(");\n")
+		out.WriteString("        }\n")
+	}
 	writeStructDisplayWriteCall(out, len(fields))
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+var packageFormatsWithPlusVCache = map[*types.Info]bool{}
+
+// packageFormatsWithPlusV reports whether a string constant of the package
+// holds a %+v verb. Only then do struct Display impls learn the field-name
+// form, so programs that never ask for it get the impls they had.
+func packageFormatsWithPlusV() bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if uses, ok := packageFormatsWithPlusVCache[typeInfo.info]; ok {
+		return uses
+	}
+	uses := false
+	for _, tv := range typeInfo.info.Types {
+		if tv.Value == nil || tv.Value.Kind() != constant.String {
+			continue
+		}
+		if formatHasPlusV(constant.StringVal(tv.Value)) {
+			uses = true
+			break
+		}
+	}
+	packageFormatsWithPlusVCache[typeInfo.info] = uses
+	return uses
+}
+
+func formatHasPlusV(format string) bool {
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		plus := false
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0123456789.*", format[j]) >= 0 {
+			if format[j] == '+' {
+				plus = true
+			}
+			j++
+		}
+		if j < len(format) && format[j] == 'v' && plus {
+			return true
+		}
+		if j < len(format) && format[j] == '%' {
+			i = j
+		}
+	}
+	return false
 }
 
 // structDisplayFieldIsError reports whether a struct field's declared type is
