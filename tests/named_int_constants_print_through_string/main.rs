@@ -1321,13 +1321,19 @@ pub const TUESDAY: i64 = 2;
 pub const HIGH: i64 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Weekday(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Weekday {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Weekday(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Weekday {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1710,13 +1716,19 @@ impl Ord for Weekday {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Level(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

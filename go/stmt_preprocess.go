@@ -517,3 +517,50 @@ func (sp *StatementPreprocessor) GetCaptureRenames(stmt ast.Stmt) map[string]str
 	}
 	return nil
 }
+
+// closuresSharingCaptures returns the captured variables of a statement that
+// two or more of its function literals use, as in
+// "return func() { c++ }, func() { c = 0 }". The statement clones each
+// captured variable once, and a move closure takes that clone, so each of the
+// literals needs a clone of its own.
+func closuresSharingCaptures(info *CaptureInfo) map[string]bool {
+	if info == nil || len(info.Closures) < 2 {
+		return nil
+	}
+	uses := make(map[string]int)
+	for _, closure := range info.Closures {
+		for name := range capturedVarsForFuncLit(closure) {
+			if _, cloned := info.CapturedVars[name]; cloned {
+				uses[name]++
+			}
+		}
+	}
+	shared := make(map[string]bool)
+	for name, count := range uses {
+		if count > 1 {
+			shared[name] = true
+		}
+	}
+	if len(shared) == 0 {
+		return nil
+	}
+	return shared
+}
+
+// pushSiblingClosureCaptureClones makes each function literal of the
+// statement clone the captured variables it shares with another literal of
+// the statement. It returns the function that restores the previous setting.
+func pushSiblingClosureCaptureClones(info *CaptureInfo) func() {
+	names := closuresSharingCaptures(info)
+	if len(names) == 0 {
+		return func() {}
+	}
+	prevForce := forceInnerFuncLitCaptureClones
+	prevNames := forceInnerFuncLitCaptureCloneNames
+	forceInnerFuncLitCaptureClones = true
+	forceInnerFuncLitCaptureCloneNames = mergeForcedInnerFuncLitCaptureCloneNames(prevForce, prevNames, names)
+	return func() {
+		forceInnerFuncLitCaptureClones = prevForce
+		forceInnerFuncLitCaptureCloneNames = prevNames
+	}
+}

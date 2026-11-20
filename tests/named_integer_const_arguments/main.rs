@@ -599,13 +599,19 @@ pub const FLAGS: i64 = 0;
 pub const HAS_INIT: i64 = 1;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RelocKind(pub Rc<RefCell<Option<i32>>>);
 
 impl Clone for RelocKind {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         RelocKind(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for RelocKind {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -988,13 +994,19 @@ impl Ord for RelocKind {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SyncMarker(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for SyncMarker {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         SyncMarker(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for SyncMarker {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1377,13 +1389,19 @@ impl Ord for SyncMarker {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Field(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Field {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Field(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Field {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

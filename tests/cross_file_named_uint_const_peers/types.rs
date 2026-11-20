@@ -19,13 +19,19 @@ pub(crate) const NUM_VERSIONS: i64 = 3;
 pub(crate) const FLAG_SYNC_MARKERS: i64 = 1 << 0;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Version(pub Rc<RefCell<Option<u32>>>);
 
 impl Clone for Version {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Version(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

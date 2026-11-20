@@ -194,6 +194,7 @@ type transpileFileAnalysis struct {
 	externalLocalInterfaceArgs    []externalLocalInterfaceArg
 	typeAssertExprs               []*ast.TypeAssertExpr
 	typeSwitchStmts               []*ast.TypeSwitchStmt
+	comparedAnonymousStructs      []*types.Struct
 }
 
 func newTranspileFileAnalysis() *transpileFileAnalysis {
@@ -371,6 +372,8 @@ func (analysis *transpileFileAnalysis) inspectBinaryExpr(expr *ast.BinaryExpr, t
 	}
 	markComparableStructType(analysis.comparableStructTypes, typeInfo.GetType(expr.X))
 	markComparableStructType(analysis.comparableStructTypes, typeInfo.GetType(expr.Y))
+	analysis.markComparedAnonymousStruct(typeInfo.GetType(expr.X), typeInfo)
+	analysis.markComparedAnonymousStruct(typeInfo.GetType(expr.Y), typeInfo)
 	if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr.X)); ok {
 		analysis.localInterfaceEqualityTypes[name] = true
 	}
@@ -968,6 +971,54 @@ func localInterfaceSliceElemName(typ types.Type) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// comparedAnonymousStructs holds the anonymous struct types that the file
+// being written compares with == or !=.
+var comparedAnonymousStructs []*types.Struct
+
+// markComparedAnonymousStruct records an anonymous struct type that is
+// compared, and marks the structs of this package that its fields hold.
+func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Type, typeInfo *TypeInfo) {
+	if typ == nil || typeInfo == nil {
+		return
+	}
+	structType, ok := types.Unalias(typ).(*types.Struct)
+	if !ok {
+		return
+	}
+	analysis.comparedAnonymousStructs = append(analysis.comparedAnonymousStructs, structType)
+	for i := 0; i < structType.NumFields(); i++ {
+		named, ok := types.Unalias(structType.Field(i).Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		if _, isStruct := named.Underlying().(*types.Struct); isStruct && named.Obj().Pkg() == typeInfo.pkg {
+			markComparableStructWithFields(analysis.comparableStructTypes, named, typeInfo.pkg)
+		}
+	}
+}
+
+// anonymousStructIsCompared reports whether the anonymous struct written as
+// structType is one that the file compares.
+func anonymousStructIsCompared(structType *ast.StructType) bool {
+	if len(comparedAnonymousStructs) == 0 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(structType)
+	if typ == nil {
+		return false
+	}
+	for _, compared := range comparedAnonymousStructs {
+		if types.Identical(typ, compared) {
+			return true
+		}
+	}
+	return false
 }
 
 func markComparableStructType(result map[string]bool, typ types.Type) {
@@ -3349,6 +3400,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		packageGlobalGoPtrElemRust = make(map[string]string)
 	}
 	prevComparableStructTypes := comparableStructTypes
+	prevComparedAnonymousStructs := comparedAnonymousStructs
+	comparedAnonymousStructs = fileAnalysis.comparedAnonymousStructs
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
 	prevAnonymousInterfaceAssertionTraits := anonymousInterfaceAssertionTraits
 	comparableStructTypes = make(map[string]bool)
@@ -3373,6 +3426,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	anonymousInterfaceAssertionTraits = make(map[string]anonymousInterfaceAssertionTrait)
 	defer func() {
 		comparableStructTypes = prevComparableStructTypes
+		comparedAnonymousStructs = prevComparedAnonymousStructs
 		localInterfaceEqualityTypes = prevLocalInterfaceEqualityTypes
 		anonymousInterfaceAssertionTraits = prevAnonymousInterfaceAssertionTraits
 	}()
@@ -4163,7 +4217,13 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 			body.WriteString("\n\n")
 		}
 		*first = false
-		writeStructDerive(body, "", structType, true)
+		// A compared anonymous struct gets equality as a named one does.
+		comparedName := ""
+		if anonymousStructIsCompared(structType) {
+			comparedName = typeName
+			comparableStructTypes[typeName] = true
+		}
+		writeStructDerive(body, comparedName, structType, true)
 		body.WriteString("pub struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")
@@ -4208,6 +4268,9 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		}
 
 		body.WriteString("}\n")
+		if comparedName != "" {
+			generateStructPartialEq(body, typeName, structType, rustTypeGenerics{})
+		}
 		generateStructValueClone(body, typeName, structType, rustTypeGenerics{})
 		writeAnonymousStructPromotedMethods(body, typeName)
 		body.WriteString("\n")

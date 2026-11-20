@@ -1526,13 +1526,19 @@ impl std::fmt::Display for Point {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Named(pub Arc<Mutex<Option<String>>>);
 
 impl Clone for Named {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Named(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Named {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

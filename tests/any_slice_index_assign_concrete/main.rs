@@ -611,13 +611,19 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Pos(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Pos {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Pos(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Pos {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

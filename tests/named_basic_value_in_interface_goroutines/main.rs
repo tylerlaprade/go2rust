@@ -1471,13 +1471,19 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
 }
 use __go_runtime_format::go_sprintf;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Level(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1860,13 +1866,19 @@ impl Ord for Level {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Name(pub Arc<Mutex<Option<String>>>);
 
 impl Clone for Name {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Name(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Name {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1937,13 +1949,19 @@ impl std::ops::Add<&str> for Name {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Arc<Mutex<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Celsius(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

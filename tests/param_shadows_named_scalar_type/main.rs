@@ -590,13 +590,19 @@ impl std::io::Write for GoSlice<u8> {
 /// `color` is a named scalar type (a Rust tuple struct). A method parameter also
 /// named `color` would shadow it, which Rust rejects (E0530); the parameter
 /// binding must be renamed while the type reference keeps the bare name.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct color(pub Rc<RefCell<Option<u32>>>);
 
 impl Clone for color {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         color(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for color {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

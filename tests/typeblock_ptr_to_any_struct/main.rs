@@ -18,13 +18,19 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Pos(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Pos {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Pos(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Pos {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

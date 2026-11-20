@@ -594,13 +594,19 @@ pub const STATE_ERROR: i64 = 2;
 pub const STATE_RETRYING: i64 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ServerState(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for ServerState {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         ServerState(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for ServerState {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

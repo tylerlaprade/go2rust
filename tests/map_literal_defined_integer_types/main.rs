@@ -50,13 +50,19 @@ pub(crate) const NAMED: i64 = 3;
 pub(crate) const OFFSET: i64 = 2;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Index(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Index(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Index {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

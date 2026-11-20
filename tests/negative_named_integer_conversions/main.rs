@@ -716,13 +716,19 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
 pub(crate) const STEP: i64 = 5;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct I8(pub Rc<RefCell<Option<i8>>>);
 
 impl Clone for I8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         I8(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for I8 {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1105,13 +1111,19 @@ impl Ord for I8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Level(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1494,13 +1506,19 @@ impl Ord for Level {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct U8(pub Rc<RefCell<Option<u8>>>);
 
 impl Clone for U8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         U8(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for U8 {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1876,13 +1894,19 @@ impl Ord for U8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Big(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Big {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Big(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Big {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

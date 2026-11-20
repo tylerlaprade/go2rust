@@ -57,13 +57,19 @@ impl std::fmt::Display for P {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Number(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Number {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Number(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Number {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

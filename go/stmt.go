@@ -4544,6 +4544,20 @@ func writeCurrentReceiverNamedTypeAssignmentValue(out *strings.Builder, rhs ast.
 	if !ok || named.Obj() == nil {
 		return false
 	}
+	if isNamedIntegerType(named) {
+		// "m = -m" in a method of "type Money int64": the receiver is a
+		// Money, and the new value gets a cell of its own, so the caller's
+		// value is not changed through the copy.
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return false
+		}
+		rhsType := typeInfo.GetType(rhs)
+		if rhsType == nil || !types.AssignableTo(rhsType, named) {
+			return false
+		}
+		return writeNamedIntegerValueForExpected(out, rhs, named)
+	}
 	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
 	if !ok || basic.Kind() != types.String {
 		return false
@@ -11671,6 +11685,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			oldCaptureRenames := snapshotCaptureRenames()
 			currentCaptureRenames = mergeCaptureRenames(oldCaptureRenames, captureInfo.CapturedVars)
 			defer func() { currentCaptureRenames = oldCaptureRenames }()
+			defer pushSiblingClosureCaptureClones(captureInfo)()
 		}
 	}
 

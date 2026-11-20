@@ -1267,13 +1267,19 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 }
 use __go_runtime_format::go_sprintf;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

@@ -1490,13 +1490,19 @@ pub const TUESDAY: i64 = 2;
 pub const HIGH: i64 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Weekday(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Weekday {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Weekday(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Weekday {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1879,13 +1885,19 @@ impl Ord for Weekday {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Level(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

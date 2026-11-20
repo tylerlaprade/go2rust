@@ -591,13 +591,19 @@ impl std::io::Write for GoSlice<u8> {
 pub const TICK: i64 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Span(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Span {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Span(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Span {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

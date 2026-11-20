@@ -593,13 +593,19 @@ pub const BLUE: i64 = 2;
 pub const YELLOW: i64 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Color(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Color {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Color(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

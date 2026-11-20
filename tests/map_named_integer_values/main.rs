@@ -784,13 +784,19 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Index(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Index(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Index {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
