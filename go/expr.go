@@ -8345,11 +8345,30 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		writeOwnedNamedTypeDefinitionValue(out, expr)
 	} else if ident, ok := expr.(*ast.Ident); ok && isWrappedValueIdent(ident) {
 		writeScopedIdentValueClone(out, ident)
+	} else if ident, ok := expr.(*ast.Ident); ok && rangeVarIsUncelled(ident) && writeOwnedRangeValue(out, ident) {
+		// A range variable over a slice is a reference into it. The
+		// interface value holds its own copy, as in Go: "var x any = s"
+		// inside "for _, s := range list" used to box the reference, which
+		// does not live long enough.
 	} else if !writeOwnedExpressionValue(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+// rangeVarIsUncelled reports whether ident is a range variable that is not
+// a cell of its own: a reference into the sequence it ranges over, as
+// "for _, s := range list" over a slice, or a bare value such as a map key.
+// Boxing one into an interface takes an owned copy (writeOwnedRangeValue). A
+// range variable that is a cell, such as a map value, is boxed like any other
+// variable.
+func rangeVarIsUncelled(ident *ast.Ident) bool {
+	if ident == nil || identShadowsRangeVar(ident) {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	return isRangeVar && !isWrappedRangeVarType(varType)
 }
 
 // writeDefinedCollectionOwnedValue writes the owned value of a variable or
