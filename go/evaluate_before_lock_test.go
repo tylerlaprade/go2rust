@@ -82,7 +82,7 @@ func main() {
 	for what, want := range map[string]string{
 		"s[len(s)-1]++":                         "{ let __idx = " + lastIndex + "; let mut __seq_guard = s.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }",
 		"s[len(s)-1] += s[0]":                   "{ let __idx = " + lastIndex + "; let __rhs = (*s.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __seq_guard = s.borrow_mut();",
-		"s[len(s)-1], s[0] = s[0], s[len(s)-1]": "{ let __idx = " + lastIndex + "; (*s.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; }",
+		"s[len(s)-1], s[0] = s[0], s[len(s)-1]": "let __go_lhs_index_0 = " + lastIndex + ";",
 		"grid[len(grid)-1][0] = grid[0][1]":     "let __idx = (0) as usize; let __rhs = (*grid.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone(); (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
 	} {
 		if !strings.Contains(rust, want) {
@@ -141,7 +141,7 @@ func main() {
 		"the held sequence is locked last":         "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
 		"a plain sequence is not held":             "; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
 		"a nested sequence that is a call":         "; (*__seq.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
-		"a call among several targets":             "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; }",
+		"a call among several targets":             "(*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
