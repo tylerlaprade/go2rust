@@ -1479,6 +1479,14 @@ run_xfail_test() {
     run_test "tests/local_var_multi_names"
 }
 
+@test "local_variable_copies_of_slices_maps_channels" {
+    run_test "tests/local_variable_copies_of_slices_maps_channels"
+}
+
+@test "local_variable_copies_of_slices_maps_channels_goroutines" {
+    run_test "tests/local_variable_copies_of_slices_maps_channels_goroutines"
+}
+
 @test "logical_four_part_condition" {
     run_test "tests/logical_four_part_condition"
 }

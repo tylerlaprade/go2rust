@@ -10102,3 +10102,51 @@ func (u *User) Tags() []string { return u.tags }
 		}
 	}
 }
+
+// "t := s" for a local slice, map or channel wrote the read of s, a place,
+// into the new variable, which moved the Vec, map or channel out of s and did
+// not compile. A map or channel copy shares s's handle, as "t = s" does. A
+// slice copy clones the elements into a cell of its own, so that appending to
+// it or setting s to nil leaves the other alone.
+func TestCopyOfLocalSliceMapOrChannelVariable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Numbers []int
+
+func main() {
+	s := []int{1}
+	t := s
+	var a = s
+	var b []int = s
+	m := map[string]int{"a": 1}
+	d := m
+	var f = m
+	n := Numbers{1}
+	e := n
+	ch := make(chan int, 1)
+	ch2 := ch
+	var ch3 = ch
+	var u Numbers = s
+	_, _, _, _, _, _, _, _, _ = t, a, b, d, f, e, ch2, ch3, u
+}
+`)
+
+	for _, want := range []string{
+		"let mut t = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut a = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut b: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut d = m.clone();",
+		"let mut f = m.clone();",
+		"let mut e = Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()).clone())));",
+		"let mut ch2 = ch.clone();",
+		"let mut ch3 = ch.clone();",
+		"Numbers(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone()))))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Some((*s.borrow().as_ref().unwrap()))") {
+		t.Fatalf("a copy of s must not move the Vec out of its cell:\n%s", rust)
+	}
+}
