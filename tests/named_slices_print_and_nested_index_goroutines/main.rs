@@ -844,11 +844,11 @@ impl Display for Words {
 
 impl Matrix {
     pub fn transpose(&self) -> Arc<Mutex<Option<Matrix>>> {
-        let mut t = Arc::new(Mutex::new(Some(Matrix(Arc::new(Mutex::new(Some(vec![vec![]; ({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.len()) as usize])))))));
+        let mut t = Arc::new(Mutex::new(Some(Matrix(Arc::new(Mutex::new(Some(vec![vec![]; ({ let __seq_holder = self.0.clone(); let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.len()) as usize])))))));
         for i in 0..(({ let __range_holder = { let __named_slice = (*t.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         { let __idx = (i) as usize; let __rhs = (*Arc::new(Mutex::new(Some(vec![0.0; ({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize]))).lock().unwrap().as_ref().unwrap()).clone(); (*{ let __named_slice = (*t.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         for j in 0..(({ let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        { let __seq = { let __named_slice = (*t.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (i) as usize; let __idx = (j) as usize; let __rhs = { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(j) as usize].clone() }[(i) as usize].clone(); (*__seq.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+        { let __seq = { let __named_slice = (*t.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (i) as usize; let __idx = (j) as usize; let __rhs = { let __seq_holder = self.0.clone(); let __seq_index = (j) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }[(i) as usize].clone(); (*__seq.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     }
     }
         return t.clone();

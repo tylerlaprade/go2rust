@@ -2319,6 +2319,14 @@ run_xfail_test() {
     run_test "tests/parallel_decl_from_wrapped_fields"
 }
 
+@test "parallel_define_evaluates_in_turn" {
+    run_test "tests/parallel_define_evaluates_in_turn"
+}
+
+@test "parallel_define_evaluates_in_turn_goroutines" {
+    run_test "tests/parallel_define_evaluates_in_turn_goroutines"
+}
+
 @test "parallel_slice_field_assign" {
     run_test "tests/parallel_slice_field_assign"
 }

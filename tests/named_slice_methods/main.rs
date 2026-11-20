@@ -644,7 +644,7 @@ impl Names {
     }
 
     pub fn first(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })))
+        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_index = (0) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })))
     }
 
     pub fn join(&self) -> Rc<RefCell<Option<String>>> {

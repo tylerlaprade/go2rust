@@ -1296,7 +1296,7 @@ pub fn __go_nil_recv_tree_height(t: Arc<Mutex<Option<Tree>>>) -> i64 {
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return 0;
     }
-    let (mut l, mut r) = (__go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }), __go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }));
+    let (mut l, mut r) = ({ let __tuple_value = __go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }); __tuple_value }, { let __tuple_value = __go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }); __tuple_value });
     if { let __tmp_x = l; let __tmp_y = r; __tmp_x > __tmp_y } {
         return { let __tmp_x = l; let __tmp_y = 1; __tmp_x + __tmp_y };
     }

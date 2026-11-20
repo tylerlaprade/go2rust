@@ -12916,11 +12916,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString(", ")
 						}
+						var value strings.Builder
 						if existingShortDeclLHS[i] && existingBareScalarType[i] != nil {
-							writeBareCompoundAssignValue(out, rhs, existingBareScalarType[i])
-							continue
+							writeBareCompoundAssignValue(&value, rhs, existingBareScalarType[i])
+						} else {
+							writeMultiRhsShortDeclInitializer(&value, s.Lhs[i], rhs, !existingShortDeclLHS[i])
 						}
-						writeMultiRhsShortDeclInitializer(out, s.Lhs[i], rhs, !existingShortDeclLHS[i])
+						writeTupleElementDroppingGuards(out, value.String())
 					}
 					out.WriteString(")")
 					if anyExistingShortDeclLHS {
@@ -17356,4 +17358,19 @@ func writeRangeLengthDroppingTemporaries(out *strings.Builder, length string) {
 	out.WriteString("{ let __range_len = ")
 	out.WriteString(length)
 	out.WriteString("; __range_len }")
+}
+
+// writeTupleElementDroppingGuards writes one element of a tuple whose
+// elements are evaluated in turn, as Go evaluates "b, a := st.Pop(),
+// st.Pop()". A tuple keeps every temporary until the end of the statement,
+// so a lock or mutable borrow taken by one element was still held when the
+// next took it again. A let statement in a block drops it at once.
+func writeTupleElementDroppingGuards(out *strings.Builder, value string) {
+	if !strings.Contains(value, ".borrow_mut()") && !strings.Contains(value, ".lock()") {
+		out.WriteString(value)
+		return
+	}
+	out.WriteString("{ let __tuple_value = ")
+	out.WriteString(value)
+	out.WriteString("; __tuple_value }")
 }
