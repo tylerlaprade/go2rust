@@ -1,0 +1,8 @@
+[package]
+name = "generic_byte_sequence_slice_alias"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_byte_sequence_slice_alias"
+path = "main.rs"
