@@ -107,6 +107,9 @@ func localNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
 	if typ == nil {
 		return "", false
 	}
+	if isGoErrorType(typ) {
+		return "", false
+	}
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false
@@ -124,6 +127,9 @@ func localNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
 
 func transpiledNamedInterfaceTypeNameFromTypes(typ types.Type) (string, bool) {
 	if typ == nil {
+		return "", false
+	}
+	if isGoErrorType(typ) {
 		return "", false
 	}
 	named, ok := types.Unalias(typ).(*types.Named)
@@ -1013,6 +1019,10 @@ func goTypeToRustBase(expr ast.Expr) string {
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
 				typ := typeInfo.GetType(t)
+				_, isAlias := typ.(*types.Alias)
+				if !isAlias && isGoErrorType(typ) {
+					return rustErrorPayloadType()
+				}
 				if rustType, ok := goTypeParamNameToRust(typ); ok {
 					return rustType
 				}
@@ -1031,6 +1041,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 		// Empty interface{} becomes Box<dyn Any>
 		if len(t.Methods.List) == 0 {
 			return rustAnyTraitObject()
+		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(t)) {
+			return rustErrorPayloadType()
 		}
 		return "Unknown"
 	case *ast.ArrayType:
@@ -1626,6 +1639,10 @@ func isGoSyncOnceNamedType(typ types.Type) bool {
 
 // goTypesTypeToRust converts a go/types.Type to the base Rust type string (unwrapped)
 func goTypesTypeToRust(t types.Type) string {
+	_, isAlias := t.(*types.Alias)
+	if !isAlias && isGoErrorType(t) {
+		return rustErrorPayloadType()
+	}
 	if rustType, ok := goTypeParamNameToRust(t); ok {
 		return rustType
 	}

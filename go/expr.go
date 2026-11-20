@@ -8238,11 +8238,7 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 }
 
 func isErrorInterfaceType(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	named, ok := types.Unalias(typ).(*types.Named)
-	return ok && named.Obj() != nil && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
+	return isGoErrorType(typ)
 }
 
 func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
@@ -15632,6 +15628,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
 				rustType = aliasRustType
 			}
+			if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(e.Type)) {
+				TrackImport("Error")
+				rustType = "std::string::String"
+				targetIsError = true
+				assertionReturnsPointer = false
+			}
 
 			// Generate type assertion that panics on failure (for single-value context)
 			// The comma-ok form is handled specially in assignment statements
@@ -21212,6 +21214,13 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	}
 	if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
 		rustType = aliasRustType
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(e.Type)) {
+		TrackImport("Error")
+		rustType = "std::string::String"
+		defaultValue = rustErrorFromText("std::string::String::new()")
+		targetIsError = true
+		targetIsInterface = false
 	}
 
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {

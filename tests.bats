@@ -1027,6 +1027,14 @@ run_xfail_test() {
     run_test "tests/error_custom_type_in_interface_goroutines"
 }
 
+@test "error_equivalent_interface" {
+    run_test "tests/error_equivalent_interface"
+}
+
+@test "error_equivalent_interface_goroutines" {
+    run_test "tests/error_equivalent_interface_goroutines"
+}
+
 @test "error_field_return" {
     run_test "tests/error_field_return"
 }
