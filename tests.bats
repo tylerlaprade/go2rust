@@ -675,6 +675,14 @@ run_xfail_test() {
     run_test "tests/closure_struct_literal_field_keys"
 }
 
+@test "closures_and_defers_capture_values" {
+    run_test "tests/closures_and_defers_capture_values"
+}
+
+@test "closures_and_defers_capture_values_goroutines" {
+    run_test "tests/closures_and_defers_capture_values_goroutines"
+}
+
 @test "closures_basic" {
     run_test "tests/closures_basic"
 }
@@ -1847,6 +1855,14 @@ run_xfail_test() {
     run_test "tests/named_func_type_interface_param"
 }
 
+@test "named_int_constants_print_through_string" {
+    run_test "tests/named_int_constants_print_through_string"
+}
+
+@test "named_int_constants_print_through_string_goroutines" {
+    run_test "tests/named_int_constants_print_through_string_goroutines"
+}
+
 @test "named_int_sub_assign" {
     run_test "tests/named_int_sub_assign"
 }
@@ -1929,6 +1945,14 @@ run_xfail_test() {
 
 @test "named_slice_pointer_receiver_push" {
     run_test "tests/named_slice_pointer_receiver_push"
+}
+
+@test "named_slices_print_and_nested_index" {
+    run_test "tests/named_slices_print_and_nested_index"
+}
+
+@test "named_slices_print_and_nested_index_goroutines" {
+    run_test "tests/named_slices_print_and_nested_index_goroutines"
 }
 
 @test "named_string_conversions" {

@@ -1,0 +1,8 @@
+[package]
+name = "named_slices_print_and_nested_index_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_slices_print_and_nested_index_goroutines"
+path = "main.rs"

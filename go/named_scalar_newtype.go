@@ -174,12 +174,15 @@ func writeNamedFloatArithmeticValue(out *strings.Builder, expr ast.Expr) bool {
 	if typeInfo == nil {
 		return false
 	}
-	named, _, ok := namedFloatNewtype(typeInfo.GetType(expr))
-	if !ok {
-		return false
-	}
+	typ := typeInfo.GetType(expr)
+	var named *types.Named
 	var primitive strings.Builder
-	if !writeNamedFloatPrimitiveExpression(&primitive, expr) {
+	if floatNamed, _, ok := namedFloatNewtype(typ); ok {
+		if !writeNamedFloatPrimitiveExpression(&primitive, expr) {
+			return false
+		}
+		named = floatNamed
+	} else {
 		return false
 	}
 	out.WriteString(goTypesNamedTypeToRust(named))
@@ -370,5 +373,35 @@ func writeNamedScalarVarSpecValue(out *strings.Builder, valueSpec *ast.ValueSpec
 	WriteWrapperPrefix(out)
 	out.WriteString(inner.String())
 	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeNamedIntegerArithmeticPrintValue writes `d + 1` with d a Weekday, as
+// a print operand, as a new Weekday: the newtype's operator impls take their
+// operands by value, and d is read through a borrow.
+func writeNamedIntegerArithmeticPrintValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || isConstantExpression(expr) {
+		return false
+	}
+	switch unwrapParens(expr).(type) {
+	case *ast.BinaryExpr, *ast.UnaryExpr:
+	default:
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) || !anyFormatTypeIsLocalNamedBasic(named) {
+		return false
+	}
+	var primitive strings.Builder
+	if !writeNamedIntegerPrimitiveExpression(&primitive, expr) {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString(primitive.String())
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
 	return true
 }

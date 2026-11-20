@@ -1,0 +1,5 @@
+Mon Tue Sun 3
+Mon|1|Tue|3
+Mon Tue Mon
+Mon Tue Tue [Sun Tue]
+Mon-Sun

@@ -508,6 +508,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		writeFormatAnyPrintArg(out, arg)
 		return
 	}
+	// `fmt.Println(Monday)` prints through Weekday's String method.
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeHasGoStringMethod(typeInfo.GetType(arg)) && writeNamedIntegerConstNewtypeValue(out, arg) {
+		return
+	}
+	if writeNamedIntegerArithmeticPrintValue(out, arg) {
+		return
+	}
 
 	// Type-based printing using TypeInfo
 	typeInfo := GetTypeInfo()
@@ -595,6 +602,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString(")")
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
+			if writeNamedSlicePrintArg(out, arg, argType) {
+				return
+			}
 			if writeNestedBasicSlicePrintArg(out, arg, argType) {
 				return
 			}
@@ -1845,6 +1855,41 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 		return !selectorRValueReturnsWrappedHandle(arg)
 	}
 	return false
+}
+
+// writeNamedSlicePrintArg prints a value of a named slice type, "type Ints
+// []int", as Go prints the slice: the elements are in the handle inside the
+// newtype, which has no Display of its own.
+func writeNamedSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	_, sliceType, ok := namedSliceTypeForExpr(arg)
+	if !ok || typeHasGoStringMethod(argType) {
+		return false
+	}
+	isPrintedBasic := func(typ types.Type) bool {
+		basic, ok := types.Unalias(typ).(*types.Basic)
+		return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+	}
+	var handle strings.Builder
+	switch elem := types.Unalias(sliceType.Elem()).(type) {
+	case *types.Slice:
+		if !isPrintedBasic(elem.Elem()) {
+			return false
+		}
+		writeNamedSliceInnerHandleClone(&handle, arg)
+		NeedFormatNestedSlice()
+		out.WriteString("format_nested_slice(&")
+	default:
+		if !isPrintedBasic(elem) {
+			return false
+		}
+		writeNamedSliceInnerHandleClone(&handle, arg)
+		NeedFormatSlice()
+		TrackImport("Display")
+		out.WriteString("format_slice(&")
+	}
+	out.WriteString(handle.String())
+	out.WriteString(")")
+	return true
 }
 
 func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
