@@ -253,6 +253,17 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		// Skip duplicate handling
 		skipExternalHandling = true
 	} else {
+		// Generic declarations are written once per instantiation.
+		if mono, ok := monomorphizeGenerics(astFiles, fileSet); ok {
+			for i, file := range astFiles {
+				for path, byPath := range astFilesByPath {
+					if byPath == file {
+						astFilesByPath[path] = mono[i]
+					}
+				}
+			}
+			astFiles = mono
+		}
 		// Regular type checking for projects without external dependencies
 		typeInfo, err := NewTypeInfo(astFiles, fileSet)
 		if err != nil {

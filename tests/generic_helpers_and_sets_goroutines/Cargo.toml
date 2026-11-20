@@ -1,0 +1,8 @@
+[package]
+name = "generic_helpers_and_sets_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_helpers_and_sets_goroutines"
+path = "main.rs"

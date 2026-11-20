@@ -1,0 +1,7 @@
+[alice=25 bob=30 carol=35]
+alice=25 3
+3 true false
+7 2.5 rust
+[2 4 6] 12
+[x xx xxx] x|xx|xxx|
+[1 2 3]

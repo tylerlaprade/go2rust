@@ -390,6 +390,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Named scalar newtypes usable across generated modules | ✅ |
 | └ Named scalar equality comparisons | ✅ |
 | └ Instantiated generic function type aliases | ✅ |
+| └ Generic functions and types, written once per instantiation | ✅ |
 | └ Numeric conversions from literals and expressions | ✅ |
 | └ Numeric conversions from named integer values | ✅ |
 | └ Untyped constants assigned to byte-sized slots | ✅ |

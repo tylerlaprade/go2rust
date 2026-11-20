@@ -1,0 +1,8 @@
+[package]
+name = "generic_list_tree_optional"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_list_tree_optional"
+path = "main.rs"
