@@ -9913,8 +9913,9 @@ func mutexReceiverIsWrappedIdent(receiver mutexReceiverInfo) bool {
 	if len(receiver.fields) != 0 {
 		return false
 	}
-	_, ok := receiver.expr.(*ast.Ident)
-	return ok
+	// A local "var mu sync.Mutex" is a bare GoMutex, not a cell.
+	ident, ok := receiver.expr.(*ast.Ident)
+	return ok && !isVarBare(ident.Name)
 }
 
 func writeMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
@@ -13175,6 +13176,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													}
 												} else {
 													// Taking address - don't wrap, the & operator will handle it
+													if isBareSyncValueAddress(unary.X) {
+														registerBareShortDecl(s.Lhs[i])
+													}
 													TranspileExpression(out, rhs)
 												}
 											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
@@ -13488,6 +13492,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										case "Mutex":
 											NeedGoMutex()
 											rustType = "GoMutex"
+										case "RWMutex":
+											NeedGoRWMutex()
+											rustType = "GoRWMutex"
 										case "Once":
 											NeedGoOnce()
 											rustType = "GoOnce"
@@ -13653,6 +13660,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
 									registerCompositeLiteralSyntaxVarInfo(name, compositeLit)
+									if valueSpec.Type == nil && compositeLiteralEmitsBareStructValue(compositeLit) {
+										// "var mu = sync.Mutex{}" is the bare value, as "mu := sync.Mutex{}" is.
+										registerBareShortDecl(name)
+									}
 									// Check if it's a struct literal vs array/slice/map literal
 									isStructLiteral := false
 									if _, ok := compositeLit.Type.(*ast.Ident); ok {
@@ -13672,6 +13683,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Address-of operator already produces wrapped value
+									if isBareSyncValueAddress(unary.X) {
+										registerBareShortDecl(name)
+									}
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) {
 									// Map values that are maps/slices/pointers/etc. already return cloneable handles.
@@ -13897,6 +13911,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												case "Mutex":
 													NeedGoMutex()
 													out.WriteString(" = GoMutex::new()")
+												case "RWMutex":
+													NeedGoRWMutex()
+													out.WriteString(" = GoRWMutex::new()")
 												case "Once":
 													NeedGoOnce()
 													out.WriteString(" = GoOnce::new()")
@@ -13977,6 +13994,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.ForStmt:
+		registerLoopVariables(s)
 		shortNames := shortDeclNames(s.Init)
 		wrapForScope := shortDeclShadowsRangeVar(shortNames)
 		var popForInitScope func()
@@ -14121,6 +14139,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.RangeStmt:
+		registerLoopVariables(s)
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
 		keyAssigned := false
@@ -15616,8 +15635,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
 				out.WriteString(varName)
 				out.WriteString(".clone(); ")
+			} else if goStmtSharesCapturedVariable(s.Call, varName) {
+				// The goroutine works on the variable itself, as a closure does.
+				out.WriteString(varName)
+				out.WriteString(".clone(); ")
 			} else {
-				// Wrapped variables — snapshot the value for goroutine
+				// A loop variable, or a value passed as an argument: Go copies
+				// it when the go statement runs.
 				WriteWrapperPrefix(out)
 				out.WriteString("(*")
 				out.WriteString(varName)
@@ -15668,7 +15692,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if len(s.Call.Args) > 0 {
 				// Has arguments - need to create parameter bindings
 				out.WriteString("let ")
-				if funcLitCallsFunctionValue(funcLit) {
+				// The closure pushes onto the defer stack it owns, so calling
+				// it mutates it.
+				if funcLitCallsFunctionValue(funcLit) || hasClosureDefer {
 					out.WriteString("mut ")
 				}
 				out.WriteString("__closure = move |")
@@ -16453,6 +16479,106 @@ func channelAssignmentRHSNeedsClone(rhs ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+// loopVariableObjects holds the variables a for or range statement
+// declares. Go gives each iteration its own copy of them, so a goroutine
+// started in the loop keeps the value of its iteration. The generated loop
+// has one cell for the whole loop, so a goroutine copies it instead of
+// sharing it.
+var loopVariableObjects = map[types.Object]bool{}
+
+func registerLoopVariables(stmt ast.Stmt) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	var idents []ast.Expr
+	switch s := stmt.(type) {
+	case *ast.ForStmt:
+		if init, ok := s.Init.(*ast.AssignStmt); ok && init.Tok == token.DEFINE {
+			idents = init.Lhs
+		}
+	case *ast.RangeStmt:
+		if s.Tok == token.DEFINE {
+			idents = []ast.Expr{s.Key, s.Value}
+		}
+	}
+	for _, expr := range idents {
+		if ident, ok := expr.(*ast.Ident); ok {
+			if obj := typeInfo.info.Defs[ident]; obj != nil {
+				loopVariableObjects[obj] = true
+			}
+		}
+	}
+}
+
+// goStmtSharesCapturedVariable reports whether the goroutine a go statement
+// starts uses the variable name itself rather than a copy of its value.
+//
+// A function literal captures the variables it names, as any closure does,
+// so "go func() { total += n }()" changes total. Copying it lost the write.
+// The exceptions are loop variables (see loopVariableObjects) and the
+// arguments of the call, which Go evaluates when the go statement runs. A
+// slice or map argument is still shared, since its value is a handle, and so
+// is a variable whose address is an argument: "go f(&n)".
+func goStmtSharesCapturedVariable(call *ast.CallExpr, name string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	var obj types.Object
+	inBody := false
+	// visit finds the variable name refers to in node. In a function
+	// literal, a name declared inside the literal is not the captured one.
+	visit := func(node ast.Node, funcLit *ast.FuncLit) {
+		ast.Inspect(node, func(n ast.Node) bool {
+			ident, ok := n.(*ast.Ident)
+			if !ok || ident.Name != name {
+				return true
+			}
+			used, isVar := typeInfo.info.Uses[ident].(*types.Var)
+			if !isVar {
+				return true
+			}
+			if funcLit != nil && used.Pos() >= funcLit.Pos() && used.Pos() < funcLit.End() {
+				return true
+			}
+			obj = used
+			if funcLit != nil {
+				inBody = true
+			}
+			return true
+		})
+	}
+	addressTaken := false
+	for _, arg := range call.Args {
+		if funcLit, ok := arg.(*ast.FuncLit); ok {
+			visit(funcLit.Body, funcLit)
+		} else {
+			visit(arg, nil)
+			if unary, ok := unwrapParens(arg).(*ast.UnaryExpr); ok && unary.Op == token.AND {
+				if ident, ok := unwrapParens(unary.X).(*ast.Ident); ok && ident.Name == name {
+					addressTaken = true
+				}
+			}
+		}
+	}
+	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
+		visit(funcLit.Body, funcLit)
+	}
+	if obj == nil || loopVariableObjects[obj] {
+		return false
+	}
+	// "go f(&n)" passes a pointer to n itself.
+	if inBody || addressTaken {
+		return true
+	}
+	switch types.Unalias(obj.Type()).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
 }
 
 func goStmtImmediateArgIsFunctionHandle(ident *ast.Ident) bool {
