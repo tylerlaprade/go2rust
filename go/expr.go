@@ -9319,7 +9319,9 @@ func writeAnyHandleAssertionExpectBareValue(out *strings.Builder, receiver strin
 	out.WriteString(receiver)
 	out.WriteString(".downcast_ref::<")
 	out.WriteString(handleType)
-	out.WriteString(">().expect(\"type assertion failed\").clone(); let __value = (*__handle")
+	out.WriteString(">()")
+	writeTypeAssertionFailedUnwrap(out)
+	out.WriteString(".clone(); let __value = (*__handle")
 	WriteBorrowMethod(out, false)
 	out.WriteString(").clone().unwrap_or_default(); __value }")
 }
@@ -15674,17 +15676,21 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if assertionReturnsPointer {
 				WriteWrapperPrefix(out)
 			}
-			if targetKeepsAnyHandle {
-				writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
-			} else {
-				writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
-			}
+			withTypeAssertionFailure(e, "&**any_val", func() {
+				if targetKeepsAnyHandle {
+					writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
+				} else {
+					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+				}
+			})
 			if assertionReturnsPointer {
 				WriteWrapperSuffix(out)
 			}
 			out.WriteString("\n")
 			out.WriteString("        } else {\n")
-			out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+			out.WriteString("            ")
+			out.WriteString(typeAssertionNilPanic(e))
+			out.WriteString("\n")
 			out.WriteString("        }\n")
 			out.WriteString("    })")
 		}
@@ -20021,11 +20027,13 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
 	}
-	if anyHandleType, _, ok := typeAssertionAnyHandleTarget(e); ok {
-		writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
-	} else {
-		writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
-	}
+	withTypeAssertionFailure(e, "any_val", func() {
+		if anyHandleType, _, ok := typeAssertionAnyHandleTarget(e); ok {
+			writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
+		} else {
+			writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+		}
+	})
 	if assertionReturnsPointer {
 		WriteWrapperSuffix(out)
 	}
@@ -20078,7 +20086,9 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 		out.WriteString(receiver)
 		out.WriteString(".downcast_ref::<")
 		out.WriteString(rustType)
-		out.WriteString(">().expect(\"type assertion failed\"); ")
+		out.WriteString(">()")
+		writeTypeAssertionFailedUnwrap(out)
+		out.WriteString("; ")
 		writeTypeAssertionSuccessBareValue(out, true)
 		if holdsErrorHandle {
 			out.WriteString(" }")
@@ -20089,7 +20099,81 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	out.WriteString(receiver)
 	out.WriteString(".downcast_ref::<")
 	out.WriteString(rustType)
-	out.WriteString(">().expect(\"type assertion failed\").clone()")
+	out.WriteString(">()")
+	writeTypeAssertionFailedUnwrap(out)
+	out.WriteString(".clone()")
+}
+
+// typeAssertionFailure is what the one-value form "x.(T)" being written
+// panics with when x holds another type: Go's message names the static type
+// of x, the dynamic type and T. dynamicValue is the Rust expression of the
+// &dyn Any whose type the message names.
+type typeAssertionFailure struct {
+	source       string
+	target       string
+	dynamicValue string
+}
+
+var currentTypeAssertionFailure *typeAssertionFailure
+
+func withTypeAssertionFailure(e *ast.TypeAssertExpr, dynamicValue string, write func()) {
+	saved := currentTypeAssertionFailure
+	currentTypeAssertionFailure = typeAssertionFailureFor(e, dynamicValue)
+	defer func() { currentTypeAssertionFailure = saved }()
+	write()
+}
+
+func typeAssertionFailureFor(e *ast.TypeAssertExpr, dynamicValue string) *typeAssertionFailure {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e == nil || e.Type == nil {
+		return nil
+	}
+	source, target := typeInfo.GetType(e.X), typeInfo.GetType(e.Type)
+	if source == nil || target == nil {
+		return nil
+	}
+	return &typeAssertionFailure{
+		source:       goTypeStringForMessage(source),
+		target:       goTypeStringForMessage(target),
+		dynamicValue: dynamicValue,
+	}
+}
+
+// goTypeStringForMessage writes a type as the Go runtime names it in a
+// panic message: "interface {}", "main.Rect", "*main.Rect", "[]int".
+func goTypeStringForMessage(typ types.Type) string {
+	if isEmptyInterfaceType(typ) {
+		return "interface {}"
+	}
+	return types.TypeString(typ, func(pkg *types.Package) string { return pkg.Name() })
+}
+
+// writeTypeAssertionFailedUnwrap unwraps the result of a downcast in "x.(T)".
+func writeTypeAssertionFailedUnwrap(out *strings.Builder) {
+	failure := currentTypeAssertionFailure
+	if failure == nil {
+		out.WriteString(".expect(\"type assertion failed\")")
+		return
+	}
+	NeedGoTypeName()
+	out.WriteString(".unwrap_or_else(|| panic!(\"interface conversion: {} is {}, not {}\", ")
+	out.WriteString(RustStringLiteral(strconv.Quote(failure.source)))
+	out.WriteString(", ")
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(")
+	out.WriteString(failure.dynamicValue)
+	out.WriteString("), ")
+	out.WriteString(RustStringLiteral(strconv.Quote(failure.target)))
+	out.WriteString("))")
+}
+
+// typeAssertionNilPanic is the panic of "x.(T)" when x is a nil interface.
+func typeAssertionNilPanic(e *ast.TypeAssertExpr) string {
+	failure := typeAssertionFailureFor(e, "")
+	if failure == nil {
+		return "panic!(\"type assertion on nil interface\")"
+	}
+	return "panic!(\"interface conversion: {} is nil, not {}\", " + RustStringLiteral(strconv.Quote(failure.source)) + ", " + RustStringLiteral(strconv.Quote(failure.target)) + ")"
 }
 
 func typeAssertionSourceIsGoError(expr ast.Expr) bool {
@@ -20162,7 +20246,9 @@ func writePointerHandleAssertionExpectValue(out *strings.Builder, receiver strin
 	out.WriteString(receiver)
 	out.WriteString(".downcast_ref::<")
 	out.WriteString(handleType)
-	out.WriteString(">().expect(\"type assertion failed\").clone()")
+	out.WriteString(">()")
+	writeTypeAssertionFailedUnwrap(out)
+	out.WriteString(".clone()")
 }
 
 func writePointerHandleAssertionNone(out *strings.Builder, pointeeRustType string) {
@@ -20250,10 +20336,14 @@ func writePointerHandleTypeAssertionValue(out *strings.Builder, e *ast.TypeAsser
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            ")
-	writePointerHandleAssertionExpectValue(out, "any_val", handleType)
+	withTypeAssertionFailure(e, "&**any_val", func() {
+		writePointerHandleAssertionExpectValue(out, "any_val", handleType)
+	})
 	out.WriteString("\n")
 	out.WriteString("        } else {\n")
-	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+	out.WriteString("            ")
+	out.WriteString(typeAssertionNilPanic(e))
+	out.WriteString("\n")
 	out.WriteString("        }\n")
 	out.WriteString("    })")
 }
@@ -20275,7 +20365,9 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 	out.WriteString(";\n")
 	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
 	out.WriteString("        ")
-	writePointerHandleAssertionExpectValue(out, "any_val", handleType)
+	withTypeAssertionFailure(e, "any_val", func() {
+		writePointerHandleAssertionExpectValue(out, "any_val", handleType)
+	})
 	out.WriteString("\n")
 	out.WriteString("    })")
 	return true

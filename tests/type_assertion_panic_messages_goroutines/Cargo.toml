@@ -1,0 +1,8 @@
+[package]
+name = "type_assertion_panic_messages_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_assertion_panic_messages_goroutines"
+path = "main.rs"

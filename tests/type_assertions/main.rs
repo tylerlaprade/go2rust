@@ -449,9 +449,9 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<String>().expect("type assertion failed").clone()
+            any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "string")).clone()
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "string")
         }
     }))));
         print!("Asserted string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
