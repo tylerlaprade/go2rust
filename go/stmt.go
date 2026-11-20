@@ -5478,7 +5478,7 @@ func writeRangeHandleReturnValue(out *strings.Builder, ident *ast.Ident) bool {
 }
 
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
-	if writeGoSliceFreshCellFromVariable(out, expr) {
+	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, expr) {
 		return
 	}
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {

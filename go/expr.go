@@ -9646,7 +9646,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 }
 
 func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type, fieldOwnerPkgPath string) {
-	if writeGoSliceFreshCellFromVariable(out, value) {
+	if isUnnamedSliceType(fieldType) && writeGoSliceFreshCellFromVariable(out, value) {
 		return
 	}
 	var expectedFieldType types.Type
@@ -11421,7 +11421,7 @@ func mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath string, expectedFieldType ty
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
-	if writeGoSliceFreshCellFromVariable(out, value) {
+	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, value) {
 		return
 	}
 	if lit, ok := value.(*ast.CompositeLit); ok && lit.Type == nil {
@@ -16730,6 +16730,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
 	}
+	writeGoSliceParamHeaderCopiesFor(out, funcLit.Type, funcLit.Body, "        ")
 	writeNamedReturnDeclarations(out, funcLit.Type)
 	if funcLit.Body != nil {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(funcLit.Body)

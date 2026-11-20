@@ -1273,9 +1273,7 @@ func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames
 func prefixSharedStdlibStubImport(rustCode string) string {
 	importLine := fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName)
 	if goSliceModeEnabled() {
-		// A glob-imported macro is ambiguous with the prelude's vec!; the
-		// explicit import is not.
-		importLine += fmt.Sprintf("use %s::{vec, Vec};\n", sharedStdlibStubCrateName)
+		importLine += goSliceVecMacro
 	}
 	if strings.TrimSpace(rustCode) == "" {
 		return importLine

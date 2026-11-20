@@ -1067,10 +1067,14 @@ func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSha
 	if len(names) == 0 {
 		return rustCode
 	}
-	if strings.TrimSpace(rustCode) == "" {
-		return formatCrateUse(names)
+	prefix := formatCrateUse(names)
+	if helpers.goSlice() || goSliceModeEnabled() && !omitSharedStdlibHelpers {
+		prefix += goSliceVecMacro
 	}
-	return formatCrateUse(names) + "\n" + rustCode
+	if strings.TrimSpace(rustCode) == "" {
+		return prefix
+	}
+	return prefix + "\n" + rustCode
 }
 
 func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, moduleNames []string, helpers *HelperTracker, siblingItemImports []string, usePreciseSiblingImports bool) string {

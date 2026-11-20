@@ -3869,6 +3869,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if ctx.UsePackageExternalStubs {
 		helpersForFile = helpers.withoutSharedStdlibHelpers()
 	}
+	if ctx.UsePackageHelpers {
+		// The package's helper module defines GoSlice once for all files.
+		helpersForFile = helpersForFile.withoutGoSlice()
+	}
 	helpersStr := helpersForFile.GenerateHelpers()
 	stubsStr := GenerateExternalTypeStubs()
 	if strings.Contains(stubsStr, "StdError") {

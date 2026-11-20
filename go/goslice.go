@@ -19,7 +19,27 @@ func goSliceModeEnabled() bool {
 // goSliceImportNames are the names every module imports from the helper that
 // defines GoSlice. Vec and vec! shadow the prelude's, so the slice types and
 // literals the translator writes as Vec<T> and vec![..] are Go slices.
-var goSliceImportNames = []string{"GoSlice", "GoSliceAppend", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "Vec", "vec"}
+var goSliceImportNames = []string{"GoSlice", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "Vec"}
+
+// goSliceVecMacro shadows the prelude's vec! with one that makes a GoSlice.
+// A macro reached through a glob import is ambiguous with the prelude's, so
+// every module file that is not the one defining GoSlice starts with its
+// own copy: a macro_rules definition takes precedence over both.
+const goSliceVecMacro = `#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
+`
+
+// prefixGoSliceVecMacro starts a module file with goSliceVecMacro.
+func prefixGoSliceVecMacro(rustCode string) string {
+	if !goSliceModeEnabled() || strings.Contains(rustCode, "macro_rules! vec {") {
+		return rustCode
+	}
+	return goSliceVecMacro + rustCode
+}
 
 // stdVecPath names the standard library's Vec, for scratch vectors that
 // are not Go slices.
@@ -86,7 +106,8 @@ func generateGoSliceHelper(out *strings.Builder) {
 // with the others, as Go's slices do; Go programs that race on a slice race
 // here too.
 const goSliceRuntime = `/// A Go slice: an offset, a length and a capacity over a backing array that
-/// every slice made from it shares.
+/// every slice made from it shares. Every name below that a binding uses
+/// starts with __, so no package-level variable of the program shadows it.
 pub struct GoSlice<T> {
     backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
     off: usize,
@@ -100,14 +121,7 @@ unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
 /// The prelude's Vec and vec! are Go slices in generated code.
 pub type Vec<T> = GoSlice<T>;
 
-#[macro_export]
-macro_rules! __go_slice_vec {
-    () => ($crate::GoSlice::new());
-    ($elem:expr; $n:expr) => ($crate::GoSlice::from(std::vec::from_elem($elem, $n)));
-    ($($x:expr),+ $(,)?) => ($crate::GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($x),+]))));
-}
-pub use __go_slice_vec as vec;
-
+` + goSliceVecMacro + `
 impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
@@ -121,11 +135,11 @@ impl<T> GoSlice<T> {
         Self::from(std::vec::Vec::new())
     }
 
-    pub fn with_capacity(cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(cap))), off: 0, len: 0, cap }
+    pub fn with_capacity(__cap: usize) -> Self {
+        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
     }
 
-    fn backing(&self) -> &std::vec::Vec<T> {
+    fn backing_ref(&self) -> &std::vec::Vec<T> {
         unsafe { &*self.backing.get() }
     }
 
@@ -135,12 +149,12 @@ impl<T> GoSlice<T> {
     }
 
     pub fn as_slice(&self) -> &[T] {
-        &self.backing()[self.off..self.off + self.len]
+        &self.backing_ref()[self.off..self.off + self.len]
     }
 
     pub fn as_mut_slice(&mut self) -> &mut [T] {
-        let (off, len) = (self.off, self.len);
-        &mut self.backing_mut()[off..off + len]
+        let (__off, __len) = (self.off, self.len);
+        &mut self.backing_mut()[__off..__off + __len]
     }
 
     /// Go's cap(s).
@@ -149,35 +163,35 @@ impl<T> GoSlice<T> {
     }
 
     /// Whether two slices share their backing array.
-    pub fn shares_backing_with(&self, other: &Self) -> bool {
-        std::sync::Arc::ptr_eq(&self.backing, &other.backing)
+    pub fn shares_backing_with(&self, __other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
     }
 
     /// Go's s[lo:hi].
-    pub fn reslice(&self, lo: usize, hi: usize) -> Self {
-        if lo > hi || hi > self.cap {
-            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", lo, hi, self.cap);
+    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
+        if __lo > __hi || __hi > self.cap {
+            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
         }
-        if self.off + hi > self.backing().len() {
-            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", lo, hi);
+        if self.off + __hi > self.backing_ref().len() {
+            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + lo, len: hi - lo, cap: self.cap - lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
     }
 
     /// Go's s[lo:hi:max].
-    pub fn reslice3(&self, lo: usize, hi: usize, max: usize) -> Self {
-        if max > self.cap || hi > max {
-            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", lo, hi, max, self.cap);
+    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __max > self.cap || __hi > __max {
+            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
         }
-        let mut s = self.reslice(lo, hi);
-        s.cap = max - lo;
-        s
+        let mut __slice = self.reslice(__lo, __hi);
+        __slice.cap = __max - __lo;
+        __slice
     }
 
     /// Go's s = s[:n] when n is at most len(s).
-    pub fn truncate(&mut self, n: usize) {
-        if n < self.len {
-            self.len = n;
+    pub fn truncate(&mut self, __n: usize) {
+        if __n < self.len {
+            self.len = __n;
         }
     }
 
@@ -186,125 +200,193 @@ impl<T> GoSlice<T> {
         self.len = 0;
     }
 
-    pub fn reserve(&mut self, _additional: usize) {}
+    pub fn reserve(&mut self, _: usize) {}
 
-    /// Keeps the elements f accepts, in order, at the front of the slice.
-    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut f: F) {
-        let mut kept = 0;
+    /// Keeps the elements the predicate accepts, in order, at the front.
+    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
+        let mut __kept = 0;
         {
-            let window = self.as_mut_slice();
-            for i in 0..window.len() {
-                if f(&window[i]) {
-                    window.swap(kept, i);
-                    kept += 1;
+            let __window = self.as_mut_slice();
+            for __index in 0..__window.len() {
+                if __keep(&__window[__index]) {
+                    __window.swap(__kept, __index);
+                    __kept += 1;
                 }
             }
         }
-        self.len = kept;
+        self.len = __kept;
     }
 
     /// Moves the slice's elements out when no other slice shares them.
     fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
-        let (off, len) = (self.off, self.len);
-        let backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut elems = std::mem::take(backing.get_mut());
-        elems.truncate(off + len);
-        elems.drain(..off);
-        Some(elems)
+        let (__off, __len) = (self.off, self.len);
+        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
+        let mut __elems = std::mem::take(__backing.get_mut());
+        __elems.truncate(__off + __len);
+        __elems.drain(..__off);
+        Some(__elems)
     }
 
-    fn fresh(elems: std::vec::Vec<T>, cap: usize) -> Self {
-        let len = elems.len();
-        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(elems)), off: 0, len, cap: cap.max(len) }
+    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
     }
 
-    /// The capacity Go's append gives a slice that must grow to hold needed.
-    fn grown_cap(&self, needed: usize) -> usize {
-        let old = self.cap;
-        let doubled = old + old;
-        if needed > doubled {
-            return needed;
+    /// The capacity Go's append gives a slice that must grow to hold
+    /// __needed elements.
+    fn grown_cap(&self, __needed: usize) -> usize {
+        let __old = self.cap;
+        let __doubled = __old + __old;
+        if __needed > __doubled {
+            return __needed;
         }
-        if old < 256 {
-            return doubled.max(1);
+        if __old < 256 {
+            return __doubled.max(1);
         }
-        let mut cap = old;
-        while cap < needed {
-            cap += (cap + 3 * 256) / 4;
+        let mut __grown = __old;
+        while __grown < __needed {
+            __grown += (__grown + 3 * 256) / 4;
         }
-        cap
+        __grown
     }
 
-    /// Stores v at index len(s) of the backing array: the in-place half of
-    /// Go's append.
-    fn store_at_end(&mut self, v: T) {
-        let at = self.off + self.len;
-        let backing = self.backing_mut();
-        if at < backing.len() {
-            backing[at] = v;
+    /// Stores a value at index len(s) of the backing array: the in-place
+    /// half of Go's append. The backing Vec has room for the capacity, so
+    /// pushing onto it never moves elements other slices are reading.
+    fn store_at_end(&mut self, __value: T) {
+        let __at = self.off + self.len;
+        let __backing = self.backing_mut();
+        if __at < __backing.len() {
+            __backing[__at] = __value;
         } else {
-            backing.push(v);
+            __backing.push(__value);
         }
         self.len += 1;
+    }
+
+    /// append for elements that cannot be copied: when the slice is full and
+    /// shares its backing array, the value goes at the end of that array.
+    fn push_without_copy(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        if let Some(mut __elems) = self.take_unique() {
+            __elems.reserve(__cap.saturating_sub(__elems.len()));
+            __elems.push(__value);
+            *self = Self::fresh(__elems, __cap);
+            return;
+        }
+        self.store_at_end(__value);
+        self.cap = self.len;
     }
 }
 
 impl<T: Clone> GoSlice<T> {
+    /// Go's s = append(s, v): in place while there is capacity, else into a
+    /// new backing array.
+    pub fn push(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.push(__value);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's append(s, v), leaving s as it was.
+    pub fn appended(&self, __value: T) -> Self {
+        let mut __result = self.clone();
+        __result.push(__value);
+        __result
+    }
+
+    /// Go's s = append(s, xs...).
+    pub fn extend_from_slice(&mut self, __values: &[T]) {
+        if self.len + __values.len() <= self.cap {
+            for __value in __values {
+                self.store_at_end(__value.clone());
+            }
+            return;
+        }
+        let __cap = self.grown_cap(self.len + __values.len());
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.extend_from_slice(__values);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's s = append(s, xs...) from values.
+    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
+        let __values: std::vec::Vec<T> = __values.into_iter().collect();
+        self.extend_from_slice(&__values);
+    }
+
     /// Removes and returns the last element: Go's v := s[len(s)-1];
     /// s = s[:len(s)-1].
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             return None;
         }
-        let v = self.as_slice()[self.len - 1].clone();
+        let __last = self.as_slice()[self.len - 1].clone();
         self.len -= 1;
-        Some(v)
+        Some(__last)
     }
 
-    pub fn insert(&mut self, index: usize, v: T) {
-        if index > self.len {
-            panic!("insertion index (is {}) should be <= len (is {})", index, self.len);
+    pub fn insert(&mut self, __index: usize, __value: T) {
+        if __index > self.len {
+            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
         }
-        GoSliceAppend::push(self, v);
-        self.as_mut_slice()[index..].rotate_right(1);
+        self.push(__value);
+        self.as_mut_slice()[__index..].rotate_right(1);
     }
 
-    pub fn remove(&mut self, index: usize) -> T {
-        let v = self.as_slice()[index].clone();
-        self.as_mut_slice()[index..].rotate_left(1);
+    pub fn remove(&mut self, __index: usize) -> T {
+        let __removed = self.as_slice()[__index].clone();
+        self.as_mut_slice()[__index..].rotate_left(1);
         self.len -= 1;
-        v
+        __removed
     }
 
-    pub fn split_off(&mut self, at: usize) -> Self {
-        let tail = Self::from(self.as_slice()[at..].to_vec());
-        self.len = at;
-        tail
+    pub fn split_off(&mut self, __at: usize) -> Self {
+        let __tail = Self::from(self.as_slice()[__at..].to_vec());
+        self.len = __at;
+        __tail
     }
 
-    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, range: R) -> std::vec::IntoIter<T> {
-        let mut elems = self.as_slice().to_vec();
-        let drained: std::vec::Vec<T> = elems.drain(range).collect();
-        let cap = self.cap;
-        *self = Self::fresh(elems, cap);
-        drained.into_iter()
+    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
+        let mut __elems = self.as_slice().to_vec();
+        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
+        let __cap = self.cap;
+        *self = Self::fresh(__elems, __cap);
+        __drained.into_iter()
     }
 
-    pub fn resize(&mut self, n: usize, v: T) {
-        if n <= self.len {
-            self.len = n;
+    pub fn resize(&mut self, __new_len: usize, __value: T) {
+        if __new_len <= self.len {
+            self.len = __new_len;
         } else {
-            let extra = std::vec::from_elem(v, n - self.len);
-            GoSliceAppend::extend_from_slice(self, &extra);
+            let __more = std::vec::from_elem(__value, __new_len - self.len);
+            self.extend_from_slice(&__more);
         }
     }
 
-    pub fn resize_with<F: FnMut() -> T>(&mut self, n: usize, mut f: F) {
-        if n <= self.len {
-            self.len = n;
+    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
+        if __new_len <= self.len {
+            self.len = __new_len;
         } else {
-            let extra: std::vec::Vec<T> = (self.len..n).map(|_| f()).collect();
-            GoSliceAppend::extend_from_slice(self, &extra);
+            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
+            self.extend_from_slice(&__more);
         }
     }
 
@@ -317,92 +399,8 @@ impl<T: Clone> GoSlice<T> {
     }
 }
 
-/// Go's append for elements that can be copied: in place while there is
-/// capacity, else into a new backing array.
-pub trait GoSliceAppend<T> {
-    /// s = append(s, v)
-    fn push(&mut self, v: T);
-    /// s = append(s, xs...)
-    fn extend_from_slice(&mut self, xs: &[T]);
-    /// s = append(s, xs...) from values
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I);
-    /// append(s, v), leaving s as it was
-    fn appended(&self, v: T) -> Self;
-}
-
-impl<T: Clone> GoSliceAppend<T> for GoSlice<T> {
-    fn push(&mut self, v: T) {
-        if self.len < self.cap {
-            self.store_at_end(v);
-            return;
-        }
-        let cap = self.grown_cap(self.len + 1);
-        let mut elems = match self.take_unique() {
-            Some(elems) => elems,
-            None => self.as_slice().to_vec(),
-        };
-        elems.reserve(cap.saturating_sub(elems.len()));
-        elems.push(v);
-        *self = Self::fresh(elems, cap);
-    }
-
-    fn extend_from_slice(&mut self, xs: &[T]) {
-        if self.len + xs.len() <= self.cap {
-            for x in xs {
-                self.store_at_end(x.clone());
-            }
-            return;
-        }
-        let cap = self.grown_cap(self.len + xs.len());
-        let mut elems = match self.take_unique() {
-            Some(elems) => elems,
-            None => self.as_slice().to_vec(),
-        };
-        elems.reserve(cap.saturating_sub(elems.len()));
-        elems.extend_from_slice(xs);
-        *self = Self::fresh(elems, cap);
-    }
-
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        let items: std::vec::Vec<T> = iter.into_iter().collect();
-        GoSliceAppend::extend_from_slice(self, &items);
-    }
-
-    fn appended(&self, v: T) -> Self {
-        let mut out = self.clone();
-        GoSliceAppend::push(&mut out, v);
-        out
-    }
-}
-
-/// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
-pub trait GoSliceAppendBoxed<T> {
-    fn push(&mut self, v: T);
-    fn extend<I: GoSliceBoxedValues<T>>(&mut self, values: I);
-}
-
-impl<T> GoSlice<T> {
-    fn push_without_copy(&mut self, v: T) {
-        if self.len < self.cap {
-            self.store_at_end(v);
-            return;
-        }
-        let cap = self.grown_cap(self.len + 1);
-        if let Some(mut elems) = self.take_unique() {
-            elems.reserve(cap.saturating_sub(elems.len()));
-            elems.push(v);
-            *self = Self::fresh(elems, cap);
-            return;
-        }
-        self.store_at_end(v);
-        self.cap = self.len;
-    }
-}
-
-/// The values appended by append(s, xs...) to a slice of interface values.
-/// They are always a slice built for the append, which nothing else holds.
+/// The values appended by append(s, xs...) to a slice of interface values:
+/// always a slice built for the append, which nothing else holds.
 pub trait GoSliceBoxedValues<T> {
     fn into_boxed_values(self) -> std::vec::Vec<T>;
 }
@@ -416,30 +414,38 @@ impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
 impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
     fn into_boxed_values(mut self) -> std::vec::Vec<T> {
         match self.take_unique() {
-            Some(elems) => elems,
+            Some(__elems) => __elems,
             None => panic!("append of interface values held by another slice"),
         }
     }
 }
 
+/// Go's append for interface values, which have no Clone. When the slice
+/// is full and shares its backing array, the new element goes at the end of
+/// that array instead of into a copy.
+pub trait GoSliceAppendBoxed<T> {
+    fn push(&mut self, __value: T);
+    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
+}
+
 impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, v: Box<dyn std::any::Any>) {
-        self.push_without_copy(v);
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.push_without_copy(__value);
     }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, values: I) {
-        for v in values.into_boxed_values() {
-            self.push_without_copy(v);
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
         }
     }
 }
 
 impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, v: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(v);
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.push_without_copy(__value);
     }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, values: I) {
-        for v in values.into_boxed_values() {
-            self.push_without_copy(v);
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
         }
     }
 }
@@ -491,45 +497,45 @@ impl<T> Default for GoSlice<T> {
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
-    fn from(v: std::vec::Vec<T>) -> Self {
-        let len = v.len();
-        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(v)), off: 0, len, cap: len }
+    fn from(__elems: std::vec::Vec<T>) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
     }
 }
 
 impl<T: Clone> From<&[T]> for GoSlice<T> {
-    fn from(v: &[T]) -> Self {
-        Self::from(v.to_vec())
+    fn from(__elems: &[T]) -> Self {
+        Self::from(__elems.to_vec())
     }
 }
 
 impl<T: Clone> From<&mut [T]> for GoSlice<T> {
-    fn from(v: &mut [T]) -> Self {
-        Self::from(v.to_vec())
+    fn from(__elems: &mut [T]) -> Self {
+        Self::from(__elems.to_vec())
     }
 }
 
 impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
-    fn from(v: [T; N]) -> Self {
-        Self::from(std::vec::Vec::from(v))
+    fn from(__elems: [T; N]) -> Self {
+        Self::from(std::vec::Vec::from(__elems))
     }
 }
 
 impl From<&str> for GoSlice<u8> {
-    fn from(s: &str) -> Self {
-        Self::from(s.as_bytes().to_vec())
+    fn from(__text: &str) -> Self {
+        Self::from(__text.as_bytes().to_vec())
     }
 }
 
 impl From<String> for GoSlice<u8> {
-    fn from(s: String) -> Self {
-        Self::from(s.into_bytes())
+    fn from(__text: String) -> Self {
+        Self::from(__text.into_bytes())
     }
 }
 
 impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
-    fn from(s: GoSlice<T>) -> Self {
-        s.as_slice().to_vec()
+    fn from(__slice: GoSlice<T>) -> Self {
+        __slice.as_slice().to_vec()
     }
 }
 
@@ -571,8 +577,8 @@ impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
 }
 
 impl<T> std::iter::FromIterator<T> for GoSlice<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        Self::from(iter.into_iter().collect::<std::vec::Vec<T>>())
+    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
+        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
     }
 }
 
@@ -581,7 +587,7 @@ impl<T: Clone> IntoIterator for GoSlice<T> {
     type IntoIter = std::vec::IntoIter<T>;
     fn into_iter(mut self) -> Self::IntoIter {
         match self.take_unique() {
-            Some(elems) => elems.into_iter(),
+            Some(__elems) => __elems.into_iter(),
             None => self.as_slice().to_vec().into_iter(),
         }
     }
@@ -604,67 +610,67 @@ impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
 }
 
 impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_slice().fmt(f)
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(__f)
     }
 }
 
 /// Go's %v of a slice: the elements' %v between brackets.
 impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("[")?;
-        for (i, v) in self.as_slice().iter().enumerate() {
-            if i > 0 {
-                f.write_str(" ")?;
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        __f.write_str("[")?;
+        for (__index, __value) in self.as_slice().iter().enumerate() {
+            if __index > 0 {
+                __f.write_str(" ")?;
             }
-            write!(f, "{}", v)?;
+            write!(__f, "{}", __value)?;
         }
-        f.write_str("]")
+        __f.write_str("]")
     }
 }
 
 impl<T: PartialEq> PartialEq for GoSlice<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_slice() == other.as_slice()
+    fn eq(&self, __other: &Self) -> bool {
+        self.as_slice() == __other.as_slice()
     }
 }
 
 impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
-    fn eq(&self, other: &[T]) -> bool {
-        self.as_slice() == other
+    fn eq(&self, __other: &[T]) -> bool {
+        self.as_slice() == __other
     }
 }
 
 impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
-    fn eq(&self, other: &std::vec::Vec<T>) -> bool {
-        self.as_slice() == other.as_slice()
+    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
+        self.as_slice() == __other.as_slice()
     }
 }
 
 impl<T: Eq> Eq for GoSlice<T> {}
 
 impl<T: PartialOrd> PartialOrd for GoSlice<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.as_slice().partial_cmp(other.as_slice())
+    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_slice().partial_cmp(__other.as_slice())
     }
 }
 
 impl<T: Ord> Ord for GoSlice<T> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.as_slice().cmp(other.as_slice())
+    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
+        self.as_slice().cmp(__other.as_slice())
     }
 }
 
 impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.as_slice().hash(state)
+    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
+        self.as_slice().hash(__state)
     }
 }
 
 impl std::io::Write for GoSlice<u8> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        GoSliceAppend::extend_from_slice(self, buf);
-        Ok(buf.len())
+    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
+        self.extend_from_slice(__bytes);
+        Ok(__bytes.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
@@ -679,14 +685,21 @@ impl std::io::Write for GoSlice<u8> {
 // `xs = append(xs, v)` in the callee must not reach the caller's variable;
 // the elements stay shared through the backing array.
 func writeGoSliceParamHeaderCopies(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	if !goSliceModeEnabled() || fn == nil || fn.Type == nil || fn.Type.Params == nil || fn.Body == nil {
+	if fn == nil {
+		return
+	}
+	writeGoSliceParamHeaderCopiesFor(out, fn.Type, fn.Body, indent)
+}
+
+func writeGoSliceParamHeaderCopiesFor(out *strings.Builder, fnType *ast.FuncType, body *ast.BlockStmt, indent string) {
+	if !goSliceModeEnabled() || fnType == nil || fnType.Params == nil || body == nil {
 		return
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return
 	}
-	for _, field := range fn.Type.Params.List {
+	for _, field := range fnType.Params.List {
 		rustType := GoTypeToRust(field.Type)
 		if !strings.HasPrefix(rustType, GetOuterWrapperType()+"<"+GetInnerWrapperType()+"<Option<Vec<") {
 			continue
@@ -702,7 +715,7 @@ func writeGoSliceParamHeaderCopies(out *strings.Builder, fn *ast.FuncDecl, inden
 			if _, ok := types.Unalias(obj.Type()).(*types.Slice); !ok {
 				continue
 			}
-			if !funcBodyReassignsVar(fn.Body, obj, typeInfo) {
+			if !funcBodyReassignsVar(body, obj, typeInfo) {
 				continue
 			}
 			rustName := RustLocalIdent(name.Name)
@@ -910,4 +923,13 @@ func goSliceValueIsFresh(expr ast.Expr) bool {
 		}
 	}
 	return false
+}
+
+// isUnnamedSliceType reports whether typ is a slice type with no name.
+func isUnnamedSliceType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).(*types.Slice)
+	return ok
 }

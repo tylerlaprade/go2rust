@@ -248,6 +248,15 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	return &helperCopy
 }
 
+func (ht *HelperTracker) withoutGoSlice() *HelperTracker {
+	if ht == nil {
+		return &HelperTracker{omitGoSlice: true}
+	}
+	helperCopy := *ht
+	helperCopy.omitGoSlice = true
+	return &helperCopy
+}
+
 // goSlice reports whether this tracker's helpers define GoSlice.
 func (ht *HelperTracker) goSlice() bool {
 	return ht != nil && !ht.omitGoSlice && goSliceModeEnabled()
