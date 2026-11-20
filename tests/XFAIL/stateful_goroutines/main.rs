@@ -893,7 +893,7 @@ fn main() {
             let __select_ok = __select_recv.is_some();
             let read = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut read = Arc::new(Mutex::new(Some(read)));
-            (*read.lock().unwrap().as_ref().unwrap()).resp.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             break;
         }
         if let Some(__select_recv) = writes_thread.try_recv_select() {
@@ -901,7 +901,7 @@ fn main() {
             let write = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut write = Arc::new(Mutex::new(Some(write)));
             { let __map_key = (*{ let __field = (*write.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __map_value = (*write.lock().unwrap().as_ref().unwrap()).val.clone(); (*state.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-            (*write.lock().unwrap().as_ref().unwrap()).resp.send(true);
+            { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send(true);
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -914,7 +914,7 @@ fn main() {
         let done_thread = done.clone(); let readOps_thread = readOps.clone(); let reads_thread = reads.clone(); std::thread::spawn(move || {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))), resp: GoChannel::<i64>::new(), ..Default::default() })));;
         reads_thread.send(read.lock().unwrap().as_ref().unwrap().__go_value_clone());;
-        (*read.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap_or_default();;
+        { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
         atomic::add_uint64(readOps_thread.clone(), 1 as u64);;
         done_thread.send(true);;;
     });
@@ -931,7 +931,7 @@ fn main() {
             ..Default::default()
         })));;
         writes_thread.send(write.lock().unwrap().as_ref().unwrap().__go_value_clone());;
-        (*write.lock().unwrap().as_ref().unwrap()).resp.recv().unwrap_or_default();;
+        { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
         atomic::add_uint64(writeOps_thread.clone(), 1 as u64);;
         done_thread.send(true);;;
     });

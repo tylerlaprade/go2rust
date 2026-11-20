@@ -3154,7 +3154,46 @@ func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
-	TranspileExpressionContext(out, expr, LValue)
+	// The expression is written aside to see whether it locks. It starts
+	// with the current line, so multiline output keeps its indentation.
+	written := out.String()
+	line := written[strings.LastIndex(written, "\n")+1:]
+	var scratch strings.Builder
+	scratch.WriteString(line)
+	TranspileExpressionContext(&scratch, expr, LValue)
+	var channel strings.Builder
+	channel.WriteString(strings.TrimPrefix(scratch.String(), line))
+	if channelExpressionLocksItsHolder(expr, channel.String()) {
+		// Reading a channel out of a struct or a slice locks the holder. A
+		// send or a receive may block, and the goroutine it waits for may
+		// lock the same holder to reach its end of the channel, so the lock
+		// ends before the channel is used. A clone is the same channel.
+		out.WriteString("{ let __channel = ")
+		out.WriteString(channel.String())
+		out.WriteString(".clone(); __channel }")
+		return
+	}
+	out.WriteString(channel.String())
+}
+
+// channelExpressionLocksItsHolder reports whether expr, written as rust,
+// reads a channel out of a struct field or an element under a lock or a
+// borrow. A field of a method's receiver is reached without one.
+func channelExpressionLocksItsHolder(expr ast.Expr, rust string) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.SelectorExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || typeInfo.info == nil {
+			return false
+		}
+		if selection, ok := typeInfo.info.Selections[e]; !ok || selection.Kind() != types.FieldVal {
+			return false
+		}
+	case *ast.IndexExpr:
+	default:
+		return false
+	}
+	return strings.Contains(rust, ".lock()") || strings.Contains(rust, ".borrow()")
 }
 
 // writeUnwrappedForFormat writes an expression suitable for use in format!() macro.
@@ -13871,6 +13910,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Channel receive: <-ch
 			// unwrap_or_default mirrors Go: a receive from a closed channel
 			// yields the element type's zero value, not a panic.
+			if writeInterfaceChannelReceiveHandle(out, e) {
+				return
+			}
 			writeChannelExpression(out, e.X)
 			out.WriteString(".recv().unwrap_or_default()")
 		case token.ADD:
@@ -14620,6 +14662,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Pointer-to-array helper read.
 			} else if writePointerDerefSequenceIndexValue(out, e.X, e.Index) {
 				// Pointer-to-slice/array dereference yields a bare sequence value.
+			} else if writeAnySequenceElementClone(out, e) {
+				// An interface{} element is copied with go_any_clone.
 			} else {
 				// Array/slice indexing
 				if isExpressionResultBare(e.X) {

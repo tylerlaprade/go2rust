@@ -467,6 +467,14 @@ run_xfail_test() {
     run_test "tests/any_slice_element_comma_ok_goroutines"
 }
 
+@test "any_slice_element_values" {
+    run_test "tests/any_slice_element_values"
+}
+
+@test "any_slice_element_values_goroutines" {
+    run_test "tests/any_slice_element_values_goroutines"
+}
+
 @test "any_slice_index_assign_concrete" {
     run_test "tests/any_slice_index_assign_concrete"
 }
@@ -639,12 +647,24 @@ run_xfail_test() {
     run_test "tests/channel_error_values"
 }
 
+@test "channel_interface_events" {
+    run_test "tests/channel_interface_events"
+}
+
+@test "channel_interface_values" {
+    run_test "tests/channel_interface_values"
+}
+
 @test "channel_receive_closed" {
     run_test "tests/channel_receive_closed"
 }
 
 @test "channel_struct_fields" {
     run_test "tests/channel_struct_fields"
+}
+
+@test "channel_struct_fields_between_goroutines" {
+    run_test "tests/channel_struct_fields_between_goroutines"
 }
 
 @test "channel_sync" {

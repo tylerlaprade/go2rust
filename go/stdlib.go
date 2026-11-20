@@ -1438,6 +1438,14 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString(".as_ref().unwrap()")
 			}
 		}
+	} else if _, ok := anySequenceElementIndex(arg); ok {
+		// The element read is a handle of its own; name what it holds, not
+		// the text of the value.
+		out.WriteString("&**(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
 	} else {
 		out.WriteString("&")
 		transpilePrintArg(out, arg)
@@ -5296,6 +5304,15 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(".clone()")
 						return
 					}
+					// A channel variable stays usable after it is appended:
+					// the slice gets another handle on the same channel.
+					if _, ok := types.Unalias(elemType).Underlying().(*types.Chan); ok {
+						if _, isCall := unwrapParens(expr).(*ast.CallExpr); !isCall {
+							writeChannelExpression(out, expr)
+							out.WriteString(".clone()")
+							return
+						}
+					}
 				}
 			}
 			if elemRustType, ok := trackedRangeElemRustType(call.Args[0]); ok && writeWrappedRangeValueForRustElemType(out, expr, elemRustType) {
@@ -5754,7 +5771,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		// Check if it's a channel type
 		if chanType, ok := call.Args[0].(*ast.ChanType); ok {
 			NeedGoChannel()
-			elemType := goTypeToRustBase(chanType.Value)
+			elemType := channelElemTypeExprToRust(chanType.Value)
 			if len(call.Args) > 1 {
 				// Buffered: make(chan T, n)
 				out.WriteString("GoChannel::<")
@@ -5919,7 +5936,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 		return true
 	case *types.Chan:
 		NeedGoChannel()
-		elemType := goTypesTypeToRust(ut.Elem())
+		elemType := goTypesChannelElemTypeToRust(ut.Elem())
 		out.WriteString("GoChannel::<")
 		out.WriteString(elemType)
 		if len(call.Args) > 1 {

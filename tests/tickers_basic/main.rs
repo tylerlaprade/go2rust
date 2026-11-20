@@ -890,7 +890,7 @@ fn main() {
     let mut count = Arc::new(Mutex::new(Some(0i64)));
 
     while { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
-        (*ticker.lock().unwrap().as_ref().unwrap()).c.recv().unwrap_or_default();
+        { let __channel = (*ticker.lock().unwrap().as_ref().unwrap()).c.clone(); __channel }.recv().unwrap_or_default();
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     { let __recv = ticker.clone(); let __recv_ptr: *mut GoTicker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoTicker }; let __result = unsafe { &mut *__recv_ptr }.stop(); __result };

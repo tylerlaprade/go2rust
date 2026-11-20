@@ -903,7 +903,7 @@ impl GoTimer {
 fn main() {
     let mut timer1 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_secs(1)))));
 
-    (*timer1.lock().unwrap().as_ref().unwrap()).c.recv().unwrap_or_default();
+    { let __channel = (*timer1.lock().unwrap().as_ref().unwrap()).c.clone(); __channel }.recv().unwrap_or_default();
     println!("{}", format!("{}", "Timer 1 fired".to_string()));
 
     let mut timer2 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_millis(500)))));
