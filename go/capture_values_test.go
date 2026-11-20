@@ -47,6 +47,27 @@ func main() {
 	}
 }
 
+func TestDeferredCallCopiesBareScalarWithoutBorrowingIt(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func open() uintptr { return 1 }
+func closefd(fd uintptr) {}
+
+func use() {
+	go func() {}()
+	fd := open()
+	defer closefd(fd)
+}
+`)
+
+	if strings.Contains(rust, "fd.lock()") || strings.Contains(rust, "fd.borrow()") {
+		t.Fatalf("deferred call should copy a bare scalar directly instead of borrowing it as a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let fd_defer_captured = fd;") {
+		t.Fatalf("deferred call should snapshot the bare scalar value at the defer statement:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConstantPrintsThroughItsStringMethod(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

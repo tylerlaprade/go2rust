@@ -234,6 +234,9 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 			out.WriteString(")")
 			return
 		}
+		if lit.Kind == token.FLOAT && primitiveType != "" && writeIntegerTypedFloatConstLiteral(out, lit, primitiveType) {
+			return
+		}
 		out.WriteString(RustCharLiteral(lit.Value))
 		return
 	}
@@ -5515,15 +5518,26 @@ func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, conc
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<")
 	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString(">()).map(|__e| *__e.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() == (")
-	if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
-		TranspileConstExpr(out, concreteExpr, 0)
+	out.WriteString(">()).map(|__e| ")
+	_, isExternalInteger := externalIntegerRustTypeForNamed(named)
+	if isExternalInteger {
+		out.WriteString("__e.0 == ")
+		if !writeNamedIntegerPrimitiveExpression(out, concreteExpr) {
+			TranspileExpression(out, concreteExpr)
+			out.WriteString(".0")
+		}
+		out.WriteString(").unwrap_or(false); ")
+	} else {
+		out.WriteString("*__e.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap() == (")
+		if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
+			TranspileConstExpr(out, concreteExpr, 0)
+		}
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")).unwrap_or(false); ")
 	}
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")).unwrap_or(false); ")
 	if op == token.NEQ {
 		out.WriteString("!__matched")
 	} else {
@@ -13154,12 +13168,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(RustStringLiteral(e.Value))
 			out.WriteString(".to_string()")
 		case token.CHAR:
-			// In Go, character literals are runes (int32)
-			// Convert 'A' to the numeric value. RustCharLiteral translates
-			// Go-only escapes (\a \b \f \v, octal, \uXXXX) Rust rejects.
-			out.WriteString("(")
-			out.WriteString(RustCharLiteral(e.Value))
-			out.WriteString(" as i32)")
+			cast := "i32"
+			if ti := GetTypeInfo(); ti != nil {
+				if target, ok := rustIntegerCastTypeForExpected(ti.GetType(e)); ok {
+					cast = target
+				}
+			}
+			fmt.Fprintf(out, "(%s as %s)", RustCharLiteral(e.Value), cast)
 		case token.INT:
 			// Check if this integer is used in a float context
 			typeInfo := GetTypeInfo()
@@ -14192,6 +14207,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeIdentValueClone(out, ident)
 			out.WriteString("; ")
 			out.WriteString(tempName)
+			out.WriteString(".clone()")
 			out.WriteString(" ")
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")

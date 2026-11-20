@@ -67,16 +67,7 @@ commit both together. The test will fail if you remove one without the other.
 
 ## The common infrastructure gap
 
-**Update 2026-05-27:** The pipeline already exists — see AGENTS.md →
-"Infrastructure for transpile-instead". Fixtures opt-in via
-`.go2rust.toml` (`source_stdlib_packages = "..."`); the loader fetches
-the stdlib source and routes calls to the resulting `vendor/<crate>/`
-module instead of the bridge. Exact paths stay exact; suffix `+deps`
-follows the loaded stdlib import graph recursively for fixtures that are
-trying to retire a package bridge rather than hand-curating its dependency
-list. The compiler-provided `unsafe` package and top-level `runtime` package
-are not ordinary source crates; they stay on the existing intrinsic/runtime
-lowering path.
+Project translation follows ordinary standard-library imports into GOROOT by default. The loader generates a vendor crate for each source dependency. Explicit whole-package exceptions use `--bridge-stdlib-packages`. The top-level runtime and compiler-provided unsafe package retain their intrinsic/runtime handling.
 
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source
@@ -91,8 +82,7 @@ Go 1.24 (re-run the pipeline for current numbers):
 
 Each error class (wrapped-type arithmetic, generics handling, type
 inference on wrapped values) is a focused fixture target. Per AGENTS.md
-rule 7, one such package is the active target at a time, opted into the
-pipeline and driven to zero errors until its bridge debt retires here.
+rule 7, use a focused fixture from the active program to reproduce the gap and verify its behavior.
 
 When a stdlib package compiles clean through the pipeline, retiring its
 row is mechanical: drop the matching bridge code, drop its marker comment,

@@ -24,7 +24,8 @@ type ProjectGenerator struct {
 	projectImports           *ImportTracker // Collect imports across all files
 	externalMode             ExternalPackageMode
 	goImports                map[string][]string // package path -> list of imports
-	packageMapping           map[string]string   // Go import path -> Rust crate name
+	stubCrates               map[string]bool
+	packageMapping           map[string]string // Go import path -> Rust crate name
 	packageTypeModules       map[string]map[string]string
 	goPtrParamFuncNames      map[string]map[int]string
 	goPtrSlotParamFuncNames  map[string]map[int]string
@@ -144,33 +145,34 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		astFilesByPath[normalizeFilePath(filename)] = file
 	}
 
-	// Check if dependency loading is needed. Non-stdlib imports always need the
-	// package loader; explicitly source-transpiled stdlib packages use the same
-	// path so compiler packages such as go/types are real crates, not semantic
-	// stubs.
-	needsPackageLoader := false
+	hasExternalImports, needsSource := false, false
 	for _, file := range astFiles {
 		for _, imp := range file.Imports {
 			path := strings.Trim(imp.Path.Value, `"`)
-			if !isStdlibPackage(path) || shouldTranspileStdlibPackage(path) {
-				needsPackageLoader = true
-				break
+			if !isStdlibPackage(path) {
+				hasExternalImports = true
+			} else if shouldTranspileStdlibPackage(path) {
+				needsSource = true
 			}
 		}
-		if needsPackageLoader {
-			break
-		}
 	}
-
-	// Use PackageLoader for projects with external dependencies
-	if needsPackageLoader && pg.externalMode == ModeTranspile && !skipExternalHandling {
+	needsPackageLoader := needsSource || (pg.externalMode == ModeTranspile && hasExternalImports)
+	if needsPackageLoader && !skipExternalHandling {
 		fmt.Fprintf(os.Stderr, "Loading packages with dependencies...\n")
 
 		// Use PackageLoader to get full type information
 		loader := NewPackageLoader(pg.projectPath)
 
-		// Load with the current directory pattern
-		if err := loader.LoadWithDependencies([]string{"."}); err != nil {
+		loader.externalMode = pg.externalMode
+		patterns := []string{"."}
+		if !hasExternalImports && !hasGoModule(pg.projectPath) {
+			// Go accepts named source files outside a module, including multi-file programs.
+			patterns = make([]string, len(pg.goFiles))
+			for i, file := range pg.goFiles {
+				patterns[i] = normalizeFilePath(file)
+			}
+		}
+		if err := loader.LoadWithDependencies(patterns); err != nil {
 			return fmt.Errorf("failed to load packages: %v", err)
 		}
 
@@ -210,8 +212,22 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		SetTypeInfo(pg.typeInfo)
 
 		// Skip duplicate handling
-		skipExternalHandling = true
-	} else if needsPackageLoader && pg.externalMode == ModeStub && !skipExternalHandling {
+		skipExternalHandling = pg.externalMode != ModeFfi || !hasExternalImports
+	} else {
+		// Regular type checking for projects without external dependencies
+		typeInfo, err := NewTypeInfo(astFiles, fileSet)
+		if err != nil {
+			// Log warning but continue - we'll handle missing type info in individual functions
+			fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Generated code may contain errors where type information is required\n")
+		}
+		pg.typeInfo = typeInfo
+
+		// Set the global type info once for the entire project
+		SetTypeInfo(typeInfo)
+	}
+
+	if hasExternalImports && pg.externalMode == ModeStub && !pg.isVendorPackage {
 		fmt.Fprintf(os.Stderr, "Generating stubs for external packages...\n")
 
 		// Generate stub implementations
@@ -220,8 +236,14 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			return fmt.Errorf("failed to generate stubs: %v", err)
 		}
 
-		// Use the package mapping from stub generator
-		pg.packageMapping = stubGen.GetPackageMapping()
+		if pg.packageMapping == nil {
+			pg.packageMapping = make(map[string]string)
+		}
+		pg.stubCrates = make(map[string]bool)
+		for path, crate := range stubGen.GetPackageMapping() {
+			pg.packageMapping[path] = crate
+			pg.stubCrates[crate] = true
+		}
 
 		// Set up package imports for proper transpilation
 		imports := make(map[string]string)
@@ -240,41 +262,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 		packageImports = imports
 
-		// Regular type checking (will have missing types for external packages)
-		typeInfo, err := NewTypeInfo(astFiles, fileSet)
-		if err != nil {
-			// This is expected with stubs - external types won't be available
-			fmt.Fprintf(os.Stderr, "Note: Type checking incomplete (external packages are stubs): %v\n", err)
-			fmt.Fprintf(os.Stderr, "You will need to implement the stub packages in external_stubs/\n")
-		}
-		pg.typeInfo = typeInfo
-		SetTypeInfo(typeInfo)
-
-		// Skip duplicate handling
 		skipExternalHandling = true
-	} else {
-		// Generic declarations are written once per instantiation.
-		if mono, ok := monomorphizeGenerics(astFiles, fileSet); ok {
-			for i, file := range astFiles {
-				for path, byPath := range astFilesByPath {
-					if byPath == file {
-						astFilesByPath[path] = mono[i]
-					}
-				}
-			}
-			astFiles = mono
-		}
-		// Regular type checking for projects without external dependencies
-		typeInfo, err := NewTypeInfo(astFiles, fileSet)
-		if err != nil {
-			// Log warning but continue - we'll handle missing type info in individual functions
-			fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Generated code may contain errors where type information is required\n")
-		}
-		pg.typeInfo = typeInfo
-
-		// Set the global type info once for the entire project
-		SetTypeInfo(typeInfo)
 	}
 
 	// Detect concurrency in the project
@@ -1269,8 +1257,8 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	} else {
 		mainContent = injectModuleInitCalls(mainContent, pg.initModules)
 	}
-	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
-		mainContent = injectExternalPackageInitCalls(mainContent, pg.sortedCrateNames())
+	if len(pg.packageMapping) > 0 {
+		mainContent = injectExternalPackageInitCalls(mainContent, pg.sortedCrateNames(false))
 	}
 
 	var mainRust strings.Builder
@@ -1585,7 +1573,7 @@ func writePackageInitPlanCall(out *strings.Builder, indent, moduleName, function
 
 func (pg *ProjectGenerator) generateCargoToml() error {
 	cargoPath := filepath.Join(pg.projectPath, "Cargo.toml")
-	crateNames := pg.sortedCrateNames()
+	crateNames := pg.sortedCrateNames(true)
 	dependencyCrateNames := crateNames
 	if pg.useSharedStdlibStubCrate {
 		dependencyCrateNames = addSharedStdlibStubCrateDependency(dependencyCrateNames)
@@ -1642,13 +1630,9 @@ overflow-checks = false
 
 	// Add workspace configuration if we have external packages
 	if len(dependencyCrateNames) > 0 {
-		depDir := "external_stubs"
-		if pg.externalMode == ModeTranspile {
-			depDir = "vendor"
-		}
 		workspaceSection := "\n[workspace]\nmembers = [\n    \".\",\n"
 		for _, crateName := range dependencyCrateNames {
-			workspaceSection += fmt.Sprintf("    \"%s/%s\",\n", depDir, crateName)
+			workspaceSection += fmt.Sprintf("    \"%s/%s\",\n", pg.dependencyDir(crateName), crateName)
 		}
 		workspaceSection += "]\n"
 		cargoContent = workspaceSection + "\n" + cargoContent
@@ -1668,11 +1652,7 @@ overflow-checks = false
 		}
 		// Add external package dependencies
 		for _, crateName := range dependencyCrateNames {
-			depDir := "external_stubs"
-			if pg.externalMode == ModeTranspile {
-				depDir = "vendor"
-			}
-			cargoContent += fmt.Sprintf("%s = { path = \"%s/%s\" }\n", crateName, depDir, crateName)
+			cargoContent += fmt.Sprintf("%s = { path = \"%s/%s\" }\n", crateName, pg.dependencyDir(crateName), crateName)
 		}
 	}
 
@@ -1699,13 +1679,37 @@ func (pg *ProjectGenerator) generatedRustContains(needle string) bool {
 	return false
 }
 
-func (pg *ProjectGenerator) sortedCrateNames() []string {
+func (pg *ProjectGenerator) dependencyDir(crate string) string {
+	if pg.stubCrates[crate] {
+		return "external_stubs"
+	}
+	return "vendor"
+}
+
+func (pg *ProjectGenerator) sortedCrateNames(includeStubs bool) []string {
 	crateNames := make([]string, 0, len(pg.packageMapping))
 	for _, crateName := range pg.packageMapping {
+		if !includeStubs && pg.stubCrates[crateName] {
+			continue
+		}
 		crateNames = append(crateNames, crateName)
 	}
 	sort.Strings(crateNames)
 	return crateNames
+}
+
+func hasGoModule(dir string) bool {
+	dir = normalizeFilePath(dir)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return false
+		}
+		dir = parent
+	}
 }
 
 func normalizeFilePath(path string) string {
@@ -1741,8 +1745,8 @@ func (pg *ProjectGenerator) generateLibRs(packageState *PackageState, astFilesBy
 		}
 	}
 	var initDependencyCrates []string
-	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
-		initDependencyCrates = pg.sortedCrateNames()
+	if len(pg.packageMapping) > 0 {
+		initDependencyCrates = pg.sortedCrateNames(false)
 	}
 	writeLibraryPackageInitAll(&libRust, initDependencyCrates, pg.initModules, pg.packageInitPlan(astFilesByPath))
 

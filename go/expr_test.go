@@ -1754,11 +1754,11 @@ func runes(s string) []rune {
 }
 `)
 
-	if strings.Contains(rust, "let __append_value = c;") {
-		t.Fatalf("append string range rune to []rune should not push Rust char directly:\n%s", rust)
+	if !strings.Contains(rust, ".char_indices().map(|(i, c)| (i, c as i32))") {
+		t.Fatalf("string range should normalize the iterator value to Go rune:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __append_value = c as i32;") {
-		t.Fatalf("append string range rune to []rune should cast char to Go rune:\n%s", rust)
+	if !strings.Contains(rust, "let __append_value = c;") {
+		t.Fatalf("append should reuse the normalized Go rune:\n%s", rust)
 	}
 }
 
@@ -1844,15 +1844,15 @@ func hasQuote(s string) bool {
 }
 `)
 
-	if strings.Contains(rust, "let __tmp_x = c;") || strings.Contains(rust, "if c == (*quote") {
-		t.Fatalf("comparison with rune variable should not compare Rust char directly:\n%s", rust)
+	if !strings.Contains(rust, ".char_indices().map(|(i, c)| (i, c as i32))") {
+		t.Fatalf("string range should normalize the iterator value to Go rune:\n%s", rust)
 	}
-	if !strings.Contains(rust, "c as i32") {
-		t.Fatalf("comparison with rune variable should cast string range char to Go rune:\n%s", rust)
+	if !strings.Contains(rust, "if c == (*quote") {
+		t.Fatalf("comparison should use the normalized Go rune directly:\n%s", rust)
 	}
 }
 
-func TestStringRangeRuneComparisonWithRuneLiteralStaysChar(t *testing.T) {
+func TestStringRangeRuneComparisonWithRuneLiteralUsesGoInt32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 func validTag(word string) bool {
@@ -1865,11 +1865,11 @@ func validTag(word string) bool {
 }
 `)
 
-	if strings.Contains(rust, "c as i32") {
-		t.Fatalf("comparison with rune literal should keep the Rust char value:\n%s", rust)
+	if !strings.Contains(rust, ".char_indices().map(|(i, c)| (i, c as i32))") {
+		t.Fatalf("string range should normalize the iterator value to Go rune:\n%s", rust)
 	}
-	if !strings.Contains(rust, "c != '_'") || !strings.Contains(rust, "c != '.'") {
-		t.Fatalf("comparison with rune literal should emit char literals:\n%s", rust)
+	if !strings.Contains(rust, "c != ('_' as i32)") || !strings.Contains(rust, "c != ('.' as i32)") {
+		t.Fatalf("comparison with rune literal should emit Go int32 literals:\n%s", rust)
 	}
 }
 
@@ -3644,7 +3644,7 @@ func use(hash uint32) uint32 {
 	if strings.Contains(rust, "Rc<RefCell<Option<u8>>>") {
 		t.Fatalf("variadic byte conversion should emit raw u8 elements, not wrapped handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "vec![('m' as i32) as u8, (*") {
+	if !strings.Contains(rust, "vec![('m' as u8), (*") {
 		t.Fatalf("variadic byte arguments should use raw u8 vector elements:\n%s", rust)
 	}
 }
@@ -7953,6 +7953,24 @@ func retry(err error) bool {
 	}
 }
 
+func TestConcurrentErrorComparedWithExternalNamedIntegerConstUsesBareTupleFields(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "syscall"
+
+func missing(err error) bool {
+	return err != syscall.ENOENT
+}
+`)
+
+	if strings.Contains(rust, "__e.0.lock()") || strings.Contains(rust, "syscall::E_N_O_E_N_T as usize") {
+		t.Fatalf("external named integer errors should compare their bare tuple fields without locking or casting the newtype:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__e.0 == ((syscall::E_N_O_E_N_T).0 as usize)") {
+		t.Fatalf("external named integer error comparison should compare primitive tuple fields:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -10109,5 +10127,29 @@ func main() {
 	}
 	if strings.Contains(rust, "Box::new(dir) as") {
 		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
+	}
+}
+
+func TestRepeatedWrappedNamedIntegerOperandClonesBeforeMove(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Duration int64
+
+const Second Duration = 1e9
+
+func divisible(d Duration) bool {
+	go func() {}()
+	if Second%(d+d) == 0 {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "__bin_d + __bin_d") {
+		t.Fatalf("repeated wrapped named operand should not move the temporary before its second use:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__bin_d.clone() + __bin_d") {
+		t.Fatalf("repeated wrapped named operand should clone the first use of the shared temporary:\n%s", rust)
 	}
 }

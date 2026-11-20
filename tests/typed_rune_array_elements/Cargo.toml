@@ -1,0 +1,8 @@
+[package]
+name = "typed_rune_array_elements"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "typed_rune_array_elements"
+path = "main.rs"

@@ -533,6 +533,24 @@ func overflow(n int) bool {
 	}
 }
 
+func TestIntegerValuedFloatLiteralUsesNamedIntegerPrimitiveType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Duration int64
+
+func split(d Duration) (int64, int32) {
+	return int64(d / 1e9), int32(d % 1e9)
+}
+`)
+
+	if strings.Contains(rust, "/ 1e9") || strings.Contains(rust, "% 1e9") {
+		t.Fatalf("integer-valued float literal used with a named integer peer must not remain a Rust float literal:\n%s", rust)
+	}
+	if strings.Count(rust, "1000000000") < 2 {
+		t.Fatalf("integer-valued float literal used with a named integer peer should emit its exact integer value:\n%s", rust)
+	}
+}
+
 func TestTypedVarInitializerCastsUntypedConstPeer(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

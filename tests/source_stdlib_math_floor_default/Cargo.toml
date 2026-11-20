@@ -1,0 +1,22 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/math",
+    "vendor/math_bits",
+]
+
+[package]
+name = "source_stdlib_math_floor_default"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_math_floor_default"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }

@@ -163,7 +163,7 @@ These rules govern **source-tier** stdlib packages and the ordinary-Go part of s
 4. **Every bridge debt site MUST have a registry row in [`docs/bridge_debt.md`](docs/bridge_debt.md), regardless of location.** The row names the Go stdlib symbol or external-package surface being faked, the exact file/function that implements it, the transpiler gap that blocks the real fix, and a fixture path under `tests/XFAIL/` or `tests/` that demonstrates the gap. The current Go test `TestBridgeDebtRegistryCoversAllShims` covers only the historical `// TEMPORARY:` comments in `go/external_type_stubs.go`; passing that test is not proof that no new bridge debt was added elsewhere. Non-`external_type_stubs.go` bridge debt still needs a row before the code change.
 5. **Bridge debt MUST panic loudly on every unsupported code path.** No `Default::default()`, no `types_Type::default()`, no `String::new()` returns to fill in for missing behavior, no helper that synthesizes an empty value for a method whose Go counterpart has real semantics. A bridge that returns plausible-but-wrong values is structurally the same bug as the 2026 fallback incident, one layer deeper.
 6. **A bridge debt site is removable in one commit once the transpiler can produce the same output.** If a shim, handler, adapter, or helper can't be deleted without a multi-commit refactor, it has grown past scaffold and the next session must shrink it.
-7. **One stdlib package is the active target at a time, opted into the pipeline, until it compiles clean and its bridge debt retires.** The bridge-debt registry ([`docs/bridge_debt.md`](docs/bridge_debt.md)) is the authoritative list of still-shimmed packages and bridge-like workarounds; `path/filepath` already proved the pipeline end-to-end (`tests/source_stdlib_path_filepath_isabs/`). Pick the lowest-difficulty shimmed package, add its `source_stdlib_packages` opt-in fixture under `tests/XFAIL/`, and drive its `--cargo-check` error count to zero — each session strictly lower than the last, with both the old and new counts in the commit message (git history is the ledger; do **not** record running counts in this doc). At zero, `./test.sh` auto-promotes the fixture and the matching bridge debt plus its registry row retire in the same commit. Only then advance to the next package. `go/types` is the terminal, hardest target; every other package is a step toward making it transpilable. Creating and burning down these fixtures is the required cadence, not an aspiration.
+7. **Choose a failing behavior on the active program's dependency path.** Exercise the default source path and verify the generated program against Go. A smaller probe can isolate a failure. Record which behavior was restored.
 8. **A package that is genuinely not transpilable yet is a committed decision, not a silent stall.** If the active target cannot be driven to zero this session — a transpiler gap needs a multi-session architecture change — the honest outcome is a commit that (a) captures the specific blocking gap as its own `tests/XFAIL/` fixture and (b) leaves the bridge panicking loudly per rule 5. A documented, loud, panic-on-gap bridge is acceptable indefinitely; a quiet plausible-but-wrong one never is. Reverting toward soft-default bridging to manufacture apparent progress is the 2026 fallback incident again, one layer deeper.
 
 #### Checklist before adding bridge-like code anywhere
@@ -171,7 +171,7 @@ These rules govern **source-tier** stdlib packages and the ordinary-Go part of s
 Before adding or extending stdlib/external-package semantics by hand in any file, walk this checklist in order. This applies to `go/external_type_stubs.go`, `go/stdlib.go`, `go/imports.go`, translator call-site special cases, source-mapped package adapters, generated Rust snippets, helper processes, test/vendor snapshots, and any renamed equivalent. If any step would take less than the bridge edit, do that step instead.
 
 1. **Can I delete dead surface instead?** Survey existing bridge debt for code no callers actually emit. Deletion is the cheapest progress.
-2. **Can I transpile the Go source the bridge is faking?** Vendor it under `tests/XFAIL/<name>/` with `source_stdlib_packages = "..."` and run `go2rust` on it. The compile errors are the punch list.
+2. **Can I transpile the Go source the bridge is faking?** Import it in a focused Go fixture and run the default transpiler. The compile errors are the punch list.
 3. **Can I fix the translator gap directly?** If the source package fails on wrapped-type arithmetic, generics, interface dispatch, constants, pointer identity, or package loading, add the smallest fixture for that language boundary and fix the translator instead of adding stdlib-specific semantics.
 4. **Is there existing bridge debt doing this job?** If so, shrink or retire it. Extending it still counts as bridge growth and requires updating its registry row.
 5. **Am I using naming to dodge the rule?** If the change would be forbidden when called a shim, it is still forbidden when called a handler, emitter, lowering, adapter, intrinsic, bridge helper, MACHINERY, or source-mapped compatibility path.
@@ -190,26 +190,9 @@ The first three steps must be tried genuinely. "I considered transpiling but it'
 
 #### Infrastructure for transpile-instead
 
-The pipeline exists and is opt-in per import path:
+The loader follows imports from the program into GOROOT and uses the same source path for direct and transitive dependencies. The top-level runtime and compiler-provided unsafe package are explicit boundaries. For assembly, syscalls and runtime services, a host implementation belongs at the smallest operation that preserves Go's return values, errors, mutation, and ordering. Verify it on the target platform.
 
-- `--source-stdlib-packages=path/filepath,go/token` on the `go2rust` CLI
-  (or `GO2RUST_SOURCE_STDLIB_PACKAGES` env var) tells the loader to fetch
-  the named stdlib package's Go source via `packages.Load` and run it
-  through the normal transpilation path instead of registering a bridge
-  stub. Supports `all`, `std`, and `<prefix>/...` patterns.
-- Fixtures opt-in via `.go2rust.toml` with a `source_stdlib_packages = "..."` line; `tests.bats` reads it and passes the flag.
-- The loader (`go/package_loader.go` — `shouldTranspileStdlibPackage`, `collectAllPackages`) and the transpile context (`isSourceMappedPackagePath` in `go/context.go`) keep bridge stub registration off for opted-in packages and generate a `vendor/<rust_crate>/lib.rs` instead.
-- The first package through this pipeline is `path/filepath`: `tests/source_stdlib_path_filepath_isabs/` transpiles it from source and **passes**. It is the proof the pipeline produces compiling, behavior-correct Rust from real stdlib source — and the template for every remaining package on the punch list.
-
-**The remaining blocker is not infrastructure; it is transpiler completeness.** `path/filepath` now transpiles and runs; the rest of the punch list still produces Rust that does not compile. Illustrative `--cargo-check` error counts on the system Go 1.24 stdlib (re-run the pipeline for current numbers — these are not a checkpoint):
-
-- `errors` — ~38 errors
-- `path` — ~11 errors
-- `go/token` — ~19 errors
-
-These are real transpiler gaps (wrapped-type arithmetic, generics handling, type inference on wrapped values, missing trait derives on wrapped types) that surface on stdlib shape and don't show up in the narrower fixture corpus. Each is a focused fixture target under `tests/XFAIL/` per rule 7.
-
-**So the work is not "build pipeline" (built) and not "hold the bridge flat" (a stall) — it is "drive the active target package to zero `--cargo-check` errors so its bridge debt retires," per rule 7. Each closed gap moves a package closer to compiling clean; each compiled package drops bridge debt and its registry row (`./test.sh` auto-promotes XFAIL → passing). Progress is measured in bridge debt retired and target-package errors burned down, never in the bridge line count holding steady.**
+Existing whole-package handlers can be requested explicitly with `--bridge-stdlib-packages=fmt` or fixture setting `bridge_stdlib_packages = "fmt"`. Keep ordinary source behavior covered by running the fixture with default options.
 
 ### Triage Principles
 

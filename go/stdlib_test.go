@@ -160,7 +160,7 @@ func order(names []string) {
 	}
 }
 
-func TestSourceMappedSortSliceStillLowersToIndexSortWithoutReflectlite(t *testing.T) {
+func TestSourceMappedSortSliceCallsGeneratedPackage(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -182,13 +182,8 @@ func order(names []string) {
 
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"sort": "sort"})
 
-	if strings.Contains(rust, "sort::slice") ||
-		strings.Contains(rust, "internal_reflectlite") ||
-		strings.Contains(rust, "Box::new(names") {
-		t.Fatalf("source-mapped sort.Slice should still lower at the typed call site without reflectlite:\n%s", rust)
-	}
-	if !strings.Contains(rust, "__sort_values.swap(__sort_j, __sort_j - 1)") {
-		t.Fatalf("source-mapped sort.Slice lowering should emit the typed in-place sort:\n%s", rust)
+	if !strings.Contains(rust, "sort::slice(") || strings.Contains(rust, "__sort_values.swap(") {
+		t.Fatalf("source-mapped sort.Slice should call the generated package:\n%s", rust)
 	}
 }
 
@@ -285,6 +280,24 @@ func kind(v Text) reflect.Kind {
 	}
 	if !strings.Contains(rust, `panic!("{}: {}", op, message)`) {
 		t.Fatalf("unsupported reflect.ValueOf methods should remain loud panic paths:\n%s", rust)
+	}
+}
+
+func TestReflectValueOfReflectTypeUsesExternalValueRepresentation(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "reflect"
+
+func compare(a, b reflect.Value) int {
+	return compare(reflect.ValueOf(a.Elem().Type()), reflect.ValueOf(b.Elem().Type()))
+}
+`)
+
+	if strings.Contains(rust, "Some(GoReflectValue {") {
+		t.Fatalf("reflect.ValueOf(reflect.Type) should not pass the local reflect helper where an external reflect.Value is required:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(reflect_Value)") {
+		t.Fatalf("reflect.ValueOf(reflect.Type) should preserve the external reflect.Value representation:\n%s", rust)
 	}
 }
 

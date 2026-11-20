@@ -1002,7 +1002,11 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 		return false
 	}
 	if lit, ok := value.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
-		return false
+		target, ok := rustIntegerCastTypeForExpected(expected)
+		if ok {
+			fmt.Fprintf(out, "(%s as %s)", RustCharLiteral(lit.Value), target)
+		}
+		return ok
 	}
 	if writeConstExpressionForExpectedGoInt(out, value, expected) {
 		return true
@@ -1517,6 +1521,10 @@ func writeDeclaredConstExpressionWithRustIntegerOperands(out *strings.Builder, v
 		return false
 	}
 	operandRustType := constExpressionOperandRustType(value, rustType)
+	castResult := operandRustType != rustType
+	if castResult {
+		out.WriteString("(")
+	}
 	out.WriteString("(")
 	writeConstExpressionOperandAsRustInteger(out, binary.X, operandRustType)
 	out.WriteString(" ")
@@ -1524,6 +1532,11 @@ func writeDeclaredConstExpressionWithRustIntegerOperands(out *strings.Builder, v
 	out.WriteString(" ")
 	writeConstExpressionOperandAsRustInteger(out, binary.Y, operandRustType)
 	out.WriteString(")")
+	if castResult {
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")")
+	}
 	return true
 }
 

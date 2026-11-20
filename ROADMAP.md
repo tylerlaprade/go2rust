@@ -272,6 +272,8 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 go2rust is moving from build-only self-transpile to behavioral self-hosting.
 
+Standard-library imports now follow the normal source path, including transitive imports. Track progress by compiling the generated programs and comparing their output with Go. Record the first failing operation when a host boundary or translation bug blocks execution.
+
 #### Current gates and next work
 
 - Verified 2026-08-05: `./go_test.sh -run '^$'` passes, while the full

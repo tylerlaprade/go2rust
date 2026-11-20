@@ -48,16 +48,16 @@ func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.Fun
 // would outlive the local it borrows from. Parameters drop after temporaries
 // so they remain safe in tail position; only `let`-declared wrapped locals
 // trigger the rejection.
-func returnExpressionsBorrowWrappedLocals(results []ast.Expr) bool {
+func returnExpressionsBorrowWrappedLocals(results []ast.Expr, fnType *ast.FuncType) bool {
 	for _, expr := range results {
-		if expressionReadsWrappedLocal(expr) {
+		if expressionReadsWrappedLocal(expr, fnType) {
 			return true
 		}
 	}
 	return false
 }
 
-func expressionReadsWrappedLocal(expr ast.Expr) bool {
+func expressionReadsWrappedLocal(expr ast.Expr, fnType *ast.FuncType) bool {
 	found := false
 	ast.Inspect(expr, func(n ast.Node) bool {
 		if found {
@@ -67,7 +67,7 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 		if !ok {
 			return true
 		}
-		if identIsWrappedFunctionLocal(ident) {
+		if identIsWrappedFunctionLocal(ident, fnType) {
 			found = true
 			return false
 		}
@@ -88,9 +88,12 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 // records the rare opt-outs (bare scalar slot from a bare-scalar call, range
 // vars, etc.) as WrapNone. Anything else that's a body-declared local is
 // assumed wrapped.
-func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
+func identIsWrappedFunctionLocal(ident *ast.Ident, fnType *ast.FuncType) bool {
 	if ident == nil || ident.Name == "_" {
 		return false
+	}
+	if identIsNamedFunctionResult(ident, fnType) {
+		return true
 	}
 	if info := lookupVarInfo(ident.Name); info != nil {
 		return info.Source == SourceLocal && info.WrapLevel != WrapNone
@@ -118,6 +121,36 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 		return false
 	}
 	return true
+}
+
+// identIsNamedFunctionResult reports whether ident resolves to one of the
+// current function's named result variables. Named results have source
+// positions before the body brace like parameters, but unlike Rust parameters
+// they are emitted as let-bound wrapper locals inside the body. A borrow from
+// one therefore cannot safely become the function body's tail expression.
+func identIsNamedFunctionResult(ident *ast.Ident, fnType *ast.FuncType) bool {
+	if ident == nil || fnType == nil || fnType.Results == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj := typeInfo.info.Uses[ident]
+	if obj == nil {
+		obj = typeInfo.info.Defs[ident]
+	}
+	if obj == nil {
+		return false
+	}
+	for _, field := range fnType.Results.List {
+		for _, name := range field.Names {
+			if typeInfo.info.Defs[name] == obj {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func fnHasMultipleResultSlots(fnType *ast.FuncType) bool {
@@ -4235,15 +4268,26 @@ func writeSwitchGoErrorConcreteCaseComparison(out *strings.Builder, switchVal st
 	WriteBorrowMethod(out, false)
 	out.WriteString("; __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<")
 	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString(">()).map(|__e| *__e.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() == (")
-	if !writeConstExpressionWithRustIntegerOperands(out, caseExpr, rustType) {
-		TranspileConstExpr(out, caseExpr, 0)
+	out.WriteString(">()).map(|__e| ")
+	_, isExternalInteger := externalIntegerRustTypeForNamed(named)
+	if isExternalInteger {
+		out.WriteString("__e.0 == ")
+		if !writeNamedIntegerPrimitiveExpression(out, caseExpr) {
+			TranspileExpression(out, caseExpr)
+			out.WriteString(".0")
+		}
+		out.WriteString(").unwrap_or(false) }")
+	} else {
+		out.WriteString("*__e.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap() == (")
+		if !writeConstExpressionWithRustIntegerOperands(out, caseExpr, rustType) {
+			TranspileConstExpr(out, caseExpr, 0)
+		}
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")).unwrap_or(false) }")
 	}
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")).unwrap_or(false) }")
 	return true
 }
 
@@ -7302,6 +7346,9 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, !tmpBareScalar, nil) {
 		return
 	}
+	if writeParallelCurrentReceiverDerefAssignmentTarget(out, lhs, tmpName, !tmpBareScalar) {
+		return
+	}
 	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, !tmpBareScalar) {
 		return
 	}
@@ -9447,6 +9494,9 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	}
 
 	tmpWrapped := tempHoldsWrappedValue(rhs)
+	if writeParallelCurrentReceiverDerefAssignmentTarget(out, lhs, tmpName, tmpWrapped) {
+		return
+	}
 	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, tmpWrapped) {
 		return
 	}
@@ -9859,6 +9909,36 @@ func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.
 		return true
 	}
 	out.WriteString(currentReceiverRustAlias)
+	out.WriteString(" = ")
+	out.WriteString(tmpName)
+	out.WriteString(";")
+	return true
+}
+
+func writeParallelCurrentReceiverDerefAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, tmpWrapped bool) bool {
+	star, ok := unwrapParens(lhs).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(star.X).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverObject == nil {
+		return false
+	}
+	if _, isPtr := types.Unalias(currentReceiverObject.Type()).(*types.Pointer); !isPtr {
+		return false
+	}
+	out.WriteString(" ")
+	if tmpWrapped {
+		out.WriteString("{ let __moved_val = { let mut __guard = ")
+		out.WriteString(tmpName)
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __guard.take().unwrap() }; *")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(" = __moved_val; }")
+		return true
+	}
+	out.WriteString("*")
+	out.WriteString(currentReceiverRustName())
 	out.WriteString(" = ")
 	out.WriteString(tmpName)
 	out.WriteString(";")
@@ -11792,7 +11872,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// local drops first, rustc rejects the body. Falling back to an
 			// explicit `return <expr>;` keeps the temporaries scoped to
 			// the statement so locals can drop afterward safely.
-			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results) {
+			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results, fnType) {
 				tailReturn = false
 			} else if len(s.Results) == 0 && namedReturnsUnwrapBareScalar(fnType) {
 				// Naked returns lower named-return locals through the same
@@ -12460,10 +12540,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				isString := false
 				if s.Tok == token.ADD_ASSIGN {
 					typeInfo := GetTypeInfo()
+					lhsTypeKnown := false
 					if typeInfo != nil {
+						lhsTypeKnown = typeInfo.GetType(s.Lhs[0]) != nil
 						isString = typeInfo.IsString(s.Lhs[0])
 					}
-					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
+					// Syntax tracking is only a fallback when authoritative type
+					// information is unavailable. Reusing a local name in another
+					// lexical scope can leave conservative VarTable metadata behind;
+					// it must not turn a typed integer `+=` into String::push_str.
+					if !lhsTypeKnown && !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
 						isString = true
 					}
 					// A named string newtype concatenates through its Add impl.
@@ -14808,7 +14894,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				keyType = rustIntType()
 			}
 		} else if isString {
-			valueType = "char"
+			// Go string ranges yield rune (an int32), not a host-language
+			// character. Keeping the loop binding as Rust char leaks into
+			// ordinary comparisons such as `r < '0'` unless every use site
+			// happens to insert a cast. Normalize the iterator value once.
+			valueType = "i32"
 		} else if isSlice || isArray {
 			// Check if it's a slice of interface{} or named interface
 			elemType := rangeArrayOrSliceElemType(s.X)
@@ -15152,7 +15242,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if isBareStringRangeSource {
 					out.WriteString(") in ")
 					writeBareStringRangeSource()
-					out.WriteString(".char_indices()")
+					out.WriteString(".char_indices().map(|(i, c)| (i, c as i32))")
 				} else {
 					out.WriteString(") in (*")
 					// Use raw identifier to avoid double-unwrapping
@@ -15162,7 +15252,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
+					out.WriteString(".as_ref().unwrap()).char_indices().map(|(i, c)| (i, c as i32))")
 				}
 			} else if s.Value != nil {
 				// for _, c := range str
@@ -15170,7 +15260,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if isBareStringRangeSource {
 					out.WriteString(" in ")
 					writeBareStringRangeSource()
-					out.WriteString(".chars()")
+					out.WriteString(".chars().map(|c| c as i32)")
 				} else {
 					out.WriteString(" in (*")
 					// Use raw identifier to avoid double-unwrapping
@@ -15180,7 +15270,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
+					out.WriteString(".as_ref().unwrap()).chars().map(|c| c as i32)")
 				}
 			} else if s.Key != nil {
 				// for i := range str
@@ -15627,6 +15717,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("            _fallthrough = false;\n")
 
 					// Case body — replace fallthrough with flag set
+					popCaseScope := func() {}
+					if vt := GetVarTable(); vt != nil {
+						vt.PushScope()
+						popCaseScope = vt.PopScope
+					}
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
@@ -15640,6 +15735,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
 					}
+					popCaseScope()
 
 					out.WriteString("        }\n")
 				}
@@ -15707,6 +15803,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(" {\n")
 
+					popCaseScope := func() {}
+					if vt := GetVarTable(); vt != nil {
+						vt.PushScope()
+						popCaseScope = vt.PopScope
+					}
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
@@ -15716,6 +15817,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
 					}
+					popCaseScope()
 
 					out.WriteString("        }")
 					emittedCase = true
@@ -15728,6 +15830,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					out.WriteString("{\n")
 				}
+				popCaseScope := func() {}
+				if vt := GetVarTable(); vt != nil {
+					vt.PushScope()
+					popCaseScope = vt.PopScope
+				}
 				var caseBodyLastPos token.Pos = defaultClause.Colon
 				for _, bodyStmt := range defaultClause.Body {
 					if isUnlabeledBreakStmt(bodyStmt) {
@@ -15737,6 +15844,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 					out.WriteString("\n")
 				}
+				popCaseScope()
 				out.WriteString("        }")
 			}
 
@@ -15990,7 +16098,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			if !assignedCaptured[varName] && !(currentReceiver != "" && varName == currentReceiver) && deferCapturedNameCopiesValue(s.Call, varName) {
 				// The value the variable has when the defer statement runs.
-				writeCapturedValueCopy(out, source)
+				writeCapturedValueCopy(out, source, isVarBare(varName))
 				out.WriteString("; ")
 				continue
 			}
@@ -17060,9 +17168,13 @@ func capturedNameCopiesValue(name string, loopVarNodes []ast.Node, argNodes []as
 	return false
 }
 
-// writeCapturedValueCopy writes a new cell holding a copy of what the cell
-// named source holds.
-func writeCapturedValueCopy(out *strings.Builder, source string) {
+// writeCapturedValueCopy writes a copy of source. Wrapped locals get a new
+// cell; bare scalar locals are already values and must not be borrowed.
+func writeCapturedValueCopy(out *strings.Builder, source string, bare bool) {
+	if bare {
+		out.WriteString(source)
+		return
+	}
 	if NeedsConcurrentWrapper() {
 		out.WriteString("Arc::new(")
 		out.WriteString(GetInnerWrapperType())

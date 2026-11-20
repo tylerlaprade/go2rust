@@ -7278,7 +7278,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString(" = ")
 
 				// Handle value
-				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+				if sourceStdlibHookAvailabilityConstIsDisabled(name.Name) {
+					out.WriteString("false")
+				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					if !writeExternalNamedIntegerConstValue(out, name) {
 						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType, declaredConstType)
@@ -7302,6 +7304,17 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 			}
 		}
 	}
+}
+
+// PERMANENT: math's haveArch* constants select bodyless assembly functions.
+// The source tier deliberately uses the complete portable Go implementations
+// instead, so generated Rust must report those accelerators as unavailable.
+func sourceStdlibHookAvailabilityConstIsDisabled(name string) bool {
+	if !strings.HasPrefix(name, "haveArch") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Path() == "math"
 }
 
 func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string, declaredConstType bool) {

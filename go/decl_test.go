@@ -3447,6 +3447,26 @@ func use() {
 	}
 }
 
+func TestTranspileTypedIntegerConstDeclCastsWiderIntermediateBackToDeclaredType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Duration int64
+
+const maxDuration Duration = 1<<63 - 1
+
+func use() Duration {
+	return maxDuration
+}
+`)
+
+	if strings.Contains(rust, "const MAX_DURATION: i64 = (((1 as u64) << (63 as u64)) - (1 as u64));") {
+		t.Fatalf("typed constant should not leave its widened intermediate as the initializer type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "const MAX_DURATION: i64 = ((((1 as u64) << (63 as u64)) - (1 as u64)) as i64);") {
+		t.Fatalf("typed constant should cast its widened intermediate back to the declared type:\n%s", rust)
+	}
+}
+
 func TestTranspileTypedIntegerConstDeclKeepsIotaSubstitution(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
