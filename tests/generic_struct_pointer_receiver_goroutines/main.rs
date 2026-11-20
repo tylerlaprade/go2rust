@@ -1,228 +1,9 @@
-use std::any::Any;
-use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+include!("__go2rust_helpers.rs");
+mod p;
+use p::*;
+
+use std::fmt::{Formatter};
 use std::thread;
-
-fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
-where
-    C: AsRef<[T]>,
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
-
-fn format_slice_values<T>(slice: &[T]) -> String
-where
-    T: Display,
-{
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
-    format!("[{}]", formatted.join(" "))
-}
-
-fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
-where
-    C: AsRef<[Arc<Mutex<Option<T>>>]>,
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.lock().unwrap();
-            match inner.as_ref() {
-                Some(value) => format!("&{}", value),
-                None => "<nil>".to_string(),
-            }
-        }).collect();
-        format!("[{}]", formatted.join(" "))
-    } else {
-        "[]".to_string()
-    }
-}
-
-struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
-    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
-    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    capacity: usize,
-}
-
-impl<T> GoChannel<T> {
-    fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
-
-    fn new_buffered(cap: usize) -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: cap,
-        }
-    }
-
-    fn send(&self, val: T) {
-        if self.is_nil() {
-            return;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.send(val).is_ok() && self.capacity > 0 {
-                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            }
-        }
-    }
-
-    fn try_send(&self, val: T) -> bool {
-        if self.is_nil() {
-            return false;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.try_send(val).is_ok() {
-                if self.capacity > 0 {
-                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                }
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    fn recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    fn try_recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().try_recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    fn close(&self) {
-        *self.tx.lock().unwrap() = None;
-    }
-
-    fn is_nil(&self) -> bool {
-        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn len(&self) -> usize {
-        self.len.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn capacity(&self) -> usize {
-        self.capacity
-    }
-}
-
-impl<T> Clone for GoChannel<T> {
-    fn clone(&self) -> Self {
-        GoChannel {
-            tx: self.tx.clone(),
-            rx: self.rx.clone(),
-            is_nil: self.is_nil.clone(),
-            len: self.len.clone(),
-            capacity: self.capacity,
-        }
-    }
-}
-
-impl<T> Default for GoChannel<T> {
-    fn default() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
-}
-
-impl<T> std::fmt::Debug for GoChannel<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoChannel")
-    }
-}
-
-impl<T> Iterator for GoChannel<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        self.recv()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct P {
-    pub x: Arc<Mutex<Option<i32>>>,
-}
-
-impl P {
-    pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        Self {
-            x: __go_clone_0_0,
-        }
-    }
-}
-
-
-impl Default for P {
-    fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
-        Self {
-            x: __go_default_0_0,
-        }
-    }
-}
-
-impl std::fmt::Display for P {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.x.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
 
 pub struct C<T: Any + Send + Sync + 'static> {
     pub p: Arc<Mutex<Option<P>>>,
@@ -231,11 +12,11 @@ pub struct C<T: Any + Send + Sync + 'static> {
     pub n: Arc<Mutex<Option<i32>>>,
 }
 
-impl<T: Any + Send + Sync + 'static> C<T> {
+impl<T: Any + GoTypeParamFieldClone + Send + Sync + 'static> C<T> {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.p.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = { let __guard = self.items.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.each_ref().map(|__go_elem| __go_elem.__go_value_clone())))) };
-        let __go_clone_2_0 = self.v.clone();
+        let __go_clone_2_0 = if <T as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.v.clone() } else { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone()))) };
         let __go_clone_3_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             p: __go_clone_0_0,
@@ -284,6 +65,45 @@ impl<T: Any + Send + Sync + 'static> std::fmt::Display for C<T> where T: std::fm
 }
 
 
+pub struct Outer<T: Any + Send + Sync + 'static> {
+    pub r#box: Arc<Mutex<Option<C<T>>>>,
+}
+
+impl<T: Any + GoTypeParamFieldClone + Send + Sync + 'static> Outer<T> {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.r#box.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        Self {
+            r#box: __go_clone_0_0,
+        }
+    }
+}
+
+impl<T: Any + Send + Sync + 'static> Clone for Outer<T> {
+    fn clone(&self) -> Self {
+        Self {
+            r#box: self.r#box.clone(),
+        }
+    }
+}
+
+
+impl<T: Any + Send + Sync + 'static> Default for Outer<T> {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Default::default())));
+        Self {
+            r#box: __go_default_0_0,
+        }
+    }
+}
+
+impl<T: Any + Send + Sync + 'static> std::fmt::Display for Outer<T> where T: std::fmt::Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.r#box.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
 impl<T: Any + Send + Sync + 'static> C<T> {
     pub fn later_nested(&mut self) -> Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> {
         let mut c_closure_clone = (*self).clone(); Arc::new(Mutex::new(Some(Box::new(move || {
@@ -306,6 +126,10 @@ impl<T: Any + Send + Sync + 'static> C<T> {
     pub fn self_(&self) -> Arc<Mutex<Option<C<T>>>> {
         Arc::new(Mutex::new(Some(self.clone())))
     }
+}
+
+pub fn copy_c<T: Any + GoTypeParamFieldClone + Send + Sync + 'static>(value: Arc<Mutex<Option<C<T>>>>) -> Arc<Mutex<Option<C<T>>>> {
+    return { let __owned = value.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
 }
 
 /// A pointer method of a struct with type parameters can hand on its
@@ -378,4 +202,80 @@ fn main() {
     { let new_val = 8; *(*(*v.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     { let new_val = 9; *{ let __seq = { let __seq_holder = (*v.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {} {} {} {}", format!("{}", "copy".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(*c.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq = { let __seq_holder = (*c.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(*v.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq = { let __seq_holder = (*v.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
+
+        // The instantiated type parameter is a field value too. Copying the
+        // generic struct must copy a concrete struct value rather than sharing its
+        // generated field cells.
+    let mut originalValuePtr = Arc::new(Mutex::new(Some(C::<P> { v: Arc::new(Mutex::new(Some(P { x: Arc::new(Mutex::new(Some(11))), ..Default::default() }))), ..Default::default() })));
+    let mut originalValue = Arc::new(Mutex::new(Some({ let __v = (*originalValuePtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedValue = { let __owned = originalValue.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    { let new_val = 12; *(*(*copiedValue.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "type parameter struct copy".to_string()), format!("{}", (*(*(*originalValue.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(*copiedValue.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())));
+
+        // A slice is itself a handle in Go: the generic field cell is independent,
+        // while the slice's backing storage remains shared by the copied header.
+    let mut originalSlicePtr = Arc::new(Mutex::new(Some(C::<Vec<i32>> { v: Arc::new(Mutex::new(Some(vec![13]))), ..Default::default() })));
+    let mut originalSlice = Arc::new(Mutex::new(Some({ let __v = (*originalSlicePtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedSlice = { let __owned = originalSlice.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    { let __idx = (0) as usize; let __rhs = 14; (*(*copiedSlice.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "type parameter slice elements".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
+    { let new_val = Arc::new(Mutex::new(Some(vec![15]))); (*copiedSlice.lock().unwrap().as_mut().unwrap()).v = new_val; };
+    println!("{} {} {}", format!("{}", "type parameter slice field".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
+
+        // Arrays remain Go values when they instantiate the type parameter.
+    let mut originalArrayPtr = Arc::new(Mutex::new(Some(C::<[i32; 2]> { v: Arc::new(Mutex::new(Some([16, 17]))), ..Default::default() })));
+    let mut originalArray = Arc::new(Mutex::new(Some({ let __v = (*originalArrayPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedArray = { let __owned = originalArray.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    { let __idx = (0) as usize; let __rhs = 18; (*(*copiedArray.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "type parameter array copy".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*copiedArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
+
+        // Named scalar instantiations implement the generated copy traits, and a
+        // generic function returning C[T] propagates the stronger bound.
+    let mut originalNumberPtr = Arc::new(Mutex::new(Some(C::<Number> { v: Arc::new(Mutex::new(Some(Number(Arc::new(Mutex::new(Some(19 as i32))))))), ..Default::default() })));
+    let mut originalNumber = Arc::new(Mutex::new(Some({ let __v = (*originalNumberPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedNumber = copy_c::<Number>(originalNumber.clone());
+    { let new_val = Number(Arc::new(Mutex::new(Some(20 as i32)))); *(*copiedNumber.lock().unwrap().as_ref().unwrap()).v.lock().unwrap() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "type parameter named scalar".to_string()), format!("{}", (*{ let __field = (*originalNumber.lock().unwrap().as_ref().unwrap()).v.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*{ let __field = (*copiedNumber.lock().unwrap().as_ref().unwrap()).v.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
+
+        // A nested generic struct propagates the field-copy bound through C[T].
+    let mut originalOuterPtr = Arc::new(Mutex::new(Some(Outer::<P> { r#box: Arc::new(Mutex::new(Some(C::<P> { v: Arc::new(Mutex::new(Some(P { x: Arc::new(Mutex::new(Some(21))), ..Default::default() }))), ..Default::default() }))), ..Default::default() })));
+    let mut originalOuter = Arc::new(Mutex::new(Some({ let __v = (*originalOuterPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedOuter = { let __owned = originalOuter.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    { let new_val = 22; *(*(*(*copiedOuter.lock().unwrap().as_ref().unwrap()).r#box.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "nested generic struct copy".to_string()), format!("{}", (*(*(*(*originalOuter.lock().unwrap().as_ref().unwrap()).r#box.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(*(*copiedOuter.lock().unwrap().as_ref().unwrap()).r#box.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())));
+
+        // An array containing a slice copies the array value but retains the slice
+        // backing storage, as Go does.
+    let mut shared = Arc::new(Mutex::new(Some(vec![23])));
+    let mut originalSliceArrayPtr = Arc::new(Mutex::new(Some(C::<[Vec<i32>; 1]> { v: Arc::new(Mutex::new(Some([{ let __slice_holder = shared.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))), ..Default::default() })));
+    let mut originalSliceArray = Arc::new(Mutex::new(Some({ let __v = (*originalSliceArrayPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedSliceArray = { let __owned = originalSliceArray.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __rhs = 24; (*(*copiedSliceArray.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "type parameter array slice backing".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSliceArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone()), format!("{}", { let __seq = { let __seq_holder = (*copiedSliceArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone()));
+
+        // Channel instantiations must still satisfy the generated copy helper.
+    let mut originalChannel: Arc<Mutex<Option<C<GoChannel<i32>>>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut copiedChannel = { let __owned = originalChannel.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    let _ = &copiedChannel;
+}
+
+impl<T: Any + GoTypeParamFieldClone + Send + Sync + 'static> GoValueClone for C<T> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+impl<T: Any + GoTypeParamFieldClone + Send + Sync + 'static> GoTypeParamFieldClone for C<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = false;
+}
+
+
+impl<T: Any + GoTypeParamFieldClone + Send + Sync + 'static> GoValueClone for Outer<T> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+impl<T: Any + GoTypeParamFieldClone + Send + Sync + 'static> GoTypeParamFieldClone for Outer<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = false;
 }

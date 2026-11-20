@@ -405,6 +405,31 @@ func main() {
 	}
 }
 
+func TestGenericStructGoValueCloneCopiesDirectTypeParamFieldByGoSemantics(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type P struct{ X int }
+
+type C[T any] struct { V T }
+
+func main() {
+	c := &C[P]{V: P{X: 1}}
+	v := *c
+	v.V.X = 2
+}
+`)
+
+	for _, want := range []string{
+		"impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn __go_value_clone(&self) -> Self {",
+		"if <T as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.v.clone() } else",
+		"__go_field.go_value_clone()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("generic struct field copy should use instantiated Go copy semantics, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 // "v, ok = m[k]" for a slice or map value must leave the value in the map
 // whatever the target is. A plain local slice takes over the entry's handle.
 // A named slice, a field of one, a package variable and an indexed target

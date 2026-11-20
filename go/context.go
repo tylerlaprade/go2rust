@@ -888,6 +888,16 @@ func NeedGoValueClone() {
 	})
 }
 
+func NeedGoTypeParamFieldClone() {
+	NeedGoValueClone()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTypeParamFieldClone = true
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoTypeParamFieldClone = true
+	})
+}
+
 // NeedGoComparable marks that we need the GoComparable helper trait.
 func NeedGoComparable() {
 	if helpers := activeHelperTracker(); helpers != nil {

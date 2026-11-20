@@ -1374,6 +1374,52 @@ func use(expr *dep.SelectorExpr) {
 	}
 }
 
+func TestGenericStructFieldCopyTraitsAreDiscoveredBeforeSiblingEmission(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/main\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "p.go"), `package main
+
+type P struct{ X int }
+type Number int
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Box[T any] struct{ V T }
+
+func main() {
+	a := Box[P]{V: P{X: 1}}
+	b := a
+	b.V.X = 2
+	_, _ = a, b
+
+	n := Box[Number]{V: 3}
+	_ = n
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "p.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	pRS := mustReadFile(t, filepath.Join(tempDir, "p.rs"))
+	for _, want := range []string{
+		"impl GoTypeParamFieldClone for P",
+		"impl GoTypeParamFieldClone for Number",
+	} {
+		if !strings.Contains(pRS, want) {
+			t.Fatalf("sibling value type should receive package-discovered generic copy trait, missing %q:\n%s", want, pRS)
+		}
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "impl<T: Any + GoTypeParamFieldClone + 'static> GoValueClone for Box_<T>") {
+		t.Fatalf("generic struct copy impl should require the propagated field-copy bound:\n%s", mainRS)
+	}
+}
+
 func TestExternalInterfaceCallArgumentImplEmitsWithInterfaceFileOnce(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

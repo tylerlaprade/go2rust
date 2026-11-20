@@ -313,6 +313,13 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	runCtx.Package.MethodsByType = collectPackageMethods(astFiles)
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(nil)
+	// Multi-file packages emit non-main modules before main.rs. Discover the
+	// generic-struct copy helper package-wide so a concrete value type declared
+	// in an earlier sibling module still receives the marker implementation that
+	// a later generic struct instantiation requires.
+	if packageNeedsGoTypeParamFieldClone(astFiles, pg.typeInfo) {
+		NeedGoTypeParamFieldClone()
+	}
 	if packageLoader != nil {
 		prevSourceStdlibReachable := sourceStdlibReachable
 		SetSourceStdlibReachable(packageLoader.GetSourceStdlibReachable())
@@ -501,6 +508,43 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	}
 
 	return pg.generateCargoToml()
+}
+
+func packageNeedsGoTypeParamFieldClone(files []*ast.File, typeInfo *TypeInfo) bool {
+	if typeInfo == nil {
+		return false
+	}
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
+					continue
+				}
+				structType, ok := typeSpec.Type.(*ast.StructType)
+				if !ok || structType.Fields == nil {
+					continue
+				}
+				params := make(map[string]bool)
+				for _, field := range structType.Fields.List {
+					if field != nil {
+						collectGoTypeParamFieldCloneParams(typeInfo.GetType(field.Type), params, make(map[types.Type]bool))
+					}
+				}
+				if len(params) > 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func sampleASTPathKeys(astFilesByPath map[string]*ast.File, limit int) string {

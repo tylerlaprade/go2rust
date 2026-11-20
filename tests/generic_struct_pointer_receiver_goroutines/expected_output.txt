@@ -4,3 +4,10 @@ direct field through a closure 1
 array of structs through a closure 5
 returned receiver 50 60
 copy 50 60 5 7 8 9
+type parameter struct copy 11 12
+type parameter slice elements 14 14
+type parameter slice field 14 15
+type parameter array copy 16 18
+type parameter named scalar 19 20
+nested generic struct copy 21 22
+type parameter array slice backing 24 24

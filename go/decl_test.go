@@ -1782,7 +1782,7 @@ func (h *Holder[T]) Get() T {
 		t.Fatalf("instantiated generic field should keep type arguments:\n%s", rust)
 	}
 	for _, want := range []string{
-		"impl<T: Any + 'static> Holder<T> {",
+		"impl<T: Any + GoTypeParamFieldClone + 'static> Holder<T> {\n    pub fn __go_value_clone",
 		"impl<T: Any + GoValueClone + 'static> Holder<T> {\n    pub fn get",
 		"impl<T: Any + 'static> std::fmt::Display for Holder<T> where T: std::fmt::Display {",
 	} {

@@ -1263,9 +1263,31 @@ func generateStructGoValueClone(out *strings.Builder, structName string, generic
 	out.WriteString("        self.__go_value_clone()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+	if helpers := activeHelperTracker(); helpers != nil && helpers.needsGoTypeParamFieldClone {
+		out.WriteString("\n")
+		writeRustTraitImplHeader(out, generics, "GoTypeParamFieldClone", rustStructName)
+		out.WriteString("    const GO_COPY_KEEPS_HANDLE: bool = false;\n")
+		out.WriteString("}\n")
+	}
 }
 
 func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast.Expr) {
+	if typeParamName, ok := directStructFieldTypeParamName(fieldType); ok {
+		NeedGoTypeParamFieldClone()
+		out.WriteString("if <")
+		out.WriteString(typeParamName)
+		out.WriteString(" as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.")
+		out.WriteString(fieldName)
+		out.WriteString(".clone() } else { let __guard = self.")
+		out.WriteString(fieldName)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; ")
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone()))) }")
+		return
+	}
 	if structCloneFieldKeepsHandle(fieldType) {
 		out.WriteString("self.")
 		out.WriteString(fieldName)
@@ -1292,6 +1314,25 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 		out.WriteString("(*__guard).clone()")
 	}
 	out.WriteString(")) }")
+}
+
+// directStructFieldTypeParamName returns the Rust type parameter for a field
+// whose declared Go type is exactly that parameter. The type checker's
+// underlying type for `T any` is an interface, which is not enough to decide
+// whether an instantiated field is a Go handle (slice, map, pointer, channel)
+// or a value (scalar, array, struct). GoValueClone carries that decision into
+// the Rust instantiation instead of guessing from the syntax.
+func directStructFieldTypeParamName(fieldType ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || fieldType == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(fieldType)
+	typeParam, ok := types.Unalias(typ).(*types.TypeParam)
+	if !ok || typeParam.Obj() == nil {
+		return "", false
+	}
+	return RustTypeNameForUse(typeParam.Obj().Name()), true
 }
 
 func structCloneFieldKeepsHandle(expr ast.Expr) bool {
@@ -1877,7 +1918,13 @@ func writeFunctionDeclTypeParams(out *strings.Builder, fn *ast.FuncDecl) {
 	}
 	paramFunc := rustTypeDeclarationParam
 	boundKind := genericFunctionBoundKind(fn)
-	if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
+	if boundKind&genericMethodBoundGoTypeParamFieldClone != 0 {
+		if boundKind&genericMethodBoundRustClone != 0 {
+			paramFunc = rustCloneAndGoTypeParamFieldCloneTypeParam
+		} else {
+			paramFunc = rustGoTypeParamFieldCloneTypeParam
+		}
+	} else if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
 		paramFunc = rustCloneAndGoValueCloneTypeParam
 	} else if boundKind&genericMethodBoundRustClone != 0 {
 		paramFunc = rustFunctionTypeParam
@@ -1896,6 +1943,9 @@ func genericFunctionBoundKind(fn *ast.FuncDecl) genericMethodBoundKind {
 	}
 	if genericFunctionUsesDirectTypeParamValue(fn) {
 		boundKind |= genericMethodBoundGoValueClone
+	}
+	if genericFunctionUsesNestedTypeParamFieldClone(fn) {
+		boundKind |= genericMethodBoundGoTypeParamFieldClone
 	}
 	if genericSignatureUsesGoPtrDirectTypeParam(fn) {
 		boundKind |= genericMethodBoundRustClone
@@ -1988,6 +2038,62 @@ func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.S
 	generics := rustTypeGenericsForDeclarationTypeSpec(typeSpec)
 	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
 	return generics
+}
+
+func rustTypeGenericsForStructGoValueClone(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
+	fieldCloneParams := make(map[string]bool)
+	if structType != nil {
+		for _, field := range structType.Fields.List {
+			if field == nil {
+				continue
+			}
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				collectGoTypeParamFieldCloneParams(typeInfo.GetType(field.Type), fieldCloneParams, make(map[types.Type]bool))
+			}
+		}
+	}
+	generics := rustTypeGenericsForTypeSpecWithParam(typeSpec, func(name *ast.Ident) string {
+		if fieldCloneParams[RustTypeNameForUse(name.Name)] {
+			return rustGoTypeParamFieldCloneTypeParam(name)
+		}
+		return rustTypeDeclarationParam(name)
+	})
+	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
+	return generics
+}
+
+// collectGoTypeParamFieldCloneParams records type parameters whose values are
+// copied by a generated struct copy helper. It follows value-containing
+// structs and arrays, but stops at Go handles such as pointers, slices, maps,
+// channels, functions, and interfaces.
+func collectGoTypeParamFieldCloneParams(typ types.Type, params map[string]bool, visiting map[types.Type]bool) {
+	if typ == nil || visiting[typ] {
+		return
+	}
+	visiting[typ] = true
+	defer delete(visiting, typ)
+
+	switch t := types.Unalias(typ).(type) {
+	case *types.TypeParam:
+		if t.Obj() != nil {
+			params[RustTypeNameForUse(t.Obj().Name())] = true
+		}
+	case *types.Named:
+		switch underlying := t.Underlying().(type) {
+		case *types.Struct:
+			for i := 0; i < underlying.NumFields(); i++ {
+				collectGoTypeParamFieldCloneParams(underlying.Field(i).Type(), params, visiting)
+			}
+		case *types.Array:
+			collectGoTypeParamFieldCloneParams(underlying.Elem(), params, visiting)
+		}
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			collectGoTypeParamFieldCloneParams(t.Field(i).Type(), params, visiting)
+		}
+	case *types.Array:
+		collectGoTypeParamFieldCloneParams(t.Elem(), params, visiting)
+	}
 }
 
 func rustStructDisplayGenerics(generics rustTypeGenerics, typeSpec *ast.TypeSpec, structType *ast.StructType) (rustTypeGenerics, bool) {
@@ -2330,6 +2436,16 @@ func rustTypeDeclarationParam(name *ast.Ident) string {
 
 func rustGoValueCloneTypeParam(name *ast.Ident) string {
 	return rustTypeParam(name, []string{"GoValueClone"})
+}
+
+func rustGoTypeParamFieldCloneTypeParam(name *ast.Ident) string {
+	NeedGoTypeParamFieldClone()
+	return rustTypeParam(name, []string{"GoTypeParamFieldClone"})
+}
+
+func rustCloneAndGoTypeParamFieldCloneTypeParam(name *ast.Ident) string {
+	NeedGoTypeParamFieldClone()
+	return rustTypeParam(name, []string{"Clone", "GoTypeParamFieldClone"})
 }
 
 func rustCloneAndGoValueCloneTypeParam(name *ast.Ident) string {
@@ -5686,7 +5802,8 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 
 	out.WriteString("}\n\n")
 
-	generateStructValueClone(out, structName, t, generics)
+	cloneGenerics := rustTypeGenericsForStructGoValueClone(typeSpec, t)
+	generateStructValueClone(out, structName, t, cloneGenerics)
 	if !deriveClone {
 		out.WriteString("\n")
 		generateStructClone(out, structName, t, generics)

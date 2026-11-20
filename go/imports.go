@@ -154,6 +154,7 @@ type HelperTracker struct {
 	needsAnyClone                        bool
 	needsPanicRecover                    bool
 	needsGoValueClone                    bool
+	needsGoTypeParamFieldClone           bool
 	needsGoComparable                    bool
 	needsGoConstStrEq                    bool
 	needsGoAnyTypeMetadata               bool
@@ -230,6 +231,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 		helperCopy.needsAnyClone = false
 	}
 	helperCopy.needsGoValueClone = false
+	helperCopy.needsGoTypeParamFieldClone = false
 	helperCopy.needsGoComparable = false
 	helperCopy.needsGoAnyTypeMetadata = false
 	helperCopy.needsEmbeddedOwnerRegistry = false
@@ -254,6 +256,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	if ht.needsGoValueClone {
 		helperCopy.needsAnyClone = true
 		helperCopy.needsGoValueClone = true
+	}
+	if ht.needsGoTypeParamFieldClone {
+		helperCopy.needsGoTypeParamFieldClone = true
 	}
 	if ht.needsGoComparable {
 		helperCopy.needsGoComparable = true
@@ -349,6 +354,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoValueClone(&result)
 	}
 
+	if ht.needsGoTypeParamFieldClone {
+		generateGoTypeParamFieldClone(&result)
+	}
+
 	if ht.needsGoComparable {
 		generateGoComparable(&result)
 	}
@@ -374,7 +383,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoChannel {
-		generateGoChannelHelper(&result)
+		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone)
 	}
 
 	if ht.needsWaitGroup {
@@ -501,6 +510,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsAnyClone ||
 		ht.needsPanicRecover ||
 		ht.needsGoValueClone ||
+		ht.needsGoTypeParamFieldClone ||
 		ht.needsGoComparable ||
 		ht.needsGoConstStrEq ||
 		ht.needsGoAnyTypeMetadata ||
@@ -644,6 +654,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
+	}
+	if ht.needsGoTypeParamFieldClone {
+		add("GoTypeParamFieldClone")
 	}
 	if ht.needsGoComparable {
 		add("GoComparable")
@@ -1355,6 +1368,106 @@ impl GoValueClone for Box<dyn Any> {
 	`)
 }
 
+func generateGoTypeParamFieldClone(out *strings.Builder) {
+	// The legacy GoValueClone helper ends with an indentation tab. Preserve
+	// existing generated snapshots when this helper is not needed, but do not
+	// leave a whitespace-only line before the extension trait.
+	if current := out.String(); strings.HasSuffix(current, "\n\t") {
+		out.Reset()
+		out.WriteString(strings.TrimSuffix(current, "\t"))
+	}
+	NeedGoValueClone()
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`
+pub trait GoTypeParamFieldClone: GoValueClone {
+    const GO_COPY_KEEPS_HANDLE: bool;
+}
+
+macro_rules! impl_go_type_param_field_clone_value {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoTypeParamFieldClone for $t {
+            const GO_COPY_KEEPS_HANDLE: bool = false;
+        })*
+    };
+}
+
+impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any + Send + Sync>);
+
+impl<T: GoTypeParamFieldClone, const N: usize> GoValueClone for [T; N] {
+    fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
+}
+impl<T: GoTypeParamFieldClone, const N: usize> GoTypeParamFieldClone for [T; N] {
+    const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
+}
+
+impl<T: Clone> GoValueClone for std::vec::Vec<T> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
+impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
+impl<T> GoValueClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<T> GoTypeParamFieldClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+`)
+		return
+	}
+	out.WriteString(`
+pub trait GoTypeParamFieldClone: GoValueClone {
+    const GO_COPY_KEEPS_HANDLE: bool;
+}
+
+macro_rules! impl_go_type_param_field_clone_value {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoTypeParamFieldClone for $t {
+            const GO_COPY_KEEPS_HANDLE: bool = false;
+        })*
+    };
+}
+
+impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any>);
+
+impl<T: GoTypeParamFieldClone, const N: usize> GoValueClone for [T; N] {
+    fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
+}
+impl<T: GoTypeParamFieldClone, const N: usize> GoTypeParamFieldClone for [T; N] {
+    const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
+}
+
+impl<T: Clone> GoValueClone for std::vec::Vec<T> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
+impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
+impl<T> GoValueClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<T> GoTypeParamFieldClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+`)
+}
+
 func generateGoConstStrEq(out *strings.Builder) {
 	visibility := ""
 	if generatingPublicHelpers {
@@ -1857,7 +1970,7 @@ fn format_any_variadic(slice: ` + sliceType + `) -> String {
 `)
 }
 
-func generateGoChannelHelper(out *strings.Builder) {
+func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool) {
 	code := `
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
@@ -2020,6 +2133,18 @@ impl<T> Iterator for GoChannel<T> {
 		code = strings.ReplaceAll(code, "    fn capacity(", "    pub fn capacity(")
 	}
 	out.WriteString(code)
+	if needsGoTypeParamFieldClone {
+		out.WriteString(`
+
+impl<T> GoValueClone for GoChannel<T> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+
+impl<T> GoTypeParamFieldClone for GoChannel<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+`)
+	}
 }
 
 func generateWaitGroupHelper(out *strings.Builder) {

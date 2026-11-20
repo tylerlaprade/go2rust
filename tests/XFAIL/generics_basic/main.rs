@@ -88,7 +88,49 @@ impl GoValueClone for String {
 impl GoValueClone for Box<dyn Any> {
     fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
 }
-	
+
+pub trait GoTypeParamFieldClone: GoValueClone {
+    const GO_COPY_KEEPS_HANDLE: bool;
+}
+
+macro_rules! impl_go_type_param_field_clone_value {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoTypeParamFieldClone for $t {
+            const GO_COPY_KEEPS_HANDLE: bool = false;
+        })*
+    };
+}
+
+impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any>);
+
+impl<T: GoTypeParamFieldClone, const N: usize> GoValueClone for [T; N] {
+    fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
+}
+impl<T: GoTypeParamFieldClone, const N: usize> GoTypeParamFieldClone for [T; N] {
+    const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
+}
+
+impl<T: Clone> GoValueClone for std::vec::Vec<T> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
+impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
+impl<T> GoValueClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+impl<T> GoTypeParamFieldClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+}
+
 pub trait GoComparable {
     fn go_eq(&self, other: &Self) -> bool;
     fn go_hash(&self, seed: usize) -> usize;
@@ -240,10 +282,10 @@ pub struct element<T: Any + 'static> {
     pub val: Rc<RefCell<Option<T>>>,
 }
 
-impl<T: Any + 'static> element<T> {
+impl<T: Any + GoTypeParamFieldClone + 'static> element<T> {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.next.clone();
-        let __go_clone_1_0 = self.val.clone();
+        let __go_clone_1_0 = if <T as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.val.clone() } else { let __guard = self.val.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone()))) };
         Self {
             next: __go_clone_0_0,
             val: __go_clone_1_0,
@@ -308,9 +350,17 @@ impl<T: Any + 'static> GoValueClone for List<T> {
     }
 }
 
+impl<T: Any + 'static> GoTypeParamFieldClone for List<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = false;
+}
 
-impl<T: Any + 'static> GoValueClone for element<T> {
+
+impl<T: Any + GoTypeParamFieldClone + 'static> GoValueClone for element<T> {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }
+}
+
+impl<T: Any + GoTypeParamFieldClone + 'static> GoTypeParamFieldClone for element<T> {
+    const GO_COPY_KEEPS_HANDLE: bool = false;
 }
