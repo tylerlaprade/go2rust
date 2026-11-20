@@ -92,7 +92,7 @@ fn main() {
     }
     println!("{}", format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
     let (mut n, _) = { let __atoi_input = "9000000000".to_string(); match __atoi_input.parse::<i64>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i64, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
-    println!("{} {}", format!("{}", n + 1), format!("{}", (*Rc::new(RefCell::new(Some((n * 2).to_string()))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", n + 1), format!("{}", (*Rc::new(RefCell::new(Some(((n * 2)).to_string()))).borrow().as_ref().unwrap())));
     let mut wrapped = Rc::new(RefCell::new(Some(9223372036854775807i64)));
     { let mut guard = wrapped.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     println!("{}", format!("{}", (*wrapped.borrow().as_ref().unwrap()) == i64::MIN));
