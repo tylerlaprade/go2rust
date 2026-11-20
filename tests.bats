@@ -1807,6 +1807,14 @@ run_xfail_test() {
     run_test "tests/named_const_method_call"
 }
 
+@test "named_float_string_bool_values" {
+    run_test "tests/named_float_string_bool_values"
+}
+
+@test "named_float_string_bool_values_goroutines" {
+    run_test "tests/named_float_string_bool_values_goroutines"
+}
+
 @test "named_func_return_defer" {
     run_test "tests/named_func_return_defer"
 }
@@ -2269,6 +2277,14 @@ run_xfail_test() {
 
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
+}
+
+@test "printf_plus_v_field_names" {
+    run_test "tests/printf_plus_v_field_names"
+}
+
+@test "printf_plus_v_field_names_goroutines" {
+    run_test "tests/printf_plus_v_field_names_goroutines"
 }
 
 @test "printf_runtime_format" {

@@ -1,0 +1,8 @@
+[package]
+name = "named_float_string_bool_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_float_string_bool_values"
+path = "main.rs"

@@ -556,6 +556,15 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					out.WriteString(")")
 					return
 				}
+				if printArgPlusV && sliceElemIsStructValue(argType) {
+					// %+v asks each struct element for its field names.
+					out.WriteString("{ let __plus_holder = ")
+					writeCollectionFormatHandleIdent(out, ident)
+					out.WriteString(".clone(); let __plus_guard = __plus_holder")
+					WriteBorrowMethod(out, false)
+					out.WriteString("; match __plus_guard.as_ref() { Some(__s) => format!(\"[{}]\", __s.iter().map(|__v| format!(\"{:#}\", __v)).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+					return
+				}
 				out.WriteString("format_slice(&")
 				writeCollectionFormatHandleIdent(out, ident)
 				out.WriteString(")")
@@ -850,7 +859,65 @@ func pointerPrintFormat(ptr *types.Pointer) string {
 	if typeHasGoStringMethod(ptr) || isConcreteGoErrorValue(ptr) {
 		return "{}"
 	}
+	if printArgPlusV {
+		return "&{:#}"
+	}
 	return "&{}"
+}
+
+func sliceElemIsStructValue(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	_, ok = types.Unalias(slice.Elem()).Underlying().(*types.Struct)
+	return ok && !typeHasGoStringMethod(slice.Elem())
+}
+
+// printArgPlusV is true while the argument of a %+v verb is written.
+var printArgPlusV bool
+
+func withPrintArgPlusV(plusV bool, write func()) {
+	saved := printArgPlusV
+	printArgPlusV = plusV
+	defer func() { printArgPlusV = saved }()
+	write()
+}
+
+// formatPlusVArgIndices returns the arguments of a literal format that a
+// %+v verb formats, counted as convertFormatStringWithSkips counts them.
+func formatPlusVArgIndices(format string) map[int]bool {
+	indices := map[int]bool{}
+	argIndex := 0
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		if i+1 < len(format) && format[i+1] == '%' {
+			i++
+			continue
+		}
+		plus := false
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0123456789.", format[j]) >= 0 {
+			if format[j] == '+' {
+				plus = true
+			}
+			j++
+		}
+		if j >= len(format) {
+			break
+		}
+		if plus && format[j] == 'v' {
+			indices[argIndex] = true
+		}
+		argIndex++
+		i = j
+	}
+	return indices
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
@@ -913,7 +980,10 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 					argIndex++
 					i += 3
 				case 'v':
-					result.WriteString("{:?}")
+					// The alternate flag is how a struct's Display is asked
+					// for field names. Display of a number or a string
+					// ignores it, and %+v prints those as %v does.
+					result.WriteString("{:#}")
 					argIndex++
 					i += 3
 				default:
@@ -1350,10 +1420,12 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var unicodeIndices []int
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
+	var plusVArgs map[int]bool
 	if len(call.Args) > formatArgIndex {
 		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1381,7 +1453,9 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
+					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				})
 			}
 		}
 	}
@@ -1888,11 +1962,13 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	var unicodeIndices []int
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
+	var plusVArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1921,7 +1997,9 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				withPrintArgPlusV(plusVArgs[i-1], func() {
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				})
 			}
 		}
 	}
@@ -1941,12 +2019,14 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	var unicodeIndices []int
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
+	var plusVArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1974,7 +2054,9 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				withPrintArgPlusV(plusVArgs[i-1], func() {
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				})
 			}
 		}
 	}
@@ -5188,6 +5270,14 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 		}
 
 		if writePointerToArrayLen(out, call.Args[0]) {
+			return
+		}
+
+		var namedString strings.Builder
+		if writeNamedStringNewtypeInnerValue(&namedString, call.Args[0]) {
+			out.WriteString("(")
+			out.WriteString(namedString.String())
+			out.WriteString(").len()")
 			return
 		}
 
