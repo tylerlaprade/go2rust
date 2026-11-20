@@ -11,16 +11,19 @@ pub fn accept(err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
 fn main() {
     ::bytes::__go_init_all();
     ::cmp::__go_init_all();
+    ::container_heap::__go_init_all();
     ::go_ast::__go_init_all();
     ::go_constant::__go_init_all();
     ::go_token::__go_init_all();
     ::go_types::__go_init_all();
     ::go_version::__go_init_all();
+    ::internal_abi::__go_init_all();
     ::internal_buildcfg::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
     ::internal_goexperiment::__go_init_all();
     ::internal_gover::__go_init_all();
     ::internal_goversion::__go_init_all();
@@ -31,7 +34,9 @@ fn main() {
     ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();
     ::slices::__go_init_all();
+    ::sort::__go_init_all();
     ::strconv::__go_init_all();
+    ::strings::__go_init_all();
     ::sync_atomic::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
