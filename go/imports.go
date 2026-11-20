@@ -1378,95 +1378,191 @@ func generateGoTypeParamFieldClone(out *strings.Builder) {
 	}
 	NeedGoValueClone()
 	if NeedsConcurrentWrapper() {
-		out.WriteString(`
-pub trait GoTypeParamFieldClone: GoValueClone {
+		out.WriteString(goTypeParamFieldCloneConcurrent)
+		return
+	}
+	out.WriteString(goTypeParamFieldCloneLocal)
+}
+
+const goTypeParamFieldCloneConcurrent = `
+pub trait GoTypeParamFieldClone: Sized {
     const GO_COPY_KEEPS_HANDLE: bool;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>>;
 }
 
 macro_rules! impl_go_type_param_field_clone_value {
     ($($t:ty),* $(,)?) => {
         $(impl GoTypeParamFieldClone for $t {
             const GO_COPY_KEEPS_HANDLE: bool = false;
+            fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
+                let guard = field.lock().unwrap();
+                std::sync::Arc::new(std::sync::Mutex::new(guard.as_ref().map(|value| value.go_value_clone())))
+            }
         })*
     };
 }
 
 impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any + Send + Sync>);
 
-impl<T: GoTypeParamFieldClone, const N: usize> GoValueClone for [T; N] {
+impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoValueClone for [T; N] {
     fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
 }
-impl<T: GoTypeParamFieldClone, const N: usize> GoTypeParamFieldClone for [T; N] {
+impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoTypeParamFieldClone for [T; N] {
     const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
+        if Self::GO_COPY_KEEPS_HANDLE { field.clone() } else {
+            let guard = field.lock().unwrap();
+            std::sync::Arc::new(std::sync::Mutex::new(guard.as_ref().map(|value| value.go_value_clone())))
+        }
+    }
 }
 
-impl<T: Clone> GoValueClone for std::vec::Vec<T> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
+impl<T: Clone> GoValueClone for std::vec::Vec<T> { fn go_value_clone(&self) -> Self { self.clone() } }
 impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
 }
 
-impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
+impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> { fn go_value_clone(&self) -> Self { self.clone() } }
 impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
 }
 
-impl<T> GoValueClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
+impl<T> GoValueClone for std::sync::Arc<std::sync::Mutex<Option<T>>> { fn go_value_clone(&self) -> Self { self.clone() } }
 impl<T> GoTypeParamFieldClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
 }
-`)
-		return
-	}
-	out.WriteString(`
-pub trait GoTypeParamFieldClone: GoValueClone {
+
+impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R + Send + Sync> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
+        let original = field.lock().unwrap().take();
+        let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
+        let target = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
+        let original_target = target.clone();
+        *field.lock().unwrap() = Some(Box::new(move || {
+            let callable_ptr = { let mut callable = original_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
+            unsafe { (&mut *callable_ptr)() }
+        }));
+        std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+            let callable_ptr = { let mut callable = target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
+            unsafe { (&mut *callable_ptr)() }
+        }))))
+    }
+}
+macro_rules! impl_go_type_param_field_clone_fn {
+    ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R + Send + Sync> {
+        const GO_COPY_KEEPS_HANDLE: bool = true;
+        fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
+            let original = field.lock().unwrap().take();
+            let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
+            let target = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
+            let original_target = target.clone();
+            *field.lock().unwrap() = Some(Box::new(move |$($arg),+| {
+                let callable_ptr = { let mut callable = original_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
+                unsafe { (&mut *callable_ptr)($($arg),+) }
+            }));
+            std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |$($arg),+| {
+                let callable_ptr = { let mut callable = target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
+                unsafe { (&mut *callable_ptr)($($arg),+) }
+            }))))
+        }
+    })* };
+}
+impl_go_type_param_field_clone_fn!((A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7));
+`
+
+const goTypeParamFieldCloneLocal = `
+pub trait GoTypeParamFieldClone: Sized {
     const GO_COPY_KEEPS_HANDLE: bool;
+    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>>;
 }
 
 macro_rules! impl_go_type_param_field_clone_value {
     ($($t:ty),* $(,)?) => {
         $(impl GoTypeParamFieldClone for $t {
             const GO_COPY_KEEPS_HANDLE: bool = false;
+            fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
+                let guard = field.borrow();
+                std::rc::Rc::new(std::cell::RefCell::new(guard.as_ref().map(|value| value.go_value_clone())))
+            }
         })*
     };
 }
 
 impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any>);
 
-impl<T: GoTypeParamFieldClone, const N: usize> GoValueClone for [T; N] {
+impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoValueClone for [T; N] {
     fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
 }
-impl<T: GoTypeParamFieldClone, const N: usize> GoTypeParamFieldClone for [T; N] {
+impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoTypeParamFieldClone for [T; N] {
     const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
+    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
+        if Self::GO_COPY_KEEPS_HANDLE { field.clone() } else {
+            let guard = field.borrow();
+            std::rc::Rc::new(std::cell::RefCell::new(guard.as_ref().map(|value| value.go_value_clone())))
+        }
+    }
 }
 
-impl<T: Clone> GoValueClone for std::vec::Vec<T> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
+impl<T: Clone> GoValueClone for std::vec::Vec<T> { fn go_value_clone(&self) -> Self { self.clone() } }
 impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> { field.clone() }
 }
 
-impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
+impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> { fn go_value_clone(&self) -> Self { self.clone() } }
 impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> { field.clone() }
 }
 
-impl<T> GoValueClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
+impl<T> GoValueClone for std::rc::Rc<std::cell::RefCell<Option<T>>> { fn go_value_clone(&self) -> Self { self.clone() } }
 impl<T> GoTypeParamFieldClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> { field.clone() }
 }
-`)
+
+impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R> {
+    const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
+        let original = field.borrow_mut().take();
+        let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
+        let target = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
+        let original_target = target.clone();
+        *field.borrow_mut() = Some(Box::new(move || {
+            let callable_ptr = { let mut callable = original_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
+            unsafe { (&mut *callable_ptr)() }
+        }));
+        std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move || {
+            let callable_ptr = { let mut callable = target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
+            unsafe { (&mut *callable_ptr)() }
+        }))))
+    }
 }
+macro_rules! impl_go_type_param_field_clone_fn {
+    ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R> {
+        const GO_COPY_KEEPS_HANDLE: bool = true;
+        fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
+            let original = field.borrow_mut().take();
+            let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
+            let target = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
+            let original_target = target.clone();
+            *field.borrow_mut() = Some(Box::new(move |$($arg),+| {
+                let callable_ptr = { let mut callable = original_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
+                unsafe { (&mut *callable_ptr)($($arg),+) }
+            }));
+            std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move |$($arg),+| {
+                let callable_ptr = { let mut callable = target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
+                unsafe { (&mut *callable_ptr)($($arg),+) }
+            }))))
+        }
+    })* };
+}
+impl_go_type_param_field_clone_fn!((A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7));
+`
 
 func generateGoConstStrEq(out *strings.Builder) {
 	visibility := ""
@@ -2142,6 +2238,7 @@ impl<T> GoValueClone for GoChannel<T> {
 
 impl<T> GoTypeParamFieldClone for GoChannel<T> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
+    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
 }
 `)
 	}

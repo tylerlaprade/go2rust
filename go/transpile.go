@@ -2932,6 +2932,26 @@ func genericFunctionUsesNestedTypeParamFieldClone(fn *ast.FuncDecl) bool {
 	if typeInfo == nil || fn == nil || fn.Type == nil {
 		return false
 	}
+	// A value receiver is copied before the method body runs. When that
+	// receiver is a generic struct whose value contains a type parameter, the
+	// implicit self.__go_value_clone() needs the same bound as an explicit
+	// assignment of the receiver value. Pointer receivers only clone their
+	// handle and do not need the stronger bound.
+	if fn.Recv != nil {
+		for _, field := range fn.Recv.List {
+			receiverType := field.Type
+			for {
+				paren, ok := receiverType.(*ast.ParenExpr)
+				if !ok {
+					break
+				}
+				receiverType = paren.X
+			}
+			if _, pointerReceiver := receiverType.(*ast.StarExpr); !pointerReceiver && exprUsesNestedTypeParamFieldClone(typeInfo, receiverType) {
+				return true
+			}
+		}
+	}
 	if fieldListUsesNestedTypeParamFieldClone(typeInfo, fn.Type.Params) || fieldListUsesNestedTypeParamFieldClone(typeInfo, fn.Type.Results) {
 		return true
 	}
@@ -3973,7 +3993,9 @@ func writeNamedGoTypeParamFieldCloneTraitImpls(out *strings.Builder, first *bool
 		} else {
 			out.WriteString("false")
 		}
-		out.WriteString(";\n}")
+		out.WriteString(";\n")
+		writeGoTypeParamFieldCloneMethod(out, keepsHandle)
+		out.WriteString("}")
 	}
 }
 

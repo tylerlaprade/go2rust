@@ -21,6 +21,10 @@ func (c *C[T]) LaterItems() func() { return func() { c.Items[1].X += 5 } }
 
 func (c *C[T]) Self() *C[T] { return c }
 
+// A value receiver is copied even when its body does not otherwise mention
+// the type-parameter field.
+func (c C[T]) BumpValue() { c.N++ }
+
 // A pointer method of a struct with type parameters can hand on its
 // receiver: a closure over it and a returned receiver are the same struct.
 func main() {
@@ -98,4 +102,25 @@ func main() {
 	copiedSliceArray := originalSliceArray
 	copiedSliceArray.V[0][0] = 24
 	fmt.Println("type parameter array slice backing", originalSliceArray.V[0][0], copiedSliceArray.V[0][0])
+
+	valueReceiverPtr := &C[int]{N: 25}
+	valueReceiver := *valueReceiverPtr
+	valueReceiver.BumpValue()
+	fmt.Println("generic value receiver", valueReceiver.N)
+
+	next := 30
+	originalFuncPtr := &C[func() int]{V: func() int { next++; return next }}
+	originalFunc := *originalFuncPtr
+	copiedFunc := originalFunc
+	fmt.Println("function type argument", originalFunc.V(), copiedFunc.V())
+	copiedFunc.V = func() int { return 99 }
+	fmt.Println("function type argument field", originalFunc.V(), copiedFunc.V())
+
+	total := 40
+	originalUnaryPtr := &C[func(int) int]{V: func(value int) int { total += value; return total }}
+	originalUnary := *originalUnaryPtr
+	copiedUnary := originalUnary
+	fmt.Println("function type argument parameter", originalUnary.V(1), copiedUnary.V(2))
+	copiedUnary.V = func(value int) int { return value * 10 }
+	fmt.Println("function type argument parameter field", originalUnary.V(3), copiedUnary.V(4))
 }

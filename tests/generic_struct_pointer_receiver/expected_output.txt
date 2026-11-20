@@ -10,3 +10,8 @@ type parameter array copy 16 18
 type parameter named scalar 19 20
 nested generic struct copy 21 22
 type parameter array slice backing 24 24
+generic value receiver 25
+function type argument 31 32
+function type argument field 33 99
+function type argument parameter 41 43
+function type argument parameter field 46 40

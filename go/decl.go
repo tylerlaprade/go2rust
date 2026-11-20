@@ -1267,25 +1267,45 @@ func generateStructGoValueClone(out *strings.Builder, structName string, generic
 		out.WriteString("\n")
 		writeRustTraitImplHeader(out, generics, "GoTypeParamFieldClone", rustStructName)
 		out.WriteString("    const GO_COPY_KEEPS_HANDLE: bool = false;\n")
+		writeGoTypeParamFieldCloneMethod(out, false)
 		out.WriteString("}\n")
 	}
+}
+
+func writeGoTypeParamFieldCloneMethod(out *strings.Builder, keepsHandle bool) {
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	out.WriteString("    fn go_type_param_field_clone(field: &")
+	out.WriteString(outerWrapper)
+	out.WriteString("<")
+	out.WriteString(innerWrapper)
+	out.WriteString("<Option<Self>>>) -> ")
+	out.WriteString(outerWrapper)
+	out.WriteString("<")
+	out.WriteString(innerWrapper)
+	out.WriteString("<Option<Self>>> {\n        ")
+	if keepsHandle {
+		out.WriteString("field.clone()\n")
+	} else {
+		out.WriteString("let __guard = field")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; ")
+		out.WriteString(outerWrapper)
+		out.WriteString("::new(")
+		out.WriteString(innerWrapper)
+		out.WriteString("::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone())))\n")
+	}
+	out.WriteString("    }\n")
 }
 
 func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast.Expr) {
 	if typeParamName, ok := directStructFieldTypeParamName(fieldType); ok {
 		NeedGoTypeParamFieldClone()
-		out.WriteString("if <")
+		out.WriteString("<")
 		out.WriteString(typeParamName)
-		out.WriteString(" as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.")
+		out.WriteString(" as GoTypeParamFieldClone>::go_type_param_field_clone(&self.")
 		out.WriteString(fieldName)
-		out.WriteString(".clone() } else { let __guard = self.")
-		out.WriteString(fieldName)
-		WriteBorrowMethod(out, false)
-		out.WriteString("; ")
-		out.WriteString(GetOuterWrapperType())
-		out.WriteString("::new(")
-		out.WriteString(GetInnerWrapperType())
-		out.WriteString("::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone()))) }")
+		out.WriteString(")")
 		return
 	}
 	if structCloneFieldKeepsHandle(fieldType) {

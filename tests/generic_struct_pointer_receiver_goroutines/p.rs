@@ -436,6 +436,9 @@ impl GoValueClone for P {
 
 impl GoTypeParamFieldClone for P {
     const GO_COPY_KEEPS_HANDLE: bool = false;
+    fn go_type_param_field_clone(field: &Arc<Mutex<Option<Self>>>) -> Arc<Mutex<Option<Self>>> {
+        let __guard = field.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone())))
+    }
 }
 
 
@@ -445,4 +448,7 @@ impl GoValueClone for Number {
 
 impl GoTypeParamFieldClone for Number {
     const GO_COPY_KEEPS_HANDLE: bool = false;
+    fn go_type_param_field_clone(field: &Arc<Mutex<Option<Self>>>) -> Arc<Mutex<Option<Self>>> {
+        let __guard = field.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone())))
+    }
 }

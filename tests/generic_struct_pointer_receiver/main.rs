@@ -15,7 +15,7 @@ impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.p.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_0 = { let __guard = self.items.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.each_ref().map(|__go_elem| __go_elem.__go_value_clone())))) };
-        let __go_clone_2_0 = if <T as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.v.clone() } else { let __guard = self.v.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone()))) };
+        let __go_clone_2_0 = <T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v);
         let __go_clone_3_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             p: __go_clone_0_0,
@@ -127,6 +127,15 @@ impl<T: Any + 'static> C<T> {
     }
 }
 
+impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {
+    /// A value receiver is copied even when its body does not otherwise mention
+    /// the type-parameter field.
+    pub fn bump_value(&self) {
+        let mut __self = self.__go_value_clone();
+        { let __target = __self.n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+}
+
 pub fn copy_c<T: Any + GoTypeParamFieldClone + 'static>(value: Rc<RefCell<Option<C<T>>>>) -> Rc<RefCell<Option<C<T>>>> {
     { let __owned = value.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) }
 }
@@ -208,6 +217,37 @@ fn main() {
     let mut copiedSliceArray = { let __owned = originalSliceArray.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __rhs = 24; (*(*copiedSliceArray.borrow().as_ref().unwrap()).v.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "type parameter array slice backing".to_string()), format!("{}", (*(*originalSliceArray.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone()), format!("{}", (*(*copiedSliceArray.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone()));
+
+    let mut valueReceiverPtr = Rc::new(RefCell::new(Some(C::<i32> { n: Rc::new(RefCell::new(Some(25))), ..Default::default() })));
+    let mut valueReceiver = Rc::new(RefCell::new(Some({ let __v = (*valueReceiverPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    (*valueReceiver.borrow().as_ref().unwrap()).bump_value();
+    println!("{} {}", format!("{}", "generic value receiver".to_string()), format!("{}", (*(*valueReceiver.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
+
+    let mut next = Rc::new(RefCell::new(Some(30)));
+    let mut next_closure_clone = next.clone(); let mut originalFuncPtr = Rc::new(RefCell::new(Some(C::<Box<dyn FnMut() -> i32>> { v: Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
+        { let mut guard = next_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        return (*next_closure_clone.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut() -> i32>))), ..Default::default() })));
+    let mut originalFunc = Rc::new(RefCell::new(Some({ let __v = (*originalFuncPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedFunc = { let __owned = originalFunc.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
+    println!("{} {} {}", format!("{}", "function type argument".to_string()), format!("{}", { let __f_holder = (*originalFunc.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }), format!("{}", { let __f_holder = (*copiedFunc.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
+    { let new_val = Box::new(move || -> i32 {
+        99
+    }) as Box<dyn FnMut() -> i32>; *(*copiedFunc.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "function type argument field".to_string()), format!("{}", { let __f_holder = (*originalFunc.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }), format!("{}", { let __f_holder = (*copiedFunc.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
+
+    let mut total = Rc::new(RefCell::new(Some(40)));
+    let mut total_closure_clone = total.clone(); let mut originalUnaryPtr = Rc::new(RefCell::new(Some(C::<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>> { v: Rc::new(RefCell::new(Some(Box::new(move |value: Rc<RefCell<Option<i32>>>| -> i32 {
+        { let __rhs = (*value.borrow().as_ref().unwrap()); let mut guard = total_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        return (*total_closure_clone.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>))), ..Default::default() })));
+    let mut originalUnary = Rc::new(RefCell::new(Some({ let __v = (*originalUnaryPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copiedUnary = { let __owned = originalUnary.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
+    println!("{} {} {}", format!("{}", "function type argument parameter".to_string()), format!("{}", { let __f_holder = (*originalUnary.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(1)))) }), format!("{}", { let __f_holder = (*copiedUnary.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(2)))) }));
+    { let new_val = Box::new(move |value: Rc<RefCell<Option<i32>>>| -> i32 {
+        (*value.borrow().as_ref().unwrap()) * 10
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>; *(*copiedUnary.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "function type argument parameter field".to_string()), format!("{}", { let __f_holder = (*originalUnary.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(3)))) }), format!("{}", { let __f_holder = (*copiedUnary.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) }));
 }
 
 impl<T: Any + GoTypeParamFieldClone + 'static> GoValueClone for C<T> {
@@ -218,6 +258,9 @@ impl<T: Any + GoTypeParamFieldClone + 'static> GoValueClone for C<T> {
 
 impl<T: Any + GoTypeParamFieldClone + 'static> GoTypeParamFieldClone for C<T> {
     const GO_COPY_KEEPS_HANDLE: bool = false;
+    fn go_type_param_field_clone(field: &Rc<RefCell<Option<Self>>>) -> Rc<RefCell<Option<Self>>> {
+        let __guard = field.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone())))
+    }
 }
 
 
@@ -229,4 +272,7 @@ impl<T: Any + GoTypeParamFieldClone + 'static> GoValueClone for Outer<T> {
 
 impl<T: Any + GoTypeParamFieldClone + 'static> GoTypeParamFieldClone for Outer<T> {
     const GO_COPY_KEEPS_HANDLE: bool = false;
+    fn go_type_param_field_clone(field: &Rc<RefCell<Option<Self>>>) -> Rc<RefCell<Option<Self>>> {
+        let __guard = field.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone())))
+    }
 }

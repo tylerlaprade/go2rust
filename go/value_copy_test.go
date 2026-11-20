@@ -421,11 +421,49 @@ func main() {
 
 	for _, want := range []string{
 		"impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn __go_value_clone(&self) -> Self {",
-		"if <T as GoTypeParamFieldClone>::GO_COPY_KEEPS_HANDLE { self.v.clone() } else",
-		"__go_field.go_value_clone()",
+		"<T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v)",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("generic struct field copy should use instantiated Go copy semantics, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestGenericStructValueReceiverCarriesImplicitCopyBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type C[T any] struct { V T; N int }
+
+func (c C[T]) Bump() { c.N++ }
+`)
+
+	if !strings.Contains(rust, "impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn bump(&self)") {
+		t.Fatalf("generic value receiver should carry the bound required by its implicit receiver copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __self = self.__go_value_clone();") {
+		t.Fatalf("generic value receiver should still make its Go value copy:\n%s", rust)
+	}
+}
+
+func TestGenericStructFunctionTypeArgumentUsesCloneableFieldProxy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type C[T any] struct { V T }
+
+func main() {
+	original := &C[func() int]{V: func() int { return 1 }}
+	copy := *original
+	_ = copy.V()
+}
+`)
+
+	for _, want := range []string{
+		"impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R>",
+		"let original = field.borrow_mut().take();",
+		"<T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("function-valued type arguments should copy through an independent forwarding field, missing %q:\n%s", want, rust)
 		}
 	}
 }
