@@ -3643,6 +3643,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: slice_headers_copy_and_share" {
+    run_xfail_test "tests/XFAIL/slice_headers_copy_and_share"
+}
+
 @test "XFAIL: slice_shared_with_package_variable_or_element" {
     run_xfail_test "tests/XFAIL/slice_shared_with_package_variable_or_element"
 }

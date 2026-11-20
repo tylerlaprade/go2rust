@@ -51,6 +51,9 @@ edition = "2021"
 name = "source_stdlib_os_file_readcloser_assignment"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 cmp = { path = "vendor/cmp" }
 errors = { path = "vendor/errors" }

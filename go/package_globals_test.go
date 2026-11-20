@@ -131,7 +131,7 @@ func main() {
 		t.Fatalf("package global array literal should not emit one nested wrapper expression:\n%s", rust)
 	}
 	for _, want := range []string{
-		"let mut __go_array = Vec::<u32>::with_capacity(4);",
+		"let mut __go_array = std::vec::Vec::<u32>::with_capacity(4);",
 		"__go_array.push(1 as u32);",
 		"__go_array.push(0);",
 		"__go_array.push(3 as u32);",

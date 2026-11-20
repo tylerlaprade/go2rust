@@ -10,10 +10,11 @@ import (
 
 // goSliceModeEnabled reports whether Go slices lower to GoSlice<T>, a header
 // (offset, length, capacity) over a backing array that every slice made from
-// it shares, instead of to one Vec<T> per slice value (DEV-36). The mode is
-// opt-in while the emission sites move over.
+// it shares, instead of to one Vec<T> per slice value (DEV-36). It is the
+// default; GO2RUST_GOSLICE=0 restores the old lowering while the last users
+// of it move over.
 func goSliceModeEnabled() bool {
-	return os.Getenv("GO2RUST_GOSLICE") == "1"
+	return os.Getenv("GO2RUST_GOSLICE") != "0"
 }
 
 // goSliceImportNames are the names every module imports from the helper that
@@ -155,7 +156,7 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -219,7 +220,8 @@ impl<T> GoSlice<T> {
         self.len = 0;
     }
 
-    pub fn reserve(&mut self, _: usize) {}
+    #[allow(unused_variables)]
+    pub fn reserve(&mut self, __additional: usize) {}
 
     /// Keeps the elements the predicate accepts, in order, at the front.
     pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
@@ -248,7 +250,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -518,7 +520,7 @@ impl<T> Default for GoSlice<T> {
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::new(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
     }
 }
 
@@ -824,7 +826,7 @@ func writeGoSliceHeaderAssignment(out *strings.Builder, s *ast.AssignStmt) bool 
 	if !goSliceModeEnabled() || s.Tok != token.ASSIGN || len(s.Lhs) != 1 || len(s.Rhs) != 1 {
 		return false
 	}
-	if _, ok := goSliceLocalVariable(s.Lhs[0]); !ok && !goSliceStructField(s.Lhs[0]) {
+	if _, ok := goSliceLocalVariable(s.Lhs[0]); !ok && !goSliceFieldSelfAppend(s) {
 		return false
 	}
 	rhs := unwrapParens(s.Rhs[0])
@@ -977,4 +979,69 @@ func goSliceStructField(expr ast.Expr) bool {
 		return false
 	}
 	return isUnnamedSliceType(selection.Type())
+}
+
+// writeGoSliceTypeSwitchBindingCopy gives the variable of a type switch case
+// for a slice type a cell of its own. The interface value holds the slice's
+// cell, and the case variable is Go's copy of the header: an append to it
+// must not reach the slice the interface was made from.
+func writeGoSliceTypeSwitchBindingCopy(out *strings.Builder, typeInfo *TypeInfo, varName string, caseType ast.Expr) {
+	if !goSliceModeEnabled() || typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	if !isUnnamedSliceType(typeInfo.info.TypeOf(caseType)) {
+		return
+	}
+	name := RustLocalIdent(varName)
+	out.WriteString("        let mut ")
+	out.WriteString(name)
+	out.WriteString(" = { let __slice_header = GoSliceHeader::go_slice_header(&")
+	out.WriteString(name)
+	out.WriteString("); ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new(__slice_header)) };\n")
+}
+
+// goSliceFieldSelfAppend reports whether s is `x.f = append(x.f, ...)` for a
+// slice field f. That is the form in which a second handle on the struct (a
+// method value, or a receiver copied out of its lock) must see the append,
+// so the field's cell takes the new header. Other assignments to a field
+// keep their own lowering.
+func goSliceFieldSelfAppend(s *ast.AssignStmt) bool {
+	if !goSliceStructField(s.Lhs[0]) {
+		return false
+	}
+	call, ok := unwrapParens(s.Rhs[0]).(*ast.CallExpr)
+	if !ok || len(call.Args) == 0 || !isBuiltinAppendCall(call) {
+		return false
+	}
+	return types.ExprString(unwrapParens(call.Args[0])) == types.ExprString(unwrapParens(s.Lhs[0]))
+}
+
+// writeGoSliceElementHeaderFromVariable writes the header of the slice
+// variable rhs for storing into an element of a slice or array of slices,
+// which holds headers directly. The element shares the variable's backing
+// array, as in Go.
+func writeGoSliceElementHeaderFromVariable(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	if !goSliceModeEnabled() || !isUnnamedSliceType(expected) {
+		return false
+	}
+	if _, ok := goSliceLocalVariable(rhs); !ok {
+		return false
+	}
+	out.WriteString("GoSliceHeader::go_slice_header(&")
+	TranspileExpressionContext(out, rhs, LValue)
+	out.WriteString(").unwrap_or_default()")
+	return true
+}
+
+// stripGoSliceRuntime removes the GoSlice runtime and the vec! macro from
+// generated code. Tests that look for what the translator wrote for a
+// program use it, so that the fixed runtime text does not match their
+// patterns.
+func stripGoSliceRuntime(code string) string {
+	code = strings.Replace(code, goSliceRuntime, "", -1)
+	return strings.Replace(code, goSliceVecMacro, "", -1)
 }

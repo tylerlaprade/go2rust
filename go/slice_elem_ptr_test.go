@@ -7345,5 +7345,5 @@ func transpileTypedSliceElemPtrRegressionWithOptions(t *testing.T, src string, u
 		})
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }

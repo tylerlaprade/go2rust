@@ -1,6 +1,14 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::any::Any;
 use std::fmt::{Display};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 /// Stepper is implemented by Counter, whose methods are split across two files.
 pub trait Stepper: std::fmt::Display + Any {
     fn __go_clone_box_stepper(&self) -> Box<dyn Stepper>;

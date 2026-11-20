@@ -4690,7 +4690,7 @@ func transpileTypedRegressionWithPrefixFile(t *testing.T, source string, prefixS
 		t.Fatalf("NewTypeInfo error = %v", err)
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func transpileTypedConcurrentRegressionWithMapping(t *testing.T, src string, packageMapping map[string]string) string {
@@ -4719,7 +4719,7 @@ func transpileTypedConcurrentPackageWithMapping(t *testing.T, packagePath string
 		SetConcurrencyDetector(prevConcurrencyDetector)
 	})
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, packageMapping)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func firstMutexGuardName(t *testing.T, rust string) string {
@@ -6380,9 +6380,9 @@ func load(v any) []*Type {
 	if strings.Contains(rust, "rts = new_val;") {
 		t.Fatalf("slice type assertion assignment should not replace the slice handle with a bare Vec:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*rts.borrow_mut() = Some(new_val);") &&
-		!strings.Contains(rust, "*rts.lock().unwrap() = Some(new_val);") {
-		t.Fatalf("slice type assertion assignment should store the asserted Vec in the existing handle:\n%s", rust)
+	if !strings.Contains(rust, "*rts.borrow_mut() = __slice_header;") &&
+		!strings.Contains(rust, "*rts.lock().unwrap() = __slice_header;") {
+		t.Fatalf("slice type assertion assignment should store the asserted slice's header in the existing handle:\n%s", rust)
 	}
 }
 
@@ -6589,8 +6589,10 @@ func use(f *file) {
 	if strings.Contains(rust, "let __v = (*") && strings.Contains(rust, "iovecs = new_val") {
 		t.Fatalf("slice assignment from pointer dereference should not assign a raw Vec into the slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".iovecs.clone(); iovecs = new_val") {
-		t.Fatalf("slice assignment from pointer dereference should clone the pointee slice handle:\n%s", rust)
+	// Go copies the pointee's header; the local keeps its own cell, so an
+	// append to it does not reach *f.iovecs.
+	if strings.Contains(rust, "iovecs = new_val") || !strings.Contains(rust, "*iovecs.borrow_mut() = __slice_header;") {
+		t.Fatalf("slice assignment from pointer dereference should copy the pointee's header into the local's cell:\n%s", rust)
 	}
 }
 

@@ -1,12 +1,13 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
 
 func TestGoSliceModeSharesBackingAndCopiesHeaders(t *testing.T) {
-	t.Setenv("GO2RUST_GOSLICE", "1")
+	t.Setenv("GO2RUST_GOSLICE", "")
 	rust := transpileTypedRegression(t, `package main
 
 import "fmt"
@@ -29,8 +30,6 @@ func main() {
 }
 `)
 	for _, want := range []string{
-		"pub struct GoSlice<T>",
-		"pub type Vec<T> = GoSlice<T>;",
 		"__seq.reslice3(__low, __high, __max)",
 		"let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended)))",
 		"let mut xs = Rc::new(RefCell::new((*xs.borrow()).clone()));",
@@ -43,8 +42,8 @@ func main() {
 	}
 }
 
-func TestGoSliceModeIsOffByDefault(t *testing.T) {
-	t.Setenv("GO2RUST_GOSLICE", "")
+func TestGoSliceModeTurnsOffWithZero(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "0")
 	rust := transpileTypedRegression(t, `package main
 
 import "fmt"
@@ -55,6 +54,30 @@ func main() {
 }
 `)
 	if strings.Contains(rust, "GoSlice") {
-		t.Fatalf("GoSlice must stay off unless GO2RUST_GOSLICE=1:\n%s", rust)
+		t.Fatalf("GO2RUST_GOSLICE=0 must turn GoSlice off:\n%s", rust)
 	}
+}
+
+// withoutGoSliceUses rewrites every `use crate::{...};` in code without the
+// names that GoSlice adds to each of them, so that a test can check the
+// helpers a module imports for its own use.
+func withoutGoSliceUses(code string) string {
+	goSliceNames := map[string]bool{}
+	for _, name := range goSliceImportNames {
+		goSliceNames[name] = true
+	}
+	re := regexp.MustCompile(`use crate::\{([^}]*)\};\n`)
+	return re.ReplaceAllStringFunc(code, func(block string) string {
+		inner := re.FindStringSubmatch(block)[1]
+		var names []string
+		for _, name := range strings.FieldsFunc(inner, func(r rune) bool { return r == ',' || r == ' ' || r == '\n' }) {
+			if !goSliceNames[name] {
+				names = append(names, name)
+			}
+		}
+		if len(names) == 0 {
+			return ""
+		}
+		return formatCrateUse(names)
+	})
 }

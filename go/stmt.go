@@ -1160,6 +1160,9 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
+	if writeGoSliceElementHeaderFromVariable(out, rhs, expected) {
+		return
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && arraySliceElementExpectedStoresBareCollection(expected) {
 		out.WriteString(zeroValueForTypesType(expected))
 		return
@@ -16550,6 +16553,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Case body
 			if typeSwitchSubjectHasGuard {
 				out.WriteString("        drop(_ts_guard);\n")
+			}
+			if varName != "" && len(caseClause.List) == 1 {
+				writeGoSliceTypeSwitchBindingCopy(out, typeInfo, varName, caseClause.List[0])
 			}
 			restoreRangeLoopShadow := func() {}
 			if varName != "" {

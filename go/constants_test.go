@@ -1120,7 +1120,7 @@ func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet
 	SetVarTable(nil)
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func TestNoTypeInfoNamedConstComparisonUsesConstPath(t *testing.T) {

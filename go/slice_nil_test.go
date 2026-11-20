@@ -63,7 +63,8 @@ func main() {
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
 
-	if !strings.Contains(rust, "get_or_insert_with(Vec::new).push") {
+	// A nil slice's header is the empty slice, which append grows.
+	if !strings.Contains(rust, "(*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value)") {
 		t.Fatalf("append to nil slice should initialize storage before push, got:\n%s", rust)
 	}
 }

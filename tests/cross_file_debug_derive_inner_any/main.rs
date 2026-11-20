@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 include!("__go2rust_helpers.rs");
 mod aaa_outer;
 mod bbb_inner;
@@ -7,6 +13,12 @@ use bbb_inner::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 fn main() {
     let mut r#in = Rc::new(RefCell::new(Some(Inner { tag: Rc::new(RefCell::new(Some("k".to_string()))), data: Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>))), ..Default::default() })));
     let mut out = Rc::new(RefCell::new(Some(Outer { name: Rc::new(RefCell::new(Some("n".to_string()))), inner: r#in.clone(), ..Default::default() })));
