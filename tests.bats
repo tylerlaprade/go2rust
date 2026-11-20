@@ -2099,6 +2099,10 @@ run_xfail_test() {
     run_test "tests/nil_receiver_methods_goroutines"
 }
 
+@test "nil_receiver_unsafe_pointer_result" {
+    run_test "tests/nil_receiver_unsafe_pointer_result"
+}
+
 @test "non_blocking_channels" {
     run_test "tests/non_blocking_channels"
 }
@@ -2489,6 +2493,14 @@ run_xfail_test() {
 
 @test "range_any_slice_materialize" {
     run_test "tests/range_any_slice_materialize"
+}
+
+@test "range_bound_borrow_released" {
+    run_test "tests/range_bound_borrow_released"
+}
+
+@test "range_bound_borrow_released_goroutines" {
+    run_test "tests/range_bound_borrow_released_goroutines"
 }
 
 @test "range_defined_float_call_argument" {

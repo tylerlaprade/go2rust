@@ -53,13 +53,13 @@ fn main() {
 
     let mut n = Rc::new(RefCell::new(Some(4i64)));
     let mut variableSum = Rc::new(RefCell::new(Some(0i64)));
-    for i in 0..((*n.borrow().as_ref().unwrap())) {
+    for i in 0..({ let __range_len = (*n.borrow().as_ref().unwrap()); __range_len }) {
         { let __rhs = i; let mut guard = variableSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     let mut methodSum = Rc::new(RefCell::new(Some(0i64)));
     let mut c = Rc::new(RefCell::new(Some(counter { n: Rc::new(RefCell::new(Some(4))), ..Default::default() })));
-    for i in 0..((*c.borrow().as_ref().unwrap()).len()) {
+    for i in 0..({ let __range_len = (*c.borrow().as_ref().unwrap()).len(); __range_len }) {
         { let __rhs = i; let mut guard = methodSum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
