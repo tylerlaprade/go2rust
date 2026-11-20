@@ -15097,7 +15097,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("_")
 				}
 				out.WriteString(" in 0..(")
-				writeIntegerRangeLimit(out, s.X)
+				var rangeLimit strings.Builder
+				writeIntegerRangeLimit(&rangeLimit, s.X)
+				writeRangeLengthDroppingTemporaries(out, rangeLimit.String())
 				out.WriteString(")")
 			}
 		} else if isString {
@@ -15360,7 +15362,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(rangeValuesVar)
 					out.WriteString(".len()")
 				} else {
-					writeRangeLengthExpression(out, s.X)
+					var rangeLen strings.Builder
+					writeRangeLengthExpression(&rangeLen, s.X)
+					writeRangeLengthDroppingTemporaries(out, rangeLen.String())
 				}
 				out.WriteString(")")
 			} else {
@@ -17319,4 +17323,20 @@ func markDeclaredIntConstants(stmt ast.Stmt) {
 			markDeclaredIntConstants(s.Init)
 		}
 	}
+}
+
+// writeRangeLengthDroppingTemporaries writes the bound of a `for i in 0..n`
+// loop. The temporaries of a for loop's iterator expression live until the
+// loop ends, so a borrow or lock taken to read the length would still be held
+// while the body writes the elements. A let statement drops them as soon as
+// the length is read.
+func writeRangeLengthDroppingTemporaries(out *strings.Builder, length string) {
+	guarded := strings.HasPrefix(length, "({ let __range_holder") || strings.HasPrefix(length, "{ let __range_holder")
+	if guarded || (!strings.Contains(length, ".borrow") && !strings.Contains(length, ".lock()") && !strings.Contains(length, ".read()")) {
+		out.WriteString(length)
+		return
+	}
+	out.WriteString("{ let __range_len = ")
+	out.WriteString(length)
+	out.WriteString("; __range_len }")
 }

@@ -216,7 +216,7 @@ impl Params {
 
 pub fn total(p: Arc<Mutex<Option<Params>>>) -> i64 {
     let mut sum = Arc::new(Mutex::new(Some(0i64)));
-    for mut i in 0..({ let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }) {
+    for mut i in 0..({ let __range_len = { let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }; __range_len }) {
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x == __tmp_y } {
         {
     let mut i = Arc::new(Mutex::new(Some(0i64)));

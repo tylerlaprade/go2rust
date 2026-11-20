@@ -1,0 +1,11 @@
+[package]
+name = "range_bound_borrow_released"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_bound_borrow_released"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

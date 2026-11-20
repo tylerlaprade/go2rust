@@ -678,6 +678,9 @@ func arrayElemPtrResultInfoForCall(call *ast.CallExpr, resultIndex int) (arrayEl
 }
 
 func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
+	if method, ok := nilPointerReceiverSyntheticOrigin(fn); ok {
+		return goPtrResultInfosForFunc(method)
+	}
 	typeInfo := GetTypeInfo()
 	if fn == nil || fn.Body == nil || fn.Type == nil || fn.Type.Results == nil || typeInfo == nil {
 		return nil
@@ -1249,6 +1252,10 @@ func writeArrayElemPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl
 }
 
 func writeGoPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) bool {
+	if method, ok := nilPointerReceiverSyntheticOrigin(fn); ok {
+		// A nil-receiver helper returns what its method returns.
+		fn = method
+	}
 	resultInfos, ok := registeredGoPtrResultInfosForDecl(fn)
 	if !ok || len(resultInfos) == 0 {
 		resultInfos = goPtrResultInfosForFunc(fn)
