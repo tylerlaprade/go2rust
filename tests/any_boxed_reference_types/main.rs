@@ -722,15 +722,7 @@ fn main() {
         }
     }
 
-    let mut plain = Rc::new(RefCell::new(Some(({
-        let val = declared.clone();
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
-        } else {
-            panic!("type assertion on nil interface")
-        }
-    }))));
+    let mut plain = ({ let val = declared.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     println!("{} {} {} {}", format!("{}", "single slice:".to_string()), format!("{}", (*plain.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*plain.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", sum(Rc::new(RefCell::new(Some(({
         let val = declared.clone();
         let guard = val.borrow();
@@ -740,15 +732,7 @@ fn main() {
             panic!("type assertion on nil interface")
         }
     })))))));
-    let mut lookup = Rc::new(RefCell::new(Some(({
-        let val = boxedMap.clone();
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
-        } else {
-            panic!("type assertion on nil interface")
-        }
-    }))));
+    let mut lookup = ({ let val = boxedMap.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     println!("{} {} {}", format!("{}", "single map:".to_string()), format!("{}", (*lookup.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __map_holder = lookup.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut first = Rc::new(RefCell::new(Some(({
         let __idx = (0) as usize;
@@ -774,15 +758,7 @@ fn main() {
     println!("{} {} {} {}", format!("{}", "single element:".to_string()), format!("{}", (*first.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __map_holder = second.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", (*(*third.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
     let mut empty: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
     let mut boxedEmpty: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(empty.clone()) as Box<dyn Any>)));
-    let mut nothing = Rc::new(RefCell::new(Some(({
-        let val = boxedEmpty.clone();
-        let guard = val.borrow();
-        if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
-        } else {
-            panic!("type assertion on nil interface")
-        }
-    }))));
+    let mut nothing = ({ let val = boxedEmpty.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     println!("{} {}", format!("{}", "single nil slice:".to_string()), format!("{}", (*nothing.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
         // The boxed value is the same slice and the same pointee, not a copy.

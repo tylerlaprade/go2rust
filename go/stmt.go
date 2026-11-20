@@ -4584,6 +4584,23 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	return true
 }
 
+// varSpecHasTypeOfValue reports whether the i-th name of a var spec has the
+// type of its value: the spec names no type, or names the value's own type.
+// "var n Numbers = x.([]int)" does not: n is a Numbers built from the
+// []int, not the []int itself.
+func varSpecHasTypeOfValue(valueSpec *ast.ValueSpec, i int) bool {
+	if valueSpec.Type == nil {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || i >= len(valueSpec.Names) || i >= len(valueSpec.Values) {
+		return false
+	}
+	obj := typeInfo.info.Defs[valueSpec.Names[i]]
+	valueType := typeInfo.GetType(valueSpec.Values[i])
+	return obj != nil && valueType != nil && types.Identical(obj.Type(), valueType)
+}
+
 // writeWrappedCollectionCopyFromIdent writes the initializer of a new
 // variable that is a copy of a local slice or map variable: "t := s",
 // "var t = s". Writing the read of s there moved the Vec or map out of a
@@ -13294,6 +13311,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Existing named-interface values are already represented by a handle.
 											} else if writeEmptyInterfaceHandleClone(out, rhs) {
 												// Existing interface values are already represented by a handle.
+											} else if writeAnyHandleAssertionHandle(out, rhs) {
+												// A slice or map taken out of an interface value shares its data with it.
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {
 												// Existing error values are already represented by a handle.
 											} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
@@ -13742,6 +13761,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										writeInterfaceBoxedValue(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
+									} else if varSpecHasTypeOfValue(valueSpec, i) && writeAnyHandleAssertionHandle(out, valueSpec.Values[i]) {
+										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
 											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {

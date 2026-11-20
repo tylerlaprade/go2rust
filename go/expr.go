@@ -9067,10 +9067,15 @@ func anyBoxedCollectionExprIsBare(expr ast.Expr, typ types.Type) bool {
 			return arraySliceElementExpectedStoresBareCollection(c.Elem())
 		}
 	case *ast.TypeAssertExpr:
-		// "x.([]int)" in its one-value form yields the slice or map itself,
-		// not a handle (see writeAnyHandleAssertionExpectBareValue).
-		_, _, ok := typeAssertionAnyHandleTarget(e)
-		return ok
+		// "x.([]int)" read for its handle is the handle the interface value
+		// holds (writeAnyHandleAssertionHandle), so boxing it again shares
+		// the slice or map, as Go does. Only an element of a []any, which
+		// that helper leaves alone, is taken out as the bare slice or map.
+		if _, _, ok := typeAssertionAnyHandleTarget(e); !ok {
+			return false
+		}
+		_, isElement := anySliceElementAssertionSource(e.X)
+		return isElement
 	}
 	return false
 }
@@ -9176,6 +9181,39 @@ func functionAssertionAnyHandleTarget(e *ast.TypeAssertExpr) (handleType string,
 		return "", "", 0, false
 	}
 	return handleType, goTypesTypeToRust(sig), sig.Params().Len(), true
+}
+
+// writeAnyHandleAssertionHandle writes "x.([]int)" or "x.(map[K]V)", where x
+// is an interface{}, as the handle the interface value holds, for a new
+// variable that keeps it. A map or slice taken out of an interface shares its
+// data with the one that was put in, so after "y := x.(map[string]int)",
+// "y["k"] = 1" changes the map x holds and every other name for it. The value
+// writeAnyHandleAssertionExpectBareValue gives is a copy, which is right only
+// where the result is used and dropped.
+func writeAnyHandleAssertionHandle(out *strings.Builder, expr ast.Expr) bool {
+	e, ok := unwrapParens(expr).(*ast.TypeAssertExpr)
+	if !ok {
+		return false
+	}
+	handleType, _, ok := typeAssertionAnyHandleTarget(e)
+	if !ok {
+		return false
+	}
+	if _, isElement := anySliceElementAssertionSource(e.X); isElement {
+		return false
+	}
+	out.WriteString("({ let val = ")
+	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpressionContext(out, e.X, LValue)
+	}
+	out.WriteString(".clone(); let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; if let Some(ref any_val) = *guard { any_val.downcast_ref::<")
+	out.WriteString(handleType)
+	out.WriteString(">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })")
+	return true
 }
 
 // writeAnyHandleAssertionExpectBareValue downcasts receiver to the boxed
@@ -15348,6 +15386,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.TypeAssertExpr:
 		// Handle type assertions like value.(Type)
 		// Type assertions work on interface{} values (Box<dyn Any>)
+		if ctx == LValue && writeAnyHandleAssertionHandle(out, e) {
+			// Where the handle is wanted, as in len(x.([]int)) or
+			// x.(map[string]int)["k"], it is the one the interface holds.
+			return
+		}
 		if e.Type != nil {
 			if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
 				writeStaticallyKnownInterfaceAssertionValue(out, e, ifaceName)
