@@ -4507,6 +4507,29 @@ func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	return true
 }
 
+// writeFunctionAssertionHandleAssignment writes "f = x.(func())", where x is
+// an interface{}. A function value is boxed as its handle, so the variable
+// takes that handle, as "f = g" takes g's.
+func writeFunctionAssertionHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	e, ok := unwrapParens(rhs).(*ast.TypeAssertExpr)
+	if !ok {
+		return false
+	}
+	if _, _, _, ok := functionAssertionAnyHandleTarget(e); !ok {
+		return false
+	}
+	var value strings.Builder
+	if !writeAnyHandleAssertionHandle(&value, e) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(value.String())
+	out.WriteString("; ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
+	return true
+}
+
 func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, rhsIdent *ast.Ident) bool {
 	if rhsIdent.Name == "_" || rhsIdent.Name == "nil" || rhsIdent.Name == "true" || rhsIdent.Name == "false" {
 		return false
@@ -12784,6 +12807,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
 									writeErrorCopyAssignment(out, s.Lhs[0], s.Rhs[0])
+								} else if writeFunctionAssertionHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// "f = x.(func())" takes the handle the interface value holds.
 								} else if writeFunctionSelectorHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Function selector values are represented by handles; copy the handle.
 								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {

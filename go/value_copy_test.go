@@ -580,3 +580,40 @@ func main() {
 		t.Fatalf("the asserted handle must not be wrapped in a new cell:\n%s", rust)
 	}
 }
+
+// A function value is boxed into an interface{} as its handle, so every form
+// of assertion that keeps it takes that handle: "g := x.(func())", the
+// comma-ok form, "g = x.(func())" and an element of a []any. They used to
+// downcast to the closure box itself, which is not what the box holds, and
+// clone a reference to it.
+func TestFunctionValueTakenOutOfInterfaceIsItsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	var x any = func() {}
+	g := x.(func())
+	h, ok := x.(func())
+	var k func()
+	k = x.(func())
+	items := []any{func() {}}
+	e := items[0].(func())
+	f, ok2 := items[0].(func())
+	_, _, _, _, _, _, _ = g, h, ok, k, e, f, ok2
+}
+`)
+	handle := "Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>"
+	for _, want := range []string{
+		"let mut g = ({ let val = x.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + handle + ">()",
+		"if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                (typed_val.clone(), true)",
+		"{ let new_val = ({ let val = x.clone();",
+		"any_val.downcast_ref::<" + handle + ">().expect(\"type assertion failed\").clone()",
+		"match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<" + handle + ">() {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> ()>>()") {
+		t.Fatalf("no assertion should downcast to the closure box:\n%s", rust)
+	}
+}

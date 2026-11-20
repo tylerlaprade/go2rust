@@ -7767,6 +7767,10 @@ func compositeLiteralElementKeepsHandle(typ types.Type) bool {
 }
 
 func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
+	if writeAnyHandleAssertionHandle(out, expr) {
+		// "x.(func())" is the handle the interface value holds.
+		return true
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if ident.Name == "nil" {
 			WriteWrappedNone(out)
@@ -9254,6 +9258,15 @@ func writeAnyHandleAssertionHandle(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	handleType, _, ok := typeAssertionAnyHandleTarget(e)
+	if !ok {
+		// A function value sits in the box as its handle too, also as an
+		// element of a []any.
+		if handleType, _, _, ok = functionAssertionAnyHandleTarget(e); ok {
+			if writeAnySliceElementPointerHandleAssertionValue(out, e, handleType) {
+				return true
+			}
+		}
+	}
 	if !ok {
 		return false
 	}
@@ -20162,6 +20175,37 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 	return true
 }
 
+// writeAnySliceElementHandleAssertionCommaOk writes "v, ok := items[i].(T)"
+// for an element of a []any and a T boxed as its handle: a pointer, slice,
+// map or function. The element is a bare Box<dyn Any>, not a cell, so it is
+// read in place.
+func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, handleType string, pointeeRustType string) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<")
+	out.WriteString(handleType)
+	out.WriteString(">() {\n")
+	out.WriteString("            Some(typed_val) => (typed_val.clone(), true),\n")
+	out.WriteString("            None => (")
+	writePointerHandleAssertionNone(out, pointeeRustType)
+	out.WriteString(", false),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+	return true
+}
+
 func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool) {
 	if targetIsPointer || targetIsInterface {
 		writeTypedWrappedNone(out, rustType)
@@ -20622,6 +20666,9 @@ func pointerAssertionHandleRustType(star *ast.StarExpr) string {
 }
 
 func writePointerHandleTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, handleType string, pointeeRustType string) {
+	if writeAnySliceElementHandleAssertionCommaOk(out, e, handleType, pointeeRustType) {
+		return
+	}
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && isEmptyInterfaceType(typeInfo.GetMapValueType(indexExpr.X)) {
@@ -20860,6 +20907,12 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		// A slice or map sits in the box as its handle; the asserted value
 		// shares it, and a failed assertion yields the nil slice or map.
 		writePointerHandleTypeAssertionCommaOk(out, e, handleType, bareType)
+		return
+	}
+	if handleType, boxType, _, ok := functionAssertionAnyHandleTarget(e); ok {
+		// So does a function value; a failed assertion yields the nil
+		// function.
+		writePointerHandleTypeAssertionCommaOk(out, e, handleType, boxType)
 		return
 	}
 

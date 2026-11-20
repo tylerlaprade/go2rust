@@ -459,6 +459,14 @@ run_xfail_test() {
     run_test "tests/any_selector_return"
 }
 
+@test "any_slice_element_comma_ok" {
+    run_test "tests/any_slice_element_comma_ok"
+}
+
+@test "any_slice_element_comma_ok_goroutines" {
+    run_test "tests/any_slice_element_comma_ok_goroutines"
+}
+
 @test "any_slice_index_assign_concrete" {
     run_test "tests/any_slice_index_assign_concrete"
 }
@@ -1237,6 +1245,14 @@ run_xfail_test() {
 
 @test "function_value_parameter_method_argument" {
     run_test "tests/function_value_parameter_method_argument"
+}
+
+@test "function_value_taken_out_of_interface" {
+    run_test "tests/function_value_taken_out_of_interface"
+}
+
+@test "function_value_taken_out_of_interface_goroutines" {
+    run_test "tests/function_value_taken_out_of_interface_goroutines"
 }
 
 @test "functions_multiple_return" {
