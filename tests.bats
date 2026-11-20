@@ -1491,6 +1491,14 @@ run_xfail_test() {
     run_test "tests/interface_slice_nil_element"
 }
 
+@test "interface_struct_value_copy" {
+    run_test "tests/interface_struct_value_copy"
+}
+
+@test "interface_struct_value_copy_goroutines" {
+    run_test "tests/interface_struct_value_copy_goroutines"
+}
+
 @test "interfaces_basic" {
     run_test "tests/interfaces_basic"
 }
