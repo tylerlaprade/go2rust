@@ -911,8 +911,15 @@ pub const ACTIVE: &'static str = "active";
 pub const INACTIVE: &'static str = "inactive";
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Celsius(pub Arc<Mutex<Option<f64>>>);
+
+impl Clone for Celsius {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Celsius(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Celsius {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1052,8 +1059,15 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Fahrenheit(pub Arc<Mutex<Option<f64>>>);
+
+impl Clone for Fahrenheit {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Fahrenheit(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Fahrenheit {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1231,8 +1245,15 @@ impl std::fmt::Display for Reading {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Color(pub Arc<Mutex<Option<String>>>);
+
+impl Clone for Color {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Color(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1301,8 +1322,15 @@ impl std::ops::Add<&str> for Color {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Status(pub Arc<Mutex<Option<String>>>);
+
+impl Clone for Status {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Status(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Status {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1371,8 +1399,15 @@ impl std::ops::Add<&str> for Status {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Enabled(pub Arc<Mutex<Option<bool>>>);
+
+impl Clone for Enabled {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Enabled(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Enabled {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1389,8 +1424,15 @@ impl PartialEq for Enabled {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Meters(pub Arc<Mutex<Option<f64>>>);
+
+impl Clone for Meters {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Meters(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Meters {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

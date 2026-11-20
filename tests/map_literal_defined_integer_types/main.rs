@@ -38,8 +38,15 @@ pub(crate) const NAMED: i32 = 3;
 pub(crate) const OFFSET: i32 = 2;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Index(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Index {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Index(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Index {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

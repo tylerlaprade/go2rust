@@ -1,0 +1,2 @@
+left sequence|left index|right sequence|right index|left result|right result|
+[10 0] [0 20]

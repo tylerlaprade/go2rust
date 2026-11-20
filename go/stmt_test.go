@@ -2822,6 +2822,41 @@ func reset(chunks [][]int, ns []uint32) {
 	}
 }
 
+func TestParallelAssignmentEvaluatesIndexedTargetsBeforeResults(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func target(values []int) []int { return values }
+func index(value int) int { return value }
+func result(value int) int { return value }
+
+func assign(left, right []int) {
+	target(left)[index(0)], target(right)[index(1)] = result(10), result(20)
+}
+`)
+
+	parts := []string{
+		"let __go_lhs_sequence_0 = target(",
+		"let __go_lhs_index_0 = (index(",
+		"let __go_lhs_sequence_1 = target(",
+		"let __go_lhs_index_1 = (index(",
+		"let __tmp_0 = result(",
+		"let __tmp_1 = result(",
+		"(*__go_lhs_sequence_0",
+		"(*__go_lhs_sequence_1",
+	}
+	previous := -1
+	for _, part := range parts {
+		position := strings.Index(rust, part)
+		if position < 0 {
+			t.Fatalf("parallel assignment did not emit %q:\n%s", part, rust)
+		}
+		if position <= previous {
+			t.Fatalf("parallel assignment must evaluate indexed targets, then results, then writes; %q was out of order:\n%s", part, rust)
+		}
+		previous = position
+	}
+}
+
 func TestSliceElementSliceLiteralAssignmentMovesInnerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -3911,6 +3946,87 @@ func makeHolder() Holder {
 	}
 	if strings.Count(rust, "Some(baseline.clone())") < 2 {
 		t.Fatalf("struct literal should clone bare non-copy struct values for wrapped fields:\n%s", rust)
+	}
+}
+
+func TestInstantiatedGenericStructShortDeclWrapsLocalValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Box[T any] struct { Value T }
+
+func use() {
+	value := Box[int]{Value: 7}
+	var explicit = Box[int]{Value: 8}
+	_, _ = value, explicit
+}
+`)
+
+	ordinary := "Rc::new(RefCell::new(Some(Box_::<i32> {"
+	concurrent := "Arc::new(Mutex::new(Some(Box_::<i32> {"
+	if strings.Count(rust, ordinary) < 2 && strings.Count(rust, concurrent) < 2 {
+		t.Fatalf("instantiated generic struct short and var declarations should store locals in their Go value wrappers:\n%s", rust)
+	}
+}
+
+func TestCompositeLiteralLocalWrapperUsesTypeInfoAndPreservesEmitterShape(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"strings"
+	"sync"
+)
+
+type Index map[string]int
+
+func use() {
+	builder := strings.Builder{}
+	var otherBuilder = strings.Builder{}
+	mu := sync.Mutex{}
+	var otherMu = sync.Mutex{}
+	index := Index{"a": 1}
+	var otherIndex = Index{"b": 2}
+	_, _, _, _, _, _ = builder, otherBuilder, mu, otherMu, index, otherIndex
+}
+`)
+
+	for _, unwanted := range []string{
+		"Some(String::new())",
+		"Some(GoMutex {",
+		"let mut index = Index(",
+		"let mut otherIndex = Index(",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("composite literal local representation must agree with its emitter and variable registration; found %q:\n%s", unwanted, rust)
+		}
+	}
+	for _, want := range []string{
+		"let mut builder = String::new();",
+		"let mut otherBuilder = String::new();",
+		"let mut mu = GoMutex {",
+		"let mut otherMu = GoMutex {",
+		"let mut index = Rc::new(RefCell::new(Some(Index(",
+		"let mut otherIndex = Rc::new(RefCell::new(Some(Index(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected composite literal local representation %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestCompositeLiteralLocalWrapperRequiresTypeInfo(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+type Index map[string]int
+
+func use() {
+	value := Index{"a": 1}
+	var explicit = Index{"b": 2}
+	_, _ = value, explicit
+}
+`)
+
+	if got := strings.Count(rust, `unimplemented!("type info required for composite literal initializer")`); got != 2 {
+		t.Fatalf("missing type information must fail loudly for both composite literal local forms; got %d:\n%s", got, rust)
 	}
 }
 

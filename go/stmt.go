@@ -1035,6 +1035,35 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	}
 }
 
+// compositeLiteralNeedsLocalValueWrapper reports whether a composite literal
+// emits a bare value that a local Go variable must store in its outer value
+// cell. Named composite types emit their named Rust value around any inner
+// collection handle, while an unnamed struct emits its bare struct value.
+// Unnamed maps, slices, and arrays already emit their own local handle.
+//
+// The second result is false when authoritative type information is missing.
+// Callers must emit a loud unsupported path instead of guessing from the AST
+// shape; identifiers and selectors can denote structs, maps, slices, or arrays.
+func compositeLiteralNeedsLocalValueWrapper(lit *ast.CompositeLit) (bool, bool) {
+	if lit == nil {
+		return false, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		return false, false
+	}
+	typ = types.Unalias(typ)
+	if _, ok := typ.(*types.Named); ok {
+		return true, true
+	}
+	_, isStruct := typ.Underlying().(*types.Struct)
+	return isStruct, true
+}
+
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
 // Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
 // the wrapper off a literal/expression.
@@ -2711,6 +2740,58 @@ func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
 		return true
 	})
 	return assigned
+}
+
+// blockCallsPointerMethodOnValue reports whether body calls a method with a
+// pointer receiver on the variable name, which holds a value: `c.Inc()` with
+// `func (c *Counter) Inc()` takes the address of c.
+func blockCallsPointerMethodOnValue(body *ast.BlockStmt, name string) bool {
+	typeInfo := GetTypeInfo()
+	if body == nil || name == "" || name == "_" || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := n.(*ast.FuncLit); ok {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := sel.X.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		selection, ok := typeInfo.info.Selections[sel]
+		if !ok || selection.Kind() != types.MethodVal {
+			return true
+		}
+		fn, ok := selection.Obj().(*types.Func)
+		if !ok {
+			return true
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok || sig.Recv() == nil {
+			return true
+		}
+		if _, recvIsPointer := sig.Recv().Type().(*types.Pointer); !recvIsPointer {
+			return true
+		}
+		if _, valueIsPointer := types.Unalias(typeInfo.GetType(ident)).Underlying().(*types.Pointer); valueIsPointer {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
 }
 
 func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
@@ -9290,6 +9371,110 @@ func writeParallelAssignmentTargetLine(out *strings.Builder, lhs ast.Expr, tmpNa
 	out.WriteString("\n")
 }
 
+type parallelIndexedAssignmentTarget struct {
+	indexExpr     *ast.IndexExpr
+	holdsSequence bool
+	sequenceName  string
+	indexName     string
+}
+
+func freshParallelAssignmentTempName(base string) string {
+	name := base
+	for lookupVarInfo(name) != nil || packageGlobalNames[name] {
+		name += "_"
+	}
+	return name
+}
+
+func prepareParallelIndexedAssignmentTarget(out *strings.Builder, lhs ast.Expr, position int, indent string) (parallelIndexedAssignmentTarget, bool) {
+	indexExpr, ok := unwrapParens(lhs).(*ast.IndexExpr)
+	if !ok {
+		return parallelIndexedAssignmentTarget{}, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
+		return parallelIndexedAssignmentTarget{}, false
+	}
+	sequenceType := typeInfo.GetType(indexExpr.X)
+	if sequenceType == nil {
+		return parallelIndexedAssignmentTarget{}, false
+	}
+	switch types.Unalias(sequenceType).Underlying().(type) {
+	case *types.Array, *types.Slice:
+	default:
+		return parallelIndexedAssignmentTarget{}, false
+	}
+	if ident, ok := unwrapParens(indexExpr.X).(*ast.Ident); ok {
+		if _, isGoPtr := goPtrIdentPointedArrayType(ident); isGoPtr || isArrayElemPtrVar(ident.Name) {
+			return parallelIndexedAssignmentTarget{}, false
+		}
+	}
+
+	target := parallelIndexedAssignmentTarget{
+		indexExpr: indexExpr,
+		indexName: freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_index_%d", position)),
+	}
+	// Local sequence values and call results are cloneable handles. Holding the
+	// handle is required when an earlier assignment in this statement rebinds
+	// the slice variable: Go has already evaluated the indexed target by then.
+	// Package globals own their value in GoGlobal rather than exposing such a
+	// handle, but naming one has no side effects, so only its index needs a temp.
+	target.holdsSequence = mapOperandHandleCanBeHeld(indexExpr.X)
+	if expressionCallsOrReceives(indexExpr.X) && !target.holdsSequence {
+		return parallelIndexedAssignmentTarget{}, false
+	}
+	if target.holdsSequence {
+		target.sequenceName = freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_sequence_%d", position))
+		out.WriteString(indent)
+		out.WriteString("let ")
+		out.WriteString(target.sequenceName)
+		out.WriteString(" = ")
+		if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+			writeNamedSliceInnerHandleClone(out, subj)
+		} else if subj := unwrapParens(indexExpr.X); isNamedArrayExpression(subj) {
+			writeNamedArrayInnerHandleClone(out, subj)
+		} else {
+			TranspileExpressionContext(out, indexExpr.X, LValue)
+		}
+		out.WriteString(".clone();\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(target.indexName)
+	out.WriteString(" = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString(";\n")
+	return target, true
+}
+
+func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target parallelIndexedAssignmentTarget, tmpName string, rhs ast.Expr, indent string) {
+	tmpWrapped := tempHoldsWrappedValue(rhs)
+	typeInfo := GetTypeInfo()
+	elemType := indexedSequenceElementAssignmentType(typeInfo, target.indexExpr)
+	elemKeepsHandle := indexedSequenceElementKeepsHandle(elemType)
+	if !elemKeepsHandle {
+		elemKeepsHandle = tupleTempAssignsHandleToElementBySyntax(target.indexExpr.X)
+	}
+
+	out.WriteString(indent)
+	out.WriteString("(*")
+	if target.holdsSequence {
+		out.WriteString(target.sequenceName)
+	} else if subj := unwrapParens(target.indexExpr.X); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else if subj := unwrapParens(target.indexExpr.X); isNamedArrayExpression(subj) {
+		writeNamedArrayInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, target.indexExpr.X, LValue)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[")
+	out.WriteString(target.indexName)
+	out.WriteString("] = ")
+	writeIndexedSequenceTempAssignmentValue(out, target.indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
+	out.WriteString(";\n")
+}
+
 func writePointerHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
@@ -12042,7 +12227,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						isString = true
 					}
 					// A named string newtype concatenates through its Add impl.
-					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(typeInfo.GetType(s.Lhs[0]))
+					// In a method of the type itself, `*n += "!"` updates the String
+					// the receiver holds, which push_str does.
+					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(compoundAssignRHSExpectedType(s.Lhs[0], typeInfo.GetType(s.Lhs[0])))
 					if namedStringNewtype {
 						isString = false
 					}
@@ -12512,6 +12699,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// For reassignment, use temporaries to handle swaps correctly
 					indent := currentLineIndent(out)
 					out.WriteString("{\n")
+					// Go evaluates the operands of indexed LHS targets before any
+					// RHS expression. Capture them in source order before building
+					// the RHS temporaries, then perform the writes left to right.
+					preparedIndexTargets := make([]parallelIndexedAssignmentTarget, len(s.Lhs))
+					for i, lhs := range s.Lhs {
+						if target, ok := prepareParallelIndexedAssignmentTarget(out, lhs, i, indent+"    "); ok {
+							preparedIndexTargets[i] = target
+						}
+					}
 					// First, capture all RHS values into temporaries
 					for i, rhs := range s.Rhs {
 						out.WriteString(indent)
@@ -12522,7 +12718,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
-						writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
+						if preparedIndexTargets[i].indexExpr != nil {
+							writeParallelAssignmentPreparedIndexTargetLine(out, preparedIndexTargets[i], fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
+						} else {
+							writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
+						}
 					}
 					out.WriteString(indent)
 					out.WriteString("}")
@@ -13305,19 +13505,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
 													registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
 												}
-												// Check if it's a struct literal vs array/slice/map literal
-												isStructLiteral := false
-												if _, ok := compositeLit.Type.(*ast.Ident); ok {
-													isStructLiteral = true
-												} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-													isStructLiteral = true
-												}
-												if compositeLiteralEmitsBareStructValue(compositeLit) {
+												needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+												emitsBareSpecialValue := compositeLiteralEmitsBareStructValue(compositeLit)
+												if emitsBareSpecialValue {
 													registerBareShortDecl(s.Lhs[0])
 												}
 
-												if isStructLiteral {
-													// Struct literals need to be wrapped
+												if !hasTypeInfo {
+													out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+												} else if needsLocalWrapper && !emitsBareSpecialValue {
+													// Named composites and unnamed structs need an outer local value wrapper.
 													WriteWrapperPrefix(out)
 													TranspileExpression(out, rhs)
 													WriteWrapperSuffix(out)
@@ -13700,16 +13897,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// "var mu = sync.Mutex{}" is the bare value, as "mu := sync.Mutex{}" is.
 										registerBareShortDecl(name)
 									}
-									// Check if it's a struct literal vs array/slice/map literal
-									isStructLiteral := false
-									if _, ok := compositeLit.Type.(*ast.Ident); ok {
-										isStructLiteral = true
-									} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-										isStructLiteral = true
-									}
+									needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+									emitsBareSpecialValue := valueSpec.Type == nil && compositeLiteralEmitsBareStructValue(compositeLit)
 
-									if isStructLiteral {
-										// Struct literals need to be wrapped
+									if !hasTypeInfo {
+										out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+									} else if needsLocalWrapper && !emitsBareSpecialValue {
+										// Named composites and unnamed structs need an outer local value wrapper.
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
@@ -14184,6 +14378,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var keyName, valueName string
 		keyAssigned := false
 		valueAssigned := false
+		// valueMutated is also true when the body calls a pointer method
+		// on the value, which needs the binding mutable.
+		valueMutated := false
 		rangeAssignsExisting := s.Tok == token.ASSIGN
 
 		// Use type information to determine what we're iterating over
@@ -14496,6 +14693,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				valueAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, valueName)
+				valueMutated = valueAssigned || (!rangeAssignsExisting && blockCallsPointerMethodOnValue(s.Body, valueName))
 				registeredValueType := valueType
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
@@ -14571,7 +14769,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
 		}
 		writeRangeValueBinding := func() {
-			writeRangePatternBinding(out, s.Value, valueAssigned, valueBindingTemp)
+			writeRangePatternBinding(out, s.Value, valueMutated, valueBindingTemp)
 		}
 		writeMapRangeKeyBinding := func() {
 			if keyBindingTemp != "" {
@@ -16435,6 +16633,10 @@ func writeUnsupportedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, target
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	// A named string appends the String it holds.
+	if writeNamedStringNewtypeInnerValue(out, rhs) {
+		return
+	}
 	if writeBareStringSliceValue(out, rhs, types.Typ[types.String]) {
 		return
 	}

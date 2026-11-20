@@ -1171,6 +1171,14 @@ run_xfail_test() {
     run_test "tests/fmt_println_repeated_selector_concurrent"
 }
 
+@test "fmt_sprint_and_sprintln" {
+    run_test "tests/fmt_sprint_and_sprintln"
+}
+
+@test "fmt_sprint_and_sprintln_goroutines" {
+    run_test "tests/fmt_sprint_and_sprintln_goroutines"
+}
+
 @test "fmt_sprintf_type_name_call" {
     run_test "tests/fmt_sprintf_type_name_call"
 }
@@ -1277,6 +1285,14 @@ run_xfail_test() {
 
 @test "generic_pointer_interface_type_arg" {
     run_test "tests/generic_pointer_interface_type_arg"
+}
+
+@test "generic_struct_local_copy" {
+    run_test "tests/generic_struct_local_copy"
+}
+
+@test "generic_struct_local_copy_goroutines" {
+    run_test "tests/generic_struct_local_copy_goroutines"
 }
 
 @test "generic_struct_pointer_receiver" {
@@ -1879,6 +1895,14 @@ run_xfail_test() {
     run_test "tests/named_pointer_defer_return"
 }
 
+@test "named_scalar_copies_are_values" {
+    run_test "tests/named_scalar_copies_are_values"
+}
+
+@test "named_scalar_copies_are_values_goroutines" {
+    run_test "tests/named_scalar_copies_are_values_goroutines"
+}
+
 @test "named_slice_field_method_argument" {
     run_test "tests/named_slice_field_method_argument"
 }
@@ -2153,6 +2177,14 @@ run_xfail_test() {
 
 @test "parallel_assign_value_field_swap" {
     run_test "tests/parallel_assign_value_field_swap"
+}
+
+@test "parallel_assignment_lhs_evaluation_order" {
+    run_test "tests/parallel_assignment_lhs_evaluation_order"
+}
+
+@test "parallel_assignment_lhs_evaluation_order_goroutines" {
+    run_test "tests/parallel_assignment_lhs_evaluation_order_goroutines"
 }
 
 @test "parallel_decl_from_wrapped_fields" {

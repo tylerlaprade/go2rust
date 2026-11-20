@@ -764,8 +764,15 @@ pub const ACTIVE: &'static str = "active";
 pub const INACTIVE: &'static str = "inactive";
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
+
+impl Clone for Celsius {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Celsius {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -905,8 +912,15 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
+
+impl Clone for Fahrenheit {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Fahrenheit(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Fahrenheit {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1084,8 +1098,15 @@ impl std::fmt::Display for Reading {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Color(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for Color {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Color(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1154,8 +1175,15 @@ impl std::ops::Add<&str> for Color {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Status(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for Status {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Status(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Status {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1224,8 +1252,15 @@ impl std::ops::Add<&str> for Status {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Enabled(pub Rc<RefCell<Option<bool>>>);
+
+impl Clone for Enabled {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Enabled(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Enabled {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -1242,8 +1277,15 @@ impl PartialEq for Enabled {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Meters(pub Rc<RefCell<Option<f64>>>);
+
+impl Clone for Meters {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Meters(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Meters {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

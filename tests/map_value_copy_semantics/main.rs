@@ -7,8 +7,15 @@ use std::rc::{Rc};
 /// must snapshot its value, not alias the variable's handle (which would make
 /// every entry track the variable's final value). Mirrors go/token's
 /// keywords[tokens[i]] = i.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Tok(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Tok {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Tok(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Tok {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

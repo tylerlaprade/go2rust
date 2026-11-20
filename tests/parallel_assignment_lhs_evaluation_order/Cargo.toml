@@ -1,0 +1,8 @@
+[package]
+name = "parallel_assignment_lhs_evaluation_order"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "parallel_assignment_lhs_evaluation_order"
+path = "main.rs"

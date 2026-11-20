@@ -6,8 +6,15 @@ pub const VAR: i32 = 0 + 1;
 pub const IDENT: i32 = 1 + 1;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Token(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Token {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Token(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
