@@ -617,3 +617,38 @@ func main() {
 		t.Fatalf("no assertion should downcast to the closure box:\n%s", rust)
 	}
 }
+
+// The value of a range over a []interface{} is a &Box<dyn Any>. Put into a
+// new interface value, it is copied out of the box with go_any_clone, and
+// printed, it is the box's payload. Cloning the reference did not compile,
+// and passing the reference itself to go_any_clone would copy the Box, not
+// what it holds.
+func TestRangeValueOverAnySliceIsCopiedOutOfItsBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func show(v interface{}) { fmt.Println(v) }
+
+func main() {
+	values := []interface{}{"a", 1}
+	for _, val := range values {
+		show(val)
+		var copy any = val
+		fmt.Println(copy, val)
+	}
+}
+`)
+	for _, want := range []string{
+		"show(Rc::new(RefCell::new(Some(go_any_clone(val.as_ref())))));",
+		"Rc::new(RefCell::new(Some(go_any_clone(val.as_ref()))));",
+		"format_any(val.as_ref())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "show(val.clone())") {
+		t.Fatalf("the range value must not be passed as a cloned reference:\n%s", rust)
+	}
+}

@@ -2335,6 +2335,14 @@ run_xfail_test() {
     run_test "tests/range_nil_named_map_field"
 }
 
+@test "range_over_any_slice_values" {
+    run_test "tests/range_over_any_slice_values"
+}
+
+@test "range_over_any_slice_values_goroutines" {
+    run_test "tests/range_over_any_slice_values_goroutines"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }
