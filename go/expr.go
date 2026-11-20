@@ -1189,6 +1189,16 @@ func isLocalVarIdent(ident *ast.Ident) bool {
 	return ok && !isPackageScopeObject(obj)
 }
 
+// writeStringSequenceOwnedValue writes expr as a String the caller owns. A
+// bare String variable, a range value say, is cloned, not moved: the program
+// may use it again.
+func writeStringSequenceOwnedValue(out *strings.Builder, expr ast.Expr) {
+	writeStringSequenceValue(out, expr)
+	if _, isIdent := unwrapParens(expr).(*ast.Ident); isIdent && !isStringConstExpr(expr) && isExpressionResultBare(expr) {
+		out.WriteString(".clone()")
+	}
+}
+
 func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
 	if writeNamedStringNewtypeInnerValue(out, expr) {
 		return
@@ -14886,7 +14896,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 			for i, elt := range values {
+				// The separator goes before each element after the first, so
+				// an element written by an early `continue` below gets one too.
 				if multilineCollectionLiteral {
+					if i > 0 {
+						out.WriteString(",\n")
+					}
 					out.WriteString(collectionLiteralIndent)
 					out.WriteString("    ")
 				} else if i > 0 {
@@ -14914,9 +14929,6 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// An error goes into a []any literal the way it goes into
 					// any other interface value.
 					if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
-						if multilineCollectionLiteral {
-							out.WriteString(",\n")
-						}
 						continue
 					}
 					out.WriteString("Box::new(")
@@ -14967,9 +14979,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						TranspileExpression(out, elt)
 					}
 				}
-				if multilineCollectionLiteral {
-					out.WriteString(",\n")
-				}
+			}
+			if multilineCollectionLiteral && len(values) > 0 {
+				out.WriteString(",\n")
 			}
 			if arrayType.Len != nil {
 				if multilineCollectionLiteral {
@@ -22188,6 +22200,23 @@ func writeElemPtrPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr,
 }
 
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
+	if sel, arity, ok := methodCallArgsReadReceiver(call); ok {
+		var inner strings.Builder
+		transpileCallInOrder(&inner, call)
+		if hoisted, ok := hoistMethodCallArgs(inner.String(), rustMethodSelectorName(sel), arity); ok {
+			out.WriteString(hoisted)
+		} else {
+			out.WriteString(inner.String())
+		}
+		return
+	}
+	transpileCallInOrder(out, call)
+}
+
+// transpileCallInOrder writes a call as Rust evaluates it: a method call's
+// receiver before its arguments. TranspileCall reorders that when the
+// arguments read the receiver.
+func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 	if writeInternalABITypeOfMapTypeCall(out, call) {
 		return
 	}

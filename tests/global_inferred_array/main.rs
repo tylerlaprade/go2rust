@@ -57,7 +57,7 @@ pub(crate) static items: GoGlobal<[item; 2]> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *items.borrow_mut() = Some(std::array::from_fn(|_| Default::default()));
+    *items.borrow_mut() = Some(std::array::from_fn::<_, 2, _>(|_| Default::default()));
     {
         let mut __go_array = Vec::<item>::with_capacity(2);
         __go_array.push(item { name: Rc::new(RefCell::new(Some("first".to_string()))), ..Default::default() });

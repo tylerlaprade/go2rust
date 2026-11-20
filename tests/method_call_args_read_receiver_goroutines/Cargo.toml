@@ -1,0 +1,8 @@
+[package]
+name = "method_call_args_read_receiver_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "method_call_args_read_receiver_goroutines"
+path = "main.rs"

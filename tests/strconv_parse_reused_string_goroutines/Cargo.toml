@@ -1,0 +1,8 @@
+[package]
+name = "strconv_parse_reused_string_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "strconv_parse_reused_string_goroutines"
+path = "main.rs"

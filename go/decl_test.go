@@ -1273,7 +1273,7 @@ func use() defaults {
 		"let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));",
 		"let __go_default_2_0 = Arc::new(Mutex::new(None));",
 		"let __go_default_3_0 = Arc::new(Mutex::new(None));",
-		"let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| false))));",
+		"let __go_default_4_0 = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| false))));",
 		"Self {\n            a: __go_default_0_0,\n            b: __go_default_1_0,\n            next: __go_default_2_0,\n            values: __go_default_3_0,\n            flags: __go_default_4_0,\n        }",
 	} {
 		if !strings.Contains(rust, want) {

@@ -1431,6 +1431,14 @@ run_xfail_test() {
     run_test "tests/interface_slice_literal_concrete_elems"
 }
 
+@test "interface_slice_literal_long" {
+    run_test "tests/interface_slice_literal_long"
+}
+
+@test "interface_slice_literal_long_goroutines" {
+    run_test "tests/interface_slice_literal_long_goroutines"
+}
+
 @test "interface_slice_method_call" {
     run_test "tests/interface_slice_method_call"
 }
@@ -1747,6 +1755,14 @@ run_xfail_test() {
     run_test "tests/method_any_argument"
 }
 
+@test "method_call_args_read_receiver" {
+    run_test "tests/method_call_args_read_receiver"
+}
+
+@test "method_call_args_read_receiver_goroutines" {
+    run_test "tests/method_call_args_read_receiver_goroutines"
+}
+
 @test "method_call_struct_field_pointer" {
     run_test "tests/method_call_struct_field_pointer"
 }
@@ -1997,6 +2013,14 @@ run_xfail_test() {
 
 @test "nested_slice_array_append" {
     run_test "tests/nested_slice_array_append"
+}
+
+@test "nested_slice_element_updates" {
+    run_test "tests/nested_slice_element_updates"
+}
+
+@test "nested_slice_element_updates_goroutines" {
+    run_test "tests/nested_slice_element_updates_goroutines"
 }
 
 @test "nested_structures" {
@@ -3065,6 +3089,14 @@ run_xfail_test() {
 
 @test "strconv_parse" {
     run_test "tests/strconv_parse"
+}
+
+@test "strconv_parse_reused_string" {
+    run_test "tests/strconv_parse_reused_string"
+}
+
+@test "strconv_parse_reused_string_goroutines" {
+    run_test "tests/strconv_parse_reused_string_goroutines"
 }
 
 @test "strconv_quote_empty" {

@@ -137,7 +137,7 @@ impl Grid {
 
 impl Default for Grid {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default()))));
         Self {
             cells: __go_default_0_0,
         }
@@ -345,7 +345,7 @@ fn main() {
     { let new_val = 7; *(*arr2.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "array".to_string()), format!("{}", format_slice(&arr)), format!("{}", format_slice(&arr2)));
 
-    let mut g1 = Rc::new(RefCell::new(Some(Grid { cells: Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default())))) })));
+    let mut g1 = Rc::new(RefCell::new(Some(Grid { cells: Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default())))) })));
     let mut g2 = { let __owned = g1.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let new_val = 5; *(*(*g2.borrow().as_ref().unwrap()).cells.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "array in struct".to_string()), format!("{}", (*g1.borrow().as_ref().unwrap())), format!("{}", (*g2.borrow().as_ref().unwrap())));

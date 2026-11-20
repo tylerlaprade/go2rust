@@ -41,7 +41,7 @@ impl<T: Any + 'static> Clone for C<T> {
 impl<T: Any + 'static> Default for C<T> {
     fn default() -> Self {
         let __go_default_0_0 = Rc::new(RefCell::new(Some(P::default())));
-        let __go_default_1_0 = Rc::new(RefCell::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_1_0 = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default()))));
         let __go_default_2_0 = Rc::new(RefCell::new(None));
         let __go_default_3_0 = Rc::new(RefCell::new(Some(0)));
         Self {
