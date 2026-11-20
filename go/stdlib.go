@@ -476,6 +476,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				writeCollectionFormatHandleIdent(out, ident)
+			} else if writeAnyHandleAssertionHandle(out, arg) {
+				// A map asserted out of an interface: the handle it holds.
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -541,7 +543,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString(")")
 			} else {
 				out.WriteString("format_slice(&")
-				TranspileExpression(out, arg)
+				if !writeAnyHandleAssertionHandle(out, arg) {
+					TranspileExpression(out, arg)
+				}
 				out.WriteString(")")
 			}
 			return

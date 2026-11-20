@@ -1,0 +1,8 @@
+[package]
+name = "local_variable_copies_of_slices_maps_channels"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_variable_copies_of_slices_maps_channels"
+path = "main.rs"

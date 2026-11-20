@@ -33,7 +33,7 @@ pub fn describe(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
     let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
     if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         let arg = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
-        let _ = (*arg.borrow().as_ref().unwrap());;
+        let _ = &arg;;
         { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); };
     }
     }

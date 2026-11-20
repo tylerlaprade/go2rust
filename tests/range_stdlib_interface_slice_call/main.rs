@@ -35,7 +35,7 @@ pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ExprStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ExprStmtPtr>()).unwrap().0.clone();
-        let _ = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone();;
+        let _ = &(*s.lock().unwrap().as_ref().unwrap()).x;;
         return Arc::new(Mutex::new(Some("expr".to_string())));;
     } else {
         let s = _ts_subject.clone();

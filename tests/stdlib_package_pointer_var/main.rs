@@ -30,7 +30,7 @@ fn main() {
     if false {
         let mut pkg: Rc<RefCell<Option<types_Package>>> = Rc::new(RefCell::new(None));
         { let new_val = types::Unsafe().clone(); pkg = new_val; };
-        let _ = (*pkg.borrow().as_ref().unwrap());
+        let _ = &pkg;
     }
 
     println!("{}", format!("{}", "ok".to_string()));

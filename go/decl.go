@@ -6246,6 +6246,12 @@ func sequenceDisplayFormatter(elem types.Type) (string, bool) {
 		return "", false
 	}
 	if intf, ok := elem.Underlying().(*types.Interface); ok {
+		// An interface of a bridged stdlib package, such as ast.Expr when
+		// go/ast is not translated from source, is a stand-in struct held
+		// bare in the slice, not a trait object in a cell.
+		if named, isNamed := elem.(*types.Named); isNamed && named.Obj() != nil && named.Obj().Pkg() != nil && isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+			return "format_slice", true
+		}
 		if intf.NumMethods() > 0 {
 			return "format_slice_wrapped_stringer", true
 		}

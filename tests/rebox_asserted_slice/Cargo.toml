@@ -1,0 +1,8 @@
+[package]
+name = "rebox_asserted_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rebox_asserted_slice"
+path = "main.rs"
