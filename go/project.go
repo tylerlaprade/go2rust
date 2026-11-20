@@ -1068,9 +1068,6 @@ func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSha
 		return rustCode
 	}
 	prefix := formatCrateUse(names)
-	if helpers.goSlice() || goSliceModeEnabled() && !omitSharedStdlibHelpers {
-		prefix += goSliceVecMacro
-	}
 	if strings.TrimSpace(rustCode) == "" {
 		return prefix
 	}
@@ -1277,6 +1274,9 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	}
 
 	var mainRust strings.Builder
+	if goSliceModeEnabled() {
+		mainRust.WriteString(goSliceVecMacro)
+	}
 	if pg.packageHelpersNeeded(packageState) {
 		helperCode := pg.packageHelperModuleCode(packageState)
 		mainContent = stripRustUseImportsProvidedByHelperModule(mainContent, helperCode)

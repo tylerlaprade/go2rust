@@ -22,9 +22,10 @@ func goSliceModeEnabled() bool {
 var goSliceImportNames = []string{"GoSlice", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "Vec"}
 
 // goSliceVecMacro shadows the prelude's vec! with one that makes a GoSlice.
-// A macro reached through a glob import is ambiguous with the prelude's, so
-// every module file that is not the one defining GoSlice starts with its
-// own copy: a macro_rules definition takes precedence over both.
+// A macro reached through an import, or defined in an include!d file, is
+// ambiguous with the prelude's, so every generated file that is not
+// include!d defines its own copy at the top: a macro_rules definition
+// written in the file itself takes precedence over the prelude.
 const goSliceVecMacro = `#[allow(unused_macros)]
 macro_rules! vec {
     () => (GoSlice::new());
@@ -32,14 +33,6 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 `
-
-// prefixGoSliceVecMacro starts a module file with goSliceVecMacro.
-func prefixGoSliceVecMacro(rustCode string) string {
-	if !goSliceModeEnabled() || strings.Contains(rustCode, "macro_rules! vec {") {
-		return rustCode
-	}
-	return goSliceVecMacro + rustCode
-}
 
 // stdVecPath names the standard library's Vec, for scratch vectors that
 // are not Go slices.
@@ -97,6 +90,22 @@ func goSliceHelperText(text string) string {
 	).Replace(text)
 }
 
+// goSliceStubText adapts the hand-written standard-library stubs to GoSlice
+// mode: the bytes they make with std APIs become Go slices.
+func goSliceStubText(text string) string {
+	if !goSliceModeEnabled() {
+		return text
+	}
+	return strings.NewReplacer(
+		"self.into_bytes()", "Vec::from(self.into_bytes())",
+		"self.as_bytes().to_vec()", "self.as_bytes().to_go_slice()",
+		"self.to_vec()", "self.to_go_slice()",
+		"value.as_bytes().to_vec()", "value.as_bytes().to_go_slice()",
+		"std::sync::Mutex::new(data))", "std::sync::Mutex::new(Vec::from(data)))",
+		"let bytes = value.into_bytes();", "let bytes = Vec::from(value.into_bytes());",
+	).Replace(text)
+}
+
 func generateGoSliceHelper(out *strings.Builder) {
 	out.WriteString(goSliceRuntime)
 }
@@ -121,7 +130,6 @@ unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
 /// The prelude's Vec and vec! are Go slices in generated code.
 pub type Vec<T> = GoSlice<T>;
 
-` + goSliceVecMacro + `
 impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.

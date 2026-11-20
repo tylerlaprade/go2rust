@@ -1166,6 +1166,9 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	cargoDependencyCrates := addGeneratedCrateDependencies(initDependencyCrates, crateName, pkgState.GeneratedCrateDependencies)
 
 	// Generate lib.rs
+	if goSliceModeEnabled() {
+		libRs.WriteString(goSliceVecMacro)
+	}
 	if helpersNeeded {
 		libRs.WriteString(fmt.Sprintf("include!(\"%s\");\n", packageHelperIncludeFile))
 	}
@@ -1272,9 +1275,6 @@ func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames
 
 func prefixSharedStdlibStubImport(rustCode string) string {
 	importLine := fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName)
-	if goSliceModeEnabled() {
-		importLine += goSliceVecMacro
-	}
 	if strings.TrimSpace(rustCode) == "" {
 		return importLine
 	}

@@ -7997,7 +7997,7 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
-			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = Vec::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
+			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = " + stdVecPath() + "::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
 			WriteBorrowMethod(out, true)
 			out.WriteString("; let __range_value = std::mem::replace(&mut __range_guard.as_mut().unwrap()[__range_index], Box::new(()) as ")
 			out.WriteString(rustAnyTraitObject())
