@@ -1177,40 +1177,6 @@ impl std::fmt::Display for Optional__string {
 }
 
 
-impl List__string {
-    pub fn push(&mut self, v: Arc<Mutex<Option<String>>>) {
-        { let new_val = Arc::new(Mutex::new(Some(Node__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
-        { let __target = self.size.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    pub fn each(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>>>>) {
-        let mut n = self.head.clone();
-    while { let __nil_result = (*n.lock().unwrap()).is_some(); __nil_result } {
-        {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync> = {
-                let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
-                Arc::new(Mutex::new(Some({ let __selector_holder = (*n.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
-            )
-        };
-        { let new_val = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); n = new_val; };
-    }
-    }
-
-    pub fn slice(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
-        let mut out_closure_clone = out.clone(); self.each(
-            Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<String>>>| {
-        { let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>))),
-        );
-        return out.clone();
-    }
-}
-
 impl List__int {
     pub fn push(&mut self, v: Arc<Mutex<Option<i32>>>) {
         { let new_val = Arc::new(Mutex::new(Some(Node__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
@@ -1240,6 +1206,40 @@ impl List__int {
             Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i32>>>| {
         { let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>))),
+        );
+        return out.clone();
+    }
+}
+
+impl List__string {
+    pub fn push(&mut self, v: Arc<Mutex<Option<String>>>) {
+        { let new_val = Arc::new(Mutex::new(Some(Node__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
+        { let __target = self.size.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+
+    pub fn each(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>>>>) {
+        let mut n = self.head.clone();
+    while { let __nil_result = (*n.lock().unwrap()).is_some(); __nil_result } {
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync> = {
+                let mut __f_guard = f.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some({ let __selector_holder = (*n.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+            )
+        };
+        { let new_val = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); n = new_val; };
+    }
+    }
+
+    pub fn slice(&self) -> Arc<Mutex<Option<Vec<String>>>> {
+        let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
+        let mut out_closure_clone = out.clone(); self.each(
+            Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<String>>>| {
+        { let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>))),
         );
         return out.clone();
     }

@@ -1030,29 +1030,6 @@ impl std::fmt::Display for Optional__string {
 }
 
 
-impl List__string {
-    pub fn push(&mut self, v: Rc<RefCell<Option<String>>>) {
-        { let new_val = Rc::new(RefCell::new(Some(Node__string { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
-        { let __target = self.size.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    pub fn each(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>) {
-        let mut n = self.head.clone();
-    while { let __nil_result = (*n.borrow()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
-        { let new_val = (*n.borrow().as_ref().unwrap()).next.clone(); n = new_val; };
-    }
-    }
-
-    pub fn slice(&self) -> Rc<RefCell<Option<Vec<String>>>> {
-        let mut out: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-        let mut out_closure_clone = out.clone(); self.each(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<String>>>| {
-        { let __append_target = out_closure_clone.clone(); let __append_value = (*v.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))));
-        return out.clone();
-    }
-}
-
 impl List__int {
     pub fn push(&mut self, v: Rc<RefCell<Option<i32>>>) {
         { let new_val = Rc::new(RefCell::new(Some(Node__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
@@ -1072,6 +1049,29 @@ impl List__int {
         let mut out_closure_clone = out.clone(); self.each(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i32>>>| {
         { let __append_target = out_closure_clone.clone(); let __append_value = (*v.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>))));
+        return out.clone();
+    }
+}
+
+impl List__string {
+    pub fn push(&mut self, v: Rc<RefCell<Option<String>>>) {
+        { let new_val = Rc::new(RefCell::new(Some(Node__string { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
+        { let __target = self.size.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+
+    pub fn each(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>) {
+        let mut n = self.head.clone();
+    while { let __nil_result = (*n.borrow()).is_some(); __nil_result } {
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let new_val = (*n.borrow().as_ref().unwrap()).next.clone(); n = new_val; };
+    }
+    }
+
+    pub fn slice(&self) -> Rc<RefCell<Option<Vec<String>>>> {
+        let mut out: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
+        let mut out_closure_clone = out.clone(); self.each(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<String>>>| {
+        { let __append_target = out_closure_clone.clone(); let __append_value = (*v.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))));
         return out.clone();
     }
 }
@@ -1122,19 +1122,6 @@ impl Tree__string {
     }
 }
 
-impl Optional__string {
-    pub fn get(&self) -> (Rc<RefCell<Option<String>>>, bool) {
-        return ({ let __return_value_0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*self.ok.borrow().as_ref().unwrap()));
-    }
-
-    pub fn or_else(&self, d: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-        if (*self.ok.clone().borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-    }
-        { let __owned = d.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }
-    }
-}
-
 impl Optional__int {
     pub fn get(&self) -> (i32, bool) {
         return ((*self.val.borrow().as_ref().unwrap()), (*self.ok.borrow().as_ref().unwrap()));
@@ -1145,6 +1132,19 @@ impl Optional__int {
         return (*self.val.borrow().as_ref().unwrap());
     }
         (*d.borrow().as_ref().unwrap())
+    }
+}
+
+impl Optional__string {
+    pub fn get(&self) -> (Rc<RefCell<Option<String>>>, bool) {
+        return ({ let __return_value_0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*self.ok.borrow().as_ref().unwrap()));
+    }
+
+    pub fn or_else(&self, d: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        if (*self.ok.clone().borrow().as_ref().unwrap()) {
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    }
+        { let __owned = d.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }
     }
 }
 
