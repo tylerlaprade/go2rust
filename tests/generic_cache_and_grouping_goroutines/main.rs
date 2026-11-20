@@ -951,6 +951,14 @@ impl std::fmt::Display for User {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for User {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.age.lock().unwrap().as_ref().cloned() }; let __right = { other.age.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 pub trait Number: std::fmt::Display + Any {

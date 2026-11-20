@@ -4454,26 +4454,10 @@ func writeLocalInterfaceSliceLiteralElement(out *strings.Builder, arg ast.Expr, 
 	if !types.AssignableTo(argType, elemType) {
 		return false
 	}
-	if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(argType); argOK {
-		if argIface != ifaceName {
-			if localInterfaceCanRustTraitUpcast(argIface, ifaceName) {
-				writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
-			} else {
-				writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, elemType)
-			}
-			return true
-		}
-		if ident, ok := arg.(*ast.Ident); ok {
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(".clone()")
-			return true
-		}
-		if sel, ok := arg.(*ast.SelectorExpr); ok {
-			writeSelectorHandleClone(out, sel)
-			return true
-		}
+	if writeInterfaceValueForInterfaceSlot(out, arg, ifaceName, elemType, func() {
 		TranspileExpressionContext(out, arg, LValue)
 		out.WriteString(".clone()")
+	}) {
 		return true
 	}
 	writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, elemType)
@@ -4558,23 +4542,26 @@ func writeFunctionTypeAliasInnerValue(out *strings.Builder, arg ast.Expr) {
 	TranspileExpressionContext(out, arg, LValue)
 }
 
-// writeLocalInterfaceSubtraitUpcast emits a block expression that unwraps the
-// supplied wrapped subtrait value and re-wraps it as the supertrait. Rust's
-// trait-upcasting coercion handles the Box<dyn Sub> → Box<dyn Super> step.
+// writeLocalInterfaceSubtraitUpcast emits a block expression that copies the
+// supplied wrapped subtrait value into a new handle of the supertrait. Rust's
+// trait-upcasting coercion handles the Box<dyn Sub> → Box<dyn Super> step. A
+// nil value stays nil: Go converts a nil interface to a nil interface.
 func writeLocalInterfaceSubtraitUpcast(out *strings.Builder, arg ast.Expr, supertraitName string) {
 	outer := GetOuterWrapperType()
 	inner := GetInnerWrapperType()
 	trackWrapperImports()
-	out.WriteString("{ let __inner: ")
+	out.WriteString("{ let __inner: Option<")
 	out.WriteString(rustLocalInterfaceTraitObject(supertraitName))
-	out.WriteString(" = (*")
+	out.WriteString("> = (*")
 	TranspileExpressionContext(out, arg, LValue)
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone(); ")
+	out.WriteString(").clone().map(|__v| -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(supertraitName))
+	out.WriteString(" { __v }); ")
 	out.WriteString(outer)
 	out.WriteString("::new(")
 	out.WriteString(inner)
-	out.WriteString("::new(Some(__inner))) }")
+	out.WriteString("::new(__inner)) }")
 }
 
 // writeLocalInterfaceWrappedConstruction emits
@@ -10263,15 +10250,14 @@ func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldEx
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil {
-		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(value)); ok {
-			if _, ok := value.(*ast.SelectorExpr); ok {
-				out.WriteString("{ let __field = ")
-				TranspileExpressionContext(out, value, LValue)
-				out.WriteString(".clone(); __field }")
-			} else {
-				TranspileExpressionContext(out, value, LValue)
-				out.WriteString(".clone()")
-			}
+		expectedIface := fieldType
+		if expectedIface == nil && fieldExpr != nil {
+			expectedIface = typeInfo.GetType(fieldExpr)
+		}
+		if writeInterfaceValueForInterfaceSlot(out, value, interfaceName, expectedIface, func() {
+			TranspileExpressionContext(out, value, LValue)
+			out.WriteString(".clone()")
+		}) {
 			return true
 		}
 		expected := fieldType
@@ -11537,6 +11523,12 @@ func writeTranspiledInterfaceMapValue(out *strings.Builder, value ast.Expr, valu
 	}
 	if !types.AssignableTo(valueActualType, valueType) {
 		return false
+	}
+	ifaceName, _ := transpiledNamedInterfaceTypeNameFromTypes(valueType)
+	if writeInterfaceValueForInterfaceSlot(out, value, ifaceName, valueType, func() {
+		writeLocalInterfaceReferenceCallArgument(out, value, valueType)
+	}) {
+		return true
 	}
 	writeLocalInterfaceReferenceCallArgument(out, value, valueType)
 	return true
@@ -20089,6 +20081,18 @@ func typeAssertionSourceIsTraitObjectRef(expr ast.Expr) bool {
 	return isLocalInterfaceRefIdent(expr) || isBareLocalInterfaceValue(expr)
 }
 
+// writeTraitObjectAssertionSourceAsAny writes the asserted trait object as a
+// &dyn Any.
+func writeTraitObjectAssertionSourceAsAny(out *strings.Builder, expr ast.Expr) {
+	var source strings.Builder
+	writeTraitObjectAssertionSourceRef(&source, expr)
+	qualifying := ""
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		qualifying = goAsAnyQualifyingTrait(typeInfo.GetType(expr))
+	}
+	out.WriteString(goAsAnyCall(qualifying, source.String(), "&*("+source.String()+")"))
+}
+
 func writeTraitObjectAssertionSourceRef(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString(rustIdentForUseWithCapture(ident))
@@ -20098,7 +20102,10 @@ func writeTraitObjectAssertionSourceRef(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeTraitObjectBoxDowncast(out *strings.Builder, sourceTrait string, rustType string) {
-	if sourceTrait != "" {
+	if qualifying := goAsAnyQualifyingTraitByName(sourceTrait); qualifying != "" {
+		out.WriteString(goAsAnyCall(qualifying, "", "any_val.as_ref()"))
+		out.WriteString(".downcast_ref::<")
+	} else if sourceTrait != "" {
 		out.WriteString("<")
 		out.WriteString(rustLocalInterfaceDynType(sourceTrait))
 		out.WriteString(">::__go_as_any(any_val.as_ref()).downcast_ref::<")
@@ -20414,8 +20421,8 @@ func writePointerHandleTypeAssertionValue(out *strings.Builder, e *ast.TypeAsser
 		out.WriteString("({\n")
 		if typeAssertionSourceIsTraitObjectRef(e.X) {
 			out.WriteString("        let any_val = ")
-			writeTraitObjectAssertionSourceRef(out, e.X)
-			out.WriteString(".__go_as_any();\n")
+			writeTraitObjectAssertionSourceAsAny(out, e.X)
+			out.WriteString(";\n")
 			out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
 			out.WriteString(handleType)
 			out.WriteString(">() {\n")
@@ -20546,8 +20553,8 @@ func writeTraitObjectPointerAssertionCommaOk(out *strings.Builder, e *ast.TypeAs
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        let any_val = ")
-		writeTraitObjectAssertionSourceRef(out, e.X)
-		out.WriteString(".__go_as_any();\n")
+		writeTraitObjectAssertionSourceAsAny(out, e.X)
+		out.WriteString(";\n")
 		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
 		out.WriteString(wrapperType)
 		out.WriteString(">() {\n")
@@ -20588,8 +20595,8 @@ func writeTraitObjectPointerAssertionValue(out *strings.Builder, e *ast.TypeAsse
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        let any_val = ")
-		writeTraitObjectAssertionSourceRef(out, e.X)
-		out.WriteString(".__go_as_any();\n")
+		writeTraitObjectAssertionSourceAsAny(out, e.X)
+		out.WriteString(";\n")
 		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
 		out.WriteString(wrapperType)
 		out.WriteString(">() {\n")
@@ -20624,8 +20631,8 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        let any_val = ")
-		writeTraitObjectAssertionSourceRef(out, e.X)
-		out.WriteString(".__go_as_any();\n")
+		writeTraitObjectAssertionSourceAsAny(out, e.X)
+		out.WriteString(";\n")
 		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">() {\n")
@@ -20678,8 +20685,8 @@ func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAss
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        let any_val = ")
-		writeTraitObjectAssertionSourceRef(out, e.X)
-		out.WriteString(".__go_as_any();\n")
+		writeTraitObjectAssertionSourceAsAny(out, e.X)
+		out.WriteString(";\n")
 		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">() {\n")
@@ -21100,8 +21107,8 @@ func writePointerHandleTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAss
 		out.WriteString("({\n")
 		if typeAssertionSourceIsTraitObjectRef(e.X) {
 			out.WriteString("        let any_val = ")
-			writeTraitObjectAssertionSourceRef(out, e.X)
-			out.WriteString(".__go_as_any();\n")
+			writeTraitObjectAssertionSourceAsAny(out, e.X)
+			out.WriteString(";\n")
 			out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
 			out.WriteString(handleType)
 			out.WriteString(">() {\n")

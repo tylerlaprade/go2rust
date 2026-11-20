@@ -49,6 +49,13 @@ impl std::fmt::Display for localVarDecl {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for localVarDecl {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left_some = self.spec.lock().unwrap().is_some(); let __right_some = other.spec.lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && Arc::ptr_eq(&self.spec, &other.spec)) }
+        )
+    }
+}
 
 
 impl localVarDecl {
@@ -69,7 +76,7 @@ impl localDecl for localVarDecl {
     }
     fn __go_eq_local_decl(&self, other: &(dyn localDecl + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<localVarDecl>() {
-            false
+            self == __other
         } else {
             false
         }

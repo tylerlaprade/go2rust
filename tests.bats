@@ -1475,6 +1475,14 @@ run_xfail_test() {
     run_test "tests/interface_embedded_method"
 }
 
+@test "interface_embedding_two_interfaces" {
+    run_test "tests/interface_embedding_two_interfaces"
+}
+
+@test "interface_embedding_two_interfaces_goroutines" {
+    run_test "tests/interface_embedding_two_interfaces_goroutines"
+}
+
 @test "interface_field_selector_assign" {
     run_test "tests/interface_field_selector_assign"
 }
@@ -1513,6 +1521,14 @@ run_xfail_test() {
 
 @test "interface_slice_nil_element" {
     run_test "tests/interface_slice_nil_element"
+}
+
+@test "interface_values_are_copied" {
+    run_test "tests/interface_values_are_copied"
+}
+
+@test "interface_values_are_copied_goroutines" {
+    run_test "tests/interface_values_are_copied_goroutines"
 }
 
 @test "interfaces_basic" {

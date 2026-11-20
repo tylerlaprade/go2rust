@@ -5047,7 +5047,23 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 	return true
 }
 
+// writeLocalInterfaceHandleClone writes the handle of an interface value that
+// is stored somewhere new: an element, a map value, a field, a variable. When
+// the value is read from a variable, a field or an element, the new place
+// gets a handle of its own holding a copy of the value. Sharing the handle
+// made a later assignment to the variable change the stored copy too.
 func writeLocalInterfaceHandleClone(out *strings.Builder, expr ast.Expr) {
+	if interfaceValueIsStoredInPlace(expr) {
+		writeLocalInterfaceValueCopy(out, expr)
+		return
+	}
+	writeLocalInterfaceHandleShare(out, expr)
+}
+
+// writeLocalInterfaceHandleShare writes a second handle on the interface
+// value's cell. It is right where the value is read out of the handle at
+// once, as an assignment does.
+func writeLocalInterfaceHandleShare(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok {
 		name := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
@@ -5093,8 +5109,9 @@ func writeLocalInterfaceWrappedValue(out *strings.Builder, expr ast.Expr, expect
 	if exprType == nil {
 		return false
 	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(exprType); ok {
-		writeLocalInterfaceHandleClone(out, expr)
+	if writeInterfaceValueForInterfaceSlot(out, expr, ifaceName, expectedType, func() {
+		writeLocalInterfaceHandleShare(out, expr)
+	}) {
 		return true
 	}
 	if types.AssignableTo(exprType, expectedType) {

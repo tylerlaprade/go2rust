@@ -800,6 +800,13 @@ impl std::fmt::Display for item {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for item {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 #[derive(Clone, Default)]
@@ -846,7 +853,7 @@ impl node for item {
     }
     fn __go_eq_node(&self, other: &(dyn node + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<item>() {
-            false
+            self == __other
         } else {
             false
         }

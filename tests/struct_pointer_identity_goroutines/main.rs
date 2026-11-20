@@ -1521,6 +1521,13 @@ impl std::fmt::Display for Square {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for Square {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.side.lock().unwrap().as_ref().cloned() }; let __right = { other.side.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl Counter {
@@ -1598,7 +1605,7 @@ impl Shape for Square {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Square>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1734,7 +1741,7 @@ fn main() {
 
     let mut s: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(SquarePtr(Arc::new(Mutex::new(Some(Square { side: Arc::new(Mutex::new(Some(1))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>)));
     (*s.lock().unwrap().as_mut().unwrap()).grow();
-    let mut t = s.clone();
+    let mut t = { let __iface_value = s.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
     (*t.lock().unwrap().as_mut().unwrap()).grow();
     println!("{} {}", format!("{}", "interface holding a pointer".to_string()), format!("{}", (*(*({
         let val = s.clone();

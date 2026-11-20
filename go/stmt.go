@@ -6052,7 +6052,7 @@ func writeLocalInterfaceHandleAssignmentValue(out *strings.Builder, lhs ast.Expr
 		// Interface-to-interface assignment may need re-boxing when the Rust
 		// trait-object types differ, such as imported Expr assigned to positioner.
 	} else {
-		writeLocalInterfaceHandleClone(out, rhs)
+		writeLocalInterfaceHandleShare(out, rhs)
 	}
 }
 
@@ -11906,6 +11906,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStructAliasValue(out, result)
 				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) && !returnSlotForcesWrappedValue(i) {
 					writeBareScalarReturnValue(out, result, resultType)
+				} else if writeInterfaceReturnValueCopy(out, result, returnResultTypeExpr(fnType, i)) {
+					// An interface value returned from a field, an element or a
+					// package variable is a copy of it.
 				} else {
 					// Check if this is a field access on self (already wrapped)
 					if isConcreteErrorReturnValue(result, returnResultTypeExpr(fnType, i)) {
@@ -13773,9 +13776,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Type-parameter values are represented by handles; clone the handle into the new local.
 											} else if isWrappedInterfaceSliceIndex(rhs) {
 												// IndexExpr on a slice of wrapped local-interface
-												// elements returns the same wrapped handle the
-												// variable should hold; re-wrapping double-wraps.
-												TranspileExpression(out, rhs)
+												// elements returns the element's handle; the
+												// variable gets a copy of the value in a handle of
+												// its own.
+												writeInterfaceHandleCopy(out, func() { TranspileExpression(out, rhs) })
+											} else if mapIndexExpressionKeepsHandle(rhs) && isTranspiledInterfaceValue(rhs) {
+												// An interface value read out of a map is copied
+												// into the variable's own handle.
+												writeInterfaceHandleCopy(out, func() { TranspileExpression(out, rhs) })
 											} else if mapIndexExpressionKeepsHandle(rhs) {
 												// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 												TranspileExpression(out, rhs)
@@ -16399,7 +16407,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = false;\n")
-			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());\n")
+			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(")
+			out.WriteString(goAsAnyCall(goAsAnyQualifyingTrait(typeSwitchSubjectType), "_ts_subject", "&*_ts_subject"))
+			out.WriteString(");\n")
 		} else if subjectIsTranspiledInterface {
 			typeSwitchCanRewrapInterfaceSubject = true
 			originalBindingSubject = "_ts_subject"
@@ -16413,12 +16423,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_owned = _ts_guard.as_ref().cloned();\n")
 			out.WriteString("    drop(_ts_guard);\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {\n")
-			out.WriteString("        let __any = __v.as_ref().__go_as_any();\n")
+			out.WriteString("        let __any = ")
+			out.WriteString(goAsAnyCall(goAsAnyQualifyingTrait(typeSwitchSubjectType), "__v.as_ref()", "__v.as_ref()"))
+			out.WriteString(";\n")
 			if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeSwitchSubjectType); ok {
 				out.WriteString("        if let Some(__boxed) = __any.downcast_ref::<")
 				out.WriteString(goTypesTypeToRust(typeSwitchSubjectType))
 				out.WriteString(">() {\n")
-				out.WriteString("            __boxed.as_ref().__go_as_any()\n")
+				out.WriteString("            ")
+				out.WriteString(goAsAnyCall(goAsAnyQualifyingTrait(typeSwitchSubjectType), "__boxed.as_ref()", "__boxed.as_ref()"))
+				out.WriteString("\n")
 				out.WriteString("        } else {\n")
 				out.WriteString("            __any\n")
 				out.WriteString("        }\n")

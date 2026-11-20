@@ -40,7 +40,10 @@ func methodCallArgsReadReceiver(call *ast.CallExpr) (*ast.SelectorExpr, int, boo
 		return nil, 0, false
 	}
 	fn, ok := selection.Obj().(*types.Func)
-	if !ok || fn.Pkg() == nil || isStdlibPackage(fn.Pkg().Path()) {
+	// A standard-library method translated from Go source is ordinary
+	// translated code and takes its receiver's lock the same way. Only a
+	// hand-written stub has other rules.
+	if !ok || fn.Pkg() == nil || isStubBackedStdlibPackagePath(fn.Pkg().Path()) {
 		return nil, 0, false
 	}
 	// A method of an interface has the same parameters, but the call goes
