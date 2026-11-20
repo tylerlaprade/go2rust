@@ -1893,15 +1893,26 @@ func writeNamedSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.T
 }
 
 func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
-	outer, ok := types.Unalias(argType).(*types.Slice)
+	// A slice or array of slices or arrays: [][]int, or [3][3]string for a
+	// board.
+	elemOf := func(typ types.Type) (types.Type, bool) {
+		switch seq := types.Unalias(typ).(type) {
+		case *types.Slice:
+			return seq.Elem(), true
+		case *types.Array:
+			return seq.Elem(), true
+		}
+		return nil, false
+	}
+	rowType, ok := elemOf(argType)
 	if !ok {
 		return false
 	}
-	row, ok := types.Unalias(outer.Elem()).(*types.Slice)
+	cellType, ok := elemOf(rowType)
 	if !ok {
 		return false
 	}
-	basic, ok := types.Unalias(row.Elem()).(*types.Basic)
+	basic, ok := types.Unalias(cellType).(*types.Basic)
 	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
 		return false
 	}
@@ -3726,7 +3737,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		// Copy scalar, so it lowers to a bare i32 at the boundary; the error
 		// slot keeps the wrapped representation.
 		out.WriteString("{ let __atoi_input = ")
-		writeStringSequenceValue(out, call.Args[0])
+		writeStringSequenceOwnedValue(out, call.Args[0])
 		out.WriteString("; match __atoi_input.parse::<i32>() { ")
 		out.WriteString("Ok(n) => (n, ")
 		WriteWrappedNone(out)
@@ -3741,7 +3752,7 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 func transpileStrconvParseBool(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		out.WriteString("{ let __parse_bool_input = ")
-		writeStringSequenceValue(out, call.Args[0])
+		writeStringSequenceOwnedValue(out, call.Args[0])
 		out.WriteString("; match __parse_bool_input.as_str() { ")
 		out.WriteString("\"1\" | \"t\" | \"T\" | \"TRUE\" | \"true\" | \"True\" => (true, ")
 		WriteWrappedNone(out)

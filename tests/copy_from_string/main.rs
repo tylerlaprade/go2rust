@@ -24,7 +24,7 @@ fn main() {
     };
     println!("{} {}", format!("{}", { let __v = (*n2.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*buf2.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));
 
-    let mut fingerprint: Rc<RefCell<Option<[u8; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))));
+    let mut fingerprint: Rc<RefCell<Option<[u8; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 3, _>(|_| 0))));
     let mut input = Rc::new(RefCell::new(Some("abcdef".to_string())));
     let mut n3 = {
         let _dst_start = 0;

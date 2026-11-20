@@ -24,7 +24,7 @@ pub(crate) static labels: GoGlobal<[String; 40]> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *labels.borrow_mut() = Some(std::array::from_fn(|_| String::new()));
+    *labels.borrow_mut() = Some(std::array::from_fn::<_, 40, _>(|_| String::new()));
 }
 
 

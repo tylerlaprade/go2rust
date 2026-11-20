@@ -42,7 +42,7 @@ impl<T: Any + Send + Sync + 'static> Clone for C<T> {
 impl<T: Any + Send + Sync + 'static> Default for C<T> {
     fn default() -> Self {
         let __go_default_0_0 = Arc::new(Mutex::new(Some(P::default())));
-        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default()))));
         let __go_default_2_0 = Arc::new(Mutex::new(None));
         let __go_default_3_0 = Arc::new(Mutex::new(Some(0)));
         Self {

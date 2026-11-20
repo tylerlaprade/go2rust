@@ -995,11 +995,13 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 
 	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
 	// the 1, and did not compile.
-	out.WriteString("{ let __idx = ")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; ")
-	writeIndexedSequenceMutationGuard(out, indexExpr.X)
-	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
+	out.WriteString("{ ")
+	writeIndexedSequenceElementPlace(out, indexExpr.X, func() {
+		out.WriteString("let __idx = ")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("; ")
+	})
+	out.WriteString(" __seq[__idx] = ")
 	writeIndexedCurrentElementValue(out, elemType)
 	out.WriteString(" ")
 	if op == token.INC {
@@ -1741,57 +1743,44 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 }
 
 func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
-	innerIndex, ok := indexExpr.X.(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.IsMap(innerIndex.X) {
+	if typeInfo == nil {
 		return false
 	}
-	innerType := typeInfo.GetType(innerIndex)
-	if innerType == nil {
-		return false
-	}
-	switch types.Unalias(innerType).Underlying().(type) {
-	case *types.Array, *types.Slice:
-	default:
-		return false
-	}
-	containerType := typeInfo.GetType(innerIndex.X)
-	if containerType == nil {
-		return false
-	}
-	switch types.Unalias(containerType).Underlying().(type) {
-	case *types.Array, *types.Slice:
-	default:
+	root, outer, nested := nestedSequenceIndexChain(indexExpr.X)
+	if !nested {
 		return false
 	}
 
-	// Both indexes and the value are evaluated before the outer sequence is
+	// Every index and the value are evaluated before the outer sequence is
 	// locked for writing: "grid[i][j] = grid[k][l]" reads the same grid.
 	//
 	// Go evaluates the outer sequence before its indexes. That shows when
 	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
 	// handle is then taken first and held, not locked.
-	holdsSequence := expressionCallsOrReceives(innerIndex.X)
+	holdsSequence := expressionCallsOrReceives(root)
 	// A named slice ("type Matrix [][]float64") keeps its elements in the
 	// handle inside the newtype.
-	_, _, namedSequence := namedSliceTypeForExpr(innerIndex.X)
+	_, _, namedSequence := namedSliceTypeForExpr(root)
 	out.WriteString("{ ")
 	if namedSequence {
 		out.WriteString("let __seq = ")
-		writeNamedSliceInnerHandleClone(out, innerIndex.X)
+		writeNamedSliceInnerHandleClone(out, root)
 		out.WriteString("; ")
 		holdsSequence = true
 	} else if holdsSequence {
 		out.WriteString("let __seq = ")
-		TranspileExpressionContext(out, innerIndex.X, LValue)
+		TranspileExpressionContext(out, root, LValue)
 		out.WriteString(".clone(); ")
 	}
-	out.WriteString("let __outer_idx = ")
-	writeExpressionAsUsize(out, innerIndex.Index)
-	out.WriteString("; let __idx = ")
+	for i, index := range outer {
+		out.WriteString("let ")
+		out.WriteString(outerIndexTempName(i))
+		out.WriteString(" = ")
+		writeExpressionAsUsize(out, index)
+		out.WriteString("; ")
+	}
+	out.WriteString("let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
@@ -1799,10 +1788,16 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	if holdsSequence {
 		out.WriteString("__seq")
 	} else {
-		TranspileExpressionContext(out, innerIndex.X, LValue)
+		TranspileExpressionContext(out, root, LValue)
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[__outer_idx][__idx] = __rhs; }")
+	out.WriteString(".as_mut().unwrap())")
+	for i := range outer {
+		out.WriteString("[")
+		out.WriteString(outerIndexTempName(i))
+		out.WriteString("]")
+	}
+	out.WriteString("[__idx] = __rhs; }")
 	return true
 }
 
@@ -8554,14 +8549,37 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		out.WriteString("+")
 	}
 	out.WriteString(" ")
+	var valueType types.Type
+	if typeInfo != nil {
+		valueType = typeInfo.GetMapValueType(indexExpr.X)
+	}
 	if op == token.INC || op == token.DEC {
-		out.WriteString("1")
+		if valueType != nil {
+			out.WriteString(incDecStepForType(valueType))
+		} else {
+			out.WriteString("1")
+		}
 	} else if operandIsRHS {
+		// String + &str: m[k] += "x" appends.
+		if op == token.ADD_ASSIGN && valueType != nil && isStringTypesType(valueType) {
+			out.WriteString("&")
+		}
 		out.WriteString("__rhs")
 	} else {
 		out.WriteString("0")
 	}
 	out.WriteString("); }")
+}
+
+// isStringTypesType reports whether typ is a string, or a type defined as
+// one whose values are plain Rust Strings.
+func isStringTypesType(typ types.Type) bool {
+	if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+		basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+		return ok && basic.Info()&types.IsString != 0 && !isNamedScalarNewtype(typ)
+	}
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	return ok && basic.Info()&types.IsString != 0
 }
 
 func writeCompoundAssignOperator(out *strings.Builder, op token.Token) {
@@ -9131,18 +9149,114 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	}
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
-	out.WriteString("{ let __idx = ")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; let __rhs = ")
-	writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
-	out.WriteString("; ")
-	writeIndexedSequenceMutationGuard(out, indexExpr.X)
-	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = ")
+	out.WriteString("{ ")
+	writeIndexedSequenceElementPlace(out, indexExpr.X, func() {
+		out.WriteString("let __idx = ")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("; let __rhs = ")
+		writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
+		out.WriteString("; ")
+	})
+	out.WriteString(" __seq[__idx] = ")
 	writeIndexedCurrentElementValue(out, elemType)
 	out.WriteString(" ")
 	writeCompoundAssignOperator(out, op)
-	out.WriteString(" __rhs; }")
+	// String + &str: s[i] += "x" appends.
+	if op == token.ADD_ASSIGN && elemType != nil && isStringTypesType(elemType) {
+		out.WriteString(" &__rhs; }")
+	} else {
+		out.WriteString(" __rhs; }")
+	}
 	return true
+}
+
+// nestedSequenceIndexChain splits seq, the sequence an element is written
+// through (a[i][j] in a[i][j][k] += v), into the outermost sequence a and
+// the indexes i, j that pick the inner sequence out of it. An inner slice or
+// array is stored by value in the one around it (Vec<Vec<T>>), so a write
+// locks a and indexes down to the element. It reports false when seq is not
+// itself an element of a slice or array.
+func nestedSequenceIndexChain(seq ast.Expr) (ast.Expr, []ast.Expr, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	var indexes []ast.Expr
+	cur := unwrapParens(seq)
+	for {
+		ix, ok := cur.(*ast.IndexExpr)
+		if !ok || typeInfo.IsMap(ix.X) {
+			break
+		}
+		// The inner sequence has to be a plain slice or array: a named one,
+		// "type Row []int", keeps its elements behind its own handle.
+		switch types.Unalias(typeInfo.GetType(ix)).(type) {
+		case *types.Array, *types.Slice:
+		default:
+			return nil, nil, false
+		}
+		containerType := typeInfo.GetType(ix.X)
+		if containerType == nil {
+			return nil, nil, false
+		}
+		switch types.Unalias(containerType).Underlying().(type) {
+		case *types.Array, *types.Slice:
+		default:
+			return nil, nil, false
+		}
+		indexes = append([]ast.Expr{ix.Index}, indexes...)
+		cur = unwrapParens(ix.X)
+	}
+	if len(indexes) == 0 {
+		return nil, nil, false
+	}
+	if ident, ok := cur.(*ast.Ident); ok {
+		if _, isGoPtr := goPtrIdentPointedArrayType(ident); isGoPtr || isArrayElemPtrVar(ident.Name) {
+			return nil, nil, false
+		}
+	}
+	return cur, indexes, true
+}
+
+// outerIndexTempName names the temp that holds the index of depth i in
+// writeIndexedSequenceElementPlace and writeNestedSliceElementAssignment.
+func outerIndexTempName(i int) string {
+	if i == 0 {
+		return "__outer_idx"
+	}
+	return fmt.Sprintf("__outer_idx_%d", i)
+}
+
+// writeIndexedSequenceElementPlace writes the statements that bind __seq to
+// the sequence that seq names, locked for writing, so that __seq[__idx] is
+// the element. For a[i][j] it locks a and borrows its element i. outerIdx
+// is written before the element's own index, which is the order Go
+// evaluates them in; idx writes that index.
+func writeIndexedSequenceElementPlace(out *strings.Builder, seq ast.Expr, idx func()) {
+	root, outer, nested := nestedSequenceIndexChain(seq)
+	if nested {
+		for i, index := range outer {
+			out.WriteString("let ")
+			out.WriteString(outerIndexTempName(i))
+			out.WriteString(" = ")
+			writeExpressionAsUsize(out, index)
+			out.WriteString("; ")
+		}
+	}
+	idx()
+	if !nested {
+		writeIndexedSequenceMutationGuard(out, seq)
+		out.WriteString("; let __seq = __seq_guard.as_mut().unwrap();")
+		return
+	}
+	writeIndexedSequenceMutationGuard(out, root)
+	out.WriteString("; let __seq = &mut __seq_guard.as_mut().unwrap()")
+	for i := range outer {
+		out.WriteString("[")
+		out.WriteString(outerIndexTempName(i))
+		out.WriteString("]")
+	}
+	out.WriteString(";")
 }
 
 func writeIndexedSequenceMutationGuard(out *strings.Builder, expr ast.Expr) {
@@ -9157,6 +9271,15 @@ func writeIndexedSequenceMutationGuard(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("let __seq_holder = ")
 		writeNamedSliceInnerHandleClone(out, subj)
 		out.WriteString("; let mut __seq_guard = __seq_holder")
+		WriteBorrowMethod(out, true)
+		return
+	}
+	if _, isIdent := unwrapParens(expr).(*ast.Ident); !isIdent {
+		// A field, s.items: the handle is taken out of the borrow of s
+		// first, so the borrow does not have to outlive the statement.
+		out.WriteString("let __seq_holder = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone(); let mut __seq_guard = __seq_holder")
 		WriteBorrowMethod(out, true)
 		return
 	}
@@ -9411,6 +9534,10 @@ type parallelIndexedAssignmentTarget struct {
 	holdsSequence bool
 	sequenceName  string
 	indexName     string
+	// For a[i][j], the outermost sequence a and the names of the temps that
+	// hold i: the inner sequence is stored by value inside a.
+	nestedRoot      ast.Expr
+	outerIndexNames []string
 }
 
 func freshParallelAssignmentTempName(base string) string {
@@ -9449,6 +9576,9 @@ func prepareParallelIndexedAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 		indexExpr: indexExpr,
 		indexName: freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_index_%d", position)),
 	}
+	if root, outer, nested := nestedSequenceIndexChain(indexExpr.X); nested {
+		return prepareParallelNestedIndexedAssignmentTarget(out, target, root, outer, position, indent)
+	}
 	// Local sequence values and call results are cloneable handles. Holding the
 	// handle is required when an earlier assignment in this statement rebinds
 	// the slice variable: Go has already evaluated the indexed target by then.
@@ -9482,6 +9612,49 @@ func prepareParallelIndexedAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	return target, true
 }
 
+// prepareParallelNestedIndexedAssignmentTarget evaluates the target
+// a[i][j] of a parallel assignment: the handle of a when it can be held, then
+// i and j, all before any value is stored.
+func prepareParallelNestedIndexedAssignmentTarget(out *strings.Builder, target parallelIndexedAssignmentTarget, root ast.Expr, outer []ast.Expr, position int, indent string) (parallelIndexedAssignmentTarget, bool) {
+	target.nestedRoot = root
+	target.holdsSequence = mapOperandHandleCanBeHeld(root)
+	if expressionCallsOrReceives(root) && !target.holdsSequence {
+		return parallelIndexedAssignmentTarget{}, false
+	}
+	if target.holdsSequence {
+		target.sequenceName = freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_sequence_%d", position))
+		out.WriteString(indent)
+		out.WriteString("let ")
+		out.WriteString(target.sequenceName)
+		out.WriteString(" = ")
+		if isNamedSliceExpression(root) {
+			writeNamedSliceInnerHandleClone(out, root)
+		} else if isNamedArrayExpression(root) {
+			writeNamedArrayInnerHandleClone(out, root)
+		} else {
+			TranspileExpressionContext(out, root, LValue)
+		}
+		out.WriteString(".clone();\n")
+	}
+	for i, index := range outer {
+		name := freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_outer_index_%d_%d", position, i))
+		target.outerIndexNames = append(target.outerIndexNames, name)
+		out.WriteString(indent)
+		out.WriteString("let ")
+		out.WriteString(name)
+		out.WriteString(" = ")
+		writeExpressionAsUsize(out, index)
+		out.WriteString(";\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(target.indexName)
+	out.WriteString(" = ")
+	writeExpressionAsUsize(out, target.indexExpr.Index)
+	out.WriteString(";\n")
+	return target, true
+}
+
 func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target parallelIndexedAssignmentTarget, tmpName string, rhs ast.Expr, indent string) {
 	tmpWrapped := tempHoldsWrappedValue(rhs)
 	typeInfo := GetTypeInfo()
@@ -9495,6 +9668,14 @@ func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target
 	out.WriteString("(*")
 	if target.holdsSequence {
 		out.WriteString(target.sequenceName)
+	} else if target.nestedRoot != nil {
+		if isNamedSliceExpression(target.nestedRoot) {
+			writeNamedSliceInnerHandleClone(out, target.nestedRoot)
+		} else if isNamedArrayExpression(target.nestedRoot) {
+			writeNamedArrayInnerHandleClone(out, target.nestedRoot)
+		} else {
+			TranspileExpressionContext(out, target.nestedRoot, LValue)
+		}
 	} else if subj := unwrapParens(target.indexExpr.X); isNamedSliceExpression(subj) {
 		writeNamedSliceInnerHandleClone(out, subj)
 	} else if subj := unwrapParens(target.indexExpr.X); isNamedArrayExpression(subj) {
@@ -9503,7 +9684,13 @@ func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target
 		TranspileExpressionContext(out, target.indexExpr.X, LValue)
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[")
+	out.WriteString(".as_mut().unwrap())")
+	for _, name := range target.outerIndexNames {
+		out.WriteString("[")
+		out.WriteString(name)
+		out.WriteString("]")
+	}
+	out.WriteString("[")
 	out.WriteString(target.indexName)
 	out.WriteString("] = ")
 	writeIndexedSequenceTempAssignmentValue(out, target.indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)

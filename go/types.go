@@ -1324,6 +1324,11 @@ func zeroValueForGoType(expr ast.Expr) string {
 		return "Default::default()"
 	case *ast.ArrayType:
 		if t.Len != nil {
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if array, ok := types.Unalias(typeInfo.GetType(t)).(*types.Array); ok {
+					return arrayZeroValueFromFn(array.Len(), zeroValueForGoType(t.Elt))
+				}
+			}
 			return "std::array::from_fn(|_| " + zeroValueForGoType(t.Elt) + ")"
 		}
 		return "vec![]"
@@ -1438,7 +1443,7 @@ func zeroValueForTypesType(typ types.Type) string {
 	case *types.Slice:
 		return "vec![]"
 	case *types.Array:
-		return "std::array::from_fn(|_| " + zeroValueForTypesType(t.Elem()) + ")"
+		return arrayZeroValueFromFn(t.Len(), zeroValueForTypesType(t.Elem()))
 	case *types.Map:
 		TrackImport("BTreeMap")
 		return "BTreeMap::new()"
@@ -2255,4 +2260,11 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 // string that matches generated Go-level function parameter declarations.
 func signatureToGoParamBoxDynFn(sig *types.Signature) string {
 	return signatureToBoxDynFnWithParamShape(sig, goTypesParamTypeToRust)
+}
+
+// arrayZeroValueFromFn writes the zero value of an array of n elements. The
+// length is spelled out: an array inside another one, [3][3]int{}, has no
+// type annotation to take it from.
+func arrayZeroValueFromFn(n int64, elemZero string) string {
+	return fmt.Sprintf("std::array::from_fn::<_, %d, _>(|_| %s)", n, elemZero)
 }

@@ -61,7 +61,7 @@ impl bucket {
 
 impl Default for bucket {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))));
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 3, _>(|_| 0))));
         Self {
             values: __go_default_0_0,
         }

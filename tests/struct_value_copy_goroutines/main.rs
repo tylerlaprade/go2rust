@@ -284,7 +284,7 @@ impl Grid {
 
 impl Default for Grid {
     fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default()))));
         Self {
             cells: __go_default_0_0,
         }
@@ -499,7 +499,7 @@ fn main() {
     { let new_val = 7; *{ let __seq = { let __seq_holder = arr2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "array".to_string()), format!("{}", format_slice(&arr)), format!("{}", format_slice(&arr2)));
 
-    let mut g1 = Arc::new(Mutex::new(Some(Grid { cells: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) })));
+    let mut g1 = Arc::new(Mutex::new(Some(Grid { cells: Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default())))) })));
     let mut g2 = { let __owned = g1.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
     { let new_val = 5; *{ let __seq = { let __seq_holder = (*g2.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "array in struct".to_string()), format!("{}", { let __v = (*g1.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*g2.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));

@@ -1,0 +1,7 @@
+1 -> 1
+2 -> 2
+skip x strconv.Atoi: parsing "x": invalid syntax
+30 -> 30
+true true <nil>
+nope false strconv.ParseBool: parsing "nope": invalid syntax
+33

@@ -412,7 +412,7 @@ pub(crate) static introduced: GoGlobal<[Version; 4]> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *introduced.borrow_mut() = Some(std::array::from_fn(|_| Version(Rc::new(RefCell::new(Some(0))))));
+    *introduced.borrow_mut() = Some(std::array::from_fn::<_, 4, _>(|_| Version(Rc::new(RefCell::new(Some(0))))));
     {
         let mut __go_array = Vec::<Version>::with_capacity(4);
         __go_array.push(Version(Rc::new(RefCell::new(Some(V1 as u32)))));

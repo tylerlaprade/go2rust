@@ -229,7 +229,7 @@ impl Holder {
 
 impl Default for Holder {
     fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn(|_| vec![]))));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| vec![]))));
         Self {
             elems: __go_default_0_0,
         }

@@ -419,7 +419,7 @@ pub(crate) static modes: GoGlobal<[AnonymousStruct1; 3]> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *modes.borrow_mut() = Some(std::array::from_fn(|_| Default::default()));
+    *modes.borrow_mut() = Some(std::array::from_fn::<_, 3, _>(|_| Default::default()));
     {
         let mut __go_array = Vec::<AnonymousStruct1>::with_capacity(3);
         __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32))))))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() });

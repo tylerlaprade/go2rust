@@ -446,7 +446,7 @@ pub(crate) static kindIndex: GoGlobal<[u16; 3]> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *kindIndex.borrow_mut() = Some(std::array::from_fn(|_| 0));
+    *kindIndex.borrow_mut() = Some(std::array::from_fn::<_, 3, _>(|_| 0));
     {
         let mut __go_array = Vec::<u16>::with_capacity(3);
         __go_array.push(0 as u16);
