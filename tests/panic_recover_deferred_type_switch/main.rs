@@ -917,10 +917,10 @@ pub fn handle(err: Arc<Mutex<Option<String>>>) {
     let _ts_subject = go_recover().clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
-        let mut __any = __v.as_ref() as &dyn Any;
+    let _ts_val: Option<&(dyn Any + Send + Sync)> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &(dyn Any + Send + Sync);
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-            __any = __boxed.as_ref() as &dyn Any;
+            __any = __boxed.as_ref() as &(dyn Any + Send + Sync);
         }
         __any
     });

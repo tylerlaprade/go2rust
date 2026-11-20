@@ -3630,6 +3630,13 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 		out.WriteString("_ts_is_nil")
 		return
 	}
+	if programAnyRuntimeOpsEnabled() && typeInfo != nil && isEmptyInterfaceType(subjectType) && isErrorInterfaceType(typeSwitchCaseResolvedType(typeInfo, typeExpr)) {
+		NeedGoAnyRuntimeOps()
+		out.WriteString("_ts_val.map_or(false, |__v| __v.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">().is_some() || go_registered_any_is_error(__v))")
+		return
+	}
 	if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(wrapperType)
@@ -16379,14 +16386,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			WriteBorrowMethod(out, false)
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
-			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {\n")
-			out.WriteString("        let mut __any = __v.as_ref() as &dyn Any;\n")
 			if NeedsConcurrentWrapper() {
+				out.WriteString("    let _ts_val: Option<&(dyn Any + Send + Sync)> = _ts_guard.as_ref().map(|__v| {\n")
+				out.WriteString("        let mut __any = __v.as_ref() as &(dyn Any + Send + Sync);\n")
 				out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {\n")
+				out.WriteString("            __any = __boxed.as_ref() as &(dyn Any + Send + Sync);\n")
 			} else {
+				out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {\n")
+				out.WriteString("        let mut __any = __v.as_ref() as &dyn Any;\n")
 				out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {\n")
+				out.WriteString("            __any = __boxed.as_ref() as &dyn Any;\n")
 			}
-			out.WriteString("            __any = __boxed.as_ref() as &dyn Any;\n")
 			out.WriteString("        }\n")
 			out.WriteString("        __any\n")
 			out.WriteString("    });\n")
@@ -16517,12 +16527,27 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// An error is a value. The case variable gets a
 							// handle of its own to the same error, so
 							// assigning to it does not change what the
-							// interface value holds.
-							writeErrorHandleCopy(out, func() {
-								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+							// interface value holds. Caller-defined errors
+							// retain their concrete type in the box, so use
+							// the erased registry conversion for that path.
+							if programAnyRuntimeOpsEnabled() {
+								NeedGoAnyRuntimeOps()
+								out.WriteString("{ let __ts_any = _ts_val.unwrap(); if let Some(__error_handle) = __ts_any.downcast_ref::<")
 								out.WriteString(handleType)
-								out.WriteString(">()).unwrap()")
-							})
+								out.WriteString(">() { ")
+								writeErrorHandleCopy(out, func() {
+									out.WriteString("__error_handle")
+								})
+								out.WriteString(" } else { let __registered_error = go_registered_any_error(__ts_any).expect(\"type switch error registry mismatch\"); ")
+								writeErrorHandleFromOptionValue(out, "Some(__registered_error)")
+								out.WriteString(" } }")
+							} else {
+								writeErrorHandleCopy(out, func() {
+									out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+									out.WriteString(handleType)
+									out.WriteString(">()).unwrap()")
+								})
+							}
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.

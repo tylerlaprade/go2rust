@@ -22,6 +22,16 @@ func Describe(v any) string {
 	return "not an error"
 }
 
+// Classify exercises the type-switch path separately from comma-ok assertion.
+func Classify(v any) string {
+	switch err := v.(type) {
+	case error:
+		return "switch error: " + err.Error()
+	default:
+		return "switch other"
+	}
+}
+
 // Kind names the type of the value v holds.
 func Kind(v any) string { return fmt.Sprintf("%T", v) }
 

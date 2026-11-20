@@ -3,8 +3,28 @@ package main
 import (
 	"go/token"
 	"go/types"
+	"strings"
 	"testing"
 )
+
+func TestSharedAnyRuntimeRegistryErasesCallerTypes(t *testing.T) {
+	helpers := (&HelperTracker{needsGoAnyRuntimeOps: true}).GenerateSharedStdlibHelperModule()
+	for _, want := range []string{
+		"pub fn go_register_any_runtime_type<T: Any + 'static>",
+		"pub fn go_format_registered_any(value: &dyn Any) -> Option<String>",
+		"pub fn go_clone_registered_any(value: &dyn Any) -> Option<Box<dyn Any>>",
+		"pub fn go_registered_any_type_name(value: &dyn Any) -> Option<&'static str>",
+		"pub fn go_registered_any_is_error(value: &dyn Any) -> bool",
+		"pub fn go_registered_any_error(value: &dyn Any) -> Option<std::rc::Rc<dyn std::error::Error>>",
+	} {
+		if !strings.Contains(helpers, want) {
+			t.Fatalf("shared any registry missing %q:\n%s", want, helpers)
+		}
+	}
+	if strings.Contains(helpers, "Point") || strings.Contains(helpers, "callerError") {
+		t.Fatalf("shared registry must not name caller-defined types:\n%s", helpers)
+	}
+}
 
 func TestAnyPayloadGoTypeIsShareable(t *testing.T) {
 	intType, stringType := types.Typ[types.Int], types.Typ[types.String]
