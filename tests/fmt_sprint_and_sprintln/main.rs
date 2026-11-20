@@ -771,8 +771,15 @@ impl std::fmt::Display for Point {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Named(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for Named {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Named(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Named {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
