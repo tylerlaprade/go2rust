@@ -88,7 +88,10 @@ func init() {
 		"fmt.Printf":               transpileFmtPrintf,
 		"fmt.Print":                transpileFmtPrint,
 		"fmt.Sprintf":              transpileFmtSprintf,
+		"fmt.Sprint":               transpileFmtSprint,
+		"fmt.Sprintln":             transpileFmtSprintln,
 		"fmt.Fprintln":             transpileFmtFprintln,
+		"fmt.Fprint":               transpileFmtFprint,
 		"fmt.Fprintf":              transpileFmtFprintf,
 		"fmt.Errorf":               transpileFmtErrorf,
 		"strings.ToLower":          transpileStringsToLower,
@@ -229,6 +232,83 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(")")
 }
 
+// writePrintOperandsFormat writes the format literal and the arguments of
+// a format! call that prints operands as fmt.Print does, or as fmt.Println
+// does when line is true: Println puts a space between every two operands
+// and ends with a newline, Print puts one only between two non-strings.
+func writePrintOperandsFormat(out *strings.Builder, args []ast.Expr, line bool) {
+	out.WriteString("\"")
+	for i := range args {
+		if i > 0 && (line || (!printOperandIsString(args[i-1]) && !printOperandIsString(args[i]))) {
+			out.WriteString(" ")
+		}
+		out.WriteString("{}")
+	}
+	if line {
+		out.WriteString("\\n")
+	}
+	out.WriteString("\"")
+	for _, arg := range args {
+		out.WriteString(", ")
+		transpilePrintArgString(out, arg)
+	}
+}
+
+// fmt.Sprint formats its operands as fmt.Print prints them.
+func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
+	WriteWrapperPrefix(out)
+	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
+		writeSprintVariadicAny(out, call.Args[0])
+	} else {
+		out.WriteString("format!(")
+		writePrintOperandsFormat(out, call.Args, false)
+		out.WriteString(")")
+	}
+	WriteWrapperSuffix(out)
+}
+
+// fmt.Sprintln formats its operands as fmt.Println prints them.
+func transpileFmtSprintln(out *strings.Builder, call *ast.CallExpr) {
+	WriteWrapperPrefix(out)
+	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
+		NeedFormatAnySlice()
+		TrackImport("Any")
+		out.WriteString("format!(\"{}\\n\", format_any_variadic(&")
+		writeSprintVariadicSlice(out, call.Args[0])
+		out.WriteString("))")
+	} else {
+		out.WriteString("format!(")
+		writePrintOperandsFormat(out, call.Args, true)
+		out.WriteString(")")
+	}
+	WriteWrapperSuffix(out)
+}
+
+func writeSprintVariadicSlice(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
+// writeSprintVariadicAny writes fmt.Sprint(values...) for a []any: a space
+// goes between two operands when neither holds a string.
+func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr) {
+	NeedFormatAny()
+	TrackImport("Any")
+	out.WriteString("{ let __sprint_values = ")
+	writeSprintVariadicSlice(out, arg)
+	out.WriteString(".clone(); let __sprint_guard = __sprint_values")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let mut __sprint_text = String::new(); let mut __sprint_after_string = true; ")
+	out.WriteString("for (__sprint_index, __sprint_value) in __sprint_guard.iter().flatten().enumerate() { ")
+	out.WriteString("let __sprint_is_string = __sprint_value.is::<String>(); ")
+	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } ")
+	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } ")
+	out.WriteString("__sprint_text }")
+}
+
 // printOperandIsString reports whether a fmt.Print operand is a string, of
 // type string or of a type whose underlying type is string.
 func printOperandIsString(arg ast.Expr) bool {
@@ -348,6 +428,11 @@ func transpileBuiltinPrintMacro(out *strings.Builder, call *ast.CallExpr, macro 
 }
 
 func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		// An untyped nil operand prints as <nil>.
+		out.WriteString("\"<nil>\".to_string()")
+		return
+	}
 	out.WriteString("format!(\"{}\", ")
 	transpilePrintArg(out, arg)
 	out.WriteString(")")
@@ -1577,6 +1662,39 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	writeFmtMacroCall(out, macro, call, 1)
 }
 
+// fmt.Fprint writes its operands as fmt.Print prints them, to the writers
+// fmt.Fprintf writes to.
+func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: fmt.Fprint requires at least 1 argument */")
+		return
+	}
+	writeOperands := func(macro string) func() {
+		return func() {
+			out.WriteString(macro)
+			out.WriteString("(")
+			if len(call.Args) > 1 {
+				writePrintOperandsFormat(out, call.Args[1:], false)
+			} else {
+				out.WriteString("\"\"")
+			}
+			out.WriteString(")")
+		}
+	}
+	switch {
+	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
+		writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
+	case fmtFprintfTargetIsByteWriter(call.Args[0]):
+		writeFprintByteWriterTuple(out, call, writeOperands("format!"))
+	case fmtFprintfTargetHasUserWriteMethod(call.Args[0]):
+		writeFprintUserWriteTuple(out, call, writeOperands("format!"))
+	case isOsStderr(call.Args[0]):
+		writeOperands("eprint!")()
+	default:
+		writeOperands("print!")()
+	}
+}
+
 func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
 	if isStringsBuilderReceiverBare(target) {
 		writeStringsBuilderRawReceiver(out, target)
@@ -1657,10 +1775,14 @@ func isOsStdoutOrStderr(expr ast.Expr) bool {
 // writes them to the target's __go_write_bytes, and returns the Go
 // (int, error) shape so `n, err := fmt.Fprintf(...)` destructures correctly.
 func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
+	writeFprintByteWriterTuple(out, call, func() { writeFmtMacroCall(out, "format!", call, 1) })
+}
+
+func writeFprintByteWriterTuple(out *strings.Builder, call *ast.CallExpr, writeFormatted func()) {
 	TrackImport("Error")
 	errorInner := externalStubErrorInnerType()
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1)
+	writeFormatted()
 	out.WriteString("; let __n = __s.len() as i32; (*")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, false)
@@ -1676,9 +1798,13 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 // The user's Write has a pointer receiver and mutates state, so it is emitted
 // in Rust with &mut self — the wrapped path must use borrow_mut/as_mut.
 func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
+	writeFprintUserWriteTuple(out, call, func() { writeFmtMacroCall(out, "format!", call, 1) })
+}
+
+func writeFprintUserWriteTuple(out *strings.Builder, call *ast.CallExpr, writeFormatted func()) {
 	TrackImport("Error")
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1)
+	writeFormatted()
 	out.WriteString("; ")
 	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
 		out.WriteString("(*")

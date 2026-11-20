@@ -1171,6 +1171,14 @@ run_xfail_test() {
     run_test "tests/fmt_println_repeated_selector_concurrent"
 }
 
+@test "fmt_sprint_and_sprintln" {
+    run_test "tests/fmt_sprint_and_sprintln"
+}
+
+@test "fmt_sprint_and_sprintln_goroutines" {
+    run_test "tests/fmt_sprint_and_sprintln_goroutines"
+}
+
 @test "fmt_sprintf_type_name_call" {
     run_test "tests/fmt_sprintf_type_name_call"
 }
