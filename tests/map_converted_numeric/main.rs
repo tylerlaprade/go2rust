@@ -6,8 +6,15 @@ use std::rc::{Rc};
 pub const TICK: i64 = 3;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Span(pub Rc<RefCell<Option<i64>>>);
+
+impl Clone for Span {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Span(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Span {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

@@ -1171,6 +1171,14 @@ run_xfail_test() {
     run_test "tests/fmt_println_repeated_selector_concurrent"
 }
 
+@test "fmt_sprint_and_sprintln" {
+    run_test "tests/fmt_sprint_and_sprintln"
+}
+
+@test "fmt_sprint_and_sprintln_goroutines" {
+    run_test "tests/fmt_sprint_and_sprintln_goroutines"
+}
+
 @test "fmt_sprintf_type_name_call" {
     run_test "tests/fmt_sprintf_type_name_call"
 }
@@ -1277,6 +1285,14 @@ run_xfail_test() {
 
 @test "generic_pointer_interface_type_arg" {
     run_test "tests/generic_pointer_interface_type_arg"
+}
+
+@test "generic_struct_local_copy" {
+    run_test "tests/generic_struct_local_copy"
+}
+
+@test "generic_struct_local_copy_goroutines" {
+    run_test "tests/generic_struct_local_copy_goroutines"
 }
 
 @test "generic_struct_pointer_receiver" {
@@ -1795,8 +1811,24 @@ run_xfail_test() {
     run_test "tests/named_array_value_copy_goroutines"
 }
 
+@test "named_basic_value_in_interface" {
+    run_test "tests/named_basic_value_in_interface"
+}
+
+@test "named_basic_value_in_interface_goroutines" {
+    run_test "tests/named_basic_value_in_interface_goroutines"
+}
+
 @test "named_const_method_call" {
     run_test "tests/named_const_method_call"
+}
+
+@test "named_float_string_bool_values" {
+    run_test "tests/named_float_string_bool_values"
+}
+
+@test "named_float_string_bool_values_goroutines" {
+    run_test "tests/named_float_string_bool_values_goroutines"
 }
 
 @test "named_func_return_defer" {
@@ -1863,6 +1895,14 @@ run_xfail_test() {
     run_test "tests/named_pointer_defer_return"
 }
 
+@test "named_scalar_copies_are_values" {
+    run_test "tests/named_scalar_copies_are_values"
+}
+
+@test "named_scalar_copies_are_values_goroutines" {
+    run_test "tests/named_scalar_copies_are_values_goroutines"
+}
+
 @test "named_slice_field_method_argument" {
     run_test "tests/named_slice_field_method_argument"
 }
@@ -1901,6 +1941,14 @@ run_xfail_test() {
 
 @test "named_types_methods" {
     run_test "tests/named_types_methods"
+}
+
+@test "negative_named_integer_conversions" {
+    run_test "tests/negative_named_integer_conversions"
+}
+
+@test "negative_named_integer_conversions_goroutines" {
+    run_test "tests/negative_named_integer_conversions_goroutines"
 }
 
 @test "nested_closure_type_assert_capture" {
@@ -2247,6 +2295,14 @@ run_xfail_test() {
     run_test "tests/printf_p_verb_receiver"
 }
 
+@test "printf_plus_v_field_names" {
+    run_test "tests/printf_plus_v_field_names"
+}
+
+@test "printf_plus_v_field_names_goroutines" {
+    run_test "tests/printf_plus_v_field_names_goroutines"
+}
+
 @test "printf_runtime_format" {
     run_test "tests/printf_runtime_format"
 }
@@ -2257,6 +2313,14 @@ run_xfail_test() {
 
 @test "printf_runtime_format_table" {
     run_test "tests/printf_runtime_format_table"
+}
+
+@test "printf_verbs_without_a_rust_equivalent" {
+    run_test "tests/printf_verbs_without_a_rust_equivalent"
+}
+
+@test "printf_verbs_without_a_rust_equivalent_goroutines" {
+    run_test "tests/printf_verbs_without_a_rust_equivalent_goroutines"
 }
 
 @test "printf_width_decimal" {

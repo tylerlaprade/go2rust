@@ -1003,7 +1003,17 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	} else if writeConstExpressionWithRustIntegerOperandsForExpected(out, value, rustType) {
 		// Constant operands were emitted in the expected primitive type.
 	} else {
-		writeConstExpressionCastValue(out, value)
+		var cast strings.Builder
+		writeConstExpressionCastValue(&cast, value)
+		// `'a' - 'A'` for a byte is i32 arithmetic: the cast is of the
+		// whole expression, not of its last operand.
+		if _, isBinary := unwrapParens(value).(*ast.BinaryExpr); isBinary && strings.Contains(cast.String(), " as ") {
+			out.WriteString("(")
+			out.WriteString(cast.String())
+			out.WriteString(")")
+		} else {
+			out.WriteString(cast.String())
+		}
 	}
 	out.WriteString(" as ")
 	out.WriteString(rustType)

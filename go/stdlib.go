@@ -88,7 +88,10 @@ func init() {
 		"fmt.Printf":               transpileFmtPrintf,
 		"fmt.Print":                transpileFmtPrint,
 		"fmt.Sprintf":              transpileFmtSprintf,
+		"fmt.Sprint":               transpileFmtSprint,
+		"fmt.Sprintln":             transpileFmtSprintln,
 		"fmt.Fprintln":             transpileFmtFprintln,
+		"fmt.Fprint":               transpileFmtFprint,
 		"fmt.Fprintf":              transpileFmtFprintf,
 		"fmt.Errorf":               transpileFmtErrorf,
 		"strings.ToLower":          transpileStringsToLower,
@@ -211,7 +214,9 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		out.WriteString("\"")
 		for i := range call.Args {
-			if i > 0 {
+			// Print puts a space between two operands only when neither is
+			// a string. An interface value is taken to hold a non-string.
+			if i > 0 && !printOperandIsString(call.Args[i-1]) && !printOperandIsString(call.Args[i]) {
 				out.WriteString(" ")
 			}
 			out.WriteString("{}")
@@ -225,6 +230,98 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString(")")
+}
+
+// writePrintOperandsFormat writes the format literal and the arguments of
+// a format! call that prints operands as fmt.Print does, or as fmt.Println
+// does when line is true: Println puts a space between every two operands
+// and ends with a newline, Print puts one only between two non-strings.
+func writePrintOperandsFormat(out *strings.Builder, args []ast.Expr, line bool) {
+	out.WriteString("\"")
+	for i := range args {
+		if i > 0 && (line || (!printOperandIsString(args[i-1]) && !printOperandIsString(args[i]))) {
+			out.WriteString(" ")
+		}
+		out.WriteString("{}")
+	}
+	if line {
+		out.WriteString("\\n")
+	}
+	out.WriteString("\"")
+	for _, arg := range args {
+		out.WriteString(", ")
+		transpilePrintArgString(out, arg)
+	}
+}
+
+// fmt.Sprint formats its operands as fmt.Print prints them.
+func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
+	WriteWrapperPrefix(out)
+	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
+		writeSprintVariadicAny(out, call.Args[0])
+	} else {
+		out.WriteString("format!(")
+		writePrintOperandsFormat(out, call.Args, false)
+		out.WriteString(")")
+	}
+	WriteWrapperSuffix(out)
+}
+
+// fmt.Sprintln formats its operands as fmt.Println prints them.
+func transpileFmtSprintln(out *strings.Builder, call *ast.CallExpr) {
+	WriteWrapperPrefix(out)
+	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
+		NeedFormatAnySlice()
+		TrackImport("Any")
+		out.WriteString("format!(\"{}\\n\", format_any_variadic(&")
+		writeSprintVariadicSlice(out, call.Args[0])
+		out.WriteString("))")
+	} else {
+		out.WriteString("format!(")
+		writePrintOperandsFormat(out, call.Args, true)
+		out.WriteString(")")
+	}
+	WriteWrapperSuffix(out)
+}
+
+func writeSprintVariadicSlice(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
+// writeSprintVariadicAny writes fmt.Sprint(values...) for a []any: a space
+// goes between two operands when neither holds a string.
+func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr) {
+	NeedFormatAny()
+	TrackImport("Any")
+	out.WriteString("{ let __sprint_values = ")
+	writeSprintVariadicSlice(out, arg)
+	out.WriteString(".clone(); let __sprint_guard = __sprint_values")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let mut __sprint_text = String::new(); let mut __sprint_after_string = true; ")
+	out.WriteString("for (__sprint_index, __sprint_value) in __sprint_guard.iter().flatten().enumerate() { ")
+	out.WriteString("let __sprint_is_string = __sprint_value.is::<String>(); ")
+	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } ")
+	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } ")
+	out.WriteString("__sprint_text }")
+}
+
+// printOperandIsString reports whether a fmt.Print operand is a string, of
+// type string or of a type whose underlying type is string.
+func printOperandIsString(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	return ok && basic.Info()&types.IsString != 0
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
@@ -331,6 +428,11 @@ func transpileBuiltinPrintMacro(out *strings.Builder, call *ast.CallExpr, macro 
 }
 
 func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		// An untyped nil operand prints as <nil>.
+		out.WriteString("\"<nil>\".to_string()")
+		return
+	}
 	out.WriteString("format!(\"{}\", ")
 	transpilePrintArg(out, arg)
 	out.WriteString(")")
@@ -537,6 +639,15 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					out.WriteString("format_slice_values(")
 					out.WriteString(RustIdentForUse(ident))
 					out.WriteString(")")
+					return
+				}
+				if printArgPlusV && sliceElemIsStructValue(argType) {
+					// %+v asks each struct element for its field names.
+					out.WriteString("{ let __plus_holder = ")
+					writeCollectionFormatHandleIdent(out, ident)
+					out.WriteString(".clone(); let __plus_guard = __plus_holder")
+					WriteBorrowMethod(out, false)
+					out.WriteString("; match __plus_guard.as_ref() { Some(__s) => format!(\"[{}]\", __s.iter().map(|__v| format!(\"{:#}\", __v)).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
 					return
 				}
 				out.WriteString("format_slice(&")
@@ -833,7 +944,65 @@ func pointerPrintFormat(ptr *types.Pointer) string {
 	if typeHasGoStringMethod(ptr) || isConcreteGoErrorValue(ptr) {
 		return "{}"
 	}
+	if printArgPlusV {
+		return "&{:#}"
+	}
 	return "&{}"
+}
+
+func sliceElemIsStructValue(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	_, ok = types.Unalias(slice.Elem()).Underlying().(*types.Struct)
+	return ok && !typeHasGoStringMethod(slice.Elem())
+}
+
+// printArgPlusV is true while the argument of a %+v verb is written.
+var printArgPlusV bool
+
+func withPrintArgPlusV(plusV bool, write func()) {
+	saved := printArgPlusV
+	printArgPlusV = plusV
+	defer func() { printArgPlusV = saved }()
+	write()
+}
+
+// formatPlusVArgIndices returns the arguments of a literal format that a
+// %+v verb formats, counted as convertFormatStringWithSkips counts them.
+func formatPlusVArgIndices(format string) map[int]bool {
+	indices := map[int]bool{}
+	argIndex := 0
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		if i+1 < len(format) && format[i+1] == '%' {
+			i++
+			continue
+		}
+		plus := false
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0123456789.", format[j]) >= 0 {
+			if format[j] == '+' {
+				plus = true
+			}
+			j++
+		}
+		if j >= len(format) {
+			break
+		}
+		if plus && format[j] == 'v' {
+			indices[argIndex] = true
+		}
+		argIndex++
+		i = j
+	}
+	return indices
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
@@ -896,7 +1065,10 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 					argIndex++
 					i += 3
 				case 'v':
-					result.WriteString("{:?}")
+					// The alternate flag is how a struct's Display is asked
+					// for field names. Display of a number or a string
+					// ignores it, and %+v prints those as %v does.
+					result.WriteString("{:#}")
 					argIndex++
 					i += 3
 				default:
@@ -1306,6 +1478,14 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 			transpilePrintArg(out, arg)
 			out.WriteString(") as u8 as char")
 		}
+	} else if NeedsConcurrentWrapper() && transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
+		// All the arguments of print! live until the macro is done, and so
+		// would the lock on an interface receiver: a second call on the same
+		// value, as in Printf("%v %v", s.Area(), s.Perimeter()), waited on
+		// the first forever. The block lets go of the lock.
+		out.WriteString("{ let __arg_value = ")
+		transpilePrintArg(out, arg)
+		out.WriteString("; __arg_value }")
 	} else {
 		transpilePrintArg(out, arg)
 	}
@@ -1325,10 +1505,12 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var unicodeIndices []int
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
+	var plusVArgs map[int]bool
 	if len(call.Args) > formatArgIndex {
 		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1356,7 +1538,9 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
+					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				})
 			}
 		}
 	}
@@ -1478,6 +1662,39 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	writeFmtMacroCall(out, macro, call, 1)
 }
 
+// fmt.Fprint writes its operands as fmt.Print prints them, to the writers
+// fmt.Fprintf writes to.
+func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: fmt.Fprint requires at least 1 argument */")
+		return
+	}
+	writeOperands := func(macro string) func() {
+		return func() {
+			out.WriteString(macro)
+			out.WriteString("(")
+			if len(call.Args) > 1 {
+				writePrintOperandsFormat(out, call.Args[1:], false)
+			} else {
+				out.WriteString("\"\"")
+			}
+			out.WriteString(")")
+		}
+	}
+	switch {
+	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
+		writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
+	case fmtFprintfTargetIsByteWriter(call.Args[0]):
+		writeFprintByteWriterTuple(out, call, writeOperands("format!"))
+	case fmtFprintfTargetHasUserWriteMethod(call.Args[0]):
+		writeFprintUserWriteTuple(out, call, writeOperands("format!"))
+	case isOsStderr(call.Args[0]):
+		writeOperands("eprint!")()
+	default:
+		writeOperands("print!")()
+	}
+}
+
 func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
 	if isStringsBuilderReceiverBare(target) {
 		writeStringsBuilderRawReceiver(out, target)
@@ -1558,10 +1775,14 @@ func isOsStdoutOrStderr(expr ast.Expr) bool {
 // writes them to the target's __go_write_bytes, and returns the Go
 // (int, error) shape so `n, err := fmt.Fprintf(...)` destructures correctly.
 func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
+	writeFprintByteWriterTuple(out, call, func() { writeFmtMacroCall(out, "format!", call, 1) })
+}
+
+func writeFprintByteWriterTuple(out *strings.Builder, call *ast.CallExpr, writeFormatted func()) {
 	TrackImport("Error")
 	errorInner := externalStubErrorInnerType()
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1)
+	writeFormatted()
 	out.WriteString("; let __n = __s.len() as i32; (*")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, false)
@@ -1577,9 +1798,13 @@ func writeFprintfByteWriterTuple(out *strings.Builder, call *ast.CallExpr) {
 // The user's Write has a pointer receiver and mutates state, so it is emitted
 // in Rust with &mut self — the wrapped path must use borrow_mut/as_mut.
 func writeFprintfUserWriteTuple(out *strings.Builder, call *ast.CallExpr) {
+	writeFprintUserWriteTuple(out, call, func() { writeFmtMacroCall(out, "format!", call, 1) })
+}
+
+func writeFprintUserWriteTuple(out *strings.Builder, call *ast.CallExpr, writeFormatted func()) {
 	TrackImport("Error")
 	out.WriteString("{ let __s = ")
-	writeFmtMacroCall(out, "format!", call, 1)
+	writeFormatted()
 	out.WriteString("; ")
 	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
 		out.WriteString("(*")
@@ -1863,11 +2088,13 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	var unicodeIndices []int
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
+	var plusVArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1896,7 +2123,9 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				withPrintArgPlusV(plusVArgs[i-1], func() {
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				})
 			}
 		}
 	}
@@ -1916,12 +2145,14 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	var unicodeIndices []int
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
+	var plusVArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1949,7 +2180,9 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				out.WriteString(", ")
-				transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				withPrintArgPlusV(plusVArgs[i-1], func() {
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+				})
 			}
 		}
 	}
@@ -5163,6 +5396,14 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 		}
 
 		if writePointerToArrayLen(out, call.Args[0]) {
+			return
+		}
+
+		var namedString strings.Builder
+		if writeNamedStringNewtypeInnerValue(&namedString, call.Args[0]) {
+			out.WriteString("(")
+			out.WriteString(namedString.String())
+			out.WriteString(").len()")
 			return
 		}
 

@@ -189,6 +189,27 @@ against the `// TEMPORARY:` comments of that one file.
   helper moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-19
 
+**fmt-print-operands**
+
+- Location: `go/stdlib.go`, `transpileFmtSprint`, `transpileFmtSprintln`,
+  `transpileFmtFprint`, `writePrintOperandsFormat` and
+  `writeSprintVariadicAny`.
+- Go symbol: `fmt.Sprint`, `fmt.Sprintln` and `fmt.Fprint`.
+- Transpiler gap: the same as fmt-runtime-format: `fmt` walks its operands
+  with `reflect`, so it cannot be translated from source. `fmt.Print` and
+  `fmt.Println` were already written as Rust format macros by the older
+  mapping in `go/stdlib.go`. `Sprint`, `Sprintln` and `Fprint` went to the
+  generic stub, which panics, so these handlers use the same spacing as
+  Print and Println, and Fprint writes to the writers Fprintf writes to
+  (DEV-34).
+- Fixture: `tests/fmt_sprint_and_sprintln/` and
+  `tests/fmt_sprint_and_sprintln_goroutines/`.
+- Removal trigger: `fmt` is translated from source, which needs `reflect`,
+  and the whole print mapping retires together. Or the stdlib boundary puts
+  `fmt` in the hand-written tier; then these handlers move into that runtime
+  and this row is deleted with the move.
+- Added: 2026-11-19
+
 ## Shims
 
 The rows below were backfilled on 2026-05-27 from the existing 36

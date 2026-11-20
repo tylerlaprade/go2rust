@@ -1035,6 +1035,35 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	}
 }
 
+// compositeLiteralNeedsLocalValueWrapper reports whether a composite literal
+// emits a bare value that a local Go variable must store in its outer value
+// cell. Named composite types emit their named Rust value around any inner
+// collection handle, while an unnamed struct emits its bare struct value.
+// Unnamed maps, slices, and arrays already emit their own local handle.
+//
+// The second result is false when authoritative type information is missing.
+// Callers must emit a loud unsupported path instead of guessing from the AST
+// shape; identifiers and selectors can denote structs, maps, slices, or arrays.
+func compositeLiteralNeedsLocalValueWrapper(lit *ast.CompositeLit) (bool, bool) {
+	if lit == nil {
+		return false, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		return false, false
+	}
+	typ = types.Unalias(typ)
+	if _, ok := typ.(*types.Named); ok {
+		return true, true
+	}
+	_, isStruct := typ.Underlying().(*types.Struct)
+	return isStruct, true
+}
+
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
 // Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
 // the wrapper off a literal/expression.
@@ -2092,7 +2121,7 @@ func rangeElementUsesCopied(typ types.Type) bool {
 	if typ == nil {
 		return false
 	}
-	if isNamedIntegerType(typ) {
+	if isNamedScalarNewtype(typ) {
 		return false
 	}
 	switch underlying := types.Unalias(typ).Underlying().(type) {
@@ -2153,7 +2182,7 @@ func typeSyntaxIsRustCopyRangeElement(expr ast.Expr) bool {
 }
 
 func rangeElementUsesCloned(typ types.Type) bool {
-	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedIntegerType(typ)
+	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedScalarNewtype(typ)
 }
 
 func compositeLiteralRangeElemRustType(lit *ast.CompositeLit) (string, bool) {
@@ -2711,6 +2740,58 @@ func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
 		return true
 	})
 	return assigned
+}
+
+// blockCallsPointerMethodOnValue reports whether body calls a method with a
+// pointer receiver on the variable name, which holds a value: `c.Inc()` with
+// `func (c *Counter) Inc()` takes the address of c.
+func blockCallsPointerMethodOnValue(body *ast.BlockStmt, name string) bool {
+	typeInfo := GetTypeInfo()
+	if body == nil || name == "" || name == "_" || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := n.(*ast.FuncLit); ok {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := sel.X.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		selection, ok := typeInfo.info.Selections[sel]
+		if !ok || selection.Kind() != types.MethodVal {
+			return true
+		}
+		fn, ok := selection.Obj().(*types.Func)
+		if !ok {
+			return true
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok || sig.Recv() == nil {
+			return true
+		}
+		if _, recvIsPointer := sig.Recv().Type().(*types.Pointer); !recvIsPointer {
+			return true
+		}
+		if _, valueIsPointer := types.Unalias(typeInfo.GetType(ident)).Underlying().(*types.Pointer); valueIsPointer {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
 }
 
 func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
@@ -8487,7 +8568,7 @@ func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, op token.Token) bool
 		return false
 	}
 	lhsNamed, ok := types.Unalias(typeInfo.GetType(lhs)).(*types.Named)
-	if !ok || !isNamedIntegerType(lhsNamed) {
+	if !ok || !isNamedScalarNewtype(lhsNamed) {
 		return false
 	}
 	return true
@@ -8637,6 +8718,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if writeNamedIntegerCompoundAssignUnderlyingValue(out, expr, expected) {
+		return
+	}
+	if writeNamedFloatCompoundAssignUnderlyingValue(out, expr, expected) {
 		return
 	}
 	if writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out, expr, expected) {
@@ -10999,6 +11083,9 @@ func transpileConditionInline(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
+	if writeNamedBoolUnderlyingValue(out, expr) {
+		return
+	}
 	if exprNeedsBoolWrapperUnwrap(expr) {
 		writeUnwrappedBoolExpression(out, expr)
 		return
@@ -12035,7 +12122,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
 						isString = true
 					}
-					if !isString {
+					// A named string newtype concatenates through its Add impl.
+					// In a method of the type itself, `*n += "!"` updates the String
+					// the receiver holds, which push_str does.
+					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(compoundAssignRHSExpectedType(s.Lhs[0], typeInfo.GetType(s.Lhs[0])))
+					if namedStringNewtype {
+						isString = false
+					}
+					if !isString && !namedStringNewtype {
 						// Type info not available - check if RHS is a string literal at least
 						if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 							isString = true
@@ -13294,19 +13388,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
 													registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
 												}
-												// Check if it's a struct literal vs array/slice/map literal
-												isStructLiteral := false
-												if _, ok := compositeLit.Type.(*ast.Ident); ok {
-													isStructLiteral = true
-												} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-													isStructLiteral = true
-												}
-												if compositeLiteralEmitsBareStructValue(compositeLit) {
+												needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+												emitsBareSpecialValue := compositeLiteralEmitsBareStructValue(compositeLit)
+												if emitsBareSpecialValue {
 													registerBareShortDecl(s.Lhs[0])
 												}
 
-												if isStructLiteral {
-													// Struct literals need to be wrapped
+												if !hasTypeInfo {
+													out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+												} else if needsLocalWrapper && !emitsBareSpecialValue {
+													// Named composites and unnamed structs need an outer local value wrapper.
 													WriteWrapperPrefix(out)
 													TranspileExpression(out, rhs)
 													WriteWrapperSuffix(out)
@@ -13689,16 +13780,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// "var mu = sync.Mutex{}" is the bare value, as "mu := sync.Mutex{}" is.
 										registerBareShortDecl(name)
 									}
-									// Check if it's a struct literal vs array/slice/map literal
-									isStructLiteral := false
-									if _, ok := compositeLit.Type.(*ast.Ident); ok {
-										isStructLiteral = true
-									} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-										isStructLiteral = true
-									}
+									needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+									emitsBareSpecialValue := valueSpec.Type == nil && compositeLiteralEmitsBareStructValue(compositeLit)
 
-									if isStructLiteral {
-										// Struct literals need to be wrapped
+									if !hasTypeInfo {
+										out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+									} else if needsLocalWrapper && !emitsBareSpecialValue {
+										// Named composites and unnamed structs need an outer local value wrapper.
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
@@ -13752,7 +13840,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+												if writeNamedScalarVarSpecValue(out, valueSpec, i) {
+													// A float, string or bool of a type the package defines.
+												} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 													WriteWrapperPrefix(out)
 													out.WriteString(typeIdent.Name)
 													out.WriteString("(")
@@ -13804,7 +13894,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+											if writeNamedScalarVarSpecValue(out, valueSpec, i) {
+												// A float, string or bool of a type the package defines.
+											} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 												WriteWrapperPrefix(out)
 												out.WriteString(typeIdent.Name)
 												out.WriteString("(")
@@ -14169,6 +14261,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var keyName, valueName string
 		keyAssigned := false
 		valueAssigned := false
+		// valueMutated is also true when the body calls a pointer method
+		// on the value, which needs the binding mutable.
+		valueMutated := false
 		rangeAssignsExisting := s.Tok == token.ASSIGN
 
 		// Use type information to determine what we're iterating over
@@ -14481,6 +14576,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				valueAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, valueName)
+				valueMutated = valueAssigned || (!rangeAssignsExisting && blockCallsPointerMethodOnValue(s.Body, valueName))
 				registeredValueType := valueType
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
@@ -14556,7 +14652,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
 		}
 		writeRangeValueBinding := func() {
-			writeRangePatternBinding(out, s.Value, valueAssigned, valueBindingTemp)
+			writeRangePatternBinding(out, s.Value, valueMutated, valueBindingTemp)
 		}
 		writeMapRangeKeyBinding := func() {
 			if keyBindingTemp != "" {
@@ -14665,7 +14761,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// String iteration - iterate over chars
 			// Check if the range target is already a bare string (no wrapping needed).
 			_, isStringLit := s.X.(*ast.BasicLit)
-			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X)
+			// A named string ranges over a copy of the String it holds.
+			var namedStringSource strings.Builder
+			hasNamedStringSource := writeNamedStringNewtypeInnerValue(&namedStringSource, s.X)
+			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource
+			writeBareStringRangeSource := func() {
+				if hasNamedStringSource {
+					out.WriteString("(")
+					out.WriteString(namedStringSource.String())
+					out.WriteString(")")
+					return
+				}
+				TranspileExpression(out, s.X)
+			}
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
@@ -14674,7 +14782,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
 					out.WriteString(") in ")
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString(") in (*")
@@ -14692,7 +14800,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
 					out.WriteString(" in ")
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString(" in (*")
@@ -14711,7 +14819,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeRangeKeyBinding()
 				out.WriteString(", _) in ")
 				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString("(*")
@@ -14727,7 +14835,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for range str
 				out.WriteString("_ in ")
 				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString("(*")
@@ -16408,6 +16516,10 @@ func writeUnsupportedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, target
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	// A named string appends the String it holds.
+	if writeNamedStringNewtypeInnerValue(out, rhs) {
+		return
+	}
 	if writeBareStringSliceValue(out, rhs, types.Typ[types.String]) {
 		return
 	}

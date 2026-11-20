@@ -1,0 +1,23 @@
+100.0°C 212 100.0°C
+10 33 -100.0°C 100.0°C
+21.2°C
+[18.0°C 20.5°C 25.2°C]
+25.2°C
+3.5°C 3.0°C 0.0°C true true
+10.25 10.2°C main.Celsius
+22.0°C true
+b1.0°C c2.0°C a3.0°C 
+3
+2.5°C 2
+3.5 16 45
+red RED 3 true true
+1 2
+blueish true 98 lue 7
+u
+status:active A I ?
+[status:active status:inactive status:pending]
+active,inactive,pending
+status status:active
+true 6
+3 map[status:active:3]
+on off true

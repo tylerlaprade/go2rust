@@ -8,8 +8,15 @@ pub const FUNC: i8 = 2;
 pub const FIELD: i8 = 3;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Kind(pub Rc<RefCell<Option<i8>>>);
+
+impl Clone for Kind {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Kind(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Kind {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -390,8 +397,15 @@ impl Ord for Kind {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
+
+impl Clone for Version {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Version(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

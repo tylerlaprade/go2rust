@@ -153,6 +153,12 @@ func writeNamedIntegerUnaryPrimitiveExpression(out *strings.Builder, expr *ast.U
 	if typeInfo == nil || expr == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
 		return false
 	}
+	// go/types leaves the operand of a constant expression untyped, so
+	// `I(-2)` has a named type but its `2` does not. Write the constant.
+	if isConstantExpression(expr) && !isNamedIntegerType(typeInfo.GetType(expr.X)) {
+		TranspileConstExpr(out, expr, 0)
+		return true
+	}
 	switch expr.Op {
 	case token.ADD:
 		writeNamedIntegerPrimitiveExpression(out, expr.X)
@@ -595,6 +601,14 @@ func isNamedIntegerType(typ types.Type) bool {
 	}
 	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
 	return ok && isIntegerBasicKind(basic.Kind())
+}
+
+// isNamedScalarNewtype reports whether typ is a type the package defines
+// over a bool, number or string, "type Celsius float64". Its Rust newtype
+// holds the value in a handle, so a value of it is cloned, never copied,
+// and its basic value is read through `.0`.
+func isNamedScalarNewtype(typ types.Type) bool {
+	return isNamedIntegerType(typ) || anyFormatTypeIsLocalNamedBasic(typ)
 }
 
 func namedBoolType(typ types.Type) (*types.Named, bool) {
@@ -1176,6 +1190,9 @@ func isLocalVarIdent(ident *ast.Ident) bool {
 }
 
 func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
+	if writeNamedStringNewtypeInnerValue(out, expr) {
+		return
+	}
 	if isStringConstExpr(expr) || isExpressionResultBare(expr) {
 		TranspileExpression(out, expr)
 		return
@@ -8064,6 +8081,11 @@ func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 	if !ok || basic.Kind() != types.String {
 		return false
 	}
+	if isNamedScalarNewtype(expected) {
+		named := types.Unalias(expected).(*types.Named)
+		writeStringTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), expr)
+		return true
+	}
 	TranspileConstExpr(out, expr, 0)
 	out.WriteString(".to_string()")
 	return true
@@ -8074,7 +8096,7 @@ func writeStringValueForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 		return false
 	}
 	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
-	if !ok || basic.Kind() != types.String {
+	if !ok || basic.Kind() != types.String || isNamedScalarNewtype(expected) {
 		return false
 	}
 	if writeStringConstForExpectedBasicType(out, expr, expected) {
@@ -10341,6 +10363,9 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	if writeNamedIntegerValueForExpected(out, value, named) {
 		return true
 	}
+	if writeNamedFloatValueForExpected(out, value, named) {
+		return true
+	}
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
@@ -12479,9 +12504,13 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
 		out.WriteString(e.Name)
 	} else if isLocalConstantIdent(e) {
-		out.WriteString(varName)
+		if ctx != RValue || !writeNamedScalarConstValue(out, e, varName) {
+			out.WriteString(varName)
+		}
 	} else if isConstIdent(e) {
-		out.WriteString(rustConstName(e.Name))
+		if ctx != RValue || !writeNamedScalarConstValue(out, e, rustConstName(e.Name)) {
+			out.WriteString(rustConstName(e.Name))
+		}
 	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" && lookupVarInfo(e.Name) == nil && !isLocalVarIdent(e) {
 		// Likely a constant - convert to UPPER_SNAKE_CASE
 		out.WriteString(rustConstName(e.Name))
@@ -13019,6 +13048,9 @@ func writePackageGlobalIdentMethodReceiver(out *strings.Builder, receiver *ast.I
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
+		if writeNamedScalarLiteralValue(out, e) {
+			return
+		}
 		switch e.Kind {
 		case token.STRING:
 			out.WriteString(RustStringLiteral(e.Value))
@@ -13642,6 +13674,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.UnaryExpr:
+		if (e.Op == token.SUB || e.Op == token.ADD) && writeNamedFloatArithmeticValue(out, e) {
+			return
+		}
 		switch e.Op {
 		case token.AND: // & - address-of
 			if writeBareSyncValueAddress(out, e.X) {
@@ -13840,6 +13875,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
+		if writeNamedFloatArithmeticValue(out, e) {
+			return
+		}
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()
@@ -18673,6 +18711,9 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 		out.WriteString(".to_string()")
 		return true
 	}
+	if writeNamedStringNewtypeInnerValue(out, arg) {
+		return true
+	}
 	if argType != nil {
 		if basic, ok := types.Unalias(argType).Underlying().(*types.Basic); ok && basic.Kind() == types.String {
 			if selectorOverBareBaseReturnsBareValue(arg) {
@@ -18778,6 +18819,9 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	}
 
 	if writeNamedIntegerPrimitiveExpression(out, arg) {
+		return
+	}
+	if writeNamedFloatPrimitiveExpression(out, arg) {
 		return
 	}
 
@@ -19171,6 +19215,11 @@ func writeNamedBoolUnderlyingValue(out *strings.Builder, arg ast.Expr) bool {
 	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
 	if !ok || basic.Kind() != types.Bool {
 		return false
+	}
+	// `e && true`: go/types gives the untyped true the named type of e.
+	if value, ok := constExpressionValue(arg); ok && value.Kind() == constant.Bool {
+		out.WriteString(strconv.FormatBool(constant.BoolVal(value)))
+		return true
 	}
 	if writeNamedBoolCurrentReceiverDerefUnderlyingValue(out, arg, named) {
 		return true

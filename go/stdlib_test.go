@@ -1007,11 +1007,16 @@ func render(m float64, e int) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "%.6g") || strings.Contains(rust, "%+d") || strings.Contains(rust, `"%g"`) {
-		t.Fatalf("fmt.Sprintf should not leave Go precision/sign verbs in Rust format strings:\n%s", rust)
+	// %.6g is six significant digits, and Rust's {:.6} is six decimals: no
+	// Rust format prints these verbs as Go does, so go_sprintf formats them
+	// when the program runs.
+	if strings.Contains(rust, `format!("%.6g`) || strings.Contains(rust, `format!("{:.6}e{:+}"`) {
+		t.Fatalf("fmt.Sprintf should not turn %%g with a precision into a Rust format:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{:.6}e{:+}"`) {
-		t.Fatalf("fmt.Sprintf should lower Go %%g precision and signed decimal verbs:\n%s", rust)
+	for _, want := range []string{`go_sprintf(&"%.6ge%+d".to_string(),`, `go_sprintf(&"%g".to_string(),`} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
 	}
 }
 

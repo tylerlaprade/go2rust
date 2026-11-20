@@ -372,12 +372,58 @@ func main() {
 
 	for _, want := range []string{
 		"fn go_format_is_text(__value: &dyn Any) -> bool {",
-		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text};",
+		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};",
 		"\npub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"}\nuse __go_runtime_format::go_sprintf;\n",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in:\n%s", want, rust)
 		}
+	}
+}
+
+// A literal format is turned into a Rust format only when every verb has a
+// Rust format with the same output. Any other goes to go_sprintf at run
+// time, as a format that is not a literal does.
+func TestFormatExpandsToRustOnlyForVerbsWithTheSameOutput(t *testing.T) {
+	for format, want := range map[string]bool{
+		`"%d %s %v %t %x %X %c %q"`:  false,
+		`"%d %s %v %t %x %X %c"`:     true,
+		`"%5d|%-5d|%05d|%8s|%-8s"`:   true,
+		`"%.2f %+d %+.1f %#x %T %%"`: true,
+		`"%8.2f"`:                    false,
+		`"%05.1f"`:                   false,
+		`"%e %E %g %G %o"`:           false,
+		`"%.3d"`:                     false,
+		`"%.3g"`:                     false,
+		`"%+5d"`:                     false,
+		`"% d"`:                      false,
+		`"%*d"`:                      false,
+		`"%[1]d"`:                    false,
+		`"%10v"`:                     false,
+		"`%d\n`":                     true,
+		`"100%"`:                     false,
+	} {
+		if got := formatExpandsToRust(format); got != want {
+			t.Errorf("formatExpandsToRust(%s) = %v, want %v", format, got, want)
+		}
+	}
+}
+
+// fmt.Print puts a space between two operands only when neither is a
+// string.
+func TestFmtPrintSpacesOnlyBetweenNonStrings(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Name string
+
+func main() {
+	fmt.Print(1, 2, "a", 3, Name("b"), "c", 4.5)
+}
+`)
+	if !strings.Contains(rust, `print!("{} {}{}{}{}{}{}"`) {
+		t.Fatalf("expected spaces only between the two integers:\n%s", rust)
 	}
 }

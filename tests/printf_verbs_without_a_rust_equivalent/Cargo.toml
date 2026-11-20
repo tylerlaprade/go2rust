@@ -1,0 +1,8 @@
+[package]
+name = "printf_verbs_without_a_rust_equivalent"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_verbs_without_a_rust_equivalent"
+path = "main.rs"

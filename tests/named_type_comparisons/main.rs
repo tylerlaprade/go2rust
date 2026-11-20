@@ -7,8 +7,15 @@ pub const STRING: i8 = 1;
 pub const BOOL: i8 = 2;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Kind(pub Rc<RefCell<Option<i8>>>);
+
+impl Clone for Kind {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Kind(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Kind {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

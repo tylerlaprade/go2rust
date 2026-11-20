@@ -14,8 +14,15 @@ pub const FLAGS: i32 = 0;
 pub const HAS_INIT: i32 = 1;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct RelocKind(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for RelocKind {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        RelocKind(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for RelocKind {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -396,8 +403,15 @@ impl Ord for RelocKind {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct SyncMarker(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for SyncMarker {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        SyncMarker(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for SyncMarker {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -778,8 +792,15 @@ impl Ord for SyncMarker {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Field(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Field {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Field(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Field {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

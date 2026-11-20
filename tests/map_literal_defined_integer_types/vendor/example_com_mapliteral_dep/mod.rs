@@ -10,8 +10,15 @@ pub const HIGH: i32 = 5;
 pub const OFFSET: i32 = 6;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Level(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Level {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Level(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Level {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
