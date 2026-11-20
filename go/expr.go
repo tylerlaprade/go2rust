@@ -1961,6 +1961,45 @@ func methodCallUsesBareArguments(sel *ast.SelectorExpr) bool {
 	return false
 }
 
+// writeBareSyncValueAddress writes "&sync.Mutex{}" or "&mu", where mu is a
+// local sync.Mutex, sync.RWMutex, sync.WaitGroup or sync.Once. These helpers
+// are handles already: a clone shares the lock. A parameter of type
+// *sync.Mutex is the bare helper too, so the pointer is the helper itself,
+// not a cell holding it.
+func writeBareSyncValueAddress(out *strings.Builder, expr ast.Expr) bool {
+	if !isBareSyncValueAddress(expr) {
+		return false
+	}
+	switch x := unwrapParens(expr).(type) {
+	case *ast.CompositeLit:
+		TranspileExpressionContext(out, x, RValue)
+	case *ast.Ident:
+		out.WriteString(rustIdentForUseWithCapture(x))
+		out.WriteString(".clone()")
+	}
+	return true
+}
+
+// isBareSyncValueAddress reports whether "&expr" is written as the bare
+// sync helper itself (see writeBareSyncValueAddress).
+func isBareSyncValueAddress(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil || !isGoSyncNamedType(types.Unalias(typ)) || isSourceMappedGoSyncNamedType(typ) {
+		return false
+	}
+	switch x := unwrapParens(expr).(type) {
+	case *ast.CompositeLit:
+		return true
+	case *ast.Ident:
+		return isVarBare(x.Name)
+	}
+	return false
+}
+
 func isSyncHelperRustType(rustType string) bool {
 	switch strings.TrimPrefix(rustType, "&") {
 	case "WaitGroup", "GoMutex", "GoRWMutex", "GoOnce":
@@ -13571,6 +13610,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.UnaryExpr:
 		switch e.Op {
 		case token.AND: // & - address-of
+			if writeBareSyncValueAddress(out, e.X) {
+				return
+			}
 			if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
 				typeInfo := GetTypeInfo()
 				if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {

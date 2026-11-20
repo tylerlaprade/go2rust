@@ -1233,3 +1233,44 @@ func makeRequest(prefix string) func(Config) Request {
 		}
 	}
 }
+
+// A goroutine started with a function literal works on the variables it
+// names, as any closure does: the capture is a clone of the handle. It used
+// to be a copy of the value, so "go func() { total += 10 }()" left total
+// alone. A loop variable is still copied, since Go gives each iteration its
+// own, and so is a value passed as an argument, which Go evaluates when the
+// go statement runs. A slice argument and "&n" are shared.
+func TestGoroutineSharesCapturedVariables(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func work(i int, xs []int, n *int, k int) {}
+
+func main() {
+	total := 0
+	results := make([]int, 3)
+	sum := 0
+	k := 5
+	done := make(chan bool)
+	for i := 0; i < 3; i++ {
+		go func() {
+			total += i
+			results[i] = i
+			done <- true
+		}()
+		go work(i, results, &sum, k)
+	}
+	<-done
+}
+`)
+	for _, want := range []string{
+		"let mut total_thread = total.clone();",
+		"let results_thread = results.clone();",
+		"let sum_thread = sum.clone();",
+		"let i_thread = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone())));",
+		"let k_thread = Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()).clone())));",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+}

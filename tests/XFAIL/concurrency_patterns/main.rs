@@ -402,7 +402,7 @@ fn main() {
         wg.add(1);
         let jobs_thread = jobs.clone(); let results_thread = results.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some({ let __arg_holder = w.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); std::thread::spawn(move || {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
-        let __closure = move |id: Arc<Mutex<Option<i32>>>| {
+        let mut __closure = move |id: Arc<Mutex<Option<i32>>>| {
             let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
@@ -565,9 +565,9 @@ fn main() {
     }));
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1000; __tmp_x < __tmp_y } {
-        (*mutex_closure_clone.lock().unwrap().as_ref().unwrap()).lock();
+        mutex_closure_clone.lock();
         { let mut guard = counter_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        (*mutex_closure_clone.lock().unwrap().as_ref().unwrap()).unlock();
+        mutex_closure_clone.unlock();
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         print!("Goroutine {} finished\n", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -729,7 +729,7 @@ pub fn fan_in(inputs: Arc<Mutex<Option<Vec<GoChannel<i32>>>>>) -> GoChannel<i32>
         wg.add(1);
         let output_thread = output.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone()))); std::thread::spawn(move || {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
-        let __closure = move |ch: GoChannel<i32>| {
+        let mut __closure = move |ch: GoChannel<i32>| {
             let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;

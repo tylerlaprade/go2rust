@@ -2160,18 +2160,58 @@ impl std::fmt::Debug for GoMutex {
 
 func generateGoRWMutexHelper(out *strings.Builder) {
 	code := `
+// A readers-writer lock: any number of readers, or one writer. A clone is
+// the same lock, as a *sync.RWMutex is.
 #[derive(Clone, Debug, Default)]
-pub struct GoRWMutex;
+pub struct GoRWMutex {
+    // (a writer holds it, how many readers hold it), and the waiters.
+    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize)>, std::sync::Condvar)>,
+}
 
 impl GoRWMutex {
     pub fn new() -> Self {
-        Self
+        Self::default()
     }
 
-    pub fn lock(&self) {}
-    pub fn unlock(&self) {}
-    pub fn r_lock(&self) {}
-    pub fn r_unlock(&self) {}
+    pub fn lock(&self) {
+        let (state, ready) = &*self.inner;
+        let mut held = state.lock().unwrap();
+        while held.0 || held.1 > 0 {
+            held = ready.wait(held).unwrap();
+        }
+        held.0 = true;
+    }
+
+    pub fn unlock(&self) {
+        let (state, ready) = &*self.inner;
+        let mut held = state.lock().unwrap();
+        if !held.0 {
+            panic!("sync: Unlock of unlocked RWMutex");
+        }
+        held.0 = false;
+        ready.notify_all();
+    }
+
+    pub fn r_lock(&self) {
+        let (state, ready) = &*self.inner;
+        let mut held = state.lock().unwrap();
+        while held.0 {
+            held = ready.wait(held).unwrap();
+        }
+        held.1 += 1;
+    }
+
+    pub fn r_unlock(&self) {
+        let (state, ready) = &*self.inner;
+        let mut held = state.lock().unwrap();
+        if held.1 == 0 {
+            panic!("sync: RUnlock of unlocked RWMutex");
+        }
+        held.1 -= 1;
+        if held.1 == 0 {
+            ready.notify_all();
+        }
+    }
 }
 
 impl std::fmt::Display for GoRWMutex {

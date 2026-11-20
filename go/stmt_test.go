@@ -10151,3 +10151,51 @@ func main() {
 		t.Fatalf("a copy of s must not move the Vec out of its cell:\n%s", rust)
 	}
 }
+
+// A local sync.Mutex is a bare GoMutex, so Lock and Unlock use it directly,
+// and "&mu" and "&sync.Mutex{}" are the helper itself, as a *sync.Mutex
+// parameter is. A local sync.RWMutex starts as GoRWMutex::new().
+func TestLocalSyncMutexForms(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+func bump(mu *sync.Mutex) {
+	mu.Lock()
+	mu.Unlock()
+}
+
+func main() {
+	var mu sync.Mutex
+	mu.Lock()
+	mu.Unlock()
+	bump(&mu)
+	var b = sync.Mutex{}
+	b.Lock()
+	b.Unlock()
+	c := &sync.Mutex{}
+	bump(c)
+	var rw sync.RWMutex
+	rw.RLock()
+	rw.RUnlock()
+}
+`)
+	for _, want := range []string{
+		"let __mutex_guard_source_",
+		"= mu.clone(); let __mutex_guard_",
+		"bump(mu.clone())",
+		"= b.clone(); let __mutex_guard_",
+		"let mut c = GoMutex {",
+		"bump(c.clone())",
+		"let mut rw = GoRWMutex::new();",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{"mu.borrow()", "b.borrow()", "c.borrow()", "let mut rw;"} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
+		}
+	}
+}

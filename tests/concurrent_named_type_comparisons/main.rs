@@ -622,7 +622,7 @@ impl Symbol {
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let mut sym = Arc::new(Mutex::new(Some(Symbol { kind: Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(FIELD as i8))))))), ..Default::default() })));
-    let done_thread = done.clone(); let sym_thread = Arc::new(Mutex::new(Some((*sym.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
+    let done_thread = done.clone(); let sym_thread = sym.clone(); std::thread::spawn(move || {
         done_thread.send((*sym_thread.lock().unwrap().as_ref().unwrap()).is_field());;;
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
