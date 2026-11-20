@@ -5478,6 +5478,9 @@ func writeRangeHandleReturnValue(out *strings.Builder, ident *ast.Ident) bool {
 }
 
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
+	if writeGoSliceFreshCellFromVariable(out, expr) {
+		return
+	}
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
@@ -11668,6 +11671,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 	}
 
+	if assign, ok := stmt.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE && goSliceModeEnabled() {
+		defer writeGoSliceDefineShadows(out, assign, indent)
+	}
+
 	switch s := stmt.(type) {
 	case *ast.SendStmt:
 		// Channel send: ch <- val
@@ -12419,6 +12426,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
 			}
+		} else if writeGoSliceHeaderAssignment(out, s) {
+			// A slice variable keeps its cell and takes the new header.
 		} else if isChannelAssignment(s) {
 			writeChannelAssignmentTarget(out, s.Lhs[0])
 			out.WriteString(" = ")
@@ -16170,7 +16179,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			currentFunctionHasDefer = hasClosureDefer
 			defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
 			if hasClosureDefer {
-				out.WriteString("let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n        ")
+				out.WriteString(deferStackDecl() + "\n        ")
 			}
 
 			// Generate the closure body inline

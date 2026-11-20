@@ -192,7 +192,10 @@ type HelperTracker struct {
 	needsGoHttpResponse                  bool
 	needsGoPtrKey                        bool
 	needsGoAnyPtrKey                     bool
-	anyCloneTypes                        map[string]bool
+	// omitGoSlice is set on the copy that leaves out the helpers a shared
+	// stub crate provides; GoSlice is one of them.
+	omitGoSlice   bool
+	anyCloneTypes map[string]bool
 	// anyTypeNames maps the Rust payload type of a value boxed into an empty
 	// interface to the name Go's %T prints for it.
 	anyTypeNames map[string]string
@@ -241,7 +244,13 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoAnyTypeMetadata = false
 	helperCopy.needsEmbeddedOwnerRegistry = false
 	helperCopy.needsGoAnyPtrKey = false
+	helperCopy.omitGoSlice = true
 	return &helperCopy
+}
+
+// goSlice reports whether this tracker's helpers define GoSlice.
+func (ht *HelperTracker) goSlice() bool {
+	return ht != nil && !ht.omitGoSlice && goSliceModeEnabled()
 }
 
 func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
@@ -286,6 +295,10 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 // GenerateHelpers returns the helper function definitions
 func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
+
+	if ht.goSlice() {
+		generateGoSliceHelper(&result)
+	}
 
 	// In a program of several packages, each helper also carries the cases
 	// the other packages need it to have.
@@ -502,7 +515,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoAnyPtrKeyHelper(&result)
 	}
 
-	return result.String()
+	return goSliceHelperText(result.String())
 }
 
 func (ht *HelperTracker) HasAnyOmittingSharedStdlibHelpers() bool {
@@ -511,7 +524,8 @@ func (ht *HelperTracker) HasAnyOmittingSharedStdlibHelpers() bool {
 }
 
 func (ht *HelperTracker) HasAny() bool {
-	return ht != nil && (ht.needsFormatMap ||
+	return ht != nil && (ht.goSlice() ||
+		ht.needsFormatMap ||
 		ht.needsFormatSlice ||
 		ht.needsFormatAny ||
 		ht.needsFormatAnySlice ||
@@ -620,6 +634,9 @@ func (ht *HelperTracker) ImportNames() []string {
 		}
 	}
 
+	if ht.goSlice() {
+		add(goSliceImportNames...)
+	}
 	if ht.needsFormatMap {
 		add("format_map")
 	}

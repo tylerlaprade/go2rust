@@ -1401,6 +1401,11 @@ func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max
 	writeSliceBoundValue(out, high, "__seq.len()")
 	out.WriteString("; let __max = ")
 	writeSliceBoundValue(out, max, defaultMax)
+	if canExtendWithinCapacity && goSliceModeEnabled() {
+		// The new header shares the backing array.
+		out.WriteString("; __seq.reslice3(__low, __high, __max) }")
+		return
+	}
 	if canExtendWithinCapacity {
 		out.WriteString("; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }")
 	}
@@ -1421,6 +1426,13 @@ func writeSliceVecFromSeqMultiline(out *strings.Builder, low ast.Expr, high ast.
 	out.WriteString("let __max = ")
 	writeSliceBoundValue(out, max, defaultMax)
 	out.WriteString(";\n")
+	if canExtendWithinCapacity && goSliceModeEnabled() {
+		out.WriteString(indent)
+		out.WriteString("__seq.reslice3(__low, __high, __max)\n")
+		out.WriteString(closeIndent)
+		out.WriteString("}")
+		return
+	}
 	if canExtendWithinCapacity {
 		out.WriteString(indent)
 		out.WriteString("if __seq.len() < __high { __seq.resize_with(__high, Default::default); }\n")
@@ -2308,7 +2320,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	writeSyncOnceReceiverClone(out, receiver)
 	out.WriteString("; __once.r#do(|| {\n")
 	if hasClosureDefer {
-		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+		out.WriteString("        " + deferStackDecl() + "\n")
 	}
 	prevReturnTail := currentReturnStatementIsTail
 	currentReturnStatementIsTail = false
@@ -2372,7 +2384,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	defer func() { currentReturnStatementIsTail = prevReturnTail }()
 
 	if hasClosureDefer {
-		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+		out.WriteString("        " + deferStackDecl() + "\n")
 	}
 	if funcLit.Body != nil {
 		for i, stmt := range funcLit.Body.List {
@@ -9634,6 +9646,9 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 }
 
 func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type, fieldOwnerPkgPath string) {
+	if writeGoSliceFreshCellFromVariable(out, value) {
+		return
+	}
 	var expectedFieldType types.Type
 	if fieldType != nil {
 		expectedFieldType = fieldType
@@ -11406,6 +11421,9 @@ func mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath string, expectedFieldType ty
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
+	if writeGoSliceFreshCellFromVariable(out, value) {
+		return
+	}
 	if lit, ok := value.(*ast.CompositeLit); ok && lit.Type == nil {
 		if named, sliceType, ok := namedSliceTypeFromType(valueType); ok {
 			// The map stores the defined slice in its own cell. The slice
@@ -16710,7 +16728,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	// Body
 	out.WriteString("{\n")
 	if hasClosureDefer {
-		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+		out.WriteString("        " + deferStackDecl() + "\n")
 	}
 	writeNamedReturnDeclarations(out, funcLit.Type)
 	if funcLit.Body != nil {
@@ -17194,7 +17212,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
 				writeStringConversionSource(out, call.Args[0])
-				out.WriteString(".as_bytes().to_vec()")
+				out.WriteString(".as_bytes()" + sliceToVecMethod())
 				WriteWrapperSuffix(out)
 				return
 			case "rune", "int32":
@@ -17368,9 +17386,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 						if basic.Kind() == types.Byte || basic.Kind() == types.Uint8 {
 							// []byte to string
 							WriteWrapperPrefix(out)
-							out.WriteString("String::from_utf8(")
+							out.WriteString(stringFromUTF8Open())
 							writeUnwrappedSliceClone(out, arg)
-							out.WriteString(").unwrap()")
+							out.WriteString(stringFromUTF8Close())
 							WriteWrapperSuffix(out)
 							return
 						} else if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
@@ -17420,10 +17438,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				return
 			case "u8":
 				WriteWrapperPrefix(out)
-				out.WriteString("String::from_utf8((*")
+				out.WriteString(stringFromUTF8Open() + "(*")
 				out.WriteString(RustIdentForUse(ident))
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone()).unwrap()")
+				out.WriteString(".as_ref().unwrap()).clone()" + stringFromUTF8Close())
 				WriteWrapperSuffix(out)
 				return
 			}
@@ -18736,9 +18754,9 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 			if basic, ok := types.Unalias(slice.Elem()).(*types.Basic); ok {
 				switch basic.Kind() {
 				case types.Uint8:
-					out.WriteString("String::from_utf8(")
+					out.WriteString(stringFromUTF8Open())
 					writeUnwrappedSliceClone(out, arg)
-					out.WriteString(").unwrap()")
+					out.WriteString(stringFromUTF8Close())
 					return true
 				case types.Int32:
 					writeRuneSliceStringValue(out, arg)
