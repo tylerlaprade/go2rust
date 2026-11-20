@@ -868,24 +868,24 @@ fn main() {
 
         )
     }.clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = { let __slice = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&{ let __map_key_holder = {
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = key.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+    let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
+        let mut __f_guard = key.lock().unwrap();
+        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
+    };
+    let __f = unsafe { &mut *__f_ptr };
+    (*__f)(
 
-        )
-    }.clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = {
-        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-            let mut __f_guard = value.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+    )
+}.clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = {
+    let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
+        let mut __f_guard = value.lock().unwrap();
+        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
+    };
+    let __f = unsafe { &mut *__f_ptr };
+    (*__f)(
 
-        )
-    }; let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*lists.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    )
+}; let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*lists.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", "append to a slice in a map:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 
     let mut grid = Arc::new(Mutex::new(Some(vec![vec![1i64]])));

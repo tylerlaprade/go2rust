@@ -3036,13 +3036,15 @@ func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 	if !isNamedSliceExpression(expr) {
 		return false
 	}
+	// The index is read before the slice is locked: it may read the same
+	// slice (s[len(s)-1]), and a Mutex cannot be locked twice.
 	out.WriteString("{ let __seq_holder = ")
 	writeNamedSliceInnerHandleClone(out, expr)
+	out.WriteString("; let __seq_index = ")
+	writeExpressionAsUsize(out, index)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[")
-	writeExpressionAsUsize(out, index)
-	out.WriteString("].clone() }")
+	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
 	return true
 }
 
@@ -3053,13 +3055,13 @@ func writeNamedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 	}
 	out.WriteString("{ let __seq_holder = ")
 	writeNamedArrayInnerHandleClone(out, expr)
+	out.WriteString("; let __seq_index = ")
+	writeExpressionAsUsize(out, index)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); ")
 	writeNamedArrayNestedInnerPeels(out, named)
-	out.WriteString("__seq[")
-	writeExpressionAsUsize(out, index)
-	out.WriteString("].clone() }")
+	out.WriteString("__seq[__seq_index].clone() }")
 	return true
 }
 
@@ -3377,6 +3379,11 @@ func writeCompositeLiteralHandleCallArgument(out *strings.Builder, arg ast.Expr)
 	if typeInfo != nil {
 		if typ := typeInfo.GetType(lit); typ != nil {
 			if _, ok := types.Unalias(typ).Underlying().(*types.Struct); ok {
+				return false
+			}
+			// A literal of a defined slice or map type lowers to its bare
+			// newtype, which the parameter's cell has to wrap.
+			if _, _, ok := namedSliceTypeFromType(typ); ok {
 				return false
 			}
 		}
@@ -12053,19 +12060,63 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 			out.WriteString(".clone())")
 			return
 		}
-		out.WriteString("&")
-		if writeMapKeyForExpectedType(out, index, keyType) {
-			return
+		var key strings.Builder
+		if !writeMapKeyForExpectedType(&key, index, keyType) && !writeOwnedMapKeyExpression(&key, index) {
+			TranspileExpression(&key, index)
 		}
-		if !writeOwnedMapKeyExpression(out, index) {
-			TranspileExpression(out, index)
-		}
+		writeBorrowedMapKey(out, key.String())
 	} else {
-		out.WriteString("&")
-		if !writeOwnedMapKeyExpression(out, index) {
-			TranspileExpression(out, index)
+		var key strings.Builder
+		if !writeOwnedMapKeyExpression(&key, index) {
+			TranspileExpression(&key, index)
+		}
+		writeBorrowedMapKey(out, key.String())
+	}
+}
+
+// writeBorrowedMapKey writes &key for a map lookup. `&` binds tighter than
+// `as`, so a key that ends in a cast, such as len(w) as i64, is borrowed in
+// parentheses.
+func writeBorrowedMapKey(out *strings.Builder, key string) {
+	out.WriteString("&")
+	if rustExprHasTopLevelCast(key) {
+		out.WriteString("(")
+		out.WriteString(key)
+		out.WriteString(")")
+		return
+	}
+	out.WriteString(key)
+}
+
+// rustExprHasTopLevelCast reports whether the Rust expression has an `as`
+// cast outside every bracket, block and string literal in it.
+func rustExprHasTopLevelCast(expr string) bool {
+	depth := 0
+	inString := false
+	for i := 0; i < len(expr); i++ {
+		c := expr[i]
+		if inString {
+			if c == '\\' {
+				i++
+			} else if c == '"' {
+				inString = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inString = true
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		case ' ':
+			if depth == 0 && strings.HasPrefix(expr[i:], " as ") {
+				return true
+			}
 		}
 	}
+	return false
 }
 
 func writeMapLookupValue(out *strings.Builder, valueType types.Type, defaultValue string) {
