@@ -35,9 +35,9 @@ impl std::fmt::Display for node {
 
 
 fn main() {
-    const white: i32 = 0;
-const grey: i32 = 1;
-const black: i32 = 2;
+    const white: i64 = 0;
+const grey: i64 = 1;
+const black: i64 = 2;
 
     let mut n = Rc::new(RefCell::new(Some(node { color: Rc::new(RefCell::new(Some(white as u8))), ..Default::default() })));
     if (*(*n.borrow().as_ref().unwrap()).color.borrow().as_ref().unwrap()) == white as u8 {

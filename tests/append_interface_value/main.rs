@@ -119,14 +119,14 @@ fn main() {
     let mut kept: Rc<RefCell<Option<Vec<Box<dyn Any>>>>> = Rc::new(RefCell::new(None));
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("s".to_string()) as Box<dyn Any>)));
     { let new_val = { let __append_target = kept.clone(); let __append_value = { let __any_holder = x.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; kept = new_val; };
-    let mut y: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>)));
+    let mut y: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>)));
     { let new_val = { let __append_target = kept.clone(); let __append_values = vec![{ let __any_holder = y.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = x.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; kept = new_val; };
     let mut p: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(pair { k: Rc::new(RefCell::new(Some("k".to_string()))), ..Default::default() }) as Box<dyn Any>)));
     { let new_val = { let __append_target = kept.clone(); let __append_value = { let __any_holder = p.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; kept = new_val; };
-    { let new_val = Box::new(4) as Box<dyn Any>; *y.borrow_mut() = Some(new_val); };
+    { let new_val = Box::new(4i64) as Box<dyn Any>; *y.borrow_mut() = Some(new_val); };
     println!("{}", format_any_variadic(&kept));
     println!("{} {}", format!("{}", (*kept.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", format_any(y.borrow().as_ref().unwrap().as_ref())));
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>))))]))));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>))))]))));
     { let new_val = { let __append_target = kept.clone(); let __append_value = { let __any_holder = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; kept = new_val; };
     println!("{}", format!("{}", (*kept.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

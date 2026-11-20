@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct r#box {
-    pub a: Rc<RefCell<Option<i32>>>,
-    pub b: Rc<RefCell<Option<i32>>>,
+    pub a: Rc<RefCell<Option<i64>>>,
+    pub b: Rc<RefCell<Option<i64>>>,
 }
 
 impl r#box {
@@ -41,7 +41,7 @@ impl std::fmt::Display for r#box {
 
 
 impl r#box {
-    pub fn rotate(&mut self, mut v: Rc<RefCell<Option<i32>>>) -> i32 {
+    pub fn rotate(&mut self, mut v: Rc<RefCell<Option<i64>>>) -> i64 {
         let mut old = Rc::new(RefCell::new(Some({ let __selector_holder = self.a.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         {
             let __tmp_0 = { let __selector_holder = self.b.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };

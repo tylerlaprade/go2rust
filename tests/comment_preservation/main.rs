@@ -4,7 +4,7 @@ use std::rc::{Rc};
 /// This is a doc comment for the main function
 fn main() {
         // Initialize a variable
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
 
         // Print the value
     println!("{} {}", format!("{}", "Value:".to_string()), format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));

@@ -251,20 +251,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -891,7 +891,7 @@ use __go_runtime_format::{go_sprintf, go_sprintf_spread};
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub n: Arc<Mutex<Option<i32>>>,
+    pub n: Arc<Mutex<Option<i64>>>,
 }
 
 impl Counter {
@@ -1001,7 +1001,7 @@ impl std::fmt::Display for Logger {
 pub struct Service {
     pub logger: Arc<Mutex<Option<Logger>>>,
     pub name: Arc<Mutex<Option<String>>>,
-    pub port: Arc<Mutex<Option<i32>>>,
+    pub port: Arc<Mutex<Option<i64>>>,
 }
 
 impl Service {
@@ -1043,7 +1043,7 @@ impl std::fmt::Display for Service {
 
 #[derive(Debug, Clone, Default)]
 pub struct Stack {
-    pub items: Arc<Mutex<Option<Vec<i32>>>>,
+    pub items: Arc<Mutex<Option<Vec<i64>>>>,
 }
 
 impl Stack {
@@ -1064,11 +1064,11 @@ impl std::fmt::Display for Stack {
 
 
 impl Counter {
-    pub fn add(&mut self, x: Arc<Mutex<Option<i32>>>) {
+    pub fn add(&mut self, x: Arc<Mutex<Option<i64>>>) {
         { let __target = self.n.clone(); let __rhs = (*x.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
-    pub fn plus(&self, x: Arc<Mutex<Option<i32>>>) -> i32 {
+    pub fn plus(&self, x: Arc<Mutex<Option<i64>>>) -> i64 {
         return { let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
     }
 }
@@ -1080,17 +1080,17 @@ impl Logger {
 }
 
 impl Stack {
-    pub fn push(&mut self, v: Arc<Mutex<Option<i32>>>) {
+    pub fn push(&mut self, v: Arc<Mutex<Option<i64>>>) {
         { let new_val = { let __append_target = self.items.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.items = new_val; };
     }
 
-    pub fn len(&self) -> i32 {
-        ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32
+    pub fn len(&self) -> i64 {
+        ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64
     }
 }
 
 impl Named {
-    pub fn add(&mut self, x: Arc<Mutex<Option<i32>>>) {
+    pub fn add(&mut self, x: Arc<Mutex<Option<i64>>>) {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
         let mut guard = embedded.lock().unwrap();
@@ -1098,7 +1098,7 @@ impl Named {
         embedded_ref.add(x)
     }
 
-    pub fn plus(&self, x: Arc<Mutex<Option<i32>>>) -> i32 {
+    pub fn plus(&self, x: Arc<Mutex<Option<i64>>>) -> i64 {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
         let guard = embedded.lock().unwrap();
@@ -1151,7 +1151,7 @@ fn main() {
     } }
 
     let mut st: Arc<Mutex<Option<Stack>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         { let __method_args = (Arc::new(Mutex::new(Some({ let __tmp_x = (*st.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 10; __tmp_x * __tmp_y }))),); (*st.lock().unwrap().as_mut().unwrap()).push(__method_args.0) };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

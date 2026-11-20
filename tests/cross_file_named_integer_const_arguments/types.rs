@@ -6,8 +6,8 @@ pub const RELOC_STRING: i32 = 0;
 pub const RELOC_META: i32 = 1;
 
 
-pub const SYNC_E_O_F: i32 = 0 + 1;
-pub const SYNC_BOOL: i32 = 1 + 1;
+pub const SYNC_E_O_F: i64 = 0 + 1;
+pub const SYNC_BOOL: i64 = 1 + 1;
 
 
 #[derive(Debug, Default)]
@@ -400,7 +400,7 @@ impl Ord for RelocKind {
 
 
 #[derive(Debug, Default)]
-pub struct SyncMarker(pub Rc<RefCell<Option<i32>>>);
+pub struct SyncMarker(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for SyncMarker {
     fn clone(&self) -> Self {
@@ -423,8 +423,8 @@ impl PartialEq for SyncMarker {
     }
 }
 
-impl PartialEq<i32> for SyncMarker {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for SyncMarker {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -437,19 +437,19 @@ impl PartialOrd for SyncMarker {
     }
 }
 
-impl PartialOrd<i32> for SyncMarker {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for SyncMarker {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<SyncMarker> for i32 {
+impl PartialEq<SyncMarker> for i64 {
     fn eq(&self, other: &SyncMarker) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<SyncMarker> for i32 {
+impl PartialOrd<SyncMarker> for i64 {
     fn partial_cmp(&self, other: &SyncMarker) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -462,14 +462,14 @@ impl std::ops::Add for SyncMarker {
     }
 }
 
-impl std::ops::Add<i32> for SyncMarker {
+impl std::ops::Add<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn add(self, other: i32) -> SyncMarker {
+    fn add(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<SyncMarker> for i32 {
+impl std::ops::Add<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn add(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -483,14 +483,14 @@ impl std::ops::Sub for SyncMarker {
     }
 }
 
-impl std::ops::Sub<i32> for SyncMarker {
+impl std::ops::Sub<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn sub(self, other: i32) -> SyncMarker {
+    fn sub(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<SyncMarker> for i32 {
+impl std::ops::Sub<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn sub(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -504,14 +504,14 @@ impl std::ops::Mul for SyncMarker {
     }
 }
 
-impl std::ops::Mul<i32> for SyncMarker {
+impl std::ops::Mul<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn mul(self, other: i32) -> SyncMarker {
+    fn mul(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<SyncMarker> for i32 {
+impl std::ops::Mul<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn mul(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -525,14 +525,14 @@ impl std::ops::Div for SyncMarker {
     }
 }
 
-impl std::ops::Div<i32> for SyncMarker {
+impl std::ops::Div<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn div(self, other: i32) -> SyncMarker {
+    fn div(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<SyncMarker> for i32 {
+impl std::ops::Div<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn div(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -553,14 +553,14 @@ impl std::ops::Rem for SyncMarker {
     }
 }
 
-impl std::ops::Rem<i32> for SyncMarker {
+impl std::ops::Rem<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn rem(self, other: i32) -> SyncMarker {
+    fn rem(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<SyncMarker> for i32 {
+impl std::ops::Rem<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn rem(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -574,14 +574,14 @@ impl std::ops::BitAnd for SyncMarker {
     }
 }
 
-impl std::ops::BitAnd<i32> for SyncMarker {
+impl std::ops::BitAnd<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn bitand(self, other: i32) -> SyncMarker {
+    fn bitand(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<SyncMarker> for i32 {
+impl std::ops::BitAnd<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn bitand(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -595,14 +595,14 @@ impl std::ops::BitOr for SyncMarker {
     }
 }
 
-impl std::ops::BitOr<i32> for SyncMarker {
+impl std::ops::BitOr<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn bitor(self, other: i32) -> SyncMarker {
+    fn bitor(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<SyncMarker> for i32 {
+impl std::ops::BitOr<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn bitor(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -616,14 +616,14 @@ impl std::ops::BitXor for SyncMarker {
     }
 }
 
-impl std::ops::BitXor<i32> for SyncMarker {
+impl std::ops::BitXor<i64> for SyncMarker {
     type Output = SyncMarker;
-    fn bitxor(self, other: i32) -> SyncMarker {
+    fn bitxor(self, other: i64) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<SyncMarker> for i32 {
+impl std::ops::BitXor<SyncMarker> for i64 {
     type Output = SyncMarker;
     fn bitxor(self, other: SyncMarker) -> SyncMarker {
         SyncMarker(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -807,11 +807,11 @@ impl std::fmt::Display for Encoder {
 
 
 impl Encoder {
-    pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> i32 {
-        (*Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())
+    pub fn sync(&self, m: Rc<RefCell<Option<SyncMarker>>>) -> i64 {
+        (*Rc::new(RefCell::new(Some((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())
     }
 
-    pub fn call_sync(&self) -> i32 {
-        self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i32))))))))
+    pub fn call_sync(&self) -> i64 {
+        self.sync(Rc::new(RefCell::new(Some(SyncMarker(Rc::new(RefCell::new(Some(SYNC_BOOL as i64))))))))
     }
 }

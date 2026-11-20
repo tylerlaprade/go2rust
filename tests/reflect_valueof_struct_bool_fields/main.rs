@@ -61,11 +61,11 @@ impl GoReflectType {
         Rc::new(RefCell::new(Some(elem)))
     }
 
-    fn num_field(&self) -> i32 {
-        self.fields.borrow().as_ref().unwrap().len() as i32
+    fn num_field(&self) -> i64 {
+        self.fields.borrow().as_ref().unwrap().len() as i64
     }
 
-    fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
+    fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
     }
@@ -105,7 +105,7 @@ impl GoReflectValue {
         self.typ.borrow().as_ref().unwrap().kind()
     }
 
-    fn field(&self, index: i32) -> Rc<RefCell<Option<GoReflectValue>>> {
+    fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
@@ -247,7 +247,7 @@ impl Eq for reflect_Type {}
 
 impl PartialOrd for reflect_Type {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -328,7 +328,7 @@ fn main() {
 
     let mut rv = { let __recv = { let __reflect_target = flags.clone(); Rc::new(RefCell::new(Some(GoReflectValue { typ: Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("main.Flags".to_string()))), kind: Rc::new(RefCell::new(Some(reflect_Kind(25)))), elem: Rc::new(RefCell::new(None::<Box<GoReflectType>>)), fields: Rc::new(RefCell::new(Some(vec![GoReflectField { name: Rc::new(RefCell::new(Some("Alpha".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("".to_string()))) }))) }, GoReflectField { name: Rc::new(RefCell::new(Some("Beta".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("".to_string()))) }))) }]))) }))), fields: Rc::new(RefCell::new(Some(vec![GoReflectValue { typ: Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("bool".to_string()))), kind: Rc::new(RefCell::new(Some(reflect_Kind(1)))), elem: Rc::new(RefCell::new(None::<Box<GoReflectType>>)), fields: Rc::new(RefCell::new(Some(vec![]))) }))), fields: Rc::new(RefCell::new(Some(vec![]))), bool_getter: Rc::new(RefCell::new(Some({ let __field_target = __reflect_target.clone(); Box::new(move || -> bool { let __target_guard = __field_target.borrow(); let __target_value = __target_guard.as_ref().expect("reflect.Value.Bool requires a struct value"); let __field_value = { let __field_guard = __target_value.alpha.borrow(); (*__field_guard.as_ref().unwrap()).clone() }; __field_value }) as GoReflectBoolGetter }))), bool_setter: Rc::new(RefCell::new(Some({ let __field_target = __reflect_target.clone(); Box::new(move |__value: Rc<RefCell<Option<bool>>>| { let __new_value = (*__value.borrow().as_ref().unwrap()).clone(); let mut __target_guard = __field_target.borrow_mut(); let __target_value = __target_guard.as_mut().expect("reflect.Value.SetBool requires a settable struct value"); *__target_value.alpha.borrow_mut() = Some(__new_value); }) as GoReflectBoolSetter }))), unsupported: None }, GoReflectValue { typ: Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("bool".to_string()))), kind: Rc::new(RefCell::new(Some(reflect_Kind(1)))), elem: Rc::new(RefCell::new(None::<Box<GoReflectType>>)), fields: Rc::new(RefCell::new(Some(vec![]))) }))), fields: Rc::new(RefCell::new(Some(vec![]))), bool_getter: Rc::new(RefCell::new(Some({ let __field_target = __reflect_target.clone(); Box::new(move || -> bool { let __target_guard = __field_target.borrow(); let __target_value = __target_guard.as_ref().expect("reflect.Value.Bool requires a struct value"); let __field_value = { let __field_guard = __target_value.beta.borrow(); (*__field_guard.as_ref().unwrap()).clone() }; __field_value }) as GoReflectBoolGetter }))), bool_setter: Rc::new(RefCell::new(Some({ let __field_target = __reflect_target.clone(); Box::new(move |__value: Rc<RefCell<Option<bool>>>| { let __new_value = (*__value.borrow().as_ref().unwrap()).clone(); let mut __target_guard = __field_target.borrow_mut(); let __target_value = __target_guard.as_mut().expect("reflect.Value.SetBool requires a settable struct value"); *__target_value.beta.borrow_mut() = Some(__new_value); }) as GoReflectBoolSetter }))), unsupported: None }]))), bool_getter: Rc::new(RefCell::new(None)), bool_setter: Rc::new(RefCell::new(None)), unsupported: None }))) }; let __result = (*__recv.borrow().as_ref().unwrap()).elem(); __result };
     let mut rt = (*rv.borrow().as_ref().unwrap()).r#type();
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < (*rt.borrow().as_ref().unwrap()).num_field() {
         let mut field = (*rv.borrow().as_ref().unwrap()).field({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() });
         { let __map_key = { let __map_key_holder = Rc::new(RefCell::new(Some({ let __s = (*(*(*rt.borrow().as_ref().unwrap()).field(Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(); __s.to_lowercase() }))).clone(); let __map_key_guard = __map_key_holder.borrow(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = Rc::new(RefCell::new(Some({ let mut __recv = (*field.borrow().as_ref().unwrap()).clone(); Box::new(move |__arg0: Rc<RefCell<Option<bool>>>| { __recv.set_bool(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<bool>>>) -> ()> }))); (*names.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };

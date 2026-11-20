@@ -216,7 +216,7 @@ impl<T> Iterator for GoChannel<T> {
 #[derive(Debug, Clone)]
 pub struct r#box {
     pub name: Arc<Mutex<Option<String>>>,
-    pub items: Arc<Mutex<Option<Vec<i32>>>>,
+    pub items: Arc<Mutex<Option<Vec<i64>>>>,
 }
 
 impl r#box {
@@ -258,6 +258,6 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut value = Arc::new(Mutex::new(Some(r#box { name: Arc::new(Mutex::new(Some("alpha".to_string()))), items: Arc::new(Mutex::new(Some(vec![1, 2]))), ..Default::default() })));
+    let mut value = Arc::new(Mutex::new(Some(r#box { name: Arc::new(Mutex::new(Some("alpha".to_string()))), items: Arc::new(Mutex::new(Some(vec![1i64, 2i64]))), ..Default::default() })));
     println!("{} {} {}", format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len_target = { let __field = (*value.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", (*{ let __field = (*value.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
 }

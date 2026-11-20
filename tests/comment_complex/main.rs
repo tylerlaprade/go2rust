@@ -6,7 +6,7 @@ use std::rc::{Rc};
 #[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
 }
 
 impl Person {
@@ -57,7 +57,7 @@ impl Person {
 }
 
 /// NewPerson creates a new Person instance
-pub fn new_person(name: Rc<RefCell<Option<String>>>, age: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Person>>> {
+pub fn new_person(name: Rc<RefCell<Option<String>>>, age: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Person>>> {
         // Validate inputs
     if (*age.borrow().as_ref().unwrap()) < 0 {
                 // Return nil for invalid age

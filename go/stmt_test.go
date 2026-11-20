@@ -1268,8 +1268,8 @@ func wait(files []string) {
 		strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0))") {
 		t.Fatalf("sync.WaitGroup.Add should not pass len() as usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") &&
-		!strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") {
+	if !strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)") &&
+		!strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)") {
 		t.Fatalf("sync.WaitGroup.Add should cast len() to Go int:\n%s", rust)
 	}
 }
@@ -1601,8 +1601,8 @@ func search(a []int) int {
 		strings.Contains(rust, "let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0));") {
 		t.Fatalf("multi-name short declaration should not leave len as bare usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))") &&
-		!strings.Contains(rust, "Arc::new(Mutex::new(Some((*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))") {
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))") &&
+		!strings.Contains(rust, "Arc::new(Mutex::new(Some((*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))") {
 		t.Fatalf("multi-name short declaration should wrap len as Go int:\n%s", rust)
 	}
 }
@@ -3693,20 +3693,20 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"pub fn year() -> i32",
-		"pub fn named() -> i32",
-		"pub fn pair() -> (i32, bool)",
-		"pub fn value(&self) -> i32",
+		"pub fn year() -> i64",
+		"pub fn named() -> i64",
+		"pub fn pair() -> (i64, bool)",
+		"pub fn value(&self) -> i64",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("copy scalar return boundary should emit %q:\n%s", want, rust)
 		}
 	}
 	for _, unwanted := range []string{
-		"pub fn year() -> Rc<RefCell<Option<i32>>>",
-		"pub fn named() -> Rc<RefCell<Option<i32>>>",
-		"pub fn pair() -> (Rc<RefCell<Option<i32>>>",
-		"pub fn value(&self) -> Rc<RefCell<Option<i32>>>",
+		"pub fn year() -> Rc<RefCell<Option<i64>>>",
+		"pub fn named() -> Rc<RefCell<Option<i64>>>",
+		"pub fn pair() -> (Rc<RefCell<Option<i64>>>",
+		"pub fn value(&self) -> Rc<RefCell<Option<i64>>>",
 	} {
 		if strings.Contains(rust, unwanted) {
 			t.Fatalf("copy scalar return boundary should not remain wrapped (%q):\n%s", unwanted, rust)
@@ -3736,11 +3736,11 @@ func find(i int) (int, uint) {
 }
 `)
 
-	if !strings.Contains(rust, "pub fn find(i: Rc<RefCell<Option<i32>>>) -> (i32, u64)") {
+	if !strings.Contains(rust, "pub fn find(i: Rc<RefCell<Option<i64>>>) -> (i64, u64)") {
 		t.Fatalf("tuple return signature should use a u64 slot for uint:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __tmp_x = PAGES; let __tmp_y = 1; __tmp_x - __tmp_y") {
-		t.Fatalf("constant binary expression in uint return slot should not stay as i32 arithmetic:\n%s", rust)
+		t.Fatalf("constant binary expression in uint return slot should not stay as i64 arithmetic:\n%s", rust)
 	}
 	if !strings.Contains(rust, "as u64") {
 		t.Fatalf("constant binary expression in uint return slot should use the expected u64 type:\n%s", rust)
@@ -3815,7 +3815,7 @@ func closure() int {
 	for _, want := range []string{
 		"\n    2\n}",
 		"\n    (3, true)\n}",
-		"move || -> i32 {\n        4\n    }",
+		"move || -> i64 {\n        4\n    }",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("tail return should emit %q:\n%s", want, rust)
@@ -3901,7 +3901,7 @@ func year(v string, i int) int {
 	if strings.Contains(rust, "let __atoi_input = Rc::new") || strings.Contains(rust, "let __atoi_input = Arc::new") {
 		t.Fatalf("strconv.Atoi should parse an owned string value, not a wrapped string handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "match __atoi_input.parse::<i32>()") {
+	if !strings.Contains(rust, "match __atoi_input.parse::<i64>()") {
 		t.Fatalf("strconv.Atoi should parse the prepared string input:\n%s", rust)
 	}
 }
@@ -3961,8 +3961,8 @@ func use() {
 }
 `)
 
-	ordinary := "Rc::new(RefCell::new(Some(Box_::<i32> {"
-	concurrent := "Arc::new(Mutex::new(Some(Box_::<i32> {"
+	ordinary := "Rc::new(RefCell::new(Some(Box_::<i64> {"
+	concurrent := "Arc::new(Mutex::new(Some(Box_::<i64> {"
 	if strings.Count(rust, ordinary) < 2 && strings.Count(rust, concurrent) < 2 {
 		t.Fatalf("instantiated generic struct short and var declarations should store locals in their Go value wrappers:\n%s", rust)
 	}
@@ -4046,7 +4046,7 @@ func last(s string) span {
 	if strings.Contains(rust, ".len())))") {
 		t.Fatalf("len field should not leave a usize in a wrapped Go int field:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".len() as i32") {
+	if !strings.Contains(rust, ".len() as i64") {
 		t.Fatalf("len field should cast Rust usize to Go int:\n%s", rust)
 	}
 }
@@ -5673,7 +5673,7 @@ func short() int {
 }
 `)
 
-	if !strings.Contains(rust, "pub fn pair() -> (i32, bool)") {
+	if !strings.Contains(rust, "pub fn pair() -> (i64, bool)") {
 		t.Fatalf("tuple return signature should use bare scalar slots:\n%s", rust)
 	}
 	if strings.Contains(rust, "__tmp_0.borrow()") || strings.Contains(rust, "__tmp_0.lock()") ||
@@ -6491,8 +6491,8 @@ func positions(items []string) map[string]int {
 }
 `)
 
-	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some(i as i32)))") &&
-		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some(i as i32)))") {
+	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some(i as i64)))") &&
+		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some(i as i64)))") {
 		t.Fatalf("map assignment should cast bare range indexes to Go int values:\n%s", rust)
 	}
 }
@@ -6505,8 +6505,8 @@ func bump(m map[int]int) {
 }
 `)
 
-	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") &&
-		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") {
+	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") &&
+		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") {
 		t.Fatalf("map update should cast len from usize to its Go int key type:\n%s", rust)
 	}
 }
@@ -6563,7 +6563,7 @@ func firstHit(items []string, table map[int]string) int {
 }
 `)
 
-	if !strings.Contains(rust, ".get(&(i as i32))") {
+	if !strings.Contains(rust, ".get(&(i as i64))") {
 		t.Fatalf("map lookup should cast bare range indexes to Go int keys:\n%s", rust)
 	}
 }
@@ -7308,11 +7308,11 @@ func main() {
 }
 `)
 
-	if strings.Contains(rust, "INVALID as i32 - -1 as i32 as usize") {
+	if strings.Contains(rust, "INVALID as i64 - -1 as i64 as usize") {
 		t.Fatalf("named-integer binary index must parenthesize as-cast operands before as-usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(INVALID as i32 - -1 as i32) as usize") &&
-		!strings.Contains(rust, "(INVALID as i32 - -1) as usize") {
+	if !strings.Contains(rust, "(INVALID as i64 - -1 as i64) as usize") &&
+		!strings.Contains(rust, "(INVALID as i64 - -1) as usize") {
 		t.Fatalf("expected named-integer binary index emission to wrap operands in parens:\n%s", rust)
 	}
 }
@@ -7365,8 +7365,8 @@ func main() {
 		strings.Contains(rust, "Err(e) => (Arc::new(Mutex::new(Some(0)))") {
 		t.Fatalf("strconv.Atoi Err branch should emit bare scalar zero in the first tuple slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Err(_) => (0 as i32,") {
-		t.Fatalf("strconv.Atoi Err branch should emit bare zero (0 as i32) in the first tuple slot:\n%s", rust)
+	if !strings.Contains(rust, "Err(_) => (0 as i64,") {
+		t.Fatalf("strconv.Atoi Err branch should emit bare zero (0 as i64) in the first tuple slot:\n%s", rust)
 	}
 	if !strings.Contains(rust, "(mut num, mut err)") {
 		t.Fatalf("expected num/err short-decl destructuring:\n%s", rust)
@@ -7667,8 +7667,8 @@ func set(x []byte, bb *sliceHeader) {
 	if strings.Contains(rust, "Some(__tmp_0);") || strings.Contains(rust, "Some(__tmp_1);") {
 		t.Fatalf("parallel len/cap assignment to int fields should not store usize temporaries directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(__tmp_0 as i32);") ||
-		!strings.Contains(rust, "Some(__tmp_1 as i32);") {
+	if !strings.Contains(rust, "Some(__tmp_0 as i64);") ||
+		!strings.Contains(rust, "Some(__tmp_1 as i64);") {
 		t.Fatalf("parallel len/cap assignment to int fields should cast temporary values to Go int:\n%s", rust)
 	}
 }
@@ -7758,11 +7758,11 @@ func findInSlice(slice []int, target int) (int, bool) {
 	if !strings.Contains(rust, "pub fn find_in_slice") {
 		t.Fatalf("expected find_in_slice declaration:\n%s", rust)
 	}
-	if !strings.Contains(rust, "return (i as i32, true);") {
-		t.Fatalf("range index returned through bare i32 tuple slot must cast usize -> i32:\n%s", rust)
+	if !strings.Contains(rust, "return (i as i64, true);") {
+		t.Fatalf("range index returned through bare i64 tuple slot must cast usize -> i64:\n%s", rust)
 	}
 	if strings.Contains(rust, "return (i, true);") {
-		t.Fatalf("range index emit should not leak usize into a bare i32 return slot:\n%s", rust)
+		t.Fatalf("range index emit should not leak usize into a bare i64 return slot:\n%s", rust)
 	}
 }
 
@@ -7786,13 +7786,13 @@ func write(data []byte) (n int, err error) {
 	if !strings.Contains(rust, "for (__range_n, __range_b) in") {
 		t.Fatalf("range assignment should bind loop temporaries before assigning existing variables:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = __range_n as i32; *n.borrow_mut() = Some(new_val);") {
+	if !strings.Contains(rust, "let new_val = __range_n as i64; *n.borrow_mut() = Some(new_val);") {
 		t.Fatalf("range assignment should store the usize key into the named result handle as Go int:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let new_val = __range_b; *b.borrow_mut() = Some(new_val);") {
 		t.Fatalf("range assignment should store the byte value into the existing local handle:\n%s", rust)
 	}
-	if strings.Contains(rust, "return (n as i32") {
+	if strings.Contains(rust, "return (n as i64") {
 		t.Fatalf("explicit return should read the named result handle, not a shadowing usize range key:\n%s", rust)
 	}
 }
@@ -7840,8 +7840,8 @@ func countUntilLimit(values []int) int {
 }
 `)
 
-	if !strings.Contains(rust, "i as i32 >= limit(values.clone())") {
-		t.Fatalf("range index usize must cast to i32 when compared against a bare-scalar int call:\n%s", rust)
+	if !strings.Contains(rust, "i as i64 >= limit(values.clone())") {
+		t.Fatalf("range index usize must cast to i64 when compared against a bare-scalar int call:\n%s", rust)
 	}
 }
 
@@ -8305,8 +8305,8 @@ func run(values []string, counts []int) {
 	if strings.Contains(rust, "Some(i))") {
 		t.Fatalf("goroutine range index argument should cast usize to Go int before wrapping:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(i as i32)") {
-		t.Fatalf("goroutine range index argument should cast usize to i32:\n%s", rust)
+	if !strings.Contains(rust, "Some(i as i64)") {
+		t.Fatalf("goroutine range index argument should cast usize to i64:\n%s", rust)
 	}
 	if strings.Contains(rust, "[(i) as usize]") {
 		t.Fatalf("function literal int parameter should shadow the outer range index:\n%s", rust)
@@ -8838,8 +8838,8 @@ func main() {
 	if strings.Count(mainRust, "LoadMode(") > 1 {
 		t.Fatalf("nested named-integer const operands must not each be wrapped in LoadMode(...) — expected a single outer wrap inside main():\n%s", mainRust)
 	}
-	if !strings.Contains(mainRust, "NEED_NAME as i32 | NEED_FILES as i32") {
-		t.Fatalf("named-integer const bitwise OR should emit bare i32 operands:\n%s", mainRust)
+	if !strings.Contains(mainRust, "NEED_NAME as i64 | NEED_FILES as i64") {
+		t.Fatalf("named-integer const bitwise OR should emit bare i64 operands:\n%s", mainRust)
 	}
 }
 
@@ -9437,8 +9437,8 @@ func (s *scanner) advance() {
 	if strings.Contains(rust, "let __rhs = rdOffset;") {
 		t.Fatalf("compound assignment to int field should not use usize range index without a cast:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __rhs = (rdOffset as i32);") {
-		t.Fatalf("compound assignment to int field should cast usize range index to i32:\n%s", rust)
+	if !strings.Contains(rust, "let __rhs = (rdOffset as i64);") {
+		t.Fatalf("compound assignment to int field should cast usize range index to i64:\n%s", rust)
 	}
 }
 
@@ -10251,7 +10251,7 @@ func main() {
 	for _, want := range []string{
 		"let mut t = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
 		"let mut a = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
-		"let mut b: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut b: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
 		"let mut d = m.clone();",
 		"let mut f = m.clone();",
 		"let mut e = Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()).clone())));",

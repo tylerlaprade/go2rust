@@ -46,7 +46,7 @@ fn main() {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
     pub name: Rc<RefCell<Option<String>>>,
 }
 impl AnonymousStruct1 {

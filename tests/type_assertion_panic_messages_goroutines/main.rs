@@ -295,20 +295,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -318,8 +318,8 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 
 #[derive(Debug, Clone)]
 pub struct Rect {
-    pub w: Arc<Mutex<Option<i32>>>,
-    pub h: Arc<Mutex<Option<i32>>>,
+    pub w: Arc<Mutex<Option<i64>>>,
+    pub h: Arc<Mutex<Option<i64>>>,
 }
 
 impl Rect {
@@ -412,7 +412,7 @@ fn main() {
     });
     started.recv().unwrap_or_default();
 
-    let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42) as Box<dyn Any + Send + Sync>)));
+    let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
     let a_closure_clone = a.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
         let _ = ({
         let val = a_closure_clone.clone();
@@ -424,7 +424,7 @@ fn main() {
         }
     });
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
-    let mut b: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42) as Box<dyn Any + Send + Sync>)));
+    let mut b: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
     let b_closure_clone = b.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
         let _ = ({
         let val = b_closure_clone.clone();
@@ -436,7 +436,7 @@ fn main() {
         }
     });
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
-    let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42) as Box<dyn Any + Send + Sync>)));
+    let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
     let c_closure_clone = c.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
         let _ = ({
         let val = c_closure_clone.clone();
@@ -454,7 +454,7 @@ fn main() {
         let val = d_closure_clone.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<i32>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
+            any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
@@ -478,7 +478,7 @@ fn main() {
         let val = f_closure_clone.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<i32>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
+            any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
@@ -500,7 +500,7 @@ fn main() {
         let val = g_closure_clone.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.lock().unwrap()).clone().unwrap_or_default(); __value }
+            { let __handle = any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.lock().unwrap()).clone().unwrap_or_default(); __value }
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }

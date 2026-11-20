@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -37,7 +37,7 @@ impl std::fmt::Display for Counter {
 #[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
 }
 
 impl Person {
@@ -74,7 +74,7 @@ impl std::fmt::Display for Person {
 
 impl Counter {
     /// Method with value receiver
-    pub fn get_value(&self) -> i32 {
+    pub fn get_value(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap());
     }
 
@@ -83,12 +83,12 @@ impl Counter {
         { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&mut self, n: Rc<RefCell<Option<i64>>>) {
         { let __target = self.value.clone(); let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     /// Method with return value
-    pub fn double(&mut self) -> i32 {
+    pub fn double(&mut self) -> i64 {
         { let __target = self.value.clone(); let __rhs = 2; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
         return (*self.value.borrow().as_ref().unwrap());
     }

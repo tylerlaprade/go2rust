@@ -46,11 +46,11 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Tally(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<i32>>>>>>>>);
+pub struct Tally(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<i64>>>>>>>>);
 
 
 impl Tally {
-    pub fn add(&self, name: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&self, name: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i64>>>) {
         let mut __self = self.clone();
         { let __map_key = (*name.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = __self.0.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*name.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*value.borrow().as_ref().unwrap()).clone(); (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*__self.0.clone().borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
@@ -68,7 +68,7 @@ impl Tally {
 }
 
 fn main() {
-    let mut t = Rc::new(RefCell::new(Some(Tally(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i32>>>>>::new())))))));
+    let mut t = Rc::new(RefCell::new(Some(Tally(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::new())))))));
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some(1))));
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("a".to_string()))), Rc::new(RefCell::new(Some(2))));
     (*t.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some("b".to_string()))), Rc::new(RefCell::new(Some(3))));

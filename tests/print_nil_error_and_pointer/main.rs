@@ -5,8 +5,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -44,7 +44,7 @@ impl std::fmt::Display for Point {
 /// Status has a String method on the value, so *Status has it too.
 #[derive(Debug, Clone)]
 pub struct Status {
-    pub code: Rc<RefCell<Option<i32>>>,
+    pub code: Rc<RefCell<Option<i64>>>,
 }
 
 impl Status {
@@ -76,7 +76,7 @@ impl std::fmt::Display for Status {
 /// Gauge has a String method on the pointer only.
 #[derive(Debug, Clone)]
 pub struct Gauge {
-    pub level: Rc<RefCell<Option<i32>>>,
+    pub level: Rc<RefCell<Option<i64>>>,
 }
 
 impl Gauge {
@@ -140,7 +140,7 @@ impl std::fmt::Display for Broken {
 /// Timeout is an error through its value.
 #[derive(Debug, Clone)]
 pub struct Timeout {
-    pub seconds: Rc<RefCell<Option<i32>>>,
+    pub seconds: Rc<RefCell<Option<i64>>>,
 }
 
 impl Timeout {

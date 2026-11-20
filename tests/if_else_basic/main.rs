@@ -13,7 +13,7 @@ fn main() {
     }
 
     {
-        let mut num = Rc::new(RefCell::new(Some(9)));;
+        let mut num = Rc::new(RefCell::new(Some(9i64)));;
         if (*num.borrow().as_ref().unwrap()) < 0 {
             println!("{} {}", format!("{}", { let __v = (*num.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "is negative".to_string()));;
         } else if (*num.borrow().as_ref().unwrap()) < 10 {

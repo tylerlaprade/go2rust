@@ -46,7 +46,7 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Numbers(pub Rc<RefCell<Option<Vec<i32>>>>);
+pub struct Numbers(pub Rc<RefCell<Option<Vec<i64>>>>);
 
 impl Display for Numbers {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -56,7 +56,7 @@ impl Display for Numbers {
 
 
 fn main() {
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Numbers>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![1, 0, 0, 4])))))))), ("empty".to_string(), Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(Vec::<i32>::new())))))))), ("explicit".to_string(), Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![2]))))))))]))));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Numbers>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![1i64, 0, 0, 4i64])))))))), ("empty".to_string(), Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(Vec::<i64>::new())))))))), ("explicit".to_string(), Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![2i64]))))))))]))));
     let mut a = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Rc::new(RefCell::new(Some(Default::default())))) };
     let mut empty = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"empty".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Rc::new(RefCell::new(Some(Default::default())))) };
     let mut explicit = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"explicit".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Rc::new(RefCell::new(Some(Default::default())))) };

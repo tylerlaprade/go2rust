@@ -1,16 +1,16 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn zeroval(mut ival: Rc<RefCell<Option<i32>>>) {
+pub fn zeroval(mut ival: Rc<RefCell<Option<i64>>>) {
     { let new_val = 0; *ival.borrow_mut() = Some(new_val); };
 }
 
-pub fn zeroptr(iptr: Rc<RefCell<Option<i32>>>) {
+pub fn zeroptr(iptr: Rc<RefCell<Option<i64>>>) {
     { let new_val = 0; *iptr.borrow_mut() = Some(new_val); };
 }
 
 fn main() {
-    let mut i = Rc::new(RefCell::new(Some(1)));
+    let mut i = Rc::new(RefCell::new(Some(1i64)));
     println!("{} {}", format!("{}", "initial:".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
 
     zeroval(Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));

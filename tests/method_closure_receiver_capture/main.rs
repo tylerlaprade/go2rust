@@ -95,8 +95,8 @@ impl std::fmt::Display for named {
 #[derive(Clone)]
 pub struct pkgReader {
     pub later_fns: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>>>>,
-    pub later_fors: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<named>, Rc<RefCell<Option<i32>>>>>>>,
-    pub hits: Rc<RefCell<Option<i32>>>,
+    pub later_fors: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<named>, Rc<RefCell<Option<i64>>>>>>>,
+    pub hits: Rc<RefCell<Option<i64>>>,
 }
 
 impl pkgReader {
@@ -139,9 +139,9 @@ impl std::fmt::Display for pkgReader {
 impl pkgReader {
     pub fn later_for(&mut self, t: Rc<RefCell<Option<named>>>, r#fn: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
         if { let __nil_target = self.later_fors.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result } {
-        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<GoLocalPtrKey<named>, Rc<RefCell<Option<i32>>>>::new()))); self.later_fors = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<GoLocalPtrKey<named>, Rc<RefCell<Option<i64>>>>::new()))); self.later_fors = new_val; };
     }
-        { let __map_key = GoLocalPtrKey::new(t.clone()); let __map_value = Rc::new(RefCell::new(Some(({ let __len_target = { let __field = self.later_fns.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32))); (*self.later_fors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoLocalPtrKey::new(t.clone()); let __map_value = Rc::new(RefCell::new(Some(({ let __len_target = { let __field = self.later_fns.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64))); (*self.later_fors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let new_val = { let __append_target = self.later_fns.clone(); let __append_value = r#fn.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.later_fns = new_val; };
     }
 }

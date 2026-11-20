@@ -185,7 +185,7 @@ fn main() {
         c2_thread.send("two".to_string());;;
     });
 
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
         loop {
         if let Some(__select_recv) = c1.try_recv_select() {

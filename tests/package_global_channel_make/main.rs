@@ -197,7 +197,7 @@ fn __go_init_globals() {
 }
 
 
-pub fn size() -> i32 {
+pub fn size() -> i64 {
     2
 }
 

@@ -240,7 +240,7 @@ impl std::fmt::Display for Package {
 #[derive(Debug, Clone)]
 pub struct loaderPackage {
     pub package: Arc<Mutex<Option<Package>>>,
-    pub color: Arc<Mutex<Option<i32>>>,
+    pub color: Arc<Mutex<Option<i64>>>,
 }
 
 impl loaderPackage {

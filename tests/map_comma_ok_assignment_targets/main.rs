@@ -73,7 +73,7 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Numbers(pub Rc<RefCell<Option<Vec<i32>>>>);
+pub struct Numbers(pub Rc<RefCell<Option<Vec<i64>>>>);
 
 impl Display for Numbers {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -83,7 +83,7 @@ impl Display for Numbers {
 
 
 #[derive(Debug, Clone, Default)]
-pub struct Index(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>);
+pub struct Index(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>);
 
 impl Display for Index {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -95,7 +95,7 @@ impl Display for Index {
 #[derive(Debug, Clone)]
 pub struct Holder {
     pub nums: Rc<RefCell<Option<Numbers>>>,
-    pub plain: Rc<RefCell<Option<Vec<i32>>>>,
+    pub plain: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl Holder {
@@ -149,7 +149,7 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static global: GoGlobal<Vec<i32>> = GoGlobal::new();
+pub(crate) static global: GoGlobal<Vec<i64>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -189,11 +189,11 @@ fn main() {
     { let __idx = (1) as usize; let __rhs = 8; (*{ let __named_slice = (*(*h.borrow().as_ref().unwrap()).nums.borrow().as_ref().unwrap()).0.clone(); __named_slice }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {} {}", format!("{}", "named slice field".to_string()), format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __seq_holder = { let __named_slice = (*{ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Rc::new(RefCell::new(Some(Default::default())))) }.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }), format!("{}", { let __seq_holder = { let __named_slice = (*(*h.borrow().as_ref().unwrap()).nums.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }));
 
-    let mut lists = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i32>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1, 2]))))]))));
+    let mut lists = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64, 2i64]))))]))));
     { let (__tmp_0, __tmp_1) = { let __map_holder = lists.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0; *ok.borrow_mut() = Some(__tmp_1); };
     println!("{} {} {} {} {} {}", format!("{}", "global".to_string()), format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __map_holder = lists.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", (*global.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*global.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*global.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
-    let mut dst = Rc::new(RefCell::new(Some(vec![vec![9]])));
+    let mut dst = Rc::new(RefCell::new(Some(vec![vec![9i64]])));
     { let (__tmp_0, __tmp_1) = { let __map_holder = lists.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } }; { let __idx = (0) as usize; (*dst.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0.borrow_mut().take().unwrap_or_default(); } *ok.borrow_mut() = Some(__tmp_1); };
     println!("{} {} {} {}", format!("{}", "indexed".to_string()), format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __map_holder = lists.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice_values(&(*dst.borrow().as_ref().unwrap())[(0) as usize].clone())));
 
@@ -201,7 +201,7 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = 70; (*(*h.borrow().as_ref().unwrap()).plain.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {} {}", format!("{}", "plain slice field".to_string()), format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __map_holder = lists.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice_values(&(*(*h.borrow().as_ref().unwrap()).plain.borrow().as_ref().unwrap()).clone())));
 
-    let mut captured: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
+    let mut captured: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     let mut captured_closure_clone = captured.clone(); let lists_closure_clone = lists.clone(); let mut set = Rc::new(RefCell::new(Some(Box::new(move || -> bool {
         let mut found: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
         { let (__tmp_0, __tmp_1) = { let __map_holder = lists_closure_clone.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *captured_closure_clone.borrow_mut() = __moved_tmp_0; *found.borrow_mut() = Some(__tmp_1); };
@@ -217,8 +217,8 @@ fn main() {
     }) as Box<dyn FnMut() -> bool>)));
     println!("{} {} {} {}", format!("{}", "named slice captured by a closure".to_string()), format!("{}", { let __f_ptr: *mut Box<dyn FnMut() -> bool> = { let mut __f_guard = setNamed.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }), format!("{}", { let __slice_holder = { let __named_slice = (*{ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Rc::new(RefCell::new(Some(Default::default())))) }.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = (*capturedNamed.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
 
-    let mut indexes = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Index>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Index(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(1))))])))))))))]))));
-    let mut idx: Rc<RefCell<Option<Index>>> = Rc::new(RefCell::new(Some(Index(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))));
+    let mut indexes = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Index>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Index(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(1i64))))])))))))))]))));
+    let mut idx: Rc<RefCell<Option<Index>>> = Rc::new(RefCell::new(Some(Index(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())))))));
     { let (__tmp_0, __tmp_1) = { let __map_holder = indexes.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *idx.borrow_mut() = __moved_tmp_0; *ok.borrow_mut() = Some(__tmp_1); };
     { let __map_key = "x".to_string(); let __map_value = Rc::new(RefCell::new(Some(2))); (*{ let __named_map = (*idx.borrow().as_ref().unwrap()).0.clone(); __named_map }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {} {}", format!("{}", "named map".to_string()), format!("{}", { let __v = (*ok.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __map_holder = { let __named_map = (*{ let __map_holder = indexes.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = { let __named_map = (*idx.borrow().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));

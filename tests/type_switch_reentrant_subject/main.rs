@@ -52,5 +52,5 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
 
 fn main() {
     println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

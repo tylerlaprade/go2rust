@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn parse() -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn parse() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     (7, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string()))))))
 }
 

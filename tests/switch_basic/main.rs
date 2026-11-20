@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    let mut i = Rc::new(RefCell::new(Some(2)));
+    let mut i = Rc::new(RefCell::new(Some(2i64)));
     { let _switch_val = (*i.borrow().as_ref().unwrap());
     if _switch_val == (1) {
             println!("{}", format!("{}", "one".to_string()));

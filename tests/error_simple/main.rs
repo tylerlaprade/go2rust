@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*b.borrow().as_ref().unwrap()) == 0 {
         return (0, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("division by zero".to_string()))))));
     }

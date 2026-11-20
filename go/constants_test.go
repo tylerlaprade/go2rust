@@ -106,10 +106,10 @@ const Int64Align = PtrSize
 	if strings.Contains(rust, "Arc::new") || strings.Contains(rust, "Mutex::new") {
 		t.Fatalf("const expressions must not use runtime wrappers:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub const PTR_SIZE: i32 = 4 << (!(0 as usize) >> 63);") {
+	if !strings.Contains(rust, "pub const PTR_SIZE: i64 = 4 << (!(0 as usize) >> 63);") {
 		t.Fatalf("uintptr conversion and unary xor const expression not lowered as a Rust const:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub const INT64_ALIGN: i32 = PTR_SIZE;") {
+	if !strings.Contains(rust, "pub const INT64_ALIGN: i64 = PTR_SIZE;") {
 		t.Fatalf("const identifier initialized from PtrSize should keep the const path and type:\n%s", rust)
 	}
 }
@@ -357,7 +357,7 @@ const UintSize = uintSize
 	if strings.Contains(rust, "pub(crate) const UINT_SIZE_1: u64") {
 		t.Fatalf("typed uint shift-count intermediates should not force the final untyped const to u64 storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub const UINT_SIZE: i32 = UINT_SIZE_1;") {
+	if !strings.Contains(rust, "pub const UINT_SIZE: i64 = UINT_SIZE_1;") {
 		t.Fatalf("exported const alias should refer to the renamed unexported const:\n%s", rust)
 	}
 }
@@ -643,7 +643,7 @@ const maxNestLev int = 1e5
 	TranspileConstDecl(&out, genDecl)
 
 	rust := out.String()
-	if !strings.Contains(rust, "MAX_NEST_LEV: i32 = 100000;") {
+	if !strings.Contains(rust, "MAX_NEST_LEV: i64 = 100000;") {
 		t.Fatalf("integer-typed float literal const should emit an integer literal, got:\n%s", rust)
 	}
 	if strings.Contains(rust, "1e5") || strings.Contains(rust, "100000.0") {
@@ -658,11 +658,11 @@ const dots = ". . . "
 const n = len(dots)
 `)
 
-	if !strings.Contains(rust, "const N: i32 = DOTS.len() as i32;") {
+	if !strings.Contains(rust, "const N: i64 = DOTS.len() as i64;") {
 		t.Fatalf("untyped len const should cast Rust usize length to Go int, got:\n%s", rust)
 	}
-	if strings.Contains(rust, "const N: i32 = DOTS.len();") {
-		t.Fatalf("untyped len const should not assign usize length directly to i32:\n%s", rust)
+	if strings.Contains(rust, "const N: i64 = DOTS.len();") {
+		t.Fatalf("untyped len const should not assign usize length directly to i64:\n%s", rust)
 	}
 }
 
@@ -679,7 +679,7 @@ func within(n int) bool {
 	if strings.Contains(rust, "REPEATED.borrow()") || strings.Contains(rust, "REPEATED.lock()") {
 		t.Fatalf("len(string const) should not treat the const as a wrapped handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "REPEATED.len() as i32") {
+	if !strings.Contains(rust, "REPEATED.len() as i64") {
 		t.Fatalf("len(string const) should use the Rust const string length as Go int:\n%s", rust)
 	}
 }
@@ -1405,10 +1405,10 @@ const (
 )
 `)
 
-	if strings.Contains(rust, "BOTH_DIR: i32 = ChanDir(") {
+	if strings.Contains(rust, "BOTH_DIR: i64 = ChanDir(") {
 		t.Fatalf("const binary expression should not construct named integer wrappers:\n%s", rust)
 	}
-	if !strings.Contains(rust, "BOTH_DIR: i32 = RECV_DIR as i32 | SEND_DIR as i32") {
+	if !strings.Contains(rust, "BOTH_DIR: i64 = RECV_DIR as i64 | SEND_DIR as i64") {
 		t.Fatalf("named integer const operands should be emitted as primitive const values:\n%s", rust)
 	}
 }
@@ -1527,7 +1527,7 @@ func fill(tokens []string, keywords map[string]Token) {
 		t.Fatalf("inc/dec on named integers must preserve the named value:\n%s", rust)
 	}
 	if !strings.Contains(rust, "*guard = Some(Token(") &&
-		!strings.Contains(rust, "*guard = Some(guard.as_ref().unwrap().clone() + 1 as i32)") {
+		!strings.Contains(rust, "*guard = Some(guard.as_ref().unwrap().clone() + 1 as i64)") {
 		t.Fatalf("inc/dec on named integers did not write back Token:\n%s", rust)
 	}
 }
@@ -2004,11 +2004,9 @@ func over(n int) bool {
 }
 `)
 
-	if !strings.Contains(rust, "const MAX_INT: i32 = i32::MAX;") {
-		t.Fatalf("typed Go int max constant should use the Rust Go-int model:\n%s", rust)
-	}
-	if strings.Contains(rust, "9223372036854775807") {
-		t.Fatalf("typed Go int max constant should not inline host-width literal values:\n%s", rust)
+	// Go's int is 64 bits, and so is the Rust int model.
+	if !strings.Contains(rust, "const MAX_INT: i64 = ") || !strings.Contains(rust, "> 9223372036854775806") {
+		t.Fatalf("typed Go int max constant should be the 64-bit maximum:\n%s", rust)
 	}
 }
 
@@ -2676,10 +2674,10 @@ func f() {
 }
 `)
 
-	if strings.Contains(rust, "ast::S_E_N_D as i32") || strings.Contains(rust, "ast::R_E_C_V as i32") {
+	if strings.Contains(rust, "ast::S_E_N_D as i64") || strings.Contains(rust, "ast::R_E_C_V as i64") {
 		t.Fatalf("stdlib stub named integer const operands must not cast the named wrapper directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "((ast::S_E_N_D).0 as i32) | ((ast::R_E_C_V).0 as i32)") {
+	if !strings.Contains(rust, "((ast::S_E_N_D).0 as i64) | ((ast::R_E_C_V).0 as i64)") {
 		t.Fatalf("stdlib stub named integer const operands should use their inner primitive values:\n%s", rust)
 	}
 }

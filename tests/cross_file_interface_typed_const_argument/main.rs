@@ -24,12 +24,12 @@ impl std::fmt::Display for Writer {
 
 
 impl Writer {
-    pub fn code(&self, c: Rc<RefCell<Option<Box<dyn Code>>>>) -> i32 {
+    pub fn code(&self, c: Rc<RefCell<Option<Box<dyn Code>>>>) -> i64 {
         (*c.borrow().as_ref().unwrap()).value()
     }
 }
 
 fn main() {
-    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32))))) as Box<dyn Code>))))));
-    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32))))) as Box<dyn Code>))))));
+    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i64))))) as Box<dyn Code>))))));
+    println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i64))))) as Box<dyn Code>))))));
 }

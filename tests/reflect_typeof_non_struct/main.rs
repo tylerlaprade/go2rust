@@ -60,11 +60,11 @@ impl GoReflectType {
         Rc::new(RefCell::new(Some(elem)))
     }
 
-    fn num_field(&self) -> i32 {
-        self.fields.borrow().as_ref().unwrap().len() as i32
+    fn num_field(&self) -> i64 {
+        self.fields.borrow().as_ref().unwrap().len() as i64
     }
 
-    fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
+    fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
     }
@@ -104,7 +104,7 @@ impl GoReflectValue {
         self.typ.borrow().as_ref().unwrap().kind()
     }
 
-    fn field(&self, index: i32) -> Rc<RefCell<Option<GoReflectValue>>> {
+    fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))

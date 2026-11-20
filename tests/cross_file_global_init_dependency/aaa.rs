@@ -19,9 +19,9 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub static A: GoGlobal<i32> = GoGlobal::new();
+pub static A: GoGlobal<i64> = GoGlobal::new();
 
-pub static C: GoGlobal<i32> = GoGlobal::new();
+pub static C: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {

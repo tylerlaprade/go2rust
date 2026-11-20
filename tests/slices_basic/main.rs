@@ -46,7 +46,7 @@ where
 
 fn main() {
         // Create a slice
-    let mut slice = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
+    let mut slice = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64])));
     println!("{} {}", format!("{}", "Original slice:".to_string()), format!("{}", format_slice(&slice)));
 
         // Append to slice
@@ -66,7 +66,7 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = 10; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = 20; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (2) as usize; let __rhs = 30; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    let mut idx = Rc::new(RefCell::new(Some(1)));
+    let mut idx = Rc::new(RefCell::new(Some(1i64)));
     { let __idx = ((*idx.borrow().as_ref().unwrap())) as usize; let __rhs = 25; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "Made slice:".to_string()), format!("{}", format_slice(&made)));
 }

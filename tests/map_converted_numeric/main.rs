@@ -438,7 +438,7 @@ fn main() {
     {
             let __go_print_arg_0 = format!("{}", { let __map_holder = units.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"tick".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             let __go_print_arg_1 = format!("{}", { let __map_holder = signed.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"n".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
-            let __go_print_arg_2 = format!("{}", (*Rc::new(RefCell::new(Some({ let __map_holder = decimal.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"tick".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0.0) } as i32))).borrow().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", (*Rc::new(RefCell::new(Some({ let __map_holder = decimal.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"tick".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0.0) } as i64))).borrow().as_ref().unwrap()));
             eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
         };
     let mut wide = Rc::new(RefCell::new(Some(270 as i32)));

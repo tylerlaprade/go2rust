@@ -1,10 +1,10 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn pick(v: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn pick(v: Rc<RefCell<Option<i64>>>) -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut res: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut res: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     if (*v.borrow().as_ref().unwrap()) < 0 {
         __defer_stack.push(Box::new(move || {

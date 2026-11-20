@@ -27,7 +27,7 @@ impl std::fmt::Display for printer {
 
 
 impl printer {
-    pub fn write(&self, s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write(&self, s: Arc<Mutex<Option<String>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let (mut n, mut err) = { let __s = format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }); (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };
         return (n, { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
     }

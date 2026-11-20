@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Basic fallthrough
-    let mut x = Rc::new(RefCell::new(Some(2)));
+    let mut x = Rc::new(RefCell::new(Some(2i64)));
     {
         let _switch_val = (*x.borrow().as_ref().unwrap());
         let mut _fallthrough = false;
@@ -76,7 +76,7 @@ fn main() {
     println!("{}", format!("{}", "---".to_string()));
 
         // Fallthrough with conditions
-    let mut n = Rc::new(RefCell::new(Some(15)));
+    let mut n = Rc::new(RefCell::new(Some(15i64)));
     {
         let mut _fallthrough = false;
         let mut _matched = false;

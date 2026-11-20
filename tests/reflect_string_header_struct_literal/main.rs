@@ -524,7 +524,7 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct reflect_StringHeader {
-    pub len: Arc<Mutex<Option<i32>>>,
+    pub len: Arc<Mutex<Option<i64>>>,
 }
 
 impl std::fmt::Display for reflect_StringHeader {

@@ -8,7 +8,7 @@ fn main() {
             if false {
         break '__go_switch_1
     }
-            for n in vec![1, 2, 3].iter().copied() {
+            for n in vec![1i64, 2i64, 3i64].iter().copied() {
         if n == 2 {
         break
     }

@@ -121,7 +121,7 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Point>() {
         format!("{}", v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() {
         go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
@@ -129,7 +129,7 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Status>>>>() {
         match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
         format_slice(v)
@@ -189,28 +189,28 @@ fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Point>() { return "main.Point" }
-    if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return "map[string]int" }
+    if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() { return "map[string]int" }
     if val.is::<Rc<RefCell<Option<Point>>>>() { return "*main.Point" }
     if val.is::<Rc<RefCell<Option<Status>>>>() { return "*main.Status" }
-    if val.is::<Rc<RefCell<Option<Vec<i32>>>>>() { return "[]int" }
+    if val.is::<Rc<RefCell<Option<Vec<i64>>>>>() { return "[]int" }
     if val.is::<Rc<RefCell<Option<Vec<u8>>>>>() { return "[]uint8" }
     if val.is::<Status>() { return "main.Status" }
     std::any::type_name_of_val(val)
@@ -952,8 +952,8 @@ pub(crate) const PAIR_LAYOUT: &'static str = "%v=%v\n";
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -994,7 +994,7 @@ impl std::fmt::Display for Point {
 
 #[derive(Debug, Clone)]
 pub struct Status {
-    pub code: Rc<RefCell<Option<i32>>>,
+    pub code: Rc<RefCell<Option<i64>>>,
 }
 
 impl Status {
@@ -1070,28 +1070,28 @@ pub fn pick(named: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
 
 fn main() {
         // The format is a parameter, the result of a call, or a variable.
-    logf(Rc::new(RefCell::new(Some("count %d of %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new(2) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("count %d of %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>]))));
     print!("{}", go_sprintf(&(*pick(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap()).clone(), &[Box::new("x".to_string()) as Box<dyn Any>, Box::new(true) as Box<dyn Any>], false));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d-%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d-%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7i64) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
     let mut f = Rc::new(RefCell::new(Some("value: %d\n".to_string())));
-    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42i64) as Box<dyn Any>], false));
 
-    show_pair(Rc::new(RefCell::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>]))));
-    later(Rc::new(RefCell::new(Some("%d and %s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>]))));
+    show_pair(Rc::new(RefCell::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>]))));
+    later(Rc::new(RefCell::new(Some("%d and %s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>]))));
 
         // Verbs, flags, width and precision.
-    logf(Rc::new(RefCell::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(255) as Box<dyn Any>, Box::new(255) as Box<dyn Any>, Box::new(8) as Box<dyn Any>, Box::new(5) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>, Box::new(8i64) as Box<dyn Any>, Box::new(5i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>]))));
     logf(Rc::new(RefCell::new(Some("%s|%10s|%-10s|%.2s|%q|%x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("go".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>, Box::new("golang".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>]))));
     logf(Rc::new(RefCell::new(Some("%v|%f|%.2f|%8.3f|%e|%g".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(123456.789) as Box<dyn Any>, Box::new(1e21) as Box<dyn Any>]))));
     logf(Rc::new(RefCell::new(Some("%t|%v|%5t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>, Box::new(false) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%v %v %v %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%T %T %T %T".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("100%% of %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%*d|%-*d|%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(5) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(2) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("%v %v %v %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("%T %T %T %T".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("100%% of %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3i64) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("%*d|%-*d|%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(5i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>]))));
 
         // Values that print the way Println prints them.
     logf(Rc::new(RefCell::new(Some("point %v, pointer %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("slice %v, map %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1, 2]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1))))])))).clone()) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("slice %v, map %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>]))));
     logf(Rc::new(RefCell::new(Some("error: %v / %s".to_string()))), Rc::new(RefCell::new(Some(vec![{ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bang".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
     let mut failed = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("failed".to_string())))));
     logf(Rc::new(RefCell::new(Some("%v|%s|%10v|".to_string()))), Rc::new(RefCell::new(Some(vec![{ let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
@@ -1106,30 +1106,30 @@ fn main() {
 
         // A []byte prints as text where a string would.
     logf(Rc::new(RefCell::new(Some("bytes %s, hex %x, list %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%*d|%#v|%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-(4)) as Box<dyn Any>, Box::new(7) as Box<dyn Any>, Box::new("quoted".to_string()) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(255 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>]))));
+    logf(Rc::new(RefCell::new(Some("%*d|%#v|%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-4i64) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>, Box::new("quoted".to_string()) as Box<dyn Any>, Box::new(255u8) as Box<dyn Any>]))));
 
         // What fmt writes when the format and the arguments do not fit.
     println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new(2) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("trailing %".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("no verbs".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any>, Box::new(2) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("no verbs".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("plain".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
 
         // The same through Sprintf, Errorf and Fprintf.
-    let mut err = errorf(Rc::new(RefCell::new(Some("code %d: %w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7) as Box<dyn Any>, { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
+    let mut err = errorf(Rc::new(RefCell::new(Some("code %d: %w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7i64) as Box<dyn Any>, { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
     println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // %w is for an error. fmt reports it for a number or a string.
-    println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w and %w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any>, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![65 as u8, 66 as u8]))).clone()) as Box<dyn Any>])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43i64) as Box<dyn Any>], false));
     let mut pair = Rc::new(RefCell::new(Some("%s=%d".to_string())));
     let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
-    (*b.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.borrow().as_ref().unwrap()).clone(), &[Box::new("k".to_string()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>], false)));
+    (*b.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.borrow().as_ref().unwrap()).clone(), &[Box::new("k".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>], false)));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = b.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).borrow().as_ref().unwrap())));
 
         // A constant format is known when the program is translated.

@@ -7,8 +7,8 @@ use std::rc::{Rc};
 /// stored pointer handle, not the package-global slot that stores that handle.
 #[derive(Debug, Clone)]
 pub struct RangeTable {
-    pub lo: Rc<RefCell<Option<i32>>>,
-    pub hi: Rc<RefCell<Option<i32>>>,
+    pub lo: Rc<RefCell<Option<i64>>>,
+    pub hi: Rc<RefCell<Option<i64>>>,
 }
 
 impl RangeTable {

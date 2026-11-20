@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
-pub struct Kind(pub Arc<Mutex<Option<i32>>>);
+pub struct Kind(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Kind {
     fn clone(&self) -> Self {
@@ -27,8 +27,8 @@ impl PartialEq for Kind {
     }
 }
 
-impl PartialEq<i32> for Kind {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Kind {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -41,19 +41,19 @@ impl PartialOrd for Kind {
     }
 }
 
-impl PartialOrd<i32> for Kind {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Kind {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Kind> for i32 {
+impl PartialEq<Kind> for i64 {
     fn eq(&self, other: &Kind) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Kind> for i32 {
+impl PartialOrd<Kind> for i64 {
     fn partial_cmp(&self, other: &Kind) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -66,14 +66,14 @@ impl std::ops::Add for Kind {
     }
 }
 
-impl std::ops::Add<i32> for Kind {
+impl std::ops::Add<i64> for Kind {
     type Output = Kind;
-    fn add(self, other: i32) -> Kind {
+    fn add(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Kind> for i32 {
+impl std::ops::Add<Kind> for i64 {
     type Output = Kind;
     fn add(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -87,14 +87,14 @@ impl std::ops::Sub for Kind {
     }
 }
 
-impl std::ops::Sub<i32> for Kind {
+impl std::ops::Sub<i64> for Kind {
     type Output = Kind;
-    fn sub(self, other: i32) -> Kind {
+    fn sub(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Kind> for i32 {
+impl std::ops::Sub<Kind> for i64 {
     type Output = Kind;
     fn sub(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -108,14 +108,14 @@ impl std::ops::Mul for Kind {
     }
 }
 
-impl std::ops::Mul<i32> for Kind {
+impl std::ops::Mul<i64> for Kind {
     type Output = Kind;
-    fn mul(self, other: i32) -> Kind {
+    fn mul(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Kind> for i32 {
+impl std::ops::Mul<Kind> for i64 {
     type Output = Kind;
     fn mul(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -129,14 +129,14 @@ impl std::ops::Div for Kind {
     }
 }
 
-impl std::ops::Div<i32> for Kind {
+impl std::ops::Div<i64> for Kind {
     type Output = Kind;
-    fn div(self, other: i32) -> Kind {
+    fn div(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Kind> for i32 {
+impl std::ops::Div<Kind> for i64 {
     type Output = Kind;
     fn div(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -157,14 +157,14 @@ impl std::ops::Rem for Kind {
     }
 }
 
-impl std::ops::Rem<i32> for Kind {
+impl std::ops::Rem<i64> for Kind {
     type Output = Kind;
-    fn rem(self, other: i32) -> Kind {
+    fn rem(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Kind> for i32 {
+impl std::ops::Rem<Kind> for i64 {
     type Output = Kind;
     fn rem(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -178,14 +178,14 @@ impl std::ops::BitAnd for Kind {
     }
 }
 
-impl std::ops::BitAnd<i32> for Kind {
+impl std::ops::BitAnd<i64> for Kind {
     type Output = Kind;
-    fn bitand(self, other: i32) -> Kind {
+    fn bitand(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Kind> for i32 {
+impl std::ops::BitAnd<Kind> for i64 {
     type Output = Kind;
     fn bitand(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -199,14 +199,14 @@ impl std::ops::BitOr for Kind {
     }
 }
 
-impl std::ops::BitOr<i32> for Kind {
+impl std::ops::BitOr<i64> for Kind {
     type Output = Kind;
-    fn bitor(self, other: i32) -> Kind {
+    fn bitor(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Kind> for i32 {
+impl std::ops::BitOr<Kind> for i64 {
     type Output = Kind;
     fn bitor(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -220,14 +220,14 @@ impl std::ops::BitXor for Kind {
     }
 }
 
-impl std::ops::BitXor<i32> for Kind {
+impl std::ops::BitXor<i64> for Kind {
     type Output = Kind;
-    fn bitxor(self, other: i32) -> Kind {
+    fn bitxor(self, other: i64) -> Kind {
         Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Kind> for i32 {
+impl std::ops::BitXor<Kind> for i64 {
     type Output = Kind;
     fn bitxor(self, other: Kind) -> Kind {
         Kind(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -393,7 +393,7 @@ impl Ord for Kind {
 
 
 #[derive(Debug, Default)]
-pub struct Index(pub Arc<Mutex<Option<i32>>>);
+pub struct Index(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
@@ -416,8 +416,8 @@ impl PartialEq for Index {
     }
 }
 
-impl PartialEq<i32> for Index {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Index {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -430,19 +430,19 @@ impl PartialOrd for Index {
     }
 }
 
-impl PartialOrd<i32> for Index {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Index {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Index> for i32 {
+impl PartialEq<Index> for i64 {
     fn eq(&self, other: &Index) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Index> for i32 {
+impl PartialOrd<Index> for i64 {
     fn partial_cmp(&self, other: &Index) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -455,14 +455,14 @@ impl std::ops::Add for Index {
     }
 }
 
-impl std::ops::Add<i32> for Index {
+impl std::ops::Add<i64> for Index {
     type Output = Index;
-    fn add(self, other: i32) -> Index {
+    fn add(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Index> for i32 {
+impl std::ops::Add<Index> for i64 {
     type Output = Index;
     fn add(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -476,14 +476,14 @@ impl std::ops::Sub for Index {
     }
 }
 
-impl std::ops::Sub<i32> for Index {
+impl std::ops::Sub<i64> for Index {
     type Output = Index;
-    fn sub(self, other: i32) -> Index {
+    fn sub(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Index> for i32 {
+impl std::ops::Sub<Index> for i64 {
     type Output = Index;
     fn sub(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -497,14 +497,14 @@ impl std::ops::Mul for Index {
     }
 }
 
-impl std::ops::Mul<i32> for Index {
+impl std::ops::Mul<i64> for Index {
     type Output = Index;
-    fn mul(self, other: i32) -> Index {
+    fn mul(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Index> for i32 {
+impl std::ops::Mul<Index> for i64 {
     type Output = Index;
     fn mul(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -518,14 +518,14 @@ impl std::ops::Div for Index {
     }
 }
 
-impl std::ops::Div<i32> for Index {
+impl std::ops::Div<i64> for Index {
     type Output = Index;
-    fn div(self, other: i32) -> Index {
+    fn div(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Index> for i32 {
+impl std::ops::Div<Index> for i64 {
     type Output = Index;
     fn div(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -546,14 +546,14 @@ impl std::ops::Rem for Index {
     }
 }
 
-impl std::ops::Rem<i32> for Index {
+impl std::ops::Rem<i64> for Index {
     type Output = Index;
-    fn rem(self, other: i32) -> Index {
+    fn rem(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Index> for i32 {
+impl std::ops::Rem<Index> for i64 {
     type Output = Index;
     fn rem(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -567,14 +567,14 @@ impl std::ops::BitAnd for Index {
     }
 }
 
-impl std::ops::BitAnd<i32> for Index {
+impl std::ops::BitAnd<i64> for Index {
     type Output = Index;
-    fn bitand(self, other: i32) -> Index {
+    fn bitand(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Index> for i32 {
+impl std::ops::BitAnd<Index> for i64 {
     type Output = Index;
     fn bitand(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -588,14 +588,14 @@ impl std::ops::BitOr for Index {
     }
 }
 
-impl std::ops::BitOr<i32> for Index {
+impl std::ops::BitOr<i64> for Index {
     type Output = Index;
-    fn bitor(self, other: i32) -> Index {
+    fn bitor(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Index> for i32 {
+impl std::ops::BitOr<Index> for i64 {
     type Output = Index;
     fn bitor(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -609,14 +609,14 @@ impl std::ops::BitXor for Index {
     }
 }
 
-impl std::ops::BitXor<i32> for Index {
+impl std::ops::BitXor<i64> for Index {
     type Output = Index;
-    fn bitxor(self, other: i32) -> Index {
+    fn bitxor(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Index> for i32 {
+impl std::ops::BitXor<Index> for i64 {
     type Output = Index;
     fn bitxor(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -830,7 +830,7 @@ impl Eq for Entry {}
 
 impl PartialOrd for Entry {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 

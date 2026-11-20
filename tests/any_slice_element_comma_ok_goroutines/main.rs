@@ -217,7 +217,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct T {
-    pub n: Arc<Mutex<Option<i32>>>,
+    pub n: Arc<Mutex<Option<i64>>>,
 }
 
 impl T {
@@ -253,14 +253,14 @@ fn main() {
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();
-    let mut items = Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1, 2]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(T { n: Arc::new(Mutex::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))])))).clone()) as Box<dyn Any + Send + Sync>])));
+    let mut items = Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(T { n: Arc::new(Mutex::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>])));
     let (mut v, mut ok) = ({
         let __idx = (0) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>() {
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Arc::new(Mutex::new(None::<Vec<i32>>)), false),
+            None => (Arc::new(Mutex::new(None::<Vec<i64>>)), false),
         }
     });
     println!("{} {}", format!("{}", format_slice(&v)), format!("{}", ok));
@@ -278,9 +278,9 @@ fn main() {
         let __idx = (2) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>() {
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Arc::new(Mutex::new(None::<BTreeMap<String, Arc<Mutex<Option<i32>>>>>)), false),
+            None => (Arc::new(Mutex::new(None::<BTreeMap<String, Arc<Mutex<Option<i64>>>>>)), false),
         }
     });
     println!("{} {}", format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", ok));
@@ -288,9 +288,9 @@ fn main() {
         let __idx = (0) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>() {
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Arc::new(Mutex::new(None::<BTreeMap<String, Arc<Mutex<Option<i32>>>>>)), false),
+            None => (Arc::new(Mutex::new(None::<BTreeMap<String, Arc<Mutex<Option<i64>>>>>)), false),
         }
     }); ok = __tmp_1; };
     println!("{}", format!("{}", ok));

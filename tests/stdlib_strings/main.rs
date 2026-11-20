@@ -82,20 +82,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -724,7 +724,7 @@ fn main() {
 
         // String indexing and slicing
     print!("First character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(((*str.borrow().as_ref().unwrap()).len() as i32) - (1 as i32)) as usize] }) as u8 as char);
+    print!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(((*str.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as usize] }) as u8 as char);
     print!("Substring [0:5]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()));
     print!("Substring [7:]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).borrow().as_ref().unwrap()));
 
@@ -765,13 +765,13 @@ fn main() {
     print!("Contains 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "fox".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()));
     print!("Contains 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "cat".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()));
 
-    print!("Index of 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "fox".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-    print!("Index of 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "cat".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-    print!("IndexAny of vowels: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __chars = "aeiou".to_string(); __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as i32).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
+    print!("Index of 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "fox".to_string(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
+    print!("Index of 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "cat".to_string(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
+    print!("IndexAny of vowels: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __chars = "aeiou".to_string(); __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
 
-    print!("Last index of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); __s.rfind(&__substr).map(|__i| __i as i32).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
+    print!("Last index of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); __s.rfind(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
 
-    print!("Count of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); if __substr.is_empty() { __s.chars().count() as i32 + 1 } else { __s.matches(&__substr).count() as i32 } }))).borrow().as_ref().unwrap()));
+    print!("Count of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); if __substr.is_empty() { __s.chars().count() as i64 + 1 } else { __s.matches(&__substr).count() as i64 } }))).borrow().as_ref().unwrap()));
 
         // String prefixes and suffixes
     println!("{}", format!("{}", "\n=== Prefixes and suffixes ===".to_string()));
@@ -845,7 +845,7 @@ fn main() {
 
     let mut built = Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
     print!("Built string: {}\n", { let __v = (*built.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Builder length: {}\n", (*builder.borrow().as_ref().unwrap()).len() as i32);
+    print!("Builder length: {}\n", (*builder.borrow().as_ref().unwrap()).len() as i64);
 
         // Rune iteration (Unicode support)
     println!("{}", format!("{}", "\n=== Unicode and runes ===".to_string()));
@@ -853,7 +853,7 @@ fn main() {
     print!("Unicode string: {}\n", { let __v = (*unicode.borrow().as_ref().unwrap()).clone(); __v });
     print!("Byte length: {}\n", (*unicode.borrow().as_ref().unwrap()).len());
 
-    let mut runeCount = Rc::new(RefCell::new(Some(0)));
+    let mut runeCount = Rc::new(RefCell::new(Some(0i64)));
     for (_, r) in (*unicode.borrow().as_ref().unwrap()).char_indices() {
         { let mut guard = runeCount.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         print!("Rune: {} (U+{})\n", r, format!("{:04X}", r as u32));
@@ -871,7 +871,7 @@ fn main() {
         // String formatting with different verbs
     println!("{}", format!("{}", "\n=== String formatting ===".to_string()));
     let mut name = Rc::new(RefCell::new(Some("Alice".to_string())));
-    let mut age = Rc::new(RefCell::new(Some(30)));
+    let mut age = Rc::new(RefCell::new(Some(30i64)));
     let mut height = Rc::new(RefCell::new(Some(5.6)));
 
     print!("Name: {}, Age: {}, Height: {:.1}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*height.borrow().as_ref().unwrap()).clone(); __v });

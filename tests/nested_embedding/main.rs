@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct A {
-    pub x: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
 }
 
 impl A {
@@ -37,7 +37,7 @@ impl std::fmt::Display for A {
 #[derive(Debug, Clone)]
 pub struct B {
     pub a: Rc<RefCell<Option<A>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl B {
@@ -75,7 +75,7 @@ impl std::fmt::Display for B {
 #[derive(Debug, Clone)]
 pub struct C {
     pub b: Rc<RefCell<Option<B>>>,
-    pub z: Rc<RefCell<Option<i32>>>,
+    pub z: Rc<RefCell<Option<i64>>>,
 }
 
 impl C {

@@ -86,20 +86,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -727,16 +727,16 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 }
 use __go_runtime_format::go_sprintf;
 
-pub const SUNDAY: i32 = 0;
-pub const MONDAY: i32 = 1;
-pub const TUESDAY: i32 = 2;
+pub const SUNDAY: i64 = 0;
+pub const MONDAY: i64 = 1;
+pub const TUESDAY: i64 = 2;
 
 
-pub const HIGH: i32 = 3;
+pub const HIGH: i64 = 3;
 
 
 #[derive(Debug, Default)]
-pub struct Weekday(pub Rc<RefCell<Option<i32>>>);
+pub struct Weekday(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Weekday {
     fn clone(&self) -> Self {
@@ -759,8 +759,8 @@ impl PartialEq for Weekday {
     }
 }
 
-impl PartialEq<i32> for Weekday {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Weekday {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -773,19 +773,19 @@ impl PartialOrd for Weekday {
     }
 }
 
-impl PartialOrd<i32> for Weekday {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Weekday {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Weekday> for i32 {
+impl PartialEq<Weekday> for i64 {
     fn eq(&self, other: &Weekday) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Weekday> for i32 {
+impl PartialOrd<Weekday> for i64 {
     fn partial_cmp(&self, other: &Weekday) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -798,14 +798,14 @@ impl std::ops::Add for Weekday {
     }
 }
 
-impl std::ops::Add<i32> for Weekday {
+impl std::ops::Add<i64> for Weekday {
     type Output = Weekday;
-    fn add(self, other: i32) -> Weekday {
+    fn add(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Weekday> for i32 {
+impl std::ops::Add<Weekday> for i64 {
     type Output = Weekday;
     fn add(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -819,14 +819,14 @@ impl std::ops::Sub for Weekday {
     }
 }
 
-impl std::ops::Sub<i32> for Weekday {
+impl std::ops::Sub<i64> for Weekday {
     type Output = Weekday;
-    fn sub(self, other: i32) -> Weekday {
+    fn sub(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Weekday> for i32 {
+impl std::ops::Sub<Weekday> for i64 {
     type Output = Weekday;
     fn sub(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -840,14 +840,14 @@ impl std::ops::Mul for Weekday {
     }
 }
 
-impl std::ops::Mul<i32> for Weekday {
+impl std::ops::Mul<i64> for Weekday {
     type Output = Weekday;
-    fn mul(self, other: i32) -> Weekday {
+    fn mul(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Weekday> for i32 {
+impl std::ops::Mul<Weekday> for i64 {
     type Output = Weekday;
     fn mul(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -861,14 +861,14 @@ impl std::ops::Div for Weekday {
     }
 }
 
-impl std::ops::Div<i32> for Weekday {
+impl std::ops::Div<i64> for Weekday {
     type Output = Weekday;
-    fn div(self, other: i32) -> Weekday {
+    fn div(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Weekday> for i32 {
+impl std::ops::Div<Weekday> for i64 {
     type Output = Weekday;
     fn div(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -889,14 +889,14 @@ impl std::ops::Rem for Weekday {
     }
 }
 
-impl std::ops::Rem<i32> for Weekday {
+impl std::ops::Rem<i64> for Weekday {
     type Output = Weekday;
-    fn rem(self, other: i32) -> Weekday {
+    fn rem(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Weekday> for i32 {
+impl std::ops::Rem<Weekday> for i64 {
     type Output = Weekday;
     fn rem(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -910,14 +910,14 @@ impl std::ops::BitAnd for Weekday {
     }
 }
 
-impl std::ops::BitAnd<i32> for Weekday {
+impl std::ops::BitAnd<i64> for Weekday {
     type Output = Weekday;
-    fn bitand(self, other: i32) -> Weekday {
+    fn bitand(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Weekday> for i32 {
+impl std::ops::BitAnd<Weekday> for i64 {
     type Output = Weekday;
     fn bitand(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -931,14 +931,14 @@ impl std::ops::BitOr for Weekday {
     }
 }
 
-impl std::ops::BitOr<i32> for Weekday {
+impl std::ops::BitOr<i64> for Weekday {
     type Output = Weekday;
-    fn bitor(self, other: i32) -> Weekday {
+    fn bitor(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Weekday> for i32 {
+impl std::ops::BitOr<Weekday> for i64 {
     type Output = Weekday;
     fn bitor(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -952,14 +952,14 @@ impl std::ops::BitXor for Weekday {
     }
 }
 
-impl std::ops::BitXor<i32> for Weekday {
+impl std::ops::BitXor<i64> for Weekday {
     type Output = Weekday;
-    fn bitxor(self, other: i32) -> Weekday {
+    fn bitxor(self, other: i64) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Weekday> for i32 {
+impl std::ops::BitXor<Weekday> for i64 {
     type Output = Weekday;
     fn bitxor(self, other: Weekday) -> Weekday {
         Weekday(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -1125,7 +1125,7 @@ impl Ord for Weekday {
 
 
 #[derive(Debug, Default)]
-pub struct Level(pub Rc<RefCell<Option<i32>>>);
+pub struct Level(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
@@ -1148,8 +1148,8 @@ impl PartialEq for Level {
     }
 }
 
-impl PartialEq<i32> for Level {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Level {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -1162,19 +1162,19 @@ impl PartialOrd for Level {
     }
 }
 
-impl PartialOrd<i32> for Level {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Level {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Level> for i32 {
+impl PartialEq<Level> for i64 {
     fn eq(&self, other: &Level) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Level> for i32 {
+impl PartialOrd<Level> for i64 {
     fn partial_cmp(&self, other: &Level) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -1187,14 +1187,14 @@ impl std::ops::Add for Level {
     }
 }
 
-impl std::ops::Add<i32> for Level {
+impl std::ops::Add<i64> for Level {
     type Output = Level;
-    fn add(self, other: i32) -> Level {
+    fn add(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Level> for i32 {
+impl std::ops::Add<Level> for i64 {
     type Output = Level;
     fn add(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -1208,14 +1208,14 @@ impl std::ops::Sub for Level {
     }
 }
 
-impl std::ops::Sub<i32> for Level {
+impl std::ops::Sub<i64> for Level {
     type Output = Level;
-    fn sub(self, other: i32) -> Level {
+    fn sub(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Level> for i32 {
+impl std::ops::Sub<Level> for i64 {
     type Output = Level;
     fn sub(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -1229,14 +1229,14 @@ impl std::ops::Mul for Level {
     }
 }
 
-impl std::ops::Mul<i32> for Level {
+impl std::ops::Mul<i64> for Level {
     type Output = Level;
-    fn mul(self, other: i32) -> Level {
+    fn mul(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Level> for i32 {
+impl std::ops::Mul<Level> for i64 {
     type Output = Level;
     fn mul(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -1250,14 +1250,14 @@ impl std::ops::Div for Level {
     }
 }
 
-impl std::ops::Div<i32> for Level {
+impl std::ops::Div<i64> for Level {
     type Output = Level;
-    fn div(self, other: i32) -> Level {
+    fn div(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Level> for i32 {
+impl std::ops::Div<Level> for i64 {
     type Output = Level;
     fn div(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -1278,14 +1278,14 @@ impl std::ops::Rem for Level {
     }
 }
 
-impl std::ops::Rem<i32> for Level {
+impl std::ops::Rem<i64> for Level {
     type Output = Level;
-    fn rem(self, other: i32) -> Level {
+    fn rem(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Level> for i32 {
+impl std::ops::Rem<Level> for i64 {
     type Output = Level;
     fn rem(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -1299,14 +1299,14 @@ impl std::ops::BitAnd for Level {
     }
 }
 
-impl std::ops::BitAnd<i32> for Level {
+impl std::ops::BitAnd<i64> for Level {
     type Output = Level;
-    fn bitand(self, other: i32) -> Level {
+    fn bitand(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Level> for i32 {
+impl std::ops::BitAnd<Level> for i64 {
     type Output = Level;
     fn bitand(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -1320,14 +1320,14 @@ impl std::ops::BitOr for Level {
     }
 }
 
-impl std::ops::BitOr<i32> for Level {
+impl std::ops::BitOr<i64> for Level {
     type Output = Level;
-    fn bitor(self, other: i32) -> Level {
+    fn bitor(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Level> for i32 {
+impl std::ops::BitOr<Level> for i64 {
     type Output = Level;
     fn bitor(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -1341,14 +1341,14 @@ impl std::ops::BitXor for Level {
     }
 }
 
-impl std::ops::BitXor<i32> for Level {
+impl std::ops::BitXor<i64> for Level {
     type Output = Level;
-    fn bitxor(self, other: i32) -> Level {
+    fn bitxor(self, other: i64) -> Level {
         Level(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Level> for i32 {
+impl std::ops::BitXor<Level> for i64 {
     type Output = Level;
     fn bitxor(self, other: Level) -> Level {
         Level(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -1520,11 +1520,11 @@ impl Weekday {
 }
 
 fn main() {
-    println!("{} {} {} {}", format!("{}", Weekday(Rc::new(RefCell::new(Some(MONDAY as i32))))), format!("{}", Weekday(Rc::new(RefCell::new(Some((TUESDAY as i32 + 0 as i32) as i32))))), format!("{}", Weekday(Rc::new(RefCell::new(Some(0 as i32))))), format!("{}", HIGH));
-    print!("{}", go_sprintf(&"%v|%d|%s|%v\n".to_string(), &[Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i32))))) as Box<dyn Any>, Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i32))))) as Box<dyn Any>, Box::new(Weekday(Rc::new(RefCell::new(Some(TUESDAY as i32))))) as Box<dyn Any>, Box::new(Level(Rc::new(RefCell::new(Some(HIGH as i32))))) as Box<dyn Any>], false));
-    let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i32))))) as Box<dyn Any>)));
-    println!("{} {} {}", format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", format!("{}", Weekday(Rc::new(RefCell::new(Some(TUESDAY as i32))))))))).borrow().as_ref().unwrap())), format!("{}", (*Weekday(Rc::new(RefCell::new(Some(MONDAY as i32)))).string().borrow().as_ref().unwrap())));
-    let mut d = Rc::new(RefCell::new(Some(Weekday(Rc::new(RefCell::new(Some(MONDAY as i32)))))));
-    println!("{} {} {} {}", format!("{}", { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Rc::new(RefCell::new(Some(((*(*d.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Rc::new(RefCell::new(Some((((*(*d.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![Weekday(Rc::new(RefCell::new(Some(SUNDAY as i32)))), Weekday(Rc::new(RefCell::new(Some(TUESDAY as i32))))]))))));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}-{}", { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v }, Weekday(Rc::new(RefCell::new(Some(SUNDAY as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))), format!("{}", Weekday(Rc::new(RefCell::new(Some((TUESDAY as i64 + 0 as i64) as i64))))), format!("{}", Weekday(Rc::new(RefCell::new(Some(0 as i64))))), format!("{}", HIGH));
+    print!("{}", go_sprintf(&"%v|%d|%s|%v\n".to_string(), &[Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))) as Box<dyn Any>, Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))) as Box<dyn Any>, Box::new(Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))) as Box<dyn Any>, Box::new(Level(Rc::new(RefCell::new(Some(HIGH as i64))))) as Box<dyn Any>], false));
+    let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))) as Box<dyn Any>)));
+    println!("{} {} {}", format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", format!("{}", Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))))))).borrow().as_ref().unwrap())), format!("{}", (*Weekday(Rc::new(RefCell::new(Some(MONDAY as i64)))).string().borrow().as_ref().unwrap())));
+    let mut d = Rc::new(RefCell::new(Some(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64)))))));
+    println!("{} {} {} {}", format!("{}", { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Rc::new(RefCell::new(Some(((*(*d.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Rc::new(RefCell::new(Some((((*(*d.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![Weekday(Rc::new(RefCell::new(Some(SUNDAY as i64)))), Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))]))))));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}-{}", { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v }, Weekday(Rc::new(RefCell::new(Some(SUNDAY as i64)))))))).borrow().as_ref().unwrap())));
 }

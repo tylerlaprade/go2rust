@@ -21,8 +21,8 @@ impl std::fmt::Display for Loader {
 
 
 impl Loader {
-    pub fn load(&self, patterns: Rc<RefCell<Option<Vec<String>>>>) -> i32 {
-        (*patterns.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
+    pub fn load(&self, patterns: Rc<RefCell<Option<Vec<String>>>>) -> i64 {
+        (*patterns.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
     }
 }
 

@@ -171,8 +171,8 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn sender(ch: GoChannel<i32>, received: GoChannel<bool>) {
-    let mut i = Arc::new(Mutex::new(Some(1)));
+pub fn sender(ch: GoChannel<i64>, received: GoChannel<bool>) {
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         print!("Sending: {}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });
         ch.send((*i.lock().unwrap().as_ref().unwrap()));
@@ -185,7 +185,7 @@ pub fn sender(ch: GoChannel<i32>, received: GoChannel<bool>) {
     ch.close();
 }
 
-pub fn receiver(ch: GoChannel<i32>, received: GoChannel<bool>, done: GoChannel<bool>) {
+pub fn receiver(ch: GoChannel<i64>, received: GoChannel<bool>, done: GoChannel<bool>) {
     loop {
         let (mut value, mut ok) = match ch.recv() { Some(v) => (Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(Some(Default::default()))), Arc::new(Mutex::new(Some(false)))) };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -200,7 +200,7 @@ pub fn receiver(ch: GoChannel<i32>, received: GoChannel<bool>, done: GoChannel<b
 
 fn main() {
         // Unbuffered channel
-    let mut ch = GoChannel::<i32>::new();
+    let mut ch = GoChannel::<i64>::new();
     let mut received = GoChannel::<bool>::new();
     let mut done = GoChannel::<bool>::new();
 
@@ -219,7 +219,7 @@ fn main() {
     buffered.send("third".to_string());
 
     println!("{}", format!("{}", "Buffered channel contents:".to_string()));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         let mut msg = Arc::new(Mutex::new(Some(buffered.recv().unwrap_or_default())));
         println!("{} {}", format!("{}", "Got:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -227,9 +227,9 @@ fn main() {
     }
 
         // Channel range
-    let mut numbers = GoChannel::<i32>::new_buffered(5 as usize);
+    let mut numbers = GoChannel::<i64>::new_buffered(5 as usize);
     let numbers_thread = numbers.clone(); std::thread::spawn(move || {
-        let mut i = Arc::new(Mutex::new(Some(10)));
+        let mut i = Arc::new(Mutex::new(Some(10i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 15; __tmp_x < __tmp_y } {
         numbers_thread.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

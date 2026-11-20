@@ -46,7 +46,7 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct Counter(pub Rc<RefCell<Option<i32>>>);
+pub struct Counter(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Counter {
     fn clone(&self) -> Self {
@@ -69,8 +69,8 @@ impl PartialEq for Counter {
     }
 }
 
-impl PartialEq<i32> for Counter {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Counter {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -83,19 +83,19 @@ impl PartialOrd for Counter {
     }
 }
 
-impl PartialOrd<i32> for Counter {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Counter {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Counter> for i32 {
+impl PartialEq<Counter> for i64 {
     fn eq(&self, other: &Counter) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Counter> for i32 {
+impl PartialOrd<Counter> for i64 {
     fn partial_cmp(&self, other: &Counter) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -108,14 +108,14 @@ impl std::ops::Add for Counter {
     }
 }
 
-impl std::ops::Add<i32> for Counter {
+impl std::ops::Add<i64> for Counter {
     type Output = Counter;
-    fn add(self, other: i32) -> Counter {
+    fn add(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Counter> for i32 {
+impl std::ops::Add<Counter> for i64 {
     type Output = Counter;
     fn add(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -129,14 +129,14 @@ impl std::ops::Sub for Counter {
     }
 }
 
-impl std::ops::Sub<i32> for Counter {
+impl std::ops::Sub<i64> for Counter {
     type Output = Counter;
-    fn sub(self, other: i32) -> Counter {
+    fn sub(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Counter> for i32 {
+impl std::ops::Sub<Counter> for i64 {
     type Output = Counter;
     fn sub(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -150,14 +150,14 @@ impl std::ops::Mul for Counter {
     }
 }
 
-impl std::ops::Mul<i32> for Counter {
+impl std::ops::Mul<i64> for Counter {
     type Output = Counter;
-    fn mul(self, other: i32) -> Counter {
+    fn mul(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Counter> for i32 {
+impl std::ops::Mul<Counter> for i64 {
     type Output = Counter;
     fn mul(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -171,14 +171,14 @@ impl std::ops::Div for Counter {
     }
 }
 
-impl std::ops::Div<i32> for Counter {
+impl std::ops::Div<i64> for Counter {
     type Output = Counter;
-    fn div(self, other: i32) -> Counter {
+    fn div(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Counter> for i32 {
+impl std::ops::Div<Counter> for i64 {
     type Output = Counter;
     fn div(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -199,14 +199,14 @@ impl std::ops::Rem for Counter {
     }
 }
 
-impl std::ops::Rem<i32> for Counter {
+impl std::ops::Rem<i64> for Counter {
     type Output = Counter;
-    fn rem(self, other: i32) -> Counter {
+    fn rem(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Counter> for i32 {
+impl std::ops::Rem<Counter> for i64 {
     type Output = Counter;
     fn rem(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -220,14 +220,14 @@ impl std::ops::BitAnd for Counter {
     }
 }
 
-impl std::ops::BitAnd<i32> for Counter {
+impl std::ops::BitAnd<i64> for Counter {
     type Output = Counter;
-    fn bitand(self, other: i32) -> Counter {
+    fn bitand(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Counter> for i32 {
+impl std::ops::BitAnd<Counter> for i64 {
     type Output = Counter;
     fn bitand(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -241,14 +241,14 @@ impl std::ops::BitOr for Counter {
     }
 }
 
-impl std::ops::BitOr<i32> for Counter {
+impl std::ops::BitOr<i64> for Counter {
     type Output = Counter;
-    fn bitor(self, other: i32) -> Counter {
+    fn bitor(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Counter> for i32 {
+impl std::ops::BitOr<Counter> for i64 {
     type Output = Counter;
     fn bitor(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -262,14 +262,14 @@ impl std::ops::BitXor for Counter {
     }
 }
 
-impl std::ops::BitXor<i32> for Counter {
+impl std::ops::BitXor<i64> for Counter {
     type Output = Counter;
-    fn bitxor(self, other: i32) -> Counter {
+    fn bitxor(self, other: i64) -> Counter {
         Counter(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Counter> for i32 {
+impl std::ops::BitXor<Counter> for i64 {
     type Output = Counter;
     fn bitxor(self, other: Counter) -> Counter {
         Counter(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -608,7 +608,7 @@ impl PartialEq for Name {
 
 impl PartialOrd for Name {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -724,7 +724,7 @@ impl std::fmt::Display for Stats {
 
 impl Counter {
     pub fn inc(&mut self) {
-        { let mut guard = self.0.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as i32); }
+        { let mut guard = self.0.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as i64); }
     }
 }
 
@@ -752,7 +752,7 @@ pub fn bump(c: Rc<RefCell<Option<Counter>>>) -> Rc<RefCell<Option<Counter>>> {
 }
 
 fn main() {
-    let mut a = Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(1 as i32)))))));
+    let mut a = Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(1 as i64)))))));
     let mut b = { let __owned = a.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     (*b.borrow_mut().as_mut().unwrap()).inc();
     println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*bump(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }));
@@ -772,13 +772,13 @@ fn main() {
     (*g.borrow_mut().as_mut().unwrap()).toggle();
     println!("{} {}", format!("{}", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*g.borrow().as_ref().unwrap()).clone(); __v }));
 
-    let mut s = Rc::new(RefCell::new(Some(Stats { hits: Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(5 as i32))))))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(20.0))))))), ..Default::default() })));
+    let mut s = Rc::new(RefCell::new(Some(Stats { hits: Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(5 as i64))))))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(20.0))))))), ..Default::default() })));
     let mut t = { let __owned = s.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     (*(*t.borrow().as_ref().unwrap()).hits.borrow_mut().as_mut().unwrap()).inc();
     (*(*t.borrow().as_ref().unwrap()).temp.borrow_mut().as_mut().unwrap()).warm();
     println!("{} {}", format!("{}", (*s.borrow().as_ref().unwrap())), format!("{}", (*t.borrow().as_ref().unwrap())));
 
-    let mut counters = Rc::new(RefCell::new(Some(vec![Counter(Rc::new(RefCell::new(Some(1 as i32)))), Counter(Rc::new(RefCell::new(Some(2 as i32)))), Counter(Rc::new(RefCell::new(Some(3 as i32))))])));
+    let mut counters = Rc::new(RefCell::new(Some(vec![Counter(Rc::new(RefCell::new(Some(1 as i64)))), Counter(Rc::new(RefCell::new(Some(2 as i64)))), Counter(Rc::new(RefCell::new(Some(3 as i64))))])));
     let mut first = Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some((*(*counters.borrow().as_ref().unwrap())[(0) as usize].clone().0.borrow().as_ref().unwrap()))))))));
     (*first.borrow_mut().as_mut().unwrap()).inc();
     { let __range_holder = counters.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut c in __range_values.iter().cloned() {
@@ -789,7 +789,7 @@ fn main() {
     let mut p = a.clone();
     (*p.borrow_mut().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }));
-    let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Counter>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(10 as i32))))))))]))));
+    let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Counter>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(10 as i64))))))))]))));
     let mut v = Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some((*{ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Rc::new(RefCell::new(Some(0))))) }.0.borrow().as_ref().unwrap()))))))));
     (*v.borrow_mut().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", { let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Rc::new(RefCell::new(Some(0))))) }), format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }));

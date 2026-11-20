@@ -78,7 +78,7 @@ where
 pub struct Cache__string__User {
     pub data: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<User>>>>>>>,
     pub order: Rc<RefCell<Option<Vec<String>>>>,
-    pub limit: Rc<RefCell<Option<i32>>>,
+    pub limit: Rc<RefCell<Option<i64>>>,
 }
 
 impl Cache__string__User {
@@ -120,9 +120,9 @@ impl std::fmt::Display for Cache__string__User {
 
 #[derive(Debug, Clone)]
 pub struct Cache__int__slice_string {
-    pub data: Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<Vec<String>>>>>>>>,
-    pub order: Rc<RefCell<Option<Vec<i32>>>>,
-    pub limit: Rc<RefCell<Option<i32>>>,
+    pub data: Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<Vec<String>>>>>>>>,
+    pub order: Rc<RefCell<Option<Vec<i64>>>>,
+    pub limit: Rc<RefCell<Option<i64>>>,
 }
 
 impl Cache__int__slice_string {
@@ -165,7 +165,7 @@ impl std::fmt::Display for Cache__int__slice_string {
 #[derive(Debug, Clone, PartialEq)]
 pub struct User {
     pub name: Rc<RefCell<Option<String>>>,
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
 }
 
 impl User {
@@ -569,7 +569,7 @@ impl std::ops::Neg for Celsius {
 
 
 impl Cache__int__slice_string {
-    pub fn put(&mut self, k: Rc<RefCell<Option<i32>>>, v: Rc<RefCell<Option<Vec<String>>>>) {
+    pub fn put(&mut self, k: Rc<RefCell<Option<i64>>>, v: Rc<RefCell<Option<Vec<String>>>>) {
         {
         let (_, mut ok) = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&(*k.borrow().as_ref().unwrap()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if !ok {
@@ -577,14 +577,14 @@ impl Cache__int__slice_string {
         }
     }
         { let __map_key = (*k.borrow().as_ref().unwrap()); let __map_value = v.clone(); (*self.data.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-        if (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32) > ((*self.limit.clone().borrow().as_ref().unwrap()) as i32) {
+        if (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) > ((*self.limit.clone().borrow().as_ref().unwrap()) as i64) {
         let mut oldest = Rc::new(RefCell::new(Some((*self.order.borrow().as_ref().unwrap())[(0) as usize].clone())));
         { let new_val = Rc::new(RefCell::new(Some({ let __seq_holder = self.order.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.order = new_val; };
         { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&(*oldest.borrow().as_ref().unwrap())); };
     }
     }
 
-    pub fn get(&self, k: Rc<RefCell<Option<i32>>>) -> (Rc<RefCell<Option<Vec<String>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn get(&self, k: Rc<RefCell<Option<i64>>>) -> (Rc<RefCell<Option<Vec<String>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let (mut v, mut ok) = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&(*k.borrow().as_ref().unwrap()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         if !ok {
         let mut zero: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
@@ -603,7 +603,7 @@ impl Cache__string__User {
         }
     }
         { let __map_key = (*k.borrow().as_ref().unwrap()).clone(); let __map_value = { let __owned = v.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) }; (*self.data.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-        if (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32) > ((*self.limit.clone().borrow().as_ref().unwrap()) as i32) {
+        if (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) > ((*self.limit.clone().borrow().as_ref().unwrap()) as i64) {
         let mut oldest = Rc::new(RefCell::new(Some((*self.order.borrow().as_ref().unwrap())[(0) as usize].clone())));
         { let new_val = Rc::new(RefCell::new(Some({ let __seq_holder = self.order.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.order = new_val; };
         { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&(*oldest.borrow().as_ref().unwrap()).clone()); };
@@ -639,20 +639,20 @@ impl Number for Celsius {
     }
 }
 
-pub fn new_cache__string___user(limit: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Cache__string__User>>> {
+pub fn new_cache__string___user(limit: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Cache__string__User>>> {
     Rc::new(RefCell::new(Some(Cache__string__User { data: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<User>>>>::new()))), limit: Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
-pub fn new_cache__int__slice_string(limit: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Cache__int__slice_string>>> {
-    Rc::new(RefCell::new(Some(Cache__int__slice_string { data: Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<Vec<String>>>>>::new()))), limit: Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
+pub fn new_cache__int__slice_string(limit: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Cache__int__slice_string>>> {
+    Rc::new(RefCell::new(Some(Cache__int__slice_string { data: Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Vec<String>>>>>::new()))), limit: Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
-pub fn sum_by___user__int(xs: Rc<RefCell<Option<Vec<User>>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32>>>>) -> i32 {
-    let mut total: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+pub fn sum_by___user__int(xs: Rc<RefCell<Option<Vec<User>>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64>>>>) -> i64 {
+    let mut total: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
-        { let __rhs = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*x).__go_value_clone())))) }; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*x).__go_value_clone())))) }; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());
 }
@@ -676,11 +676,11 @@ pub fn sum_by___celsius___celsius(xs: Rc<RefCell<Option<Vec<Celsius>>>>, f: Rc<R
     return { let __owned = total.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
 }
 
-pub fn group_by___user__int(xs: Rc<RefCell<Option<Vec<User>>>>, key: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32>>>>) -> Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<Vec<User>>>>>>>> {
-    let mut out = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<Vec<User>>>>>::new())));
+pub fn group_by___user__int(xs: Rc<RefCell<Option<Vec<User>>>>, key: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64>>>>) -> Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<Vec<User>>>>>>>> {
+    let mut out = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Vec<User>>>>>::new())));
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
-        let mut k = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32> = { let mut __f_guard = key.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*x).__go_value_clone())))) };
+        let mut k = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64> = { let mut __f_guard = key.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*x).__go_value_clone())))) };
         { let __map_key = k; let __map_value = { let __slice = { let __map_holder = out.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&k).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*x).__go_value_clone(); (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*out.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     return out.clone();
@@ -696,9 +696,9 @@ fn main() {
     println!("{} {} {} {} {}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*u.borrow().as_ref().unwrap())), format!("{}", { let __text = match err2.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", ({ let __len_target = { let __field = (*c.borrow().as_ref().unwrap()).data.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", format_slice_values(&(*(*c.borrow().as_ref().unwrap()).order.borrow().as_ref().unwrap()).clone())));
 
     let mut users = Rc::new(RefCell::new(Some(vec![User { name: Rc::new(RefCell::new(Some("Ann".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() }, User { name: Rc::new(RefCell::new(Some("Bob".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() }, User { name: Rc::new(RefCell::new(Some("Cy".to_string()))), age: Rc::new(RefCell::new(Some(40))), ..Default::default() }, User { name: Rc::new(RefCell::new(Some("Di".to_string()))), age: Rc::new(RefCell::new(Some(25))), ..Default::default() }])));
-    println!("{}", format!("{}", sum_by___user__int(users.clone(), Rc::new(RefCell::new(Some(Box::new(move |u: Rc<RefCell<Option<User>>>| -> i32 {
+    println!("{}", format!("{}", sum_by___user__int(users.clone(), Rc::new(RefCell::new(Some(Box::new(move |u: Rc<RefCell<Option<User>>>| -> i64 {
         return (*(*u.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32>))))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64>))))));
     println!("{}", format!("{}", sum_by___user__float64(users.clone(), Rc::new(RefCell::new(Some(Box::new(move |u: Rc<RefCell<Option<User>>>| -> f64 {
         (*Rc::new(RefCell::new(Some({ let __selector_holder = (*u.borrow().as_ref().unwrap()).age.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).borrow().as_ref().unwrap()) / 2.0
     }) as Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> f64>))))));
@@ -706,10 +706,10 @@ fn main() {
     println!("{}", format!("{}", (*sum_by___celsius___celsius(temps.clone(), Rc::new(RefCell::new(Some(Box::new(move |c: Rc<RefCell<Option<Celsius>>>| -> Rc<RefCell<Option<Celsius>>> {
         { let __owned = c.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }
     }) as Box<dyn FnMut(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>>)))).borrow().as_ref().unwrap())));
-    let mut groups = group_by___user__int(users.clone(), Rc::new(RefCell::new(Some(Box::new(move |u: Rc<RefCell<Option<User>>>| -> i32 {
+    let mut groups = group_by___user__int(users.clone(), Rc::new(RefCell::new(Some(Box::new(move |u: Rc<RefCell<Option<User>>>| -> i64 {
         return (*(*u.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i32>))));
-    let mut ages = Rc::new(RefCell::new(Some(Vec::<i32>::with_capacity(((*groups.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<User>>>) -> i64>))));
+    let mut ages = Rc::new(RefCell::new(Some(Vec::<i64>::with_capacity(((*groups.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (age, _) in { let __range_holder = groups.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = ages.clone(); let __append_value = age; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; ages = new_val; };
     }

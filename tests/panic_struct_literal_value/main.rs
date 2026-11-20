@@ -75,7 +75,7 @@ impl std::fmt::Display for wrappedErr {
 
 pub fn may_panic(triggerPanic: Rc<RefCell<Option<bool>>>) {
     if (*triggerPanic.borrow().as_ref().unwrap()) {
-        panic!("{}", wrappedErr { err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))), tag: Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>))), ..Default::default() });
+        panic!("{}", wrappedErr { err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))), tag: Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>))), ..Default::default() });
     }
     println!("{}", format!("{}", "no panic".to_string()));
 }

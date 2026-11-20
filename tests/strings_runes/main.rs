@@ -5,8 +5,8 @@ fn main() {
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
     println!("{}", format!("{}", (*s.borrow().as_ref().unwrap()).len()));
 
-    let mut i = Rc::new(RefCell::new(Some(0)));
-    while ((*i.borrow().as_ref().unwrap()) as i32) < ((*s.borrow().as_ref().unwrap()).len() as i32) {
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
+    while ((*i.borrow().as_ref().unwrap()) as i64) < ((*s.borrow().as_ref().unwrap()).len() as i64) {
         print!("{} ", ({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[((*i.borrow().as_ref().unwrap())) as usize] }) as u8 as char);
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

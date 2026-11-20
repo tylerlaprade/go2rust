@@ -68,7 +68,7 @@ impl Eq for io_ReadCloser {}
 
 impl PartialOrd for io_ReadCloser {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -128,7 +128,7 @@ impl os_File {
         Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -136,12 +136,12 @@ impl os_File {
         } else {
             Vec::new()
         };
-        let n = bytes.len() as i32;
+        let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (Rc::new(RefCell::new(Some::<i64>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -152,16 +152,16 @@ impl os_File {
             String::new()
         };
         let bytes = value.into_bytes();
-        let n = bytes.len() as i32;
+        let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (Rc::new(RefCell::new(Some::<i64>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+    pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+        (Rc::new(RefCell::new(Some::<i64>(0))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
         } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
@@ -170,7 +170,7 @@ impl os_File {
             0
         };
         let data = self.__go_read_all();
-        let mut n = 0i32;
+        let mut n = 0i64;
         if offset >= 0 {
             let start = offset as usize;
             if start < data.len() {
@@ -179,12 +179,12 @@ impl os_File {
                     if let Some(target) = guard.as_mut() {
                         let count = std::cmp::min(target.len(), data.len() - start);
                         target[..count].copy_from_slice(&data[start..start + count]);
-                        n = count as i32;
+                        n = count as i64;
                     }
                 }
             }
         }
-        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (Rc::new(RefCell::new(Some::<i64>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 }
 

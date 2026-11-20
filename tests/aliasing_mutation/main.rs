@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // This is the simplest case that breaks Rust's ownership
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
     let mut p = x.clone();
     let mut q = x.clone();
 

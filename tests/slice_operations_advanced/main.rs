@@ -65,12 +65,12 @@ fn main() {
         for _i in 0.._n {
             (*s3.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
         }
-        Rc::new(RefCell::new(Some(_n as i32)))
+        Rc::new(RefCell::new(Some(_n as i64)))
     };
     print!("Copied {} elements: {}\n", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }, format_slice(&s3));
 
         // Nil slice vs empty slice
-    let mut s4: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
-    let mut s5 = Rc::new(RefCell::new(Some(Vec::<i32>::new())));
+    let mut s4: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
+    let mut s5 = Rc::new(RefCell::new(Some(Vec::<i64>::new())));
     print!("s4==nil: {}, s5==nil: {}\n", { let __nil_result = (*s4.borrow()).is_none(); __nil_result }, { let __nil_result = (*s5.borrow()).is_none(); __nil_result });
 }

@@ -55,8 +55,8 @@ impl Display for Names {
 
 
 impl Names {
-    pub fn len(&self) -> i32 {
-        return { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32;
+    pub fn len(&self) -> i64 {
+        return { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i64;
     }
 
     pub fn first(&self) -> Rc<RefCell<Option<String>>> {
@@ -66,7 +66,7 @@ impl Names {
     pub fn join(&self) -> Rc<RefCell<Option<String>>> {
         let mut out = Rc::new(RefCell::new(Some("".to_string())));
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, name) in __range_values.iter().enumerate() {
-        if i as i32 > 0 {
+        if i as i64 > 0 {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
     }
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&name); };

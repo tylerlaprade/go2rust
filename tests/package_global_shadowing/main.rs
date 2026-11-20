@@ -20,11 +20,11 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static value: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static value: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static allValues: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static allValues: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static copiedValue: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static copiedValue: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -35,7 +35,7 @@ fn __go_init_globals() {
 }
 
 
-pub fn print_value(value_local: Rc<RefCell<Option<i32>>>) {
+pub fn print_value(value_local: Rc<RefCell<Option<i64>>>) {
     println!("{}", format!("{}", { let __v = (*value_local.borrow().as_ref().unwrap()).clone(); __v }));
 }
 

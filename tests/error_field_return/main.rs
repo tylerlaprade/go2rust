@@ -29,7 +29,7 @@ pub fn parse(v: Rc<RefCell<Option<parseValue>>>) -> Rc<RefCell<Option<Rc<dyn Std
     { let __err_source = { let __field = (*v.borrow().as_ref().unwrap()).err.clone(); __field }; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }
 }
 
-pub fn parse_pair(v: Rc<RefCell<Option<parseValue>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn parse_pair(v: Rc<RefCell<Option<parseValue>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     (7, { let __return_value_1 = { let __err_source = { let __field = (*v.borrow().as_ref().unwrap()).err.clone(); __field }; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; __return_value_1 })
 }
 

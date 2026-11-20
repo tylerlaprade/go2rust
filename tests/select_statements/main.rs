@@ -379,8 +379,8 @@ pub fn select_with_default() {
 }
 
 pub fn select_loop() {
-    let mut ch1 = GoChannel::<i32>::new();
-    let mut ch2 = GoChannel::<i32>::new();
+    let mut ch1 = GoChannel::<i64>::new();
+    let mut ch2 = GoChannel::<i64>::new();
     let mut quit = GoChannel::<bool>::new();
 
     let ch1_thread = ch1.clone(); let ch2_thread = ch2.clone(); let quit_thread = quit.clone(); std::thread::spawn(move || {

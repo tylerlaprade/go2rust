@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -42,7 +42,7 @@ impl std::fmt::Display for Point {
 
 fn main() {
         // Basic pointer operations
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
     let mut p = x.clone();
     println!("{} {}", format!("{}", "Value of x:".to_string()), format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
     println!("{} {}", format!("{}", "Pointer is non-nil:".to_string()), format!("{}", { let __nil_result = (*p.borrow()).is_some(); __nil_result }));

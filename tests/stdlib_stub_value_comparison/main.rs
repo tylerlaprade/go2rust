@@ -22,15 +22,15 @@ impl types_Chan {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_ChanDir(pub i32);
+pub struct types_ChanDir(pub i64);
 
-impl PartialEq<i32> for types_ChanDir {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for types_ChanDir {
+    fn eq(&self, other: &i64) -> bool {
         self.0 == *other
     }
 }
 
-impl PartialEq<types_ChanDir> for i32 {
+impl PartialEq<types_ChanDir> for i64 {
     fn eq(&self, other: &types_ChanDir) -> bool {
         *self == other.0
     }
@@ -75,7 +75,7 @@ pub fn is_bidirectional(ch: Rc<RefCell<Option<types_Chan>>>) -> bool {
 }
 
 pub fn has_direction(ch: Rc<RefCell<Option<types_Chan>>>) -> bool {
-    (*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()).clone() & types::SEND_RECV != types_ChanDir(0 as i32)
+    (*(*ch.borrow_mut().as_mut().unwrap()).dir().borrow().as_ref().unwrap()).clone() & types::SEND_RECV != types_ChanDir(0 as i64)
 }
 
 fn main() {

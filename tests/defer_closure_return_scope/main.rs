@@ -1,10 +1,10 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn run() -> i32 {
+pub fn run() -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {

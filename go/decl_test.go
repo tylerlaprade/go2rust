@@ -26,7 +26,7 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	TranspileFunction(&out, fn, token.NewFileSet(), nil)
 
 	got := out.String()
-	if !strings.Contains(got, "pub fn external_func() -> Rc<RefCell<Option<i32>>>") {
+	if !strings.Contains(got, "pub fn external_func() -> Rc<RefCell<Option<i64>>>") {
 		t.Fatalf("missing function signature in:\n%s", got)
 	}
 	if !strings.Contains(got, "unimplemented!(\"Go function declaration has no body\")") {
@@ -891,7 +891,7 @@ func TestTranspileInternalBytealgCountIntrinsicsUseGenericBodies(t *testing.T) {
 	for _, want := range []string{
 		".as_bytes().iter().filter",
 		".iter().filter",
-		".count()).unwrap_or(0) as i32",
+		".count()).unwrap_or(0) as i64",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
@@ -1011,7 +1011,7 @@ func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	if strings.Contains(got, "(,") || strings.Contains(got, ", )") {
 		t.Fatalf("unnamed parameters should not leave empty Rust signature slots:\n%s", got)
 	}
-	if !strings.Contains(got, "__arg0: Rc<RefCell<Option<i32>>>") {
+	if !strings.Contains(got, "__arg0: Rc<RefCell<Option<i64>>>") {
 		t.Fatalf("first unnamed parameter should get a synthetic Rust name:\n%s", got)
 	}
 	if !strings.Contains(got, "__arg1: Rc<RefCell<Option<String>>>") {
@@ -1523,7 +1523,7 @@ type Node interface {
 	if strings.Contains(rust, "fn method(&self)") {
 		t.Fatalf("interface method with unnamed parameter should not omit the parameter:\n%s", rust)
 	}
-	if !strings.Contains(rust, "fn method(&self, __arg0: Rc<RefCell<Option<i32>>>)") {
+	if !strings.Contains(rust, "fn method(&self, __arg0: Rc<RefCell<Option<i64>>>)") {
 		t.Fatalf("interface method with unnamed parameter should get a synthetic Rust name:\n%s", rust)
 	}
 }
@@ -1563,16 +1563,16 @@ func call() (int, error) {
 	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("generic func parameter should keep the generic wrapped T return ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("instantiated func literal should be coerced to the wrapped generic return ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
+	if strings.Contains(rust, "Box<dyn FnMut() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("func literal passed to generic func parameter should not keep a bare scalar return ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "let (mut v, mut err) = retry::<i32>") {
+	if strings.Contains(rust, "let (mut v, mut err) = retry::<i64>") {
 		t.Fatalf("scalar result from wrapped generic return should be unpacked through a temp before binding:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let (__tmp_0, mut err) = retry::<i32>") {
+	if !strings.Contains(rust, "let (__tmp_0, mut err) = retry::<i64>") {
 		t.Fatalf("wrapped generic return should bind scalar result through a temp:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let mut v = { let __tmp_holder = __tmp_0.clone(); let __tmp_guard = __tmp_holder.borrow(); (*__tmp_guard.as_ref().unwrap()).clone() };") {
@@ -2722,7 +2722,7 @@ type Expr interface {
 	if !strings.Contains(rust, "impl Node for Box<dyn Expr>") {
 		t.Fatalf("boxed Expr trait object should implement embedded Node trait:\n%s", rust)
 	}
-	if !strings.Contains(rust, "fn pos(&self) -> i32") {
+	if !strings.Contains(rust, "fn pos(&self) -> i64") {
 		t.Fatalf("Node method should be delegated on boxed Expr trait object:\n%s", rust)
 	}
 }
@@ -3123,7 +3123,7 @@ func main() {
 		t.Fatalf("anonymous embedded struct should forward read-only promoted methods:\n%s", rust)
 	}
 	promotedImpl := rust[promotedImplStart:]
-	if !strings.Contains(promotedImpl, "    pub fn pop(&mut self) -> i32") {
+	if !strings.Contains(promotedImpl, "    pub fn pop(&mut self) -> i64") {
 		t.Fatalf("anonymous embedded struct should forward mutating promoted methods:\n%s", rust)
 	}
 	if !strings.Contains(promotedImpl, "let embedded = self.list.clone();") {
@@ -3196,7 +3196,7 @@ func makeList() List[int] {
 	if strings.Contains(rust, "return ;") || strings.Contains(rust, "let mut lst = ;") {
 		t.Fatalf("empty instantiated generic struct literal should not lower to an empty expression:\n%s", rust)
 	}
-	if !strings.Contains(rust, "List::<i32> { ..Default::default() }") {
+	if !strings.Contains(rust, "List::<i64> { ..Default::default() }") {
 		t.Fatalf("empty instantiated generic struct literal should use the Rust generic path with defaults:\n%s", rust)
 	}
 }
@@ -3393,7 +3393,7 @@ func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	if !strings.Contains(got, `pub const FUTURE: &'static str = "";`) {
 		t.Fatalf("exported package const should be public, got:\n%s", got)
 	}
-	if !strings.Contains(got, `pub(crate) const PRIVATE_VALUE: i32 = 1;`) {
+	if !strings.Contains(got, `pub(crate) const PRIVATE_VALUE: i64 = 1;`) {
 		t.Fatalf("private package const should be crate-visible, got:\n%s", got)
 	}
 }

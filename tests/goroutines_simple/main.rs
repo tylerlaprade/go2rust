@@ -3,7 +3,7 @@ use std::thread;
 use std::time::Duration;
 
 pub fn f(from: Arc<Mutex<Option<String>>>) {
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         println!("{} {} {}", format!("{}", { let __v = (*from.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ":".to_string()), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

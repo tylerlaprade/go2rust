@@ -33,7 +33,7 @@ where
 
 fn main() {
         // Create and initialize map
-    let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())));
+    let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())));
     { let __map_key = "Alice".to_string(); let __map_value = Rc::new(RefCell::new(Some(25))); (*ages.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "Bob".to_string(); let __map_value = Rc::new(RefCell::new(Some(30))); (*ages.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "Charlie".to_string(); let __map_value = Rc::new(RefCell::new(Some(35))); (*ages.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };

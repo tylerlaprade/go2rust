@@ -1823,7 +1823,7 @@ func writeFprintByteWriterTuple(out *strings.Builder, call *ast.CallExpr, writeF
 	errorInner := externalStubErrorInnerType()
 	out.WriteString("{ let __s = ")
 	writeFormatted()
-	out.WriteString("; let __n = __s.len() as i32; (*")
+	out.WriteString("; let __n = __s.len() as " + rustIntType() + "; (*")
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, ")
@@ -3081,7 +3081,7 @@ func transpileStringsIndex(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) }")
+	out.WriteString("; __s.find(&__substr).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3094,7 +3094,7 @@ func transpileStringsLastIndex(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.rfind(&__substr).map(|__i| __i as i32).unwrap_or(-1) }")
+	out.WriteString("; __s.rfind(&__substr).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3107,7 +3107,7 @@ func transpileStringsCount(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; if __substr.is_empty() { __s.chars().count() as i32 + 1 } else { __s.matches(&__substr).count() as i32 } }")
+	out.WriteString("; if __substr.is_empty() { __s.chars().count() as " + rustIntType() + " + 1 } else { __s.matches(&__substr).count() as " + rustIntType() + " } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3196,7 +3196,7 @@ func transpileStringsIndexAny(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __chars = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as i32).unwrap_or(-1) }")
+	out.WriteString("; __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as " + rustIntType() + ").unwrap_or(-1) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3344,13 +3344,13 @@ func transpileSortSearch(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) < 2 {
 		return
 	}
-	out.WriteString("{ let mut __sort_i: i32 = 0; let mut __sort_j: i32 = (")
+	out.WriteString("{ let mut __sort_i: " + rustIntType() + " = 0; let mut __sort_j: " + rustIntType() + " = (")
 	TranspileExpression(out, call.Args[0])
-	out.WriteString(") as i32; let __sort_pred = ")
+	out.WriteString(") as " + rustIntType() + "; let __sort_pred = ")
 	if !writeFunctionValueHandle(out, call.Args[1]) {
 		TranspileExpression(out, call.Args[1])
 	}
-	out.WriteString("; while __sort_i < __sort_j { let __sort_h = (((__sort_i as u32 + __sort_j as u32) >> 1) as i32); let __sort_ok = { let mut __pred_guard = __sort_pred")
+	out.WriteString("; while __sort_i < __sort_j { let __sort_h = (((__sort_i as u64 + __sort_j as u64) >> 1) as " + rustIntType() + "); let __sort_ok = { let mut __pred_guard = __sort_pred")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __pred = __pred_guard.as_mut().expect(\"sort.Search predicate is nil\"); __pred(")
 	writeSortIndexArg(out, "__sort_h")
@@ -3361,13 +3361,13 @@ func transpileSortFind(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) < 2 {
 		return
 	}
-	out.WriteString("{ let __sort_n: i32 = (")
+	out.WriteString("{ let __sort_n: " + rustIntType() + " = (")
 	TranspileExpression(out, call.Args[0])
-	out.WriteString(") as i32; let mut __sort_i: i32 = 0; let mut __sort_j: i32 = __sort_n; let __sort_cmp = ")
+	out.WriteString(") as " + rustIntType() + "; let mut __sort_i: " + rustIntType() + " = 0; let mut __sort_j: " + rustIntType() + " = __sort_n; let __sort_cmp = ")
 	if !writeFunctionValueHandle(out, call.Args[1]) {
 		TranspileExpression(out, call.Args[1])
 	}
-	out.WriteString("; while __sort_i < __sort_j { let __sort_h = (((__sort_i as u32 + __sort_j as u32) >> 1) as i32); let __sort_order = { let mut __cmp_guard = __sort_cmp")
+	out.WriteString("; while __sort_i < __sort_j { let __sort_h = (((__sort_i as u64 + __sort_j as u64) >> 1) as " + rustIntType() + "); let __sort_order = { let mut __cmp_guard = __sort_cmp")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __cmp = __cmp_guard.as_mut().expect(\"sort.Find comparator is nil\"); __cmp(")
 	writeSortIndexArg(out, "__sort_h")
@@ -3392,7 +3392,7 @@ func transpileSortInterfaceSort(out *strings.Builder, call *ast.CallExpr) {
 	if !writeSortInterfaceReceiverValue(out, arg, typeInfo.GetType(arg)) {
 		TranspileExpressionContext(out, arg, LValue)
 	}
-	out.WriteString("; let __sort_len = __sort_data.len(); for __sort_i in 1..(__sort_len as usize) { let mut __sort_j = __sort_i as i32; while __sort_j > 0 { if !__sort_data.less(")
+	out.WriteString("; let __sort_len = __sort_data.len(); for __sort_i in 1..(__sort_len as usize) { let mut __sort_j = __sort_i as " + rustIntType() + "; while __sort_j > 0 { if !__sort_data.less(")
 	writeSortInterfaceMethodArgs(out, []string{"__sort_j", "__sort_j - 1"})
 	out.WriteString(") { break; } __sort_data.swap(")
 	writeSortInterfaceMethodArgs(out, []string{"__sort_j", "__sort_j - 1"})
@@ -3415,9 +3415,9 @@ func transpileSortSlice(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __less = __less_guard.as_mut().expect(\"sort.Slice less function is nil\"); __less(")
-	writeSortIndexArg(out, "__sort_j as i32")
+	writeSortIndexArg(out, "__sort_j as "+rustIntType())
 	out.WriteString(", ")
-	writeSortIndexArg(out, "(__sort_j - 1) as i32")
+	writeSortIndexArg(out, "(__sort_j - 1) as "+rustIntType())
 	out.WriteString(") }; if !__should_swap { break; } { let mut __sort_guard = __sort_target")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } }")
@@ -3788,12 +3788,12 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		// slot keeps the wrapped representation.
 		out.WriteString("{ let __atoi_input = ")
 		writeStringSequenceOwnedValue(out, call.Args[0])
-		out.WriteString("; match __atoi_input.parse::<i32>() { ")
+		out.WriteString("; match __atoi_input.parse::<" + rustIntType() + ">() { ")
 		out.WriteString("Ok(n) => (n, ")
 		WriteWrappedNone(out)
 		out.WriteString("), ")
 		TrackImport("Error")
-		out.WriteString("Err(_) => (0 as i32, ")
+		out.WriteString("Err(_) => (0 as " + rustIntType() + ", ")
 		WriteWrapperPrefix(out)
 		out.WriteString(rustErrorFromText("format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)") + ")))) } }")
 	}
@@ -4820,7 +4820,7 @@ func transpileRandIntn(out *strings.Builder, call *ast.CallExpr) {
 	} else {
 		out.WriteString("0")
 	}
-	out.WriteString(" as i32)")
+	out.WriteString(" as i64)")
 	WriteWrapperSuffix(out)
 }
 
@@ -6255,7 +6255,7 @@ func writeCopyLoop(out *strings.Builder, innerIndent string, elementCopy string,
 func finishCopyBlock(out *strings.Builder, indent, innerIndent string) {
 	out.WriteString(innerIndent)
 	WriteWrapperPrefix(out)
-	out.WriteString("_n as i32")
+	out.WriteString("_n as "+rustIntType())
 	WriteWrapperSuffix(out)
 	out.WriteString("\n")
 	out.WriteString(indent)

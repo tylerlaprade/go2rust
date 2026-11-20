@@ -172,7 +172,7 @@ impl std::fmt::Display for Missing {
 #[derive(Clone)]
 pub struct Reader {
     pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
-    pub read: Rc<RefCell<Option<i32>>>,
+    pub read: Rc<RefCell<Option<i64>>>,
 }
 
 impl Reader {
@@ -275,14 +275,14 @@ pub fn find(key: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Rc<dyn StdErr
     Rc::new(RefCell::new(None))
 }
 
-pub fn lookup(key: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn lookup(key: Rc<RefCell<Option<String>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     {
         let mut err = find(Rc::new(RefCell::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
             return (0, { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) });;
         }
     }
-    ((*key.borrow().as_ref().unwrap()).len() as i32, Rc::new(RefCell::new(None)))
+    ((*key.borrow().as_ref().unwrap()).len() as i64, Rc::new(RefCell::new(None)))
 }
 
 pub fn report(mut err: Rc<RefCell<Option<Rc<dyn StdError>>>>) {

@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Basic nil comparisons
-    let mut p: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
+    let mut p: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(None));
     if { let __nil_result = (*p.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", "p is nil".to_string()));
     }
@@ -15,7 +15,7 @@ fn main() {
     }
 
         // Non-nil pointer
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
     { let new_val = x.clone().clone(); p = new_val; };
     if { let __nil_result = (*p.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "p is not nil, value:".to_string()), format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }));

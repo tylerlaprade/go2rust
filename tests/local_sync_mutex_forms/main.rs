@@ -162,13 +162,13 @@ fn __go_init_globals() {
 }
 
 
-pub fn bump(mu: GoMutex, n: Rc<RefCell<Option<i32>>>) {
+pub fn bump(mu: GoMutex, n: Rc<RefCell<Option<i64>>>) {
     let __mutex_guard_source_374 = mu.clone(); let __mutex_guard_374 = __mutex_guard_source_374.guard();
     { let new_val = { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v } + 1; *n.borrow_mut() = Some(new_val); };
     drop(__mutex_guard_374);
 }
 
-pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i64>>>) -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     rw.r_lock();
@@ -184,7 +184,7 @@ pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i32>>>) -> i32 {
     }
 }
 
-pub fn locked(mu: GoMutex) -> i32 {
+pub fn locked(mu: GoMutex) -> i64 {
     let __mutex_guard_source_536 = mu.clone(); let __mutex_guard_536 = __mutex_guard_source_536.guard();
     // mu.Unlock() handled by RAII guard
     7
@@ -192,7 +192,7 @@ pub fn locked(mu: GoMutex) -> i32 {
 
 fn main() {
     __go_init_all();
-    let mut n = Rc::new(RefCell::new(Some(0)));
+    let mut n = Rc::new(RefCell::new(Some(0i64)));
     let mut a = GoMutex { ..Default::default() };
     let __mutex_guard_source_620 = a.clone(); let __mutex_guard_620 = __mutex_guard_source_620.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

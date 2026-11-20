@@ -82,20 +82,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -722,7 +722,7 @@ use __go_runtime_format::{go_sprintf, go_sprintf_spread};
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -832,7 +832,7 @@ impl std::fmt::Display for Logger {
 pub struct Service {
     pub logger: Rc<RefCell<Option<Logger>>>,
     pub name: Rc<RefCell<Option<String>>>,
-    pub port: Rc<RefCell<Option<i32>>>,
+    pub port: Rc<RefCell<Option<i64>>>,
 }
 
 impl Service {
@@ -874,7 +874,7 @@ impl std::fmt::Display for Service {
 
 #[derive(Debug, Clone, Default)]
 pub struct Stack {
-    pub items: Rc<RefCell<Option<Vec<i32>>>>,
+    pub items: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl Stack {
@@ -895,11 +895,11 @@ impl std::fmt::Display for Stack {
 
 
 impl Counter {
-    pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&mut self, x: Rc<RefCell<Option<i64>>>) {
         { let __target = self.n.clone(); let __rhs = (*x.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
-    pub fn plus(&self, x: Rc<RefCell<Option<i32>>>) -> i32 {
+    pub fn plus(&self, x: Rc<RefCell<Option<i64>>>) -> i64 {
         return (*self.n.borrow().as_ref().unwrap()) + (*x.borrow().as_ref().unwrap());
     }
 }
@@ -911,17 +911,17 @@ impl Logger {
 }
 
 impl Stack {
-    pub fn push(&mut self, v: Rc<RefCell<Option<i32>>>) {
+    pub fn push(&mut self, v: Rc<RefCell<Option<i64>>>) {
         { let new_val = { let __append_target = self.items.clone(); let __append_value = (*v.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.items = new_val; };
     }
 
-    pub fn len(&self) -> i32 {
-        ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32
+    pub fn len(&self) -> i64 {
+        ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64
     }
 }
 
 impl Named {
-    pub fn add(&mut self, x: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&mut self, x: Rc<RefCell<Option<i64>>>) {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
         let mut guard = embedded.borrow_mut();
@@ -929,7 +929,7 @@ impl Named {
         embedded_ref.add(x)
     }
 
-    pub fn plus(&self, x: Rc<RefCell<Option<i32>>>) -> i32 {
+    pub fn plus(&self, x: Rc<RefCell<Option<i64>>>) -> i64 {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
         let guard = embedded.borrow();
@@ -968,7 +968,7 @@ fn main() {
     } }
 
     let mut st: Rc<RefCell<Option<Stack>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 3 {
         { let __method_args = (Rc::new(RefCell::new(Some((*st.borrow().as_ref().unwrap()).len() * 10))),); (*st.borrow_mut().as_mut().unwrap()).push(__method_args.0) };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

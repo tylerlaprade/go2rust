@@ -243,7 +243,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct Box_ {
-    pub items: Arc<Mutex<Option<Vec<i32>>>>,
+    pub items: Arc<Mutex<Option<Vec<i64>>>>,
 }
 
 impl Box_ {
@@ -265,7 +265,7 @@ impl std::fmt::Display for Box_ {
 
 #[derive(Debug, Clone)]
 pub struct Pt {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl Pt {
@@ -297,7 +297,7 @@ impl std::fmt::Display for Pt {
 
 impl Box_ {
     pub fn dup(&mut self) {
-        { let new_val = { let __append_target = self.items.clone(); let __append_value = { let __seq = { let __seq_holder = self.items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.items = new_val; };
+        { let new_val = { let __append_target = self.items.clone(); let __append_value = { let __seq = { let __seq_holder = self.items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; self.items = new_val; };
     }
 }
 
@@ -312,8 +312,8 @@ fn main() {
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
-    let mut s = Arc::new(Mutex::new(Some(vec![1, 2, 3])));
-    { let __idx = ({ let __tmp_x = ((*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 5; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut s = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64])));
+    { let __idx = ({ let __tmp_x = ((*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 5; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "index reads the slice".to_string()), format!("{}", format_slice(&s)));
     { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "value reads the slice".to_string()), format!("{}", format_slice(&s)));
@@ -337,56 +337,56 @@ fn main() {
     };
     println!("{} {}", format!("{}", "compound, increment, swap".to_string()), format!("{}", format_slice(&s)));
 
-    let mut s2 = Arc::new(Mutex::new(Some(vec![1, 2, 3])));
-    { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
-    { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
+    let mut s2 = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64])));
+    { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
+    { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     {
         let __go_lhs_sequence_0 = s2.clone();
-        let __go_lhs_index_0 = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
+        let __go_lhs_index_0 = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
         let __go_lhs_sequence_1 = s2.clone();
         let __go_lhs_index_1 = (0) as usize;
         let __tmp_0 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
-        let __tmp_1 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+        let __tmp_1 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
         (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
         (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     println!("{} {}", format!("{}", "index reads the slice in an increment, a compound assignment and a swap".to_string()), format!("{}", format_slice(&s2)));
 
-    let mut grid = Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4]])));
+    let mut grid = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone(); (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    { let __outer_idx = ({ let __tmp_x = ((*grid.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    { let __outer_idx = ({ let __tmp_x = ((*grid.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(1) as usize].clone()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone()));
 
     let mut pts = Arc::new(Mutex::new(Some(vec![Pt { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Pt { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
-    { let __idx = ({ let __tmp_x = ((*pts.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.__go_value_clone(); (*pts.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = ({ let __tmp_x = ((*pts.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.__go_value_clone(); (*pts.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "struct element".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
-    let mut arr = Arc::new(Mutex::new(Some([1, 2, 3])));
+    let mut arr = Arc::new(Mutex::new(Some([1i64, 2i64, 3i64])));
     let mut p = arr.clone();
     { let __idx = ({ let __tmp_x = 3; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = p.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; (*p.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "through a pointer to an array".to_string()), format!("{}", format_slice(&arr)));
 
     let mut w = Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()])));
-    { let __idx = ({ let __tmp_x = ((*w.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = format!("{}{}", { let __seq = { let __seq_holder = w.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }, "!".to_string()); (*w.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = ({ let __tmp_x = ((*w.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = format!("{}{}", { let __seq = { let __seq_holder = w.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }, "!".to_string()); (*w.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "strings".to_string()), format!("{}", format_slice(&w)));
 
-    let mut a = Arc::new(Mutex::new(Some([1, 2, 3])));
+    let mut a = Arc::new(Mutex::new(Some([1i64, 2i64, 3i64])));
     { let __idx = ({ let __tmp_x = 3; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; (*a.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "array".to_string()), format!("{}", format_slice(&a)));
 
-    let mut b = Arc::new(Mutex::new(Some(Box_ { items: Arc::new(Mutex::new(Some(vec![1, 2]))), ..Default::default() })));
-    { let __idx = ({ let __tmp_x = (({ let __len_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 9; (*(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut b = Arc::new(Mutex::new(Some(Box_ { items: Arc::new(Mutex::new(Some(vec![1i64, 2i64]))), ..Default::default() })));
+    { let __idx = ({ let __tmp_x = (({ let __len_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 9; (*(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; (*(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "slice in a field".to_string()), format!("{}", format_slice_values(&(*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
-    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1)))), ("b".to_string(), Arc::new(Mutex::new(Some(2))))]))));
+    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64)))), ("b".to_string(), Arc::new(Mutex::new(Some(2i64))))]))));
     { let __map_holder = m.clone(); let __key = "a".to_string(); let __rhs = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }; let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
-    { let __map_key = "c".to_string(); let __map_value = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } as i32); let __tmp_y = ((*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y }))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "c".to_string(); let __map_value = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } as i64); let __tmp_y = ((*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); __tmp_x + __tmp_y }))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "map".to_string()), format!("{}", format_map(&m)));
 
-    let mut n = Arc::new(Mutex::new(Some(vec![1, 2])));
+    let mut n = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
     { let new_val = { let __append_target = n.clone(); let __append_value = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; n = new_val; };
-    { let new_val = { let __append_target = n.clone(); let __append_value = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; n = new_val; };
+    { let new_val = { let __append_target = n.clone(); let __append_value = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; n = new_val; };
     { let new_val = { let __append_target = n.clone(); let __append_values = vec![
         { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() },
         { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() },
@@ -415,23 +415,23 @@ fn main() {
     (*b.lock().unwrap().as_mut().unwrap()).dup();
     println!("{} {}", format!("{}", "append to a field".to_string()), format!("{}", format_slice_values(&(*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
-    let n_closure_clone = n.clone(); let mut total = Arc::new(Mutex::new(Some(Box::new(move || -> i32 {
-        return (*n_closure_clone.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
-    }) as Box<dyn FnMut() -> i32 + Send + Sync>)));
+    let n_closure_clone = n.clone(); let mut total = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
+        return (*n_closure_clone.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;
+    }) as Box<dyn FnMut() -> i64 + Send + Sync>)));
     { let new_val = { let __append_target = n.clone(); let __append_value = {
-        let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
             let mut __f_guard = total.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
         };
         let __f = unsafe { &mut *__f_ptr };
         (*__f)(
 
         )
     }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; n = new_val; };
-    println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }));
+    println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }));
 
-    let mut byKey = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i32>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![1]))))]))));
+    let mut byKey = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![1i64]))))]))));
     { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = { let __seq = { let __seq_holder = { let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; (*__slice.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*{ let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32; (*__slice.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*{ let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; (*__slice.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "append to a slice in a map".to_string()), format!("{}", format_slice(&{ let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 }

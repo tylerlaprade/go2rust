@@ -7,7 +7,7 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn pos(&self) -> i32;
+    fn pos(&self) -> i64;
 }
 
 impl Clone for Box<dyn Node> {
@@ -38,7 +38,7 @@ impl Node for Box<dyn Expr> {
     fn __go_eq_node(&self, other: &dyn Node) -> bool {
         (**self).__go_eq_node(other)
     }
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         (**self).pos()
     }
 }
@@ -65,14 +65,14 @@ impl Node for Box<dyn Stmt> {
     fn __go_eq_node(&self, other: &dyn Node) -> bool {
         (**self).__go_eq_node(other)
     }
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         (**self).pos()
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ident {
-    pub pos: Rc<RefCell<Option<i32>>>,
+    pub pos: Rc<RefCell<Option<i64>>>,
 }
 
 impl Ident {
@@ -125,7 +125,7 @@ impl std::fmt::Display for ExprStmt {
 
 
 impl Ident {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         return (*self.pos.borrow().as_ref().unwrap());
     }
 
@@ -178,7 +178,7 @@ impl Expr for IdentPtr {
 }
 
 impl Node for Ident {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         Ident::pos(self)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -197,7 +197,7 @@ impl Node for Ident {
 }
 
 impl Node for IdentPtr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Ident::pos(__recv)
@@ -218,7 +218,7 @@ impl Node for IdentPtr {
 }
 
 impl ExprStmt {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         (*self.x.borrow().as_ref().unwrap()).pos()
     }
 
@@ -227,7 +227,7 @@ impl ExprStmt {
 }
 
 impl Node for ExprStmt {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         ExprStmt::pos(self)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -256,7 +256,7 @@ impl std::fmt::Display for ExprStmtPtr {
 }
 
 impl Node for ExprStmtPtr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         ExprStmt::pos(__recv)

@@ -215,7 +215,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct P {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl P {
@@ -278,7 +278,7 @@ impl Grid {
 
 
 #[derive(Debug, Clone)]
-pub struct Nums(pub Arc<Mutex<Option<[i32; 2]>>>);
+pub struct Nums(pub Arc<Mutex<Option<[i64; 2]>>>);
 
 impl Default for Nums {
     fn default() -> Self {

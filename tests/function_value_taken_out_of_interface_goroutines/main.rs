@@ -174,26 +174,26 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>() { return "func()" }
     if val.is::<Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>() { return "func() string" }
-    if val.is::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>>>>>() { return "func(int) int" }
+    if val.is::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>() { return "func(int) int" }
     std::any::type_name_of_val(val)
 }
 
@@ -216,7 +216,7 @@ fn main() {
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();
-    let mut count = Arc::new(Mutex::new(Some(0)));
+    let mut count = Arc::new(Mutex::new(Some(0i64)));
     let mut count_closure_clone = count.clone(); let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move || {
         { let mut guard = count_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }) as Box<dyn FnMut() -> () + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>)));
@@ -235,13 +235,13 @@ fn main() {
         let val = x.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>>>>() {
+            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>>() {
                 (typed_val.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>)), false)
+                (Arc::new(Mutex::new(None::<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>)), false)
+            (Arc::new(Mutex::new(None::<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>)), false)
         }
     });
     println!("{} {}", format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
@@ -293,14 +293,14 @@ fn main() {
     };
     println!("{}", format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut handlers = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("inc".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i32>>>| -> i32 {
+    let mut handlers = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("inc".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))))]))));
-    let mut inc = ({ let val = { let __map = { let __map_holder = handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"inc".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))))]))));
+    let mut inc = ({ let val = { let __map = { let __map_holder = handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"inc".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     println!("{}", format!("{}", {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync> = {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = {
             let mut __f_guard = inc.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>
         };
         let __f = unsafe { &mut *__f_ptr };
         (*__f)(

@@ -7,7 +7,7 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn pos(&self) -> i32;
+    fn pos(&self) -> i64;
 }
 
 impl Clone for Box<dyn Node> {
@@ -18,7 +18,7 @@ impl Clone for Box<dyn Node> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lit {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Lit {
@@ -71,13 +71,13 @@ impl std::fmt::Display for Wrap {
 
 
 impl Lit {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 impl Node for Lit {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         Lit::pos(self)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -106,7 +106,7 @@ impl std::fmt::Display for LitPtr {
 }
 
 impl Node for LitPtr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Lit::pos(__recv)

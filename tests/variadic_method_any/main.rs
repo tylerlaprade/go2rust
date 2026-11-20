@@ -29,5 +29,5 @@ impl logger {
 
 fn main() {
     let mut l: Rc<RefCell<Option<logger>>> = Rc::new(RefCell::new(Some(Default::default())));
-    (*l.borrow().as_ref().unwrap()).trace(Rc::new(RefCell::new(Some("objects".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>]))));
+    (*l.borrow().as_ref().unwrap()).trace(Rc::new(RefCell::new(Some("objects".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>]))));
 }

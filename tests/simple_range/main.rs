@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Simple slice range
-    let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64])));
 
         // Index and value
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {

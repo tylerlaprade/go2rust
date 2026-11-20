@@ -44,20 +44,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -836,10 +836,10 @@ impl Celsius {
 }
 
 fn main() {
-    print!("{}", go_sprintf(&"%05.1f|%8.2f|%-8.3f|%-6s|%6s|%e|%o|%+5d|% d|%x|%X|%6.3g|%3c|%q|%U|%t|%5t|%08b|%5.1f%%|%10v|%-10v|\n".to_string(), &[Box::new(3.14159) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(1.0) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new("cd".to_string()) as Box<dyn Any>, Box::new(12345.678) as Box<dyn Any>, Box::new(8) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(7) as Box<dyn Any>, Box::new("hi".to_string()) as Box<dyn Any>, Box::new(255) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(('x' as i32)) as Box<dyn Any>, Box::new(('y' as i32)) as Box<dyn Any>, Box::new(0x1F600) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(false) as Box<dyn Any>, Box::new(5) as Box<dyn Any>, Box::new(99.5) as Box<dyn Any>, Box::new("v".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>], false));
-    let mut s = Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"%6.2f|%g|%g|%.3d|%q".to_string(), &[Box::new(3.14159) as Box<dyn Any>, Box::new(1e21) as Box<dyn Any>, Box::new(0.5) as Box<dyn Any>, Box::new(7) as Box<dyn Any>, Box::new("a\"b".to_string()) as Box<dyn Any>], false)))));
+    print!("{}", go_sprintf(&"%05.1f|%8.2f|%-8.3f|%-6s|%6s|%e|%o|%+5d|% d|%x|%X|%6.3g|%3c|%q|%U|%t|%5t|%08b|%5.1f%%|%10v|%-10v|\n".to_string(), &[Box::new(3.14159) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(1.0) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new("cd".to_string()) as Box<dyn Any>, Box::new(12345.678) as Box<dyn Any>, Box::new(8i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>, Box::new("hi".to_string()) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(120i32) as Box<dyn Any>, Box::new(121i32) as Box<dyn Any>, Box::new(128512i64) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(false) as Box<dyn Any>, Box::new(5i64) as Box<dyn Any>, Box::new(99.5) as Box<dyn Any>, Box::new("v".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>], false));
+    let mut s = Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"%6.2f|%g|%g|%.3d|%q".to_string(), &[Box::new(3.14159) as Box<dyn Any>, Box::new(1e21) as Box<dyn Any>, Box::new(0.5) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>, Box::new("a\"b".to_string()) as Box<dyn Any>], false)))));
     println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
-    let mut err = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf(&"value %8.3f out of range [%d, %d]".to_string(), &[Box::new(12.5) as Box<dyn Any>, Box::new(0) as Box<dyn Any>, Box::new(10) as Box<dyn Any>], true)))))));
+    let mut err = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf(&"value %8.3f out of range [%d, %d]".to_string(), &[Box::new(12.5) as Box<dyn Any>, Box::new(0i64) as Box<dyn Any>, Box::new(10i64) as Box<dyn Any>], true)))))));
     println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{}", go_sprintf(&"%-10s|%10.4f|\n".to_string(), &[Box::new("name".to_string()) as Box<dyn Any>, Box::new(2.0 / 3.0) as Box<dyn Any>], false));
     let mut c: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(21.5)))))));

@@ -2,12 +2,12 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub const VAR: i32 = 0 + 1;
-pub const IDENT: i32 = 1 + 1;
+pub const VAR: i64 = 0 + 1;
+pub const IDENT: i64 = 1 + 1;
 
 
 #[derive(Debug, Default)]
-pub struct Token(pub Rc<RefCell<Option<i32>>>);
+pub struct Token(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Token {
     fn clone(&self) -> Self {
@@ -30,8 +30,8 @@ impl PartialEq for Token {
     }
 }
 
-impl PartialEq<i32> for Token {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Token {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -44,19 +44,19 @@ impl PartialOrd for Token {
     }
 }
 
-impl PartialOrd<i32> for Token {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Token {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Token> for i32 {
+impl PartialEq<Token> for i64 {
     fn eq(&self, other: &Token) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Token> for i32 {
+impl PartialOrd<Token> for i64 {
     fn partial_cmp(&self, other: &Token) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -69,14 +69,14 @@ impl std::ops::Add for Token {
     }
 }
 
-impl std::ops::Add<i32> for Token {
+impl std::ops::Add<i64> for Token {
     type Output = Token;
-    fn add(self, other: i32) -> Token {
+    fn add(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Token> for i32 {
+impl std::ops::Add<Token> for i64 {
     type Output = Token;
     fn add(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -90,14 +90,14 @@ impl std::ops::Sub for Token {
     }
 }
 
-impl std::ops::Sub<i32> for Token {
+impl std::ops::Sub<i64> for Token {
     type Output = Token;
-    fn sub(self, other: i32) -> Token {
+    fn sub(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Token> for i32 {
+impl std::ops::Sub<Token> for i64 {
     type Output = Token;
     fn sub(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -111,14 +111,14 @@ impl std::ops::Mul for Token {
     }
 }
 
-impl std::ops::Mul<i32> for Token {
+impl std::ops::Mul<i64> for Token {
     type Output = Token;
-    fn mul(self, other: i32) -> Token {
+    fn mul(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Token> for i32 {
+impl std::ops::Mul<Token> for i64 {
     type Output = Token;
     fn mul(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -132,14 +132,14 @@ impl std::ops::Div for Token {
     }
 }
 
-impl std::ops::Div<i32> for Token {
+impl std::ops::Div<i64> for Token {
     type Output = Token;
-    fn div(self, other: i32) -> Token {
+    fn div(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Token> for i32 {
+impl std::ops::Div<Token> for i64 {
     type Output = Token;
     fn div(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -160,14 +160,14 @@ impl std::ops::Rem for Token {
     }
 }
 
-impl std::ops::Rem<i32> for Token {
+impl std::ops::Rem<i64> for Token {
     type Output = Token;
-    fn rem(self, other: i32) -> Token {
+    fn rem(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Token> for i32 {
+impl std::ops::Rem<Token> for i64 {
     type Output = Token;
     fn rem(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -181,14 +181,14 @@ impl std::ops::BitAnd for Token {
     }
 }
 
-impl std::ops::BitAnd<i32> for Token {
+impl std::ops::BitAnd<i64> for Token {
     type Output = Token;
-    fn bitand(self, other: i32) -> Token {
+    fn bitand(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Token> for i32 {
+impl std::ops::BitAnd<Token> for i64 {
     type Output = Token;
     fn bitand(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -202,14 +202,14 @@ impl std::ops::BitOr for Token {
     }
 }
 
-impl std::ops::BitOr<i32> for Token {
+impl std::ops::BitOr<i64> for Token {
     type Output = Token;
-    fn bitor(self, other: i32) -> Token {
+    fn bitor(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Token> for i32 {
+impl std::ops::BitOr<Token> for i64 {
     type Output = Token;
     fn bitor(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -223,14 +223,14 @@ impl std::ops::BitXor for Token {
     }
 }
 
-impl std::ops::BitXor<i32> for Token {
+impl std::ops::BitXor<i64> for Token {
     type Output = Token;
-    fn bitxor(self, other: i32) -> Token {
+    fn bitxor(self, other: i64) -> Token {
         Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Token> for i32 {
+impl std::ops::BitXor<Token> for i64 {
     type Output = Token;
     fn bitxor(self, other: Token) -> Token {
         Token(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -429,12 +429,12 @@ impl std::fmt::Display for Parser {
 
 impl Parser {
     pub fn expect(&mut self, keyword: Rc<RefCell<Option<Token>>>) {
-        { let new_val = Token(Rc::new(RefCell::new(Some(IDENT as i32)))); *self.tok.borrow_mut() = Some(new_val); };
+        { let new_val = Token(Rc::new(RefCell::new(Some(IDENT as i64)))); *self.tok.borrow_mut() = Some(new_val); };
     }
 
     pub fn r#use(&self, keyword: Rc<RefCell<Option<Token>>>) {
         { let _switch_val = (*keyword.borrow().as_ref().unwrap()).clone();
-    if _switch_val == (Token(Rc::new(RefCell::new(Some(VAR as i32))))) {
+    if _switch_val == (Token(Rc::new(RefCell::new(Some(VAR as i64))))) {
             println!("{}", format!("{}", "snapshot".to_string()));
         } else {
             println!("{}", format!("{}", "alias".to_string()));
@@ -448,7 +448,7 @@ impl Parser {
     }
 
     pub fn parse(&mut self) {
-        { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i32)))); *self.tok.borrow_mut() = Some(new_val); };
+        { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i64)))); *self.tok.borrow_mut() = Some(new_val); };
         { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Rc<RefCell<Option<Token>>>| { __recv.r#use(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
     }
 }

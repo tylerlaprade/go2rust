@@ -296,7 +296,7 @@ impl std::fmt::Display for Node {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -330,7 +330,7 @@ impl std::fmt::Display for Point {
 /// own, so the pointer it prints is expanded wherever the Label sits.
 #[derive(Debug, Clone)]
 pub struct Label {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl Label {
@@ -372,7 +372,7 @@ pub fn render(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Op
 /// shape describes text around the addresses in it, which change from run to
 /// run: whether it starts with prefix, and how many addresses it holds.
 pub fn shape(text: Arc<Mutex<Option<String>>>, prefix: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some(format!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); let __arg = (*prefix.lock().unwrap().as_ref().unwrap()).clone(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = ((*Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); let __sep = "0x".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y })))))
+    Arc::new(Mutex::new(Some(format!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); let __arg = (*prefix.lock().unwrap().as_ref().unwrap()).clone(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = ((*Arc::new(Mutex::new(Some({ let __s = (*text.lock().unwrap().as_ref().unwrap()).clone(); let __sep = "0x".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x - __tmp_y })))))
 }
 
 fn main() {
@@ -417,7 +417,7 @@ fn main() {
     { let new_val = { let __append_target = labels.clone(); let __append_values = vec![
         Box::new(Label { x: Arc::new(Mutex::new(Some(8))), ..Default::default() }) as Box<dyn Any + Send + Sync>,
         Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>,
-        Box::new(1) as Box<dyn Any + Send + Sync>,
+        Box::new(1i64) as Box<dyn Any + Send + Sync>,
     ]; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; labels = new_val; };
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", (*shape(
         Arc::new(Mutex::new(Some(format!("{}", format_any_slice(&labels))))),

@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Clone, Default)]
-pub struct numbers(pub Rc<RefCell<Option<Vec<i32>>>>);
+pub struct numbers(pub Rc<RefCell<Option<Vec<i64>>>>);
 
 impl Display for numbers {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -66,15 +66,15 @@ pub fn combine(a: Rc<RefCell<Option<holder>>>, b: Rc<RefCell<Option<holder>>>) {
     { let new_val = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).intersect({ let __field = (*b.borrow().as_ref().unwrap()).terms.clone(); __field }); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *(*a.borrow().as_ref().unwrap()).terms.borrow_mut() = __moved_val; };
 }
 
-pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> i32 {
+pub fn copied_len(src: Rc<RefCell<Option<holder>>>) -> i64 {
     let mut terms: Rc<RefCell<Option<numbers>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let new_val = { let __selector_holder = (*src.borrow().as_ref().unwrap()).terms.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *terms.borrow_mut() = Some(new_val); };
-    return { let __slice_holder = { let __named_slice = (*terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32;
+    return { let __slice_holder = { let __named_slice = (*terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i64;
 }
 
 fn main() {
-    let mut a = Rc::new(RefCell::new(Some(holder { terms: Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(vec![1, 2, 3]))))))), ..Default::default() })));
-    let mut b = Rc::new(RefCell::new(Some(holder { terms: Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(vec![2, 4]))))))), ..Default::default() })));
+    let mut a = Rc::new(RefCell::new(Some(holder { terms: Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))))))), ..Default::default() })));
+    let mut b = Rc::new(RefCell::new(Some(holder { terms: Rc::new(RefCell::new(Some(numbers(Rc::new(RefCell::new(Some(vec![2i64, 4i64]))))))), ..Default::default() })));
     combine(a.clone(), b.clone());
     println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __seq_holder = { let __named_slice = (*(*a.borrow().as_ref().unwrap()).terms.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }));
     println!("{}", format!("{}", copied_len(b.clone())));

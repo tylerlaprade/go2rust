@@ -175,7 +175,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -217,9 +217,9 @@ fn main() {
 
     let mut s = Arc::new(Mutex::new(Some(vec![Point { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Point { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
     let mut p: Arc<Mutex<Option<Point>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut i: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut i: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (__range_i, __range_p) in __range_values.iter().enumerate() {
-        { let new_val = __range_i as i32; *i.lock().unwrap() = Some(new_val); };
+        { let new_val = __range_i as i64; *i.lock().unwrap() = Some(new_val); };
         { let new_val = (*__range_p).__go_value_clone(); *p.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let new_val = 9; *{ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
@@ -232,7 +232,7 @@ fn main() {
     let mut arr = Arc::new(Mutex::new(Some([Point { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Point { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
     let mut q: Arc<Mutex<Option<Point>>> = Arc::new(Mutex::new(Some(Default::default())));
     { let __range_holder = arr.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (__range_i, __range_q) in __range_values.iter().enumerate() {
-        { let new_val = __range_i as i32; *i.lock().unwrap() = Some(new_val); };
+        { let new_val = __range_i as i64; *i.lock().unwrap() = Some(new_val); };
         { let new_val = (*__range_q).__go_value_clone(); *q.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let new_val = 9; *{ let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
@@ -282,7 +282,7 @@ fn main() {
     { let new_val = 7; *{ let __seq = { let __seq_holder = kept.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "range variable appended".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq = { let __seq_holder = kept.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
-    let mut byX = Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<Point>>>>::from([]))));
+    let mut byX = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Point>>>>::from([]))));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
         let e = &e.__go_value_clone();
         { let __map_key = (*e.x.lock().unwrap().as_ref().unwrap()); let __map_value = Arc::new(Mutex::new(Some((*e).clone()))); (*byX.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };

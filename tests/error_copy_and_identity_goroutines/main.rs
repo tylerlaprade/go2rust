@@ -424,7 +424,7 @@ impl std::fmt::Display for Missing {
 #[derive(Clone)]
 pub struct Reader {
     pub err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>,
-    pub read: Arc<Mutex<Option<i32>>>,
+    pub read: Arc<Mutex<Option<i64>>>,
 }
 
 impl Reader {
@@ -508,7 +508,7 @@ pub fn find(key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Arc<dyn StdErro
     return Arc::new(Mutex::new(None));
 }
 
-pub fn lookup(key: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+pub fn lookup(key: Arc<Mutex<Option<String>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     {
         let mut err = find(Arc::new(Mutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
@@ -516,7 +516,7 @@ pub fn lookup(key: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Arc<dyn
         }
     }
     (
-        (*key.lock().unwrap().as_ref().unwrap()).len() as i32,
+        (*key.lock().unwrap().as_ref().unwrap()).len() as i64,
         Arc::new(Mutex::new(None))
     )
 }

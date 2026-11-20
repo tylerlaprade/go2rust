@@ -282,8 +282,8 @@ fn go_tick(duration: std::time::Duration) -> GoChannel<GoTime> {
 }
 
 fn main() {
-    let mut requests = GoChannel::<i32>::new_buffered(5 as usize);
-    let mut i = Arc::new(Mutex::new(Some(1)));
+    let mut requests = GoChannel::<i64>::new_buffered(5 as usize);
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         requests.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -299,7 +299,7 @@ fn main() {
 
     let mut burstyLimiter = GoChannel::<GoTime>::new_buffered(3 as usize);
 
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         burstyLimiter.send((*Arc::new(Mutex::new(Some(GoTime::from_unix(0 as i64, 0 as i64)))).lock().unwrap().as_ref().unwrap()).clone());
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -311,8 +311,8 @@ fn main() {
     };;
     });
 
-    let mut burstyRequests = GoChannel::<i32>::new_buffered(5 as usize);
-    let mut i = Arc::new(Mutex::new(Some(1)));
+    let mut burstyRequests = GoChannel::<i64>::new_buffered(5 as usize);
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         burstyRequests.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

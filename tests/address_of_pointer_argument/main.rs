@@ -5,7 +5,7 @@ use std::rc::{Rc};
 #[derive(Debug, Clone)]
 pub struct info {
     pub name: Rc<RefCell<Option<String>>>,
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl info {

@@ -243,7 +243,7 @@ fn main() {
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
     pub name: Arc<Mutex<Option<String>>>,
-    pub age: Arc<Mutex<Option<i32>>>,
+    pub age: Arc<Mutex<Option<i64>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -279,8 +279,8 @@ impl std::fmt::Display for AnonymousStruct1 {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct2 {
-    pub x: Arc<Mutex<Option<i32>>>,
-    pub y: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
@@ -316,8 +316,8 @@ impl std::fmt::Display for AnonymousStruct2 {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct3 {
-    pub port: Arc<Mutex<Option<i32>>>,
-    pub timeout: Arc<Mutex<Option<i32>>>,
+    pub port: Arc<Mutex<Option<i64>>>,
+    pub timeout: Arc<Mutex<Option<i64>>>,
 }
 impl AnonymousStruct3 {
     pub fn __go_value_clone(&self) -> Self {

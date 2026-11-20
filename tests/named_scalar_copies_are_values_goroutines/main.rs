@@ -215,7 +215,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Default)]
-pub struct Counter(pub Arc<Mutex<Option<i32>>>);
+pub struct Counter(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Counter {
     fn clone(&self) -> Self {
@@ -238,8 +238,8 @@ impl PartialEq for Counter {
     }
 }
 
-impl PartialEq<i32> for Counter {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Counter {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -252,19 +252,19 @@ impl PartialOrd for Counter {
     }
 }
 
-impl PartialOrd<i32> for Counter {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Counter {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Counter> for i32 {
+impl PartialEq<Counter> for i64 {
     fn eq(&self, other: &Counter) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Counter> for i32 {
+impl PartialOrd<Counter> for i64 {
     fn partial_cmp(&self, other: &Counter) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -277,14 +277,14 @@ impl std::ops::Add for Counter {
     }
 }
 
-impl std::ops::Add<i32> for Counter {
+impl std::ops::Add<i64> for Counter {
     type Output = Counter;
-    fn add(self, other: i32) -> Counter {
+    fn add(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Counter> for i32 {
+impl std::ops::Add<Counter> for i64 {
     type Output = Counter;
     fn add(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -298,14 +298,14 @@ impl std::ops::Sub for Counter {
     }
 }
 
-impl std::ops::Sub<i32> for Counter {
+impl std::ops::Sub<i64> for Counter {
     type Output = Counter;
-    fn sub(self, other: i32) -> Counter {
+    fn sub(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Counter> for i32 {
+impl std::ops::Sub<Counter> for i64 {
     type Output = Counter;
     fn sub(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -319,14 +319,14 @@ impl std::ops::Mul for Counter {
     }
 }
 
-impl std::ops::Mul<i32> for Counter {
+impl std::ops::Mul<i64> for Counter {
     type Output = Counter;
-    fn mul(self, other: i32) -> Counter {
+    fn mul(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Counter> for i32 {
+impl std::ops::Mul<Counter> for i64 {
     type Output = Counter;
     fn mul(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -340,14 +340,14 @@ impl std::ops::Div for Counter {
     }
 }
 
-impl std::ops::Div<i32> for Counter {
+impl std::ops::Div<i64> for Counter {
     type Output = Counter;
-    fn div(self, other: i32) -> Counter {
+    fn div(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Counter> for i32 {
+impl std::ops::Div<Counter> for i64 {
     type Output = Counter;
     fn div(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -368,14 +368,14 @@ impl std::ops::Rem for Counter {
     }
 }
 
-impl std::ops::Rem<i32> for Counter {
+impl std::ops::Rem<i64> for Counter {
     type Output = Counter;
-    fn rem(self, other: i32) -> Counter {
+    fn rem(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Counter> for i32 {
+impl std::ops::Rem<Counter> for i64 {
     type Output = Counter;
     fn rem(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -389,14 +389,14 @@ impl std::ops::BitAnd for Counter {
     }
 }
 
-impl std::ops::BitAnd<i32> for Counter {
+impl std::ops::BitAnd<i64> for Counter {
     type Output = Counter;
-    fn bitand(self, other: i32) -> Counter {
+    fn bitand(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Counter> for i32 {
+impl std::ops::BitAnd<Counter> for i64 {
     type Output = Counter;
     fn bitand(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -410,14 +410,14 @@ impl std::ops::BitOr for Counter {
     }
 }
 
-impl std::ops::BitOr<i32> for Counter {
+impl std::ops::BitOr<i64> for Counter {
     type Output = Counter;
-    fn bitor(self, other: i32) -> Counter {
+    fn bitor(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Counter> for i32 {
+impl std::ops::BitOr<Counter> for i64 {
     type Output = Counter;
     fn bitor(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -431,14 +431,14 @@ impl std::ops::BitXor for Counter {
     }
 }
 
-impl std::ops::BitXor<i32> for Counter {
+impl std::ops::BitXor<i64> for Counter {
     type Output = Counter;
-    fn bitxor(self, other: i32) -> Counter {
+    fn bitxor(self, other: i64) -> Counter {
         Counter(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Counter> for i32 {
+impl std::ops::BitXor<Counter> for i64 {
     type Output = Counter;
     fn bitxor(self, other: Counter) -> Counter {
         Counter(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -777,7 +777,7 @@ impl PartialEq for Name {
 
 impl PartialOrd for Name {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -893,7 +893,7 @@ impl std::fmt::Display for Stats {
 
 impl Counter {
     pub fn inc(&mut self) {
-        { let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as i32); }
+        { let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as i64); }
     }
 }
 
@@ -927,7 +927,7 @@ fn main() {
     });
     started.recv().unwrap_or_default();
 
-    let mut a = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(1 as i32)))))));
+    let mut a = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(1 as i64)))))));
     let mut b = { let __owned = a.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     (*b.lock().unwrap().as_mut().unwrap()).inc();
     println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*bump(Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -947,13 +947,13 @@ fn main() {
     (*g.lock().unwrap().as_mut().unwrap()).toggle();
     println!("{} {}", format!("{}", { let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*g.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut s = Arc::new(Mutex::new(Some(Stats { hits: Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(5 as i32))))))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(20.0))))))), ..Default::default() })));
+    let mut s = Arc::new(Mutex::new(Some(Stats { hits: Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(5 as i64))))))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(20.0))))))), ..Default::default() })));
     let mut t = { let __owned = s.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
     (*(*t.lock().unwrap().as_ref().unwrap()).hits.lock().unwrap().as_mut().unwrap()).inc();
     (*(*t.lock().unwrap().as_ref().unwrap()).temp.lock().unwrap().as_mut().unwrap()).warm();
     println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*t.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
-    let mut counters = Arc::new(Mutex::new(Some(vec![Counter(Arc::new(Mutex::new(Some(1 as i32)))), Counter(Arc::new(Mutex::new(Some(2 as i32)))), Counter(Arc::new(Mutex::new(Some(3 as i32))))])));
+    let mut counters = Arc::new(Mutex::new(Some(vec![Counter(Arc::new(Mutex::new(Some(1 as i64)))), Counter(Arc::new(Mutex::new(Some(2 as i64)))), Counter(Arc::new(Mutex::new(Some(3 as i64))))])));
     let mut first = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = counters.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()))))))));
     (*first.lock().unwrap().as_mut().unwrap()).inc();
     { let __range_holder = counters.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut c in __range_values.iter().cloned() {
@@ -964,7 +964,7 @@ fn main() {
     let mut p = a.clone();
     { let __recv = p.clone(); let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Counter }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result };
     println!("{} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Counter>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(10 as i32))))))))]))));
+    let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Counter>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(10 as i64))))))))]))));
     let mut v = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some((*{ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Arc::new(Mutex::new(Some(0))))) }.0.lock().unwrap().as_ref().unwrap()))))))));
     (*v.lock().unwrap().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Arc::new(Mutex::new(Some(0))))) }), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));

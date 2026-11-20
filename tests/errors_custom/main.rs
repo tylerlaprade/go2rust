@@ -5,7 +5,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct argError {
-    pub arg: Rc<RefCell<Option<i32>>>,
+    pub arg: Rc<RefCell<Option<i64>>>,
     pub prob: Rc<RefCell<Option<String>>>,
 }
 
@@ -48,14 +48,14 @@ impl argError {
 impl StdError for argError {}
 
 
-pub fn f1(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn f1(arg: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*arg.borrow().as_ref().unwrap()) == 42 {
         return (-(1), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("can't work with 42".to_string()))))));
     }
     ((*arg.borrow().as_ref().unwrap()) + 3, Rc::new(RefCell::new(None)))
 }
 
-pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn f2(arg: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*arg.borrow().as_ref().unwrap()) == 42 {
         return (-(1), Rc::new(RefCell::new(Some(Rc::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Rc<dyn StdError>))));
     }
@@ -63,7 +63,7 @@ pub fn f2(arg: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdEr
 }
 
 fn main() {
-    for i in vec![7, 42].iter().copied() {
+    for i in vec![7i64, 42i64].iter().copied() {
         {
         let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i.clone()))));;
         if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
@@ -73,7 +73,7 @@ fn main() {
         }
     }
     }
-    for i in vec![7, 42].iter().copied() {
+    for i in vec![7i64, 42i64].iter().copied() {
         {
         let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i.clone()))));;
         if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {

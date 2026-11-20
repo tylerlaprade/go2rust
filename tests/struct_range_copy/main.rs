@@ -5,7 +5,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -40,9 +40,9 @@ impl std::fmt::Display for Point {
 fn main() {
     let mut s = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
     let mut p: Rc<RefCell<Option<Point>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut i: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (__range_i, __range_p) in __range_values.iter().enumerate() {
-        { let new_val = __range_i as i32; *i.borrow_mut() = Some(new_val); };
+        { let new_val = __range_i as i64; *i.borrow_mut() = Some(new_val); };
         { let new_val = (*__range_p).__go_value_clone(); *p.borrow_mut() = Some(new_val); };
         if (*i.borrow().as_ref().unwrap()) == 0 {
         { let new_val = 9; *(*s.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
@@ -55,7 +55,7 @@ fn main() {
     let mut arr = Rc::new(RefCell::new(Some([Point { x: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
     let mut q: Rc<RefCell<Option<Point>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let __range_holder = arr.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (__range_i, __range_q) in __range_values.iter().enumerate() {
-        { let new_val = __range_i as i32; *i.borrow_mut() = Some(new_val); };
+        { let new_val = __range_i as i64; *i.borrow_mut() = Some(new_val); };
         { let new_val = (*__range_q).__go_value_clone(); *q.borrow_mut() = Some(new_val); };
         if (*i.borrow().as_ref().unwrap()) == 0 {
         { let new_val = 9; *(*arr.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
@@ -105,7 +105,7 @@ fn main() {
     { let new_val = 7; *(*kept.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "range variable appended".to_string()), format!("{}", (*(*s.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow().as_ref().unwrap())), format!("{}", (*(*kept.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow().as_ref().unwrap())));
 
-    let mut byX = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<Point>>>>::from([]))));
+    let mut byX = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Point>>>>::from([]))));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
         let e = &e.__go_value_clone();
         { let __map_key = (*e.x.borrow().as_ref().unwrap()); let __map_value = Rc::new(RefCell::new(Some((*e).clone()))); (*byX.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };

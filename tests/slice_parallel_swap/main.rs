@@ -55,7 +55,7 @@ impl Display for Names {
 
 
 impl Names {
-    pub fn swap(&self, i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>) {
+    pub fn swap(&self, i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>) {
         let mut __self = self.clone();
         {
             let __go_lhs_sequence_0 = __self.0.clone().clone();
@@ -69,7 +69,7 @@ impl Names {
         };
     }
 
-    pub fn at(&self, i: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
+    pub fn at(&self, i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap())) as usize].clone() })))
     }
 }

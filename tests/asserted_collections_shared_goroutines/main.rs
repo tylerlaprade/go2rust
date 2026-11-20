@@ -216,31 +216,31 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>() { return "map[string]int" }
+    if val.is::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() { return "map[string]int" }
     if val.is::<Arc<Mutex<Option<Vec<String>>>>>() { return "[]string" }
-    if val.is::<Arc<Mutex<Option<Vec<i32>>>>>() { return "[]int" }
+    if val.is::<Arc<Mutex<Option<Vec<i64>>>>>() { return "[]int" }
     std::any::type_name_of_val(val)
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Numbers(pub Arc<Mutex<Option<Vec<i32>>>>);
+pub struct Numbers(pub Arc<Mutex<Option<Vec<i64>>>>);
 
 impl Display for Numbers {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -255,26 +255,26 @@ fn main() {
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();
-    let mut counts: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))])))).clone()) as Box<dyn Any + Send + Sync>)));
-    let mut m = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut counts: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>)));
+    let mut m = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_holder = m.clone(); let __key = "a".to_string(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
-    println!("{} {}", format!("{}", (*({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __map = { let __map_holder = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{} {}", format!("{}", (*({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __map = { let __map_holder = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
-    let mut c = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut c = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     { let __map_key = "x".to_string(); let __map_value = Arc::new(Mutex::new(Some(7))); (*c.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{}", format!("{}", { let __map = { let __map_holder = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{}", format!("{}", { let __map = { let __map_holder = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let counts_closure_clone = counts.clone(); { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-        let mut inner = ({ let val = counts_closure_clone.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+        let mut inner = ({ let val = counts_closure_clone.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
         { let __map_key = "y".to_string(); let __map_value = Arc::new(Mutex::new(Some(5))); (*inner.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    println!("{}", format!("{}", (*({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", (*({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
-    let mut list: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec![1, 2, 3]))).clone()) as Box<dyn Any + Send + Sync>)));
-    let mut items = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut list: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64]))).clone()) as Box<dyn Any + Send + Sync>)));
+    let mut items = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     { let __idx = (0) as usize; let __rhs = 10; (*items.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {}", format!("{}", { let __seq = { let __seq_holder = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", (*items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", { let __seq = { let __seq_holder = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", (*items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
         // A var of another slice type is a value of that type made from the
         // asserted slice.
@@ -282,24 +282,24 @@ fn main() {
         let val = list.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.lock().unwrap()).clone().unwrap_or_default(); __value }
+            { let __handle = any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.lock().unwrap()).clone().unwrap_or_default(); __value }
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }
     }))))))));
-    let mut plain: Arc<Mutex<Option<Vec<i32>>>> = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut plain: Arc<Mutex<Option<Vec<i64>>>> = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     { let __idx = (1) as usize; let __rhs = 20; (*plain.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*typed.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __seq = { let __seq_holder = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
+    println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*typed.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __seq = { let __seq_holder = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
 
         // Put into another interface value, the asserted slice or map is
         // still the same one.
-    let mut again: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any + Send + Sync>)));
-    let mut again2 = ({ let val = again.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut again: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any + Send + Sync>)));
+    let mut again2 = ({ let val = again.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     { let __idx = (2) as usize; let __rhs = 30; (*again2.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{}", format!("{}", { let __seq = { let __seq_holder = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }));
-    let mut reboxed = Arc::new(Mutex::new(Some(Box::new(({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any + Send + Sync>)));
-    { let __map_key = "a".to_string(); let __map_value = Arc::new(Mutex::new(Some(50))); (*({ let val = reboxed.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{}", format!("{}", { let __map = { let __map_holder = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{}", format!("{}", { let __seq = { let __seq_holder = ({ let val = list.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }));
+    let mut reboxed = Arc::new(Mutex::new(Some(Box::new(({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any + Send + Sync>)));
+    { let __map_key = "a".to_string(); let __map_value = Arc::new(Mutex::new(Some(50))); (*({ let val = reboxed.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    println!("{}", format!("{}", { let __map = { let __map_holder = ({ let val = counts.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut names: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec!["x".to_string()]))).clone()) as Box<dyn Any + Send + Sync>)));
     let mut ns = ({ let val = names.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<String>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });

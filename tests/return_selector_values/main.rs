@@ -79,7 +79,7 @@ impl std::fmt::Display for Item {
 #[derive(Debug, Clone)]
 pub struct Holder {
     pub item: Rc<RefCell<Option<Item>>>,
-    pub values: Rc<RefCell<Option<Vec<i32>>>>,
+    pub values: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl Holder {
@@ -118,12 +118,12 @@ pub fn get_item(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Item>>> {
     return Rc::new(RefCell::new(Some({ let __selector_holder = (*h.borrow().as_ref().unwrap()).item.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); drop(__selector_guard); __cloned })));
 }
 
-pub fn get_values(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
+pub fn get_values(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     return (*h.borrow().as_ref().unwrap()).values.clone();
 }
 
 fn main() {
-    let mut h = Rc::new(RefCell::new(Some(Holder { item: Rc::new(RefCell::new(Some(Item { name: Rc::new(RefCell::new(Some("go".to_string()))), ..Default::default() }))), values: Rc::new(RefCell::new(Some(vec![2, 3]))), ..Default::default() })));
+    let mut h = Rc::new(RefCell::new(Some(Holder { item: Rc::new(RefCell::new(Some(Item { name: Rc::new(RefCell::new(Some("go".to_string()))), ..Default::default() }))), values: Rc::new(RefCell::new(Some(vec![2i64, 3i64]))), ..Default::default() })));
 
     let mut item = get_item(Rc::new(RefCell::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));
     let mut values = get_values(Rc::new(RefCell::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));

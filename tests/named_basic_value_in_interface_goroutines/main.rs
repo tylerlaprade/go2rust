@@ -240,20 +240,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -886,7 +886,7 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
 use __go_runtime_format::go_sprintf;
 
 #[derive(Debug, Default)]
-pub struct Level(pub Arc<Mutex<Option<i32>>>);
+pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
@@ -909,8 +909,8 @@ impl PartialEq for Level {
     }
 }
 
-impl PartialEq<i32> for Level {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Level {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -923,19 +923,19 @@ impl PartialOrd for Level {
     }
 }
 
-impl PartialOrd<i32> for Level {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Level {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Level> for i32 {
+impl PartialEq<Level> for i64 {
     fn eq(&self, other: &Level) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Level> for i32 {
+impl PartialOrd<Level> for i64 {
     fn partial_cmp(&self, other: &Level) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -948,14 +948,14 @@ impl std::ops::Add for Level {
     }
 }
 
-impl std::ops::Add<i32> for Level {
+impl std::ops::Add<i64> for Level {
     type Output = Level;
-    fn add(self, other: i32) -> Level {
+    fn add(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Level> for i32 {
+impl std::ops::Add<Level> for i64 {
     type Output = Level;
     fn add(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -969,14 +969,14 @@ impl std::ops::Sub for Level {
     }
 }
 
-impl std::ops::Sub<i32> for Level {
+impl std::ops::Sub<i64> for Level {
     type Output = Level;
-    fn sub(self, other: i32) -> Level {
+    fn sub(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Level> for i32 {
+impl std::ops::Sub<Level> for i64 {
     type Output = Level;
     fn sub(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -990,14 +990,14 @@ impl std::ops::Mul for Level {
     }
 }
 
-impl std::ops::Mul<i32> for Level {
+impl std::ops::Mul<i64> for Level {
     type Output = Level;
-    fn mul(self, other: i32) -> Level {
+    fn mul(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Level> for i32 {
+impl std::ops::Mul<Level> for i64 {
     type Output = Level;
     fn mul(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1011,14 +1011,14 @@ impl std::ops::Div for Level {
     }
 }
 
-impl std::ops::Div<i32> for Level {
+impl std::ops::Div<i64> for Level {
     type Output = Level;
-    fn div(self, other: i32) -> Level {
+    fn div(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Level> for i32 {
+impl std::ops::Div<Level> for i64 {
     type Output = Level;
     fn div(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1039,14 +1039,14 @@ impl std::ops::Rem for Level {
     }
 }
 
-impl std::ops::Rem<i32> for Level {
+impl std::ops::Rem<i64> for Level {
     type Output = Level;
-    fn rem(self, other: i32) -> Level {
+    fn rem(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Level> for i32 {
+impl std::ops::Rem<Level> for i64 {
     type Output = Level;
     fn rem(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1060,14 +1060,14 @@ impl std::ops::BitAnd for Level {
     }
 }
 
-impl std::ops::BitAnd<i32> for Level {
+impl std::ops::BitAnd<i64> for Level {
     type Output = Level;
-    fn bitand(self, other: i32) -> Level {
+    fn bitand(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Level> for i32 {
+impl std::ops::BitAnd<Level> for i64 {
     type Output = Level;
     fn bitand(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1081,14 +1081,14 @@ impl std::ops::BitOr for Level {
     }
 }
 
-impl std::ops::BitOr<i32> for Level {
+impl std::ops::BitOr<i64> for Level {
     type Output = Level;
-    fn bitor(self, other: i32) -> Level {
+    fn bitor(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Level> for i32 {
+impl std::ops::BitOr<Level> for i64 {
     type Output = Level;
     fn bitor(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1102,14 +1102,14 @@ impl std::ops::BitXor for Level {
     }
 }
 
-impl std::ops::BitXor<i32> for Level {
+impl std::ops::BitXor<i64> for Level {
     type Output = Level;
-    fn bitxor(self, other: i32) -> Level {
+    fn bitxor(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Level> for i32 {
+impl std::ops::BitXor<Level> for i64 {
     type Output = Level;
     fn bitxor(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1300,7 +1300,7 @@ impl PartialEq for Name {
 
 impl PartialOrd for Name {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1511,12 +1511,12 @@ fn main() {
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();
-    let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(3 as i32))))) as Box<dyn Any + Send + Sync>)));
+    let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(3 as i64))))) as Box<dyn Any + Send + Sync>)));
     let mut b: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Name(Arc::new(Mutex::new(Some("x".to_string()))))) as Box<dyn Any + Send + Sync>)));
     let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Celsius(Arc::new(Mutex::new(Some(21.5 as f64))))) as Box<dyn Any + Send + Sync>)));
     println!("{} {} {}", format!("{}", { let __text = format_any(a.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(b.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(c.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
     print!("{}", go_sprintf(&"%v %d %s %v|%5v|%-4d|%x\n".to_string(), &[{ let __go_format_arg = { let __any_holder = a.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }, { let __go_format_arg = { let __any_holder = a.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }, { let __go_format_arg = { let __any_holder = b.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }, { let __go_format_arg = { let __any_holder = c.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }, { let __go_format_arg = { let __any_holder = a.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }, { let __go_format_arg = { let __any_holder = a.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }, { let __go_format_arg = { let __any_holder = a.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; __go_format_arg }], false));
-    let mut values = Arc::new(Mutex::new(Some(vec![Box::new(Level(Arc::new(Mutex::new(Some(1 as i32))))) as Box<dyn Any + Send + Sync>, Box::new(Name(Arc::new(Mutex::new(Some("y".to_string()))))) as Box<dyn Any + Send + Sync>, Box::new(Celsius(Arc::new(Mutex::new(Some((-3.0) as f64))))) as Box<dyn Any + Send + Sync>])));
+    let mut values = Arc::new(Mutex::new(Some(vec![Box::new(Level(Arc::new(Mutex::new(Some(1 as i64))))) as Box<dyn Any + Send + Sync>, Box::new(Name(Arc::new(Mutex::new(Some("y".to_string()))))) as Box<dyn Any + Send + Sync>, Box::new(Celsius(Arc::new(Mutex::new(Some((-3.0) as f64))))) as Box<dyn Any + Send + Sync>])));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
         print!("{}{}", format!("{}", format_any(v.as_ref())), format!("{}", " ".to_string()));
     } }

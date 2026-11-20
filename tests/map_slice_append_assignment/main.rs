@@ -5,7 +5,7 @@ use std::thread;
 
 #[derive(Debug, Clone)]
 pub struct entry {
-    pub key: Arc<Mutex<Option<i32>>>,
+    pub key: Arc<Mutex<Option<i64>>>,
 }
 
 impl entry {
@@ -40,7 +40,7 @@ fn main() {
         ;
     });
 
-    let mut table = Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<Vec<entry>>>>>::from([(1, Arc::new(Mutex::new(Some(vec![entry { key: Arc::new(Mutex::new(Some(1))), ..Default::default() }]))))]))));
+    let mut table = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<entry>>>>>::from([(1i64, Arc::new(Mutex::new(Some(vec![entry { key: Arc::new(Mutex::new(Some(1))), ..Default::default() }]))))]))));
     let mut bucket = { let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     { let __map_key = 1; let __map_value = { let __append_target = bucket.clone(); let __append_value = entry { key: Arc::new(Mutex::new(Some(2))), ..Default::default() }; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; (*table.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 

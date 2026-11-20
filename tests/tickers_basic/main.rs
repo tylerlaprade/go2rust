@@ -303,7 +303,7 @@ impl GoTicker {
 
 fn main() {
     let mut ticker = Arc::new(Mutex::new(Some(go_new_ticker(std::time::Duration::from_millis(250)))));
-    let mut count = Arc::new(Mutex::new(Some(0)));
+    let mut count = Arc::new(Mutex::new(Some(0i64)));
 
     while { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         (*ticker.lock().unwrap().as_ref().unwrap()).c.recv().unwrap_or_default();

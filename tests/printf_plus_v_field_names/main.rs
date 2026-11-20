@@ -47,8 +47,8 @@ where
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -89,7 +89,7 @@ impl std::fmt::Display for Point {
 
 #[derive(Debug, Clone)]
 pub struct Base {
-    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub i_d: Rc<RefCell<Option<i64>>>,
 }
 
 impl Base {
@@ -197,7 +197,7 @@ impl std::fmt::Display for Line {
 
 #[derive(Debug, Clone)]
 pub struct Named {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl Named {
@@ -229,7 +229,7 @@ impl std::fmt::Display for Named {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub name: Rc<RefCell<Option<String>>>,
-    pub retries: Rc<RefCell<Option<i32>>>,
+    pub retries: Rc<RefCell<Option<i64>>>,
     pub verbose: Rc<RefCell<Option<bool>>>,
 }
 
@@ -304,8 +304,8 @@ fn main() {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
-    pub a: Rc<RefCell<Option<i32>>>,
-    pub b: Rc<RefCell<Option<i32>>>,
+    pub a: Rc<RefCell<Option<i64>>>,
+    pub b: Rc<RefCell<Option<i64>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

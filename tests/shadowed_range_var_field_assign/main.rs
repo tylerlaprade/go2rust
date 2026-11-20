@@ -61,7 +61,7 @@ impl Clone for Box<dyn Node> {
 #[derive(Debug, Clone)]
 pub struct Decl {
     pub tag: Rc<RefCell<Option<String>>>,
-    pub items: Rc<RefCell<Option<Vec<i32>>>>,
+    pub items: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl Decl {
@@ -173,8 +173,8 @@ pub fn process(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
 }
 
 fn main() {
-    let mut a = Rc::new(RefCell::new(Some(Decl { tag: Rc::new(RefCell::new(Some("a".to_string()))), items: Rc::new(RefCell::new(Some(vec![1, 2]))), ..Default::default() })));
-    let mut b = Rc::new(RefCell::new(Some(Decl { tag: Rc::new(RefCell::new(Some("b".to_string()))), items: Rc::new(RefCell::new(Some(vec![3]))), ..Default::default() })));
+    let mut a = Rc::new(RefCell::new(Some(Decl { tag: Rc::new(RefCell::new(Some("a".to_string()))), items: Rc::new(RefCell::new(Some(vec![1i64, 2i64]))), ..Default::default() })));
+    let mut b = Rc::new(RefCell::new(Some(Decl { tag: Rc::new(RefCell::new(Some("b".to_string()))), items: Rc::new(RefCell::new(Some(vec![3i64]))), ..Default::default() })));
     process(Rc::new(RefCell::new(Some(Box::new(DeclPtr(a.clone())) as Box<dyn Node>))));
     process(Rc::new(RefCell::new(Some(Box::new(DeclPtr(b.clone())) as Box<dyn Node>))));
     println!("{} {}", format!("{}", (*(*a.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).clone()), format!("{}", format_slice_values(&(*(*a.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone())));

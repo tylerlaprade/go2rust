@@ -263,7 +263,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Grid(pub Arc<Mutex<Option<Vec<Vec<i32>>>>>);
+pub struct Grid(pub Arc<Mutex<Option<Vec<Vec<i64>>>>>);
 
 
 #[derive(Debug, Clone, Default)]
@@ -293,7 +293,7 @@ impl std::fmt::Display for Sheet {
 
 
 impl Sheet {
-    pub fn bump(&mut self, i: Arc<Mutex<Option<i32>>>) {
+    pub fn bump(&mut self, i: Arc<Mutex<Option<i64>>>) {
         { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = 0.5; let __seq_holder = self.cells.clone(); let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
         { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = "!".to_string(); let __seq_holder = self.names.clone(); let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx].clone() + &__rhs; };
     }
@@ -305,7 +305,7 @@ fn main() {
         started_thread.send(true);;;
     });
     started.recv().unwrap_or_default();
-    let mut a = Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4]])));
+    let mut a = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let mut __seq_guard = a.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
     {
         let __go_lhs_sequence_0 = a.clone();
@@ -321,7 +321,7 @@ fn main() {
     };
     { let __outer_idx = (0) as usize; let __idx = (0) as usize; let mut __seq_guard = a.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + 1; }
     { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = 2; let mut __seq_guard = a.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] - __rhs; };
-    let mut g = Arc::new(Mutex::new(Some(Grid(Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4]])))))));
+    let mut g = Arc::new(Mutex::new(Some(Grid(Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])))))));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 7; let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] * __rhs; };
     {
         let __go_lhs_sequence_0 = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.clone();
@@ -338,16 +338,16 @@ fn main() {
     { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] - 1; }
     println!("{} {}", format!("{}", format_nested_slice(&a)), format!("{}", format_nested_slice(&{ let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
 
-    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![1, 2], vec![3]], vec![vec![4]]])));
+    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![1i64, 2i64], vec![3i64]], vec![vec![4i64]]])));
     { let __outer_idx = (0) as usize; let __outer_idx_1 = (1) as usize; let __idx = (0) as usize; let __rhs = 30; (*cube.lock().unwrap().as_mut().unwrap())[__outer_idx][__outer_idx_1][__idx] = __rhs; };
     { let __outer_idx = (1) as usize; let __outer_idx_1 = (0) as usize; let __idx = (0) as usize; let __rhs = 5; let mut __seq_guard = cube.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx][__outer_idx_1]; __seq[__idx] = __seq[__idx] * __rhs; };
     { let __outer_idx = (0) as usize; let __outer_idx_1 = (0) as usize; let __idx = (1) as usize; let mut __seq_guard = cube.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx][__outer_idx_1]; __seq[__idx] = __seq[__idx] - 1; }
     println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __formatted }), format!("{}", { let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone()[(0) as usize].clone()));
 
     let mut board: Arc<Mutex<Option<[[String; 3]; 3]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 3, _>(|_| std::array::from_fn::<_, 3, _>(|_| String::new())))));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
-        let mut j = Arc::new(Mutex::new(Some(0)));
+        let mut j = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = ".".to_string(); (*board.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -359,7 +359,7 @@ fn main() {
     println!("{}", format!("{}", format_nested_slice(&board)));
 
     let mut grid = Arc::new(Mutex::new(Some([std::array::from_fn::<_, 3, _>(|_| 0), std::array::from_fn::<_, 3, _>(|_| 0), std::array::from_fn::<_, 3, _>(|_| 0)])));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
         { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __tmp_x = 2; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as usize; let __rhs = 10; let mut __seq_guard = grid.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
@@ -372,10 +372,10 @@ fn main() {
         { let __idx = (i) as usize; let __rhs = (*Arc::new(Mutex::new(Some(vec![0; (4) as usize]))).lock().unwrap().as_ref().unwrap()).clone(); (*paths.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         { let __outer_idx = (i) as usize; let __idx = (0) as usize; let __rhs = 1; (*paths.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     }
-    let mut i = Arc::new(Mutex::new(Some(1)));
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
         { let __outer_idx = (0) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = 1; (*paths.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-        let mut j = Arc::new(Mutex::new(Some(1)));
+        let mut j = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
         { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = {
             let __tmp_x = { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone();

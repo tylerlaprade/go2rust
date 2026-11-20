@@ -3,6 +3,6 @@ use std::rc::{Rc};
 
 fn main() {
         // Simplest possible test
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
     println!("{}", format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
 }

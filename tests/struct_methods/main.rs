@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct rect {
-    pub width: Rc<RefCell<Option<i32>>>,
-    pub height: Rc<RefCell<Option<i32>>>,
+    pub width: Rc<RefCell<Option<i64>>>,
+    pub height: Rc<RefCell<Option<i64>>>,
 }
 
 impl rect {
@@ -41,11 +41,11 @@ impl std::fmt::Display for rect {
 
 
 impl rect {
-    pub fn area(&self) -> i32 {
+    pub fn area(&self) -> i64 {
         return (*self.width.borrow().as_ref().unwrap()) * (*self.height.borrow().as_ref().unwrap());
     }
 
-    pub fn perim(&self) -> i32 {
+    pub fn perim(&self) -> i64 {
         2 * (*self.width.borrow().as_ref().unwrap()) + 2 * (*self.height.borrow().as_ref().unwrap())
     }
 }

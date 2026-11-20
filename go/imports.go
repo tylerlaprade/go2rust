@@ -2491,7 +2491,7 @@ impl<T> GoTypeParamFieldClone for GoChannel<T> {
 func generateWaitGroupHelper(out *strings.Builder) {
 	out.WriteString(`
 struct WaitGroup {
-    count: std::sync::Arc<(std::sync::Mutex<i32>, std::sync::Condvar)>,
+    count: std::sync::Arc<(std::sync::Mutex<i64>, std::sync::Condvar)>,
 }
 
 impl WaitGroup {
@@ -2501,7 +2501,7 @@ impl WaitGroup {
         }
     }
 
-    fn add(&self, n: i32) {
+    fn add(&self, n: i64) {
         let (lock, _) = &*self.count;
         let mut count = lock.lock().unwrap();
         *count += n;
@@ -2930,20 +2930,20 @@ func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]stri
 fn `)
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString(`(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -3235,7 +3235,7 @@ struct GoRegexp {
 }
 
 impl GoRegexp {
-    fn find_all_string(&self, text: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<String>>>> {
+    fn find_all_string(&self, text: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Vec<String>>>> {
         let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
         let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
         let limit = *n.lock().unwrap().as_ref().unwrap();
@@ -3262,7 +3262,7 @@ impl GoRegexp {
     }
 }
 
-fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
+fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i64) -> Vec<String> {
     if limit == 0 {
         return Vec::new();
     }
@@ -3402,7 +3402,7 @@ struct GoRegexp {
 }
 
 impl GoRegexp {
-    fn find_all_string(&self, text: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+    fn find_all_string(&self, text: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<String>>>> {
         let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
         let text = (*text.borrow().as_ref().unwrap()).clone();
         let limit = *n.borrow().as_ref().unwrap();
@@ -3429,7 +3429,7 @@ impl GoRegexp {
     }
 }
 
-fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
+fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i64) -> Vec<String> {
     if limit == 0 {
         return Vec::new();
     }
@@ -5256,11 +5256,11 @@ fn go_rand_next_u64() -> u64 {
     *state
 }
 
-fn go_rand_intn(n: i32) -> i32 {
+fn go_rand_intn(n: i64) -> i64 {
     if n <= 0 {
         panic!("invalid argument to Intn");
     }
-    (go_rand_next_u64() % n as u64) as i32
+    (go_rand_next_u64() % n as u64) as i64
 }
 
 fn go_rand_float64() -> f64 {
@@ -5317,11 +5317,11 @@ impl GoFile {
         GoFile { file: None }
     }
 
-    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) {
+    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) {
         let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
         match self.file.as_mut() {
             Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i32))), Arc::new(Mutex::new(None))),
+                Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i64))), Arc::new(Mutex::new(None))),
                 Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(GO_ERROR_FROM(e))))),
             },
             None => (
@@ -5361,11 +5361,11 @@ impl GoFile {
         GoFile { file: None }
     }
 
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<GO_ERROR_PAYLOAD>>>) {
+    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<GO_ERROR_PAYLOAD>>>) {
         let text = (*text.borrow().as_ref().unwrap()).clone();
         match self.file.as_mut() {
             Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i32))), Rc::new(RefCell::new(None))),
+                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
                 Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(GO_ERROR_FROM(e))))),
             },
             None => (
@@ -5445,11 +5445,11 @@ impl GoReflectType {
         Arc::new(Mutex::new(Some(elem)))
     }
 
-    fn num_field(&self) -> i32 {
-        self.fields.lock().unwrap().as_ref().unwrap().len() as i32
+    fn num_field(&self) -> i64 {
+        self.fields.lock().unwrap().as_ref().unwrap().len() as i64
     }
 
-    fn field(&self, index: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<GoReflectField>>> {
+    fn field(&self, index: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<GoReflectField>>> {
         let index = *index.lock().unwrap().as_ref().unwrap() as usize;
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
     }
@@ -5489,7 +5489,7 @@ impl GoReflectValue {
         self.typ.lock().unwrap().as_ref().unwrap().kind()
     }
 
-    fn field(&self, index: i32) -> Arc<Mutex<Option<GoReflectValue>>> {
+    fn field(&self, index: i64) -> Arc<Mutex<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
@@ -5601,11 +5601,11 @@ impl GoReflectType {
         Rc::new(RefCell::new(Some(elem)))
     }
 
-    fn num_field(&self) -> i32 {
-        self.fields.borrow().as_ref().unwrap().len() as i32
+    fn num_field(&self) -> i64 {
+        self.fields.borrow().as_ref().unwrap().len() as i64
     }
 
-    fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
+    fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
     }
@@ -5645,7 +5645,7 @@ impl GoReflectValue {
         self.typ.borrow().as_ref().unwrap().kind()
     }
 
-    fn field(&self, index: i32) -> Rc<RefCell<Option<GoReflectValue>>> {
+    fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))

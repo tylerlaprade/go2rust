@@ -46,7 +46,7 @@ where
 
 fn main() {
     let mut lines = Rc::new(RefCell::new(Some(vec!["a".to_string(), "".to_string(), "b".to_string(), "".to_string(), "c".to_string()])));
-    let mut n = Rc::new(RefCell::new(Some(0)));
+    let mut n = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = lines.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for line in __range_values.iter() {
         if (*line).clone() != "".to_string() {
         { let __idx = ((*n.borrow().as_ref().unwrap())) as usize; let __rhs = line.clone(); (*lines.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };

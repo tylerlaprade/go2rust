@@ -1245,7 +1245,7 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	out.WriteString("\n")
 	writeRustTraitImplHeader(out, generics, "PartialOrd", rustStructName)
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 
@@ -3069,7 +3069,7 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 	out.WriteString("impl PartialOrd for ")
 	out.WriteString(keyType)
 	out.WriteString(" {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }\n")
+	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(std::cmp::Ord::cmp(self, other)) }\n")
 	out.WriteString("}\n")
 	out.WriteString("impl Ord for ")
 	out.WriteString(keyType)
@@ -5165,11 +5165,11 @@ func writeInternalABIKindAssignment(out *strings.Builder, indent string, sliceHa
 		kind     string
 	}{
 		{"bool", "BOOL"},
-		{"i32", "INT"},
+		{"i64", "INT"},
 		{"isize", "INT"},
 		{"i8", "INT8"},
 		{"i16", "INT16"},
-		{"i64", "INT64"},
+		{"i32", "INT32"},
 		{"u8", "UINT8"},
 		{"u16", "UINT16"},
 		{"u32", "UINT32"},
@@ -5355,7 +5355,7 @@ func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDe
 	if stringInput {
 		out.WriteString(".as_bytes()")
 	}
-	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as i32;\n")
+	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as " + rustIntType() + ";\n")
 	out.WriteString(indent)
 	if runtimeLinkedSingleResultReturnsBareScalar(fn) {
 		out.WriteString("__count\n")
@@ -5395,7 +5395,7 @@ func writeInternalBytealgIndexByteStringBody(out *strings.Builder, fn *ast.FuncD
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone();\n")
 	out.WriteString(indent)
-	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as i32).unwrap_or(-1)\n")
+	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
 }
 
 func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
@@ -5404,7 +5404,7 @@ func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl,
 	writeRuntimeLinkedStringParamClone(out, aName, "__a", indent)
 	writeRuntimeLinkedStringParamClone(out, bName, "__b", indent)
 	out.WriteString(indent)
-	out.WriteString("__a.find(&__b).map(|__i| __i as i32).unwrap_or(-1)\n")
+	out.WriteString("__a.find(&__b).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
 }
 
 func writeInternalBytealgCompareStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
@@ -6751,7 +6751,7 @@ func writeScalarTypeDefinitionStringOps(out *strings.Builder, typeName string) {
 
 	out.WriteString("\nimpl PartialOrd for " + rustTypeName + " {\n")
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 	writeScalarTypeDefinitionOrd(out, typeName)
@@ -7231,7 +7231,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
 					constType = inferConstType(lastExpressions[i])
 				} else {
-					constType = "i32"
+					constType = rustIntType()
 				}
 				if constType == "&'static str" && constExpr != nil && constStringNeedsByteSlice(constExpr) {
 					constType = "&'static [u8]"
@@ -7379,7 +7379,7 @@ func constExprContainsIota(expr ast.Expr) bool {
 }
 
 func writeOutOfRangeGoIntConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
-	if rustType != "i32" || expr == nil {
+	if rustType != rustIntType() || expr == nil {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -7576,7 +7576,12 @@ func rustConstTypeForConstObject(name *ast.Ident, expr ast.Expr) (string, bool) 
 	if constStringValueNeedsByteSlice(obj.Val()) {
 		return "&'static [u8]", true
 	}
-	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && (basic.Kind() == types.UntypedInt || basic.Kind() == types.UntypedRune) {
+	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedRune {
+		if rustType, ok := rustConstTypeForUntypedRuneValue(expr, obj.Val()); ok {
+			return rustType, true
+		}
+	}
+	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedInt {
 		if rustType, ok := rustConstTypeForUntypedIntegerValue(expr, obj.Val()); ok {
 			return rustType, true
 		}
@@ -7673,17 +7678,14 @@ func inferConstType(expr ast.Expr) string {
 	case *ast.BasicLit:
 		switch e.Kind {
 		case token.INT:
-			// Check if the value might overflow i32
-			if val, err := strconv.ParseInt(e.Value, 0, 64); err == nil {
-				if val > math.MaxInt32 || val < math.MinInt32 {
-					return "i64"
-				}
-			} else if val, err := strconv.ParseUint(e.Value, 0, 64); err == nil {
-				if val > math.MaxInt32 {
+			// An untyped integer constant's default type is int; one too
+			// big for it is a uint64.
+			if _, err := strconv.ParseInt(e.Value, 0, 64); err != nil {
+				if _, err := strconv.ParseUint(e.Value, 0, 64); err == nil {
 					return "u64"
 				}
 			}
-			return "i32"
+			return rustIntType()
 		case token.FLOAT:
 			return "f64"
 		case token.STRING:
@@ -7709,10 +7711,10 @@ func inferConstType(expr ast.Expr) string {
 		}
 		// For bit shift operations that might overflow, use i64
 		if e.Op == token.SHL {
-			// If we can constant-fold and the result fits in i32, prefer i32.
+			// If we can constant-fold and the result fits in int, prefer int.
 			if v, ok := evalIntConstExpr(e); ok {
-				if v >= int64(math.MinInt32) && v <= int64(math.MaxInt32) {
-					return "i32"
+				if v >= int64(math.MinInt64) && v <= int64(math.MaxInt64) {
+					return rustIntType()
 				}
 			}
 			return "i64"
@@ -7721,10 +7723,10 @@ func inferConstType(expr ast.Expr) string {
 		if leftType == "i64" || rightType == "i64" {
 			return "i64"
 		}
-		// Default to i32 for other numeric operations
-		return "i32"
+		// Default to int for other numeric operations
+		return rustIntType()
 	}
-	return "i32" // default
+	return rustIntType() // default
 }
 
 // Helper function to check if an expression is a string constant

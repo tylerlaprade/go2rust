@@ -142,7 +142,7 @@ fn go_json_escape(input: &str) -> String {
 }
 
 #[derive(Debug, Default)]
-pub struct Mode(pub Rc<RefCell<Option<i32>>>);
+pub struct Mode(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Mode {
     fn clone(&self) -> Self {
@@ -165,8 +165,8 @@ impl PartialEq for Mode {
     }
 }
 
-impl PartialEq<i32> for Mode {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Mode {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -179,19 +179,19 @@ impl PartialOrd for Mode {
     }
 }
 
-impl PartialOrd<i32> for Mode {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Mode {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Mode> for i32 {
+impl PartialEq<Mode> for i64 {
     fn eq(&self, other: &Mode) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Mode> for i32 {
+impl PartialOrd<Mode> for i64 {
     fn partial_cmp(&self, other: &Mode) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -204,14 +204,14 @@ impl std::ops::Add for Mode {
     }
 }
 
-impl std::ops::Add<i32> for Mode {
+impl std::ops::Add<i64> for Mode {
     type Output = Mode;
-    fn add(self, other: i32) -> Mode {
+    fn add(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Mode> for i32 {
+impl std::ops::Add<Mode> for i64 {
     type Output = Mode;
     fn add(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -225,14 +225,14 @@ impl std::ops::Sub for Mode {
     }
 }
 
-impl std::ops::Sub<i32> for Mode {
+impl std::ops::Sub<i64> for Mode {
     type Output = Mode;
-    fn sub(self, other: i32) -> Mode {
+    fn sub(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Mode> for i32 {
+impl std::ops::Sub<Mode> for i64 {
     type Output = Mode;
     fn sub(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -246,14 +246,14 @@ impl std::ops::Mul for Mode {
     }
 }
 
-impl std::ops::Mul<i32> for Mode {
+impl std::ops::Mul<i64> for Mode {
     type Output = Mode;
-    fn mul(self, other: i32) -> Mode {
+    fn mul(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Mode> for i32 {
+impl std::ops::Mul<Mode> for i64 {
     type Output = Mode;
     fn mul(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -267,14 +267,14 @@ impl std::ops::Div for Mode {
     }
 }
 
-impl std::ops::Div<i32> for Mode {
+impl std::ops::Div<i64> for Mode {
     type Output = Mode;
-    fn div(self, other: i32) -> Mode {
+    fn div(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Mode> for i32 {
+impl std::ops::Div<Mode> for i64 {
     type Output = Mode;
     fn div(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -295,14 +295,14 @@ impl std::ops::Rem for Mode {
     }
 }
 
-impl std::ops::Rem<i32> for Mode {
+impl std::ops::Rem<i64> for Mode {
     type Output = Mode;
-    fn rem(self, other: i32) -> Mode {
+    fn rem(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Mode> for i32 {
+impl std::ops::Rem<Mode> for i64 {
     type Output = Mode;
     fn rem(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -316,14 +316,14 @@ impl std::ops::BitAnd for Mode {
     }
 }
 
-impl std::ops::BitAnd<i32> for Mode {
+impl std::ops::BitAnd<i64> for Mode {
     type Output = Mode;
-    fn bitand(self, other: i32) -> Mode {
+    fn bitand(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Mode> for i32 {
+impl std::ops::BitAnd<Mode> for i64 {
     type Output = Mode;
     fn bitand(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -337,14 +337,14 @@ impl std::ops::BitOr for Mode {
     }
 }
 
-impl std::ops::BitOr<i32> for Mode {
+impl std::ops::BitOr<i64> for Mode {
     type Output = Mode;
-    fn bitor(self, other: i32) -> Mode {
+    fn bitor(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Mode> for i32 {
+impl std::ops::BitOr<Mode> for i64 {
     type Output = Mode;
     fn bitor(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -358,14 +358,14 @@ impl std::ops::BitXor for Mode {
     }
 }
 
-impl std::ops::BitXor<i32> for Mode {
+impl std::ops::BitXor<i64> for Mode {
     type Output = Mode;
-    fn bitxor(self, other: i32) -> Mode {
+    fn bitxor(self, other: i64) -> Mode {
         Mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Mode> for i32 {
+impl std::ops::BitXor<Mode> for i64 {
     type Output = Mode;
     fn bitxor(self, other: Mode) -> Mode {
         Mode(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -596,7 +596,7 @@ fn main() {
     { let __map_key = "b.go".to_string(); let __map_value = Rc::new(RefCell::new(Some(vec![0 as u8, 1 as u8, 255 as u8]))); (*overlay.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "a.go".to_string(); let __map_value = Rc::new(RefCell::new(Some(("tmp-a".to_string()).as_bytes().to_vec()))); (*overlay.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    let mut req = Rc::new(RefCell::new(Some(Request { mode: Rc::new(RefCell::new(Some(Mode(Rc::new(RefCell::new(Some(3 as i32))))))), env: Rc::new(RefCell::new(Some(vec!["B=2".to_string(), "A=1".to_string()]))), build_flags: Rc::new(RefCell::new(Some(vec!["-tags".to_string(), "dev".to_string()]))), tests: Rc::new(RefCell::new(Some(true))), overlay: overlay.clone(), ..Default::default() })));
+    let mut req = Rc::new(RefCell::new(Some(Request { mode: Rc::new(RefCell::new(Some(Mode(Rc::new(RefCell::new(Some(3 as i64))))))), env: Rc::new(RefCell::new(Some(vec!["B=2".to_string(), "A=1".to_string()]))), build_flags: Rc::new(RefCell::new(Some(vec!["-tags".to_string(), "dev".to_string()]))), tests: Rc::new(RefCell::new(Some(true))), overlay: overlay.clone(), ..Default::default() })));
 
     let (mut data, _) = { let __json_value = (*req.borrow().as_ref().unwrap()).clone(); let mut __json_fields: Vec<String> = Vec::new(); __json_fields.push(format!("\"mode\":{}", *__json_value.mode.borrow().as_ref().unwrap().0.borrow().as_ref().unwrap())); { let __slice_guard = __json_value.env.borrow(); if let Some(__slice) = __slice_guard.as_ref() { let __slice_entries = __slice.iter().map(|__v| format!("\"{}\"", go_json_escape(__v))).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"env\":[{}]", __slice_entries)); } else { __json_fields.push("\"env\":null".to_string()); } } { let __slice_guard = __json_value.build_flags.borrow(); if let Some(__slice) = __slice_guard.as_ref() { let __slice_entries = __slice.iter().map(|__v| format!("\"{}\"", go_json_escape(__v))).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"build_flags\":[{}]", __slice_entries)); } else { __json_fields.push("\"build_flags\":null".to_string()); } } __json_fields.push(format!("\"tests\":{}", *__json_value.tests.borrow().as_ref().unwrap())); { let __map_guard = __json_value.overlay.borrow(); if let Some(__map) = __map_guard.as_ref() { let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v.borrow(); if let Some(__bytes) = __v_guard.as_ref() { format!("\"{}\":\"{}\"", go_json_escape(__k), go_base64_encode(__bytes)) } else { format!("\"{}\":null", go_json_escape(__k)) } }).collect::<Vec<_>>().join(","); __json_fields.push(format!("\"overlay\":{{{}}}", __map_entries)); } else { __json_fields.push("\"overlay\":null".to_string()); } } let __json = format!("{{{}}}", __json_fields.join(",")); (Rc::new(RefCell::new(Some(__json.into_bytes()))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))) };
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8((*data.borrow().as_ref().unwrap()).clone()).unwrap()))).borrow().as_ref().unwrap())));

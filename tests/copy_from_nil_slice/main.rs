@@ -10,7 +10,7 @@ fn main() {
         for _i in 0.._n {
             (*dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
         }
-        Rc::new(RefCell::new(Some(_n as i32)))
+        Rc::new(RefCell::new(Some(_n as i64)))
     };
 
     println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));

@@ -46,7 +46,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct P {
-    pub x: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
 }
 
 impl P {
@@ -109,7 +109,7 @@ impl Grid {
 
 
 #[derive(Debug, Clone)]
-pub struct Nums(pub Rc<RefCell<Option<[i32; 2]>>>);
+pub struct Nums(pub Rc<RefCell<Option<[i64; 2]>>>);
 
 impl Default for Nums {
     fn default() -> Self {

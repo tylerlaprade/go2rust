@@ -50,7 +50,7 @@ struct GoRegexp {
 }
 
 impl GoRegexp {
-    fn find_all_string(&self, text: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+    fn find_all_string(&self, text: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<String>>>> {
         let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
         let text = (*text.borrow().as_ref().unwrap()).clone();
         let limit = *n.borrow().as_ref().unwrap();
@@ -77,7 +77,7 @@ impl GoRegexp {
     }
 }
 
-fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i32) -> Vec<String> {
+fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i64) -> Vec<String> {
     if limit == 0 {
         return Vec::new();
     }

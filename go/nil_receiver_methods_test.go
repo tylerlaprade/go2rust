@@ -30,7 +30,7 @@ func main() {
 	fmt.Println(empty.Len(), list.Len(), list.First())
 }
 `)
-	if !strings.Contains(rust, "pub fn __go_nil_recv_node_len(n: Rc<RefCell<Option<Node>>>) -> i32") {
+	if !strings.Contains(rust, "pub fn __go_nil_recv_node_len(n: Rc<RefCell<Option<Node>>>) -> i64") {
 		t.Fatalf("expected a helper that takes the pointer:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__go_nil_recv_node_len(empty.clone())") {

@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Branch {
-    pub r#else: Rc<RefCell<Option<i32>>>,
+    pub r#else: Rc<RefCell<Option<i64>>>,
 }
 
 impl Branch {
@@ -34,9 +34,9 @@ impl std::fmt::Display for Branch {
 }
 
 
-pub fn use_keyword_names(r#fn: Rc<RefCell<Option<i32>>>) -> i32 {
-    let mut total = Rc::new(RefCell::new(Some(0)));
-    for r#mod in vec![(*r#fn.borrow().as_ref().unwrap()).clone(), 2].iter().copied() {
+pub fn use_keyword_names(r#fn: Rc<RefCell<Option<i64>>>) -> i64 {
+    let mut total = Rc::new(RefCell::new(Some(0i64)));
+    for r#mod in vec![(*r#fn.borrow().as_ref().unwrap()).clone(), 2i64].iter().copied() {
         { let __rhs = r#mod; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     let mut branch = Rc::new(RefCell::new(Some(Branch { r#else: Rc::new(RefCell::new(Some({ let __arg_holder = total.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));

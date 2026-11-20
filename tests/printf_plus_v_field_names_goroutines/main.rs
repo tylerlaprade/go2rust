@@ -216,8 +216,8 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
-    pub y: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -258,7 +258,7 @@ impl std::fmt::Display for Point {
 
 #[derive(Debug, Clone)]
 pub struct Base {
-    pub i_d: Arc<Mutex<Option<i32>>>,
+    pub i_d: Arc<Mutex<Option<i64>>>,
 }
 
 impl Base {
@@ -366,7 +366,7 @@ impl std::fmt::Display for Line {
 
 #[derive(Debug, Clone)]
 pub struct Named {
-    pub n: Arc<Mutex<Option<i32>>>,
+    pub n: Arc<Mutex<Option<i64>>>,
 }
 
 impl Named {
@@ -398,7 +398,7 @@ impl std::fmt::Display for Named {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub name: Arc<Mutex<Option<String>>>,
-    pub retries: Arc<Mutex<Option<i32>>>,
+    pub retries: Arc<Mutex<Option<i64>>>,
     pub verbose: Arc<Mutex<Option<bool>>>,
 }
 
@@ -488,8 +488,8 @@ fn main() {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
-    pub a: Arc<Mutex<Option<i32>>>,
-    pub b: Arc<Mutex<Option<i32>>>,
+    pub a: Arc<Mutex<Option<i64>>>,
+    pub b: Arc<Mutex<Option<i64>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

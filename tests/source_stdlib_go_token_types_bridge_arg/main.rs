@@ -33,7 +33,7 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
+    let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i64))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
     let _ = go_types::new_type_param(obj.clone(), Arc::new(Mutex::new(None)));
     println!("{}", format!("{}", { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result }));
 }

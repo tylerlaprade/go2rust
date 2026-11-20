@@ -21,9 +21,9 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static currentValues: GoGlobal<Vec<i32>> = GoGlobal::new();
+pub(crate) static currentValues: GoGlobal<Vec<i64>> = GoGlobal::new();
 
-pub(crate) static currentSeen: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
+pub(crate) static currentSeen: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -32,15 +32,15 @@ fn __go_init_globals() {
 }
 
 
-pub fn nil_values() -> Rc<RefCell<Option<Vec<i32>>>> {
+pub fn nil_values() -> Rc<RefCell<Option<Vec<i64>>>> {
     Rc::new(RefCell::new(None))
 }
 
-pub fn nil_seen() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>> {
+pub fn nil_seen() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
     Rc::new(RefCell::new(None))
 }
 
-pub fn restore(values: Rc<RefCell<Option<Vec<i32>>>>, seen: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>) {
+pub fn restore(values: Rc<RefCell<Option<Vec<i64>>>>, seen: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) {
     { let new_val = { let __collection_holder = values.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *currentValues.borrow_mut() = new_val; };
     { let new_val = { let __collection_holder = seen.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *currentSeen.borrow_mut() = new_val; };
 }
@@ -50,7 +50,7 @@ fn main() {
     restore(nil_values(), nil_seen());
     println!("{} {} {} {}", format!("{}", (*currentValues.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentValues.borrow()).is_none(); __nil_result }), format!("{}", (*currentSeen.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentSeen.borrow()).is_none(); __nil_result }));
 
-    restore(Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(3))))])))));
+    restore(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(3i64))))])))));
     println!("{} {} {} {}", format!("{}", (*currentValues.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentValues.borrow()).is_none(); __nil_result }), format!("{}", (*currentSeen.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*currentSeen.borrow()).is_none(); __nil_result }));
 }
 

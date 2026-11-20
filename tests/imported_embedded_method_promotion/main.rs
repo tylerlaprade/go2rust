@@ -596,7 +596,7 @@ impl std::fmt::Display for pkgReader {
 
 
 impl pkgReader {
-    pub fn new_reader(&self, delta: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Reader>>> {
+    pub fn new_reader(&self, delta: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Reader>>> {
         {
             let __owner = Arc::new(Mutex::new(Some(Reader { decoder: { let __promoted_recv = self.pkg_decoder.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.new_decoder(Arc::new(Mutex::new(Some({ let __arg_holder = delta.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }, name: Arc::new(Mutex::new(Some("frompkg".to_string()))), ..Default::default() })));
             let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().decoder.clone() };
@@ -610,7 +610,7 @@ impl pkgReader {
         { let __promoted_recv = self.pkg_decoder.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.retire_decoder((*r.lock().unwrap().as_ref().unwrap()).decoder.clone()); __result };
     }
 
-    pub fn new_decoder(&self, _arg0: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<example_com_importedembed_base::r#mod::Decoder>>> {
+    pub fn new_decoder(&self, _arg0: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<example_com_importedembed_base::r#mod::Decoder>>> {
         let embedded = self.pkg_decoder.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -626,7 +626,7 @@ impl pkgReader {
 }
 
 impl Reader {
-    pub fn add(&self, _arg0: Arc<Mutex<Option<i32>>>) {
+    pub fn add(&self, _arg0: Arc<Mutex<Option<i64>>>) {
         let embedded = self.decoder.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -647,7 +647,7 @@ impl Reader {
         embedded_ref.label(_arg0)
     }
 
-    pub fn snapshot(&self) -> i32 {
+    pub fn snapshot(&self) -> i64 {
         let embedded = self.decoder.clone();
         let guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_ref().unwrap();

@@ -83,6 +83,6 @@ fn main() {
         scopes: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<go_types::scope::Scope>>>>::from([])))),
         ..Default::default()
     })));
-    let _ = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanType { dir: Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32))))))), ..Default::default() })));
+    let _ = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanType { dir: Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i64))))))), ..Default::default() })));
     println!("{}", format!("{}", (*version(info.clone(), file.clone()).lock().unwrap().as_ref().unwrap())));
 }

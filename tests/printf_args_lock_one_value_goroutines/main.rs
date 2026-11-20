@@ -210,20 +210,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -845,7 +845,7 @@ use __go_runtime_format::go_sprintf;
 #[derive(Debug, Clone)]
 pub struct P {
     pub name: Arc<Mutex<Option<String>>>,
-    pub age: Arc<Mutex<Option<i32>>>,
+    pub age: Arc<Mutex<Option<i64>>>,
     pub r#in: Arc<Mutex<Option<Inner>>>,
 }
 
@@ -888,7 +888,7 @@ impl std::fmt::Display for P {
 
 #[derive(Debug, Clone)]
 pub struct Inner {
-    pub v: Arc<Mutex<Option<i32>>>,
+    pub v: Arc<Mutex<Option<i64>>>,
 }
 
 impl Inner {

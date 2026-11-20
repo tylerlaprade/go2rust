@@ -86,8 +86,8 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int:{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else {
@@ -100,5 +100,5 @@ pub fn classify(b: Rc<RefCell<Option<sampleBox>>>) -> Rc<RefCell<Option<String>>
 }
 
 fn main() {
-    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(sampleBox { value: Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(sampleBox { value: Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>))), ..Default::default() })))).borrow().as_ref().unwrap())));
 }

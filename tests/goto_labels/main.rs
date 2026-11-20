@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
 
     'r#loop: loop {
         if (*i.borrow().as_ref().unwrap()) < 5 {
@@ -14,7 +14,7 @@ fn main() {
         println!("{}", format!("{}", "First loop done".to_string()));
 
                 // Goto to skip code
-        let mut x = Rc::new(RefCell::new(Some(1)));
+        let mut x = Rc::new(RefCell::new(Some(1i64)));
         'skip: {
             if (*x.borrow().as_ref().unwrap()) > 0 {
         break 'skip;
@@ -26,9 +26,9 @@ fn main() {
 
         'done: {
                         // More complex goto pattern
-            let mut j = Rc::new(RefCell::new(Some(0)));
+            let mut j = Rc::new(RefCell::new(Some(0i64)));
     while (*j.borrow().as_ref().unwrap()) < 3 {
-        let mut k = Rc::new(RefCell::new(Some(0)));
+        let mut k = Rc::new(RefCell::new(Some(0i64)));
     while (*k.borrow().as_ref().unwrap()) < 3 {
         if (*j.borrow().as_ref().unwrap()) == 1 && (*k.borrow().as_ref().unwrap()) == 1 {
         break 'done;

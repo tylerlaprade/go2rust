@@ -206,7 +206,7 @@ impl<T> Iterator for GoChannel<T> {
 pub struct Result_ {
     pub err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>,
     pub next: Arc<Mutex<Option<Result_>>>,
-    pub tags: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>,
+    pub tags: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>,
 }
 
 impl Result_ {
@@ -234,7 +234,7 @@ impl std::fmt::Display for Result_ {
 
 #[derive(Debug, Clone)]
 pub struct T {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl T {
@@ -266,7 +266,7 @@ impl std::fmt::Display for T {
 
 pub(crate) static lastErr: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static cache: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static cache: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
@@ -303,9 +303,9 @@ fn main() {
     let _ = &err;
     let mut ptr: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));
     let _ = &ptr;
-    let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+    let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
     let _ = &m;
-    let mut s: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+    let mut s: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
     let _ = &s;
     let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let _ = &a;
@@ -337,15 +337,15 @@ fn main() {
     let _ = &lastErr;
     println!("{} {} {}", format!("{}", { let __text = match lastErr.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.lock().unwrap().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
 
-    let mut count = Arc::new(Mutex::new(Some(0)));
-    let mut count_closure_clone = count.clone(); let mut bump = Arc::new(Mutex::new(Some(Box::new(move || -> i32 {
+    let mut count = Arc::new(Mutex::new(Some(0i64)));
+    let mut count_closure_clone = count.clone(); let mut bump = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
         { let mut guard = count_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return { let __v = (*count_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    }) as Box<dyn FnMut() -> i32 + Send + Sync>)));
+    }) as Box<dyn FnMut() -> i64 + Send + Sync>)));
     let _ = {
-        let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
             let mut __f_guard = bump.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
         };
         let __f = unsafe { &mut *__f_ptr };
         (*__f)(
@@ -353,9 +353,9 @@ fn main() {
         )
     };
     let _ = { let __seq = { let __seq_holder = Arc::new(Mutex::new(Some(vec![{
-        let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
             let mut __f_guard = bump.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
         };
         let __f = unsafe { &mut *__f_ptr };
         (*__f)(

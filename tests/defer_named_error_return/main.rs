@@ -2,10 +2,10 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn compute() -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn compute() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {

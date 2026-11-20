@@ -236,7 +236,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct board {
-    pub rows: Arc<Mutex<Option<Vec<Vec<i32>>>>>,
+    pub rows: Arc<Mutex<Option<Vec<Vec<i64>>>>>,
 }
 
 impl board {
@@ -256,7 +256,7 @@ impl std::fmt::Display for board {
 }
 
 
-pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<i32>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<i64>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
@@ -272,21 +272,21 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut grid = Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4], Vec::new()])));
+    let mut grid = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64], Vec::new()])));
     println!("{}", format!("{}", format_nested_slice(&grid)));
     println!("{}", format!("{}", format_nested_slice(&Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string()], vec!["c".to_string()]]))))));
 
-    let mut empty: Arc<Mutex<Option<Vec<Vec<i32>>>>> = Arc::new(Mutex::new(None));
+    let mut empty: Arc<Mutex<Option<Vec<Vec<i64>>>>> = Arc::new(Mutex::new(None));
     println!("{}", format!("{}", format_nested_slice(&empty)));
 
-    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![5], vec![6, 7]]])));
+    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![5i64], vec![6i64, 7i64]]])));
     println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __formatted }), format!("{}", { let __formatted = format_nested_slice_values(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __formatted }));
     { let __range_holder = cube.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for layer in __range_values.iter() {
         println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&layer); __formatted }));
     } }
-    println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Arc::new(Mutex::new(Some(vec![vec![8]]))), ..Default::default() }.rows.lock().unwrap().as_ref().unwrap()).clone()); __formatted }));
+    println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Arc::new(Mutex::new(Some(vec![vec![8i64]]))), ..Default::default() }.rows.lock().unwrap().as_ref().unwrap()).clone()); __formatted }));
     println!("{} {}", format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }), format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }));
-    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![vec![9]]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *global.lock().unwrap() = new_val; };
+    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![vec![9i64]]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *global.lock().unwrap() = new_val; };
     println!("{} {}", format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }), format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }));
 }
 

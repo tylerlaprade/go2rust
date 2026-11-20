@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct pair {
-    pub begin: Rc<RefCell<Option<i32>>>,
-    pub end: Rc<RefCell<Option<i32>>>,
+    pub begin: Rc<RefCell<Option<i64>>>,
+    pub end: Rc<RefCell<Option<i64>>>,
 }
 
 impl pair {
@@ -42,7 +42,7 @@ impl std::fmt::Display for pair {
 
 fn main() {
     let mut p = Rc::new(RefCell::new(Some(pair { begin: Rc::new(RefCell::new(Some(1))), end: Rc::new(RefCell::new(Some(2))), ..Default::default() })));
-    let mut x = Rc::new(RefCell::new(Some(9)));
+    let mut x = Rc::new(RefCell::new(Some(9i64)));
     {
         let __tmp_0 = { let __selector_holder = (*p.borrow().as_ref().unwrap()).end.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
         let __tmp_1 = (*x.borrow().as_ref().unwrap()).clone();

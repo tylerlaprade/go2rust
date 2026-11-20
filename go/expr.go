@@ -847,7 +847,7 @@ func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, 
 		return false
 	}
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" as i32")
+	out.WriteString(" as " + rustIntType())
 	return true
 }
 
@@ -859,7 +859,7 @@ func writeIntegerConstantForRangeIndexPeer(out *strings.Builder, expr ast.Expr, 
 		return false
 	}
 	writeConstExpressionCastValue(out, expr)
-	out.WriteString(" as i32")
+	out.WriteString(" as " + rustIntType())
 	return true
 }
 
@@ -1054,7 +1054,7 @@ func writeLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, other ast.Exp
 	}
 	out.WriteString("(")
 	TranspileExpression(out, expr)
-	out.WriteString(" as i32)")
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -1064,7 +1064,7 @@ func writeLenCapExpressionBinaryOperand(out *strings.Builder, expr ast.Expr, oth
 	}
 	out.WriteString("(")
 	TranspileExpression(out, expr)
-	out.WriteString(" as i32)")
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -1081,7 +1081,7 @@ func writeIntPeerForLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, oth
 	} else {
 		TranspileExpression(out, expr)
 	}
-	out.WriteString(" as i32)")
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -3434,7 +3434,7 @@ func writeLenCapCallArgumentForExpectedType(out *strings.Builder, arg ast.Expr, 
 		return false
 	}
 	TranspileExpression(out, arg)
-	out.WriteString(" as i32")
+	out.WriteString(" as " + rustIntType())
 	return true
 }
 
@@ -3444,7 +3444,7 @@ func writeLenCapCallArgumentForExpectedParamExpr(out *strings.Builder, arg ast.E
 		return false
 	}
 	TranspileExpression(out, arg)
-	out.WriteString(" as i32")
+	out.WriteString(" as " + rustIntType())
 	return true
 }
 
@@ -3475,7 +3475,7 @@ func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected
 		return false
 	}
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" as i32")
+	out.WriteString(" as " + rustIntType())
 	return true
 }
 
@@ -8163,7 +8163,7 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 			if elemType != nil {
 				if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
 					out.WriteString(RustLocalIdent(ident.Name))
-					out.WriteString(" as i32")
+					out.WriteString(" as " + rustIntType())
 					return true
 				}
 			}
@@ -8219,6 +8219,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 		}
 	}
 	if writeLenCapCallArgumentForExpectedType(out, expr, elemType) {
+		return true
+	}
+	if writeIntConstantWithSuffix(out, expr, elemType) {
 		return true
 	}
 	if isConstantExpression(expr) && writeExpressionForExpectedTypesType(out, expr, elemType) {
@@ -8402,7 +8405,7 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	out.WriteString("Box::new(")
-	if writeNamedIntegerConstNewtypeValue(out, expr) {
+	if writeNamedIntegerConstNewtypeValue(out, expr) || writeIntegerConstForAnyBox(out, expr) {
 		// A constant goes into the interface as a value of its type.
 		out.WriteString(") as ")
 		out.WriteString(rustAnyTraitObject())
@@ -13069,6 +13072,12 @@ func writePackageGlobalIdentMethodReceiver(out *strings.Builder, receiver *ast.I
 
 // TranspileExpressionContext transpiles an expression with context about how it's used
 func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprContext) {
+	if ctx != AddressOf && writeWideIntConstant(out, expr) {
+		return
+	}
+	if lit, ok := expr.(*ast.CompositeLit); ok {
+		markCompositeLiteralIntConstants(lit)
+	}
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		if writeNamedScalarLiteralValue(out, e) {
@@ -14948,7 +14957,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// A value that keeps its handle when boxed keeps it
 						// here too, the same as everywhere else it is stored
 						// in an interface.
-						elementKeepsAnyHandle = writeAnyHandleBoxInnerValue(out, elt) || writeDefinedCollectionOwnedValue(out, elt)
+						elementKeepsAnyHandle = writeIntegerConstForAnyBox(out, elt) || writeAnyHandleBoxInnerValue(out, elt) || writeDefinedCollectionOwnedValue(out, elt)
 					}
 					// If the element is already a wrapped variable, unwrap it first.
 					if elementKeepsAnyHandle {
@@ -15594,7 +15603,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					rustType = "std::string::String"
 					targetIsError = true
 				case "int":
-					rustType = "i32"
+					rustType = rustIntType()
 				case "int8":
 					rustType = "i8"
 				case "int16":
@@ -17259,7 +17268,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	switch targetType {
 	// Integer types
 	case "int":
-		rustType = "i32"
+		rustType = rustIntType()
 	case "int8":
 		rustType = "i8"
 	case "int16":
@@ -18255,7 +18264,7 @@ func writeReflectStringHeaderPointerConversion(out *strings.Builder, call *ast.C
 	WriteWrapperPrefix(out)
 	out.WriteString("{ let __s = ")
 	writeStringSequenceValue(out, source)
-	out.WriteString("; __s.len() as i32 }")
+	out.WriteString("; __s.len() as " + rustIntType() + " }")
 	WriteWrapperSuffix(out)
 	out.WriteString(", ..Default::default() }")
 	WriteWrapperSuffix(out)
@@ -18838,7 +18847,21 @@ func writeStringConversionSource(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
+// writeNumericConversionValue writes the operand of a numeric conversion,
+// which the caller follows with `as T`. A binary operand is put in
+// parentheses: `as` binds tighter than - in Rust, so len - 1 as i32 would
+// cast only the 1.
 func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
+	if _, isBinary := arg.(*ast.BinaryExpr); isBinary {
+		out.WriteString("(")
+		writeNumericConversionValueInner(out, arg)
+		out.WriteString(")")
+		return
+	}
+	writeNumericConversionValueInner(out, arg)
+}
+
+func writeNumericConversionValueInner(out *strings.Builder, arg ast.Expr) {
 	typeInfo := GetTypeInfo()
 	var argType types.Type
 	if typeInfo != nil {
@@ -21158,7 +21181,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			targetIsError = true
 			targetIsInterface = false
 		case "int":
-			rustType = "i32"
+			rustType = rustIntType()
 			defaultValue = "0"
 		case "int8":
 			rustType = "i8"
@@ -21552,13 +21575,13 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 	case "Len":
 		if bareReceiver {
 			writeStringsBuilderRawReceiver(out, sel.X)
-			out.WriteString(".len() as i32")
+			out.WriteString(".len() as " + rustIntType())
 			return true
 		}
 		out.WriteString("(*")
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).len() as i32")
+		out.WriteString(".as_ref().unwrap()).len() as " + rustIntType())
 		return true
 	default:
 		return false
@@ -24900,3 +24923,152 @@ func writeFunctionValueArgument(out *strings.Builder, arg ast.Expr) {
 	TranspileExpression(out, arg)
 	WriteWrapperSuffix(out)
 }
+
+// writeIntegerConstForAnyBox writes an integer constant that goes into an
+// interface with its type spelled out, 5i64 for an int. Nothing else fixes
+// the type of a literal boxed as Box<dyn Any>, and Rust's default is i32, so
+// the value would not be an int when it is asserted or printed with %T.
+func writeIntegerConstForAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[expr]
+	if !ok || tv.Value == nil || tv.Value.Kind() != constant.Int {
+		return false
+	}
+	basic, ok := types.Unalias(tv.Type).(*types.Basic)
+	if !ok {
+		return false
+	}
+	typ := types.Type(basic)
+	if basic.Info()&types.IsUntyped != 0 {
+		typ = types.Default(basic)
+	}
+	rustType := goTypesTypeToRust(typ)
+	switch rustType {
+	case "i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize":
+	default:
+		return false
+	}
+	out.WriteString(tv.Value.ExactString())
+	out.WriteString(rustType)
+	return true
+}
+
+// writeWideIntConstant writes an int constant outside the i32 range, 1 << 40
+// or math.MaxInt, as its value with an i64 suffix. An unsuffixed Rust
+// literal with nothing else to fix its type is an i32, which cannot hold it.
+func writeWideIntConstant(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[expr]
+	if !ok || tv.Value == nil || tv.Value.Kind() != constant.Int {
+		return false
+	}
+	basic, ok := types.Unalias(tv.Type).(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	n, exact := constant.Int64Val(tv.Value)
+	// A rune literal used as an int, prefix = 'b', is written as an i32
+	// char cast otherwise.
+	lit, isLit := unwrapParens(expr).(*ast.BasicLit)
+	runeAsInt := isLit && lit.Kind == token.CHAR
+	if !exact || (n >= -2147483648 && n <= 2147483647 && !declaredIntConstants[expr] && !runeAsInt) {
+		return false
+	}
+	if n == -9223372036854775808 {
+		out.WriteString("i64::MIN")
+		return true
+	}
+	if n < 0 {
+		out.WriteString("(")
+		out.WriteString(strconv.FormatInt(n, 10))
+		out.WriteString("i64)")
+		return true
+	}
+	out.WriteString(strconv.FormatInt(n, 10))
+	out.WriteString("i64")
+	return true
+}
+
+// markCompositeLiteralIntConstants marks the constant elements, keys and
+// values of type int in a slice, array or map literal: []int{1, 2} in an
+// interface is otherwise a Vec<i32>, and is not a []int when asserted.
+func markCompositeLiteralIntConstants(lit *ast.CompositeLit) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lit == nil {
+		return
+	}
+	isInt := func(t types.Type) bool {
+		basic, ok := types.Unalias(t).(*types.Basic)
+		return ok && basic.Kind() == types.Int
+	}
+	litType := typeInfo.GetType(lit)
+	if litType == nil {
+		return
+	}
+	var elemIsInt, keyIsInt bool
+	switch t := types.Unalias(litType).Underlying().(type) {
+	case *types.Slice:
+		elemIsInt = isInt(t.Elem())
+	case *types.Array:
+		elemIsInt = isInt(t.Elem())
+	case *types.Map:
+		elemIsInt = isInt(t.Elem())
+		keyIsInt = isInt(t.Key())
+	default:
+		return
+	}
+	for _, elt := range lit.Elts {
+		if kv, ok := elt.(*ast.KeyValueExpr); ok {
+			if keyIsInt {
+				declaredIntConstants[kv.Key] = true
+			}
+			if elemIsInt {
+				declaredIntConstants[kv.Value] = true
+			}
+			continue
+		}
+		if elemIsInt {
+			declaredIntConstants[elt] = true
+		}
+	}
+}
+
+// writeIntConstantWithSuffix writes a constant that is stored as an int,
+// an element of a []int literal say, as its value with the i64 suffix.
+func writeIntConstantWithSuffix(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if expected == nil || expr == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok {
+		return false
+	}
+	value = constant.ToInt(value)
+	n, exact := constant.Int64Val(value)
+	if !exact {
+		return false
+	}
+	switch {
+	case n == -9223372036854775808:
+		out.WriteString("i64::MIN")
+	case n < 0:
+		out.WriteString("(")
+		out.WriteString(strconv.FormatInt(n, 10))
+		out.WriteString("i64)")
+	default:
+		out.WriteString(strconv.FormatInt(n, 10))
+		out.WriteString("i64")
+	}
+	return true
+}
+

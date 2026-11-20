@@ -174,8 +174,8 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Box__int {
-    pub value: Arc<Mutex<Option<i32>>>,
-    pub count: Arc<Mutex<Option<i32>>>,
+    pub value: Arc<Mutex<Option<i64>>>,
+    pub count: Arc<Mutex<Option<i64>>>,
 }
 
 impl Box__int {

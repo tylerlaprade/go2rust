@@ -60,7 +60,7 @@ impl std::fmt::Display for Logger {
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub count: Rc<RefCell<Option<i32>>>,
+    pub count: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -138,7 +138,7 @@ impl std::fmt::Display for Service {
 /// Type with multiple levels of embedding
 #[derive(Debug, Clone)]
 pub struct Base {
-    pub id: Rc<RefCell<Option<i32>>>,
+    pub id: Rc<RefCell<Option<i64>>>,
 }
 
 impl Base {
@@ -255,7 +255,7 @@ impl Logger {
 }
 
 impl Counter {
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*self.count.borrow().as_ref().unwrap());
     }
 
@@ -263,7 +263,7 @@ impl Counter {
         { let __target = self.count.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&mut self, n: Rc<RefCell<Option<i64>>>) {
         { let __target = self.count.clone(); let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 }
@@ -275,12 +275,12 @@ impl Service {
     }
 
     /// Method that shadows embedded method
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
                 // This should shadow Counter.Value()
         (*self.counter.borrow().as_ref().unwrap()).value() * 10
     }
 
-    pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&mut self, n: Rc<RefCell<Option<i64>>>) {
         // Forward to embedded type's method
         let embedded = self.counter.clone();
         let mut guard = embedded.borrow_mut();
@@ -314,11 +314,11 @@ impl Service {
 }
 
 impl Base {
-    pub fn get_i_d(&self) -> i32 {
+    pub fn get_i_d(&self) -> i64 {
         return (*self.id.borrow().as_ref().unwrap());
     }
 
-    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
+    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i64>>>) {
         { let new_val = id.borrow().as_ref().unwrap().clone(); *self.id.borrow_mut() = Some(new_val); };
     }
 }
@@ -328,7 +328,7 @@ impl Middle {
         return Rc::new(RefCell::new(Some({ let __selector_holder = self.data.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 
-    pub fn get_i_d(&self) -> i32 {
+    pub fn get_i_d(&self) -> i64 {
         // Forward to embedded type's method
         let embedded = self.base.clone();
         let guard = embedded.borrow();
@@ -336,7 +336,7 @@ impl Middle {
         embedded_ref.get_i_d()
     }
 
-    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
+    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i64>>>) {
         // Forward to embedded type's method
         let embedded = self.base.clone();
         let mut guard = embedded.borrow_mut();
@@ -358,7 +358,7 @@ impl Top {
         embedded_ref.get_data()
     }
 
-    pub fn get_i_d(&self) -> i32 {
+    pub fn get_i_d(&self) -> i64 {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
         let guard = embedded.borrow();
@@ -366,7 +366,7 @@ impl Top {
         embedded_ref.get_i_d()
     }
 
-    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i32>>>) {
+    pub fn set_i_d(&mut self, id: Rc<RefCell<Option<i64>>>) {
         // Forward to embedded type's method
         let embedded = self.middle.clone();
         let mut guard = embedded.borrow_mut();

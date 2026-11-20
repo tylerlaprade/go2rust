@@ -821,7 +821,7 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 #[derive(Debug, Clone)]
 pub struct Item {
     pub name: Arc<Mutex<Option<String>>>,
-    pub count: Arc<Mutex<Option<i32>>>,
+    pub count: Arc<Mutex<Option<i64>>>,
 }
 
 impl Item {
@@ -858,7 +858,7 @@ impl std::fmt::Display for Item {
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub n: Arc<Mutex<Option<i32>>>,
+    pub n: Arc<Mutex<Option<i64>>>,
     pub last: Arc<Mutex<Option<Counter>>>,
 }
 
@@ -909,7 +909,7 @@ impl Clone for Box<dyn Shape + Send + Sync> {
 
 #[derive(Debug, Clone)]
 pub struct Square {
-    pub side: Arc<Mutex<Option<i32>>>,
+    pub side: Arc<Mutex<Option<i64>>>,
 }
 
 impl Square {

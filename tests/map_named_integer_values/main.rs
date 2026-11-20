@@ -201,7 +201,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Default)]
-pub struct Index(pub Arc<Mutex<Option<i32>>>);
+pub struct Index(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
@@ -224,8 +224,8 @@ impl PartialEq for Index {
     }
 }
 
-impl PartialEq<i32> for Index {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Index {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -238,19 +238,19 @@ impl PartialOrd for Index {
     }
 }
 
-impl PartialOrd<i32> for Index {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Index {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Index> for i32 {
+impl PartialEq<Index> for i64 {
     fn eq(&self, other: &Index) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Index> for i32 {
+impl PartialOrd<Index> for i64 {
     fn partial_cmp(&self, other: &Index) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -263,14 +263,14 @@ impl std::ops::Add for Index {
     }
 }
 
-impl std::ops::Add<i32> for Index {
+impl std::ops::Add<i64> for Index {
     type Output = Index;
-    fn add(self, other: i32) -> Index {
+    fn add(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Index> for i32 {
+impl std::ops::Add<Index> for i64 {
     type Output = Index;
     fn add(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -284,14 +284,14 @@ impl std::ops::Sub for Index {
     }
 }
 
-impl std::ops::Sub<i32> for Index {
+impl std::ops::Sub<i64> for Index {
     type Output = Index;
-    fn sub(self, other: i32) -> Index {
+    fn sub(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Index> for i32 {
+impl std::ops::Sub<Index> for i64 {
     type Output = Index;
     fn sub(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -305,14 +305,14 @@ impl std::ops::Mul for Index {
     }
 }
 
-impl std::ops::Mul<i32> for Index {
+impl std::ops::Mul<i64> for Index {
     type Output = Index;
-    fn mul(self, other: i32) -> Index {
+    fn mul(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Index> for i32 {
+impl std::ops::Mul<Index> for i64 {
     type Output = Index;
     fn mul(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -326,14 +326,14 @@ impl std::ops::Div for Index {
     }
 }
 
-impl std::ops::Div<i32> for Index {
+impl std::ops::Div<i64> for Index {
     type Output = Index;
-    fn div(self, other: i32) -> Index {
+    fn div(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Index> for i32 {
+impl std::ops::Div<Index> for i64 {
     type Output = Index;
     fn div(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -354,14 +354,14 @@ impl std::ops::Rem for Index {
     }
 }
 
-impl std::ops::Rem<i32> for Index {
+impl std::ops::Rem<i64> for Index {
     type Output = Index;
-    fn rem(self, other: i32) -> Index {
+    fn rem(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Index> for i32 {
+impl std::ops::Rem<Index> for i64 {
     type Output = Index;
     fn rem(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -375,14 +375,14 @@ impl std::ops::BitAnd for Index {
     }
 }
 
-impl std::ops::BitAnd<i32> for Index {
+impl std::ops::BitAnd<i64> for Index {
     type Output = Index;
-    fn bitand(self, other: i32) -> Index {
+    fn bitand(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Index> for i32 {
+impl std::ops::BitAnd<Index> for i64 {
     type Output = Index;
     fn bitand(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -396,14 +396,14 @@ impl std::ops::BitOr for Index {
     }
 }
 
-impl std::ops::BitOr<i32> for Index {
+impl std::ops::BitOr<i64> for Index {
     type Output = Index;
-    fn bitor(self, other: i32) -> Index {
+    fn bitor(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Index> for i32 {
+impl std::ops::BitOr<Index> for i64 {
     type Output = Index;
     fn bitor(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -417,14 +417,14 @@ impl std::ops::BitXor for Index {
     }
 }
 
-impl std::ops::BitXor<i32> for Index {
+impl std::ops::BitXor<i64> for Index {
     type Output = Index;
-    fn bitxor(self, other: i32) -> Index {
+    fn bitxor(self, other: i64) -> Index {
         Index(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Index> for i32 {
+impl std::ops::BitXor<Index> for i64 {
     type Output = Index;
     fn bitxor(self, other: Index) -> Index {
         Index(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -619,7 +619,7 @@ fn main() {
     done.recv().unwrap_or_default();
 
     let mut h = Arc::new(Mutex::new(Some(Holder { values: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Index>>>>::from([])))), ..Default::default() })));
-    let mut idx: Arc<Mutex<Option<Index>>> = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(7 as i32)))))));
+    let mut idx: Arc<Mutex<Option<Index>>> = Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(7 as i64)))))));
     { let __map_key = "answer".to_string(); let __map_value = Arc::new(Mutex::new(Some((*idx.lock().unwrap().as_ref().unwrap()).clone()))); (*(*h.lock().unwrap().as_ref().unwrap()).values.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     let (mut missing, mut ok) = { let __map = { let __map_holder = (*h.lock().unwrap().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(Index(Arc::new(Mutex::new(Some(0))))))), false) } };

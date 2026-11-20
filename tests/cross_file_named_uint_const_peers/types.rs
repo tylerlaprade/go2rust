@@ -5,10 +5,10 @@ use std::rc::{Rc};
 pub const V0: u32 = 0;
 pub const V1: u32 = 1;
 pub const V2: u32 = 2;
-pub(crate) const NUM_VERSIONS: i32 = 3;
+pub(crate) const NUM_VERSIONS: i64 = 3;
 
 
-pub(crate) const FLAG_SYNC_MARKERS: i32 = 1 << 0;
+pub(crate) const FLAG_SYNC_MARKERS: i64 = 1 << 0;
 
 
 #[derive(Debug, Default)]

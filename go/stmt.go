@@ -1094,7 +1094,7 @@ func writeNamedIntegerConstNewtypeValue(out *strings.Builder, expr ast.Expr) boo
 
 func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 	// A constant goes into the interface as a value of its type.
-	if writeNamedIntegerConstNewtypeValue(out, expr) {
+	if writeNamedIntegerConstNewtypeValue(out, expr) || writeIntegerConstForAnyBox(out, expr) {
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
@@ -1210,7 +1210,7 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 			if expected != nil {
 				if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
 					out.WriteString(RustLocalIdent(ident.Name))
-					out.WriteString(" as i32")
+					out.WriteString(" as " + rustIntType())
 					return
 				}
 			}
@@ -1668,7 +1668,7 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 	WriteWrapperPrefix(out)
 	TranspileExpression(out, call)
 	if isBareBuiltinCallName(call, "len") || isBareBuiltinCallName(call, "cap") {
-		out.WriteString(" as i32")
+		out.WriteString(" as " + rustIntType())
 	}
 	WriteWrapperSuffix(out)
 	return true
@@ -5827,7 +5827,7 @@ func writeBareBuiltinReturnForExpectedType(out *strings.Builder, call *ast.CallE
 		return false
 	}
 	TranspileExpression(out, call)
-	out.WriteString(" as i32")
+	out.WriteString(" as " + rustIntType())
 	return true
 }
 
@@ -8738,7 +8738,9 @@ func rustCastForExpectedBasic(expected types.Type) string {
 		return ""
 	}
 	switch basic.Kind() {
-	case types.Int, types.Int32:
+	case types.Int:
+		return rustIntType()
+	case types.Int32:
 		return "i32"
 	case types.Int8:
 		return "i8"
@@ -8869,7 +8871,7 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok && basic.Kind() == types.Int {
 				if isBareBuiltinCallName(call, "len") || isBareBuiltinCallName(call, "cap") {
 					TranspileExpression(out, call)
-					out.WriteString(" as i32")
+					out.WriteString(" as " + rustIntType())
 					return
 				}
 			}
@@ -10099,7 +10101,7 @@ func parallelTempBareCast(lhs ast.Expr, rhs ast.Expr) string {
 	if rhsCast != "" && rhsCast == lhsCast {
 		return ""
 	}
-	if rhsCast == "" && lhsCast == "i32" {
+	if rhsCast == "" && (lhsCast == "i32" || lhsCast == rustIntType()) {
 		// Untyped expression emits as i32 by default; matches LHS.
 		return ""
 	}
@@ -11630,6 +11632,7 @@ func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
+	markDeclaredIntConstants(stmt)
 	if fileSet != nil {
 		if ctx := GetTranspileContext(); ctx != nil && ctx.File != nil {
 			ctx.File.FileSet = fileSet
@@ -12124,7 +12127,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									WriteWrapperPrefix(out)
 									// Cast usize range index to i32 when wrapping
 									if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
-										out.WriteString(EscapeRustIdent(ident.Name) + " as i32")
+										out.WriteString(EscapeRustIdent(ident.Name) + " as " + rustIntType())
 									} else if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "ref_value" {
 										out.WriteString(EscapeRustIdent(ident.Name))
 										out.WriteString(".clone()")
@@ -13379,7 +13382,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], wrappedSlotAssignmentShouldUseMultiline(s.Rhs[0]), func(valueOut *strings.Builder) {
 											TranspileExpression(valueOut, s.Rhs[0])
 											if isLenCapCall {
-												valueOut.WriteString(" as i32")
+												valueOut.WriteString(" as " + rustIntType())
 											}
 										})
 									}
@@ -14778,7 +14781,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if rangeType := rangeExprGoType(s.X); rangeType != nil {
 				keyType = goTypesTypeToRust(rangeType)
 			} else {
-				keyType = "i32"
+				keyType = rustIntType()
 			}
 		} else if isString {
 			valueType = "char"
@@ -17275,5 +17278,45 @@ func selectReceiveZeroValue(ch ast.Expr) string {
 func writeSelectBranchTerminator(out *strings.Builder, stmt ast.Stmt) {
 	if _, ok := stmt.(*ast.BranchStmt); ok {
 		out.WriteString(";")
+	}
+}
+
+// declaredIntConstants holds the constant expressions a variable of type int
+// is declared with and nothing else types: x := 0, var n = 5. Rust gives an
+// unsuffixed literal with no other constraint the type i32, so the variable
+// would be an i32: it wraps at 32 bits, and in an interface it is not an int.
+var declaredIntConstants = map[ast.Expr]bool{}
+
+func markDeclaredIntConstants(stmt ast.Stmt) {
+	mark := func(exprs []ast.Expr) {
+		for _, expr := range exprs {
+			declaredIntConstants[expr] = true
+		}
+	}
+	switch s := stmt.(type) {
+	case *ast.AssignStmt:
+		if s.Tok == token.DEFINE {
+			mark(s.Rhs)
+		}
+	case *ast.DeclStmt:
+		if gen, ok := s.Decl.(*ast.GenDecl); ok && gen.Tok == token.VAR {
+			for _, spec := range gen.Specs {
+				if vs, ok := spec.(*ast.ValueSpec); ok && vs.Type == nil {
+					mark(vs.Values)
+				}
+			}
+		}
+	case *ast.ForStmt:
+		if s.Init != nil {
+			markDeclaredIntConstants(s.Init)
+		}
+	case *ast.IfStmt:
+		if s.Init != nil {
+			markDeclaredIntConstants(s.Init)
+		}
+	case *ast.SwitchStmt:
+		if s.Init != nil {
+			markDeclaredIntConstants(s.Init)
+		}
 	}
 }

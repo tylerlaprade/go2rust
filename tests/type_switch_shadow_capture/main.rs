@@ -50,7 +50,7 @@ fn format_any_nested(value: &dyn Any) -> String {
 
 #[derive(Debug, Clone)]
 pub struct node {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl node {
@@ -103,7 +103,7 @@ impl std::fmt::Display for holder {
 
 
 impl node {
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap());
     }
 }
@@ -116,7 +116,7 @@ impl holder {
 
 fn main() {
     let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
-    let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
+    let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
         {
     let _ts_subject = T_closure_clone.clone();
     let _ts_guard = _ts_subject.borrow();
@@ -139,6 +139,6 @@ fn main() {
     }
     }
     unreachable!()
-    }) as Box<dyn FnMut() -> i32>)));
-    println!("{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
+    }) as Box<dyn FnMut() -> i64>)));
+    println!("{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
 }

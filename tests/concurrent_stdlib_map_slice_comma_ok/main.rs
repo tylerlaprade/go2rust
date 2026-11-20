@@ -124,7 +124,7 @@ impl Eq for types_Object {}
 
 impl PartialOrd for types_Object {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -137,7 +137,7 @@ impl Ord for types_Object {
 
 #[derive(Debug, Clone)]
 pub struct scope {
-    pub id: Arc<Mutex<Option<i32>>>,
+    pub id: Arc<Mutex<Option<i64>>>,
 }
 
 impl scope {

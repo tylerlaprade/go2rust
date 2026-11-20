@@ -76,7 +76,7 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
         format_slice(v)
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
@@ -100,7 +100,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
@@ -146,24 +146,24 @@ fn go_resume_unrecovered_panic() {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<Rc<RefCell<Option<Vec<i32>>>>>() { return "[]int" }
+    if val.is::<Rc<RefCell<Option<Vec<i64>>>>>() { return "[]int" }
     std::any::type_name_of_val(val)
 }
 
@@ -389,7 +389,7 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<i32>() {
+            if let Some(typed_val) = any_val.downcast_ref::<i64>() {
                 (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
                 (Rc::new(RefCell::new(Some(0))), false)
@@ -523,7 +523,7 @@ pub fn describe_shape(s: Rc<RefCell<Option<Box<dyn Shape>>>>) {
 
 fn main() {
         // Test with different types
-    let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3]))).clone()) as Box<dyn Any>])));
+    let mut values = Rc::new(RefCell::new(Some(vec![Box::new("hello world".to_string()) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))).clone()) as Box<dyn Any>])));
 
     println!("{}", format!("{}", "=== Processing values ===".to_string()));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for val in __range_values.iter() {
@@ -532,7 +532,7 @@ fn main() {
 
     println!("{}", format!("{}", "\n=== Assertion without check ===".to_string()));
     assert_without_check(Rc::new(RefCell::new(Some(Box::new("valid string".to_string()) as Box<dyn Any>))));
-    assert_without_check(Rc::new(RefCell::new(Some(Box::new(123) as Box<dyn Any>))));
+    assert_without_check(Rc::new(RefCell::new(Some(Box::new(123i64) as Box<dyn Any>))));
 
     println!("{}", format!("{}", "\n=== Interface type assertions ===".to_string()));
     let mut shapes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Shape>)))])));
@@ -550,8 +550,8 @@ fn main() {
     if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         print!("String: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         print!("Int: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<f64>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<f64>()).unwrap().clone())));

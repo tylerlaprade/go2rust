@@ -1,7 +1,7 @@
-pub(crate) const FOO_BAR_1: i32 = 5;
+pub(crate) const FOO_BAR_1: i64 = 5;
 
 
-pub const FOO_BAR: i32 = FOO_BAR_1;
+pub const FOO_BAR: i64 = FOO_BAR_1;
 
 
 fn main() {

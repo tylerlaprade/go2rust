@@ -46,7 +46,7 @@ where
 
 #[derive(Debug, Clone, Default)]
 pub struct bucket {
-    pub values: Rc<RefCell<Option<Vec<i32>>>>,
+    pub values: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl bucket {
@@ -68,7 +68,7 @@ impl std::fmt::Display for bucket {
 
 impl bucket {
     pub fn has_room(&self) -> bool {
-        (({ let __cap_target = { let __field = self.values.clone(); __field }; let __cap_guard = __cap_target.borrow(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32) >= (3 as i32)
+        (({ let __cap_target = { let __field = self.values.clone(); __field }; let __cap_guard = __cap_target.borrow(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i64) >= (3 as i64)
     }
 }
 

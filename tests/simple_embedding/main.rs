@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Inner {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Inner {
@@ -73,13 +73,13 @@ impl std::fmt::Display for Outer {
 
 
 impl Inner {
-    pub fn get_value(&self) -> i32 {
+    pub fn get_value(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 impl Outer {
-    pub fn get_value(&self) -> i32 {
+    pub fn get_value(&self) -> i64 {
         // Forward to embedded type's method
         let embedded = self.inner.clone();
         let guard = embedded.borrow();

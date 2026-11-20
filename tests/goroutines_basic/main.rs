@@ -3,14 +3,14 @@ use std::thread;
 use std::time::Duration;
 
 pub fn say_hello(name: Arc<Mutex<Option<String>>>) {
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         print!("Hello {}! ({})\n", format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 }
 
-pub fn counter(start: Arc<Mutex<Option<i32>>>) {
+pub fn counter(start: Arc<Mutex<Option<i64>>>) {
     let mut i = { let __owned = start.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x + __tmp_y }; __tmp_x < __tmp_y } {
         print!("Count: {}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });

@@ -46,10 +46,10 @@ where
 
 fn main() {
     let mut dst = Rc::new(RefCell::new(Some(vec![0; (6) as usize])));
-    let mut src1 = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    let mut src2 = Rc::new(RefCell::new(Some(vec![4, 5, 6])));
+    let mut src1 = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
+    let mut src2 = Rc::new(RefCell::new(Some(vec![4i64, 5i64, 6i64])));
 
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     { let __rhs = (*{
         let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize;
         let _dst_len = (*dst.borrow().as_ref().unwrap()).len() - _dst_start;
@@ -58,7 +58,7 @@ fn main() {
         for _i in 0.._n {
             (*dst.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
         }
-        Rc::new(RefCell::new(Some(_n as i32)))
+        Rc::new(RefCell::new(Some(_n as i64)))
     }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     { let __rhs = (*{
         let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize;
@@ -68,7 +68,7 @@ fn main() {
         for _i in 0.._n {
             (*dst.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
         }
-        Rc::new(RefCell::new(Some(_n as i32)))
+        Rc::new(RefCell::new(Some(_n as i64)))
     }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
     println!("{} {}", format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&dst)));

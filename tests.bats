@@ -1427,6 +1427,14 @@ run_xfail_test() {
     run_test "tests/init_order_complex"
 }
 
+@test "int_is_64_bit" {
+    run_test "tests/int_is_64_bit"
+}
+
+@test "int_is_64_bit_goroutines" {
+    run_test "tests/int_is_64_bit_goroutines"
+}
+
 @test "integer_overflow_wraps" {
     run_test "tests/integer_overflow_wraps"
 }

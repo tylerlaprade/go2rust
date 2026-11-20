@@ -295,7 +295,7 @@ impl std::fmt::Display for Contact {
 #[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
     pub address: Rc<RefCell<Option<Address>>>,
     pub contact: Rc<RefCell<Option<Contact>>>,
 }
@@ -601,7 +601,7 @@ fn main() {
 
     { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
         let emp = &emp.__go_value_clone();
-        print!("Employee {}: {}\n", i as i32 + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
+        print!("Employee {}: {}\n", i as i64 + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
         print!("  Email: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone());
         print!("  Phone: {}\n", (*(*emp.contact.borrow().as_ref().unwrap()).phone.borrow().as_ref().unwrap()).clone());
@@ -613,7 +613,7 @@ fn main() {
     println!("{}", format!("{}", "=== Nested maps ===".to_string()));
 
         // Map of maps
-    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("laptops".to_string(), Rc::new(RefCell::new(Some(50)))), ("phones".to_string(), Rc::new(RefCell::new(Some(100)))), ("tablets".to_string(), Rc::new(RefCell::new(Some(25))))]))))), ("furniture".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("chairs".to_string(), Rc::new(RefCell::new(Some(200)))), ("desks".to_string(), Rc::new(RefCell::new(Some(75)))), ("lamps".to_string(), Rc::new(RefCell::new(Some(150))))]))))), ("supplies".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("pens".to_string(), Rc::new(RefCell::new(Some(1000)))), ("paper".to_string(), Rc::new(RefCell::new(Some(500)))), ("folders".to_string(), Rc::new(RefCell::new(Some(300))))])))))]))));
+    let mut inventory = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>::from([("electronics".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("laptops".to_string(), Rc::new(RefCell::new(Some(50i64)))), ("phones".to_string(), Rc::new(RefCell::new(Some(100i64)))), ("tablets".to_string(), Rc::new(RefCell::new(Some(25i64))))]))))), ("furniture".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("chairs".to_string(), Rc::new(RefCell::new(Some(200i64)))), ("desks".to_string(), Rc::new(RefCell::new(Some(75i64)))), ("lamps".to_string(), Rc::new(RefCell::new(Some(150i64))))]))))), ("supplies".to_string(), Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("pens".to_string(), Rc::new(RefCell::new(Some(1000i64)))), ("paper".to_string(), Rc::new(RefCell::new(Some(500i64)))), ("folders".to_string(), Rc::new(RefCell::new(Some(300i64))))])))))]))));
 
     println!("{}", format!("{}", "Inventory:".to_string()));
     let mut categories: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
@@ -643,14 +643,14 @@ fn main() {
     println!("{}", format!("{}", "\n=== Nested slices ===".to_string()));
 
         // Matrix (slice of slices)
-    let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
+    let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64, 3i64], vec![4i64, 5i64, 6i64], vec![7i64, 8i64, 9i64]])));
 
     println!("{}", format!("{}", "Matrix:".to_string()));
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
-        if (j as i32) < ((row.len() as i32) - (1 as i32) as i32) {
+        if (j as i64) < ((row.len() as i64) - (1 as i64) as i64) {
         print!("{}", format!("{}", " ".to_string()));
     }
     }
@@ -662,7 +662,7 @@ fn main() {
     print!("Center element: {}\n", { let __v = (*centerElement.borrow().as_ref().unwrap()).clone(); __v });
 
         // 3D slice
-    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]])));
+    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1i64, 2i64], vec![3i64, 4i64]], vec![vec![5i64, 6i64], vec![7i64, 8i64]]])));
 
     println!("{}", format!("{}", "\n3D Cube:".to_string()));
     { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, layer) in __range_values.iter().enumerate() {
@@ -683,7 +683,7 @@ fn main() {
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
     { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
-        print!("Shape {}: {}\n", i as i32 + 1, (*(*shape.borrow().as_ref().unwrap()).draw().borrow().as_ref().unwrap()));
+        print!("Shape {}: {}\n", i as i64 + 1, (*(*shape.borrow().as_ref().unwrap()).draw().borrow().as_ref().unwrap()));
     } }
 
         // Modify nested structures

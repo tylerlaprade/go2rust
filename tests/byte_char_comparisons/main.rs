@@ -35,7 +35,7 @@ pub fn is_digit(c: Rc<RefCell<Option<u8>>>) -> bool {
 }
 
 pub fn starts_with_v(s: Rc<RefCell<Option<String>>>) -> bool {
-    ((*s.borrow().as_ref().unwrap()).len() as i32) > (0 as i32) && { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == ('v' as u8)
+    ((*s.borrow().as_ref().unwrap()).len() as i64) > (0 as i64) && { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == ('v' as u8)
 }
 
 pub fn append_op(path: Rc<RefCell<Option<Vec<u8>>>>, op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<Vec<u8>>>> {

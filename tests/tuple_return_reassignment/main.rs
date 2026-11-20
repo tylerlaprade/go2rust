@@ -35,7 +35,7 @@ impl std::fmt::Display for parsed {
 
 
 pub fn split_version(v: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>, bool) {
-    if ((*v.borrow().as_ref().unwrap()).len() as i32) == (0 as i32) {
+    if ((*v.borrow().as_ref().unwrap()).len() as i64) == (0 as i64) {
         return (Rc::new(RefCell::new(Some("".to_string()))), Rc::new(RefCell::new(Some("".to_string()))), false);
     }
     (Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); let __high = (1) as usize; __s[..__high].to_string() }))), Rc::new(RefCell::new(Some({ let __s = &((*v.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))), true)

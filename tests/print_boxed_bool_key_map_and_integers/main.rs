@@ -67,7 +67,7 @@ fn format_any(value: &dyn Any) -> String {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<bool>>>>>>>>() {
         format_map(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i32>>>>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i64>>>>>>>>() {
         format_map(v)
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
@@ -75,26 +75,26 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<String>>>>>>>>() { return "map[bool]string" }
     if val.is::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<bool>>>>>>>>() { return "map[bool]bool" }
-    if val.is::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i32>>>>>>>>() { return "map[bool]int" }
+    if val.is::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i64>>>>>>>>() { return "map[bool]int" }
     std::any::type_name_of_val(val)
 }
 
@@ -716,21 +716,21 @@ pub fn show(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
 
 fn main() {
     let mut format = Rc::new(RefCell::new(Some("%v\n".to_string())));
-    print!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<i32>>>>::from([(true, Rc::new(RefCell::new(Some(1)))), (false, Rc::new(RefCell::new(Some(0))))])))).clone()) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<i64>>>>::from([(true, Rc::new(RefCell::new(Some(1i64)))), (false, Rc::new(RefCell::new(Some(0i64))))])))).clone()) as Box<dyn Any>], false));
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<String>>>>::from([(true, Rc::new(RefCell::new(Some("yes".to_string()))))])))).clone()) as Box<dyn Any>)));
     println!("{}", format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<bool>>>>::from([(false, Rc::new(RefCell::new(Some(true))))])))).clone()) as Box<dyn Any>))));
 
-    let mut u8: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(7 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
-    let mut i8: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(-(8) as i8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
-    let mut i16: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(-(3) as i16))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
-    let mut u16: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(65535 as u16))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
-    let mut u32: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(((1 as u32) << (31 as u32)) as u32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
-    let mut u64: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(((1 as u64) << (40 as u64)) as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
-    let mut u: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(9 as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
+    let mut u8: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(7u8) as Box<dyn Any>)));
+    let mut i8: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(-8i8) as Box<dyn Any>)));
+    let mut i16: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(-3i16) as Box<dyn Any>)));
+    let mut u16: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(65535u16) as Box<dyn Any>)));
+    let mut u32: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(2147483648u32) as Box<dyn Any>)));
+    let mut u64: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(1099511627776u64) as Box<dyn Any>)));
+    let mut u: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(9u64) as Box<dyn Any>)));
     println!("{} {} {} {} {} {} {}", format!("{}", format_any(u8.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(i8.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(i16.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u16.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u32.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u64.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u.borrow().as_ref().unwrap().as_ref())));
-    print!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __v = Rc::new(RefCell::new(Some(9 as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new(9u64) as Box<dyn Any>], false));
     print!("{} {}\n", format_any(u8.borrow().as_ref().unwrap().as_ref()), format_any(u64.borrow().as_ref().unwrap().as_ref()));
-    show(Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(1 as i8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(2 as u16))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(1i8) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(2u16) as Box<dyn Any>))));
 }

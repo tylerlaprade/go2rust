@@ -5,7 +5,7 @@ use std::rc::{Rc};
 #[derive(Debug, Clone)]
 pub struct Person {
     pub name: Rc<RefCell<Option<String>>>,
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
 }
 
 impl Person {
@@ -88,7 +88,7 @@ impl std::fmt::Display for Address {
 pub struct Employee {
     pub person: Rc<RefCell<Option<Person>>>,
     pub address: Rc<RefCell<Option<Address>>>,
-    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub i_d: Rc<RefCell<Option<i64>>>,
     pub salary: Rc<RefCell<Option<f64>>>,
 }
 

@@ -12,7 +12,7 @@ pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
-    fn area(&self) -> i32;
+    fn area(&self) -> i64;
 }
 
 impl Clone for Box<dyn Shape> {
@@ -23,7 +23,7 @@ impl Clone for Box<dyn Shape> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sq {
-    pub side: Rc<RefCell<Option<i32>>>,
+    pub side: Rc<RefCell<Option<i64>>>,
 }
 
 impl Sq {
@@ -54,13 +54,13 @@ impl std::fmt::Display for Sq {
 
 
 impl Sq {
-    pub fn area(&self) -> i32 {
+    pub fn area(&self) -> i64 {
         return (*self.side.borrow().as_ref().unwrap()) * (*self.side.borrow().as_ref().unwrap());
     }
 }
 
 impl Shape for Sq {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         Sq::area(self)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
@@ -89,7 +89,7 @@ impl std::fmt::Display for SqPtr {
 }
 
 impl Shape for SqPtr {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Sq::area(__recv)
@@ -109,12 +109,12 @@ impl Shape for SqPtr {
     }
 }
 
-pub fn area_of(s: Rc<RefCell<Option<Box<dyn Shape>>>>) -> i32 {
+pub fn area_of(s: Rc<RefCell<Option<Box<dyn Shape>>>>) -> i64 {
     (*s.borrow().as_ref().unwrap()).area()
 }
 
-pub fn sum_all__ptr__sq(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Sq>>>>>>>) -> i32 {
-    let mut total = Rc::new(RefCell::new(Some(0)));
+pub fn sum_all__ptr__sq(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Sq>>>>>>>) -> i64 {
+    let mut total = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
         { let __rhs = area_of(Rc::new(RefCell::new(Some(Box::new(SqPtr(it.clone())) as Box<dyn Shape>)))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }

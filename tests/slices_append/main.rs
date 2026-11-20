@@ -57,7 +57,7 @@ fn main() {
         for _i in 0.._n {
             (*c.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
         }
-        Rc::new(RefCell::new(Some(_n as i32)))
+        Rc::new(RefCell::new(Some(_n as i64)))
     };
     println!("{} {}", format!("{}", "copy:".to_string()), format!("{}", format_slice(&c)));
 
