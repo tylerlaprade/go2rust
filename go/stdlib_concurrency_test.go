@@ -3,7 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go/ast"
 	"go/build"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,5 +105,34 @@ func TestStdlibPackageCacheAvoidsSyncMapBridgeDependency(t *testing.T) {
 	source := string(data)
 	if strings.Contains(source, `"sync"`) || strings.Contains(source, "sync.Map") {
 		t.Fatalf("stdlib package cache should not force the self-transpiled binary through sync.Map bridge methods")
+	}
+}
+
+func TestPureStdlibPackagesDoNotMakeProgramConcurrent(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"errors"
+	"strings"
+	"unicode"
+)
+
+func main() {
+	_ = strings.TrimPrefix("go2rust", "go")
+	_ = unicode.IsLetter('x')
+	_ = errors.Join(errors.New("a"))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject([]*ast.File{file})
+	if cd.NeedsConcurrency() {
+		t.Fatalf("calls into strings, unicode and errors should not make a program concurrent")
+	}
+	if !isAsyncStdlibFunction("time", "AfterFunc") {
+		t.Fatalf("time.AfterFunc runs its callback on another goroutine")
 	}
 }

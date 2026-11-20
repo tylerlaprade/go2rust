@@ -3407,6 +3407,14 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unsafe_float_bits" {
+    run_test "tests/unsafe_float_bits"
+}
+
+@test "unsafe_float_bits_goroutines" {
+    run_test "tests/unsafe_float_bits_goroutines"
+}
+
 @test "unsafe_pointer_deref_assignment" {
     run_test "tests/unsafe_pointer_deref_assignment"
 }

@@ -222,6 +222,31 @@ var syncStdlibFunctions = map[string]bool{
 	"regexp.Match":            true,
 }
 
+// syncStdlibPackages are packages none of whose functions start a goroutine
+// or hand user data to one. A call into them does not make the program
+// concurrent, whether or not syncStdlibFunctions lists the function.
+// strings.TrimPrefix or unicode.IsLetter made every value of a program
+// with no goroutine an Arc<Mutex<>>.
+var syncStdlibPackages = map[string]bool{
+	"cmp":            true,
+	"container/heap": true,
+	"container/list": true,
+	"container/ring": true,
+	"errors":         true,
+	"fmt":            true,
+	"maps":           true,
+	"math":           true,
+	"math/bits":      true,
+	"math/cmplx":     true,
+	"slices":         true,
+	"sort":           true,
+	"strconv":        true,
+	"strings":        true,
+	"unicode":        true,
+	"unicode/utf16":  true,
+	"unicode/utf8":   true,
+}
+
 // isAsyncStdlibFunction checks if a function call might spawn goroutines
 func isAsyncStdlibFunction(pkgName, funcName string) bool {
 	// Check the fully qualified name
@@ -233,7 +258,7 @@ func isAsyncStdlibFunction(pkgName, funcName string) bool {
 	}
 
 	// If it's explicitly marked as sync, it's safe
-	if syncStdlibFunctions[fullName] {
+	if syncStdlibFunctions[fullName] || syncStdlibPackages[pkgName] {
 		return false
 	}
 
