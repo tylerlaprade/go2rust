@@ -19,6 +19,9 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		if anyFormatTypeIsLocalStruct(t) {
 			return anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(t) || isConcreteGoErrorValue(t)}, true
 		}
+		if anyFormatTypeIsLocalNamedBasic(t) {
+			return anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(t) || isConcreteGoErrorValue(t), namedBasic: true}, true
+		}
 	case *types.Pointer:
 		if anyFormatTypeIsLocalStruct(t.Elem()) {
 			var expr strings.Builder
@@ -79,6 +82,29 @@ func anyFormatTypeIsLocalStruct(typ types.Type) bool {
 	return named.Obj().Parent() == named.Obj().Pkg().Scope()
 }
 
+// anyFormatTypeIsLocalNamedBasic reports whether typ is a type the package
+// declares with a basic underlying type, "type Level int". Its newtype
+// implements Display: through String when the type has one, otherwise as
+// the value it holds, which is how Go prints both (DEV-47).
+func anyFormatTypeIsLocalNamedBasic(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if args := named.TypeArgs(); args != nil && args.Len() > 0 {
+		return false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	return named.Obj().Parent() == named.Obj().Pkg().Scope()
+}
+
 func anyFormatElemImplementsDisplay(typ types.Type) bool {
 	if basic, ok := types.Unalias(typ).(*types.Basic); ok {
 		return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0 &&
@@ -87,7 +113,10 @@ func anyFormatElemImplementsDisplay(typ types.Type) bool {
 	return anyFormatTypeIsLocalStruct(typ)
 }
 
+// anyFormatKeyIsOrderedBasic reports whether typ is a key type format_map can
+// print in Go's order. Go prints a map sorted by key: integers and strings in
+// their own order, false before true. Rust orders all three the same way.
 func anyFormatKeyIsOrderedBasic(typ types.Type) bool {
 	basic, ok := types.Unalias(typ).(*types.Basic)
-	return ok && basic.Info()&(types.IsInteger|types.IsString) != 0 && basic.Info()&types.IsUntyped == 0
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsString) != 0 && basic.Info()&types.IsUntyped == 0
 }

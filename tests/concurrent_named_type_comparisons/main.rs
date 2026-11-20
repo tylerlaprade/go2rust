@@ -155,8 +155,15 @@ pub const FIELD: i8 = 1;
 pub const METHOD: i8 = 2;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Kind(pub Arc<Mutex<Option<i8>>>);
+
+impl Clone for Kind {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Kind(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Kind {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -622,7 +629,7 @@ impl Symbol {
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let mut sym = Arc::new(Mutex::new(Some(Symbol { kind: Arc::new(Mutex::new(Some(Kind(Arc::new(Mutex::new(Some(FIELD as i8))))))), ..Default::default() })));
-    let done_thread = done.clone(); let sym_thread = Arc::new(Mutex::new(Some((*sym.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
+    let done_thread = done.clone(); let sym_thread = sym.clone(); std::thread::spawn(move || {
         done_thread.send((*sym_thread.lock().unwrap().as_ref().unwrap()).is_field());;;
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));

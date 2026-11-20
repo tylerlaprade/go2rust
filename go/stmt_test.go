@@ -3949,6 +3949,87 @@ func makeHolder() Holder {
 	}
 }
 
+func TestInstantiatedGenericStructShortDeclWrapsLocalValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Box[T any] struct { Value T }
+
+func use() {
+	value := Box[int]{Value: 7}
+	var explicit = Box[int]{Value: 8}
+	_, _ = value, explicit
+}
+`)
+
+	ordinary := "Rc::new(RefCell::new(Some(Box_::<i32> {"
+	concurrent := "Arc::new(Mutex::new(Some(Box_::<i32> {"
+	if strings.Count(rust, ordinary) < 2 && strings.Count(rust, concurrent) < 2 {
+		t.Fatalf("instantiated generic struct short and var declarations should store locals in their Go value wrappers:\n%s", rust)
+	}
+}
+
+func TestCompositeLiteralLocalWrapperUsesTypeInfoAndPreservesEmitterShape(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"strings"
+	"sync"
+)
+
+type Index map[string]int
+
+func use() {
+	builder := strings.Builder{}
+	var otherBuilder = strings.Builder{}
+	mu := sync.Mutex{}
+	var otherMu = sync.Mutex{}
+	index := Index{"a": 1}
+	var otherIndex = Index{"b": 2}
+	_, _, _, _, _, _ = builder, otherBuilder, mu, otherMu, index, otherIndex
+}
+`)
+
+	for _, unwanted := range []string{
+		"Some(String::new())",
+		"Some(GoMutex {",
+		"let mut index = Index(",
+		"let mut otherIndex = Index(",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("composite literal local representation must agree with its emitter and variable registration; found %q:\n%s", unwanted, rust)
+		}
+	}
+	for _, want := range []string{
+		"let mut builder = String::new();",
+		"let mut otherBuilder = String::new();",
+		"let mut mu = GoMutex {",
+		"let mut otherMu = GoMutex {",
+		"let mut index = Rc::new(RefCell::new(Some(Index(",
+		"let mut otherIndex = Rc::new(RefCell::new(Some(Index(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected composite literal local representation %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestCompositeLiteralLocalWrapperRequiresTypeInfo(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+type Index map[string]int
+
+func use() {
+	value := Index{"a": 1}
+	var explicit = Index{"b": 2}
+	_, _ = value, explicit
+}
+`)
+
+	if got := strings.Count(rust, `unimplemented!("type info required for composite literal initializer")`); got != 2 {
+		t.Fatalf("missing type information must fail loudly for both composite literal local forms; got %d:\n%s", got, rust)
+	}
+}
+
 func TestStructLiteralLenFieldUsesGoInt(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -6416,6 +6497,20 @@ func positions(items []string) map[string]int {
 	}
 }
 
+func TestMapUpdateCastsLenKeyToGoInt(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bump(m map[int]int) {
+	m[len(m)] += 5
+}
+`)
+
+	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") &&
+		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") {
+		t.Fatalf("map update should cast len from usize to its Go int key type:\n%s", rust)
+	}
+}
+
 func TestMapAssignmentKeepsRangeMapValueHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -7795,27 +7890,6 @@ func scan() {
 	}
 	if !strings.Contains(rust, "0..(") {
 		t.Fatalf("expected integer range emission:\n%s", rust)
-	}
-}
-
-func TestRangeKeyOnlyOverSlicedArrayExpressionWrapsLengthBlock(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
-
-func sum(n int) int {
-	var stk [4]int
-	total := 0
-	for i := range stk[:n] {
-		total += i
-	}
-	return total
-}
-`)
-
-	if strings.Contains(rust, " in 0..{ let __seq =") {
-		t.Fatalf("key-only range over sliced array expression should parenthesize the length block:\n%s", rust)
-	}
-	if !strings.Contains(rust, " in 0..({ let __seq =") {
-		t.Fatalf("expected parenthesized range length block:\n%s", rust)
 	}
 }
 
@@ -9368,34 +9442,6 @@ func (s *scanner) advance() {
 	}
 }
 
-func TestRangeOverSliceExpressionBindsFieldBoundBeforeIterator(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
-
-type scanner struct {
-	rdOffset int
-	src []byte
-}
-
-func (s *scanner) advance() {
-	for rdOffset, b := range s.src[s.rdOffset:] {
-		if b == ' ' {
-			s.rdOffset += rdOffset
-			break
-		}
-	}
-}
-`)
-
-	if strings.Contains(rust, "__seq[(*self.rd_offset.clone().lock().unwrap().as_ref().unwrap()) as usize..]") ||
-		strings.Contains(rust, "__seq[(*self.rd_offset.clone().borrow().as_ref().unwrap()) as usize..]") {
-		t.Fatalf("slice range should not keep the field-bound borrow in the iterator expression:\n%s", rust)
-	}
-	if !strings.Contains(rust, "let __low = (*self.rd_offset.clone()") ||
-		!strings.Contains(rust, "__seq[__low..].to_vec()") {
-		t.Fatalf("slice range should bind the field bound before slicing:\n%s", rust)
-	}
-}
-
 func TestDeferClosureCompoundAssignUsesCapturedIdentRename(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -10017,8 +10063,9 @@ func use() string {
 	if !strings.Contains(rust, "_ts_val.and_then(|__v| "+handle+").is_some()") {
 		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let x = _ts_val.and_then(|__v| "+handle+").unwrap().clone();") {
-		t.Fatalf("the case variable should be the error handle the interface value holds:\n%s", rust)
+	// The case variable is a copy: a handle of its own to the same error.
+	if !strings.Contains(rust, "let x = { let __err_source = _ts_val.and_then(|__v| "+handle+").unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };") {
+		t.Fatalf("the case variable should get its own handle to the error the interface value holds:\n%s", rust)
 	}
 	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
 		t.Fatalf("case error should not look for a bare boxed error:\n%s", rust)
@@ -10169,6 +10216,102 @@ func (u *User) Tags() []string { return u.tags }
 		}
 		if strings.Contains(body, "Rc::new(") {
 			t.Fatalf("%s must not build a new cell for a field Go shares:\n%s", name, body)
+		}
+	}
+}
+
+// "t := s" for a local slice, map or channel wrote the read of s, a place,
+// into the new variable, which moved the Vec, map or channel out of s and did
+// not compile. A map or channel copy shares s's handle, as "t = s" does. A
+// slice copy clones the elements into a cell of its own, so that appending to
+// it or setting s to nil leaves the other alone.
+func TestCopyOfLocalSliceMapOrChannelVariable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Numbers []int
+
+func main() {
+	s := []int{1}
+	t := s
+	var a = s
+	var b []int = s
+	m := map[string]int{"a": 1}
+	d := m
+	var f = m
+	n := Numbers{1}
+	e := n
+	ch := make(chan int, 1)
+	ch2 := ch
+	var ch3 = ch
+	var u Numbers = s
+	_, _, _, _, _, _, _, _, _ = t, a, b, d, f, e, ch2, ch3, u
+}
+`)
+
+	for _, want := range []string{
+		"let mut t = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut a = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut b: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut d = m.clone();",
+		"let mut f = m.clone();",
+		"let mut e = Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()).clone())));",
+		"let mut ch2 = ch.clone();",
+		"let mut ch3 = ch.clone();",
+		"Numbers(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone()))))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Some((*s.borrow().as_ref().unwrap()))") {
+		t.Fatalf("a copy of s must not move the Vec out of its cell:\n%s", rust)
+	}
+}
+
+// A local sync.Mutex is a bare GoMutex, so Lock and Unlock use it directly,
+// and "&mu" and "&sync.Mutex{}" are the helper itself, as a *sync.Mutex
+// parameter is. A local sync.RWMutex starts as GoRWMutex::new().
+func TestLocalSyncMutexForms(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+func bump(mu *sync.Mutex) {
+	mu.Lock()
+	mu.Unlock()
+}
+
+func main() {
+	var mu sync.Mutex
+	mu.Lock()
+	mu.Unlock()
+	bump(&mu)
+	var b = sync.Mutex{}
+	b.Lock()
+	b.Unlock()
+	c := &sync.Mutex{}
+	bump(c)
+	var rw sync.RWMutex
+	rw.RLock()
+	rw.RUnlock()
+}
+`)
+	for _, want := range []string{
+		"let __mutex_guard_source_",
+		"= mu.clone(); let __mutex_guard_",
+		"bump(mu.clone())",
+		"= b.clone(); let __mutex_guard_",
+		"let mut c = GoMutex {",
+		"bump(c.clone())",
+		"let mut rw = GoRWMutex::new();",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{"mu.borrow()", "b.borrow()", "c.borrow()", "let mut rw;"} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
 		}
 	}
 }

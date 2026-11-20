@@ -1,0 +1,10 @@
+{X:1 Y:2}
+{Base:{ID:7} From:{X:0 Y:0} To:{X:3 Y:4} Label:diag Tags:[a b] Weight:2.5 Ok:true}
+{{7} {0 0} {3 4} diag [a b] 2.5 true}
+p={X:1 Y:2} n=N3 i=5 d=+6 str=x
+boom
+[{X:1 Y:2} {X:3 Y:4}] [{1 2} {3 4}]
+&{X:1 Y:2} &{1 2}
+{A:1 B:2}
+config: {Name:svc Retries:3 Verbose:false}
+{svc 3 false}|{Name:svc Retries:3 Verbose:false}

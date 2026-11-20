@@ -313,6 +313,13 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	runCtx.Package.MethodsByType = collectPackageMethods(astFiles)
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(nil)
+	// Multi-file packages emit non-main modules before main.rs. Discover the
+	// generic-struct copy helper package-wide so a concrete value type declared
+	// in an earlier sibling module still receives the marker implementation that
+	// a later generic struct instantiation requires.
+	if packageNeedsGoTypeParamFieldClone(astFiles, pg.typeInfo) {
+		NeedGoTypeParamFieldClone()
+	}
 	if packageLoader != nil {
 		prevSourceStdlibReachable := sourceStdlibReachable
 		SetSourceStdlibReachable(packageLoader.GetSourceStdlibReachable())
@@ -503,6 +510,43 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	return pg.generateCargoToml()
 }
 
+func packageNeedsGoTypeParamFieldClone(files []*ast.File, typeInfo *TypeInfo) bool {
+	if typeInfo == nil {
+		return false
+	}
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
+					continue
+				}
+				structType, ok := typeSpec.Type.(*ast.StructType)
+				if !ok || structType.Fields == nil {
+					continue
+				}
+				params := make(map[string]bool)
+				for _, field := range structType.Fields.List {
+					if field != nil {
+						collectGoTypeParamFieldCloneParams(typeInfo.GetType(field.Type), params, make(map[types.Type]bool))
+					}
+				}
+				if len(params) > 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func sampleASTPathKeys(astFilesByPath map[string]*ast.File, limit int) string {
 	if len(astFilesByPath) == 0 {
 		return "[]"
@@ -647,6 +691,34 @@ func prefixSiblingItemImports(rustCode string, itemNames []string) string {
 	return importLine + "\n" + rustCode
 }
 
+// siblingInterfaceMapKeyTypes finds the interfaces of the package that are
+// used as a map key, and the name of the key type written next to each one's
+// trait (see writeLocalInterfaceMapKeyType). It makes the same decision as
+// collectLocalInterfaceMapKeyTypes, from the given type information.
+func siblingInterfaceMapKeyTypes(files []*ast.File, typeInfo *TypeInfo) map[types.Object]string {
+	keyTypes := make(map[types.Object]string)
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
+		return keyTypes
+	}
+	for _, file := range files {
+		ast.Inspect(file, func(node ast.Node) bool {
+			mapType, ok := node.(*ast.MapType)
+			if !ok {
+				return true
+			}
+			named, ok := types.Unalias(mapKeyTypeFromMapType(typeInfo, mapType)).(*types.Named)
+			if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+				return true
+			}
+			if iface, ok := named.Underlying().(*types.Interface); ok && iface.NumMethods() > 0 {
+				keyTypes[named.Obj()] = localInterfaceMapKeyTypeName(RustTypeNameForUse(named.Obj().Name()))
+			}
+			return true
+		})
+	}
+	return keyTypes
+}
+
 func formatCrateUse(names []string) string {
 	importLine := "use crate::{" + strings.Join(names, ", ") + "};\n"
 	if len(strings.TrimSuffix(importLine, "\n")) <= maxSingleLineCrateUseLen {
@@ -696,6 +768,7 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 		objectRustNames[obj] = rustName
 	}
 	packageMethods := collectPackageMethods(files)
+	interfaceMapKeyTypes := siblingInterfaceMapKeyTypes(files, typeInfo)
 
 	for i, file := range files {
 		if file == nil || i >= len(moduleNamesByIndex) {
@@ -766,6 +839,19 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 			case *types.Map:
 				collectTypeReferences(t.Key(), seen)
 				collectTypeReferences(t.Elem(), seen)
+				// A map keyed by an interface of this package uses the key
+				// type written next to the interface's trait. A file that
+				// holds such a map in another module has to import it too.
+				if key, ok := types.Unalias(t.Key()).(*types.Named); ok {
+					if keyTypeName, ok := interfaceMapKeyTypes[key.Obj()]; ok {
+						if sourceModule := objectModules[key.Obj()]; sourceModule != "" && sourceModule != currentModule {
+							if neededByModule[sourceModule] == nil {
+								neededByModule[sourceModule] = make(map[string]bool)
+							}
+							neededByModule[sourceModule][keyTypeName] = true
+						}
+					}
+				}
 			case *types.Chan:
 				collectTypeReferences(t.Elem(), seen)
 			case *types.Signature:
@@ -783,8 +869,12 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 				for i := 0; i < t.NumEmbeddeds(); i++ {
 					collectTypeReferences(t.EmbeddedType(i), seen)
 				}
-				for i := 0; i < t.NumExplicitMethods(); i++ {
-					collectTypeReferences(t.ExplicitMethod(i).Type(), seen)
+				// All methods, not only the explicit ones: the trait of an
+				// interface that embeds another one comes with adapters that
+				// spell out every method of the embedded interface, so their
+				// signatures are used in this file as well.
+				for i := 0; i < t.NumMethods(); i++ {
+					collectTypeReferences(t.Method(i).Type(), seen)
 				}
 			case *types.Tuple:
 				collectTupleReferences(t, seen)
@@ -827,7 +917,7 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 			ptr := types.NewPointer(named)
 			for _, name := range pkgScope.Names() {
 				ifTn, ok := pkgScope.Lookup(name).(*types.TypeName)
-				if !ok || ifTn == tn {
+				if !ok || ifTn == tn || sourceMappedDeclIsPruned(ifTn) {
 					continue
 				}
 				ifNamed, ok := ifTn.Type().(*types.Named)

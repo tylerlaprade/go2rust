@@ -184,7 +184,7 @@ impl std::fmt::Display for Runner {
 
 impl Runner {
     pub fn after(&self) {
-        let _ = self.name.clone();
+        let _ = &self.name;
     }
 
     pub fn run(&self, done: GoChannel<String>) {

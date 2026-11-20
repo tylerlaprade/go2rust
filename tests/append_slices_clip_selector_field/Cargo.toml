@@ -1,3 +1,14 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/cmp",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/iter",
+    "vendor/math_bits",
+    "vendor/slices",
+]
+
 [package]
 name = "append_slices_clip_selector_field"
 version = "0.1.0"
@@ -6,3 +17,10 @@ edition = "2021"
 [[bin]]
 name = "append_slices_clip_selector_field"
 path = "main.rs"
+
+[dependencies]
+cmp = { path = "vendor/cmp" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+iter = { path = "vendor/iter" }
+math_bits = { path = "vendor/math_bits" }
+slices = { path = "vendor/slices" }

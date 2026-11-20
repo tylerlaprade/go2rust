@@ -3,3 +3,18 @@ direct field through a closure 1
 array of structs through a closure 5
 returned receiver 50 60
 copy 50 60 5 7 8 9
+type parameter struct copy 11 12
+type parameter slice elements 14 14
+type parameter slice field 14 15
+type parameter array copy 16 18
+type parameter named scalar 19 20
+nested generic struct copy 21 22
+type parameter array slice backing 24 24
+generic value receiver 25
+combined generic copy bounds 26
+function type argument 31 32
+function type argument field 33 99
+function type argument parameter 41 43
+function type argument parameter field 46 40
+function repeated copy 101
+function repeated copy replacement 200 200

@@ -22,12 +22,28 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
         match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Missing>() {
         format!("{}", v)
     } else {
-        "<unknown>".to_string()
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 
@@ -59,14 +75,14 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
@@ -93,6 +109,18 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
         Err(_payload) => _payload,
     };
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
 }
 
 fn go_resume_unrecovered_panic() {
@@ -524,14 +552,19 @@ pub fn work(fail: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Arc<dyn StdError
         return err.clone();
     }
     }));
-    std::panic::set_hook(__go_previous_panic_hook);
     match __go_panic_result {
-        Ok(__go_value) => __go_value,
+        Ok(__go_value) => {
+            std::panic::set_hook(__go_previous_panic_hook);
+            __go_value
+        }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                f();
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
             }
+            std::panic::set_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
             err.clone()
         }

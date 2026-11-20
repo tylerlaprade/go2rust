@@ -2,7 +2,7 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
 pub fn r#use(w: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>) {
-    let _ = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    let _ = &w;
 }
 
 pub fn make_buffer() -> Arc<Mutex<Option<bytes::buffer::Buffer>>> {

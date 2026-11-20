@@ -32,14 +32,14 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
@@ -66,6 +66,18 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
         Err(_payload) => _payload,
     };
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
 }
 
 fn go_resume_unrecovered_panic() {
@@ -113,14 +125,19 @@ pub fn make_type() -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + S
         return res.clone();
     }
     }));
-    std::panic::set_hook(__go_previous_panic_hook);
     match __go_panic_result {
-        Ok(__go_value) => __go_value,
+        Ok(__go_value) => {
+            std::panic::set_hook(__go_previous_panic_hook);
+            __go_value
+        }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                f();
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
             }
+            std::panic::set_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
             res.clone()
         }
@@ -130,16 +147,19 @@ pub fn make_type() -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + S
 fn main() {
     ::bytes::__go_init_all();
     ::cmp::__go_init_all();
+    ::container_heap::__go_init_all();
     ::go_ast::__go_init_all();
     ::go_constant::__go_init_all();
     ::go_token::__go_init_all();
     ::go_types::__go_init_all();
     ::go_version::__go_init_all();
+    ::internal_abi::__go_init_all();
     ::internal_buildcfg::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
     ::internal_goexperiment::__go_init_all();
     ::internal_gover::__go_init_all();
     ::internal_goversion::__go_init_all();
@@ -150,7 +170,9 @@ fn main() {
     ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();
     ::slices::__go_init_all();
+    ::sort::__go_init_all();
     ::strconv::__go_init_all();
+    ::strings::__go_init_all();
     ::sync_atomic::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();

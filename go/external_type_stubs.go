@@ -1200,6 +1200,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
+	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry

@@ -1,8 +1,15 @@
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct namedState(pub Arc<Mutex<Option<u32>>>);
+
+impl Clone for namedState {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        namedState(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for namedState {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

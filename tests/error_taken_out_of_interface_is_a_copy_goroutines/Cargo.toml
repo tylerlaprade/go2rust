@@ -1,0 +1,8 @@
+[package]
+name = "error_taken_out_of_interface_is_a_copy_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_taken_out_of_interface_is_a_copy_goroutines"
+path = "main.rs"

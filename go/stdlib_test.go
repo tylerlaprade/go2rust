@@ -82,6 +82,35 @@ func wrap() error {
 	}
 }
 
+func TestFmtPrintlnClonesPackageGlobalSliceHandle(t *testing.T) {
+	source := `package main
+
+import "fmt"
+
+var global []int
+var labels map[string]int
+
+func main() {
+	fmt.Println(global, labels)
+}
+`
+
+	for _, rust := range []string{
+		transpileTypedRegression(t, source),
+		transpileTypedConcurrentRegression(t, source),
+	} {
+		if !strings.Contains(rust, "format_slice(&global.clone())") {
+			t.Fatalf("package-global slice printing should pass an ordinary collection handle to the formatter:\n%s", rust)
+		}
+		if strings.Contains(rust, "format_slice(&global)") {
+			t.Fatalf("package-global slice printing should not pass the global slot itself to the formatter:\n%s", rust)
+		}
+		if !strings.Contains(rust, "format_map(&labels.clone())") {
+			t.Fatalf("package-global map printing should clone the collection handle:\n%s", rust)
+		}
+	}
+}
+
 func TestLenOfPointerToSliceDerefUsesSliceHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -978,11 +1007,16 @@ func render(m float64, e int) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "%.6g") || strings.Contains(rust, "%+d") || strings.Contains(rust, `"%g"`) {
-		t.Fatalf("fmt.Sprintf should not leave Go precision/sign verbs in Rust format strings:\n%s", rust)
+	// %.6g is six significant digits, and Rust's {:.6} is six decimals: no
+	// Rust format prints these verbs as Go does, so go_sprintf formats them
+	// when the program runs.
+	if strings.Contains(rust, `format!("%.6g`) || strings.Contains(rust, `format!("{:.6}e{:+}"`) {
+		t.Fatalf("fmt.Sprintf should not turn %%g with a precision into a Rust format:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{:.6}e{:+}"`) {
-		t.Fatalf("fmt.Sprintf should lower Go %%g precision and signed decimal verbs:\n%s", rust)
+	for _, want := range []string{`go_sprintf(&"%.6ge%+d".to_string(),`, `go_sprintf(&"%g".to_string(),`} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
 	}
 }
 
@@ -1791,5 +1825,27 @@ func main() {
 	}
 	if strings.Contains(locked, "format_any(v.lock().unwrap().as_ref().unwrap().as_ref()), ") {
 		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)
+	}
+}
+
+// An interface value appended to a []interface{} is copied into a box of its
+// own with go_any_clone. A Box<dyn Any> has no clone(), so the generic copy
+// did not compile.
+func TestAppendingAnInterfaceValueCopiesTheBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var kept []any
+	var x any = "s"
+	kept = append(kept, x)
+	fmt.Println(len(kept))
+}
+`)
+
+	want := "let __append_value = { let __any_holder = x.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect(\"nil interface in variadic any argument\").as_ref()) };"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("missing %q in:\n%s", want, rust)
 	}
 }

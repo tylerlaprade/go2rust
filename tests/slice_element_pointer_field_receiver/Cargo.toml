@@ -1,0 +1,8 @@
+[package]
+name = "slice_element_pointer_field_receiver"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_element_pointer_field_receiver"
+path = "main.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "map_named_slice_missing_key_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_named_slice_missing_key_goroutines"
+path = "main.rs"

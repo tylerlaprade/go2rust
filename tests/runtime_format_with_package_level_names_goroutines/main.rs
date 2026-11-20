@@ -18,8 +18,24 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
     } else {
-        "<unknown>".to_string()
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 
@@ -197,9 +213,14 @@ fn go_format_is_text(__value: &(dyn Any + Send + Sync)) -> bool {
     false
 }
 
+// The basic value a newtype such as "type Level int" holds, boxed.
+fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    None
+}
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -628,6 +649,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
         return go_format_string(&basic, verb, &format_any(value));
     }
+    if let Some(inner) = go_format_named_basic_value(value) {
+        return go_format_argument(spec, verb, inner.as_ref());
+    }
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or
     // element, which is not done here. nil is one text.
@@ -875,13 +899,13 @@ fn main() {
     done.recv().unwrap_or_default();
 
     let mut f = Arc::new(Mutex::new(Some("%s%d %q %5.2f|%-4s|%x\n".to_string())));
-    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new(WIDTH) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new(3.14159) as Box<dyn Any + Send + Sync>, Box::new("ab".to_string()) as Box<dyn Any + Send + Sync>, Box::new(255) as Box<dyn Any + Send + Sync>], false));
+    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(WIDTH) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(3.14159) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("ab".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(255) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut g = Arc::new(Mutex::new(Some("%v %c %v %+d\n".to_string())));
-    print!("{}", go_sprintf(&(*g.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __tmp_x = WIDTH; let __tmp_y = PRECISION; __tmp_x + __tmp_y }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>], false));
+    print!("{}", go_sprintf(&(*g.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = WIDTH; let __tmp_y = PRECISION; __tmp_x + __tmp_y }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut h = Arc::new(Mutex::new(Some("%v %v %v %v %v %v\n".to_string())));
-    print!("{}", go_sprintf(&(*h.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = spec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = out.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = args.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = format.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>], false));
-    print!("{}", go_sprintf(&(*h.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = chars.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = items.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = fill.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = magnitude.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>], false));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[Box::new("x".to_string()) as Box<dyn Any + Send + Sync>, Box::new(1) as Box<dyn Any + Send + Sync>, Box::new("y".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>, Box::new(16) as Box<dyn Any + Send + Sync>], false))))).lock().unwrap().as_ref().unwrap())));
+    print!("{}", go_sprintf(&(*h.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = spec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = out.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = args.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = format.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&(*h.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = chars.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = items.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = fill.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = magnitude.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("x".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("y".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(2.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("z".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(16) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))).lock().unwrap().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

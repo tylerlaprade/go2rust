@@ -9066,6 +9066,53 @@ func (s *Scope) Lookup(name string) Object {
 	}
 }
 
+func TestMissingNamedSliceMapLookupUsesPresentNilSlice(t *testing.T) {
+	source := `package main
+
+type Numbers []int
+
+func lookup(m map[string]Numbers) (int, bool, bool, int, bool) {
+	one := m["missing"]
+	two, ok := m["missing"]
+	return len(one), one == nil, ok, len(two), two == nil
+}
+`
+
+	for _, test := range []struct {
+		name string
+		rust string
+		zero string
+	}{
+		{
+			name: "local",
+			rust: transpileTypedRegression(t, source),
+			zero: "Rc::new(RefCell::new(Some(Default::default())))",
+		},
+		{
+			name: "concurrent",
+			rust: transpileTypedConcurrentRegression(t, source+"\nfunc forceConcurrent() { go func() {}() }\n"),
+			zero: "Arc::new(Mutex::new(Some(Default::default())))",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if !strings.Contains(test.rust, ".map(|__v| __v.clone()).unwrap_or_else(|| "+test.zero+")") {
+				t.Fatalf("one-result missing named-slice lookup should return a present nil named slice:\n%s", test.rust)
+			}
+			if !strings.Contains(test.rust, "None => ("+test.zero+", false)") {
+				t.Fatalf("comma-ok missing named-slice lookup should return a present nil named slice:\n%s", test.rust)
+			}
+			if strings.Contains(test.rust, "let __nil_result = (*one") ||
+				strings.Contains(test.rust, "let __nil_result = (*two") {
+				t.Fatalf("named-slice nil comparisons should not inspect the outer map-value cell:\n%s", test.rust)
+			}
+			if strings.Count(test.rust, "let __slice_guard = __slice_holder") < 4 ||
+				strings.Count(test.rust, "(*__slice_guard).is_none()") < 2 {
+				t.Fatalf("named-slice nil comparisons should inspect the inner slice handle:\n%s", test.rust)
+			}
+		})
+	}
+}
+
 func TestStringSliceMapLookupKeyUsesOwnedString(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -10023,5 +10070,40 @@ func packageName(file *ast.File) string {
 	}
 	if !strings.Contains(rust, ".name") {
 		t.Fatalf("selector chain should still access the Name fields:\n%s", rust)
+	}
+}
+
+// A range variable over a slice is a reference into the slice, and a map key
+// is a bare value. Putting either in an interface{} takes an owned copy; it
+// used to box the reference, which does not live long enough, or move the
+// key, which a second use then could not have.
+func TestRangeVariableIsCopiedIntoAnInterfaceValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func show(args ...any) { fmt.Println(args...) }
+
+func main() {
+	for _, dir := range []string{"a"} {
+		var x any = dir
+		show(dir, x)
+	}
+	for k := range map[string]int{"k": 1} {
+		show(k, k)
+	}
+}
+`)
+
+	for _, want := range []string{
+		"Box::new((*dir).clone()) as Box<dyn Any>",
+		"Box::new(k.clone()) as Box<dyn Any>, Box::new(k.clone()) as Box<dyn Any>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Box::new(dir) as") {
+		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
 	}
 }

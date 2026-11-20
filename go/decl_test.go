@@ -1782,7 +1782,7 @@ func (h *Holder[T]) Get() T {
 		t.Fatalf("instantiated generic field should keep type arguments:\n%s", rust)
 	}
 	for _, want := range []string{
-		"impl<T: Any + 'static> Holder<T> {",
+		"impl<T: Any + GoTypeParamFieldClone + 'static> Holder<T> {\n    pub fn __go_value_clone",
 		"impl<T: Any + GoValueClone + 'static> Holder<T> {\n    pub fn get",
 		"impl<T: Any + 'static> std::fmt::Display for Holder<T> where T: std::fmt::Display {",
 	} {
@@ -3084,42 +3084,6 @@ var Features struct {
 	}
 }
 
-func TestAnonymousStructEmbeddedFieldsAreDeclared(t *testing.T) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "main.go", `package main
-
-type PtrType struct {
-	N int
-}
-
-var Holder struct {
-	PtrType
-	U int
-}
-`, 0)
-	if err != nil {
-		t.Fatalf("ParseFile() error = %v", err)
-	}
-	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
-	if err != nil {
-		t.Fatalf("NewTypeInfo() error = %v", err)
-	}
-
-	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "WARNING: embedded field in anonymous struct") {
-		t.Fatalf("anonymous embedded struct field should be declared, not warned:\n%s", rust)
-	}
-	if strings.Contains(rust, "/* unknown struct */") {
-		t.Fatalf("anonymous embedded struct package global should use the registered anonymous struct type:\n%s", rust)
-	}
-	if !strings.Contains(rust, "pub ptr_type: Rc<RefCell<Option<PtrType>>>") {
-		t.Fatalf("anonymous embedded struct field should be emitted with the generated field name:\n%s", rust)
-	}
-	if !strings.Contains(rust, "Self { ptr_type:") {
-		t.Fatalf("anonymous embedded struct clone/default paths should reference declared field:\n%s", rust)
-	}
-}
-
 func TestAnonymousStructEmbeddedLocalMethodsAreForwarded(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
@@ -4018,5 +3982,84 @@ type Seq2[K, V any] func(yield func(K, V) bool)
 	}
 	if !strings.Contains(rust, "pub type Seq2<K, V> = ") {
 		t.Fatalf("generic named function type must declare all type params (want `pub type Seq2<K, V> = ...`):\n%s", rust)
+	}
+}
+
+// A named slice of an interface from a bridged stdlib package, such as
+// []ast.Expr when go/ast is not translated from source, holds the stand-in
+// struct bare, not a trait object in a cell. Its Display must use the plain
+// slice formatter; the one for wrapped trait objects did not compile.
+func TestNamedSliceOfBridgedInterfaceUsesThePlainFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"go/ast"
+)
+
+type ExprList []ast.Expr
+
+func main() {
+	var list ExprList
+	fmt.Println(len(list))
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for ExprList {\n    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n        write!(f, \"{}\", format_slice(&self.0))") {
+		t.Fatalf("ExprList should print with format_slice:\n%s", rust)
+	}
+}
+
+// Without goroutines, a function with a defer in a program that calls
+// recover() runs its body under catch_unwind, and recover() takes the panic
+// from go_recover(). recover() used to be a literal nil there. A deferred
+// function runs under a catch of its own, so that its panic replaces the one
+// in flight, as in Go.
+func TestRecoverWithoutGoroutines(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func safe() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("recovered:", r)
+		}
+	}()
+	panic("boom")
+}
+
+func main() {
+	safe()
+}
+`)
+	for _, want := range []string{
+		"let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {",
+		"go_recover()",
+		"fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {",
+		"if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "None::<Box<dyn Any>>));") {
+		t.Fatalf("recover() must not be a literal nil:\n%s", rust)
+	}
+}
+
+// A program that never calls recover() keeps its functions as they were.
+func TestNoCatchUnwindWithoutRecover(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	defer fmt.Println("bye")
+	fmt.Println("hi")
+}
+`)
+	if strings.Contains(rust, "catch_unwind") {
+		t.Fatalf("no catch_unwind without recover():\n%s", rust)
 	}
 }

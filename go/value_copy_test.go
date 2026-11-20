@@ -405,6 +405,93 @@ func main() {
 	}
 }
 
+func TestGenericStructGoValueCloneCopiesDirectTypeParamFieldByGoSemantics(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type P struct{ X int }
+
+type C[T any] struct { V T }
+
+func main() {
+	c := &C[P]{V: P{X: 1}}
+	v := *c
+	v.V.X = 2
+}
+`)
+
+	for _, want := range []string{
+		"impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn __go_value_clone(&self) -> Self {",
+		"<T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("generic struct field copy should use instantiated Go copy semantics, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestGenericStructValueReceiverCarriesImplicitCopyBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type C[T any] struct { V T; N int }
+
+func (c C[T]) Bump() { c.N++ }
+`)
+
+	if !strings.Contains(rust, "impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn bump(&self)") {
+		t.Fatalf("generic value receiver should carry the bound required by its implicit receiver copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __self = self.__go_value_clone();") {
+		t.Fatalf("generic value receiver should still make its Go value copy:\n%s", rust)
+	}
+}
+
+func TestGenericCopyBoundPreservesDirectValueCloneRequirement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type C[T any] struct { V T }
+
+func (c C[T]) Store(value T) { c.V = value }
+
+func StoreAndCopy[T any](c C[T], value T) C[T] {
+	c.V = value
+	return c
+}
+`)
+
+	for _, want := range []string{
+		"impl<T: Any + GoValueClone + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn store(&self",
+		"pub fn store_and_copy<T: Any + GoValueClone + GoTypeParamFieldClone + 'static>(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("generic code that copies a struct and assigns T must preserve both copy bounds, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestGenericStructFunctionTypeArgumentUsesCloneableFieldProxy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type C[T any] struct { V T }
+
+func main() {
+	original := &C[func() int]{V: func() int { return 1 }}
+	copy := *original
+	_ = copy.V()
+}
+`)
+
+	for _, want := range []string{
+		"impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R>",
+		"go_fn_field_target::<std::cell::RefCell<Option<Self>>>",
+		"go_register_fn_field_target(copy_key, proxy_data, &copy, &target);",
+		"<T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("function-valued type arguments should copy through an independent forwarding field, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 // "v, ok = m[k]" for a slice or map value must leave the value in the map
 // whatever the target is. A plain local slice takes over the entry's handle.
 // A named slice, a field of one, a package variable and an indexed target
@@ -437,9 +524,10 @@ func main() {
 }
 `)
 	const held = "Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Default::default(), false) } };"
+	const namedHeld = "Some(v) => ({ let __held = v.borrow().clone(); Rc::new(RefCell::new(__held)) }, true), None => (Rc::new(RefCell::new(Some(Default::default()))), false) } };"
 	for what, want := range map[string]string{
-		"a named slice variable": held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
-		"a named slice field":    held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
+		"a named slice variable": namedHeld + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
+		"a named slice field":    namedHeld + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
 		"a package variable":     held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0;",
 		"an indexed target":      held + " { let __idx = (0) as usize; (*dst.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0.borrow_mut().take().unwrap_or_default(); }",
 		"a plain local slice":    "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; local = __tmp_0;",
@@ -496,5 +584,158 @@ func main() {
 	}
 	if t.Failed() {
 		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// A map or slice taken out of an interface{} shares its data with the one
+// that was put in. A new variable takes the handle the interface value holds,
+// in a short declaration and in a var declaration, and so does a use that
+// needs a handle, such as len(x.(map[string]int)) or printing x.([]int).
+func TestAssertedMapOrSliceSharesTheInterfaceValuesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var counts any = map[string]int{"a": 1}
+	m := counts.(map[string]int)
+	m["b"] = 2
+	var c = counts.(map[string]int)
+	c["x"] = 7
+	fmt.Println(len(counts.(map[string]int)))
+	var list any = []int{1}
+	fmt.Println(list.([]int))
+}
+`)
+
+	const mapHandle = "Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>"
+	shared := "({ let val = counts.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + mapHandle + ">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })"
+	for what, want := range map[string]string{
+		"a short declaration": "let mut m = " + shared + ";",
+		"a var declaration":   "let mut c = " + shared + ";",
+		"len of an assertion": shared,
+		"printing a slice":    "format_slice(&({ let val = list.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect(\"type assertion failed\").clone() }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// "var n Numbers = x.([]int)" declares a Numbers, not the asserted []int:
+// the initializer must build the Numbers value, not hand over the []int
+// handle the interface holds.
+func TestAssertedSliceIntoVarOfAnotherSliceTypeBuildsThatType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Numbers []int
+
+func main() {
+	var x any = []int{1}
+	var n Numbers = x.([]int)
+	var s []int = x.([]int)
+	_, _ = n, s
+}
+`)
+	if !strings.Contains(rust, "let mut n: Rc<RefCell<Option<Numbers>>> = Rc::new(RefCell::new(Some(Numbers(") {
+		t.Fatalf("var n Numbers should be built as a Numbers value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut s: Rc<RefCell<Option<Vec<i32>>>> = ({ let val = x.clone();") {
+		t.Fatalf("var s []int should keep the interface's slice handle:\n%s", rust)
+	}
+}
+
+// "any(a.([]int))" puts the handle the assertion reads into the new box, so
+// both interface values hold the same slice, as in Go. Wrapping that handle
+// in a new cell gave a box the next assertion did not recognize.
+func TestReboxedAssertedSliceSharesTheHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	a := any([]int{1, 2})
+	b := any(a.([]int))
+	_ = b
+}
+`)
+	if !strings.Contains(rust, "Box::new(({ let val = a.clone();") {
+		t.Fatalf("the new box should hold the asserted handle itself:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(({ let val = a.clone();") {
+		t.Fatalf("the asserted handle must not be wrapped in a new cell:\n%s", rust)
+	}
+}
+
+// A function value is boxed into an interface{} as its handle, so every form
+// of assertion that keeps it takes that handle: "g := x.(func())", the
+// comma-ok form, "g = x.(func())" and an element of a []any. They used to
+// downcast to the closure box itself, which is not what the box holds, and
+// clone a reference to it.
+func TestFunctionValueTakenOutOfInterfaceIsItsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	var x any = func() {}
+	g := x.(func())
+	h, ok := x.(func())
+	var k func()
+	k = x.(func())
+	items := []any{func() {}}
+	e := items[0].(func())
+	f, ok2 := items[0].(func())
+	_, _, _, _, _, _, _ = g, h, ok, k, e, f, ok2
+}
+`)
+	handle := "Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>"
+	for _, want := range []string{
+		"let mut g = ({ let val = x.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + handle + ">()",
+		"if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                (typed_val.clone(), true)",
+		"{ let new_val = ({ let val = x.clone();",
+		"any_val.downcast_ref::<" + handle + ">().expect(\"type assertion failed\").clone()",
+		"match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<" + handle + ">() {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> ()>>()") {
+		t.Fatalf("no assertion should downcast to the closure box:\n%s", rust)
+	}
+}
+
+// The value of a range over a []interface{} is a &Box<dyn Any>. Put into a
+// new interface value, it is copied out of the box with go_any_clone, and
+// printed, it is the box's payload. Cloning the reference did not compile,
+// and passing the reference itself to go_any_clone would copy the Box, not
+// what it holds.
+func TestRangeValueOverAnySliceIsCopiedOutOfItsBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func show(v interface{}) { fmt.Println(v) }
+
+func main() {
+	values := []interface{}{"a", 1}
+	for _, val := range values {
+		show(val)
+		var copy any = val
+		fmt.Println(copy, val)
+	}
+}
+`)
+	for _, want := range []string{
+		"show(Rc::new(RefCell::new(Some(go_any_clone(val.as_ref())))));",
+		"Rc::new(RefCell::new(Some(go_any_clone(val.as_ref()))));",
+		"format_any(val.as_ref())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "show(val.clone())") {
+		t.Fatalf("the range value must not be passed as a cloned reference:\n%s", rust)
 	}
 }

@@ -7,7 +7,7 @@ pub fn is_upper(r: Rc<RefCell<Option<i32>>>) -> bool {
 
 pub fn to_lower(r: Rc<RefCell<Option<i32>>>) -> u8 {
     if (*r.borrow().as_ref().unwrap()) >= ('A' as i32) && (*r.borrow().as_ref().unwrap()) <= ('Z' as i32) {
-        return (*Rc::new(RefCell::new(Some(((*r.borrow().as_ref().unwrap()) + (('a' as i32) - ('A' as i32)) as i32) as u8))).borrow().as_ref().unwrap());
+        return (*Rc::new(RefCell::new(Some(((*r.borrow().as_ref().unwrap()) + ((('a' as i32) - ('A' as i32))) as i32) as u8))).borrow().as_ref().unwrap());
     }
     (*Rc::new(RefCell::new(Some((*r.borrow().as_ref().unwrap()) as u8))).borrow().as_ref().unwrap())
 }

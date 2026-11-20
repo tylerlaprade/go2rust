@@ -19,10 +19,26 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
         match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else {
-        "<unknown>".to_string()
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 
@@ -177,7 +193,7 @@ pub fn kind(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>>
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "string ".to_string(), (*x.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() {
-        let x = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).unwrap().clone();
+        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "error ".to_string(), (*Rc::new(RefCell::new(Some(format!("{}", x.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())))));;
     } else {
@@ -238,7 +254,7 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
-                (typed_val.clone(), true)
+                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
             } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
                 (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
             } else {
@@ -262,7 +278,7 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
-                (typed_val.clone(), true)
+                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
             } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
                 (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
             } else {
@@ -285,7 +301,7 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
-                (typed_val.clone(), true)
+                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
             } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
                 (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
             } else {

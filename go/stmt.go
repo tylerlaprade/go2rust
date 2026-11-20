@@ -181,6 +181,10 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			return true
 		}
+		// A nil check on the left can emit a block that scopes its borrow.
+		if left, ok := e.X.(*ast.BinaryExpr); ok && isRightNilComparison(left) {
+			return true
+		}
 		// Whatever the operator, the LHS is emitted first; if it would
 		// produce a leading `{`, the binary expression inherits the
 		// parsing ambiguity.
@@ -1031,6 +1035,35 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	}
 }
 
+// compositeLiteralNeedsLocalValueWrapper reports whether a composite literal
+// emits a bare value that a local Go variable must store in its outer value
+// cell. Named composite types emit their named Rust value around any inner
+// collection handle, while an unnamed struct emits its bare struct value.
+// Unnamed maps, slices, and arrays already emit their own local handle.
+//
+// The second result is false when authoritative type information is missing.
+// Callers must emit a loud unsupported path instead of guessing from the AST
+// shape; identifiers and selectors can denote structs, maps, slices, or arrays.
+func compositeLiteralNeedsLocalValueWrapper(lit *ast.CompositeLit) (bool, bool) {
+	if lit == nil {
+		return false, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		return false, false
+	}
+	typ = types.Unalias(typ)
+	if _, ok := typ.(*types.Named); ok {
+		return true, true
+	}
+	_, isStruct := typ.Underlying().(*types.Struct)
+	return isStruct, true
+}
+
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
 // Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
 // the wrapper off a literal/expression.
@@ -1612,13 +1645,13 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 	return true
 }
 
-func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, registerBareScalar bool) {
+func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
 	if call, isCall := rhs.(*ast.CallExpr); isCall {
 		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
 			return
 		}
 		if callReturnsBareScalar(call) {
-			if registerBareScalar {
+			if newBinding {
 				registerBareShortDecl(lhs)
 				TranspileExpression(out, call)
 			} else {
@@ -1642,6 +1675,19 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 	if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		// Address-of expressions already return wrapped handles.
 		TranspileExpression(out, rhs)
+		return
+	}
+	if newBinding && mapIndexExpressionKeepsHandle(rhs) && isNamedSliceExpression(rhs) {
+		// Copy the named slice into its own variable slot while retaining its
+		// shared backing storage. Clearing the variable must not clear the map.
+		out.WriteString("{ let __slice = ")
+		TranspileExpression(out, rhs)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone(); ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("__slice")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(" }")
 		return
 	}
 	if rhsIsPointerType(rhs) {
@@ -2075,7 +2121,7 @@ func rangeElementUsesCopied(typ types.Type) bool {
 	if typ == nil {
 		return false
 	}
-	if isNamedIntegerType(typ) {
+	if isNamedScalarNewtype(typ) {
 		return false
 	}
 	switch underlying := types.Unalias(typ).Underlying().(type) {
@@ -2136,7 +2182,7 @@ func typeSyntaxIsRustCopyRangeElement(expr ast.Expr) bool {
 }
 
 func rangeElementUsesCloned(typ types.Type) bool {
-	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedIntegerType(typ)
+	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedScalarNewtype(typ)
 }
 
 func compositeLiteralRangeElemRustType(lit *ast.CompositeLit) (string, bool) {
@@ -2694,6 +2740,58 @@ func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
 		return true
 	})
 	return assigned
+}
+
+// blockCallsPointerMethodOnValue reports whether body calls a method with a
+// pointer receiver on the variable name, which holds a value: `c.Inc()` with
+// `func (c *Counter) Inc()` takes the address of c.
+func blockCallsPointerMethodOnValue(body *ast.BlockStmt, name string) bool {
+	typeInfo := GetTypeInfo()
+	if body == nil || name == "" || name == "_" || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := n.(*ast.FuncLit); ok {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := sel.X.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		selection, ok := typeInfo.info.Selections[sel]
+		if !ok || selection.Kind() != types.MethodVal {
+			return true
+		}
+		fn, ok := selection.Obj().(*types.Func)
+		if !ok {
+			return true
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok || sig.Recv() == nil {
+			return true
+		}
+		if _, recvIsPointer := sig.Recv().Type().(*types.Pointer); !recvIsPointer {
+			return true
+		}
+		if _, valueIsPointer := types.Unalias(typeInfo.GetType(ident)).Underlying().(*types.Pointer); valueIsPointer {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
 }
 
 func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
@@ -3848,23 +3946,25 @@ func writeSwitchGoErrorTagHandle(out *strings.Builder, tag ast.Expr) {
 	}
 }
 
-func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
-	writePointerHandleExpression(out, tag)
+// The binding that holds the tag is in scope for every case and its body.
+func switchTagBindingName(body *ast.BlockStmt) string {
+	used := make(map[string]bool)
+	ast.Inspect(body, func(node ast.Node) bool {
+		if id, ok := node.(*ast.Ident); ok {
+			used[RustIdentForUse(id)] = true
+			used[rustFunctionNameForUse(id.Name)] = true
+		}
+		return true
+	})
+	name := "_switch_val"
+	for used[name] || isPackageTupleStructTypeName(name) || isPackageGlobalName(name) {
+		name += "_"
+	}
+	return name
 }
 
-func writeSwitchPointerDirectCaseComparison(out *strings.Builder, tag ast.Expr, caseExpr ast.Expr) {
-	// Bind the comparison result before the block ends. Left as the block's
-	// tail expression, the borrow guard it creates is dropped after
-	// __switch_val, which rustc rejects (E0597) under edition 2021.
-	out.WriteString("{ let __switch_val = ")
-	writeSwitchPointerTagHandle(out, tag)
-	out.WriteString("; let __switch_eq = ")
-	if info, ok := switchGoPtrInfo(tag); ok {
-		writeSwitchGoPtrCaseComparisonForInfo(out, "__switch_val", caseExpr, info)
-	} else {
-		writeSwitchPointerCaseComparison(out, "__switch_val", caseExpr)
-	}
-	out.WriteString("; __switch_eq }")
+func writeSwitchPointerTagHandle(out *strings.Builder, tag ast.Expr) {
+	writePointerHandleExpression(out, tag)
 }
 
 func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
@@ -3883,16 +3983,18 @@ func writeSwitchPointerCaseComparison(out *strings.Builder, switchVal string, ca
 	trackWrapperImports()
 	out.WriteString("{ let __case = ")
 	writePointerHandleExpression(out, caseExpr)
-	out.WriteString("; let __switch_guard = ")
-	out.WriteString(switchVal)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __case_guard = __case")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __both_nil = (*__switch_guard).is_none() && (*__case_guard).is_none(); let __eq = __both_nil || ")
+	// Test identity first. For distinct handles, finish each nil check before
+	// borrowing the other handle so concurrent switches cannot nest locks.
+	out.WriteString("; let __same = ")
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::ptr_eq(&")
 	out.WriteString(switchVal)
-	out.WriteString(", &__case); __eq }")
+	out.WriteString(", &__case); if __same { true } else { let __tag_nil = ")
+	out.WriteString(switchVal)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); let __both_nil = __tag_nil && __case")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none(); __both_nil } }")
 }
 
 func switchGoPtrElemRustType(tag ast.Expr) (string, bool) {
@@ -4486,6 +4588,29 @@ func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	return true
 }
 
+// writeFunctionAssertionHandleAssignment writes "f = x.(func())", where x is
+// an interface{}. A function value is boxed as its handle, so the variable
+// takes that handle, as "f = g" takes g's.
+func writeFunctionAssertionHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	e, ok := unwrapParens(rhs).(*ast.TypeAssertExpr)
+	if !ok {
+		return false
+	}
+	if _, _, _, ok := functionAssertionAnyHandleTarget(e); !ok {
+		return false
+	}
+	var value strings.Builder
+	if !writeAnyHandleAssertionHandle(&value, e) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(value.String())
+	out.WriteString("; ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
+	return true
+}
+
 func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, rhsIdent *ast.Ident) bool {
 	if rhsIdent.Name == "_" || rhsIdent.Name == "nil" || rhsIdent.Name == "true" || rhsIdent.Name == "false" {
 		return false
@@ -4561,6 +4686,134 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	WriteWrapperSuffix(out)
 	out.WriteString(" }")
 	return true
+}
+
+// varSpecHasTypeOfValue reports whether the i-th name of a var spec has the
+// type of its value: the spec names no type, or names the value's own type.
+// "var n Numbers = x.([]int)" does not: n is a Numbers built from the
+// []int, not the []int itself.
+func varSpecHasTypeOfValue(valueSpec *ast.ValueSpec, i int) bool {
+	if valueSpec.Type == nil {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || i >= len(valueSpec.Names) || i >= len(valueSpec.Values) {
+		return false
+	}
+	obj := typeInfo.info.Defs[valueSpec.Names[i]]
+	valueType := typeInfo.GetType(valueSpec.Values[i])
+	return obj != nil && valueType != nil && types.Identical(obj.Type(), valueType)
+}
+
+// writeWrappedCollectionCopyFromIdent writes the initializer of a new
+// variable that is a copy of a local slice or map variable: "t := s",
+// "var t = s". Writing the read of s there moved the Vec or map out of a
+// borrow, which rustc rejects, so "t := s" did not compile.
+//
+// A map variable holds a handle on the map. Passing it to a function and
+// "d = m" share that handle, so the new variable shares it too, and
+// "d := m; d[k] = v" changes m, as in Go.
+//
+// A slice is one Vec behind a handle with no header of its own (DEV-36):
+// sharing the handle would make "next := prev; next = append(next, x)" grow
+// prev, and "cur := queue; queue = nil" empty cur. The new variable gets a
+// clone of the elements instead, which keeps both of those right. A write
+// through one of them, "t[0] = x", does not reach the other.
+func writeWrappedCollectionCopyFromIdent(out *strings.Builder, ident *ast.Ident, destination types.Type) bool {
+	if !localCollectionIdentNeedsClone(ident) {
+		return false
+	}
+	typ := GetTypeInfo().GetType(ident)
+	if destination != nil && !types.Identical(destination, typ) {
+		return false
+	}
+	if _, isMap := types.Unalias(typ).Underlying().(*types.Map); isMap {
+		name := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			name = RustLocalIdent(renamed)
+		}
+		out.WriteString(name)
+		out.WriteString(".clone()")
+		return true
+	}
+	WriteWrapperPrefix(out)
+	writeIdentValueClone(out, ident)
+	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeChannelCopyFromIdent writes the initializer of a new variable that is
+// a copy of a channel variable: "ch2 := ch". A channel is a handle held
+// bare, so the copy is a clone of the handle. Writing the variable itself
+// moved the channel into the new one, and the next use of ch did not compile.
+func writeChannelCopyFromIdent(out *strings.Builder, ident *ast.Ident, destination types.Type) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Chan); !ok {
+		return false
+	}
+	if destination != nil && !types.Identical(destination, typ) {
+		return false
+	}
+	TranspileExpression(out, ident)
+	out.WriteString(".clone()")
+	return true
+}
+
+// localCollectionIdentNeedsClone reports whether ident is a local slice or
+// map variable held in its own cell. Its read is a place, so storing it
+// anywhere else takes a clone.
+func localCollectionIdentNeedsClone(ident *ast.Ident) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	if isVarBare(ident.Name) || isPackageGlobalIdent(ident) || isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if isSliceElemPtrVar(ident.Name) || isArrayElemPtrVar(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
+}
+
+// declaredVarType is the type of the i-th name a var spec declares, or nil
+// when the spec has no type and the name takes the type of its value.
+func declaredVarType(valueSpec *ast.ValueSpec, i int) types.Type {
+	if valueSpec.Type == nil || i >= len(valueSpec.Names) {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	if obj := typeInfo.info.Defs[valueSpec.Names[i]]; obj != nil {
+		return obj.Type()
+	}
+	return nil
 }
 
 func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
@@ -8120,6 +8373,36 @@ func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
 	out.WriteString(" }")
 }
 
+// blankAssignmentOnlyNamesAVariable reports whether the right side of
+// "_ = x" is a plain variable. Go evaluates nothing there that can fail, so
+// the generated code must not read the variable's value: a nil error,
+// pointer, slice, map, function or interface has none to read.
+//
+// A field of a variable is the same: "_ = t.err" reads nothing from the
+// field. Reaching the field through a nil pointer still stops the program,
+// as it does in Go.
+func blankAssignmentOnlyNamesAVariable(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		if e.Name == "_" {
+			return false
+		}
+		variable, ok := typeInfo.info.Uses[e].(*types.Var)
+		return ok && !variable.IsField()
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[e]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return false
+		}
+		return blankAssignmentOnlyNamesAVariable(e.X)
+	}
+	return false
+}
+
 // expressionCallsOrReceives reports whether evaluating expr calls a function
 // or receives from a channel, so that evaluating it one more time, or one
 // time less, changes what the program does.
@@ -8285,7 +8568,7 @@ func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, op token.Token) bool
 		return false
 	}
 	lhsNamed, ok := types.Unalias(typeInfo.GetType(lhs)).(*types.Named)
-	if !ok || !isNamedIntegerType(lhsNamed) {
+	if !ok || !isNamedScalarNewtype(lhsNamed) {
 		return false
 	}
 	return true
@@ -8435,6 +8718,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if writeNamedIntegerCompoundAssignUnderlyingValue(out, expr, expected) {
+		return
+	}
+	if writeNamedFloatCompoundAssignUnderlyingValue(out, expr, expected) {
 		return
 	}
 	if writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out, expr, expected) {
@@ -8960,11 +9246,11 @@ func writeMapCommaOkFoundValue(out *strings.Builder, indexExpr *ast.IndexExpr, s
 }
 
 func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr, syntaxKeepsHandle bool) {
-	if syntaxKeepsHandle {
+	typeInfo := GetTypeInfo()
+	if syntaxKeepsHandle && typeInfo == nil {
 		out.WriteString("Default::default()")
 		return
 	}
-	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		out.WriteString("/* ERROR: Type information required for map comma-ok zero value */ unimplemented!(\"type info required for map comma-ok zero value\")")
 		return
@@ -8975,8 +9261,12 @@ func writeMapCommaOkMissingValue(out *strings.Builder, indexExpr *ast.IndexExpr,
 		out.WriteString("/* ERROR: Map value type required for map comma-ok zero value */ unimplemented!(\"map value type required for map comma-ok zero value\")")
 		return
 	}
+	if syntaxKeepsHandle {
+		writeMapLookupHandleZero(out, valueType, zeroValueForTypesType(valueType))
+		return
+	}
 	if mapValueTypeKeepsHandle(valueType) {
-		out.WriteString("Default::default()")
+		writeMapLookupHandleZero(out, valueType, zeroValueForTypesType(valueType))
 		return
 	}
 
@@ -9834,8 +10124,9 @@ func mutexReceiverIsWrappedIdent(receiver mutexReceiverInfo) bool {
 	if len(receiver.fields) != 0 {
 		return false
 	}
-	_, ok := receiver.expr.(*ast.Ident)
-	return ok
+	// A local "var mu sync.Mutex" is a bare GoMutex, not a cell.
+	ident, ok := receiver.expr.(*ast.Ident)
+	return ok && !isVarBare(ident.Name)
 }
 
 func writeMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
@@ -10896,6 +11187,9 @@ func transpileConditionInline(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
+	if writeNamedBoolUnderlyingValue(out, expr) {
+		return
+	}
 	if exprNeedsBoolWrapperUnwrap(expr) {
 		writeUnwrappedBoolExpression(out, expr)
 		return
@@ -11932,7 +12226,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
 						isString = true
 					}
-					if !isString {
+					// A named string newtype concatenates through its Add impl.
+					// In a method of the type itself, `*n += "!"` updates the String
+					// the receiver holds, which push_str does.
+					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(compoundAssignRHSExpectedType(s.Lhs[0], typeInfo.GetType(s.Lhs[0])))
+					if namedStringNewtype {
+						isString = false
+					}
+					if !isString && !namedStringNewtype {
 						// Type info not available - check if RHS is a string literal at least
 						if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 							isString = true
@@ -12437,6 +12738,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if i > 0 {
 								out.WriteString(", ")
 							}
+							if blankAssignmentOnlyNamesAVariable(rhs) {
+								// "_ = err" uses the variable and reads
+								// nothing from it. Reading its value here
+								// would stop the program when it is nil.
+								out.WriteString("&")
+								TranspileExpressionContext(out, rhs, LValue)
+								continue
+							}
 							TranspileExpression(out, rhs)
 						}
 					} else {
@@ -12709,6 +13018,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if isErrorAssignment(s.Lhs[0], s.Rhs[0]) {
 									writeErrorCopyAssignment(out, s.Lhs[0], s.Rhs[0])
+								} else if writeFunctionAssertionHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// "f = x.(func())" takes the handle the interface value holds.
 								} else if writeFunctionSelectorHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Function selector values are represented by handles; copy the handle.
 								} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
@@ -12908,7 +13219,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("let mut ")
 								TranspileExpressionContext(out, s.Lhs[0], LValue)
 								out.WriteString(" = ")
-								TranspileExpression(out, s.Rhs[0])
+								writeChannelAssignmentValue(out, s.Rhs[0])
 							} else {
 								// Check for slice element pointer short declaration
 								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
@@ -13101,6 +13412,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													}
 												} else {
 													// Taking address - don't wrap, the & operator will handle it
+													if isBareSyncValueAddress(unary.X) {
+														registerBareShortDecl(s.Lhs[i])
+													}
 													TranspileExpression(out, rhs)
 												}
 											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
@@ -13191,19 +13505,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
 													registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
 												}
-												// Check if it's a struct literal vs array/slice/map literal
-												isStructLiteral := false
-												if _, ok := compositeLit.Type.(*ast.Ident); ok {
-													isStructLiteral = true
-												} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-													isStructLiteral = true
-												}
-												if compositeLiteralEmitsBareStructValue(compositeLit) {
+												needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+												emitsBareSpecialValue := compositeLiteralEmitsBareStructValue(compositeLit)
+												if emitsBareSpecialValue {
 													registerBareShortDecl(s.Lhs[0])
 												}
 
-												if isStructLiteral {
-													// Struct literals need to be wrapped
+												if !hasTypeInfo {
+													out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+												} else if needsLocalWrapper && !emitsBareSpecialValue {
+													// Named composites and unnamed structs need an outer local value wrapper.
 													WriteWrapperPrefix(out)
 													TranspileExpression(out, rhs)
 													WriteWrapperSuffix(out)
@@ -13237,6 +13548,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Existing named-interface values are already represented by a handle.
 											} else if writeEmptyInterfaceHandleClone(out, rhs) {
 												// Existing interface values are already represented by a handle.
+											} else if writeAnyHandleAssertionHandle(out, rhs) {
+												// A slice or map taken out of an interface value shares its data with it.
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {
 												// Existing error values are already represented by a handle.
 											} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
@@ -13262,6 +13575,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 												} else if writeWrappedValueCopyFromIdent(out, ident) {
 													// Copied by value from an existing wrapped value
+												} else if writeWrappedCollectionCopyFromIdent(out, ident, nil) {
+													// A copy of a local slice or map variable.
+												} else if writeChannelCopyFromIdent(out, ident, nil) {
+													// A channel variable: share the channel.
 												} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 													// Typed named integer const identifiers need the named newtype, not the raw const.
 												} else if rhsIsPointerType(rhs) {
@@ -13408,6 +13725,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										case "Mutex":
 											NeedGoMutex()
 											rustType = "GoMutex"
+										case "RWMutex":
+											NeedGoRWMutex()
+											rustType = "GoRWMutex"
 										case "Once":
 											NeedGoOnce()
 											rustType = "GoOnce"
@@ -13573,16 +13893,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if compositeLit, isCompositeLit := valueSpec.Values[i].(*ast.CompositeLit); isCompositeLit {
 									registerCompositeLiteralSyntaxVarInfo(name, compositeLit)
-									// Check if it's a struct literal vs array/slice/map literal
-									isStructLiteral := false
-									if _, ok := compositeLit.Type.(*ast.Ident); ok {
-										isStructLiteral = true
-									} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-										isStructLiteral = true
+									if valueSpec.Type == nil && compositeLiteralEmitsBareStructValue(compositeLit) {
+										// "var mu = sync.Mutex{}" is the bare value, as "mu := sync.Mutex{}" is.
+										registerBareShortDecl(name)
 									}
+									needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+									emitsBareSpecialValue := valueSpec.Type == nil && compositeLiteralEmitsBareStructValue(compositeLit)
 
-									if isStructLiteral {
-										// Struct literals need to be wrapped
+									if !hasTypeInfo {
+										out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+									} else if needsLocalWrapper && !emitsBareSpecialValue {
+										// Named composites and unnamed structs need an outer local value wrapper.
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
@@ -13592,6 +13913,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if unary, ok := valueSpec.Values[i].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									// Address-of operator already produces wrapped value
+									if isBareSyncValueAddress(unary.X) {
+										registerBareShortDecl(name)
+									}
 									TranspileExpression(out, valueSpec.Values[i])
 								} else if mapIndexExpressionKeepsHandle(valueSpec.Values[i]) {
 									// Map values that are maps/slices/pointers/etc. already return cloneable handles.
@@ -13626,10 +13950,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 									} else if writeWrappedValueCopyFromIdent(out, ident) {
 										// Copied by value from an existing wrapped value
+									} else if writeWrappedCollectionCopyFromIdent(out, ident, declaredVarType(valueSpec, i)) {
+										// A copy of a local slice or map variable.
+									} else if writeChannelCopyFromIdent(out, ident, declaredVarType(valueSpec, i)) {
+										// A channel variable: share the channel.
 									} else {
 										if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+												if writeNamedScalarVarSpecValue(out, valueSpec, i) {
+													// A float, string or bool of a type the package defines.
+												} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 													WriteWrapperPrefix(out)
 													out.WriteString(typeIdent.Name)
 													out.WriteString("(")
@@ -13641,6 +13971,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														} else {
 															TranspileExpression(out, valueSpec.Values[i])
 														}
+													} else if localCollectionIdentNeedsClone(ident) {
+														writeIdentValueClone(out, ident)
 													} else {
 														TranspileExpression(out, valueSpec.Values[i])
 													}
@@ -13675,9 +14007,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										writeInterfaceBoxedValue(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
+									} else if varSpecHasTypeOfValue(valueSpec, i) && writeAnyHandleAssertionHandle(out, valueSpec.Values[i]) {
+										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+											if writeNamedScalarVarSpecValue(out, valueSpec, i) {
+												// A float, string or bool of a type the package defines.
+											} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 												WriteWrapperPrefix(out)
 												out.WriteString(typeIdent.Name)
 												out.WriteString("(")
@@ -13809,6 +14145,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												case "Mutex":
 													NeedGoMutex()
 													out.WriteString(" = GoMutex::new()")
+												case "RWMutex":
+													NeedGoRWMutex()
+													out.WriteString(" = GoRWMutex::new()")
 												case "Once":
 													NeedGoOnce()
 													out.WriteString(" = GoOnce::new()")
@@ -13889,6 +14228,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.ForStmt:
+		registerLoopVariables(s)
 		shortNames := shortDeclNames(s.Init)
 		wrapForScope := shortDeclShadowsRangeVar(shortNames)
 		var popForInitScope func()
@@ -14033,10 +14373,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.RangeStmt:
+		registerLoopVariables(s)
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
 		keyAssigned := false
 		valueAssigned := false
+		// valueMutated is also true when the body calls a pointer method
+		// on the value, which needs the binding mutable.
+		valueMutated := false
 		rangeAssignsExisting := s.Tok == token.ASSIGN
 
 		// Use type information to determine what we're iterating over
@@ -14349,6 +14693,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				valueAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, valueName)
+				valueMutated = valueAssigned || (!rangeAssignsExisting && blockCallsPointerMethodOnValue(s.Body, valueName))
 				registeredValueType := valueType
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
@@ -14424,7 +14769,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
 		}
 		writeRangeValueBinding := func() {
-			writeRangePatternBinding(out, s.Value, valueAssigned, valueBindingTemp)
+			writeRangePatternBinding(out, s.Value, valueMutated, valueBindingTemp)
 		}
 		writeMapRangeKeyBinding := func() {
 			if keyBindingTemp != "" {
@@ -14533,7 +14878,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// String iteration - iterate over chars
 			// Check if the range target is already a bare string (no wrapping needed).
 			_, isStringLit := s.X.(*ast.BasicLit)
-			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X)
+			// A named string ranges over a copy of the String it holds.
+			var namedStringSource strings.Builder
+			hasNamedStringSource := writeNamedStringNewtypeInnerValue(&namedStringSource, s.X)
+			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource
+			writeBareStringRangeSource := func() {
+				if hasNamedStringSource {
+					out.WriteString("(")
+					out.WriteString(namedStringSource.String())
+					out.WriteString(")")
+					return
+				}
+				TranspileExpression(out, s.X)
+			}
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
@@ -14542,7 +14899,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
 					out.WriteString(") in ")
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString(") in (*")
@@ -14560,7 +14917,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
 					out.WriteString(" in ")
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString(" in (*")
@@ -14579,7 +14936,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeRangeKeyBinding()
 				out.WriteString(", _) in ")
 				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString("(*")
@@ -14595,7 +14952,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for range str
 				out.WriteString("_ in ")
 				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString("(*")
@@ -14933,6 +15290,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		var switchVal string
 		var switchTagInterfaceType types.Type
 		var switchTagInterfaceName string
 		switchTagIsInterface := false
@@ -14942,6 +15300,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		switchTagGoPtrInfo := goPtrResultInfo{}
 		switchTagIsGoPtr := false
 		if s.Tag != nil {
+			switchVal = switchTagBindingName(s.Body)
 			switchTagInterfaceType, switchTagInterfaceName, switchTagIsInterface = switchTagNamedInterface(s.Tag)
 			switchTagIsEmptyInterface = switchTagEmptyInterface(s.Tag)
 			switchTagIsGoError = switchTagGoError(s.Tag)
@@ -14959,7 +15318,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("{\n")
 
 			if s.Tag != nil {
-				out.WriteString("        let _switch_val = ")
+				out.WriteString("        let " + switchVal + " = ")
 				if switchTagIsEmptyInterface {
 					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
 				} else if switchTagIsInterface {
@@ -14990,17 +15349,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							if s.Tag != nil {
 								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
+									writeSwitchEmptyInterfaceCaseComparison(out, switchVal, expr)
 								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
+									writeSwitchInterfaceCaseComparison(out, switchVal, expr, switchTagInterfaceType, switchTagInterfaceName)
 								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
+									writeSwitchGoErrorCaseComparison(out, switchVal, expr)
 								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
+									writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, expr, switchTagGoPtrInfo)
 								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
+									writeSwitchPointerCaseComparison(out, switchVal, expr)
 								} else {
-									out.WriteString("_switch_val == ")
+									out.WriteString(switchVal + " == ")
 									writeSwitchCaseValueForTag(out, expr, s.Tag)
 								}
 							} else {
@@ -15037,56 +15396,63 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("    }")
 		} else {
-			// Standard match-based code (no fallthrough)
-
-			// Check if any case is nil (pointer nil-check switch)
-			hasNilCase := false
+			// Use an if/else chain instead of Rust match patterns. Go case
+			// expressions can be strings, calls, named constants, or other
+			// non-pattern values, so explicit comparisons are the general form.
 			if s.Tag != nil {
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						for _, expr := range caseClause.List {
-							if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
-								hasNilCase = true
-								break
-							}
-						}
-					}
+				out.WriteString("{ let " + switchVal + " = ")
+				if switchTagIsEmptyInterface {
+					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
+				} else if switchTagIsInterface {
+					writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
+				} else if switchTagIsGoError {
+					writeSwitchGoErrorTagHandle(out, s.Tag)
+				} else if switchTagIsPointer {
+					writeSwitchPointerTagHandle(out, s.Tag)
+				} else {
+					writeSwitchTagValue(out, s.Tag)
 				}
-			}
-			tagIsPointer := false
-			if hasNilCase {
-				typeInfo := GetTypeInfo()
-				if typeInfo != nil {
-					tagIsPointer = typeInfo.IsPointer(s.Tag)
-				}
+				out.WriteString(";\n    ")
 			}
 
-			if hasNilCase && tagIsPointer {
-				// Pointer nil-check switch: generate if-else chain
-				var nonDefaultClauses []*ast.CaseClause
-				var defaultClause *ast.CaseClause
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if len(caseClause.List) == 0 {
-							defaultClause = caseClause
-						} else {
-							nonDefaultClauses = append(nonDefaultClauses, caseClause)
-						}
+			emittedCase := false
+			var defaultClause *ast.CaseClause
+			for _, stmt := range s.Body.List {
+				if caseClause, ok := stmt.(*ast.CaseClause); ok {
+					if len(caseClause.List) == 0 {
+						defaultClause = caseClause
+						continue
 					}
-				}
-				for i, caseClause := range nonDefaultClauses {
-					if i == 0 {
-						out.WriteString("if ")
-					} else {
-						out.WriteString(" else if ")
+					if emittedCase {
+						out.WriteString(" else ")
 					}
-					for j, expr := range caseClause.List {
-						if j > 0 {
+					out.WriteString("if ")
+					for i, expr := range caseClause.List {
+						if i > 0 {
 							out.WriteString(" || ")
 						}
-						writeSwitchPointerDirectCaseComparison(out, s.Tag, expr)
+						if s.Tag != nil {
+							if switchTagIsEmptyInterface {
+								writeSwitchEmptyInterfaceCaseComparison(out, switchVal, expr)
+							} else if switchTagIsInterface {
+								writeSwitchInterfaceCaseComparison(out, switchVal, expr, switchTagInterfaceType, switchTagInterfaceName)
+							} else if switchTagIsGoError {
+								writeSwitchGoErrorCaseComparison(out, switchVal, expr)
+							} else if switchTagIsGoPtr {
+								writeSwitchGoPtrCaseComparisonForInfo(out, switchVal, expr, switchTagGoPtrInfo)
+							} else if switchTagIsPointer {
+								writeSwitchPointerCaseComparison(out, switchVal, expr)
+							} else {
+								out.WriteString(switchVal + " == (")
+								writeSwitchCaseValueForTag(out, expr, s.Tag)
+								out.WriteString(")")
+							}
+						} else {
+							transpileCondition(out, expr)
+						}
 					}
 					out.WriteString(" {\n")
+
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
@@ -15096,119 +15462,32 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
 					}
+
 					out.WriteString("        }")
+					emittedCase = true
 				}
-				if defaultClause != nil {
-					if len(nonDefaultClauses) > 0 {
-						out.WriteString(" else {\n")
-					} else {
-						out.WriteString("{\n")
-					}
-					var caseBodyLastPos token.Pos = defaultClause.Colon
-					for _, bodyStmt := range defaultClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
-				}
-			} else {
-				// Use an if/else chain instead of Rust match patterns. Go case
-				// expressions can be strings, calls, named constants, or other
-				// non-pattern values, so explicit comparisons are the general form.
-				if s.Tag != nil {
-					out.WriteString("{ let _switch_val = ")
-					if switchTagIsEmptyInterface {
-						writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
-					} else if switchTagIsInterface {
-						writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
-					} else if switchTagIsGoError {
-						writeSwitchGoErrorTagHandle(out, s.Tag)
-					} else if switchTagIsPointer {
-						writeSwitchPointerTagHandle(out, s.Tag)
-					} else {
-						writeSwitchTagValue(out, s.Tag)
-					}
-					out.WriteString(";\n    ")
-				}
+			}
 
-				emittedCase := false
-				var defaultClause *ast.CaseClause
-				for _, stmt := range s.Body.List {
-					if caseClause, ok := stmt.(*ast.CaseClause); ok {
-						if len(caseClause.List) == 0 {
-							defaultClause = caseClause
-							continue
-						}
-						if emittedCase {
-							out.WriteString(" else ")
-						}
-						out.WriteString("if ")
-						for i, expr := range caseClause.List {
-							if i > 0 {
-								out.WriteString(" || ")
-							}
-							if s.Tag != nil {
-								if switchTagIsEmptyInterface {
-									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsInterface {
-									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
-								} else if switchTagIsGoError {
-									writeSwitchGoErrorCaseComparison(out, "_switch_val", expr)
-								} else if switchTagIsGoPtr {
-									writeSwitchGoPtrCaseComparisonForInfo(out, "_switch_val", expr, switchTagGoPtrInfo)
-								} else if switchTagIsPointer {
-									writeSwitchPointerCaseComparison(out, "_switch_val", expr)
-								} else {
-									out.WriteString("_switch_val == (")
-									writeSwitchCaseValueForTag(out, expr, s.Tag)
-									out.WriteString(")")
-								}
-							} else {
-								transpileCondition(out, expr)
-							}
-						}
-						out.WriteString(" {\n")
-
-						var caseBodyLastPos token.Pos = caseClause.Colon
-						for _, bodyStmt := range caseClause.Body {
-							if isUnlabeledBreakStmt(bodyStmt) {
-								break
-							}
-							out.WriteString("            ")
-							TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-							out.WriteString("\n")
-						}
-
-						out.WriteString("        }")
-						emittedCase = true
-					}
+			if defaultClause != nil {
+				if emittedCase {
+					out.WriteString(" else {\n")
+				} else {
+					out.WriteString("{\n")
 				}
-
-				if defaultClause != nil {
-					if emittedCase {
-						out.WriteString(" else {\n")
-					} else {
-						out.WriteString("{\n")
+				var caseBodyLastPos token.Pos = defaultClause.Colon
+				for _, bodyStmt := range defaultClause.Body {
+					if isUnlabeledBreakStmt(bodyStmt) {
+						break
 					}
-					var caseBodyLastPos token.Pos = defaultClause.Colon
-					for _, bodyStmt := range defaultClause.Body {
-						if isUnlabeledBreakStmt(bodyStmt) {
-							break
-						}
-						out.WriteString("            ")
-						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
-						out.WriteString("\n")
-					}
-					out.WriteString("        }")
+					out.WriteString("            ")
+					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
+					out.WriteString("\n")
 				}
+				out.WriteString("        }")
+			}
 
-				if s.Tag != nil {
-					out.WriteString("\n    }")
-				}
+			if s.Tag != nil {
+				out.WriteString("\n    }")
 			}
 		}
 		if needsBreakTarget {
@@ -15606,8 +15885,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
 				out.WriteString(varName)
 				out.WriteString(".clone(); ")
+			} else if goStmtSharesCapturedVariable(s.Call, varName) {
+				// The goroutine works on the variable itself, as a closure does.
+				out.WriteString(varName)
+				out.WriteString(".clone(); ")
 			} else {
-				// Wrapped variables — snapshot the value for goroutine
+				// A loop variable, or a value passed as an argument: Go copies
+				// it when the go statement runs.
 				WriteWrapperPrefix(out)
 				out.WriteString("(*")
 				out.WriteString(varName)
@@ -15658,7 +15942,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if len(s.Call.Args) > 0 {
 				// Has arguments - need to create parameter bindings
 				out.WriteString("let ")
-				if funcLitCallsFunctionValue(funcLit) {
+				// The closure pushes onto the defer stack it owns, so calling
+				// it mutates it.
+				if funcLitCallsFunctionValue(funcLit) || hasClosureDefer {
 					out.WriteString("mut ")
 				}
 				out.WriteString("__closure = move |")
@@ -15976,6 +16262,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(wrapperType)
 							out.WriteString(">()).unwrap().0.clone()")
+						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok && isErrorInterfaceType(typeInfo.GetType(caseClause.List[0])) {
+							// An error is a value. The case variable gets a
+							// handle of its own to the same error, so
+							// assigning to it does not change what the
+							// interface value holds.
+							writeErrorHandleCopy(out, func() {
+								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(handleType)
+								out.WriteString(">()).unwrap()")
+							})
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.
@@ -16337,6 +16633,10 @@ func writeUnsupportedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, target
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	// A named string appends the String it holds.
+	if writeNamedStringNewtypeInnerValue(out, rhs) {
+		return
+	}
 	if writeBareStringSliceValue(out, rhs, types.Typ[types.String]) {
 		return
 	}
@@ -16433,6 +16733,106 @@ func channelAssignmentRHSNeedsClone(rhs ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+// loopVariableObjects holds the variables a for or range statement
+// declares. Go gives each iteration its own copy of them, so a goroutine
+// started in the loop keeps the value of its iteration. The generated loop
+// has one cell for the whole loop, so a goroutine copies it instead of
+// sharing it.
+var loopVariableObjects = map[types.Object]bool{}
+
+func registerLoopVariables(stmt ast.Stmt) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	var idents []ast.Expr
+	switch s := stmt.(type) {
+	case *ast.ForStmt:
+		if init, ok := s.Init.(*ast.AssignStmt); ok && init.Tok == token.DEFINE {
+			idents = init.Lhs
+		}
+	case *ast.RangeStmt:
+		if s.Tok == token.DEFINE {
+			idents = []ast.Expr{s.Key, s.Value}
+		}
+	}
+	for _, expr := range idents {
+		if ident, ok := expr.(*ast.Ident); ok {
+			if obj := typeInfo.info.Defs[ident]; obj != nil {
+				loopVariableObjects[obj] = true
+			}
+		}
+	}
+}
+
+// goStmtSharesCapturedVariable reports whether the goroutine a go statement
+// starts uses the variable name itself rather than a copy of its value.
+//
+// A function literal captures the variables it names, as any closure does,
+// so "go func() { total += n }()" changes total. Copying it lost the write.
+// The exceptions are loop variables (see loopVariableObjects) and the
+// arguments of the call, which Go evaluates when the go statement runs. A
+// slice or map argument is still shared, since its value is a handle, and so
+// is a variable whose address is an argument: "go f(&n)".
+func goStmtSharesCapturedVariable(call *ast.CallExpr, name string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	var obj types.Object
+	inBody := false
+	// visit finds the variable name refers to in node. In a function
+	// literal, a name declared inside the literal is not the captured one.
+	visit := func(node ast.Node, funcLit *ast.FuncLit) {
+		ast.Inspect(node, func(n ast.Node) bool {
+			ident, ok := n.(*ast.Ident)
+			if !ok || ident.Name != name {
+				return true
+			}
+			used, isVar := typeInfo.info.Uses[ident].(*types.Var)
+			if !isVar {
+				return true
+			}
+			if funcLit != nil && used.Pos() >= funcLit.Pos() && used.Pos() < funcLit.End() {
+				return true
+			}
+			obj = used
+			if funcLit != nil {
+				inBody = true
+			}
+			return true
+		})
+	}
+	addressTaken := false
+	for _, arg := range call.Args {
+		if funcLit, ok := arg.(*ast.FuncLit); ok {
+			visit(funcLit.Body, funcLit)
+		} else {
+			visit(arg, nil)
+			if unary, ok := unwrapParens(arg).(*ast.UnaryExpr); ok && unary.Op == token.AND {
+				if ident, ok := unwrapParens(unary.X).(*ast.Ident); ok && ident.Name == name {
+					addressTaken = true
+				}
+			}
+		}
+	}
+	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
+		visit(funcLit.Body, funcLit)
+	}
+	if obj == nil || loopVariableObjects[obj] {
+		return false
+	}
+	// "go f(&n)" passes a pointer to n itself.
+	if inBody || addressTaken {
+		return true
+	}
+	switch types.Unalias(obj.Type()).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
 }
 
 func goStmtImmediateArgIsFunctionHandle(ident *ast.Ident) bool {

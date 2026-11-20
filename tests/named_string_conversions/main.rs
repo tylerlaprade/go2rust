@@ -2,8 +2,15 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Path(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for Path {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Path(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -16,6 +23,58 @@ impl PartialEq for Path {
         let __left = { self.0.borrow().as_ref().cloned() };
         let __right = { other.0.borrow().as_ref().cloned() };
         __left == __right
+    }
+}
+
+impl PartialOrd for Path {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Path {}
+
+impl Ord for Path {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for Path {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for Path {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.borrow().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for Path {
+    type Output = Path;
+    fn add(self, other: Self) -> Path {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other.0.borrow().as_ref().unwrap());
+        Path(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for Path {
+    type Output = Path;
+    fn add(self, other: String) -> Path {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Path(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for Path {
+    type Output = Path;
+    fn add(self, other: &str) -> Path {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Path(Rc::new(RefCell::new(Some(__joined))))
     }
 }
 

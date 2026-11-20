@@ -39,10 +39,26 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Spec>>>>() {
         go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else {
-        "<unknown>".to_string()
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 

@@ -103,6 +103,22 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
     } else if let Some(v) = value.downcast_ref::<Point>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
@@ -120,7 +136,7 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
     } else if let Some(v) = value.downcast_ref::<Status>() {
         format!("{}", v)
     } else {
-        "<unknown>".to_string()
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 
@@ -209,9 +225,14 @@ fn go_format_is_text(__value: &dyn Any) -> bool {
         || __value.is::<Status>()
 }
 
+// The basic value a newtype such as "type Level int" holds, boxed.
+fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
+    None
+}
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -640,6 +661,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
         return go_format_string(&basic, verb, &format_any(value));
     }
+    if let Some(inner) = go_format_named_basic_value(value) {
+        return go_format_argument(spec, verb, inner.as_ref());
+    }
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or
     // element, which is not done here. nil is one text.
@@ -957,8 +981,12 @@ impl Default for Point {
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.y.borrow().as_ref().unwrap()));
+        let __go_plus = f.alternate();
+        let __go_fmt_0 = if __go_plus { format!("{:#}", (*self.x.borrow().as_ref().unwrap())) } else { format!("{}", (*self.x.borrow().as_ref().unwrap())) };
+        let __go_fmt_1 = if __go_plus { format!("{:#}", (*self.y.borrow().as_ref().unwrap())) } else { format!("{}", (*self.y.borrow().as_ref().unwrap())) };
+        if __go_plus {
+            return write!(f, "{{X:{} Y:{}}}", __go_fmt_0, __go_fmt_1);
+        }
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

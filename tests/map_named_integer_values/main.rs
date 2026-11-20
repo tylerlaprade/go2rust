@@ -178,8 +178,15 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Index(pub Arc<Mutex<Option<i32>>>);
+
+impl Clone for Index {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Index(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Index {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

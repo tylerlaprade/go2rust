@@ -2,11 +2,13 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 pub fn describe(ptr: Rc<RefCell<Option<i32>>>) {
-    if { let __switch_val = ptr.clone(); let __switch_eq = (*__switch_val.borrow()).is_none(); __switch_eq } {
+    { let _switch_val = ptr.clone();
+    if (*_switch_val.borrow()).is_none() {
             println!("{}", format!("{}", "nil pointer".to_string()));
         } else {
             println!("{}", format!("{}", { let __v = (*ptr.borrow().as_ref().unwrap()).clone(); __v }));
         }
+    }
 }
 
 fn main() {

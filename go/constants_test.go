@@ -1279,8 +1279,11 @@ func main() {
 
 func assertLocalConstByteFieldEmission(t *testing.T, rust string) {
 	t.Helper()
-	if !strings.Contains(rust, "color: Rc::new(RefCell::new(Some(white as u8)))") {
-		t.Fatalf("struct field literal should cast local const to byte field type:\n%s", rust)
+	// Without type info the composite literal initializer is the loud
+	// unsupported path (#71); it must not be a guess from the syntax.
+	if !strings.Contains(rust, "color: Rc::new(RefCell::new(Some(white as u8)))") &&
+		!strings.Contains(rust, `unimplemented!("type info required for composite literal initializer")`) {
+		t.Fatalf("struct field literal should cast local const to byte field type, or stop loudly without type info:\n%s", rust)
 	}
 	if !strings.Contains(rust, "== white as u8") {
 		t.Fatalf("selector comparison should cast local const to byte field type:\n%s", rust)

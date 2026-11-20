@@ -51,15 +51,18 @@ where
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s
-            .as_ref()
-            .iter()
-            .map(|inner| format_slice_values(inner.as_ref()))
-            .collect();
-        format!("[{}]", formatted.join(" "))
+        format_nested_slice_values(s.as_ref())
     } else {
         "[]".to_string()
     }
+}
+fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+where
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    format!("[{}]", formatted.join(" "))
 }
 
 struct GoChannel<T> {

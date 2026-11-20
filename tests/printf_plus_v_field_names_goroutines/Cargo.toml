@@ -1,0 +1,8 @@
+[package]
+name = "printf_plus_v_field_names_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_plus_v_field_names_goroutines"
+path = "main.rs"
