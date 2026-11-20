@@ -1303,6 +1303,10 @@ run_xfail_test() {
     run_test "tests/goroutines_basic"
 }
 
+@test "goroutines_share_captured_variables" {
+    run_test "tests/goroutines_share_captured_variables"
+}
+
 @test "goroutines_simple" {
     run_test "tests/goroutines_simple"
 }
@@ -1497,6 +1501,10 @@ run_xfail_test() {
 
 @test "local_large_fixed_array_zero" {
     run_test "tests/local_large_fixed_array_zero"
+}
+
+@test "local_sync_mutex_forms" {
+    run_test "tests/local_sync_mutex_forms"
 }
 
 @test "local_var_multi_names" {
