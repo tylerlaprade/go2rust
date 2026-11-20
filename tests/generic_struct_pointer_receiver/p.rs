@@ -39,8 +39,15 @@ impl std::fmt::Display for P {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Number(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Number {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Number(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Number {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

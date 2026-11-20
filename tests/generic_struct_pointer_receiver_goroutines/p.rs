@@ -46,8 +46,15 @@ impl std::fmt::Display for P {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Number(pub Arc<Mutex<Option<i32>>>);
+
+impl Clone for Number {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Number(Arc::new(Mutex::new(__value)))
+    }
+}
 
 impl Display for Number {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
