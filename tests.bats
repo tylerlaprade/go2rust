@@ -2271,6 +2271,14 @@ run_xfail_test() {
     run_test "tests/printf_p_verb_receiver"
 }
 
+@test "printf_plus_v_field_names" {
+    run_test "tests/printf_plus_v_field_names"
+}
+
+@test "printf_plus_v_field_names_goroutines" {
+    run_test "tests/printf_plus_v_field_names_goroutines"
+}
+
 @test "printf_runtime_format" {
     run_test "tests/printf_runtime_format"
 }
