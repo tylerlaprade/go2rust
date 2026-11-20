@@ -479,6 +479,14 @@ run_xfail_test() {
     run_test "tests/append_function_slice_field"
 }
 
+@test "append_interface_value" {
+    run_test "tests/append_interface_value"
+}
+
+@test "append_interface_value_goroutines" {
+    run_test "tests/append_interface_value_goroutines"
+}
+
 @test "append_nil_selector_slice_expansion" {
     run_test "tests/append_nil_selector_slice_expansion"
 }
