@@ -1,0 +1,8 @@
+[package]
+name = "nil_receiver_methods"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nil_receiver_methods"
+path = "main.rs"
