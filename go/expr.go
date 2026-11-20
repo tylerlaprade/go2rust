@@ -9067,10 +9067,15 @@ func anyBoxedCollectionExprIsBare(expr ast.Expr, typ types.Type) bool {
 			return arraySliceElementExpectedStoresBareCollection(c.Elem())
 		}
 	case *ast.TypeAssertExpr:
-		// "x.([]int)" in its one-value form yields the slice or map itself,
-		// not a handle (see writeAnyHandleAssertionExpectBareValue).
-		_, _, ok := typeAssertionAnyHandleTarget(e)
-		return ok
+		// "x.([]int)" read for its handle is the handle the interface value
+		// holds (writeAnyHandleAssertionHandle), so boxing it again shares
+		// the slice or map, as Go does. Only an element of a []any, which
+		// that helper leaves alone, is taken out as the bare slice or map.
+		if _, _, ok := typeAssertionAnyHandleTarget(e); !ok {
+			return false
+		}
+		_, isElement := anySliceElementAssertionSource(e.X)
+		return isElement
 	}
 	return false
 }

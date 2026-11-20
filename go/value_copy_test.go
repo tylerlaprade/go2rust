@@ -560,3 +560,23 @@ func main() {
 		t.Fatalf("var s []int should keep the interface's slice handle:\n%s", rust)
 	}
 }
+
+// "any(a.([]int))" puts the handle the assertion reads into the new box, so
+// both interface values hold the same slice, as in Go. Wrapping that handle
+// in a new cell gave a box the next assertion did not recognize.
+func TestReboxedAssertedSliceSharesTheHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	a := any([]int{1, 2})
+	b := any(a.([]int))
+	_ = b
+}
+`)
+	if !strings.Contains(rust, "Box::new(({ let val = a.clone();") {
+		t.Fatalf("the new box should hold the asserted handle itself:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(({ let val = a.clone();") {
+		t.Fatalf("the asserted handle must not be wrapped in a new cell:\n%s", rust)
+	}
+}

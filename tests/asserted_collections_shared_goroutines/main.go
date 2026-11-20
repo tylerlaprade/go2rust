@@ -42,6 +42,16 @@ func main() {
 	plain[1] = 20
 	fmt.Println(len(typed), list.([]int)[1])
 
+	// Put into another interface value, the asserted slice or map is
+	// still the same one.
+	var again any = list.([]int)
+	again2 := again.([]int)
+	again2[2] = 30
+	fmt.Println(list.([]int)[2])
+	reboxed := any(counts.(map[string]int))
+	reboxed.(map[string]int)["a"] = 50
+	fmt.Println(counts.(map[string]int)["a"])
+
 	var names any = []string{"x"}
 	ns := names.([]string)
 	ns[0] = "z"
