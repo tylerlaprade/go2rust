@@ -598,6 +598,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				writeCollectionFormatHandleIdent(out, ident)
 			} else if writeAnyHandleAssertionHandle(out, arg) {
 				// A map asserted out of an interface: the handle it holds.
+			} else if isStructFieldSelection(arg) {
+				// The field's cell, which format_map takes; reading the
+				// field gives the map inside it.
+				TranspileExpressionContext(out, arg, LValue)
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -7722,4 +7726,18 @@ func writeGoSliceMakeWithCapacity(out *strings.Builder, args []ast.Expr, element
 	out.WriteString(").collect(); v.truncate(")
 	writeExpressionAsUsize(out, args[1])
 	out.WriteString("); v }")
+}
+
+// isStructFieldSelection reports whether expr selects a struct field.
+func isStructFieldSelection(expr ast.Expr) bool {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	return ok && selection.Kind() == types.FieldVal
 }
