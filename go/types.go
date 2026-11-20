@@ -1104,7 +1104,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		return fmt.Sprintf("/* ERROR: Unsupported instantiated generic type */ %s<%s<Option<()>>>", outerWrapper, innerWrapper)
 	case *ast.ChanType:
 		NeedGoChannel()
-		elemType := goTypeToRustBase(t.Value)
+		elemType := channelElemTypeExprToRust(t.Value)
 		return "GoChannel<" + elemType + ">"
 	case *ast.SelectorExpr:
 		// Package-qualified types like sync.WaitGroup, sync.Mutex
@@ -1809,6 +1809,9 @@ func goTypesGoPtrElemTypeToRust(t types.Type) string {
 func goTypesChannelElemTypeToRust(t types.Type) string {
 	if isGoErrorType(t) {
 		return "Option<" + rustErrorPayloadType() + ">"
+	}
+	if rustType, ok := interfaceChannelElemTypeToRust(t); ok {
+		return rustType
 	}
 	return goTypesTypeToRust(t)
 }

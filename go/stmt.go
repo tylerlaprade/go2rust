@@ -6276,11 +6276,11 @@ func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Ex
 }
 
 func writeErrorChannelNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
-	if name == nil || name.Name == "_" || !isGoErrorType(expectedTypeFromParamExpr(resultType)) {
+	if name == nil || name.Name == "_" {
 		return false
 	}
 	unary, ok := rhs.(*ast.UnaryExpr)
-	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
+	if !ok || unary.Op != token.ARROW || !channelReceiveFillsHandleOf(unary.X, expectedTypeFromParamExpr(resultType)) {
 		return false
 	}
 	out.WriteString("{ let new_val = ")
@@ -10559,7 +10559,7 @@ func writeErrorChannelReceiveReturnValue(out *strings.Builder, result ast.Expr, 
 	if !ok || unary.Op != token.ARROW {
 		return false
 	}
-	if !isGoErrorType(expectedTypeFromParamExpr(expected)) || !channelElementIsGoError(unary.X) {
+	if !channelReceiveFillsHandleOf(unary.X, expectedTypeFromParamExpr(expected)) {
 		return false
 	}
 	writeErrorHandleFromChannelReceive(out, unary.X)
@@ -10605,11 +10605,11 @@ func expressionReturnsWrappedValueForExtraction(typeInfo *TypeInfo, expr ast.Exp
 
 func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	unary, ok := rhs.(*ast.UnaryExpr)
-	if !ok || unary.Op != token.ARROW || !channelElementIsGoError(unary.X) {
+	if !ok || unary.Op != token.ARROW || !channelElementIsHandleOption(unary.X) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(assignmentTargetType(typeInfo, lhs)) {
+	if typeInfo == nil || !channelReceiveFillsHandleOf(unary.X, assignmentTargetType(typeInfo, lhs)) {
 		return false
 	}
 	out.WriteString("{ let new_val = ")
@@ -11685,7 +11685,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(".send(")
 		// Unwrap the value if it's wrapped
 		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
+		if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
+		} else if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
 			transpileChannelValue(out, s.Value)
 		} else if call, ok := s.Value.(*ast.CallExpr); ok && callReturnsWrappedBoolBySyntax(call) {
@@ -12581,7 +12582,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if isChannelRecv && needsTupleUnpack {
 				// Handle channel receive with comma-ok: value, ok := <-ch
 				unary := s.Rhs[0].(*ast.UnaryExpr)
-				isErrorChannelRecv := channelElementIsGoError(unary.X)
+				isErrorChannelRecv := channelElementIsHandleOption(unary.X)
 				if s.Tok == token.DEFINE {
 					// Generate: let (value, ok) = match ch.recv() { ... }
 					out.WriteString("let (mut ")
@@ -12608,7 +12609,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteWrapperSuffix(out)
 					out.WriteString("), None => (")
 					if isErrorChannelRecv {
-						writeEmptyErrorHandle(out)
+						writeEmptyChannelHandle(out, unary.X)
 					} else {
 						WriteWrapperPrefix(out)
 						out.WriteString("Default::default()")
@@ -12638,7 +12639,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteBorrowMethod(out, true)
 					if isErrorChannelRecv {
 						out.WriteString(" = None::<")
-						out.WriteString(rustErrorPayloadType())
+						out.WriteString(channelHandleOptionPayloadType(unary.X))
 						out.WriteString(">; *")
 					} else {
 						out.WriteString(" = Some(Default::default()); *")
@@ -13661,7 +13662,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													}
 													TranspileExpression(out, rhs)
 												}
-											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsGoError(unary.X) {
+											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsHandleOption(unary.X) {
 												writeErrorHandleFromChannelReceive(out, unary.X)
 											} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
 												if i < len(s.Lhs) {
@@ -14721,22 +14722,43 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Channel range: for val := range ch
 		if isChannel {
+			// A value received from a channel of an interface gets a handle
+			// of its own, like any other interface variable.
+			_, isInterfaceChannel := channelInterfaceElementType(s.X)
 			// Register value variable as range loop var
 			if s.Key != nil {
 				if ident, ok := s.Key.(*ast.Ident); ok && ident.Name != "_" {
 					valueName = ident.Name
-					rangeLoopVars[valueName] = "channel_val"
+					if !isInterfaceChannel {
+						rangeLoopVars[valueName] = "channel_val"
+					}
 				}
 			}
-			if valueName != "" {
+			if valueName != "" && isInterfaceChannel {
+				out.WriteString("__iface_value")
+			} else if valueName != "" {
 				out.WriteString(RustLocalIdent(valueName))
 			} else {
 				out.WriteString("_")
 			}
 			out.WriteString(" in ")
-			TranspileExpression(out, s.X)
-			out.WriteString(".clone()")
+			// The iterator lives for the whole loop. A channel read from a
+			// field comes out of a block that has already ended the lock on
+			// the struct, so the body can lock it again.
+			var rangeChannel strings.Builder
+			writeChannelExpression(&rangeChannel, s.X)
+			out.WriteString(rangeChannel.String())
+			if !strings.HasPrefix(rangeChannel.String(), "{ let __channel = ") {
+				out.WriteString(".clone()")
+			}
 			out.WriteString(" {\n")
+			if valueName != "" && isInterfaceChannel {
+				out.WriteString("        let mut ")
+				out.WriteString(RustLocalIdent(valueName))
+				out.WriteString(" = ")
+				writeErrorHandleFromOptionValue(out, "__iface_value")
+				out.WriteString(";\n")
+			}
 			restoreLoopBreakTarget := pushBreakTarget("")
 
 			currentLoopDepth++
@@ -15858,7 +15880,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("            let mut ")
 								out.WriteString(EscapeRustIdent(ident.Name))
 								out.WriteString(" = ")
-								if channelElementIsGoError(unary.X) {
+								if channelElementIsHandleOption(unary.X) {
 									writeErrorHandleFromOptionValue(out, EscapeRustIdent(ident.Name))
 								} else {
 									WriteWrapperPrefix(out)
@@ -15909,7 +15931,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("        if ")
 				writeChannelExpression(out, comm.Chan)
 				out.WriteString(".try_send(")
-				transpileChannelValue(out, comm.Value)
+				if !writeInterfaceChannelSendValue(out, comm.Chan, comm.Value) {
+					transpileChannelValue(out, comm.Value)
+				}
 				out.WriteString(") {\n")
 
 				for _, bodyStmt := range cc.Body {
