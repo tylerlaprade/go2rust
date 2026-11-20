@@ -1122,19 +1122,6 @@ impl Tree__string {
     }
 }
 
-impl Optional__int {
-    pub fn get(&self) -> (i32, bool) {
-        return ((*self.val.borrow().as_ref().unwrap()), (*self.ok.borrow().as_ref().unwrap()));
-    }
-
-    pub fn or_else(&self, d: Rc<RefCell<Option<i32>>>) -> i32 {
-        if (*self.ok.clone().borrow().as_ref().unwrap()) {
-        return (*self.val.borrow().as_ref().unwrap());
-    }
-        (*d.borrow().as_ref().unwrap())
-    }
-}
-
 impl Optional__string {
     pub fn get(&self) -> (Rc<RefCell<Option<String>>>, bool) {
         return ({ let __return_value_0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*self.ok.borrow().as_ref().unwrap()));
@@ -1145,6 +1132,19 @@ impl Optional__string {
         return Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
         { let __owned = d.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }
+    }
+}
+
+impl Optional__int {
+    pub fn get(&self) -> (i32, bool) {
+        return ((*self.val.borrow().as_ref().unwrap()), (*self.ok.borrow().as_ref().unwrap()));
+    }
+
+    pub fn or_else(&self, d: Rc<RefCell<Option<i32>>>) -> i32 {
+        if (*self.ok.clone().borrow().as_ref().unwrap()) {
+        return (*self.val.borrow().as_ref().unwrap());
+    }
+        (*d.borrow().as_ref().unwrap())
     }
 }
 
