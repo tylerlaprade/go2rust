@@ -1,0 +1,8 @@
+[package]
+name = "errors_wrap_is_as_unwrap"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "errors_wrap_is_as_unwrap"
+path = "main.rs"

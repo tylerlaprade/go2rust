@@ -1083,6 +1083,14 @@ run_xfail_test() {
     run_test "tests/errors_new_string_from_byte_field"
 }
 
+@test "errors_wrap_is_as_unwrap" {
+    run_test "tests/errors_wrap_is_as_unwrap"
+}
+
+@test "errors_wrap_is_as_unwrap_goroutines" {
+    run_test "tests/errors_wrap_is_as_unwrap_goroutines"
+}
+
 @test "evaluation_order_of_element_writes" {
     run_test "tests/evaluation_order_of_element_writes"
 }
