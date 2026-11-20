@@ -2319,6 +2319,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
 	out.WriteString("; __once.r#do(|| {\n")
+	writeGoFunctionDepthEntry(out, "        ")
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
 	}
@@ -2367,6 +2368,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	out.WriteString(" as usize; __once.r#do(")
 	WriteWrapperPrefix(out)
 	out.WriteString("Box::new(move || {\n")
+	writeGoFunctionDepthEntry(out, "        ")
 	out.WriteString("        let __recv_ref: &mut ")
 	out.WriteString(currentReceiverType)
 	out.WriteString(" = unsafe { &mut *(__recv_ptr as *mut ")
@@ -16727,6 +16729,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 
 	// Body
 	out.WriteString("{\n")
+	writeGoFunctionDepthEntry(out, "        ")
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
 	}
@@ -16784,6 +16787,12 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	}
 	if recoverCatch {
 		finishPanicRecoverCatchWith(out, "        ", func() { writeFuncLitRecoveredPanicReturnValue(out, funcLit.Type) })
+	} else if packageCallsRecover() && len(functionResultTypeExprs(funcLit.Type)) == 0 {
+		// A trailing divergent expression (most notably panic) makes Rust infer
+		// this closure's return type as `!` once the depth guard has a destructor.
+		// Source Go function literals without results still have the unit return
+		// type, so pin that type explicitly for their Fn/FnMut trait-object cast.
+		out.WriteString("        ()\n")
 	}
 	out.WriteString("    })")
 

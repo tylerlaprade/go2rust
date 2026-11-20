@@ -82,6 +82,8 @@ func TestPanicRecoverRuntimeLivesInSharedStdlibHelpers(t *testing.T) {
 
 	shared := ht.GenerateSharedStdlibHelperModule()
 	for _, want := range []string{
+		"pub struct GoFunctionDepthGuard",
+		"pub fn go_enter_function",
 		"pub struct GoPanicHookSuppression",
 		"pub fn go_suppress_panic_hook",
 		"pub fn go_panic_any_local",
@@ -96,7 +98,7 @@ func TestPanicRecoverRuntimeLivesInSharedStdlibHelpers(t *testing.T) {
 	}
 
 	names := ht.ImportNames()
-	for _, want := range []string{"GoPanicHookSuppression", "go_suppress_panic_hook"} {
+	for _, want := range []string{"GoFunctionDepthGuard", "go_enter_function", "GoPanicHookSuppression", "go_suppress_panic_hook"} {
 		found := false
 		for _, name := range names {
 			if name == want {

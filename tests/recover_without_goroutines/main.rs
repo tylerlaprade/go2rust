@@ -624,23 +624,124 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+struct GoPanicHookSuppression;
+
 thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+struct GoLocalPanicFrame {
+    payload: Option<Box<dyn Any>>,
+    message: String,
+    recover_depth: Option<usize>,
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+}
+
+fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
+    std::panic::panic_any(__message)
 }
 
 fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+    let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
+        })
+    });
+    Rc::new(RefCell::new(__payload))
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recover_depth = previous;
+            }
+        });
+    }
+    result
 }
 
 fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
-    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
-        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+            payload: Some(__go_payload),
+            message: __message,
+            recover_depth: None,
+        }));
+        return;
+    }
+    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
-            Err(__payload) => __payload,
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Err(__payload) => __payload as Box<dyn Any>,
         },
     };
-    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+    let __message = __payload.downcast_ref::<String>().cloned()
+        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+        payload: Some(__payload),
+        message: __message,
+        recover_depth: None,
+    }));
+}
+
+fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(__payload);
 }
 
 fn go_runtime_error_text(__text: String) -> String {
@@ -656,54 +757,58 @@ fn go_runtime_error_text(__text: String) -> String {
 }
 
 fn go_resume_unrecovered_panic() {
-    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
-        match __payload.downcast::<String>() {
-            Ok(__text) => std::panic::panic_any(*__text),
-            Err(__payload) => std::panic::resume_unwind(__payload),
-        }
+    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
+    {
+        go_panic_any_local(__payload, __message)
     }
 }
 
 pub fn boom() {
-    panic!("in named function");
+    let __go_function_depth_guard = go_enter_function();
+    { let __go_panic_text = format!("{}", "in named function".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
 }
 
 pub fn safe() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         boom();
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -711,34 +816,36 @@ pub fn safe() {
 }
 
 pub fn safe_line() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         let mut r = go_recover();
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "recovered too:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        panic!("same function");
+        { let __go_panic_text = format!("{}", "same function".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -746,22 +853,24 @@ pub fn safe_line() {
 }
 
 pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("caught: {}", format_any(r.borrow().as_ref().unwrap().as_ref()))))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
@@ -769,24 +878,26 @@ pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64,
         *err.borrow_mut() = None;;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
         return ((*result.borrow().as_ref().unwrap()), err.clone());
     }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ((*result.borrow().as_ref().unwrap()), err.clone())
         }
@@ -794,22 +905,24 @@ pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64,
 }
 
 pub fn element(xs: Rc<RefCell<Option<Vec<i64>>>>, i: Rc<RefCell<Option<i64>>>) -> (i64, bool) {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut v: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut ok: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             println!("{} {}", format!("{}", "element:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
@@ -817,24 +930,26 @@ pub fn element(xs: Rc<RefCell<Option<Vec<i64>>>>, i: Rc<RefCell<Option<i64>>>) -
         { let new_val = true; *ok.borrow_mut() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
         return ((*v.borrow().as_ref().unwrap()), (*ok.borrow().as_ref().unwrap()));
     }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ((*v.borrow().as_ref().unwrap()), (*ok.borrow().as_ref().unwrap()))
         }
@@ -842,38 +957,40 @@ pub fn element(xs: Rc<RefCell<Option<Vec<i64>>>>, i: Rc<RefCell<Option<i64>>>) -
 }
 
 pub fn with_error() -> i64 {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut n: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut n_defer_captured = n.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             { let new_val = -1; *n_defer_captured.borrow_mut() = Some(new_val); };;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         panic!("{}", (*Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("an error value".to_string()))))).borrow().as_ref().unwrap()));
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             (*n.borrow().as_ref().unwrap())
         }
@@ -883,41 +1000,47 @@ pub fn with_error() -> i64 {
 /// A deferred function that panics replaces the panic, and the deferred
 /// functions after it still run.
 pub fn replaced() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         println!("{} {}", format!("{}", "last:".to_string()), format!("{}", format_any((go_recover()).borrow().as_ref().unwrap().as_ref())));
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         println!("{}", format!("{}", "still runs".to_string()));
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        panic!("second");
+        let __go_function_depth_guard = go_enter_function();
+        { let __go_panic_text = format!("{}", "second".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        panic!("first");
+        { let __go_panic_text = format!("{}", "first".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -926,55 +1049,59 @@ pub fn replaced() {
 
 /// A function literal recovers its own panic and panics again.
 pub fn nested() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             println!("{} {}", format!("{}", "outer:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
-        let __go_previous_panic_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_hook_guard = go_suppress_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             println!("{} {}", format!("{}", "inner:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
-            panic!("again");;
+            { let __go_panic_text = format!("{}", "again".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        panic!("original");
+        { let __go_panic_text = format!("{}", "original".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         }));
         match __go_panic_result {
             Ok(__go_value) => {
-                std::panic::set_hook(__go_previous_panic_hook);
+                drop(__go_panic_hook_guard);
                 __go_value
             }
             Err(__go_panic_payload) => {
                 go_store_panic_payload(__go_panic_payload);
                 while let Some(f) = __defer_stack.pop() {
-                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                        go_store_panic_payload(__go_defer_panic);
+                    if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                        go_replace_panic_payload(__go_defer_panic);
                     }
                 }
-                std::panic::set_hook(__go_previous_panic_hook);
+                drop(__go_panic_hook_guard);
                 go_resume_unrecovered_panic();
                 ()
             }
@@ -983,22 +1110,24 @@ pub fn nested() {
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -1006,42 +1135,46 @@ pub fn nested() {
 }
 
 pub fn no_panic() -> i64 {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
             println!("{}", format!("{}", "never printed".to_string()));;
         }
     }
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
         return 7;
     }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             0 as i64
         }
@@ -1049,10 +1182,10 @@ pub fn no_panic() -> i64 {
 }
 
 fn main() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         safe();
         safe_line();
@@ -1073,22 +1206,24 @@ fn main() {
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }

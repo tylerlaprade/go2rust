@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -605,15 +606,62 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<bailout>() { return Box::new(v.__go_value_clone()) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<surprise>() { return Box::new(v.__go_value_clone()) as Box<dyn Any + Send + Sync>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
+struct GoPanicHookSuppression;
+
+thread_local! {
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
 struct GoPanicFrame {
     payload: Option<Box<dyn Any + Send + Sync>>,
-    recoverable: bool,
+    recover_depth: Option<usize>,
 }
 
 thread_local! {
@@ -623,7 +671,7 @@ thread_local! {
 fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     let payload = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().and_then(|frame| {
-            if frame.recoverable { frame.payload.take() } else { None }
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
         })
     });
     Arc::new(Mutex::new(payload))
@@ -632,15 +680,15 @@ fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 fn go_push_panic_payload(payload: Box<dyn Any + Send + Sync>) {
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoPanicFrame {
         payload: Some(payload),
-        recoverable: false,
+        recover_depth: None,
     }));
 }
 
 fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
     let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().map(|frame| {
-            let previous = frame.recoverable;
-            frame.recoverable = recoverable;
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
             previous
         })
     });
@@ -648,7 +696,7 @@ fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<d
     if let Some(previous) = previous {
         __GO_RECOVER_PAYLOADS.with(|stack| {
             if let Some(frame) = stack.borrow_mut().last_mut() {
-                frame.recoverable = previous;
+                frame.recover_depth = previous;
             }
         });
     }
@@ -954,6 +1002,7 @@ impl std::fmt::Display for surprise {
 
 
 pub fn handle(err: Arc<Mutex<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     {
     let _ts_subject = go_recover().clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -986,23 +1035,23 @@ pub fn handle(err: Arc<Mutex<Option<String>>>) {
 }
 
 pub fn run(payload: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut err: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
         handle(err_defer_captured.clone());
     }));
         let mut done = GoChannel::<bool>::new();
         let _ = &done;
-        std::panic::panic_any({ let __any_holder = payload.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) });
+        { let __any_holder = payload.clone(); let __any_guard = __any_holder.lock().unwrap(); match __any_guard.as_ref() { Some(__any_value) => std::panic::panic_any(go_any_clone(__any_value.as_ref())), None => { let __go_panic_nil = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("panic called with nil argument".to_string()))))); std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) } } };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -1012,7 +1061,7 @@ pub fn run(payload: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex
                     go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             err.clone()
         }
@@ -1020,6 +1069,7 @@ pub fn run(payload: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex
 }
 
 fn main() {
+    let __go_function_depth_guard = go_enter_function();
     println!("{}", format!("{}", (*run(Arc::new(Mutex::new(Some(Box::new(bailout { msg: Arc::new(Mutex::new(Some("caught".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*run(Arc::new(Mutex::new(Some(Box::new(surprise {  }) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
 }

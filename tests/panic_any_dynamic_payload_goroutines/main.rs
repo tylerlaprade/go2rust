@@ -674,9 +674,27 @@ struct GoPanicHookSuppression;
 
 thread_local! {
     static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
 
 static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
 
 fn go_suppress_panic_hook() -> GoPanicHookSuppression {
     __GO_PANIC_HOOK_INIT.call_once(|| {
@@ -700,7 +718,7 @@ impl Drop for GoPanicHookSuppression {
 
 struct GoPanicFrame {
     payload: Option<Box<dyn Any + Send + Sync>>,
-    recoverable: bool,
+    recover_depth: Option<usize>,
 }
 
 thread_local! {
@@ -710,7 +728,7 @@ thread_local! {
 fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     let payload = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().and_then(|frame| {
-            if frame.recoverable { frame.payload.take() } else { None }
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
         })
     });
     Arc::new(Mutex::new(payload))
@@ -719,15 +737,15 @@ fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 fn go_push_panic_payload(payload: Box<dyn Any + Send + Sync>) {
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoPanicFrame {
         payload: Some(payload),
-        recoverable: false,
+        recover_depth: None,
     }));
 }
 
 fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
     let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().map(|frame| {
-            let previous = frame.recoverable;
-            frame.recoverable = recoverable;
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
             previous
         })
     });
@@ -735,7 +753,7 @@ fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<d
     if let Some(previous) = previous {
         __GO_RECOVER_PAYLOADS.with(|stack| {
             if let Some(frame) = stack.borrow_mut().last_mut() {
-                frame.recoverable = previous;
+                frame.recover_depth = previous;
             }
         });
     }
@@ -1038,6 +1056,50 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_errorString;
+
+impl std::fmt::Display for errors_errorString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_errorString>")
+    }
+}
+
+impl std::error::Error for errors_errorString {}
+
+
+impl errors_errorString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("errors_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_joinError;
+
+impl std::fmt::Display for errors_joinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_joinError>")
+    }
+}
+
+impl std::error::Error for errors_joinError {}
+
+
+impl errors_joinError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("errors_joinError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct payload {
     pub value: Arc<Mutex<Option<i64>>>,
@@ -1071,6 +1133,7 @@ impl std::fmt::Display for payload {
 
 
 pub fn classify_recovered(result: Arc<Mutex<Option<String>>>, original: Arc<Mutex<Option<payload>>>) {
+    let __go_function_depth_guard = go_enter_function();
     {
     let _ts_subject = go_recover().clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -1119,6 +1182,7 @@ pub fn classify_recovered(result: Arc<Mutex<Option<String>>>, original: Arc<Mute
 }
 
 pub fn recover_value(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, original: Arc<Mutex<Option<payload>>>) -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -1150,6 +1214,7 @@ pub fn recover_value(value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, orig
 }
 
 pub fn print_recovered(label: Arc<Mutex<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let (mut value, mut ok) = ({
         let val = go_recover().clone();
         let guard = val.lock().unwrap();
@@ -1167,6 +1232,7 @@ pub fn print_recovered(label: Arc<Mutex<Option<String>>>) {
 }
 
 pub fn inner_panic() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_panic_hook_guard = go_suppress_panic_hook();
@@ -1196,14 +1262,17 @@ pub fn inner_panic() {
 }
 
 pub fn outer_panic() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         inner_panic();
         println!("{}", format!("{}", "after inner".to_string()));
+        ()
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         std::panic::panic_any(Box::new("A".to_string()) as Box<dyn Any + Send + Sync>);
@@ -1228,6 +1297,7 @@ pub fn outer_panic() {
 }
 
 pub fn save_outer_panic(result: Arc<Mutex<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let (mut value, mut ok) = ({
         let val = go_recover().clone();
         let guard = val.lock().unwrap();
@@ -1247,6 +1317,7 @@ pub fn save_outer_panic(result: Arc<Mutex<Option<String>>>) {
 }
 
 pub fn nested_panic() -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -1287,6 +1358,7 @@ pub fn nested_panic() -> Arc<Mutex<Option<String>>> {
 }
 
 pub fn explicit_runtime_text() -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -1318,10 +1390,12 @@ pub fn explicit_runtime_text() -> Arc<Mutex<Option<String>>> {
 }
 
 pub fn panic_b() {
+    let __go_function_depth_guard = go_enter_function();
     std::panic::panic_any(Box::new("B".to_string()) as Box<dyn Any + Send + Sync>);
 }
 
 pub fn replacement_panic() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_panic_hook_guard = go_suppress_panic_hook();
@@ -1354,6 +1428,7 @@ pub fn replacement_panic() {
 }
 
 pub fn save_probe(result: Arc<Mutex<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let mut value = go_recover();
     if { let __nil_result = (*value.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = "nil".to_string(); *result.lock().unwrap() = Some(new_val); };
@@ -1363,6 +1438,7 @@ pub fn save_probe(result: Arc<Mutex<Option<String>>>) {
 }
 
 pub fn probe() -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -1402,6 +1478,7 @@ pub fn probe() -> Arc<Mutex<Option<String>>> {
 }
 
 pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut outer: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -1414,7 +1491,9 @@ pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<M
     }));
         let mut probed_defer_captured = probed.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         { let new_val = probe(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *probed_defer_captured.lock().unwrap() = __moved_val; };
+        ()
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         std::panic::panic_any(Box::new("outer".to_string()) as Box<dyn Any + Send + Sync>);
@@ -1438,7 +1517,13 @@ pub fn normal_probe_cannot_recover_outer() -> (Arc<Mutex<Option<String>>>, Arc<M
     }
 }
 
-pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {
+pub fn indirect_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    let __go_function_depth_guard = go_enter_function();
+    go_recover().clone()
+}
+
+pub fn only_direct_deferred_call_can_recover() -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -1447,6 +1532,45 @@ pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Opti
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
+        let mut indirect = indirect_recover();
+        let mut direct = go_recover();
+        { let new_val = Arc::new(Mutex::new(Some(format!("depth {} {}", format!("{}", { let __nil_result = (*indirect.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __text = format_any(direct.lock().unwrap().as_ref().unwrap().as_ref()); __text }))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *result_defer_captured.lock().unwrap() = __moved_val; };
+        ()
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        std::panic::panic_any(Box::new("direct".to_string()) as Box<dyn Any + Send + Sync>);
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            drop(__go_panic_hook_guard);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            drop(__go_panic_hook_guard);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
+pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+
+    let __go_panic_hook_guard = go_suppress_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         let mut recovered = go_recover();
         let (mut err, mut ok) = ({
         let val = recovered.clone();
@@ -1468,6 +1592,7 @@ pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Opti
         return;
     }
         { let new_val = Arc::new(Mutex::new(Some(format!("nil {} {}", format!("{}", ok), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *result_defer_captured.lock().unwrap() = __moved_val; };
+        ()
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         if { let __v = (*useLiteral.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -1496,13 +1621,16 @@ pub fn recover_nil_value(useLiteral: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Opti
 }
 
 pub fn recover_in_goroutine_literals() {
+    let __go_function_depth_guard = go_enter_function();
     let mut done = GoChannel::<String>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let __go_function_depth_guard = go_enter_function();
         let __go_panic_hook_guard = go_suppress_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let done_defer_captured = done_thread.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         let (mut value, mut ok) = ({
         let val = go_recover().clone();
         let guard = val.lock().unwrap();
@@ -1517,6 +1645,7 @@ pub fn recover_in_goroutine_literals() {
         }
     });
         done_defer_captured.send((*Arc::new(Mutex::new(Some(format!("go literal {} {}", format!("{}", ok), format!("{}", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).clone());
+        ()
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));;
             std::panic::panic_any(Box::new("without args".to_string()) as Box<dyn Any + Send + Sync>);;
@@ -1550,10 +1679,12 @@ pub fn recover_in_goroutine_literals() {
     let done_thread = done.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(1))); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |code: Arc<Mutex<Option<i64>>>| {
+            let __go_function_depth_guard = go_enter_function();
             let __go_panic_hook_guard = go_suppress_panic_hook();
             let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let code_defer_captured = code.clone(); let done_defer_captured = done_thread.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         let (mut value, mut ok) = ({
         let val = go_recover().clone();
         let guard = val.lock().unwrap();
@@ -1568,6 +1699,7 @@ pub fn recover_in_goroutine_literals() {
         }
     });
         done_defer_captured.send((*Arc::new(Mutex::new(Some(format!("go literal arg {} {} {}", format!("{}", { let __v = (*code_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok), format!("{}", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).clone());
+        ()
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));;
                 std::panic::panic_any(Box::new("with args".to_string()) as Box<dyn Any + Send + Sync>);;
@@ -1602,9 +1734,11 @@ pub fn recover_in_goroutine_literals() {
 }
 
 fn main() {
+    let __go_function_depth_guard = go_enter_function();
         // Force the synchronized representation; the paired fixture covers the
         // same panic payloads with local Rc/RefCell wrappers.
     std::thread::spawn(move || {
+        let __go_function_depth_guard = go_enter_function();
 ;
     });
 
@@ -1627,6 +1761,7 @@ fn main() {
     println!("{} {}", format!("{}", "probe".to_string()), format!("{}", (*probe().lock().unwrap().as_ref().unwrap())));
     let (mut outer, mut probed) = normal_probe_cannot_recover_outer();
     println!("{} {} {}", format!("{}", "scoped".to_string()), format!("{}", { let __v = (*outer.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*probed.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", (*only_direct_deferred_call_can_recover().lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "dynamic".to_string()), format!("{}", (*recover_nil_value(Arc::new(Mutex::new(Some(false)))).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*recover_nil_value(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap())));
     recover_in_goroutine_literals();

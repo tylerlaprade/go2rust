@@ -4111,6 +4111,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	writeFuncDeclResultTypes(out, fn)
 
 	out.WriteString(" {\n")
+	writeGoFunctionDepthEntry(out, "    ")
 
 	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
 	defer restoreLocalSyntaxInfo()
@@ -8548,6 +8549,18 @@ func writeNormalDeferredCall(out *strings.Builder, indent string) {
 	out.WriteString("f();\n")
 }
 
+// writeGoFunctionDepthEntry tracks source-level Go call depth in packages
+// that use recover. go_call_deferred marks only the immediately invoked Go
+// function depth as eligible, so a helper called from that function sees nil.
+func writeGoFunctionDepthEntry(out *strings.Builder, indent string) {
+	if !packageCallsRecover() {
+		return
+	}
+	NeedPanicRecover()
+	out.WriteString(indent)
+	out.WriteString("let __go_function_depth_guard = go_enter_function();\n")
+}
+
 var packageCallsRecoverCache = map[*types.Info]bool{}
 
 // packageCallsRecover reports whether the package being translated calls the
@@ -9622,6 +9635,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	writeFuncDeclResultTypes(out, fn)
 
 	out.WriteString(" {\n")
+	writeGoFunctionDepthEntry(out, "        ")
 
 	if fn.Body != nil {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)

@@ -1398,7 +1398,7 @@ func fail(value any) {
 		"static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>>",
 		"fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> !",
 		"std::panic::panic_any(__message)",
-		"if frame.recoverable { frame.payload.take() } else { None }",
+		"if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("single-thread panic runtime missing %q:\n%s", want, rust)

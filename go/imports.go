@@ -693,7 +693,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_any_clone")
 	}
 	if ht.needsPanicRecover {
-		add("GoPanicHookSuppression", "go_recover", "go_replace_panic_payload", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_suppress_panic_hook")
+		add("GoFunctionDepthGuard", "GoPanicHookSuppression", "go_enter_function", "go_recover", "go_replace_panic_payload", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_suppress_panic_hook")
 		if !NeedsConcurrentWrapper() {
 			add("go_panic_any_local")
 		}
@@ -1299,7 +1299,7 @@ func generatePanicRecoverHelper(out *strings.Builder) {
 	out.WriteString("\n")
 	out.WriteString(`struct GoPanicFrame {
     payload: Option<Box<dyn Any + Send + Sync>>,
-    recoverable: bool,
+    recover_depth: Option<usize>,
 }
 
 thread_local! {
@@ -1311,7 +1311,7 @@ thread_local! {
 	out.WriteString(`fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     let payload = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().and_then(|frame| {
-            if frame.recoverable { frame.payload.take() } else { None }
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
         })
     });
     Arc::new(Mutex::new(payload))
@@ -1322,7 +1322,7 @@ thread_local! {
 	out.WriteString(`fn go_push_panic_payload(payload: Box<dyn Any + Send + Sync>) {
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoPanicFrame {
         payload: Some(payload),
-        recoverable: false,
+        recover_depth: None,
     }));
 }
 `)
@@ -1331,8 +1331,8 @@ thread_local! {
 	out.WriteString(`fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
     let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().map(|frame| {
-            let previous = frame.recoverable;
-            frame.recoverable = recoverable;
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
             previous
         })
     });
@@ -1340,7 +1340,7 @@ thread_local! {
     if let Some(previous) = previous {
         __GO_RECOVER_PAYLOADS.with(|stack| {
             if let Some(frame) = stack.borrow_mut().last_mut() {
-                frame.recoverable = previous;
+                frame.recover_depth = previous;
             }
         });
     }
@@ -1438,9 +1438,31 @@ func generatePanicHookSuppressionHelper(out *strings.Builder) {
 
 thread_local! {
     static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
 
 static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+`)
+	out.WriteString(visibility)
+	out.WriteString(`struct GoFunctionDepthGuard;
+
+`)
+	out.WriteString(visibility)
+	out.WriteString(`fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
 
 `)
 	out.WriteString(visibility)
@@ -1487,7 +1509,7 @@ func generateSingleThreadPanicRecoverHelper(out *strings.Builder) {
 struct GoLocalPanicFrame {
     payload: Option<Box<dyn Any>>,
     message: String,
-    recoverable: bool,
+    recover_depth: Option<usize>,
 }
 
 thread_local! {
@@ -1507,7 +1529,7 @@ thread_local! {
 	out.WriteString(`fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
     let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().and_then(|frame| {
-            if frame.recoverable { frame.payload.take() } else { None }
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
         })
     });
     Rc::new(RefCell::new(__payload))
@@ -1518,8 +1540,8 @@ thread_local! {
 	out.WriteString(`fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
     let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().map(|frame| {
-            let previous = frame.recoverable;
-            frame.recoverable = recoverable;
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
             previous
         })
     });
@@ -1527,7 +1549,7 @@ thread_local! {
     if let Some(previous) = previous {
         __GO_RECOVER_PAYLOADS.with(|stack| {
             if let Some(frame) = stack.borrow_mut().last_mut() {
-                frame.recoverable = previous;
+                frame.recover_depth = previous;
             }
         });
     }
@@ -1541,7 +1563,7 @@ thread_local! {
         __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
             payload: Some(__go_payload),
             message: __message,
-            recoverable: false,
+            recover_depth: None,
         }));
         return;
     }
@@ -1557,7 +1579,7 @@ thread_local! {
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
         payload: Some(__payload),
         message: __message,
-        recoverable: false,
+        recover_depth: None,
     }));
 }
 `)

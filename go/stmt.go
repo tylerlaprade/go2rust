@@ -16025,7 +16025,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(strings.Join(params, ", "))
 			}
-			out.WriteString("| {\n        ")
+			out.WriteString("| {\n")
+			writeGoFunctionDepthEntry(out, "        ")
+			out.WriteString("        ")
 
 			// Body
 			for i, stmt := range funcLit.Body.List {
@@ -16207,6 +16209,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(strings.Join(params, ", "))
 				}
 				out.WriteString("| {\n")
+				writeGoFunctionDepthEntry(out, "            ")
 				bodyIndent := "            "
 				if wrapClosurePanic {
 					bodyIndent = beginPanicRecoverCatch(out, bodyIndent)
@@ -16252,6 +16255,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			} else {
 				// No arguments - just inline the body
+				writeGoFunctionDepthEntry(out, "        ")
 				bodyIndent := "        "
 				if wrapClosurePanic {
 					bodyIndent = beginPanicRecoverCatch(out, bodyIndent)

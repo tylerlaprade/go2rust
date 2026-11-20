@@ -16,6 +16,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 pub fn classify(result: Rc<RefCell<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     {
     let _ts_subject = go_recover().clone();
     let _ts_guard = _ts_subject.borrow();
@@ -44,6 +45,7 @@ pub fn classify(result: Rc<RefCell<Option<String>>>) {
 }
 
 pub fn call(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -86,6 +88,7 @@ pub fn call(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
 fn main() {
     ::example_com_panicpayload_worker::__go_init_all();
 
+    let __go_function_depth_guard = go_enter_function();
     println!("{}", format!("{}", (*call(Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*call(Rc::new(RefCell::new(Some(Box::new("text".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

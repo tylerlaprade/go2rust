@@ -673,9 +673,27 @@ struct GoPanicHookSuppression;
 
 thread_local! {
     static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
 
 static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
 
 fn go_suppress_panic_hook() -> GoPanicHookSuppression {
     __GO_PANIC_HOOK_INIT.call_once(|| {
@@ -700,7 +718,7 @@ impl Drop for GoPanicHookSuppression {
 struct GoLocalPanicFrame {
     payload: Option<Box<dyn Any>>,
     message: String,
-    recoverable: bool,
+    recover_depth: Option<usize>,
 }
 
 thread_local! {
@@ -716,7 +734,7 @@ fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
 fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
     let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().and_then(|frame| {
-            if frame.recoverable { frame.payload.take() } else { None }
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
         })
     });
     Rc::new(RefCell::new(__payload))
@@ -725,8 +743,8 @@ fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
 fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
     let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
         stack.borrow_mut().last_mut().map(|frame| {
-            let previous = frame.recoverable;
-            frame.recoverable = recoverable;
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
             previous
         })
     });
@@ -734,7 +752,7 @@ fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<d
     if let Some(previous) = previous {
         __GO_RECOVER_PAYLOADS.with(|stack| {
             if let Some(frame) = stack.borrow_mut().last_mut() {
-                frame.recoverable = previous;
+                frame.recover_depth = previous;
             }
         });
     }
@@ -746,7 +764,7 @@ fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
         __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
             payload: Some(__go_payload),
             message: __message,
-            recoverable: false,
+            recover_depth: None,
         }));
         return;
     }
@@ -762,7 +780,7 @@ fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
     __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
         payload: Some(__payload),
         message: __message,
-        recoverable: false,
+        recover_depth: None,
     }));
 }
 
@@ -839,6 +857,50 @@ fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_errorString;
+
+impl std::fmt::Display for errors_errorString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_errorString>")
+    }
+}
+
+impl std::error::Error for errors_errorString {}
+
+
+impl errors_errorString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        panic!("errors_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_joinError;
+
+impl std::fmt::Display for errors_joinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_joinError>")
+    }
+}
+
+impl std::error::Error for errors_joinError {}
+
+
+impl errors_joinError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        panic!("errors_joinError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct payload {
     pub value: Rc<RefCell<Option<i64>>>,
@@ -872,6 +934,7 @@ impl std::fmt::Display for payload {
 
 
 pub fn classify_recovered(result: Rc<RefCell<Option<String>>>, original: Rc<RefCell<Option<payload>>>) {
+    let __go_function_depth_guard = go_enter_function();
     {
     let _ts_subject = go_recover().clone();
     let _ts_guard = _ts_subject.borrow();
@@ -914,6 +977,7 @@ pub fn classify_recovered(result: Rc<RefCell<Option<String>>>, original: Rc<RefC
 }
 
 pub fn recover_value(value: Rc<RefCell<Option<Box<dyn Any>>>>, original: Rc<RefCell<Option<payload>>>) -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -945,6 +1009,7 @@ pub fn recover_value(value: Rc<RefCell<Option<Box<dyn Any>>>>, original: Rc<RefC
 }
 
 pub fn print_recovered(label: Rc<RefCell<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let (mut value, mut ok) = ({
         let val = go_recover().clone();
         let guard = val.borrow();
@@ -962,6 +1027,7 @@ pub fn print_recovered(label: Rc<RefCell<Option<String>>>) {
 }
 
 pub fn inner_panic() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_panic_hook_guard = go_suppress_panic_hook();
@@ -991,14 +1057,17 @@ pub fn inner_panic() {
 }
 
 pub fn outer_panic() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         inner_panic();
         println!("{}", format!("{}", "after inner".to_string()));
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
@@ -1023,6 +1092,7 @@ pub fn outer_panic() {
 }
 
 pub fn save_outer_panic(result: Rc<RefCell<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let (mut value, mut ok) = ({
         let val = go_recover().clone();
         let guard = val.borrow();
@@ -1042,6 +1112,7 @@ pub fn save_outer_panic(result: Rc<RefCell<Option<String>>>) {
 }
 
 pub fn nested_panic() -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -1082,6 +1153,7 @@ pub fn nested_panic() -> Rc<RefCell<Option<String>>> {
 }
 
 pub fn explicit_runtime_text() -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -1113,10 +1185,12 @@ pub fn explicit_runtime_text() -> Rc<RefCell<Option<String>>> {
 }
 
 pub fn panic_b() {
+    let __go_function_depth_guard = go_enter_function();
     { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
 }
 
 pub fn replacement_panic() {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_panic_hook_guard = go_suppress_panic_hook();
@@ -1149,6 +1223,7 @@ pub fn replacement_panic() {
 }
 
 pub fn save_probe(result: Rc<RefCell<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let mut value = go_recover();
     if { let __nil_result = (*value.borrow()).is_none(); __nil_result } {
         { let new_val = "nil".to_string(); *result.borrow_mut() = Some(new_val); };
@@ -1158,6 +1233,7 @@ pub fn save_probe(result: Rc<RefCell<Option<String>>>) {
 }
 
 pub fn probe() -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -1197,6 +1273,7 @@ pub fn probe() -> Rc<RefCell<Option<String>>> {
 }
 
 pub fn normal_probe_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut outer: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -1209,7 +1286,9 @@ pub fn normal_probe_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, Rc<R
     }));
         let mut probed_defer_captured = probed.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         { let new_val = probe(); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *probed_defer_captured.borrow_mut() = __moved_val; };
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         { let __go_panic_text = format!("{}", "outer".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
@@ -1233,7 +1312,13 @@ pub fn normal_probe_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, Rc<R
     }
 }
 
-pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
+pub fn indirect_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let __go_function_depth_guard = go_enter_function();
+    go_recover().clone()
+}
+
+pub fn only_direct_deferred_call_can_recover() -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
@@ -1242,6 +1327,45 @@ pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Op
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
+        let mut indirect = indirect_recover();
+        let mut direct = go_recover();
+        { let new_val = Rc::new(RefCell::new(Some(format!("depth {} {}", { let __nil_result = (*indirect.borrow()).is_none(); __nil_result }, format_any(direct.borrow().as_ref().unwrap().as_ref()))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *result_defer_captured.borrow_mut() = __moved_val; };
+        ()
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        { let __go_panic_text = format!("{}", "direct".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            drop(__go_panic_hook_guard);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            drop(__go_panic_hook_guard);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
+pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
+    let __go_function_depth_guard = go_enter_function();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
+
+    let __go_panic_hook_guard = go_suppress_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __go_function_depth_guard = go_enter_function();
         let mut recovered = go_recover();
         let (mut err, mut ok) = ({
         let val = recovered.clone();
@@ -1263,6 +1387,7 @@ pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Op
         return;
     }
         { let new_val = Rc::new(RefCell::new(Some(format!("nil {} {}", ok, (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap()))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *result_defer_captured.borrow_mut() = __moved_val; };
+        ()
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         if (*useLiteral.borrow().as_ref().unwrap()) {
@@ -1291,6 +1416,7 @@ pub fn recover_nil_value(useLiteral: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Op
 }
 
 fn main() {
+    let __go_function_depth_guard = go_enter_function();
     println!("{}", format!("{}", (*recover_value(Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }))), Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
     let mut structValue = Rc::new(RefCell::new(Some(payload { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     println!("{}", format!("{}", (*recover_value(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = structValue.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Any>))), structValue.clone()).borrow().as_ref().unwrap())));
@@ -1307,6 +1433,7 @@ fn main() {
     println!("{} {}", format!("{}", "probe".to_string()), format!("{}", (*probe().borrow().as_ref().unwrap())));
     let (mut outer, mut probed) = normal_probe_cannot_recover_outer();
     println!("{} {} {}", format!("{}", "scoped".to_string()), format!("{}", { let __v = (*outer.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*probed.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", (*only_direct_deferred_call_can_recover().borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "dynamic".to_string()), format!("{}", (*recover_nil_value(Rc::new(RefCell::new(Some(false)))).borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*recover_nil_value(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap())));
 }

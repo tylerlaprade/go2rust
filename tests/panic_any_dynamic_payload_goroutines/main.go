@@ -101,6 +101,19 @@ func normalProbeCannotRecoverOuter() (outer, probed string) {
 	panic("outer")
 }
 
+func indirectRecover() any {
+	return recover()
+}
+
+func onlyDirectDeferredCallCanRecover() (result string) {
+	defer func() {
+		indirect := indirectRecover()
+		direct := recover()
+		result = fmt.Sprintf("depth %t %v", indirect == nil, direct)
+	}()
+	panic("direct")
+}
+
 func recoverNilValue(useLiteral bool) (result string) {
 	defer func() {
 		recovered := recover()
@@ -160,6 +173,7 @@ func main() {
 	fmt.Println("probe", probe())
 	outer, probed := normalProbeCannotRecoverOuter()
 	fmt.Println("scoped", outer, probed)
+	fmt.Println(onlyDirectDeferredCallCanRecover())
 	fmt.Println("dynamic", recoverNilValue(false))
 	fmt.Println("literal", recoverNilValue(true))
 	recoverInGoroutineLiterals()
