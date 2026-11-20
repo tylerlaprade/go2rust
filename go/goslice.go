@@ -34,6 +34,15 @@ macro_rules! vec {
 }
 `
 
+// goSliceFromStdVec turns a Rust expression of the standard library's Vec
+// into the Go slice value that the generated code expects.
+func goSliceFromStdVec(expr string) string {
+	if goSliceModeEnabled() {
+		return "Vec::from(" + expr + ")"
+	}
+	return expr
+}
+
 // stdVecPath names the standard library's Vec, for scratch vectors that
 // are not Go slices.
 func stdVecPath() string {
@@ -87,6 +96,8 @@ func goSliceHelperText(text string) string {
 	return strings.NewReplacer(
 		"String::from_utf8(self.clone())", "String::from_utf8(self.to_vec())",
 		"String::from_utf8(out)", "String::from_utf8(out.to_vec())",
+		"GoValueClone for std::vec::Vec<T>", "GoValueClone for GoSlice<T>",
+		"GoTypeParamFieldClone for std::vec::Vec<T>", "GoTypeParamFieldClone for GoSlice<T>",
 	).Replace(text)
 }
 
@@ -813,7 +824,7 @@ func writeGoSliceHeaderAssignment(out *strings.Builder, s *ast.AssignStmt) bool 
 	if !goSliceModeEnabled() || s.Tok != token.ASSIGN || len(s.Lhs) != 1 || len(s.Rhs) != 1 {
 		return false
 	}
-	if _, ok := goSliceLocalVariable(s.Lhs[0]); !ok {
+	if _, ok := goSliceLocalVariable(s.Lhs[0]); !ok && !goSliceStructField(s.Lhs[0]) {
 		return false
 	}
 	rhs := unwrapParens(s.Rhs[0])
@@ -847,12 +858,18 @@ func writeGoSliceFreshCellFromVariable(out *strings.Builder, expr ast.Expr) bool
 	if !goSliceModeEnabled() {
 		return false
 	}
-	if _, ok := goSliceLocalVariable(expr); !ok {
+	if _, ok := goSliceLocalVariable(expr); ok {
+		out.WriteString("{ let __slice_header = GoSliceHeader::go_slice_header(&")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString("); ")
+	} else if goSliceStructField(expr) {
+		// The field's cell, so that a nil slice is read as nil.
+		out.WriteString("{ let __slice_header = GoSliceHeader::go_slice_header(&(")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(")); ")
+	} else {
 		return false
 	}
-	out.WriteString("{ let __slice_header = GoSliceHeader::go_slice_header(&")
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString("); ")
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
@@ -940,4 +957,24 @@ func isUnnamedSliceType(typ types.Type) bool {
 	}
 	_, ok := types.Unalias(typ).(*types.Slice)
 	return ok
+}
+
+// goSliceStructField reports whether expr selects a struct field of an
+// unnamed slice type. A struct's Clone shares its field cells, so a method
+// value or a pointer receiver can hold a second handle on the same field:
+// the field's cell takes the new header rather than being replaced.
+func goSliceStructField(expr ast.Expr) bool {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.FieldVal {
+		return false
+	}
+	return isUnnamedSliceType(selection.Type())
 }

@@ -4379,7 +4379,7 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString("let __json = format!(\"{{{}}}\", __json_fields.join(\",\")); (")
 	WriteWrapperPrefix(out)
-	out.WriteString("__json.into_bytes()")
+	out.WriteString(goSliceFromStdVec("__json.into_bytes()"))
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	writeTypedErrorNone(out)
