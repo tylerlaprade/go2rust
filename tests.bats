@@ -511,12 +511,28 @@ run_xfail_test() {
     run_test "tests/arrays_basic"
 }
 
+@test "asserted_collections_shared" {
+    run_test "tests/asserted_collections_shared"
+}
+
+@test "asserted_collections_shared_goroutines" {
+    run_test "tests/asserted_collections_shared_goroutines"
+}
+
 @test "atomic_operations" {
     run_test "tests/atomic_operations"
 }
 
 @test "base64_encoding" {
     run_test "tests/base64_encoding"
+}
+
+@test "blank_assignment_of_nil_values" {
+    run_test "tests/blank_assignment_of_nil_values"
+}
+
+@test "blank_assignment_of_nil_values_goroutines" {
+    run_test "tests/blank_assignment_of_nil_values_goroutines"
 }
 
 @test "blank_function_name" {
@@ -1035,6 +1051,14 @@ run_xfail_test() {
     run_test "tests/error_slice_tuple_assignment"
 }
 
+@test "error_taken_out_of_interface_is_a_copy" {
+    run_test "tests/error_taken_out_of_interface_is_a_copy"
+}
+
+@test "error_taken_out_of_interface_is_a_copy_goroutines" {
+    run_test "tests/error_taken_out_of_interface_is_a_copy_goroutines"
+}
+
 @test "errors_custom" {
     run_test "tests/errors_custom"
 }
@@ -1469,6 +1493,14 @@ run_xfail_test() {
 
 @test "local_var_multi_names" {
     run_test "tests/local_var_multi_names"
+}
+
+@test "local_variable_copies_of_slices_maps_channels" {
+    run_test "tests/local_variable_copies_of_slices_maps_channels"
+}
+
+@test "local_variable_copies_of_slices_maps_channels_goroutines" {
+    run_test "tests/local_variable_copies_of_slices_maps_channels_goroutines"
 }
 
 @test "logical_four_part_condition" {
@@ -2143,6 +2175,10 @@ run_xfail_test() {
     run_test "tests/positional_struct_nil_slice_field"
 }
 
+@test "print_boxed_bool_key_map_and_integers" {
+    run_test "tests/print_boxed_bool_key_map_and_integers"
+}
+
 @test "print_boxed_composite_values" {
     run_test "tests/print_boxed_composite_values"
 }
@@ -2349,6 +2385,10 @@ run_xfail_test() {
 
 @test "raw_string_literals" {
     run_test "tests/raw_string_literals"
+}
+
+@test "rebox_asserted_slice" {
+    run_test "tests/rebox_asserted_slice"
 }
 
 @test "receiver_basic_field_argument_value" {

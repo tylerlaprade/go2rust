@@ -525,6 +525,7 @@ func (c *checker) use(pos int) {
 		t.Fatalf("moved closure should use the inner capture clone, not the outer call-chain clone:\n%s", rust)
 	}
 	if !strings.Contains(body, "pos_closure_clone_closure_clone.clone()") &&
+		!strings.Contains(body, "&pos_closure_clone_closure_clone;") &&
 		!strings.Contains(body, "(*pos_closure_clone_closure_clone.borrow()") &&
 		!strings.Contains(body, "(*pos_closure_clone_closure_clone.lock()") {
 		t.Fatalf("moved closure should read pos through the inner capture clone:\n%s", rust)

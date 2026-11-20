@@ -338,7 +338,7 @@ pub fn run(payload: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex
         handle(err_defer_captured.clone());
     }));
         let mut done = GoChannel::<bool>::new();
-        let _ = done;
+        let _ = &done;
         std::panic::panic_any({ let __any_holder = payload.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) });
     }));
     std::panic::set_hook(__go_previous_panic_hook);

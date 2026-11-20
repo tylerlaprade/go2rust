@@ -4584,6 +4584,134 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	return true
 }
 
+// varSpecHasTypeOfValue reports whether the i-th name of a var spec has the
+// type of its value: the spec names no type, or names the value's own type.
+// "var n Numbers = x.([]int)" does not: n is a Numbers built from the
+// []int, not the []int itself.
+func varSpecHasTypeOfValue(valueSpec *ast.ValueSpec, i int) bool {
+	if valueSpec.Type == nil {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || i >= len(valueSpec.Names) || i >= len(valueSpec.Values) {
+		return false
+	}
+	obj := typeInfo.info.Defs[valueSpec.Names[i]]
+	valueType := typeInfo.GetType(valueSpec.Values[i])
+	return obj != nil && valueType != nil && types.Identical(obj.Type(), valueType)
+}
+
+// writeWrappedCollectionCopyFromIdent writes the initializer of a new
+// variable that is a copy of a local slice or map variable: "t := s",
+// "var t = s". Writing the read of s there moved the Vec or map out of a
+// borrow, which rustc rejects, so "t := s" did not compile.
+//
+// A map variable holds a handle on the map. Passing it to a function and
+// "d = m" share that handle, so the new variable shares it too, and
+// "d := m; d[k] = v" changes m, as in Go.
+//
+// A slice is one Vec behind a handle with no header of its own (DEV-36):
+// sharing the handle would make "next := prev; next = append(next, x)" grow
+// prev, and "cur := queue; queue = nil" empty cur. The new variable gets a
+// clone of the elements instead, which keeps both of those right. A write
+// through one of them, "t[0] = x", does not reach the other.
+func writeWrappedCollectionCopyFromIdent(out *strings.Builder, ident *ast.Ident, destination types.Type) bool {
+	if !localCollectionIdentNeedsClone(ident) {
+		return false
+	}
+	typ := GetTypeInfo().GetType(ident)
+	if destination != nil && !types.Identical(destination, typ) {
+		return false
+	}
+	if _, isMap := types.Unalias(typ).Underlying().(*types.Map); isMap {
+		name := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			name = RustLocalIdent(renamed)
+		}
+		out.WriteString(name)
+		out.WriteString(".clone()")
+		return true
+	}
+	WriteWrapperPrefix(out)
+	writeIdentValueClone(out, ident)
+	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeChannelCopyFromIdent writes the initializer of a new variable that is
+// a copy of a channel variable: "ch2 := ch". A channel is a handle held
+// bare, so the copy is a clone of the handle. Writing the variable itself
+// moved the channel into the new one, and the next use of ch did not compile.
+func writeChannelCopyFromIdent(out *strings.Builder, ident *ast.Ident, destination types.Type) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Chan); !ok {
+		return false
+	}
+	if destination != nil && !types.Identical(destination, typ) {
+		return false
+	}
+	TranspileExpression(out, ident)
+	out.WriteString(".clone()")
+	return true
+}
+
+// localCollectionIdentNeedsClone reports whether ident is a local slice or
+// map variable held in its own cell. Its read is a place, so storing it
+// anywhere else takes a clone.
+func localCollectionIdentNeedsClone(ident *ast.Ident) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	if isVarBare(ident.Name) || isPackageGlobalIdent(ident) || isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if isSliceElemPtrVar(ident.Name) || isArrayElemPtrVar(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
+}
+
+// declaredVarType is the type of the i-th name a var spec declares, or nil
+// when the spec has no type and the name takes the type of its value.
+func declaredVarType(valueSpec *ast.ValueSpec, i int) types.Type {
+	if valueSpec.Type == nil || i >= len(valueSpec.Names) {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	if obj := typeInfo.info.Defs[valueSpec.Names[i]]; obj != nil {
+		return obj.Type()
+	}
+	return nil
+}
+
 func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil || !isPackageGlobalIdent(ident) {
 		return false
@@ -8139,6 +8267,36 @@ func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
 	out.WriteString(").clone(); ")
 	writeErrorHandleFromOptionValue(out, "__err_copy")
 	out.WriteString(" }")
+}
+
+// blankAssignmentOnlyNamesAVariable reports whether the right side of
+// "_ = x" is a plain variable. Go evaluates nothing there that can fail, so
+// the generated code must not read the variable's value: a nil error,
+// pointer, slice, map, function or interface has none to read.
+//
+// A field of a variable is the same: "_ = t.err" reads nothing from the
+// field. Reaching the field through a nil pointer still stops the program,
+// as it does in Go.
+func blankAssignmentOnlyNamesAVariable(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		if e.Name == "_" {
+			return false
+		}
+		variable, ok := typeInfo.info.Uses[e].(*types.Var)
+		return ok && !variable.IsField()
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[e]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return false
+		}
+		return blankAssignmentOnlyNamesAVariable(e.X)
+	}
+	return false
 }
 
 // expressionCallsOrReceives reports whether evaluating expr calls a function
@@ -12345,6 +12503,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if i > 0 {
 								out.WriteString(", ")
 							}
+							if blankAssignmentOnlyNamesAVariable(rhs) {
+								// "_ = err" uses the variable and reads
+								// nothing from it. Reading its value here
+								// would stop the program when it is nil.
+								out.WriteString("&")
+								TranspileExpressionContext(out, rhs, LValue)
+								continue
+							}
 							TranspileExpression(out, rhs)
 						}
 					} else {
@@ -12816,7 +12982,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("let mut ")
 								TranspileExpressionContext(out, s.Lhs[0], LValue)
 								out.WriteString(" = ")
-								TranspileExpression(out, s.Rhs[0])
+								writeChannelAssignmentValue(out, s.Rhs[0])
 							} else {
 								// Check for slice element pointer short declaration
 								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
@@ -13145,6 +13311,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Existing named-interface values are already represented by a handle.
 											} else if writeEmptyInterfaceHandleClone(out, rhs) {
 												// Existing interface values are already represented by a handle.
+											} else if writeAnyHandleAssertionHandle(out, rhs) {
+												// A slice or map taken out of an interface value shares its data with it.
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {
 												// Existing error values are already represented by a handle.
 											} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
@@ -13170,6 +13338,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 												} else if writeWrappedValueCopyFromIdent(out, ident) {
 													// Copied by value from an existing wrapped value
+												} else if writeWrappedCollectionCopyFromIdent(out, ident, nil) {
+													// A copy of a local slice or map variable.
+												} else if writeChannelCopyFromIdent(out, ident, nil) {
+													// A channel variable: share the channel.
 												} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 													// Typed named integer const identifiers need the named newtype, not the raw const.
 												} else if rhsIsPointerType(rhs) {
@@ -13534,6 +13706,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 									} else if writeWrappedValueCopyFromIdent(out, ident) {
 										// Copied by value from an existing wrapped value
+									} else if writeWrappedCollectionCopyFromIdent(out, ident, declaredVarType(valueSpec, i)) {
+										// A copy of a local slice or map variable.
+									} else if writeChannelCopyFromIdent(out, ident, declaredVarType(valueSpec, i)) {
+										// A channel variable: share the channel.
 									} else {
 										if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
@@ -13549,6 +13725,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														} else {
 															TranspileExpression(out, valueSpec.Values[i])
 														}
+													} else if localCollectionIdentNeedsClone(ident) {
+														writeIdentValueClone(out, ident)
 													} else {
 														TranspileExpression(out, valueSpec.Values[i])
 													}
@@ -13583,6 +13761,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										WriteWrapperPrefix(out)
 										writeInterfaceBoxedValue(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)
+									} else if varSpecHasTypeOfValue(valueSpec, i) && writeAnyHandleAssertionHandle(out, valueSpec.Values[i]) {
+										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
 											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
@@ -15806,6 +15986,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(wrapperType)
 							out.WriteString(">()).unwrap().0.clone()")
+						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok && isErrorInterfaceType(typeInfo.GetType(caseClause.List[0])) {
+							// An error is a value. The case variable gets a
+							// handle of its own to the same error, so
+							// assigning to it does not change what the
+							// interface value holds.
+							writeErrorHandleCopy(out, func() {
+								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(handleType)
+								out.WriteString(">()).unwrap()")
+							})
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.

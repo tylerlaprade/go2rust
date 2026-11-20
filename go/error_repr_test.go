@@ -248,3 +248,50 @@ func main() {
 		t.Fatalf("no wrapper should stand between an interface value and what it holds:\n%s", rust)
 	}
 }
+
+// An error taken back out of an interface{} is a copy, as every other use of
+// an error value is. All three forms give the result a handle of its own to
+// the same error: "got = nil" afterwards must not empty the interface value.
+// The one-value form also has to find an error that was boxed as a handle,
+// which is how the value of errors.New is boxed; it used to look only for a
+// string and stopped the program.
+func TestAnErrorTakenOutOfAnInterfaceIsACopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+func main() {
+	var boxed any = errors.New("x")
+	got, ok := boxed.(error)
+	got = nil
+	single := boxed.(error)
+	single = nil
+	switch v := boxed.(type) {
+	case error:
+		v = nil
+		_ = v
+	}
+	fmt.Println(got, ok, single)
+}
+`)
+
+	const handle = "Rc<RefCell<Option<Rc<dyn StdError>>>>"
+	for what, want := range map[string]string{
+		"the two-value form": "if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)",
+		"the one-value form": "{ if let Some(__err_handle) = any_val.downcast_ref::<" + handle + ">() { (*__err_handle.borrow()).clone().expect(\"type assertion failed\") } else { let typed_val = any_val.downcast_ref::<std::string::String>().expect(\"type assertion failed\");",
+		"case error":         "let mut v = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<" + handle + ">()).unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+	if strings.Contains(rust, "(typed_val.clone(), true)") {
+		t.Errorf("an asserted error must not share the interface value's own handle:\n%s", rust)
+	}
+}
