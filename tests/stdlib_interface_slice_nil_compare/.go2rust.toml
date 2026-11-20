@@ -1,2 +1,0 @@
-source_stdlib_packages = "go/ast,go/token,unicode,unicode/utf8"
-test_timeout = "180s"

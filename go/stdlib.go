@@ -15,7 +15,7 @@ func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	// Handle selector expressions like fmt.Println
 	if key, ok := stdlibCallKey(call.Fun); ok {
 		if handler, exists := stdlibMappings[key]; exists &&
-			(!stdlibCallUsesSourceMappedPackage(call.Fun) || sourceMappedStdlibCallUsesHandler(key)) {
+			!stdlibCallUsesSourceMappedPackage(call.Fun) {
 			return handler
 		}
 	}
@@ -28,15 +28,6 @@ func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	}
 
 	return nil
-}
-
-func sourceMappedStdlibCallUsesHandler(key string) bool {
-	switch key {
-	case "sort.Slice", "sort.SliceStable":
-		return true
-	default:
-		return false
-	}
 }
 
 func stdlibCallUsesSourceMappedPackage(expr ast.Expr) bool {
@@ -2566,6 +2557,9 @@ func transpileReflectValueOf(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("/* ERROR: reflect.ValueOf requires one value */ unimplemented!()")
 		return
 	}
+	if writeExternalReflectValueOfReflectType(out, call) {
+		return
+	}
 
 	valueType, st, ok := reflectValueOfStructPointerType(call.Args[0])
 	if !ok {
@@ -2586,6 +2580,33 @@ func transpileReflectValueOf(out *strings.Builder, call *ast.CallExpr) {
 	writeGoReflectValueLiteral(out, valueType, st, "__reflect_target")
 	WriteWrapperSuffix(out)
 	out.WriteString(" }")
+}
+
+func writeExternalReflectValueOfReflectType(out *strings.Builder, call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil || len(call.Args) != 1 {
+		return false
+	}
+	argNamed, ok := types.Unalias(typeInfo.GetType(call.Args[0])).(*types.Named)
+	if !ok || argNamed.Obj() == nil || argNamed.Obj().Pkg() == nil ||
+		argNamed.Obj().Pkg().Path() != "reflect" || argNamed.Obj().Name() != "Type" ||
+		!isStubBackedStdlibPackagePath("reflect") {
+		return false
+	}
+	valueNamed, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
+	if !ok || valueNamed.Obj() == nil || valueNamed.Obj().Pkg() == nil ||
+		valueNamed.Obj().Pkg().Path() != "reflect" || valueNamed.Obj().Name() != "Value" {
+		return false
+	}
+
+	out.WriteString("{ let _ = ")
+	TranspileExpression(out, call.Args[0])
+	out.WriteString("; ")
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesNamedTypeToRust(valueNamed))
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
 }
 
 func reflectValueOfStructPointerType(arg ast.Expr) (types.Type, *types.Struct, bool) {
@@ -7159,6 +7180,9 @@ var stdlibSelectorMappings = map[string]string{
 // GetStdlibSelectorMapping returns the Rust expression for a stdlib selector constant,
 // or empty string if no mapping exists.
 func GetStdlibSelectorMapping(pkgName, selName string) string {
+	if isSourceMappedPackagePath(pkgName) {
+		return ""
+	}
 	key := pkgName + "." + selName
 	if key == "os.Args" {
 		NeedOsArgs()
@@ -7470,6 +7494,9 @@ func isTimeDurationType(typ types.Type) bool {
 }
 
 func timeDurationUsesStdTimeDuration(typ types.Type) bool {
+	if isSourceMappedPackagePath("time") {
+		return false
+	}
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || !isTimeDurationType(named) {
 		return false
@@ -7491,6 +7518,9 @@ func durationBinaryParts(expr *ast.BinaryExpr) (ast.Expr, string, bool) {
 }
 
 func timeDurationUnitName(expr ast.Expr) (string, bool) {
+	if isSourceMappedPackagePath("time") {
+		return "", false
+	}
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
 		return "", false

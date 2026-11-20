@@ -12,12 +12,14 @@ import (
 
 var (
 	externalPackagesFlag    = flag.String("external-packages", "transpile", "How to handle external packages: transpile, ffi, or none")
-	sourceStdlibPackagesArg = flag.String("source-stdlib-packages", "", "Comma-separated stdlib import paths to transpile from source instead of using the bridge (e.g., 'path/filepath,go/token'). Also accepts 'all' or 'std' to opt in everything, suffix '/...' for a subtree, and suffix '+deps' to include stdlib imports recursively. Same effect as setting GO2RUST_SOURCE_STDLIB_PACKAGES.")
+	bridgeStdlibPackagesArg = flag.String("bridge-stdlib-packages", os.Getenv(bridgeStdlibPackagesEnv), "Comma-separated exact standard-library import paths to use legacy handlers for instead of translating their source.")
 	rawFlag                 = flag.String("raw", "", "Transpile a raw Go source string and write Rust to stdout. Use '-' to read source from stdin. Skips disk I/O and dependency resolution; intended for single-file snippets.")
 	helpFlag                = flag.Bool("help", false, "Show help message")
 )
 
 func main() {
+	// Accepted for old scripts. Standard-library packages now use source by default.
+	flag.String("source-stdlib-packages", "", "Deprecated: source translation is the default.")
 	flag.Parse()
 
 	if *helpFlag {
@@ -25,10 +27,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	// CLI flag overrides env var if explicitly set, otherwise leaves the env
-	// var alone so existing callers and Go unit tests keep working.
-	if *sourceStdlibPackagesArg != "" {
-		os.Setenv("GO2RUST_SOURCE_STDLIB_PACKAGES", *sourceStdlibPackagesArg)
+	if err := os.Setenv(bridgeStdlibPackagesEnv, *bridgeStdlibPackagesArg); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	externalMode, err := ParseExternalPackageMode(*externalPackagesFlag)
@@ -115,11 +116,8 @@ func showHelp() {
 	fmt.Printf("                                    ffi       - Generate FFI bridge to Go libraries\n")
 	fmt.Printf("                                    stub      - Generate stub implementations for manual completion\n")
 	fmt.Printf("                                    none      - Error on external imports\n")
-	fmt.Printf("  --source-stdlib-packages <list> Comma-separated stdlib import paths to transpile from source\n")
-	fmt.Printf("                                  instead of using the bridge. Supports 'all', 'std',\n")
-	fmt.Printf("                                  '<prefix>/...' subtrees, and '+deps' import-graph closure.\n")
-	fmt.Printf("                                  Mirrors the\n")
-	fmt.Printf("                                  GO2RUST_SOURCE_STDLIB_PACKAGES env var.\n")
+	fmt.Println("  --bridge-stdlib-packages <list> Use legacy handlers for the listed standard-library packages.")
+	fmt.Println("                                  Exact import paths, separated by commas. Overrides GO2RUST_BRIDGE_STDLIB_PACKAGES.")
 	fmt.Printf("  --raw <source>                  Transpile a raw Go source string and write Rust to stdout.\n")
 	fmt.Printf("                                  Use '-' to read source from stdin. Skips disk I/O and\n")
 	fmt.Printf("                                  dependency resolution; intended for single-file snippets.\n")
@@ -129,7 +127,7 @@ func showHelp() {
 	fmt.Printf("  %s --external-packages=ffi ./cmd/myapp                    # Use FFI for external packages\n", os.Args[0])
 	fmt.Printf("  %s --external-packages=stub mycode.go                     # Generate stubs for external deps\n", os.Args[0])
 	fmt.Printf("  %s --external-packages=none simple.go                     # Fail on external imports\n", os.Args[0])
-	fmt.Printf("  %s --source-stdlib-packages=path/filepath ./tests/foo     # Transpile path/filepath from source\n", os.Args[0])
+	fmt.Printf("  %s --bridge-stdlib-packages=fmt ./cmd/myapp              # Use legacy fmt handling\n", os.Args[0])
 	fmt.Printf("  %s --raw 'package main\\nfunc main(){println(\"hi\")}'     # Transpile a Go snippet to stdout\n", os.Args[0])
 	fmt.Printf("  echo 'package main\\nfunc main(){}' | %s --raw -          # Read Go source from stdin\n", os.Args[0])
 }

@@ -16,7 +16,7 @@ A conservative Go-to-Rust transpiler that prioritizes correctness over performan
 go build -o go2rust ./go
 
 # Transpile a Go file
-./go2rust input.go > output.rs
+./go2rust input.go
 
 # Run tests
 ./test.sh
@@ -38,6 +38,12 @@ Current status: the generated Rust transpiler builds and runs the copied
 behavior suite, but self-hosting is not complete — not every fixture yet
 produces matching output through the generated binary. Run the behavior gate
 above for the current state.
+
+### Standard-library imports
+
+Project translation follows ordinary standard-library imports and their dependencies into GOROOT and emits Rust crates under `vendor/`. This includes formatting, parsing and type checking. The compiler-provided `unsafe` package and the top-level Go runtime use the existing intrinsic/runtime paths. A body implemented by the OS or in assembly may need a Rust or platform implementation with the same observable behavior.
+
+To use the existing custom handling for a whole package, pass an exact import path, for example `./go2rust --bridge-stdlib-packages=fmt .`. The option accepts a comma-separated list and overrides `GO2RUST_BRIDGE_STDLIB_PACKAGES`. It applies throughout the dependency graph. Support varies by package and operation. The older `--source-stdlib-packages` flag is accepted for compatibility. The standalone `--raw` snippet mode does no dependency resolution.
 
 ### External Package Handling
 

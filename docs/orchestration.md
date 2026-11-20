@@ -73,8 +73,7 @@ Consequences:
 ## 4. Partial verification: probes are the coverage knob
 
 Never transpile all of go2rust + golang.org/x/tools just to check one stdlib
-crate. A **probe fixture** is a tiny self-contained module (go.mod + main.go +
-`.go2rust.toml` with `source_stdlib_packages = "go/types+deps,..."`) whose
+crate. A **probe fixture** is a tiny self-contained Go module whose
 `main` exercises a chosen API surface. Reachability pruning then bounds the
 generated Rust to what that surface touches:
 

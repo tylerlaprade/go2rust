@@ -11,7 +11,7 @@
 #   - scopes cargo check to ONE crate (default go_types) and emits an error histogram
 #
 # Usage:
-#   ./lane.sh baseline [--crate go_types] [--packages "<src-stdlib-pattern>"]
+#   ./lane.sh baseline [--crate go_types] [--bridge-packages "<import-paths>"]
 #   ./lane.sh check    [--crate go_types]          # re-check after a transpiler edit
 #   ./lane.sh transpile-only                        # just rebuild+transpile, no cargo
 #   ./lane.sh avail                                 # print accurate available memory (MB)
@@ -22,8 +22,7 @@ LANE_DIR="${GO2RUST_LANE_DIR:-/tmp/go2rust-lane}"
 WORK="$LANE_DIR/ws"
 LOG="$LANE_DIR/last.cargo.json"
 FLOOR_MB="${GO2RUST_LANE_FLOOR_MB:-250}"   # kill build if accurate-avail drops below this
-# go/types self-host stack (the keystone). Full self-host uses the bigger default set.
-STACK="go/types,go/ast,go/token,go/scanner,go/parser,go/constant,go/internal/typeparams,go/internal/typesinternal,internal/types/errors"
+
 
 mkdir -p "$LANE_DIR"
 
@@ -38,12 +37,13 @@ avail_mb() {
 
 cmd="${1:-}"; shift || true
 CRATE="go_types"
-PACKAGES="$STACK"
+BRIDGE_PACKAGES="${GO2RUST_BRIDGE_STDLIB_PACKAGES:-}"
 PROBE_DIR=""
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --crate)    CRATE="$2"; shift 2;;
-    --packages) PACKAGES="$2"; shift 2;;
+    --bridge-packages) BRIDGE_PACKAGES="$2"; shift 2;;
+    --packages) shift 2;; # Old source lists are redundant.
     --*) echo "lane.sh: unknown arg $1" >&2; exit 2;;
     *) PROBE_DIR="$1"; shift;;          # positional: probe fixture dir
   esac
@@ -109,7 +109,7 @@ run() {
   export CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0
   export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
   export GOFLAGS="${GOFLAGS:--tags=purego}"
-  export GO2RUST_SOURCE_STDLIB_PACKAGES="$PACKAGES"
+  export GO2RUST_BRIDGE_STDLIB_PACKAGES="$BRIDGE_PACKAGES"
 
   mkdir -p "$WORK"
   cp "$REPO/go.mod" "$REPO/go.sum" "$WORK/" 2>/dev/null || true
@@ -122,11 +122,16 @@ run() {
   #     go_types to what the probe touches -> cheap partial check.
   if [[ "$cmd" = "probe" ]]; then
     if [[ -z "$PROBE_DIR" ]] || [[ ! -d "$PROBE_DIR" ]]; then echo "lane: probe needs an existing fixture dir" >&2; return 2; fi
-    local pkgs; pkgs=$(grep '^source_stdlib_packages' "$PROBE_DIR/.go2rust.toml" 2>/dev/null | cut -d'"' -f2)
+    local -a probe_args=()
+    if [[ -f "$PROBE_DIR/.go2rust.toml" ]]; then
+      local bridges
+      bridges=$(awk -F'"' '/^bridge_stdlib_packages[[:space:]]*=/ { print $2 }' "$PROBE_DIR/.go2rust.toml")
+      if [[ -n "$bridges" ]]; then probe_args+=("--bridge-stdlib-packages=$bridges"); fi
+    fi
     local pdir="$WORK/probe"
     rm -rf "$pdir"; cp -R "$PROBE_DIR" "$pdir"
-    echo "lane: transpiling probe $(basename "$PROBE_DIR") (source-stdlib: ${pkgs:-none}) ..." >&2
-    ( cd "$pdir" && guarded "transpile" "$WORK/go2rust" ${pkgs:+--source-stdlib-packages="$pkgs"} . )
+    echo "lane: transpiling probe $(basename "$PROBE_DIR") ..." >&2
+    ( cd "$pdir" && guarded "transpile" "$WORK/go2rust" "${probe_args[@]}" . )
     echo "lane: cargo check -p $CRATE (partial) ..." >&2
     ( cd "$pdir" && guarded "cargo" cargo_check_json )
     histogram; return 0

@@ -17,11 +17,10 @@ import (
 // PackageLoader loads Go packages with full type information
 type PackageLoader struct {
 	workDir                     string
+	externalMode                ExternalPackageMode
 	mainPkg                     *packages.Package
 	allPackages                 map[string]*packages.Package // import path -> package
 	packageMapping              map[string]string            // Go import -> Rust crate name
-	sourceStdlibPackages        map[string]bool              // stdlib packages selected for source transpilation
-	sourceStdlibDepsExpanded    map[string]bool              // selected stdlib packages whose imports were traversed as source deps
 	sourceStdlibReachable       map[types.Object]bool        // reachable source-stdlib objects computed for pruning
 	packageTypeModules          map[string]map[string]string // import path -> Go type name -> Rust module name
 	packageStates               map[string]*PackageState
@@ -39,13 +38,7 @@ type PackageLoader struct {
 }
 
 const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
-const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
-
-var defaultSourceStdlibPackages = map[string]bool{
-	"path/filepath":         true,
-	"internal/filepathlite": true,
-	"internal/stringslite":  true,
-}
+const bridgeStdlibPackagesEnv = "GO2RUST_BRIDGE_STDLIB_PACKAGES"
 
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
@@ -53,8 +46,6 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		workDir:                     workDir,
 		allPackages:                 make(map[string]*packages.Package),
 		packageMapping:              make(map[string]string),
-		sourceStdlibPackages:        make(map[string]bool),
-		sourceStdlibDepsExpanded:    make(map[string]bool),
 		packageTypeModules:          make(map[string]map[string]string),
 		packageStates:               make(map[string]*PackageState),
 		sliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
@@ -120,9 +111,19 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 	}
 
 	// Collect all packages (including transitive dependencies)
-	pl.collectAllPackages(pl.mainPkg)
-	if err := pl.loadLocalModuleFallbacks(); err != nil {
-		fmt.Fprintf(os.Stderr, "Package loading warning: %v\n", err)
+	if err := pl.collectAllPackages(pl.mainPkg); err != nil {
+		return err
+	}
+	if pl.externalMode == ModeTranspile {
+		if err := pl.loadLocalModuleFallbacks(); err != nil {
+			fmt.Fprintf(os.Stderr, "Package loading warning: %v\n", err)
+		}
+	}
+	for _, path := range pl.orderedPackagePaths() {
+		pkg := pl.allPackages[path]
+		if isStdlibPackage(path) && (len(pkg.Errors) != 0 || len(pkg.Syntax) == 0 || pkg.TypesInfo == nil) {
+			return fmt.Errorf("cannot transpile standard library package %s from source: %v", path, pkg.Errors)
+		}
 	}
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
@@ -173,56 +174,31 @@ func goFlagsHasTags(goFlags string) bool {
 }
 
 // collectAllPackages recursively collects all packages
-func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
-	pl.collectAllPackagesFrom(pkg, false)
-}
-
-func (pl *PackageLoader) collectAllPackagesFrom(pkg *packages.Package, forceSourceStdlib bool) {
+func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) error {
 	if pkg == nil {
-		return
+		return nil
 	}
 
 	// Handle main package specially
 	if pkg.PkgPath == "" || pkg.PkgPath == "simpletest" || pkg.PkgPath == "testpkg" {
 		pkg.PkgPath = "main"
 	}
-
-	if pl.sourceStdlibPackages == nil {
-		pl.sourceStdlibPackages = make(map[string]bool)
-	}
-	if pl.sourceStdlibDepsExpanded == nil {
-		pl.sourceStdlibDepsExpanded = make(map[string]bool)
-	}
-
 	isMain := pkg == pl.mainPkg || pkg.PkgPath == "main"
-	isStdlib := isStdlibPackage(pkg.PkgPath)
-	isSourceableStdlib := isStdlib && isSourceTranspilableStdlibPackage(pkg.PkgPath)
-	isSourceStdlib := isSourceableStdlib && (forceSourceStdlib || pl.sourceStdlibPackages[pkg.PkgPath] || shouldTranspileStdlibPackage(pkg.PkgPath))
-	expandSourceDeps := isSourceStdlib && (forceSourceStdlib || pl.sourceStdlibDepsExpanded[pkg.PkgPath] || sourceStdlibPackagePatternExpandsDeps(pkg.PkgPath, os.Getenv(sourceStdlibPackagesEnv)))
-
-	// Skip if already processed, but still expand its stdlib dependency closure
-	// if a later +deps edge reaches a package that was first collected directly.
-	if _, exists := pl.allPackages[pkg.PkgPath]; exists {
-		if expandSourceDeps && !pl.sourceStdlibDepsExpanded[pkg.PkgPath] {
-			pl.sourceStdlibDepsExpanded[pkg.PkgPath] = true
-			for importPath, imp := range pkg.Imports {
-				if imp != nil && imp.PkgPath == "" && importPath != "" {
-					imp.PkgPath = importPath
-				}
-				pl.collectAllPackagesFrom(imp, isStdlibPackage(importPath) && isSourceTranspilableStdlibPackage(importPath))
+	if _, seen := pl.allPackages[pkg.PkgPath]; seen {
+		return nil
+	}
+	if !isMain {
+		if isStdlibPackage(pkg.PkgPath) {
+			useSource, err := shouldTranspileLoadedStdlibPackage(pkg)
+			if err != nil {
+				return err
 			}
+			if !useSource {
+				return nil
+			}
+		} else if pl.externalMode != ModeTranspile {
+			return nil
 		}
-		return
-	}
-
-	if !isMain && isStdlib && !isSourceStdlib {
-		return
-	}
-	if isSourceStdlib {
-		pl.sourceStdlibPackages[pkg.PkgPath] = true
-	}
-	if expandSourceDeps {
-		pl.sourceStdlibDepsExpanded[pkg.PkgPath] = true
 	}
 
 	// Store the package
@@ -240,8 +216,11 @@ func (pl *PackageLoader) collectAllPackagesFrom(pkg *packages.Package, forceSour
 		if imp != nil && imp.PkgPath == "" && importPath != "" {
 			imp.PkgPath = importPath
 		}
-		pl.collectAllPackagesFrom(imp, expandSourceDeps && isStdlibPackage(importPath) && isSourceTranspilableStdlibPackage(importPath))
+		if err := pl.collectAllPackages(imp); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (pl *PackageLoader) loadLocalModuleFallbacks() error {
@@ -406,49 +385,42 @@ func directoryHasGoFiles(dir string) bool {
 }
 
 func shouldTranspileStdlibPackage(importPath string) bool {
-	if !isStdlibPackage(importPath) {
+	if !isStdlibPackage(importPath) || !isSourceTranspilableStdlibPackage(importPath) {
 		return false
 	}
-	if !isSourceTranspilableStdlibPackage(importPath) {
-		return false
+	for _, path := range strings.Split(os.Getenv(bridgeStdlibPackagesEnv), ",") {
+		if strings.TrimSpace(path) == importPath {
+			return false
+		}
 	}
-	if defaultSourceStdlibPackages[importPath] {
-		return true
-	}
-	return sourceStdlibPackagePatternMatches(importPath, os.Getenv(sourceStdlibPackagesEnv))
+	return true
 }
 
 func isSourceTranspilableStdlibPackage(importPath string) bool {
-	// unsafe is a compiler-provided language package. Its public surface is
-	// declarations for intrinsic operations, not ordinary Go source bodies, and
-	// codegen already lowers it through the unsafe intrinsic path.
-	//
-	// runtime is also compiler/runtime implementation infrastructure, not an
-	// ordinary source dependency. Source-stdlib +deps expansion can reach it
-	// through os, but transpiling runtime pulls in compiler intrinsics and
-	// assembly-backed declarations instead of moving user-visible stdlib
-	// packages toward bridge retirement.
-	//
-	// These two are the narrowest case of the stdlib boundary. The full
-	// native tier is defined by stdlibBoundaryTier in stdlib_boundary.go; see
-	// docs/stdlib_boundary.md. This function does not consult it yet, so the
-	// loader still source-transpiles other native-tier packages when a
-	// fixture opts in. TestStdlibBoundaryFixtureRatchet holds that set fixed
-	// until the loader enforces the boundary.
-	return importPath != "unsafe" && importPath != "runtime"
+	if isRuntimeImplementationStdlibPath(importPath) {
+		return false
+	}
+	decision, ok := stdlibBoundaryPolicy[importPath]
+	return !ok || decision.tier != stdlibTierNative
+}
+
+func shouldTranspileLoadedStdlibPackage(pkg *packages.Package) (bool, error) {
+	if pkg == nil || !shouldTranspileStdlibPackage(pkg.PkgPath) {
+		return false, nil
+	}
+	tier, err := stdlibBoundaryTier(pkg.PkgPath, collectStdlibRuntimeSignals(pkg.OtherFiles, pkg.Syntax))
+	if err != nil {
+		return false, err
+	}
+	return tier != stdlibTierNative, nil
 }
 
 func (pl *PackageLoader) isSourceStdlibPackage(importPath string) bool {
-	if !isStdlibPackage(importPath) {
+	if pl == nil || !isStdlibPackage(importPath) {
 		return false
 	}
-	if !isSourceTranspilableStdlibPackage(importPath) {
-		return false
-	}
-	if pl != nil && pl.sourceStdlibPackages[importPath] {
-		return true
-	}
-	return shouldTranspileStdlibPackage(importPath)
+	_, ok := pl.allPackages[importPath]
+	return ok
 }
 
 func sourceStdlibPackagePatternMatches(importPath, patterns string) bool {
@@ -472,10 +444,7 @@ func sourceStdlibPackagePatternMatchesWithMode(importPath, patterns string, requ
 			pattern = strings.TrimSuffix(pattern, "+deps")
 			deps = true
 		}
-		if pattern == "" {
-			continue
-		}
-		if requireDeps && !deps {
+		if pattern == "" || (requireDeps && !deps) {
 			continue
 		}
 		if pattern == "all" || pattern == "std" {

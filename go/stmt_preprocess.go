@@ -412,7 +412,7 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 		out.WriteString(" = ")
 		if !capturesReceiver && !assignedCaptured[varName] && closuresCaptureLoopVariableValue(info.Closures, varName) {
 			// Each iteration of a three-clause loop has its own variable.
-			writeCapturedValueCopy(out, RustLocalIdent(sourceName))
+			writeCapturedValueCopy(out, RustLocalIdent(sourceName), isVarBare(varName))
 			out.WriteString("; ")
 			continue
 		}

@@ -330,6 +330,60 @@ func TestRegisterExternalPackageSelectorPreservesStringConstType(t *testing.T) {
 	}
 }
 
+func TestRegisterExternalPackageSelectorSynthesizesAnonymousStructVariable(t *testing.T) {
+	prevContext := currentContext
+	prevTypeInfo := GetTypeInfo()
+	prevImports := goPackageImports
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	goPackageImports = map[string]string{"cpu": "internal/cpu"}
+	defer func() {
+		SetTranspileContext(prevContext)
+		SetTypeInfo(prevTypeInfo)
+		goPackageImports = prevImports
+	}()
+
+	pkg := gotypes.NewPackage("internal/cpu", "cpu")
+	fields := []*gotypes.Var{
+		gotypes.NewField(gotoken.NoPos, pkg, "HasAVX", gotypes.Typ[gotypes.Bool], false),
+		gotypes.NewField(gotoken.NoPos, pkg, "private", gotypes.Typ[gotypes.Bool], false),
+	}
+	structType := gotypes.NewStruct(fields, nil)
+	selIdent := goast.NewIdent("X86")
+	SetTypeInfo(&TypeInfo{info: &gotypes.Info{Uses: map[*goast.Ident]gotypes.Object{
+		selIdent: gotypes.NewVar(gotoken.NoPos, pkg, "X86", structType),
+	}}})
+
+	RegisterExternalPackageSelector(&goast.SelectorExpr{X: goast.NewIdent("cpu"), Sel: selIdent})
+	got := generateExternalStubs(
+		ctx.File.ExternalTypeStubs,
+		ctx.File.ExternalTypeStubInterfaces,
+		ctx.File.ExternalTypeStubIntegerTypes,
+		ctx.File.ExternalTypeStubTupleTypes,
+		ctx.File.ExternalTypeStubFields,
+		ctx.File.ExternalTypeStubMethods,
+		ctx.File.ExternalTypeStubConversions,
+		ctx.File.ExternalPackageStubs,
+	)
+	for _, want := range []string{
+		"pub struct cpu_X86",
+		"pub has_a_v_x:",
+		"pub fn X86() ->",
+		"Option<cpu_X86>",
+		"Some::<bool>(false)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("anonymous package variable should emit concrete native stub %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "private") {
+		t.Fatalf("anonymous package variable should not expose private fields:\n%s", got)
+	}
+}
+
 func TestPackageExternalStubsUseCanonicalMutexWrapperName(t *testing.T) {
 	prevContext := currentContext
 	prevCD := GetConcurrencyDetector()
@@ -546,6 +600,47 @@ func TestSharedStdlibStubCrateIncludesSerdeJsonWhenJsonDecodeNeeded(t *testing.T
 	}
 	if !strings.Contains(string(cargoToml), "serde_json = \"1\"") {
 		t.Fatalf("JSON shared stdlib stub crate should depend on serde_json:\n%s", cargoToml)
+	}
+}
+
+func TestSharedStdlibStubCrateIncludesNumWhenStubUsesComplex(t *testing.T) {
+	pkg := NewPackageState()
+	pkg.ExternalPackageStubs["math"] = &externalPackageStub{
+		Variables: map[string]string{
+			"ComplexValue": wrappedExternalStubType("num::Complex<f64>"),
+		},
+	}
+
+	dir := t.TempDir()
+	if err := WriteSharedStdlibStubCrate(dir, []*PackageState{pkg}, nil); err != nil {
+		t.Fatalf("WriteSharedStdlibStubCrate error = %v", err)
+	}
+	cargoToml, err := os.ReadFile(filepath.Join(dir, "vendor", sharedStdlibStubCrateName, "Cargo.toml"))
+	if err != nil {
+		t.Fatalf("ReadFile(Cargo.toml) error = %v", err)
+	}
+	if !strings.Contains(string(cargoToml), `num = "0.4"`) {
+		t.Fatalf("complex-valued shared stub crate should depend on num:\n%s", cargoToml)
+	}
+}
+
+func TestExternalReflectTypeSelectorRegistersInterfaceMethod(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "reflect"
+
+func kindOf(t reflect.Type) reflect.Kind { return t.Kind() }
+func stringOf(t reflect.Type) string { return t.String() }
+`)
+
+	for _, want := range []string{
+		"impl reflect_Type",
+		"pub fn kind(&self)",
+		"pub fn string(&self)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("reflect.Type selector should register external method %q:\n%s", want, rust)
+		}
 	}
 }
 

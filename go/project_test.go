@@ -2382,6 +2382,7 @@ func Use() int {
 }
 
 func TestAtomicPointerExternalPackageHelperKeepsLocalElementTypeOutOfSharedStubs(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "sync/atomic")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -2522,6 +2523,7 @@ func main() {
 }
 
 func TestAtomicUint64MethodValueUsesSharedAtomicHelper(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "sync/atomic")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -2575,6 +2577,7 @@ func main() {
 }
 
 func TestSyncRWMutexFieldUsesBareHelper(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "sync")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -2612,6 +2615,7 @@ func (s *Set) Use() {
 }
 
 func TestSharedStdlibStubVariableReturningRWMutexIncludesHelper(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "syscall")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3169,6 +3173,7 @@ func Same(l label.Label, key label.Key) bool {
 }
 
 func TestFunctionTypeAliasUsesKnownStdlibContextHelper(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "context")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3200,6 +3205,7 @@ func Use(exporter Exporter) {
 }
 
 func TestGoTimeHelperIncludesIsZeroAndFormatMethods(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "time")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3310,6 +3316,7 @@ func Use() byte {
 }
 
 func TestTranspiledExternalPackagesUseSharedStdlibStubs(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "go/types")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3407,6 +3414,7 @@ func main() {
 }
 
 func TestStdlibConstStubUsesConstName(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "go/parser")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3439,6 +3447,7 @@ func mode() parser.Mode {
 }
 
 func TestStdlibVariableStubUsesGlobalName(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "go/types")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3531,6 +3540,7 @@ func main() {
 }
 
 func TestMultiFileStdlibHelpersUseSharedCrateRootInclude(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "time")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "clock.go"), `package main
 
@@ -3591,6 +3601,7 @@ func main() {
 }
 
 func TestMainPackageHelperIncludeDeduplicatesRootImports(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "fmt")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3646,6 +3657,7 @@ func main() {}
 }
 
 func TestMultiFileVariadicAnyPrintlnImportsCrateRootFormatter(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "fmt")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "printer.go"), `package main
 
@@ -3683,6 +3695,7 @@ func main() {}
 }
 
 func TestTranspiledExternalMultiFilePackageHelpersUseSharedCrateRootInclude(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "time")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3756,6 +3769,7 @@ func main() {
 }
 
 func TestSharedStdlibHelperGoTimeCrossesTranspiledCrates(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "time")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3826,6 +3840,7 @@ func main() {
 }
 
 func TestPackageHelperImportsAvoidSiblingModuleTypeCollisions(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "fmt")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3918,6 +3933,7 @@ func Use() int {
 }
 
 func TestTypeNameHelperDoesNotCollideWithPackageGoTypeNameFunction(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "fmt")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -5857,75 +5873,7 @@ func TestPackageLoaderOrderedPackagePaths(t *testing.T) {
 	}
 }
 
-func TestSourceStdlibPackagePatterns(t *testing.T) {
-	for _, tt := range []struct {
-		patterns string
-		path     string
-		want     bool
-	}{
-		{patterns: "go/token", path: "go/token", want: true},
-		{patterns: "go/...", path: "go/types", want: true},
-		{patterns: "go/...", path: "go", want: true},
-		{patterns: "internal/types/...", path: "internal/types/errors", want: true},
-		{patterns: "go/types+deps", path: "go/types", want: true},
-		{patterns: "go/token", path: "go/types", want: false},
-		{patterns: "go/types+deps", path: "go/token", want: false},
-	} {
-		got := sourceStdlibPackagePatternMatches(tt.path, tt.patterns)
-		if got != tt.want {
-			t.Fatalf("sourceStdlibPackagePatternMatches(%q, %q) = %v, want %v", tt.path, tt.patterns, got, tt.want)
-		}
-	}
-	for _, tt := range []struct {
-		patterns string
-		path     string
-		want     bool
-	}{
-		{patterns: "go/types+deps", path: "go/types", want: true},
-		{patterns: "go/types", path: "go/types", want: false},
-		{patterns: "go/types+deps", path: "go/token", want: false},
-		{patterns: "go/...+deps", path: "go/token", want: true},
-	} {
-		got := sourceStdlibPackagePatternExpandsDeps(tt.path, tt.patterns)
-		if got != tt.want {
-			t.Fatalf("sourceStdlibPackagePatternExpandsDeps(%q, %q) = %v, want %v", tt.path, tt.patterns, got, tt.want)
-		}
-	}
-}
-
-func TestRetiredFilepathBridgeSourceMapsByDefault(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "")
-
-	for _, path := range []string{
-		"path/filepath",
-		"internal/filepathlite",
-		"internal/stringslite",
-	} {
-		if !shouldTranspileStdlibPackage(path) {
-			t.Fatalf("%s should source-map by default after its pure bridge shims retire", path)
-		}
-		if sourceStdlibPackagePatternExpandsDeps(path, "") {
-			t.Fatalf("%s should not expand all transitive stdlib deps by default", path)
-		}
-	}
-	if shouldTranspileStdlibPackage("os") {
-		t.Fatalf("OS-tied filepath dependencies should not be source-mapped by the filepath default")
-	}
-}
-
-func TestExternalNamedIntegerConversionSourceMapsTokenExplicitly(t *testing.T) {
-	path := filepath.Join("..", "tests", "external_named_integer_conversion", ".go2rust.toml")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read %s: %v", path, err)
-	}
-	if !strings.Contains(string(data), `source_stdlib_packages = "go/token"`) {
-		t.Fatalf("%s must source-map go/token explicitly so the fixture cannot regenerate through token_Pos stubs", path)
-	}
-}
-
-func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
+func TestPackageLoaderTranslatesTransitiveStdlibImportsByDefault(t *testing.T) {
 	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
 	unsafePkg := &packages.Package{Name: "unsafe", PkgPath: "unsafe", Imports: make(map[string]*packages.Package)}
 	runtimePkg := &packages.Package{Name: "runtime", PkgPath: "runtime", Imports: make(map[string]*packages.Package)}
@@ -5946,46 +5894,20 @@ func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *
 		if loader.allPackages[path] == nil {
 			t.Fatalf("collectAllPackages() should include source stdlib dependency %s", path)
 		}
-		if !loader.sourceStdlibPackages[path] {
-			t.Fatalf("collectAllPackages() should mark %s as source stdlib", path)
-		}
 		if loader.packageMapping[path] == "" {
 			t.Fatalf("collectAllPackages() should map %s to a Rust crate", path)
 		}
 	}
-	if loader.allPackages["unsafe"] != nil || loader.packageMapping["unsafe"] != "" || loader.sourceStdlibPackages["unsafe"] {
+	if loader.allPackages["unsafe"] != nil || loader.packageMapping["unsafe"] != "" {
 		t.Fatalf("collectAllPackages() should keep unsafe on the compiler-intrinsic path, not source-map it")
 	}
-	if loader.allPackages["runtime"] != nil || loader.packageMapping["runtime"] != "" || loader.sourceStdlibPackages["runtime"] {
+	if loader.allPackages["runtime"] != nil || loader.packageMapping["runtime"] != "" {
 		t.Fatalf("collectAllPackages() should keep runtime on the compiler/runtime path, not source-map it")
 	}
 }
 
-func TestUnsafeStdlibPackageIsCompilerIntrinsic(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "unsafe,all")
-	if shouldTranspileStdlibPackage("unsafe") {
-		t.Fatalf("unsafe should not be source-transpiled as a normal stdlib package")
-	}
-	if (&PackageLoader{sourceStdlibPackages: map[string]bool{"unsafe": true}}).isSourceStdlibPackage("unsafe") {
-		t.Fatalf("unsafe should not be treated as a source stdlib package from loader state")
-	}
-}
-
-func TestRuntimeStdlibPackageIsCompilerInfrastructure(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "runtime,all")
-	if shouldTranspileStdlibPackage("runtime") {
-		t.Fatalf("runtime should not be source-transpiled as a normal stdlib package")
-	}
-	if (&PackageLoader{sourceStdlibPackages: map[string]bool{"runtime": true}}).isSourceStdlibPackage("runtime") {
-		t.Fatalf("runtime should not be treated as a source stdlib package from loader state")
-	}
-	if !shouldTranspileStdlibPackage("runtime/debug") {
-		t.Fatalf("runtime/debug should remain source-transpilable when explicitly selected")
-	}
-}
-
-func TestPackageLoaderSourceStdlibExactPatternDoesNotIncludeTransitiveStdlibImports(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/types")
+func TestPackageLoaderHonorsExplicitTransitiveBridgeException(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "go/token")
 	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
 	typesPkg := &packages.Package{Name: "types", PkgPath: "go/types", Imports: map[string]*packages.Package{
 		"go/token": tokenPkg,
@@ -6002,12 +5924,11 @@ func TestPackageLoaderSourceStdlibExactPatternDoesNotIncludeTransitiveStdlibImpo
 		t.Fatalf("collectAllPackages() should include directly selected go/types")
 	}
 	if loader.allPackages["go/token"] != nil {
-		t.Fatalf("collectAllPackages() should not include transitive stdlib dependency without +deps")
+		t.Fatalf("collectAllPackages() should skip the explicitly bridged transitive dependency")
 	}
 }
 
 func TestPackageLoaderIncludesMappedStdlibSourcePackage(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	loader := &PackageLoader{
 		mainPkg: &packages.Package{PkgPath: "main"},
 		allPackages: map[string]*packages.Package{
@@ -6036,7 +5957,6 @@ func TestPackageLoaderIncludesMappedStdlibSourcePackage(t *testing.T) {
 }
 
 func TestSourceStdlibPackageUsesMappedCrate(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib
 
@@ -6071,7 +5991,6 @@ func main() {
 }
 
 func TestSourceStdlibReachabilityAppliesDuringMainGeneration(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "errors")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-main-reachability
 
@@ -6102,7 +6021,6 @@ func main() {
 }
 
 func TestSourceStdlibRerunRemovesStaleGeneratedVendorCrates(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-stale
 
@@ -6153,8 +6071,7 @@ go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 	}
 }
 
-func TestSourceStdlibSyncPoolRaceAddrGeneratedIndexScalarIsBare(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "sync,internal/sync")
+func TestNativeSyncUsesBridgeInsteadOfSourcePackage(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-sync
 
@@ -6176,54 +6093,32 @@ func main() {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	poolRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "sync", "pool.rs"))
-	if strings.Contains(poolRS, "].clone() }.borrow()") ||
-		strings.Contains(poolRS, "].clone() }.lock()") {
-		snippet := poolRS
-		if start := strings.Index(poolRS, "pub fn pool_race_addr"); start >= 0 {
-			end := start + 1200
-			if end > len(poolRS) {
-				end = len(poolRS)
-			}
-			snippet = poolRS[start:end]
-		}
-		t.Fatalf("source stdlib poolRaceAddr uintptr index should stay bare, got:\n%s", snippet)
+	if _, err := os.Stat(filepath.Join(tempDir, "vendor", "sync", "lib.rs")); !os.IsNotExist(err) {
+		t.Fatalf("native sync package must not be source-transpiled, stat err = %v", err)
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "sync_Map") {
+		t.Fatalf("native sync package should remain on the bridge path:\n%s", mainRS)
 	}
 }
 
 func TestSourceStdlibRuntimeMspanInitWrapsPackageConstArgument(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
-	tempDir := t.TempDir()
-	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-runtime
-
-go 1.24
-`)
-	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
-
-import (
-	"go/token"
-	"go/types"
-)
-
-func main() {
-	name := types.NewTypeName(token.NoPos, nil, "T", nil)
-	_ = types.NewTypeParam(name, nil)
-}
-`)
-
-	loader := NewPackageLoader(tempDir)
-	if err := loader.LoadWithDependencies([]string{"."}); err != nil {
-		t.Fatalf("LoadWithDependencies() error = %v", err)
+	// Inspect this real Go expression independently of the runtime boundary
+	// used during ordinary dependency traversal.
+	pkgs, err := packages.Load(&packages.Config{
+		Mode:       packages.LoadAllSyntax,
+		BuildFlags: []string{"-tags=purego"},
+	}, "runtime")
+	if err != nil || len(pkgs) != 1 {
+		t.Fatalf("load runtime syntax: %v (packages: %d)", err, len(pkgs))
 	}
-	runtimePkg := loader.allPackages["runtime"]
-	if runtimePkg == nil {
-		t.Fatalf("go/types+deps should source-load runtime; loaded packages: %v", loader.orderedAllPackagePaths())
-	}
+	runtimePkg := pkgs[0]
 	typeInfo := &TypeInfo{info: runtimePkg.TypesInfo, pkg: runtimePkg.Types}
 	packageState := NewPackageState()
 	packageState.ConstantNameOverrides = assignPackageConstantNames(runtimePkg.Syntax)
 	packageState.MethodsByType = collectPackageMethods(runtimePkg.Syntax)
-	session := NewTranspileSession(typeInfo, loader.packageMapping)
+	mapping := map[string]string{"runtime": "runtime"}
+	session := NewTranspileSession(typeInfo, mapping)
 	prevContext := GetTranspileContext()
 	prevTypeInfo := GetTypeInfo()
 	prevConcurrencyDetector := globalConcurrencyDetector
@@ -6233,7 +6128,7 @@ func main() {
 	SetTranspileContext(&TranspileContext{
 		Session:                 session,
 		Package:                 packageState,
-		PackageMapping:          loader.packageMapping,
+		PackageMapping:          mapping,
 		UsePackageExternalStubs: true,
 	})
 	SetTypeInfo(typeInfo)
@@ -6347,7 +6242,6 @@ type Holder struct {
 }
 
 func TestSourceStdlibPackageLocalInterfacesDoNotRegisterExternalStubs(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/build/constraint")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-constraint
 
@@ -6380,7 +6274,8 @@ func main() {
 	if !strings.Contains(exprRS, "pub trait Expr") {
 		t.Fatalf("source stdlib Expr should be emitted as a local trait, got:\n%s", exprRS)
 	}
-	if !strings.Contains(exprRS, "let __any = __v.__go_as_any();") {
+	if !strings.Contains(exprRS, "let __any = __v.__go_as_any();") &&
+		!strings.Contains(exprRS, "<dyn Expr + Send + Sync>::__go_as_any(any_val.as_ref())") {
 		t.Fatalf("source stdlib interface assertion should use the generated local trait object, got:\n%s", exprRS)
 	}
 	if strings.Contains(exprRS, "typed_val) = val.downcast_ref::<") {
@@ -6970,7 +6865,6 @@ func parseExprList() []ast.Expr {
 }
 
 func TestSourceStdlibReachabilityPrunesUnusedDeclarations(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	prevCtx := GetTranspileContext()
 	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/token": "go_token"}})
 	defer SetTranspileContext(prevCtx)
@@ -7298,7 +7192,6 @@ func use(sink func(fs.File), f File) {
 }
 
 func TestSourceStdlibPruningSkipsCrossFileLocalInterfaceImplForPrunedInterface(t *testing.T) {
-	t.Setenv(sourceStdlibPackagesEnv, "sync")
 	prevCtx := GetTranspileContext()
 	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"sync": "sync"}})
 	defer SetTranspileContext(prevCtx)
@@ -7956,6 +7849,7 @@ func mustReadFile(t *testing.T, path string) string {
 }
 
 func TestAtomicPointerInterfaceElemStaysBareTraitObject(t *testing.T) {
+	t.Setenv(bridgeStdlibPackagesEnv, "sync/atomic")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 

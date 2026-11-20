@@ -160,8 +160,8 @@ run_transpile_and_compare() {
     # Check for test-specific configuration
     local external_mode
     external_mode=$(fixture_config_value "$test_dir" "external_packages")
-    local source_stdlib_packages
-    source_stdlib_packages=$(fixture_config_value "$test_dir" "source_stdlib_packages")
+    local bridge_stdlib_packages
+    bridge_stdlib_packages=$(fixture_config_value "$test_dir" "bridge_stdlib_packages")
 
     # Build transpile command with appropriate flags
     local transpiler="${GO2RUST_TEST_BINARY:-./go2rust}"
@@ -169,8 +169,8 @@ run_transpile_and_compare() {
     if [[ -n "$external_mode" ]]; then
         transpile_args+=("--external-packages=$external_mode")
     fi
-    if [[ -n "$source_stdlib_packages" ]]; then
-        transpile_args+=("--source-stdlib-packages=$source_stdlib_packages")
+    if [[ -n "$bridge_stdlib_packages" ]]; then
+        transpile_args+=("--bridge-stdlib-packages=$bridge_stdlib_packages")
     fi
     local transpile_output
     note_fixture_phase "transpiling"
@@ -705,6 +705,10 @@ run_xfail_test() {
 
 @test "compound_assign_len_int" {
     run_test "tests/compound_assign_len_int"
+}
+
+@test "compound_assign_scope_reuse" {
+    run_test "tests/compound_assign_scope_reuse"
 }
 
 @test "compound_assign_wrapped_call" {
@@ -2943,6 +2947,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_io_copy"
 }
 
+@test "source_stdlib_math_floor_default" {
+    run_test "tests/source_stdlib_math_floor_default"
+}
+
 @test "source_stdlib_parser_decl_cross_package" {
     run_test "tests/source_stdlib_parser_decl_cross_package"
 }
@@ -2965,6 +2973,10 @@ run_xfail_test() {
 
 @test "source_stdlib_sync_map_load" {
     run_test "tests/source_stdlib_sync_map_load"
+}
+
+@test "source_stdlib_utf8_rune_count" {
+    run_test "tests/source_stdlib_utf8_rune_count"
 }
 
 @test "star_pointer_incdec" {
@@ -3437,6 +3449,10 @@ run_xfail_test() {
 
 @test "typeblock_ptr_to_any_struct" {
     run_test "tests/typeblock_ptr_to_any_struct"
+}
+
+@test "typed_rune_array_elements" {
+    run_test "tests/typed_rune_array_elements"
 }
 
 @test "types_config_check_bridge" {

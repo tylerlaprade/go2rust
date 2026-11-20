@@ -1697,6 +1697,55 @@ func scan(mapping func(rune) rune, s string) int {
 	}
 }
 
+func TestUnassignedStringRangeRuneUsesGoInt32Binding(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func digitCount(s string) int {
+	count := 0
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			count++
+		}
+	}
+	return count
+}
+`)
+
+	if strings.Contains(rust, " in (*s.borrow().as_ref().unwrap()).chars() {") ||
+		strings.Contains(rust, " in (*s.lock().unwrap().as_ref().unwrap()).chars() {") {
+		t.Fatalf("string range should not bind a Rust char directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".char_indices().map(|(i, c)| (i, c as i32))") {
+		t.Fatalf("string range should normalize each rune to Go int32:\n%s", rust)
+	}
+	if !strings.Contains(rust, "r >= ('0' as i32)") {
+		t.Fatalf("rune comparisons should use matching Go int32 values:\n%s", rust)
+	}
+}
+
+func TestTypedNumericAddAssignWinsOverStaleSyntaxStringMetadata(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func adjust(flag bool) int {
+	if flag {
+		hour := ""
+		hour += "x"
+		println(hour)
+	}
+	hour := 0
+	hour += 12
+	return hour
+}
+`)
+
+	if strings.Contains(rust, "push_str(&12)") {
+		t.Fatalf("typed integer += must not use stale syntax string metadata:\n%s", rust)
+	}
+	if !strings.Contains(rust, "guard.as_ref().unwrap() + __rhs") {
+		t.Fatalf("typed integer += should use numeric mutation:\n%s", rust)
+	}
+}
+
 func TestStringRangeRuneAssignmentToRuneVariableCastsToGoRune(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1709,11 +1758,11 @@ func lastRune(s string) rune {
 }
 `)
 
-	if strings.Contains(rust, "let new_val = c;") {
-		t.Fatalf("assignment to rune variable should not store Rust char directly:\n%s", rust)
+	if !strings.Contains(rust, ".char_indices().map(|(i, c)| (i, c as i32))") {
+		t.Fatalf("string range should normalize the iterator value to Go rune:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = c as i32;") {
-		t.Fatalf("assignment to rune variable should cast string range char to Go rune:\n%s", rust)
+	if !strings.Contains(rust, "let new_val = c;") {
+		t.Fatalf("assignment to rune variable should reuse the normalized Go rune:\n%s", rust)
 	}
 }
 
@@ -1731,11 +1780,11 @@ func runes(s string) []rune {
 }
 `)
 
-	if strings.Contains(rust, "let __rhs = c") && !strings.Contains(rust, "let __rhs = c as i32;") {
-		t.Fatalf("assignment to []rune element should not store Rust char directly:\n%s", rust)
+	if !strings.Contains(rust, ".char_indices().map(|(i, c)| (i, c as i32))") {
+		t.Fatalf("string range should normalize the iterator value to Go rune:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __rhs = c as i32;") {
-		t.Fatalf("assignment to []rune element should cast string range char to Go rune:\n%s", rust)
+	if !strings.Contains(rust, "let __rhs = c;") {
+		t.Fatalf("assignment should reuse the normalized Go rune:\n%s", rust)
 	}
 }
 
@@ -2010,6 +2059,29 @@ func classify(target error) string {
 	}
 	if !strings.Contains(rust, "std::ptr::addr_eq(&**__left, &**__right)") {
 		t.Fatalf("error switch case should compare boxed error identity:\n%s", rust)
+	}
+}
+
+func TestConcurrentExpressionSwitchOnErrorExternalNamedIntegerConstUsesBareTupleFields(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "syscall"
+
+func missing(err error) bool {
+	switch err {
+	case syscall.ENOENT:
+		return true
+	default:
+		return false
+	}
+}
+`)
+
+	if strings.Contains(rust, "__e.0.lock()") || strings.Contains(rust, "syscall::E_N_O_E_N_T as usize") {
+		t.Fatalf("external named integer error switch cases should compare bare tuple fields without locking or casting the newtype:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__e.0 == ((syscall::E_N_O_E_N_T).0 as usize)") {
+		t.Fatalf("external named integer error switch case should compare primitive tuple fields:\n%s", rust)
 	}
 }
 
@@ -7429,6 +7501,11 @@ func calc(a, b int) (sum, product int) {
 	return
 }
 
+func explicitNamedResult(a int) (result int) {
+	result = a + 1
+	return result
+}
+
 func paramsOnly(a, b int) (int, int) {
 	return a + b, a * b
 }
@@ -7436,6 +7513,9 @@ func paramsOnly(a, b int) (int, int) {
 
 	if !strings.Contains(rust, "return ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()));") {
 		t.Fatalf("naked return through bare scalar named-returns should keep explicit return for borrow lifetime safety:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return (*result.borrow().as_ref().unwrap());") {
+		t.Fatalf("explicit return through a named-result wrapper should keep an explicit return for borrow lifetime safety:\n%s", rust)
 	}
 	if !strings.Contains(rust, "((*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap()))\n}") {
 		t.Fatalf("returns that only borrow parameters should still tail-return:\n%s", rust)
@@ -9121,6 +9201,32 @@ func (q nat) convert(r nat) nat {
 	}
 }
 
+func TestPointerReceiverTupleAssignmentWritesThroughSelf(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Value struct {
+	n int
+}
+
+func pair() (Value, error) {
+	return Value{n: 1}, nil
+}
+
+func (v *Value) decode() error {
+	var err error
+	*v, err = pair()
+	return err
+}
+`)
+
+	if strings.Contains(rust, "*self.lock()") || strings.Contains(rust, "*self.borrow") {
+		t.Fatalf("pointer receiver tuple assignment should write through self directly, not a receiver handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*self = __moved_val;") {
+		t.Fatalf("pointer receiver tuple assignment should move the returned value through self:\n%s", rust)
+	}
+}
+
 func TestNamedStringValueReceiverSliceReassignmentWrapsLocalCopy(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -9304,6 +9410,32 @@ func div(sec int64) uint64 {
 	}
 	if !strings.Contains(rust, "(*sec.borrow().as_ref().unwrap()) as u64") {
 		t.Fatalf("shadowing scalar conversion short declaration should cast the outer wrapped value:\n%s", rust)
+	}
+}
+
+func TestScalarConversionSwitchCaseShadowShortDeclUsesOuterBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func seconds() int64 {
+	return 1
+}
+
+func div() uint64 {
+	sec := seconds()
+	switch {
+	default:
+		sec := uint64(sec)
+		return sec
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some((*sec.borrow") || strings.Contains(rust, "Some((*sec.lock") {
+		t.Fatalf("switch-case shadowing conversion should read the outer bare scalar directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut sec = Rc::new(RefCell::new(Some(sec as u64)))") &&
+		!strings.Contains(rust, "let mut sec = Arc::new(Mutex::new(Some(sec as u64)))") {
+		t.Fatalf("switch-case shadowing conversion should cast the outer bare scalar before binding the inner value:\n%s", rust)
 	}
 }
 

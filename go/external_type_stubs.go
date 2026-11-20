@@ -377,7 +377,8 @@ func IsExternalStdlibSelectorMethod(sel *ast.SelectorExpr) bool {
 }
 
 func knownStdlibHelperNeedsExternalMethodStub(pkgPath string, name string) bool {
-	return pkgPath == "os" && name == "File"
+	return (pkgPath == "os" && name == "File") ||
+		(pkgPath == "reflect" && name == "Type")
 }
 
 func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.Interface) {
@@ -567,7 +568,7 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 	case *types.Const:
 		RegisterExternalPackageStubConstantValue(pkgName, rustConstName(sel.Sel.Name), obj.Type(), obj.Val())
 	case *types.Var:
-		RegisterExternalPackageStubVariable(pkgName, rustPackageGlobalName(sel.Sel.Name), obj.Type())
+		RegisterExternalPackageStubVariable(pkgName, pkgPath, rustPackageGlobalName(sel.Sel.Name), obj.Type())
 	}
 }
 
@@ -697,12 +698,25 @@ func RegisterExternalPackageStubConstantValue(pkgName string, constName string, 
 	}
 }
 
-func RegisterExternalPackageStubVariable(pkgName string, varName string, varType types.Type) {
+func RegisterExternalPackageStubVariable(pkgName string, pkgPath string, varName string, varType types.Type) {
 	if pkgName == "" || varName == "" || varType == nil {
 		return
 	}
 	trackWrapperImports()
 	pkg := ensureExternalPackageStub(pkgName)
+	if structType, ok := types.Unalias(varType).Underlying().(*types.Struct); ok {
+		stubName := pkgName + "_" + varName
+		RegisterExternalTypeStub(stubName)
+		for i := 0; i < structType.NumFields(); i++ {
+			field := structType.Field(i)
+			if field.Name() == "_" || !field.Exported() {
+				continue
+			}
+			RegisterExternalTypeStubField(stubName, ToSnakeCase(field.Name()), field.Type(), pkgPath)
+		}
+		pkg.Variables[varName] = wrappedExternalStubType(stubName)
+		return
+	}
 	pkg.Variables[varName] = canonicalPackageExternalStubRustType(goTypesReturnTypeToRust(varType))
 }
 
@@ -1078,6 +1092,9 @@ gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
 	if strings.Contains(stubCode, "serde_json::") || strings.Contains(stubCode, "pub use serde_json") {
 		cargoToml += "serde_json = \"1\"\n"
+	}
+	if strings.Contains(stubCode, "num::") {
+		cargoToml += "num = \"0.4\"\n"
 	}
 	for _, depCrate := range sourceMappedDeps {
 		cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
@@ -4004,7 +4021,7 @@ func externalStubFieldsCanDeriveDebug(fields map[string]string) bool {
 }
 
 func externalStubStructNeedsCustomDefault(name string) bool {
-	return name == "types_Config"
+	return name == "types_Config" || strings.HasPrefix(name, "cpu_")
 }
 
 // MACHINERY: Default impl emitter for stub structs.
@@ -4032,6 +4049,12 @@ func writeExternalStubStructDefault(out *strings.Builder, name string, fields ma
 }
 
 func externalStubStructFieldDefault(typeName, fieldName string) string {
+	// PERMANENT: internal/cpu is a native package. Source-backed packages use
+	// these feature flags only to select assembly accelerators, so false is the
+	// faithful portable value and keeps them on their complete Go paths.
+	if strings.HasPrefix(typeName, "cpu_") && strings.HasPrefix(fieldName, "has_") {
+		return wrappedExternalStubExpr("bool", "false")
+	}
 	if typeName == "types_Config" {
 		switch fieldName {
 		case "fake_import_c", "ignore_func_bodies":
