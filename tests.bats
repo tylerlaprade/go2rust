@@ -1795,6 +1795,14 @@ run_xfail_test() {
     run_test "tests/named_array_value_copy_goroutines"
 }
 
+@test "named_basic_value_in_interface" {
+    run_test "tests/named_basic_value_in_interface"
+}
+
+@test "named_basic_value_in_interface_goroutines" {
+    run_test "tests/named_basic_value_in_interface_goroutines"
+}
+
 @test "named_const_method_call" {
     run_test "tests/named_const_method_call"
 }
@@ -2257,6 +2265,14 @@ run_xfail_test() {
 
 @test "printf_runtime_format_table" {
     run_test "tests/printf_runtime_format_table"
+}
+
+@test "printf_verbs_without_a_rust_equivalent" {
+    run_test "tests/printf_verbs_without_a_rust_equivalent"
+}
+
+@test "printf_verbs_without_a_rust_equivalent_goroutines" {
+    run_test "tests/printf_verbs_without_a_rust_equivalent_goroutines"
 }
 
 @test "printf_width_decimal" {

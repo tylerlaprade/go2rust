@@ -211,7 +211,9 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		out.WriteString("\"")
 		for i := range call.Args {
-			if i > 0 {
+			// Print puts a space between two operands only when neither is
+			// a string. An interface value is taken to hold a non-string.
+			if i > 0 && !printOperandIsString(call.Args[i-1]) && !printOperandIsString(call.Args[i]) {
 				out.WriteString(" ")
 			}
 			out.WriteString("{}")
@@ -225,6 +227,21 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString(")")
+}
+
+// printOperandIsString reports whether a fmt.Print operand is a string, of
+// type string or of a type whose underlying type is string.
+func printOperandIsString(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	return ok && basic.Info()&types.IsString != 0
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
@@ -1306,6 +1323,14 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 			transpilePrintArg(out, arg)
 			out.WriteString(") as u8 as char")
 		}
+	} else if NeedsConcurrentWrapper() && transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
+		// All the arguments of print! live until the macro is done, and so
+		// would the lock on an interface receiver: a second call on the same
+		// value, as in Printf("%v %v", s.Area(), s.Perimeter()), waited on
+		// the first forever. The block lets go of the lock.
+		out.WriteString("{ let __arg_value = ")
+		transpilePrintArg(out, arg)
+		out.WriteString("; __arg_value }")
 	} else {
 		transpilePrintArg(out, arg)
 	}
