@@ -658,12 +658,94 @@ where
     }
 }
 
+struct GoPanicHookSuppression;
+
 thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+struct GoPanicFrame {
+    payload: Option<Box<dyn Any + Send + Sync>>,
+    recover_depth: Option<usize>,
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoPanicFrame>> = RefCell::new(std::vec::Vec::new());
 }
 
 fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+    let payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
+        })
+    });
+    Arc::new(Mutex::new(payload))
+}
+
+fn go_push_panic_payload(payload: Box<dyn Any + Send + Sync>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoPanicFrame {
+        payload: Some(payload),
+        recover_depth: None,
+    }));
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recover_depth = previous;
+            }
+        });
+    }
+    result
 }
 
 fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
@@ -676,7 +758,7 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
                         payload = *boxed;
                     }
                     Err(payload) => {
-                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        go_push_panic_payload(payload);
                         return;
                     }
                 }
@@ -686,40 +768,45 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<i32>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<i64>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let _payload = match payload.downcast::<bool>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(_payload) => _payload,
     };
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_replace_panic_payload(payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(payload);
 }
 
 fn go_runtime_error_text(__text: String) -> String {
@@ -735,7 +822,7 @@ fn go_runtime_error_text(__text: String) -> String {
 }
 
 fn go_resume_unrecovered_panic() {
-    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+    if let Some(GoPanicFrame { payload: Some(payload), .. }) = __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop()) {
         std::panic::panic_any(payload);
     }
 }
@@ -969,8 +1056,7 @@ impl tally {
     pub fn add(&mut self, key: Arc<Mutex<Option<String>>>) {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-        let __go_previous_panic_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_hook_guard = go_suppress_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             self.mu.lock();
             let mut t_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
@@ -980,22 +1066,24 @@ impl tally {
 
             // Execute deferred functions
             while let Some(f) = __defer_stack.pop() {
-                f();
+                if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                    std::panic::resume_unwind(__go_defer_panic);
+                }
             }
         }));
         match __go_panic_result {
             Ok(__go_value) => {
-                std::panic::set_hook(__go_previous_panic_hook);
+                drop(__go_panic_hook_guard);
                 __go_value
             }
             Err(__go_panic_payload) => {
                 go_store_panic_payload(__go_panic_payload);
                 while let Some(f) = __defer_stack.pop() {
-                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                        go_store_panic_payload(__go_defer_panic);
+                    if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                        go_replace_panic_payload(__go_defer_panic);
                     }
                 }
-                std::panic::set_hook(__go_previous_panic_hook);
+                drop(__go_panic_hook_guard);
                 go_resume_unrecovered_panic();
                 ()
             }
@@ -1005,8 +1093,7 @@ impl tally {
     pub fn get(&self, key: Arc<Mutex<Option<String>>>) -> i64 {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-        let __go_previous_panic_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_hook_guard = go_suppress_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             self.mu.r_lock();
             let mut t_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
@@ -1015,24 +1102,26 @@ impl tally {
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
         return { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*key.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
     }
         }));
         match __go_panic_result {
             Ok(__go_value) => {
-                std::panic::set_hook(__go_previous_panic_hook);
+                drop(__go_panic_hook_guard);
                 __go_value
             }
             Err(__go_panic_payload) => {
                 go_store_panic_payload(__go_panic_payload);
                 while let Some(f) = __defer_stack.pop() {
-                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                        go_store_panic_payload(__go_defer_panic);
+                    if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                        go_replace_panic_payload(__go_defer_panic);
                     }
                 }
-                std::panic::set_hook(__go_previous_panic_hook);
+                drop(__go_panic_hook_guard);
                 go_resume_unrecovered_panic();
                 0 as i64
             }
@@ -1043,8 +1132,7 @@ impl tally {
 pub fn square(i: Arc<Mutex<Option<i64>>>, results: Arc<Mutex<Option<Vec<i64>>>>, mu: GoMutex, total: Arc<Mutex<Option<i64>>>, wg: WaitGroup) {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_hook_guard = go_suppress_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let wg_defer_captured = wg.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
@@ -1056,22 +1144,24 @@ pub fn square(i: Arc<Mutex<Option<i64>>>, results: Arc<Mutex<Option<Vec<i64>>>>,
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             __go_value
         }
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            drop(__go_panic_hook_guard);
             go_resume_unrecovered_panic();
             ()
         }
@@ -1089,17 +1179,40 @@ fn main() {
         wg.add(1);
         let counts_thread = counts.clone(); let i_thread = Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone()))); let mu_thread = mu.clone(); let results_thread = results.clone(); let mut total_thread = total.clone(); let wg_thread = wg.clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
-        let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+        let __go_panic_hook_guard = go_suppress_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-        mu_thread.lock();;
-        { let __rhs = 10; let mut guard = total_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
-        { let __map_holder = counts_thread.clone(); let __key = "n".to_string(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); };
-        mu_thread.unlock();;
-        { let __idx = ({ let __v = (*i_thread.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __tmp_x = { let __v = (*i_thread.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x + __tmp_y }; (*results_thread.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };;
-        while let Some(f) = __defer_stack.pop() {
-            f();
-        };
+            mu_thread.lock();;
+            { let __rhs = 10; let mut guard = total_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
+            { let __map_holder = counts_thread.clone(); let __key = "n".to_string(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); };
+            mu_thread.unlock();;
+            { let __idx = ({ let __v = (*i_thread.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __tmp_x = { let __v = (*i_thread.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x + __tmp_y }; (*results_thread.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };;
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                    std::panic::resume_unwind(__go_defer_panic);
+                }
+            }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                drop(__go_panic_hook_guard);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                        go_replace_panic_payload(__go_defer_panic);
+                    }
+                }
+                drop(__go_panic_hook_guard);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
+;
     });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -1137,17 +1250,40 @@ fn main() {
         let mut hits_thread = hits.clone(); let mu_thread = mu.clone(); let wg_thread = wg.clone(); let __go_arg_0 = (*m).clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |lock: GoMutex| {
-            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+            let __go_panic_hook_guard = go_suppress_panic_hook();
+            let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            lock.lock();;
-            lock.unlock();;
-            mu_thread.lock();;
-            { let mut guard = hits_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
-            mu_thread.unlock();;
-            while let Some(f) = __defer_stack.pop() {
-                f();
+                lock.lock();;
+                lock.unlock();;
+                mu_thread.lock();;
+                { let mut guard = hits_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
+                mu_thread.unlock();;
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                        std::panic::resume_unwind(__go_defer_panic);
+                    }
+                }
+            }));
+            match __go_panic_result {
+                Ok(__go_value) => {
+                    drop(__go_panic_hook_guard);
+                    __go_value
+                }
+                Err(__go_panic_payload) => {
+                    go_store_panic_payload(__go_panic_payload);
+                    while let Some(f) = __defer_stack.pop() {
+                        if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                            go_replace_panic_payload(__go_defer_panic);
+                        }
+                    }
+                    drop(__go_panic_hook_guard);
+                    go_resume_unrecovered_panic();
+                    ()
+                }
             }
+
         };
         __closure(__go_arg_0);
     });
@@ -1164,16 +1300,39 @@ fn main() {
         wg.add(1);
         let rw_thread = rw.clone(); let mut seen_thread = seen.clone(); let t_thread = t.clone(); let wg_thread = wg.clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
-        let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+        let __go_panic_hook_guard = go_suppress_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-        { let __recv = t_thread.clone(); let __recv_ptr: *mut tally = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut tally }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("k".to_string())))); __result };;
-        rw_thread.lock();;
-        { let mut guard = seen_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
-        rw_thread.unlock();;
-        while let Some(f) = __defer_stack.pop() {
-            f();
-        };
+            { let __recv = t_thread.clone(); let __recv_ptr: *mut tally = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut tally }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("k".to_string())))); __result };;
+            rw_thread.lock();;
+            { let mut guard = seen_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
+            rw_thread.unlock();;
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                    std::panic::resume_unwind(__go_defer_panic);
+                }
+            }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                drop(__go_panic_hook_guard);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                        go_replace_panic_payload(__go_defer_panic);
+                    }
+                }
+                drop(__go_panic_hook_guard);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
+;
     });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

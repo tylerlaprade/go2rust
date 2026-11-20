@@ -4111,6 +4111,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	writeFuncDeclResultTypes(out, fn)
 
 	out.WriteString(" {\n")
+	writeGoFunctionDepthEntry(out, "    ")
 
 	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
 	defer restoreLocalSyntaxInfo()
@@ -4424,8 +4425,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		out.WriteString("// Execute deferred functions\n")
 		out.WriteString(bodyIndent)
 		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
+		writeNormalDeferredCall(out, bodyIndent+"    ")
 		out.WriteString(bodyIndent)
 		out.WriteString("}\n")
 	}
@@ -8530,11 +8530,41 @@ func shouldWrapDeferPanicRecover(hasDefer bool) bool {
 	return true
 }
 
+// writeNormalDeferredCall runs one defer on an ordinary return while masking
+// any outer panic frame. This must happen even in a package that never calls
+// recover itself: its deferred callback can cross back into a caller package
+// that does. recover is valid only for a defer invoked while unwinding that
+// frame, never in a nested function's defer that happens to return normally.
+func writeNormalDeferredCall(out *strings.Builder, indent string) {
+	NeedPanicRecover()
+	out.WriteString(indent)
+	out.WriteString("if let Err(__go_defer_panic) = go_call_deferred(f, false) {\n")
+	out.WriteString(indent)
+	out.WriteString("    std::panic::resume_unwind(__go_defer_panic);\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+}
+
+// writeGoFunctionDepthEntry tracks source-level Go call depth in packages
+// that use recover. go_call_deferred marks only the immediately invoked Go
+// function depth as eligible, so a helper called from that function sees nil.
+func writeGoFunctionDepthEntry(out *strings.Builder, indent string) {
+	if !packageCallsRecover() {
+		return
+	}
+	NeedPanicRecover()
+	out.WriteString(indent)
+	out.WriteString("let __go_function_depth_guard = go_enter_function();\n")
+}
+
 var packageCallsRecoverCache = map[*types.Info]bool{}
 
 // packageCallsRecover reports whether the package being translated calls the
 // recover builtin anywhere.
 func packageCallsRecover() bool {
+	if currentProgramAnyCases != nil && currentProgramAnyCases.callsRecover {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
@@ -8542,22 +8572,26 @@ func packageCallsRecover() bool {
 	if calls, ok := packageCallsRecoverCache[typeInfo.info]; ok {
 		return calls
 	}
-	calls := false
-	for _, obj := range typeInfo.info.Uses {
-		if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "recover" {
-			calls = true
-			break
-		}
-	}
+	calls := typesInfoCallsRecover(typeInfo.info)
 	packageCallsRecoverCache[typeInfo.info] = calls
 	return calls
 }
 
+func typesInfoCallsRecover(info *types.Info) bool {
+	if info == nil {
+		return false
+	}
+	for _, obj := range info.Uses {
+		if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "recover" {
+			return true
+		}
+	}
+	return false
+}
+
 func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
 	out.WriteString(indent)
-	out.WriteString("let __go_previous_panic_hook = std::panic::take_hook();\n")
-	out.WriteString(indent)
-	out.WriteString("std::panic::set_hook(Box::new(|_| {}));\n")
+	out.WriteString("let __go_panic_hook_guard = go_suppress_panic_hook();\n")
 	out.WriteString(indent)
 	out.WriteString("let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
 	return indent + "    "
@@ -8582,7 +8616,7 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("    Ok(__go_value) => {\n")
 	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString("        drop(__go_panic_hook_guard);\n")
 	out.WriteString(indent)
 	out.WriteString("        __go_value\n")
 	out.WriteString(indent)
@@ -8594,15 +8628,15 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
 	out.WriteString(indent)
-	out.WriteString("            if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {\n")
+	out.WriteString("            if let Err(__go_defer_panic) = go_call_deferred(f, true) {\n")
 	out.WriteString(indent)
-	out.WriteString("                go_store_panic_payload(__go_defer_panic);\n")
+	out.WriteString("                go_replace_panic_payload(__go_defer_panic);\n")
 	out.WriteString(indent)
 	out.WriteString("            }\n")
 	out.WriteString(indent)
 	out.WriteString("        }\n")
 	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString("        drop(__go_panic_hook_guard);\n")
 	out.WriteString(indent)
 	out.WriteString("        go_resume_unrecovered_panic();\n")
 	out.WriteString(indent)
@@ -9606,6 +9640,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	writeFuncDeclResultTypes(out, fn)
 
 	out.WriteString(" {\n")
+	writeGoFunctionDepthEntry(out, "        ")
 
 	if fn.Body != nil {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
@@ -9804,8 +9839,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString("// Execute deferred functions\n")
 		out.WriteString(bodyIndent)
 		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
+		writeNormalDeferredCall(out, bodyIndent+"    ")
 		out.WriteString(bodyIndent)
 		out.WriteString("}\n")
 	}

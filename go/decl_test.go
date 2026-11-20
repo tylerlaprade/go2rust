@@ -4035,21 +4035,27 @@ func main() {
 }
 `)
 	for _, want := range []string{
+		"let __go_panic_hook_guard = go_suppress_panic_hook();",
 		"let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {",
 		"go_recover()",
 		"fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {",
-		"if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {",
+		"if let Err(__go_defer_panic) = go_call_deferred(f, true) {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)
 		}
+	}
+	if strings.Count(rust, "std::panic::take_hook()") != 1 || strings.Contains(rust, "std::panic::set_hook(__go_previous_panic_hook)") {
+		t.Fatalf("generated recover catches must not swap the process-wide panic hook per call:\n%s", rust)
 	}
 	if strings.Contains(rust, "None::<Box<dyn Any>>));") {
 		t.Fatalf("recover() must not be a literal nil:\n%s", rust)
 	}
 }
 
-// A program that never calls recover() keeps its functions as they were.
+// A program that never calls recover() does not wrap its whole function body,
+// but every ordinary-return defer still masks any panic frame in a caller
+// package before it invokes an arbitrary callback.
 func TestNoCatchUnwindWithoutRecover(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -4060,7 +4066,10 @@ func main() {
 	fmt.Println("hi")
 }
 `)
-	if strings.Contains(rust, "catch_unwind") {
-		t.Fatalf("no catch_unwind without recover():\n%s", rust)
+	if strings.Contains(rust, "let __go_panic_result =") {
+		t.Fatalf("no function-body catch_unwind without recover():\n%s", rust)
+	}
+	if !strings.Contains(rust, "if let Err(__go_defer_panic) = go_call_deferred(f, false)") {
+		t.Fatalf("ordinary-return defers must mask a caller package's panic frame:\n%s", rust)
 	}
 }

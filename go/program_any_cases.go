@@ -26,9 +26,10 @@ import "go/types"
 // one's cases rewrites the helpers of most of the translated library for a
 // flow no fixture exercises yet.
 type programAnyCases struct {
-	cloneTypes map[string]bool
-	formatArms map[string]anyFormatArm
-	typeNames  map[string]string
+	cloneTypes   map[string]bool
+	formatArms   map[string]anyFormatArm
+	typeNames    map[string]string
+	callsRecover bool
 
 	// currentPackage is the import path of the dependency being translated.
 	// It is empty while the main package is translated.
@@ -82,7 +83,7 @@ func recordProgramAnyCase(rustType string, arm anyFormatArm, hasArm bool, goName
 	if shared == nil || !shared.takesPart() || !anyPayloadTypeUsesOnlyStandardNames(rustType) {
 		return
 	}
-	shared.cloneTypes[rustType] = true
+	shared.cloneTypes[rustType] = false
 	if hasArm {
 		shared.formatArms[rustType] = arm
 	}
@@ -102,11 +103,11 @@ func (shared *programAnyCases) casesFor(ht *HelperTracker) (map[string]bool, map
 	}
 	if ht.needsAnyClone && len(shared.cloneTypes) > 0 {
 		cloneTypes = make(map[string]bool, len(shared.cloneTypes)+len(ht.anyCloneTypes))
-		for rustType := range shared.cloneTypes {
-			cloneTypes[rustType] = true
+		for rustType, valueStruct := range shared.cloneTypes {
+			cloneTypes[rustType] = valueStruct
 		}
-		for rustType := range ht.anyCloneTypes {
-			cloneTypes[rustType] = true
+		for rustType, valueStruct := range ht.anyCloneTypes {
+			cloneTypes[rustType] = cloneTypes[rustType] || valueStruct
 		}
 	}
 	if ht.needsFormatAny && len(shared.formatArms) > 0 {

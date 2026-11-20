@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_panicpayload_worker",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "panic_any_cross_package"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_any_cross_package"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_panicpayload_worker = { path = "vendor/example_com_panicpayload_worker" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

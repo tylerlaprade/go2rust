@@ -1382,7 +1382,7 @@ func log(args ...any) {
 	}
 }
 
-func TestPanicAnyFormatsInterfacePayload(t *testing.T) {
+func TestPanicAnyPreservesLocalInterfacePayload(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 func fail(value any) {
@@ -1390,11 +1390,183 @@ func fail(value any) {
 }
 `)
 
-	if strings.Contains(rust, "panic!(\"{}\", (*value.") {
-		t.Fatalf("panic(any) should not display the raw Box<dyn Any> payload:\n%s", rust)
+	if !strings.Contains(rust, "go_panic_any_local(") || !strings.Contains(rust, "go_any_clone(") || !strings.Contains(rust, "Some(format_any)") {
+		t.Fatalf("panic(any) should preserve the local payload through the panic runtime:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format_any(") {
-		t.Fatalf("panic(any) should format through format_any in single-threaded lowering:\n%s", rust)
+	for _, want := range []string{
+		"static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>>",
+		"static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, Option<String>, Option<fn(&(dyn Any)) -> String>)>>",
+		"fn go_panic_any_local(\n    __payload: Box<dyn Any>,\n    __message: Option<String>",
+		"std::panic::panic_any(__panic_message)",
+		"if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("single-thread panic runtime missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestExplicitStringPanicUsesTypedLocalTransport(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail() {
+	panic("attempt to divide by zero")
+}
+`)
+
+	if !strings.Contains(rust, `let __go_panic_text = format!("{}", "attempt to divide by zero".to_string())`) ||
+		!strings.Contains(rust, `go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None)`) {
+		t.Fatalf("explicit string panic should use typed local transport:\n%s", rust)
+	}
+	if strings.Contains(rust, `panic!("attempt to divide by zero")`) {
+		t.Fatalf("explicit string panic must not be confused with Rust runtime-fault text:\n%s", rust)
+	}
+}
+
+func TestPanicNilUsesGoRuntimeErrorPayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail() {
+	var value any
+	panic(value)
+}
+`)
+
+	for _, want := range []string{
+		`panic called with nil argument`,
+		`go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>`,
+		`match __any_guard.as_ref()`,
+		`None => { let __go_panic_nil =`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("panic(nil interface) should preserve Go's non-nil error payload; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestPanicNilErrorUsesGoRuntimeErrorPayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail(value error) {
+	panic(value)
+}
+`)
+
+	for _, want := range []string{
+		`let __go_error_holder = value.clone()`,
+		`let __go_error_is_nil = { let __go_error_guard = __go_error_holder.borrow(); __go_error_guard.is_none() }`,
+		`if __go_error_is_nil`,
+		`panic called with nil argument`,
+		`go_panic_any_local(`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("panic(error) should evaluate once and distinguish nil from a non-nil dynamic error; missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Count(rust, `let __go_error_holder = value.clone()`) != 1 {
+		t.Fatalf("panic(error) should evaluate the argument exactly once:\n%s", rust)
+	}
+}
+
+func TestRuntimeFaultRecoveryUsesErrorPayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail(values []int) {
+	defer func() {
+		_ = recover()
+	}()
+	_ = values[1]
+}
+`)
+
+	for _, want := range []string{
+		`Ok(__text) => go_runtime_error_payload(go_runtime_error_text(*__text))`,
+		`fn go_runtime_error_payload(text: String) -> Box<dyn Any>`,
+		`Box::new(std::rc::Rc::new(std::cell::RefCell::new(Some(`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("Rust runtime faults should recover as Go error values; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestUnrecoveredGoroutinePanicTerminationCannotBeInterrupted(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	done := make(chan bool)
+	go func() { panic("boom") }()
+	<-done
+}
+`)
+
+	for _, want := range []string{
+		`std::panic::catch_unwind(std::panic::AssertUnwindSafe(||`,
+		`"unrecovered Go panic (formatting failed)".to_string()`,
+		`std::io::Write::write_fmt(`,
+		`std::process::exit(2)`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("unrecovered goroutine panic termination missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, `eprintln!("panic:`) {
+		t.Fatalf("unrecovered goroutine panic must not let a stderr write panic bypass exit(2):\n%s", rust)
+	}
+}
+
+func TestPanicAnyExternalStubStructUsesRustClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/token"
+
+func fail() {
+	var value any = token.Position{}
+	panic(value)
+}
+`)
+
+	if !strings.Contains(rust, `value.downcast_ref::<token_Position>() { return Box::new(v.clone()) as Box<dyn Any>`) {
+		t.Fatalf("external stub struct panic payload should use its available Rust Clone implementation:\n%s", rust)
+	}
+	if strings.Contains(rust, `value.downcast_ref::<token_Position>() { return Box::new(v.__go_value_clone())`) {
+		t.Fatalf("external stub struct does not define __go_value_clone:\n%s", rust)
+	}
+}
+
+func TestConcurrentPanicNilUsesSendSyncErrorPayload(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func fail() {
+	go func() {}()
+	var value any
+	panic(value)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	for _, want := range []string{
+		`panic called with nil argument`,
+		`std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>)`,
+		`match __any_guard.as_ref()`,
+		`None => { let __go_panic_nil =`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("concurrent panic(nil interface) should preserve Go's Send + Sync error payload; missing %q:\n%s", want, rust)
+		}
 	}
 }
 
@@ -1444,14 +1616,14 @@ func fail() {
 }
 `)
 
-	if strings.Contains(rust, "__GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));\n            return;") {
+	if strings.Contains(rust, "go_push_panic_payload(*boxed);\n            return;") {
 		t.Fatalf("recover helper should not stop after the first boxed any payload:\n%s", rust)
 	}
 	for _, want := range []string{
 		"let mut payload = *boxed;",
 		"loop {",
 		"match payload.downcast::<Box<dyn Any + Send + Sync>>()",
-		"__GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));",
+		"go_push_panic_payload(payload);",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("recover helper missing nested boxed any unwrap fragment %q:\n%s", want, rust)
@@ -1796,14 +1968,15 @@ func describe(v interface{}) {
 	fmt.Printf("%T: %v\n", v, v)
 }
 `
-	// Without goroutines a borrow can be shared, and the text is unchanged.
+	// Without goroutines each value argument still gets its own short borrow.
 	plain := transpileTypedRegression(t, describe+`
 func main() {
 	describe(5)
 }
 `)
-	if !strings.Contains(plain, `print!("{}|{}\n", format_any(v.borrow().as_ref().unwrap().as_ref()), format_any(v.borrow().as_ref().unwrap().as_ref()));`) {
-		t.Fatalf("the sequential form should not change:\n%s", plain)
+	plainArg := `{ let __any_holder = v.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() } }`
+	if got := strings.Count(plain, plainArg); got != 5 {
+		t.Fatalf("sequential interface value arguments should each use a nil-safe short borrow; got %d:\n%s", got, plain)
 	}
 
 	locked := transpileTypedConcurrentRegression(t, describe+`
@@ -1814,14 +1987,14 @@ func main() {
 	describe(5)
 }
 `)
-	want := `print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
-	if !strings.Contains(locked, want) {
-		t.Fatalf("missing %q in:\n%s", want, locked)
+	lockedArg := `{ let __any_holder = v.clone(); let __any_guard = __any_holder.lock().unwrap(); match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() } }`
+	if got := strings.Count(locked, lockedArg); got != 5 {
+		t.Fatalf("concurrent interface value arguments should each use a nil-safe short lock; got %d:\n%s", got, locked)
 	}
 	// %T reads the variable as well.
-	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
+	wantType := `format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name })`
 	if !strings.Contains(locked, wantType) {
-		t.Fatalf("missing %q in:\n%s", wantType, locked)
+		t.Fatalf("missing type-name argument %q in:\n%s", wantType, locked)
 	}
 	if strings.Contains(locked, "format_any(v.lock().unwrap().as_ref().unwrap().as_ref()), ") {
 		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)

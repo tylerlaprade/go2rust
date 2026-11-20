@@ -872,7 +872,13 @@ func NeedPanicRecover() {
 		TrackImport("Any")
 		TrackImport("RefCell")
 		trackWrapperImports()
+		// Rust panics raised by generated bounds/division checks become Go
+		// runtime errors when recovered, rather than ordinary strings.
+		RegisterOpaqueErrorAnyPayload()
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsPanicRecover = true
+	})
 }
 
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
@@ -945,7 +951,11 @@ func RegisterAnyCloneType(typ types.Type) {
 		if helpers.anyCloneTypes == nil {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
-		helpers.anyCloneTypes[rustType] = true
+		// Only program/source-transpiled structs define __go_value_clone.
+		// Hand-written stdlib representations and external stub structs use
+		// their ordinary Rust Clone implementation.
+		valueClone := typeNeedsGoValueClone(typ)
+		helpers.anyCloneTypes[rustType] = helpers.anyCloneTypes[rustType] || valueClone
 		arm, hasArm := anyFormatArmForType(typ)
 		if hasArm {
 			if helpers.anyFormatArms == nil {
@@ -989,7 +999,7 @@ func RegisterOpaqueErrorAnyPayload() {
 	if helpers.anyCloneTypes == nil {
 		helpers.anyCloneTypes = make(map[string]bool)
 	}
-	helpers.anyCloneTypes[rustType] = true
+	helpers.anyCloneTypes[rustType] = false
 	if helpers.anyFormatArms == nil {
 		helpers.anyFormatArms = make(map[string]anyFormatArm)
 	}

@@ -11733,7 +11733,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString("        // Execute deferred functions\n")
 				out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-				out.WriteString("            f();\n")
+				writeNormalDeferredCall(out, "            ")
 				out.WriteString("        }\n")
 				out.WriteString("        return ")
 				writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
@@ -11775,7 +11775,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("        // Execute deferred functions\n")
 			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-			out.WriteString("            f();\n")
+			writeNormalDeferredCall(out, "            ")
 			out.WriteString("        }\n")
 			out.WriteString("        return ")
 			writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
@@ -11814,7 +11814,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("{\n")
 			out.WriteString("        // Execute deferred functions\n")
 			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-			out.WriteString("            f();\n")
+			writeNormalDeferredCall(out, "            ")
 			out.WriteString("        }\n")
 			out.WriteString("        return")
 		} else if !tailReturn {
@@ -16029,7 +16029,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(strings.Join(params, ", "))
 			}
-			out.WriteString("| {\n        ")
+			out.WriteString("| {\n")
+			writeGoFunctionDepthEntry(out, "        ")
+			out.WriteString("        ")
 
 			// Body
 			for i, stmt := range funcLit.Body.List {
@@ -16175,24 +16177,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		oldCaptureRenames := snapshotCaptureRenames()
 		currentCaptureRenames = captureRenames
 
-		// Generate the thread::spawn call
+		// A Rust thread panic is otherwise confined to the detached worker.
+		// Go terminates the process after an unrecovered goroutine panic, so
+		// catch at the generated goroutine boundary, report the typed value,
+		// and exit nonzero after the goroutine's pending defers have run.
+		NeedPanicRecover()
+		NeedFormatAny()
 		out.WriteString("std::thread::spawn(move || {\n")
-		out.WriteString("        ")
+		out.WriteString("        let __go_panic_hook_guard = go_suppress_panic_hook();\n")
+		out.WriteString("        let __go_goroutine_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
 
 		// Check if it's an immediately invoked function literal
 		if funcLit, ok := s.Call.Fun.(*ast.FuncLit); ok {
 			hasClosureDefer := checkHasDefer(funcLit.Body.List)
+			wrapClosurePanic := shouldWrapDeferPanicRecover(hasClosureDefer)
 			oldFunctionHasDefer := currentFunctionHasDefer
 			currentFunctionHasDefer = hasClosureDefer
 			defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
 			if hasClosureDefer {
-				out.WriteString(deferStackDecl() + "\n        ")
+				out.WriteString("        " + deferStackDecl() + "\n")
 			}
 
 			// Generate the closure body inline
 			if len(s.Call.Args) > 0 {
 				// Has arguments - need to create parameter bindings
-				out.WriteString("let ")
+				out.WriteString("        let ")
 				// The closure pushes onto the defer stack it owns, so calling
 				// it mutates it.
 				if funcLitCallsFunctionValue(funcLit) || hasClosureDefer {
@@ -16210,15 +16219,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(strings.Join(params, ", "))
 				}
-				out.WriteString("| {\n            ")
+				out.WriteString("| {\n")
+				writeGoFunctionDepthEntry(out, "            ")
+				bodyIndent := "            "
+				if wrapClosurePanic {
+					bodyIndent = beginPanicRecoverCatch(out, bodyIndent)
+				}
 
 				// Body
 				popParamScope := pushFuncLitParamVarScope(funcLit)
 				restoreRangeShadows := shadowRangeLoopVars(funcLitParamNames(funcLit))
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
-						out.WriteString("\n            ")
+						out.WriteString("\n")
 					}
+					out.WriteString(bodyIndent)
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
 				}
@@ -16226,9 +16241,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				popParamScope()
 
 				if hasClosureDefer {
-					out.WriteString("\n            while let Some(f) = __defer_stack.pop() {\n")
-					out.WriteString("                f();\n")
-					out.WriteString("            }")
+					out.WriteString("\n")
+					out.WriteString(bodyIndent)
+					out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
+					writeNormalDeferredCall(out, bodyIndent+"    ")
+					out.WriteString(bodyIndent)
+					out.WriteString("}")
+				}
+				if wrapClosurePanic {
+					out.WriteString("\n")
+					finishPanicRecoverCatchWith(out, "            ", func() { out.WriteString("()") })
 				}
 
 				out.WriteString("\n        };\n")
@@ -16244,25 +16266,44 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			} else {
 				// No arguments - just inline the body
+				writeGoFunctionDepthEntry(out, "        ")
+				bodyIndent := "        "
+				if wrapClosurePanic {
+					bodyIndent = beginPanicRecoverCatch(out, bodyIndent)
+				}
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
-						out.WriteString("\n        ")
+						out.WriteString("\n")
 					}
+					out.WriteString(bodyIndent)
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
 				}
 				if hasClosureDefer {
-					out.WriteString("\n        while let Some(f) = __defer_stack.pop() {\n")
-					out.WriteString("            f();\n")
-					out.WriteString("        }")
+					out.WriteString("\n")
+					out.WriteString(bodyIndent)
+					out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
+					writeNormalDeferredCall(out, bodyIndent+"    ")
+					out.WriteString(bodyIndent)
+					out.WriteString("}")
+				}
+				if wrapClosurePanic {
+					out.WriteString("\n")
+					finishPanicRecoverCatchWith(out, "        ", func() { out.WriteString("()") })
 				}
 			}
 		} else {
 			// Regular function call
+			out.WriteString("        ")
 			TranspileCall(out, s.Call)
 		}
 
 		out.WriteString(";\n")
+		out.WriteString("        }));\n")
+		out.WriteString("        drop(__go_panic_hook_guard);\n")
+		out.WriteString("        if let Err(__go_panic_payload) = __go_goroutine_result {\n")
+		out.WriteString("            go_terminate_unrecovered_goroutine_panic(__go_panic_payload, format_any);\n")
+		out.WriteString("        }\n")
 		out.WriteString("    })")
 		out.WriteString(";")
 
@@ -16533,7 +16574,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperPrefix(out)
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(rustType)
-							out.WriteString(">()).unwrap().clone()")
+							out.WriteString(">()).unwrap()")
+							caseType := typeSwitchCaseResolvedType(typeInfo, caseClause.List[0])
+							if caseType != nil {
+								if typeNeedsGoValueClone(caseType) {
+									out.WriteString(".__go_value_clone()")
+								} else {
+									out.WriteString(".clone()")
+								}
+							} else {
+								out.WriteString(".clone()")
+							}
 							WriteWrapperSuffix(out)
 						}
 						out.WriteString(";\n")

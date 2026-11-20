@@ -1,0 +1,11 @@
+[package]
+name = "panic_any_dynamic_payload"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_any_dynamic_payload"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

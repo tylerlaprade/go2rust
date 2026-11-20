@@ -453,31 +453,20 @@ func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(")")
 		return
 	}
-	// The argument reads the variable through its handle. In a program with
-	// goroutines that is a lock, and it is held until the statement ends
-	// unless the argument is a block of its own. Without the block, a
-	// statement that prints the same variable twice waits on itself forever.
-	if NeedsConcurrentWrapper() {
-		out.WriteString("{ let __text = ")
-		defer out.WriteString("; __text }")
-	}
-	out.WriteString("format_any(")
+	// Read through a short-lived guard so repeated arguments never hold the
+	// same lock across formatting. A zero-valued interface prints as <nil>
+	// instead of unwrapping None and raising a replacement panic.
+	out.WriteString("{ let __any_holder = ")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else if _, ok := arg.(*ast.SelectorExpr); ok {
 		TranspileExpressionContext(out, arg, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else {
-		out.WriteString("(")
 		TranspileExpression(out, arg)
-		out.WriteString(")")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	}
-	out.WriteString(")")
+	out.WriteString(".clone(); let __any_guard = __any_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __any_guard.as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => \"<nil>\".to_string() } }")
 }
 
 func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
@@ -7054,7 +7043,13 @@ where
 
 // transpilePanic handles the panic() builtin function
 func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 && writePanicNilArg(out, call.Args[0]) {
+		return
+	}
 	if len(call.Args) > 0 && writeConcurrentPanicPayloadArg(out, call.Args[0]) {
+		return
+	}
+	if len(call.Args) > 0 && writeLocalStringPanicPayloadArg(out, call.Args[0]) {
 		return
 	}
 	if len(call.Args) > 0 && writePanicAnyArg(out, call.Args[0]) {
@@ -7100,31 +7095,107 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(")")
 }
 
+const goPanicNilMessage = "panic called with nil argument"
+
+// writePanicNilArg handles the untyped nil form directly. A nil value held
+// in an interface is handled by the interface payload writers below, after
+// they inspect the interface's Option at run time.
+func writePanicNilArg(out *strings.Builder, arg ast.Expr) bool {
+	if !isPredeclaredNilExpr(arg) {
+		return false
+	}
+	writePanicNilPayload(out)
+	return true
+}
+
+func isPredeclaredNilExpr(expr ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.GetObject(ident) == types.Universe.Lookup("nil")
+}
+
+// writePanicNilPayload emits Go 1.21+'s non-nil recover value for panic(nil).
+// Representing it as the normal opaque error handle makes r.(error) succeed
+// and preserves the runtime message without teaching every interface
+// assertion about a special Rust-only payload type.
+func writePanicNilPayload(out *strings.Builder) {
+	RegisterOpaqueErrorAnyPayload()
+	message := strconv.Quote(goPanicNilMessage)
+	out.WriteString("{ let __go_panic_nil = ")
+	writeErrorHandleFromOptionValue(out, "Some("+rustErrorFromText(message+".to_string()")+")")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) }")
+		return
+	}
+	NeedPanicRecover()
+	out.WriteString("; go_panic_any_local(Box::new(__go_panic_nil) as Box<dyn Any>, Some(")
+	out.WriteString(message)
+	out.WriteString(".to_string()), None) }")
+}
+
+func writeLocalStringPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
+	if NeedsConcurrentWrapper() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(arg)).(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	// Keep an explicit Go string distinct from Rust runtime-fault text. The
+	// string itself is safe to format here, and the thread-local transport
+	// preserves its dynamic Go type for recover.
+	NeedPanicRecover()
+	out.WriteString("{ let __go_panic_text = format!(")
+	writePanicDisplayArg(out, arg)
+	out.WriteString("); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, Some(__go_panic_text), None) }")
+	return true
+}
+
 func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 	if !NeedsConcurrentWrapper() {
 		return false
 	}
-	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
-		return false
+	if writePanicErrorInterfacePayloadArg(out, arg) {
+		return true
+	}
+	if isEmptyInterfaceValueExpr(arg) {
+		if isBareAnyBoxExpr(arg) {
+			out.WriteString("std::panic::panic_any(")
+			if !writeExistingAnyBoxClone(out, arg) {
+				return false
+			}
+			out.WriteString(")")
+			return true
+		}
+		NeedAnyClone()
+		out.WriteString("{ let __any_holder = ")
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone(); let __any_payload = { let __any_guard = __any_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __any_guard.as_ref().map(|__any_value| go_any_clone(__any_value.as_ref())) }; match __any_payload { Some(__any_value) => std::panic::panic_any(__any_value), None => ")
+		writePanicNilPayload(out)
+		out.WriteString(" } }")
+		return true
 	}
 	out.WriteString("std::panic::panic_any(")
-	if isEmptyInterfaceValueExpr(arg) {
-		if !writeExistingAnyBoxClone(out, arg) {
-			return false
-		}
-	} else {
-		writeInterfaceBoxedValue(out, arg)
-	}
+	writeInterfaceBoxedValue(out, arg)
 	out.WriteString(")")
 	return true
 }
 
 func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
-	if !isEmptyInterfaceValueExpr(arg) {
+	if isPredeclaredNilExpr(arg) {
 		return false
 	}
-	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
-		return false
+	if !NeedsConcurrentWrapper() && writePanicErrorInterfacePayloadArg(out, arg) {
+		return true
 	}
 	if NeedsConcurrentWrapper() {
 		out.WriteString("std::panic::panic_any(")
@@ -7134,12 +7205,71 @@ func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
 		out.WriteString(")")
 		return true
 	}
+	// Rust requires a panic payload to be Send, but a single-threaded Go
+	// interface may contain Rc/RefCell values. Put the actual Go value in a
+	// thread-local slot and panic with its formatted text. The catch/recover
+	// runtime swaps the original value back in before deferred functions run.
+	NeedPanicRecover()
+	NeedAnyClone()
 	NeedFormatAny()
-	out.WriteString("panic!(\"{}\", { let __any_holder = ")
+	if !isEmptyInterfaceValueExpr(arg) {
+		out.WriteString("go_panic_any_local(")
+		writeInterfaceBoxedValue(out, arg)
+		out.WriteString(", None, Some(format_any))")
+		return true
+	}
+	return writeLocalPanicAnyPayloadArg(out, arg)
+}
+
+// writePanicErrorInterfacePayloadArg preserves the dynamic value of a
+// non-nil error while routing a nil error through Go 1.21+'s panic(nil)
+// payload. The argument is evaluated once before either branch.
+func writePanicErrorInterfacePayloadArg(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isErrorInterfaceType(typeInfo.GetType(arg)) {
+		return false
+	}
+	NeedPanicRecover()
+	NeedFormatAny()
+	out.WriteString("{ let __go_error_holder = ")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let __go_error_is_nil = { let __go_error_guard = __go_error_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __go_error_guard.is_none() }; if __go_error_is_nil { ")
+	writePanicNilPayload(out)
+	out.WriteString(" } else { ")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("std::panic::panic_any(")
+		writeGoErrorInterfaceAnyBoxWithHolder(out, arg, "__go_error_holder")
+		out.WriteString(")")
+	} else {
+		out.WriteString("go_panic_any_local(")
+		writeGoErrorInterfaceAnyBoxWithHolder(out, arg, "__go_error_holder")
+		out.WriteString(", None, Some(format_any))")
+	}
+	out.WriteString(" } }")
+	return true
+}
+
+func writeLocalPanicAnyPayloadArg(out *strings.Builder, arg ast.Expr) bool {
+	if isBareAnyBoxExpr(arg) {
+		out.WriteString("go_panic_any_local(")
+		if !writeExistingAnyBoxClone(out, arg) {
+			return false
+		}
+		out.WriteString(", None, Some(format_any))")
+		return true
+	}
+	if !isEmptyInterfaceValueExpr(arg) {
+		return false
+	}
+	out.WriteString("{ let __any_holder = ")
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".clone(); let __any_guard = __any_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; format_any(__any_guard.as_ref().expect(\"nil interface in panic argument\").as_ref()) })")
+	out.WriteString("; match __any_guard.as_ref() { Some(__any_value) => { let __any_ref = __any_value.as_ref(); go_panic_any_local(go_any_clone(__any_ref), None, Some(format_any)) }, None => ")
+	writePanicNilPayload(out)
+	out.WriteString(" } }")
 	return true
 }
 

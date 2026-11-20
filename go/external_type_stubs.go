@@ -1060,6 +1060,13 @@ func WriteSharedStdlibStubCrate(workDir string, states []*PackageState, packageM
 	}
 
 	mergedState := MergeExternalStubPackageStates(states...)
+	// Source-transpiled crates share one panic/recover frame stack. Emit that
+	// runtime in the shared crate even when a dependency was retranslated after
+	// its PackageState snapshot was captured.
+	if mergedState.Helpers == nil {
+		mergedState.Helpers = &HelperTracker{}
+	}
+	mergedState.Helpers.needsPanicRecover = true
 	parts := []string{}
 	if goSliceModeEnabled() {
 		parts = append(parts, goSliceVecMacro)
@@ -1222,8 +1229,8 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 		if dst.anyCloneTypes == nil {
 			dst.anyCloneTypes = make(map[string]bool)
 		}
-		for rustType := range src.anyCloneTypes {
-			dst.anyCloneTypes[rustType] = true
+		for rustType, valueStruct := range src.anyCloneTypes {
+			dst.anyCloneTypes[rustType] = dst.anyCloneTypes[rustType] || valueStruct
 		}
 	}
 	if len(src.anyFormatArms) > 0 {

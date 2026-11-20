@@ -1487,6 +1487,14 @@ run_xfail_test() {
     run_test "tests/interface_mutating_method_dispatch"
 }
 
+@test "interface_slice_element_argument" {
+    run_test "tests/interface_slice_element_argument"
+}
+
+@test "interface_slice_element_argument_goroutines" {
+    run_test "tests/interface_slice_element_argument_goroutines"
+}
+
 @test "interface_slice_index_arg" {
     run_test "tests/interface_slice_index_arg"
 }
@@ -2273,6 +2281,26 @@ run_xfail_test() {
 
 @test "package_variadic_import" {
     run_test "tests/package_variadic_import"
+}
+
+@test "panic_any_cross_package" {
+    run_test "tests/panic_any_cross_package"
+}
+
+@test "panic_any_dynamic_payload" {
+    run_test "tests/panic_any_dynamic_payload"
+}
+
+@test "panic_any_dynamic_payload_goroutines" {
+    run_test "tests/panic_any_dynamic_payload_goroutines"
+}
+
+@test "panic_any_time_value" {
+    run_test "tests/panic_any_time_value"
+}
+
+@test "panic_any_time_value_goroutines" {
+    run_test "tests/panic_any_time_value_goroutines"
 }
 
 @test "panic_fmt_errorf_dynamic" {

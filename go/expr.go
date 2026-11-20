@@ -1870,6 +1870,9 @@ func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bo
 }
 
 func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
+	if writeAnySliceElementBoxClone(out, arg) {
+		return true
+	}
 	if writeBareAnyReferenceBoxClone(out, arg) {
 		return true
 	}
@@ -2324,6 +2327,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
 	out.WriteString("; __once.r#do(|| {\n")
+	writeGoFunctionDepthEntry(out, "        ")
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
 	}
@@ -2372,6 +2376,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	out.WriteString(" as usize; __once.r#do(")
 	WriteWrapperPrefix(out)
 	out.WriteString("Box::new(move || {\n")
+	writeGoFunctionDepthEntry(out, "        ")
 	out.WriteString("        let __recv_ref: &mut ")
 	out.WriteString(currentReceiverType)
 	out.WriteString(" = unsafe { &mut *(__recv_ptr as *mut ")
@@ -8717,6 +8722,14 @@ func writeBoolLiteral(out *strings.Builder, value bool) {
 }
 
 func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	return writeGoErrorInterfaceAnyBoxWithHolder(out, expr, "")
+}
+
+// writeGoErrorInterfaceAnyBoxWithHolder is the error-to-any conversion with
+// an optional already-evaluated error handle. Panic lowering uses the latter
+// so it can distinguish a nil error without evaluating the Go expression
+// twice.
+func writeGoErrorInterfaceAnyBoxWithHolder(out *strings.Builder, expr ast.Expr, holder string) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !isErrorInterfaceType(typeInfo.GetType(expr)) {
 		return false
@@ -8730,11 +8743,11 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
 	candidates := goErrorAnyBoxCandidates(localInterfaceAssertionCandidates(errorIface, typeInfo.GetType(expr)))
 	if goErrorInterfaceAnyBoxShouldUseMultiline(candidates) {
-		writeGoErrorInterfaceAnyBoxMultiline(out, expr, candidates)
+		writeGoErrorInterfaceAnyBoxMultiline(out, expr, holder, candidates)
 		return true
 	}
 	out.WriteString("{ let __err_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
+	writeGoErrorAnyBoxHolder(out, expr, holder)
 	out.WriteString(".clone(); let __err_guard = __err_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
@@ -8761,6 +8774,14 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeGoErrorAnyBoxHolder(out *strings.Builder, expr ast.Expr, holder string) {
+	if holder != "" {
+		out.WriteString(holder)
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
+}
+
 // writeOpaqueGoErrorAnyBox boxes an error whose dynamic type is not one of
 // the error types this package can name, such as the value errors.New or
 // fmt.Errorf returns. The box holds an error handle, so the error is still
@@ -8782,12 +8803,12 @@ func goErrorInterfaceAnyBoxShouldUseMultiline(candidates []localInterfaceAsserti
 	return len(candidates) >= 3
 }
 
-func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, candidates []localInterfaceAssertionCandidate) {
+func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, holder string, candidates []localInterfaceAssertionCandidate) {
 	indent := currentLineIndent(out)
 	out.WriteString("{\n")
 	out.WriteString(indent)
 	out.WriteString("    let __err_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
+	writeGoErrorAnyBoxHolder(out, expr, holder)
 	out.WriteString(".clone();\n")
 	out.WriteString(indent)
 	out.WriteString("    let __err_guard = __err_holder")
@@ -9375,12 +9396,38 @@ func writeAnyHandleAssertionExpectBareValue(out *strings.Builder, receiver strin
 }
 
 func writeBareAnyReferenceWrappedClone(out *strings.Builder, expr ast.Expr) bool {
+	var value strings.Builder
+	if writeAnySliceElementBoxClone(&value, expr) {
+		WriteWrapperPrefix(out)
+		out.WriteString(value.String())
+		WriteWrapperSuffix(out)
+		return true
+	}
 	if !isBareAnyReferenceExpr(expr) {
 		return false
 	}
 	WriteWrapperPrefix(out)
 	writeBareAnyReferenceBoxClone(out, expr)
 	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeAnySliceElementBoxClone clones the dynamic value in items[i], where
+// items is []any. Its element is a bare Box<dyn Any>, not an interface cell,
+// so callers must keep the slice guard alive and clone through go_any_clone.
+func writeAnySliceElementBoxClone(out *strings.Builder, expr ast.Expr) bool {
+	index, ok := anySliceElementAssertionSource(expr)
+	if !ok {
+		return false
+	}
+	NeedAnyClone()
+	out.WriteString("{ let __seq_holder = ")
+	writeConcreteSliceHandleClone(out, index.X)
+	out.WriteString("; let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize; let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; go_any_clone(__seq_guard.as_ref().expect(\"nil []any in interface argument\")[__idx].as_ref()) }")
 	return true
 }
 
@@ -9432,6 +9479,14 @@ func isBareAnyReferenceExpr(expr ast.Expr) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(ident))
+}
+
+func isBareAnyBoxExpr(expr ast.Expr) bool {
+	if isBareAnyReferenceExpr(expr) {
+		return true
+	}
+	_, ok := anySliceElementAssertionSource(expr)
+	return ok
 }
 
 func writeAnySliceCloneValueBox(out *strings.Builder, expr ast.Expr) bool {
@@ -9491,10 +9546,10 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if !isEmptyInterfaceValueExpr(expr) {
 		return false
 	}
-	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
+	if writeBareAnyReferenceWrappedClone(out, expr) {
 		return true
 	}
-	if writeBareAnyReferenceWrappedClone(out, expr) {
+	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
 		return true
 	}
 	TranspileExpressionContext(out, expr, LValue)
@@ -13205,7 +13260,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 		}
 
-		if identName == "nil" {
+		if identName == "nil" && isPredeclaredNilExpr(e) {
 			out.WriteString("None")
 			return
 		}
@@ -15730,7 +15785,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError, false)
+				writeTypeAssertionExpectBareValue(out, e, "val", rustType, targetIsError, false)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -15751,7 +15806,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError, false)
+				writeTypeAssertionExpectBareValue(out, e, "val", rustType, targetIsError, false)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -15792,7 +15847,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if targetKeepsAnyHandle {
 					writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 				} else {
-					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+					writeTypeAssertionExpectBareValue(out, e, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 				}
 			})
 			if assertionReturnsPointer {
@@ -16786,6 +16841,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 
 	// Body
 	out.WriteString("{\n")
+	writeGoFunctionDepthEntry(out, "        ")
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
 	}
@@ -16843,6 +16899,12 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	}
 	if recoverCatch {
 		finishPanicRecoverCatchWith(out, "        ", func() { writeFuncLitRecoveredPanicReturnValue(out, funcLit.Type) })
+	} else if packageCallsRecover() && len(functionResultTypeExprs(funcLit.Type)) == 0 {
+		// A trailing divergent expression (most notably panic) makes Rust infer
+		// this closure's return type as `!` once the depth guard has a destructor.
+		// Source Go function literals without results still have the unit return
+		// type, so pin that type explicitly for their Fn/FnMut trait-object cast.
+		out.WriteString("        ()\n")
 	}
 	out.WriteString("    })")
 
@@ -20119,19 +20181,28 @@ func writeLocalInterfaceAssertionDowncast(out *strings.Builder, sourceTrait stri
 	out.WriteString(">()")
 }
 
-func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, rustType string, targetIsError bool) {
+func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, targetIsError bool) {
 	WriteWrapperPrefix(out)
-	writeTypeAssertionSuccessBareValue(out, targetIsError)
+	writeTypeAssertionSuccessBareValue(out, e, targetIsError)
 	_ = rustType
 	WriteWrapperSuffix(out)
 }
 
-func writeTypeAssertionSuccessBareValue(out *strings.Builder, targetIsError bool) {
+func writeTypeAssertionSuccessBareValue(out *strings.Builder, e *ast.TypeAssertExpr, targetIsError bool) {
 	if targetIsError {
 		out.WriteString(rustErrorFromText("typed_val.clone()"))
 	} else {
-		out.WriteString("typed_val.clone()")
+		out.WriteString("typed_val")
+		out.WriteString(typeAssertionValueCopyCall(e))
 	}
+}
+
+func typeAssertionValueCopyCall(e *ast.TypeAssertExpr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e == nil || e.Type == nil {
+		return ".clone()"
+	}
+	return goValueCopyCallForType(typeInfo.GetType(e.Type))
 }
 
 func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool, targetIsError bool) bool {
@@ -20140,12 +20211,12 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 		return false
 	}
 	out.WriteString("({\n")
+	out.WriteString("        let __seq_holder = ")
+	writeConcreteSliceHandleClone(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __idx = (")
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -20158,7 +20229,7 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 		if anyHandleType, _, ok := typeAssertionAnyHandleTarget(e); ok {
 			writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 		} else {
-			writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+			writeTypeAssertionExpectBareValue(out, e, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 		}
 	})
 	if assertionReturnsPointer {
@@ -20197,7 +20268,7 @@ func anySliceElementAssertionSource(expr ast.Expr) (*ast.IndexExpr, bool) {
 // fmt.Errorf returns is boxed. "x.(error)" then yields that same error. The
 // caller puts it in a cell of its own, so assigning to the result afterwards
 // does not change what x holds.
-func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, rustType string, targetIsError bool, holdsErrorHandle bool) {
+func writeTypeAssertionExpectBareValue(out *strings.Builder, e *ast.TypeAssertExpr, receiver string, rustType string, targetIsError bool, holdsErrorHandle bool) {
 	if targetIsError {
 		out.WriteString("{ ")
 		if holdsErrorHandle {
@@ -20216,7 +20287,7 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 		out.WriteString(">()")
 		writeTypeAssertionFailedUnwrap(out)
 		out.WriteString("; ")
-		writeTypeAssertionSuccessBareValue(out, true)
+		writeTypeAssertionSuccessBareValue(out, e, true)
 		if holdsErrorHandle {
 			out.WriteString(" }")
 		}
@@ -20228,7 +20299,7 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	out.WriteString(rustType)
 	out.WriteString(">()")
 	writeTypeAssertionFailedUnwrap(out)
-	out.WriteString(".clone()")
+	out.WriteString(typeAssertionValueCopyCall(e))
 }
 
 // typeAssertionFailure is what the one-value form "x.(T)" being written
@@ -20481,12 +20552,12 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 		return false
 	}
 	out.WriteString("({\n")
+	out.WriteString("        let __seq_holder = ")
+	writeConcreteSliceHandleClone(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __idx = (")
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -20510,12 +20581,12 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 		return false
 	}
 	out.WriteString("({\n")
+	out.WriteString("        let __seq_holder = ")
+	writeConcreteSliceHandleClone(out, index.X)
+	out.WriteString(";\n")
 	out.WriteString("        let __idx = (")
 	TranspileExpression(out, index.Index)
 	out.WriteString(") as usize;\n")
-	out.WriteString("        let __seq_holder = ")
-	TranspileExpressionContext(out, index.X, LValue)
-	out.WriteString(".clone();\n")
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
@@ -20526,6 +20597,55 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 	out.WriteString("            None => (")
 	writePointerHandleAssertionNone(out, pointeeRustType)
 	out.WriteString(", false),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+	return true
+}
+
+// writeAnySliceElementAssertionCommaOk lowers `v, ok := items[i].(T)` for a
+// concrete T when items is []any. The element is already a bare Box<dyn Any>,
+// so inspect it through the slice guard instead of trying to clone the box.
+func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool, targetIsError bool) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __seq_holder = ")
+	writeConcreteSliceHandleClone(out, index.X)
+	out.WriteString(";\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	if targetIsError {
+		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">() {\n")
+		out.WriteString("            (")
+		writeErrorHandleCopy(out, func() { out.WriteString("typed_val") })
+		out.WriteString(", true)\n")
+		out.WriteString("        } else {\n            (")
+		writeTypedErrorNone(out)
+		out.WriteString(", false)\n        }\n    })")
+		return true
+	}
+	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">() {\n")
+	out.WriteString("            (")
+	WriteWrapperPrefix(out)
+	out.WriteString("typed_val")
+	out.WriteString(typeAssertionValueCopyCall(e))
+	WriteWrapperSuffix(out)
+	out.WriteString(", true)\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+	out.WriteString(", false)\n")
 	out.WriteString("        }\n")
 	out.WriteString("    })")
 	return true
@@ -20642,7 +20762,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 		out.WriteString(" {\n")
 	}
 	out.WriteString("            (")
-	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
+	writeTypeAssertionSuccessWrappedValue(out, e, rustType, targetIsError)
 	out.WriteString(", ")
 	out.WriteString("true")
 	out.WriteString(")\n")
@@ -20699,7 +20819,7 @@ func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAss
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
 	}
-	writeTypeAssertionSuccessBareValue(out, targetIsError)
+	writeTypeAssertionSuccessBareValue(out, e, targetIsError)
 	if assertionReturnsPointer {
 		WriteWrapperSuffix(out)
 	}
@@ -21315,6 +21435,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		rustType = aliasRustType
 	}
 
+	if writeAnySliceElementAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsInterface, targetIsError) {
+		return
+	}
+
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && isEmptyInterfaceType(typeInfo.GetMapValueType(indexExpr.X)) {
@@ -21348,7 +21472,8 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString(">() {\n")
 			out.WriteString("                    (")
 			WriteWrapperPrefix(out)
-			out.WriteString("typed_val.clone()")
+			out.WriteString("typed_val")
+			out.WriteString(typeAssertionValueCopyCall(e))
 			WriteWrapperSuffix(out)
 			out.WriteString(", ")
 			out.WriteString("true")
@@ -21414,7 +21539,8 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		if targetIsError {
 			out.WriteString(rustErrorFromText("typed_val.clone()"))
 		} else {
-			out.WriteString("typed_val.clone()")
+			out.WriteString("typed_val")
+			out.WriteString(typeAssertionValueCopyCall(e))
 		}
 		WriteWrapperSuffix(out)
 		out.WriteString(", ")
@@ -21468,7 +21594,8 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		if targetIsError {
 			out.WriteString(rustErrorFromText("typed_val.clone()"))
 		} else {
-			out.WriteString("typed_val.clone()")
+			out.WriteString("typed_val")
+			out.WriteString(typeAssertionValueCopyCall(e))
 		}
 		WriteWrapperSuffix(out)
 		out.WriteString(", ")
@@ -21512,7 +21639,13 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("                (")
 		writeErrorHandleCopy(out, func() { out.WriteString("typed_val") })
 		out.WriteString(", true)\n")
-		out.WriteString("            } else ")
+		out.WriteString("            } else {\n                (")
+		writeTypedErrorNone(out)
+		out.WriteString(", false)\n            }\n")
+		out.WriteString("        } else {\n            (")
+		writeTypedErrorNone(out)
+		out.WriteString(", false)\n        }\n    })")
+		return
 	}
 	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
 	out.WriteString(rustType)
@@ -21522,7 +21655,8 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	if targetIsError {
 		out.WriteString(rustErrorFromText("typed_val.clone()"))
 	} else {
-		out.WriteString("typed_val.clone()")
+		out.WriteString("typed_val")
+		out.WriteString(typeAssertionValueCopyCall(e))
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")

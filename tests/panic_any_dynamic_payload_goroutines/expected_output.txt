@@ -1,0 +1,30 @@
+error true boom
+struct true 11 7
+pointer true true 8
+pointer write 10
+int true 9
+string true text
+literal attempt to divide by zero
+inner true B
+after inner
+top A
+replacement true B
+probe nil
+scoped outer nil
+depth true direct
+lazy true
+dynamic nil true panic called with nil argument
+literal nil true panic called with nil argument
+string error false
+named true false kept
+shadow string true shadowed
+shadow int true 17
+slice panic true element
+lock same same
+lock panic called with nil argument <nil>
+nil error true panic called with nil argument
+bounds error true runtime error: index out of range [1] with length 1
+go literal true without args
+go literal arg 1 true with args
+go result recovered true
+go result arg 2 recovered true

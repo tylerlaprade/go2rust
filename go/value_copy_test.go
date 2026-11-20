@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/types"
 	"strings"
 	"testing"
 )
@@ -124,6 +125,27 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q in:\n%s", want, rust)
 		}
+	}
+}
+
+func TestSourceMappedStdlibStructNeedsGoValueCopy(t *testing.T) {
+	pkg := types.NewPackage("go/token", "token")
+	obj := types.NewTypeName(0, pkg, "Position", nil)
+	position := types.NewNamed(obj, types.NewStruct([]*types.Var{
+		types.NewVar(0, pkg, "Line", types.Typ[types.Int]),
+	}, nil), nil)
+
+	prev := GetTranspileContext()
+	defer SetTranspileContext(prev)
+
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/token": "go_token"}})
+	if !typeNeedsGoValueClone(position) {
+		t.Fatal("source-mapped stdlib structs are generated structs and need Go value-copy helpers")
+	}
+
+	SetTranspileContext(&TranspileContext{})
+	if typeNeedsGoValueClone(position) {
+		t.Fatal("stub-backed stdlib structs must keep their hand-written Clone path")
 	}
 }
 

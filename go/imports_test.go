@@ -4,6 +4,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -66,6 +69,155 @@ func TestEmbeddedOwnerRegistryLivesInSharedStdlibHelpers(t *testing.T) {
 	mergeHelperTracker(merged, ht)
 	if !strings.Contains(merged.GenerateSharedStdlibHelperModule(), "pub fn go_lookup_embedded_owner") {
 		t.Fatalf("merged shared helper state should retain embedded-owner registry need")
+	}
+}
+
+func TestPanicRecoverRuntimeLivesInSharedStdlibHelpers(t *testing.T) {
+	ht := &HelperTracker{needsPanicRecover: true}
+
+	local := ht.GenerateHelperModuleOmittingSharedStdlibHelpers()
+	if strings.Contains(local, "fn go_recover") || strings.Contains(local, "fn go_store_panic_payload") {
+		t.Fatalf("package-local helper module should omit the shared panic runtime:\n%s", local)
+	}
+
+	shared := ht.GenerateSharedStdlibHelperModule()
+	for _, want := range []string{
+		"pub struct GoFunctionDepthGuard",
+		"pub fn go_enter_function",
+		"pub struct GoPanicHookSuppression",
+		"pub fn go_suppress_panic_hook",
+		"pub fn go_panic_any_local",
+		"pub fn go_recover",
+		"pub fn go_replace_panic_payload",
+		"pub fn go_store_panic_payload",
+		"pub fn go_resume_unrecovered_panic",
+	} {
+		if !strings.Contains(shared, want) {
+			t.Fatalf("shared stdlib helper module missing %q:\n%s", want, shared)
+		}
+	}
+
+	names := ht.ImportNames()
+	for _, want := range []string{"GoFunctionDepthGuard", "go_enter_function", "GoPanicHookSuppression", "go_suppress_panic_hook"} {
+		found := false
+		for _, name := range names {
+			if name == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("panic runtime imports missing %q in %v", want, names)
+		}
+	}
+	if !strings.Contains(shared, "static __GO_PANIC_HOOK_INIT: std::sync::Once") ||
+		!strings.Contains(shared, "static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize>") ||
+		strings.Count(shared, "std::panic::take_hook()") != 1 {
+		t.Fatalf("shared panic runtime should install one forwarding hook with thread-local suppression:\n%s", shared)
+	}
+}
+
+func TestSingleThreadRuntimeFaultKeepsUncaughtDiagnostic(t *testing.T) {
+	previousDetector := globalConcurrencyDetector
+	SetConcurrencyDetector(NewConcurrencyDetector())
+	t.Cleanup(func() { SetConcurrencyDetector(previousDetector) })
+
+	helper := (&HelperTracker{needsPanicRecover: true}).GenerateSharedStdlibHelperModule()
+	for _, want := range []string{
+		"(go_runtime_error_payload(__text.clone()), Some(__text))",
+		"go_panic_any_local(__payload, __message, __formatter)",
+	} {
+		if !strings.Contains(helper, want) {
+			t.Fatalf("single-thread panic runtime should retain %q for an uncaught runtime fault:\n%s", want, helper)
+		}
+	}
+}
+
+func TestSingleThreadUnrecoveredRuntimeFaultResumesWithDiagnostic(t *testing.T) {
+	if _, err := exec.LookPath("rustc"); err != nil {
+		t.Skip("rustc is not available")
+	}
+	previousDetector := globalConcurrencyDetector
+	SetConcurrencyDetector(NewConcurrencyDetector())
+	t.Cleanup(func() { SetConcurrencyDetector(previousDetector) })
+
+	helper := (&HelperTracker{needsPanicRecover: true}).GenerateHelperModule()
+	harness := `
+fn main() {
+    let caught = std::panic::catch_unwind(|| {
+        panic!("index out of bounds: the len is 1 but the index is 2")
+    }).unwrap_err();
+    go_store_panic_payload(caught);
+    let resumed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        go_resume_unrecovered_panic()
+    })).unwrap_err();
+    let message = resumed.downcast::<String>().expect("resumed panic should retain its diagnostic");
+    assert_eq!(*message, "runtime error: index out of range [2] with length 1");
+}
+`
+	dir := t.TempDir()
+	source := filepath.Join(dir, "main.rs")
+	if err := os.WriteFile(source, []byte(helper+harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	binary := filepath.Join(dir, "unrecovered-runtime-fault-test")
+	if output, err := exec.Command("rustc", "--edition=2021", source, "-o", binary).CombinedOutput(); err != nil {
+		t.Fatalf("rustc failed: %v\n%s", err, output)
+	}
+	if output, err := exec.Command(binary).CombinedOutput(); err != nil {
+		t.Fatalf("runtime-fault harness failed: %v\n%s", err, output)
+	}
+}
+
+func TestPanicHookSuppressionIsThreadLocalAndRestoresDiagnostics(t *testing.T) {
+	if _, err := exec.LookPath("rustc"); err != nil {
+		t.Skip("rustc is not available")
+	}
+
+	helper := (&HelperTracker{needsPanicRecover: true}).GenerateHelperModule()
+	harness := `
+static REPORTS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+fn main() {
+    std::panic::set_hook(Box::new(|_| {
+        REPORTS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }));
+
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(3));
+    let first_barrier = barrier.clone();
+    let first = std::thread::spawn(move || {
+        let _guard = go_suppress_panic_hook();
+        first_barrier.wait();
+        let _ = std::panic::catch_unwind(|| panic!("first recovered panic"));
+    });
+    let second_barrier = barrier.clone();
+    let second = std::thread::spawn(move || {
+        let _guard = go_suppress_panic_hook();
+        second_barrier.wait();
+        let _ = std::panic::catch_unwind(|| panic!("second recovered panic"));
+    });
+
+    barrier.wait();
+    first.join().unwrap();
+    second.join().unwrap();
+    assert_eq!(REPORTS.load(std::sync::atomic::Ordering::SeqCst), 0);
+
+    let _ = std::panic::catch_unwind(|| panic!("later uncaught-style panic"));
+    assert_eq!(REPORTS.load(std::sync::atomic::Ordering::SeqCst), 1);
+}
+`
+
+	dir := t.TempDir()
+	source := filepath.Join(dir, "main.rs")
+	if err := os.WriteFile(source, []byte(helper+harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	binary := filepath.Join(dir, "panic-hook-test")
+	if output, err := exec.Command("rustc", "--edition=2021", source, "-o", binary).CombinedOutput(); err != nil {
+		t.Fatalf("rustc failed: %v\n%s", err, output)
+	}
+	if output, err := exec.Command(binary).CombinedOutput(); err != nil {
+		t.Fatalf("panic-hook harness failed: %v\n%s", err, output)
 	}
 }
 
