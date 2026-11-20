@@ -6488,6 +6488,25 @@ func typeDefinitionArrayDisplayFormatter(typeSpec *ast.TypeSpec) (string, bool) 
 	}
 }
 
+// typeDefinitionWrapsPredeclaredBasic reports whether typeSpec is "type T
+// int64" or the like: a newtype over the wrapped cell of a predeclared
+// number, string or bool.
+func typeDefinitionWrapsPredeclaredBasic(typeSpec *ast.TypeSpec) bool {
+	ident, ok := typeSpec.Type.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeName, ok := types.Universe.Lookup(ident.Name).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	basic, ok := typeName.Type().(*types.Basic)
+	if !ok || basic.Info()&(types.IsNumeric|types.IsString|types.IsBoolean) == 0 {
+		return false
+	}
+	return strings.HasPrefix(GoTypeToRust(typeSpec.Type), GetOuterWrapperType()+"<")
+}
+
 func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 	if typeSpec == nil || typeSpec.Name == nil {
 		return "", false
@@ -6503,6 +6522,17 @@ func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 	named, ok := types.Unalias(obj.Type()).(*types.Named)
 	if !ok {
 		return "", false
+	}
+	if typeDefinitionWrapsPredeclaredBasic(typeSpec) {
+		// The zero value of "type Money int64" holds 0. A derived Default
+		// would hold an empty cell, and reading it panics.
+		var zero strings.Builder
+		zero.WriteString("Self(")
+		WriteWrapperPrefix(&zero)
+		zero.WriteString("Default::default()")
+		WriteWrapperSuffix(&zero)
+		zero.WriteString(")")
+		return zero.String(), true
 	}
 	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
 		return "", false

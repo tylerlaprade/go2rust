@@ -588,13 +588,19 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct internalError(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for internalError {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         internalError(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for internalError {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

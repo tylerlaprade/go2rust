@@ -798,13 +798,19 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Counter(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Counter {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Counter(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1187,13 +1193,19 @@ impl Ord for Counter {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Arc<Mutex<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Celsius(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1335,13 +1347,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Name(pub Arc<Mutex<Option<String>>>);
 
 impl Clone for Name {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Name(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Name {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1412,13 +1430,19 @@ impl std::ops::Add<&str> for Name {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Flag(pub Arc<Mutex<Option<bool>>>);
 
 impl Clone for Flag {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Flag(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Flag {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

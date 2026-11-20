@@ -587,13 +587,19 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Path(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Path {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Path(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Path {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

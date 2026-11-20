@@ -592,13 +592,19 @@ pub const NEED_FILES: i64 = 1 << 1;
 pub const NEED_IMPORTS: i64 = 1 << 2;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct LoadMode(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for LoadMode {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         LoadMode(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for LoadMode {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

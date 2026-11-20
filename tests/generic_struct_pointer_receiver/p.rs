@@ -57,13 +57,19 @@ impl std::fmt::Display for P {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Number(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Number {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Number(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Number {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

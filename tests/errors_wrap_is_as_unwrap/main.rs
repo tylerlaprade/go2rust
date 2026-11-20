@@ -1468,13 +1468,19 @@ impl std::fmt::Display for NotFound {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Code(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Code {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Code(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Code {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

@@ -16300,7 +16300,9 @@ func methodExpressionReceiverPointeeRustType(sig *types.Signature) (string, bool
 
 func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorExpr, params *types.Tuple) {
 	needsMut := methodCallNeedsMutableReceiver(sel)
-	out.WriteString("{ let __recv = __arg0.clone(); (*__recv")
+	// The result is bound before the block ends: a borrow of __recv in the
+	// block's last expression would outlive __recv (E0597).
+	out.WriteString("{ let __recv = __arg0.clone(); let __result = (*__recv")
 	WriteBorrowMethod(out, needsMut)
 	if needsMut {
 		out.WriteString(".as_mut().unwrap()).")
@@ -16315,7 +16317,7 @@ func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorEx
 		}
 		out.WriteString(fmt.Sprintf("__arg%d", i))
 	}
-	out.WriteString(") }")
+	out.WriteString("); __result }")
 }
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {

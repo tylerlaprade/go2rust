@@ -591,13 +591,19 @@ impl std::io::Write for GoSlice<u8> {
 /// operand of a parallel assignment must snapshot it as a value, not treat the
 /// temp as the field's wrapped handle. Mirrors go/scanner's auto-semicolon
 /// `pos, tok, lit = s.something, token.SEMICOLON, "\n"`.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Pos(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Pos {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Pos(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Pos {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

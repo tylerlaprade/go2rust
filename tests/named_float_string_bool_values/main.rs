@@ -1350,13 +1350,19 @@ pub const ACTIVE: &'static str = "active";
 pub const INACTIVE: &'static str = "inactive";
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1498,13 +1504,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Fahrenheit {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Fahrenheit(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Fahrenheit {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1684,13 +1696,19 @@ impl std::fmt::Display for Reading {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Color(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Color {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Color(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1761,13 +1779,19 @@ impl std::ops::Add<&str> for Color {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Status(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Status {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Status(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1838,13 +1862,19 @@ impl std::ops::Add<&str> for Status {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Enabled(pub Rc<RefCell<Option<bool>>>);
 
 impl Clone for Enabled {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Enabled(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Enabled {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1863,13 +1893,19 @@ impl PartialEq for Enabled {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Meters(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Meters {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Meters(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Meters {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

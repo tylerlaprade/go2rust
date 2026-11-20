@@ -715,6 +715,14 @@ run_xfail_test() {
     run_test "tests/closures_basic"
 }
 
+@test "closures_sharing_a_variable" {
+    run_test "tests/closures_sharing_a_variable"
+}
+
+@test "closures_sharing_a_variable_goroutines" {
+    run_test "tests/closures_sharing_a_variable_goroutines"
+}
+
 @test "comma_ok_assert_imported_interface_field" {
     run_test "tests/comma_ok_assert_imported_interface_field"
 }
@@ -1879,6 +1887,14 @@ run_xfail_test() {
     run_test "tests/method_closure_receiver_capture"
 }
 
+@test "method_expressions_and_anonymous_struct_equality" {
+    run_test "tests/method_expressions_and_anonymous_struct_equality"
+}
+
+@test "method_expressions_and_anonymous_struct_equality_goroutines" {
+    run_test "tests/method_expressions_and_anonymous_struct_equality_goroutines"
+}
+
 @test "method_func_literal_argument" {
     run_test "tests/method_func_literal_argument"
 }
@@ -2021,6 +2037,14 @@ run_xfail_test() {
 
 @test "named_integer_negative_index" {
     run_test "tests/named_integer_negative_index"
+}
+
+@test "named_integer_receiver_reassign_and_zero" {
+    run_test "tests/named_integer_receiver_reassign_and_zero"
+}
+
+@test "named_integer_receiver_reassign_and_zero_goroutines" {
+    run_test "tests/named_integer_receiver_reassign_and_zero_goroutines"
 }
 
 @test "named_integer_unary_minus_returns_interface" {

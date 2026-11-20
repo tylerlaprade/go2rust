@@ -587,13 +587,19 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -735,13 +741,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Fahrenheit {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Fahrenheit(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Fahrenheit {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

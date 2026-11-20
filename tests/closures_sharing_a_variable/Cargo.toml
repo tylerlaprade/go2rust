@@ -1,0 +1,11 @@
+[package]
+name = "closures_sharing_a_variable"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "closures_sharing_a_variable"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

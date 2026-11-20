@@ -1,0 +1,11 @@
+[package]
+name = "named_integer_receiver_reassign_and_zero"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_integer_receiver_reassign_and_zero"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

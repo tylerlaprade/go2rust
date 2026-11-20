@@ -604,13 +604,19 @@ impl Clone for Box<dyn Value> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct int64Val(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for int64Val {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         int64Val(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for int64Val {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

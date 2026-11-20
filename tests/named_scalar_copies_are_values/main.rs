@@ -629,13 +629,19 @@ where
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Counter(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Counter {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Counter(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1018,13 +1024,19 @@ impl Ord for Counter {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1166,13 +1178,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Name(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Name {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Name(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Name {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1243,13 +1261,19 @@ impl std::ops::Add<&str> for Name {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Flag(pub Rc<RefCell<Option<bool>>>);
 
 impl Clone for Flag {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Flag(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Flag {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

@@ -586,13 +586,19 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct namedState(pub Arc<Mutex<Option<u32>>>);
 
 impl Clone for namedState {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         namedState(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for namedState {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

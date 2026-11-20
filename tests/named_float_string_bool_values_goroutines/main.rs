@@ -1519,13 +1519,19 @@ pub const ACTIVE: &'static str = "active";
 pub const INACTIVE: &'static str = "inactive";
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Arc<Mutex<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Celsius(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1667,13 +1673,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Fahrenheit(pub Arc<Mutex<Option<f64>>>);
 
 impl Clone for Fahrenheit {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Fahrenheit(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Fahrenheit {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1853,13 +1865,19 @@ impl std::fmt::Display for Reading {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Color(pub Arc<Mutex<Option<String>>>);
 
 impl Clone for Color {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Color(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1930,13 +1948,19 @@ impl std::ops::Add<&str> for Color {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Status(pub Arc<Mutex<Option<String>>>);
 
 impl Clone for Status {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Status(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -2007,13 +2031,19 @@ impl std::ops::Add<&str> for Status {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Enabled(pub Arc<Mutex<Option<bool>>>);
 
 impl Clone for Enabled {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Enabled(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Enabled {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -2032,13 +2062,19 @@ impl PartialEq for Enabled {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Meters(pub Arc<Mutex<Option<f64>>>);
 
 impl Clone for Meters {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Meters(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Meters {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

@@ -592,13 +592,19 @@ impl std::io::Write for GoSlice<u8> {
 /// must snapshot its value, not alias the variable's handle (which would make
 /// every entry track the variable's final value). Mirrors go/token's
 /// keywords[tokens[i]] = i.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Tok(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Tok {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Tok(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Tok {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

@@ -780,13 +780,19 @@ impl reflect_Kind {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct namedInt(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for namedInt {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         namedInt(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for namedInt {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

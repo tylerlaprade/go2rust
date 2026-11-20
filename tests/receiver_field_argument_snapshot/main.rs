@@ -591,13 +591,19 @@ pub const VAR: i64 = 0 + 1;
 pub const IDENT: i64 = 1 + 1;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Token(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Token {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Token(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

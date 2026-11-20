@@ -885,13 +885,19 @@ impl<T> Iterator for GoChannel<T> {
 pub(crate) const STEP: i64 = 5;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct I8(pub Arc<Mutex<Option<i8>>>);
 
 impl Clone for I8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         I8(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for I8 {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1274,13 +1280,19 @@ impl Ord for I8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Level(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1663,13 +1675,19 @@ impl Ord for Level {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct U8(pub Arc<Mutex<Option<u8>>>);
 
 impl Clone for U8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         U8(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for U8 {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -2045,13 +2063,19 @@ impl Ord for U8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Big(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Big {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Big(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Big {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 

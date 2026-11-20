@@ -1637,13 +1637,19 @@ impl std::fmt::Display for NotFound {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Code(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Code {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Code(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Code {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
