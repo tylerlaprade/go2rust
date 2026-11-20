@@ -943,7 +943,7 @@ pub fn inner_panic() {
         __defer_stack.push(Box::new(move || {
         print_recovered(Rc::new(RefCell::new(Some("inner".to_string()))));
     }));
-        panic!("B");
+        { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -976,7 +976,7 @@ pub fn outer_panic() {
         println!("{}", format!("{}", "after inner".to_string()));
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        panic!("A");
+        { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1057,8 +1057,40 @@ pub fn nested_panic() -> Rc<RefCell<Option<String>>> {
     }
 }
 
+pub fn explicit_runtime_text() -> Rc<RefCell<Option<String>>> {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
+
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        save_outer_panic(result_defer_captured.clone());
+    }));
+        { let __go_panic_text = format!("{}", "attempt to divide by zero".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            std::panic::set_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            std::panic::set_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
 pub fn panic_b() {
-    panic!("B");
+    { let __go_panic_text = format!("{}", "B".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
 }
 
 pub fn replacement_panic() {
@@ -1073,7 +1105,7 @@ pub fn replacement_panic() {
         __defer_stack.push(Box::new(move || {
         panic_b();
     }));
-        panic!("A");
+        { let __go_panic_text = format!("{}", "A".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1160,7 +1192,7 @@ pub fn normal_probe_cannot_recover_outer() -> (Rc<RefCell<Option<String>>>, Rc<R
         { let new_val = probe(); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *probed_defer_captured.borrow_mut() = __moved_val; };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        panic!("outer");
+        { let __go_panic_text = format!("{}", "outer".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
     }));
     match __go_panic_result {
         Ok(__go_value) => {
@@ -1192,6 +1224,7 @@ fn main() {
 
     println!("{}", format!("{}", (*recover_value(Rc::new(RefCell::new(Some(Box::new(9i64) as Box<dyn Any>))), Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*recover_value(Rc::new(RefCell::new(Some(Box::new("text".to_string()) as Box<dyn Any>))), Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*explicit_runtime_text().borrow().as_ref().unwrap())));
     println!("{} {}", format!("{}", "top".to_string()), format!("{}", (*nested_panic().borrow().as_ref().unwrap())));
     replacement_panic();
     println!("{} {}", format!("{}", "probe".to_string()), format!("{}", (*probe().borrow().as_ref().unwrap())));

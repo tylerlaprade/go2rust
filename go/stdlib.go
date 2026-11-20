@@ -7031,6 +7031,9 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 && writeConcurrentPanicPayloadArg(out, call.Args[0]) {
 		return
 	}
+	if len(call.Args) > 0 && writeLocalStringPanicPayloadArg(out, call.Args[0]) {
+		return
+	}
 	if len(call.Args) > 0 && writePanicAnyArg(out, call.Args[0]) {
 		return
 	}
@@ -7072,6 +7075,24 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("\"explicit panic\"")
 	}
 	out.WriteString(")")
+}
+
+func writeLocalStringPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
+	if NeedsConcurrentWrapper() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(arg) {
+		return false
+	}
+	// Keep an explicit Go string distinct from Rust runtime-fault text. The
+	// string itself is safe to format here, and the thread-local transport
+	// preserves its dynamic Go type for recover.
+	NeedPanicRecover()
+	out.WriteString("{ let __go_panic_text = format!(")
+	writePanicDisplayArg(out, arg)
+	out.WriteString("); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) }")
+	return true
 }
 
 func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {

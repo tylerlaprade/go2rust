@@ -1093,6 +1093,38 @@ pub fn nested_panic() -> Arc<Mutex<Option<String>>> {
     }
 }
 
+pub fn explicit_runtime_text() -> Arc<Mutex<Option<String>>> {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let mut result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        save_outer_panic(result_defer_captured.clone());
+    }));
+        std::panic::panic_any(Box::new("attempt to divide by zero".to_string()) as Box<dyn Any + Send + Sync>);
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            std::panic::set_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
+                }
+            }
+            std::panic::set_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            result.clone()
+        }
+    }
+}
+
 pub fn panic_b() {
     std::panic::panic_any(Box::new("B".to_string()) as Box<dyn Any + Send + Sync>);
 }
@@ -1237,6 +1269,7 @@ fn main() {
 
     println!("{}", format!("{}", (*recover_value(Arc::new(Mutex::new(Some(Box::new(9i64) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(None))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*recover_value(Arc::new(Mutex::new(Some(Box::new("text".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(None))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "literal".to_string()), format!("{}", (*explicit_runtime_text().lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "top".to_string()), format!("{}", (*nested_panic().lock().unwrap().as_ref().unwrap())));
     replacement_panic();
     println!("{} {}", format!("{}", "probe".to_string()), format!("{}", (*probe().lock().unwrap().as_ref().unwrap())));

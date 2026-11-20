@@ -1406,6 +1406,23 @@ func fail(value any) {
 	}
 }
 
+func TestExplicitStringPanicUsesTypedLocalTransport(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail() {
+	panic("attempt to divide by zero")
+}
+`)
+
+	if !strings.Contains(rust, `let __go_panic_text = format!("{}", "attempt to divide by zero".to_string())`) ||
+		!strings.Contains(rust, `go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text)`) {
+		t.Fatalf("explicit string panic should use typed local transport:\n%s", rust)
+	}
+	if strings.Contains(rust, `panic!("attempt to divide by zero")`) {
+		t.Fatalf("explicit string panic must not be confused with Rust runtime-fault text:\n%s", rust)
+	}
+}
+
 func TestConcurrentPanicAnyUsesPanicAnyPayload(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

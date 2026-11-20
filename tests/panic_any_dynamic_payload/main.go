@@ -64,6 +64,11 @@ func nestedPanic() (result string) {
 	return
 }
 
+func explicitRuntimeText() (result string) {
+	defer saveOuterPanic(&result)
+	panic("attempt to divide by zero")
+}
+
 func panicB() {
 	panic("B")
 }
@@ -107,6 +112,7 @@ func main() {
 
 	fmt.Println(recoverValue(9, nil))
 	fmt.Println(recoverValue("text", nil))
+	fmt.Println("literal", explicitRuntimeText())
 	fmt.Println("top", nestedPanic())
 	replacementPanic()
 	fmt.Println("probe", probe())

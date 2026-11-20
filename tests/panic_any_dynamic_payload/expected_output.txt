@@ -4,6 +4,7 @@ pointer true true 8
 pointer write 10
 int true 9
 string true text
+literal attempt to divide by zero
 inner true B
 after inner
 top A
