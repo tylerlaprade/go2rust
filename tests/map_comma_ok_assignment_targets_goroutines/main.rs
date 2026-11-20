@@ -299,10 +299,14 @@ fn main() {
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Numbers>>>>::new())));
     let mut src = Arc::new(Mutex::new(Some(Numbers(Arc::new(Mutex::new(Some(vec![0; (2) as usize])))))));
     {
+        let __go_lhs_sequence_0 = { let __named_slice = (*src.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.clone();
+        let __go_lhs_index_0 = (0) as usize;
+        let __go_lhs_sequence_1 = { let __named_slice = (*src.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.clone();
+        let __go_lhs_index_1 = (1) as usize;
         let __tmp_0 = 1;
         let __tmp_1 = 2;
-        { let __idx = (0) as usize; (*{ let __named_slice = (*src.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __tmp_0; }
-        { let __idx = (1) as usize; (*{ let __named_slice = (*src.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __tmp_1; }
+        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
+        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     { let __map_key = "a".to_string(); let __map_value = src.clone(); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
