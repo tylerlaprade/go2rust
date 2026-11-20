@@ -8530,23 +8530,19 @@ func shouldWrapDeferPanicRecover(hasDefer bool) bool {
 	return true
 }
 
-// writeNormalDeferredCall runs one defer on an ordinary return. When this
-// package has the panic/recover runtime, the call explicitly masks any outer
-// panic frame: recover is only valid in a defer invoked while unwinding that
+// writeNormalDeferredCall runs one defer on an ordinary return while masking
+// any outer panic frame. This must happen even in a package that never calls
+// recover itself: its deferred callback can cross back into a caller package
+// that does. recover is valid only for a defer invoked while unwinding that
 // frame, never in a nested function's defer that happens to return normally.
 func writeNormalDeferredCall(out *strings.Builder, indent string) {
-	if NeedsConcurrentWrapper() || packageCallsRecover() {
-		NeedPanicRecover()
-		out.WriteString(indent)
-		out.WriteString("if let Err(__go_defer_panic) = go_call_deferred(f, false) {\n")
-		out.WriteString(indent)
-		out.WriteString("    std::panic::resume_unwind(__go_defer_panic);\n")
-		out.WriteString(indent)
-		out.WriteString("}\n")
-		return
-	}
+	NeedPanicRecover()
 	out.WriteString(indent)
-	out.WriteString("f();\n")
+	out.WriteString("if let Err(__go_defer_panic) = go_call_deferred(f, false) {\n")
+	out.WriteString(indent)
+	out.WriteString("    std::panic::resume_unwind(__go_defer_panic);\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
 }
 
 // writeGoFunctionDepthEntry tracks source-level Go call depth in packages

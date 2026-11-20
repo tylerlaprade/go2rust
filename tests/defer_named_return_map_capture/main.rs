@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
@@ -615,6 +616,146 @@ where
     }
 }
 
+struct GoPanicHookSuppression;
+
+thread_local! {
+    static __GO_PANIC_HOOK_SUPPRESSION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+    static __GO_FUNCTION_DEPTH: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+static __GO_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+struct GoFunctionDepthGuard;
+
+fn go_enter_function() -> GoFunctionDepthGuard {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoFunctionDepthGuard
+}
+
+fn go_current_function_depth() -> usize {
+    __GO_FUNCTION_DEPTH.with(|depth| depth.get())
+}
+
+impl Drop for GoFunctionDepthGuard {
+    fn drop(&mut self) {
+        __GO_FUNCTION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+fn go_suppress_panic_hook() -> GoPanicHookSuppression {
+    __GO_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.get() != 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    GoPanicHookSuppression
+}
+
+impl Drop for GoPanicHookSuppression {
+    fn drop(&mut self) {
+        __GO_PANIC_HOOK_SUPPRESSION_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+struct GoLocalPanicFrame {
+    payload: Option<Box<dyn Any>>,
+    message: String,
+    recover_depth: Option<usize>,
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+}
+
+fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
+    std::panic::panic_any(__message)
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recover_depth == Some(go_current_function_depth()) { frame.payload.take() } else { None }
+        })
+    });
+    Rc::new(RefCell::new(__payload))
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recover_depth;
+            frame.recover_depth = if recoverable { Some(go_current_function_depth() + 1) } else { None };
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recover_depth = previous;
+            }
+        });
+    }
+    result
+}
+
+fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+            payload: Some(__go_payload),
+            message: __message,
+            recover_depth: None,
+        }));
+        return;
+    }
+    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Err(__payload) => __payload as Box<dyn Any>,
+        },
+    };
+    let __message = __payload.downcast_ref::<String>().cloned()
+        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+        payload: Some(__payload),
+        message: __message,
+        recover_depth: None,
+    }));
+}
+
+fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(__payload);
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
+    {
+        go_panic_any_local(__payload, __message)
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Free {
     pub seen: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>,
@@ -655,7 +796,9 @@ impl Free {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
         return (*res.borrow().as_ref().unwrap());
     }

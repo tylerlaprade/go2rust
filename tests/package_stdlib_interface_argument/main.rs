@@ -5,6 +5,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use go2rust_stdlib_stubs::*;
+use std::any::Any;
 use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
@@ -41,6 +42,8 @@ fn main() {
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {
-        f();
+        if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+            std::panic::resume_unwind(__go_defer_panic);
+        }
     }
 }

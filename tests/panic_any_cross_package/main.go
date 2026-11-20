@@ -23,7 +23,25 @@ func call(value any) (result string) {
 	return
 }
 
+func dependencyDeferCannotRecoverOuter() (outer, callback string) {
+	defer func() {
+		outer = fmt.Sprint(recover())
+	}()
+	defer func() {
+		worker.RunNormalDefer(func() {
+			if recover() == nil {
+				callback = "nil"
+			} else {
+				callback = "stolen"
+			}
+		})
+	}()
+	panic("outer")
+}
+
 func main() {
 	fmt.Println(call(7))
 	fmt.Println(call("text"))
+	outer, callback := dependencyDeferCannotRecoverOuter()
+	fmt.Println("mask", outer, callback)
 }
