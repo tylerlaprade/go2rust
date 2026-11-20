@@ -2713,6 +2713,58 @@ func blockIdentAssigned(body *ast.BlockStmt, name string) bool {
 	return assigned
 }
 
+// blockCallsPointerMethodOnValue reports whether body calls a method with a
+// pointer receiver on the variable name, which holds a value: `c.Inc()` with
+// `func (c *Counter) Inc()` takes the address of c.
+func blockCallsPointerMethodOnValue(body *ast.BlockStmt, name string) bool {
+	typeInfo := GetTypeInfo()
+	if body == nil || name == "" || name == "_" || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := n.(*ast.FuncLit); ok {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := sel.X.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		selection, ok := typeInfo.info.Selections[sel]
+		if !ok || selection.Kind() != types.MethodVal {
+			return true
+		}
+		fn, ok := selection.Obj().(*types.Func)
+		if !ok {
+			return true
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok || sig.Recv() == nil {
+			return true
+		}
+		if _, recvIsPointer := sig.Recv().Type().(*types.Pointer); !recvIsPointer {
+			return true
+		}
+		if _, valueIsPointer := types.Unalias(typeInfo.GetType(ident)).Underlying().(*types.Pointer); valueIsPointer {
+			return true
+		}
+		found = true
+		return false
+	})
+	return found
+}
+
 func rangeLoopIdentAssigned(body *ast.BlockStmt, name string) bool {
 	return blockIdentAssigned(body, name)
 }
@@ -12042,7 +12094,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						isString = true
 					}
 					// A named string newtype concatenates through its Add impl.
-					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(typeInfo.GetType(s.Lhs[0]))
+					// In a method of the type itself, `*n += "!"` updates the String
+					// the receiver holds, which push_str does.
+					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(compoundAssignRHSExpectedType(s.Lhs[0], typeInfo.GetType(s.Lhs[0])))
 					if namedStringNewtype {
 						isString = false
 					}
@@ -14184,6 +14238,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var keyName, valueName string
 		keyAssigned := false
 		valueAssigned := false
+		// valueMutated is also true when the body calls a pointer method
+		// on the value, which needs the binding mutable.
+		valueMutated := false
 		rangeAssignsExisting := s.Tok == token.ASSIGN
 
 		// Use type information to determine what we're iterating over
@@ -14496,6 +14553,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
 				valueAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, valueName)
+				valueMutated = valueAssigned || (!rangeAssignsExisting && blockCallsPointerMethodOnValue(s.Body, valueName))
 				registeredValueType := valueType
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
@@ -14571,7 +14629,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
 		}
 		writeRangeValueBinding := func() {
-			writeRangePatternBinding(out, s.Value, valueAssigned, valueBindingTemp)
+			writeRangePatternBinding(out, s.Value, valueMutated, valueBindingTemp)
 		}
 		writeMapRangeKeyBinding := func() {
 			if keyBindingTemp != "" {
@@ -16435,6 +16493,10 @@ func writeUnsupportedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, target
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	// A named string appends the String it holds.
+	if writeNamedStringNewtypeInnerValue(out, rhs) {
+		return
+	}
 	if writeBareStringSliceValue(out, rhs, types.Typ[types.String]) {
 		return
 	}

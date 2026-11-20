@@ -14,8 +14,15 @@ pub(crate) const TOK_END: i32 = 4;
 /// type lowers to a wrapped newtype with Add<scalar>/Sub<scalar> impls, so
 /// `i++` must not re-wrap the already-newtype value in another newtype
 /// constructor (which puts a Token where the inner Option expects i32).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Token(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Token {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Token(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

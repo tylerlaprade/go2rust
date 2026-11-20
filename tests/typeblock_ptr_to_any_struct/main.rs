@@ -6,8 +6,15 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Pos(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Pos {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Pos(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Pos {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

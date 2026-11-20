@@ -5,8 +5,15 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ObjKind(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for ObjKind {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        ObjKind(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for ObjKind {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

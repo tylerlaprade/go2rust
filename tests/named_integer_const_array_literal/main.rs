@@ -7,8 +7,15 @@ pub const V1: u32 = 1;
 pub const V2: u32 = 2;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Version(pub Rc<RefCell<Option<u32>>>);
+
+impl Clone for Version {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Version(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
