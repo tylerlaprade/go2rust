@@ -74,7 +74,7 @@ fn main() {
     let mut person = new_person(Rc::new(RefCell::new(Some("Alice".to_string()))), Rc::new(RefCell::new(Some(30))));
 
         // Call the greeting method
-    (*person.borrow().as_ref().unwrap()).greet();
+    __go_nil_recv_person_greet({ let __recv = person.clone(); __recv });
 
         // Try with invalid age
     let mut invalid = new_person(Rc::new(RefCell::new(Some("Bob".to_string()))), Rc::new(RefCell::new(Some(-1))));
@@ -82,4 +82,17 @@ fn main() {
                 // This should print
         println!("{}", format!("{}", "Failed to create person with invalid age".to_string()));
     }
+}
+
+pub fn __go_nil_recv_person_greet(p: Rc<RefCell<Option<Person>>>) {
+        // Check if person is valid
+    if { let __nil_result = (*p.borrow()).is_none(); __nil_result } {
+                // Handle nil receiver
+        println!("{}", format!("{}", "Invalid person".to_string()));
+        return;
+    }
+
+        // Handle nil receiver
+        // Print the greeting
+    print!("Hello, I'm {} and I'm {} years old\n", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*p.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));
 }

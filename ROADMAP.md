@@ -2,6 +2,8 @@
 
 ## Implementation Status
 
+Direct calls to same-file, non-generic pointer methods that check their receiver for nil preserve the nil receiver, including recursive calls through linked-list fields. The `nil_list_len` and `nil_list_len_concurrent` fixtures cover linked lists. The `nil_guarded_slice_element_field` fixture calls methods on a nil field and after assigning it a pointer into a slice, then checks the mutation through the slice.
+
 ### ✅ Phase 1: Hello World
 
 Basic program transpilation

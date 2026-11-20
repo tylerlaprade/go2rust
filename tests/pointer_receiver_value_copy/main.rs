@@ -50,10 +50,26 @@ impl Tracker {
         { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_context.borrow_mut() = Some(new_val); };
         return copy.clone();
     }
+
+    pub fn clear_context(&mut self) {
+        { let new_val = false; *self.needs_context.borrow_mut() = Some(new_val); };
+    }
 }
 
 fn main() {
     let mut tracker = Rc::new(RefCell::new(Some(Tracker { needs_channel: Rc::new(RefCell::new(Some(true))), needs_context: Rc::new(RefCell::new(Some(true))), ..Default::default() })));
-    let mut copy = (*tracker.borrow().as_ref().unwrap()).without_shared();
+    let mut copy = __go_nil_recv_tracker_without_shared({ let __recv = tracker.clone(); __recv });
     println!("{} {} {} {}", format!("{}", (*(*tracker.borrow().as_ref().unwrap()).needs_channel.borrow().as_ref().unwrap())), format!("{}", (*(*tracker.borrow().as_ref().unwrap()).needs_context.borrow().as_ref().unwrap())), format!("{}", (*(*copy.borrow().as_ref().unwrap()).needs_channel.borrow().as_ref().unwrap())), format!("{}", (*(*copy.borrow().as_ref().unwrap()).needs_context.borrow().as_ref().unwrap())));
+    (*tracker.borrow_mut().as_mut().unwrap()).clear_context();
+    println!("{}", format!("{}", (*(*tracker.borrow().as_ref().unwrap()).needs_context.borrow().as_ref().unwrap())));
+}
+
+pub fn __go_nil_recv_tracker_without_shared(t: Rc<RefCell<Option<Tracker>>>) -> Rc<RefCell<Option<Tracker>>> {
+    if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
+        return Rc::new(RefCell::new(None));
+    }
+    let mut copy = Rc::new(RefCell::new(Some({ let __v = (*t.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
+    { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_channel.borrow_mut() = Some(new_val); };
+    { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_context.borrow_mut() = Some(new_val); };
+    return copy.clone();
 }

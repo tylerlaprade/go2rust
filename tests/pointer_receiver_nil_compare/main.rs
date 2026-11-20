@@ -46,5 +46,12 @@ impl node {
 fn main() {
     let mut left = Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     let mut missing: Rc<RefCell<Option<node>>> = Rc::new(RefCell::new(None));
-    println!("{}", format!("{}", (*left.borrow().as_ref().unwrap()).same(missing.clone())));
+    println!("{}", format!("{}", __go_nil_recv_node_same({ let __recv = left.clone(); __recv }, missing.clone())));
+}
+
+pub fn __go_nil_recv_node_same(n: Rc<RefCell<Option<node>>>, other: Rc<RefCell<Option<node>>>) -> bool {
+    if { let __nil_result = (*n.borrow()).is_none(); __nil_result } || { let __nil_result = (*other.borrow()).is_none(); __nil_result } {
+        return { let __left = n.clone(); let __right = other.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right); __eq };
+    }
+    return (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
 }

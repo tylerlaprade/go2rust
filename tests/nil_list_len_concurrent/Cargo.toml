@@ -1,0 +1,8 @@
+[package]
+name = "nil_list_len_concurrent"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nil_list_len_concurrent"
+path = "main.rs"

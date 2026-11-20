@@ -955,6 +955,14 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "dereferenced_pointer_receiver_arg_order" {
+    run_test "tests/dereferenced_pointer_receiver_arg_order"
+}
+
+@test "dereferenced_pointer_receiver_arg_order_goroutines" {
+    run_test "tests/dereferenced_pointer_receiver_arg_order_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
@@ -1901,6 +1909,18 @@ run_xfail_test() {
 
 @test "nil_basic" {
     run_test "tests/nil_basic"
+}
+
+@test "nil_guarded_slice_element_field" {
+    run_test "tests/nil_guarded_slice_element_field"
+}
+
+@test "nil_list_len" {
+    run_test "tests/nil_list_len"
+}
+
+@test "nil_list_len_concurrent" {
+    run_test "tests/nil_list_len_concurrent"
 }
 
 @test "non_blocking_channels" {
@@ -3193,6 +3213,10 @@ run_xfail_test() {
 
 @test "typeblock_ptr_to_any_struct" {
     run_test "tests/typeblock_ptr_to_any_struct"
+}
+
+@test "typed_nil_method_result" {
+    run_test "tests/typed_nil_method_result"
 }
 
 @test "types_config_check_bridge" {

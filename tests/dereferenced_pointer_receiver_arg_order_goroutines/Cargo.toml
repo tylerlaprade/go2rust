@@ -1,0 +1,8 @@
+[package]
+name = "dereferenced_pointer_receiver_arg_order_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "dereferenced_pointer_receiver_arg_order_goroutines"
+path = "main.rs"

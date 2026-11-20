@@ -94,6 +94,7 @@ type PackageState struct {
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
 type FileState struct {
+	NilReceiverHelpers           map[string]nilReceiverHelper
 	Imports                      *ImportTracker
 	Helpers                      *HelperTracker
 	FileSet                      *token.FileSet

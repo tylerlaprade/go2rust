@@ -1,0 +1,8 @@
+[package]
+name = "dereferenced_pointer_receiver_arg_order"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "dereferenced_pointer_receiver_arg_order"
+path = "main.rs"

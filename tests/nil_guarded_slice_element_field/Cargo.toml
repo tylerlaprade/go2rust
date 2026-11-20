@@ -1,0 +1,8 @@
+[package]
+name = "nil_guarded_slice_element_field"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nil_guarded_slice_element_field"
+path = "main.rs"

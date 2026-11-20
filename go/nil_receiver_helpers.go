@@ -8,28 +8,23 @@ import (
 	"strings"
 )
 
-var currentNilPointerReceiverMethodHelpers map[string]string
-
-func setCurrentNilPointerReceiverMethodHelpers(helpers map[string]string) func() {
-	previous := currentNilPointerReceiverMethodHelpers
-	currentNilPointerReceiverMethodHelpers = helpers
-	return func() {
-		currentNilPointerReceiverMethodHelpers = previous
-	}
+type nilReceiverHelper struct {
+	name           string
+	checksReceiver bool
 }
 
-func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, methods map[string][]*ast.FuncDecl) map[string]string {
+func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, methods map[string][]*ast.FuncDecl) map[string]nilReceiverHelper {
 	if file == nil || typeInfo == nil || typeInfo.info == nil || len(methods) == 0 {
 		return nil
 	}
 
-	declaredMethods := make(map[string]*types.Func)
+	declaredMethods := make(map[string]*ast.FuncDecl)
 	for _, methodList := range methods {
 		for _, method := range methodList {
 			fn := methodFuncForDecl(method, typeInfo)
 			key := methodOverrideKey(fn)
 			if key != "" {
-				declaredMethods[key] = fn
+				declaredMethods[key] = method
 			}
 		}
 	}
@@ -37,7 +32,16 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		return nil
 	}
 
-	helpers := make(map[string]string)
+	helpers := make(map[string]nilReceiverHelper)
+	usedNames := make(map[string]bool)
+	if typeInfo.pkg != nil {
+		scope := typeInfo.pkg.Scope()
+		for _, name := range scope.Names() {
+			if _, ok := scope.Lookup(name).(*types.Func); ok {
+				usedNames[rustFunctionNameForUse(name)] = true
+			}
+		}
+	}
 	ast.Inspect(file, func(node ast.Node) bool {
 		call, ok := node.(*ast.CallExpr)
 		if !ok {
@@ -49,13 +53,22 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		}
 		method := selectedMethodFuncFromTypeInfo(typeInfo, sel)
 		key := methodOverrideKey(method)
-		if _, declared := declaredMethods[key]; !declared {
+		decl := declaredMethods[key]
+		if decl == nil {
 			return true
 		}
-		if !isTypedNilPointerReceiverMethodCall(typeInfo, sel, method) {
+		checksReceiver := methodReceiverComparedToNil(decl)
+		if !isTypedNilPointerReceiverMethodCall(typeInfo, sel, method) && !(checksReceiver && directPointerMethodCall(typeInfo, sel, method)) {
 			return true
 		}
-		helpers[key] = nilPointerReceiverMethodHelperName(method)
+		if _, exists := helpers[key]; !exists {
+			name := nilPointerReceiverMethodHelperName(method)
+			for usedNames[name] {
+				name += "_"
+			}
+			usedNames[name] = true
+			helpers[key] = nilReceiverHelper{name: name, checksReceiver: checksReceiver}
+		}
 		return true
 	})
 
@@ -80,6 +93,20 @@ func selectedMethodFuncFromTypeInfo(typeInfo *TypeInfo, sel *ast.SelectorExpr) *
 		}
 	}
 	return nil
+}
+
+func directPointerMethodCall(info *TypeInfo, sel *ast.SelectorExpr, method *types.Func) bool {
+	if !methodHasPointerReceiver(method) {
+		return false
+	}
+	sig := method.Type().(*types.Signature)
+	if sig.RecvTypeParams().Len() > 0 {
+		// A free helper cannot reference the generic receiver's type parameters.
+		return false
+	}
+	selection := info.info.Selections[sel]
+	return selection != nil && selection.Kind() == types.MethodVal &&
+		types.Identical(info.GetType(sel.X), sig.Recv().Type())
 }
 
 func isTypedNilPointerReceiverMethodCall(typeInfo *TypeInfo, sel *ast.SelectorExpr, method *types.Func) bool {
@@ -148,19 +175,40 @@ func rustIdentFragment(name string) string {
 
 func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || len(currentNilPointerReceiverMethodHelpers) == 0 {
+	ctx := GetTranspileContext()
+	if typeInfo == nil || ctx == nil || ctx.File == nil || len(ctx.File.NilReceiverHelpers) == 0 {
 		return false
 	}
 	method := selectedMethodFuncFromTypeInfo(typeInfo, sel)
 	key := methodOverrideKey(method)
-	helperName, ok := currentNilPointerReceiverMethodHelpers[key]
-	if !ok || !isTypedNilPointerReceiverMethodCall(typeInfo, sel, method) {
+	helper, ok := ctx.File.NilReceiverHelpers[key]
+	if !ok {
+		return false
+	}
+	literalNil := isTypedNilPointerReceiverMethodCall(typeInfo, sel, method)
+	if !literalNil && (!helper.checksReceiver || !directPointerMethodCall(typeInfo, sel, method) || methodValueReceiverIsGoPtr(sel.X)) {
+		return false
+	}
+	// Slice-element pointer fields use GoPtr and have their own method dispatcher.
+	if field, ok := unwrapParens(sel.X).(*ast.SelectorExpr); ok {
+		if writeGoPtrFieldMethodCall(out, field, sel, call, helper.name) {
+			return true
+		}
+	}
+	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !currentReceiverRustAliasIsPointerHandle {
 		return false
 	}
 
-	out.WriteString(helperName)
+	out.WriteString(helper.name)
 	out.WriteString("(")
-	TranspileExpression(out, sel.X)
+	if literalNil {
+		TranspileExpression(out, sel.X)
+	} else {
+		// End a field borrow before recursing or evaluating another argument.
+		out.WriteString("{ let __recv = ")
+		writePointerHandleExpression(out, sel.X)
+		out.WriteString("; __recv }")
+	}
 	var args strings.Builder
 	if !writeMethodCallArguments(&args, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
 		for i, arg := range call.Args {
@@ -178,7 +226,7 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 	return true
 }
 
-func writeNilPointerReceiverMethodHelpers(out *strings.Builder, first *bool, helpers map[string]string, methods map[string][]*ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+func writeNilPointerReceiverMethodHelpers(out *strings.Builder, first *bool, helpers map[string]nilReceiverHelper, methods map[string][]*ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	if len(helpers) == 0 || len(methods) == 0 {
 		return
 	}
@@ -210,7 +258,7 @@ func writeNilPointerReceiverMethodHelpers(out *strings.Builder, first *bool, hel
 			out.WriteString("\n\n")
 		}
 		*first = false
-		TranspileFunction(out, nilPointerReceiverSyntheticFunc(method, helpers[key]), fileSet, comments)
+		TranspileFunction(out, nilPointerReceiverSyntheticFunc(method, helpers[key].name), fileSet, comments)
 	}
 }
 

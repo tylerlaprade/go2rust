@@ -7228,6 +7228,19 @@ func currentReceiverRustName() string {
 	return "self"
 }
 
+func writePointerDerefValueCopy(out *strings.Builder, expr, pointer ast.Expr) {
+	out.WriteString("{ let __v = (*")
+	TranspileExpressionContext(out, pointer, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	if expressionNeedsGoValueClone(expr) {
+		out.WriteString(".__go_value_clone()")
+	} else {
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; __v }")
+}
+
 func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target ast.Expr) bool {
 	ident, ok := target.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) {
@@ -13648,10 +13661,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeGoPtrFieldDerefRead(out, e.X) {
 					break
 				}
-				out.WriteString("{ let __v = (*")
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone(); __v }")
+				writePointerDerefValueCopy(out, e, e.X)
 				break
 			}
 			out.WriteString("(*")
@@ -13752,10 +13762,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeUnsafePointerInterfaceDerefValue(out, e) {
 				break
 			}
-			out.WriteString("{ let __v = (*")
-			TranspileExpressionContext(out, e.X, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone(); __v }")
+			writePointerDerefValueCopy(out, e, e.X)
 			break
 		}
 		out.WriteString("(*")
@@ -21708,43 +21715,80 @@ func writeElemPtrCallResultFieldMethodCall(out *strings.Builder, fieldSel *ast.S
 	return true
 }
 
-func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+// writeMethodArgumentTemps evaluates the lowered arguments before borrowing the
+// receiver and returns the corresponding tuple projections for the call.
+func writeMethodArgumentTemps(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) string {
+	var args strings.Builder
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	argumentCount := len(call.Args)
+	if writeMethodCallArguments(&args, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		signature, _ := callSignatureFromTypeInfo(call)
+		argumentCount = signature.Params().Len()
+	} else {
+		for i, arg := range call.Args {
+			if i > 0 {
+				args.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(&args, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(&args, sel, call, arg, i)
+			}
+		}
+	}
+	names := make([]string, argumentCount)
+	for i := range names {
+		names[i] = fmt.Sprintf("__go_method_args.%d", i)
+	}
+	if argumentCount > 0 {
+		out.WriteString("let __go_method_args = (")
+		out.WriteString(args.String())
+		out.WriteString(",); ")
+	}
+	return strings.Join(names, ", ")
+}
+
+func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr, sel *ast.SelectorExpr, call *ast.CallExpr, nilHelper string) bool {
 	if _, ok := sliceElemPtrFieldInfoForSelector(fieldSel); !ok {
 		return false
 	}
 	out.WriteString("{ let __recv_field = ")
 	TranspileExpressionContext(out, fieldSel, LValue)
-	out.WriteString(".clone()")
+	out.WriteString(".clone(); ")
+	arguments := writeMethodArgumentTemps(out, sel, call)
+	if nilHelper != "" {
+		out.WriteString("if __recv_field.is_nil() { ")
+		out.WriteString(nilHelper)
+		out.WriteString("(")
+		WriteWrappedNone(out)
+		if arguments != "" {
+			out.WriteString(", ")
+			out.WriteString(arguments)
+		}
+		out.WriteString(") } else { ")
+	}
 	needsMut := methodCallNeedsMutableReceiver(sel)
 	if needsMut {
-		out.WriteString("; let __result = __recv_field.with_mut(|__recv_value| __recv_value.")
+		out.WriteString("let __result = __recv_field.with_mut(|__recv_value| __recv_value.")
 	} else {
-		out.WriteString("; let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
+		out.WriteString("let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
 	}
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 
-	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
-	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
-	if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
-		for i, arg := range call.Args {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
-			} else if bareArgumentMethodCall {
-				writeBareMethodCallArgument(out, sel, arg, i)
-			} else {
-				writeRegularMethodCallArgument(out, sel, call, arg, i)
-			}
-		}
-	}
+	out.WriteString(arguments)
 	if needsMut {
-		out.WriteString(")); __result }")
+		out.WriteString(")); __result")
 	} else {
-		out.WriteString("); __result }")
+		out.WriteString("); __result")
 	}
+	if nilHelper != "" {
+		out.WriteString(" }")
+	}
+	out.WriteString(" }")
 	return true
 }
 
@@ -22174,6 +22218,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		closeReceiverBlock := false
 		receiverBlockSuffix := "; __result }"
 		forceMultilineMethodArgs := false
+		stagedMethodArguments := ""
 
 		// A named-integer constant receiver (current-package or
 		// source-transpiled stdlib) is emitted as a raw scalar, so calling a
@@ -22199,8 +22244,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		// A pointer method on (*p) operates on p's storage. Use the pointer
+		// dispatch below; a value receiver still requires the Go value copy.
+		receiver := sel.X
+		explicitPointerDeref := false
+		if deref, ok := unwrapParens(receiver).(*ast.StarExpr); ok {
+			if methodHasPointerReceiver(selectedMethodFuncFromTypeInfo(GetTypeInfo(), sel)) {
+				receiver = unwrapParens(deref.X)
+				explicitPointerDeref = true
+			}
+		}
 		// Check if the receiver is a simple identifier (local variable)
-		if ident, ok := sel.X.(*ast.Ident); ok {
+		if ident, ok := receiver.(*ast.Ident); ok {
 			if wrote, shouldClose := writePackageGlobalIdentMethodReceiver(out, ident, sel); wrote {
 				// Package-global pointer receiver handled above.
 				closeReceiverBlock = shouldClose
@@ -22301,6 +22356,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
 					needsMut := methodCallNeedsMutableReceiver(sel)
+					if explicitPointerDeref && len(call.Args) > 0 && typeInfo != nil && typeInfo.IsPointer(ident) {
+						out.WriteString("{ let __go_method_receiver = ")
+						out.WriteString(receiverName)
+						out.WriteString(".clone(); ")
+						stagedMethodArguments = writeMethodArgumentTemps(out, sel, call)
+						out.WriteString("let __go_method_result = ")
+						receiverName = "__go_method_receiver"
+					}
 					if NeedsConcurrentWrapper() && typeInfo != nil && typeInfo.IsPointer(ident) {
 						recvType := methodReceiverPointeeRustType(ident)
 						out.WriteString("{ let __recv = ")
@@ -22354,16 +22417,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".")
 				}
 			}
-		} else if receiverSel, ok := sel.X.(*ast.SelectorExpr); ok && isPackageVarSelector(receiverSel) {
+		} else if receiverSel, ok := receiver.(*ast.SelectorExpr); ok && isPackageVarSelector(receiverSel) {
 			wrote, shouldClose := writePackageGlobalSelectorMethodReceiver(out, receiverSel, sel)
 			if wrote {
 				closeReceiverBlock = shouldClose
 			}
-		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
+		} else if fieldSel, ok := receiver.(*ast.SelectorExpr); ok {
 			if writeElemPtrCallResultFieldMethodCall(out, fieldSel, sel, call) {
 				return
 			}
-			if writeGoPtrFieldMethodCall(out, fieldSel, sel, call) {
+			if writeGoPtrFieldMethodCall(out, fieldSel, sel, call, "") {
 				return
 			}
 			isBareSyncFieldMethodCall := false
@@ -22397,7 +22460,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".as_ref().unwrap()).")
 				}
 			}
-		} else if receiverCall, ok := sel.X.(*ast.CallExpr); ok {
+		} else if receiverCall, ok := receiver.(*ast.CallExpr); ok {
 			writeElemPtrCallResultReceiver := func(needsMut bool) {
 				multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
 				receiverBlockIndent := ""
@@ -22443,7 +22506,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString("; let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
 				}
 				closeReceiverBlock = true
-			} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
+			} else if methodReceiverExpressionNeedsUnwrap(receiver) {
 				needsMut := methodCallNeedsMutableReceiver(sel)
 				multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
 				receiverBlockIndent := ""
@@ -22465,7 +22528,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if multilineReceiverBlock {
 					receiverExprIndent = receiverBlockIndent + "    "
 				}
-				writeMethodReceiverTempExpression(out, sel.X, receiverExprIndent)
+				writeMethodReceiverTempExpression(out, receiver, receiverExprIndent)
 				restoreForceInnerClones()
 				if multilineReceiverBlock {
 					out.WriteString(";\n")
@@ -22484,10 +22547,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				closeReceiverBlock = true
 			} else {
-				TranspileExpression(out, sel.X)
+				TranspileExpression(out, receiver)
 				out.WriteString(".")
 			}
-		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
+		} else if methodReceiverExpressionNeedsUnwrap(receiver) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
 			multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
 			receiverBlockIndent := ""
@@ -22500,7 +22563,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("{ let __recv = ")
 			}
 			restoreForceInnerClones := func() {}
-			if _, ok := sel.X.(*ast.CallExpr); ok {
+			if _, ok := receiver.(*ast.CallExpr); ok {
 				prevForceInnerClones := forceInnerFuncLitCaptureClones
 				forceInnerFuncLitCaptureClones = true
 				restoreForceInnerClones = func() {
@@ -22511,7 +22574,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if multilineReceiverBlock {
 				receiverExprIndent = receiverBlockIndent + "    "
 			}
-			writeMethodReceiverTempExpression(out, sel.X, receiverExprIndent)
+			writeMethodReceiverTempExpression(out, receiver, receiverExprIndent)
 			restoreForceInnerClones()
 			if multilineReceiverBlock {
 				out.WriteString(";\n")
@@ -22529,7 +22592,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".as_ref().unwrap()).")
 			}
 			closeReceiverBlock = true
-		} else if methodReceiverExpressionShouldUseMultiline(sel.X) {
+		} else if methodReceiverExpressionShouldUseMultiline(receiver) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
 			receiverBlockIndent := currentLineIndent(out)
 			out.WriteString("{\n")
@@ -22539,7 +22602,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else {
 				out.WriteString("    let __recv = ")
 			}
-			writeMethodReceiverTempExpression(out, sel.X, receiverBlockIndent+"    ")
+			writeMethodReceiverTempExpression(out, receiver, receiverBlockIndent+"    ")
 			out.WriteString(";\n")
 			out.WriteString(receiverBlockIndent)
 			out.WriteString("    let __result = __recv.")
@@ -22548,7 +22611,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			closeReceiverBlock = true
 		} else {
 			// Other complex expression - just transpile it
-			TranspileExpression(out, sel.X)
+			TranspileExpression(out, receiver)
 			out.WriteString(".")
 		}
 
@@ -22558,14 +22621,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
 
 		out.WriteString(rustMethodSelectorName(sel))
-		multilineMethodArgs := forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call)
+		multilineMethodArgs := stagedMethodArguments == "" && (forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call))
 		methodArgIndent := ""
 		out.WriteString("(")
 		if multilineMethodArgs {
 			methodArgIndent = currentLineIndent(out)
 			out.WriteString("\n")
 		}
-		if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
+		if stagedMethodArguments != "" {
+			out.WriteString(stagedMethodArguments)
+		} else if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
 			for i, arg := range call.Args {
 				if multilineMethodArgs {
 					out.WriteString(methodArgIndent)
@@ -22591,6 +22656,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(")")
 		if closeReceiverBlock {
 			out.WriteString(receiverBlockSuffix)
+		}
+		if stagedMethodArguments != "" {
+			out.WriteString("; __go_method_result }")
 		}
 		return
 	}
