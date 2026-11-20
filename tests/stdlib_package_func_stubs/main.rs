@@ -159,7 +159,7 @@ fn main() {
         let _ = binary::MAX_VARINT_LEN64;
         let mut dir = Arc::new(Mutex::new(Some(ast::S_E_N_D)));
         { let new_val = ast_ChanDir((((ast::S_E_N_D).0 as i32) | ((ast::R_E_C_V).0 as i32)) as i32); *dir.lock().unwrap() = Some(new_val); };
-        let _ = { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let _ = &dir;
     }
     println!("{}", format!("{}", "ok".to_string()));
 }

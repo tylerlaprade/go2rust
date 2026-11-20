@@ -1,0 +1,8 @@
+[package]
+name = "asserted_collections_shared"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "asserted_collections_shared"
+path = "main.rs"

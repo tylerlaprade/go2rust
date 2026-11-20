@@ -476,6 +476,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			out.WriteString("format_map(&")
 			if ident, ok := arg.(*ast.Ident); ok {
 				writeCollectionFormatHandleIdent(out, ident)
+			} else if writeAnyHandleAssertionHandle(out, arg) {
+				// A map asserted out of an interface: the handle it holds.
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -541,7 +543,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString(")")
 			} else {
 				out.WriteString("format_slice(&")
-				TranspileExpression(out, arg)
+				if !writeAnyHandleAssertionHandle(out, arg) {
+					TranspileExpression(out, arg)
+				}
 				out.WriteString(")")
 			}
 			return
@@ -4762,6 +4766,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						writeBareAnyBox(out, expr)
 						return
 					}
+				}
+				// An interface value appended to a []interface{} is copied
+				// into a box of its own. A box cannot be cloned, so the
+				// generic clone below did not compile.
+				if isEmptyInterfaceType(elemType) && writeExistingAnyBoxClone(out, expr) {
+					return
 				}
 				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 					return
