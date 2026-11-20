@@ -2,7 +2,7 @@ use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::rc::{Rc};
 
-pub fn multiple_returns() -> (i32, Rc<RefCell<Option<String>>>, bool) {
+pub fn multiple_returns() -> (i64, Rc<RefCell<Option<String>>>, bool) {
     (42, Rc::new(RefCell::new(Some("hello".to_string()))), true)
 }
 
@@ -32,7 +32,7 @@ fn main() {
         // Ignoring in range loops
     println!("{}", format!("{}", "\n=== Ignoring in range loops ===".to_string()));
 
-    let mut slice = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
+    let mut slice = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64, 40i64, 50i64])));
 
         // Ignore index, use only value
     println!("{}", format!("{}", "Values only:".to_string()));
@@ -58,7 +58,7 @@ fn main() {
         // Ignoring in map iteration
     println!("{}", format!("{}", "\n=== Ignoring in map iteration ===".to_string()));
 
-    let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("Alice".to_string(), Rc::new(RefCell::new(Some(25)))), ("Bob".to_string(), Rc::new(RefCell::new(Some(30)))), ("Carol".to_string(), Rc::new(RefCell::new(Some(35))))]))));
+    let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("Alice".to_string(), Rc::new(RefCell::new(Some(25i64)))), ("Bob".to_string(), Rc::new(RefCell::new(Some(30i64)))), ("Carol".to_string(), Rc::new(RefCell::new(Some(35i64))))]))));
 
         // Ignore values, use only keys
     println!("{}", format!("{}", "Keys only:".to_string()));
@@ -74,7 +74,7 @@ fn main() {
 
         // Ignore keys, use only values
     println!("{}", format!("{}", "Values only:".to_string()));
-    let mut values = Rc::new(RefCell::new(Some(Vec::<i32>::with_capacity(((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
+    let mut values = Rc::new(RefCell::new(Some(Vec::<i64>::with_capacity(((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = values.clone(); let __append_value = (*age.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; values = new_val; };
     }
@@ -91,7 +91,7 @@ fn main() {
     let _ = "This string is assigned but not used".to_string();
 
         // Multiple assignments with blank identifier
-    let (mut a, _, mut c) = (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))));
+    let (mut a, _, mut c) = (Rc::new(RefCell::new(Some(1i64))), Rc::new(RefCell::new(Some(2i64))), Rc::new(RefCell::new(Some(3i64))));
     print!("a={}, c={} (middle value ignored)\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 
     let (_, mut ok) = named_blank_result();

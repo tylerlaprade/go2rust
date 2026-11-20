@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use std::rc::{Rc};
 
 fn main() {
-    let mut nums = Rc::new(RefCell::new(Some(vec![2, 3, 4])));
-    let mut sum = Rc::new(RefCell::new(Some(0)));
+    let mut nums = Rc::new(RefCell::new(Some(vec![2i64, 3i64, 4i64])));
+    let mut sum = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }

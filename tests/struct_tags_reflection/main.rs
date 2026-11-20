@@ -41,20 +41,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -730,11 +730,11 @@ impl GoReflectType {
         Rc::new(RefCell::new(Some(elem)))
     }
 
-    fn num_field(&self) -> i32 {
-        self.fields.borrow().as_ref().unwrap().len() as i32
+    fn num_field(&self) -> i64 {
+        self.fields.borrow().as_ref().unwrap().len() as i64
     }
 
-    fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
+    fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
     }
@@ -774,7 +774,7 @@ impl GoReflectValue {
         self.typ.borrow().as_ref().unwrap().kind()
     }
 
-    fn field(&self, index: i32) -> Rc<RefCell<Option<GoReflectValue>>> {
+    fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
@@ -869,7 +869,7 @@ impl reflect_Kind {
 #[derive(Debug, Clone)]
 pub struct User {
     // tags: `json:"id" db:"user_id"`
-    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub i_d: Rc<RefCell<Option<i64>>>,
     // tags: `json:"name,omitempty" db:"full_name"`
     pub name: Rc<RefCell<Option<String>>>,
     // tags: `json:"email" db:"email_address" validate:"email"`
@@ -930,7 +930,7 @@ fn main() {
     let mut u = Rc::new(RefCell::new(Some(User { i_d: Rc::new(RefCell::new(Some(1))), name: Rc::new(RefCell::new(Some("Alice".to_string()))), email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))), ..Default::default() })));
     let mut t = Rc::new(RefCell::new(Some(GoReflectType { name: Rc::new(RefCell::new(Some("main.User".to_string()))), kind: Rc::new(RefCell::new(Some(reflect_Kind(25)))), elem: Rc::new(RefCell::new(None::<Box<GoReflectType>>)), fields: Rc::new(RefCell::new(Some(vec![GoReflectField { name: Rc::new(RefCell::new(Some("ID".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("json:\"id\" db:\"user_id\"".to_string()))) }))) }, GoReflectField { name: Rc::new(RefCell::new(Some("Name".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("json:\"name,omitempty\" db:\"full_name\"".to_string()))) }))) }, GoReflectField { name: Rc::new(RefCell::new(Some("Email".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("json:\"email\" db:\"email_address\" validate:\"email\"".to_string()))) }))) }, GoReflectField { name: Rc::new(RefCell::new(Some("IsActive".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("json:\"is_active\" db:\"active\"".to_string()))) }))) }, GoReflectField { name: Rc::new(RefCell::new(Some("internal".to_string()))), tag: Rc::new(RefCell::new(Some(GoReflectStructTag { raw: Rc::new(RefCell::new(Some("".to_string()))) }))) }]))) })));
 
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < (*t.borrow().as_ref().unwrap()).num_field() {
         let mut field = (*t.borrow().as_ref().unwrap()).field(Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         print!("{}", go_sprintf(&"%s: json=%q db=%q\n".to_string(), &[Box::new({ let __selector_holder = (*field.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any>, Box::new({ let __v = (*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).get(Rc::new(RefCell::new(Some("json".to_string())))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = (*(*field.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap()).get(Rc::new(RefCell::new(Some("db".to_string())))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));

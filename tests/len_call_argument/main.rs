@@ -191,7 +191,7 @@ impl std::fmt::Display for Encoder {
 
 
 impl Encoder {
-    pub fn len(&self, x: Arc<Mutex<Option<i32>>>) {
+    pub fn len(&self, x: Arc<Mutex<Option<i64>>>) {
         println!("{}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }
 }
@@ -205,5 +205,5 @@ fn main() {
 
     let mut values = Arc::new(Mutex::new(Some(vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()])));
     let mut e: Arc<Mutex<Option<Encoder>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*e.lock().unwrap().as_ref().unwrap()).len(Arc::new(Mutex::new(Some((*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))));
+    (*e.lock().unwrap().as_ref().unwrap()).len(Arc::new(Mutex::new(Some((*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64))));
 }

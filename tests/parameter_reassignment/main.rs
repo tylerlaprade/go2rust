@@ -170,14 +170,14 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn replace(mut ch: GoChannel<i32>) -> GoChannel<i32> {
-    ch = GoChannel::<i32>::new_buffered(1 as usize);
+pub fn replace(mut ch: GoChannel<i64>) -> GoChannel<i64> {
+    ch = GoChannel::<i64>::new_buffered(1 as usize);
     ch.send(7);
     ch.clone()
 }
 
 fn main() {
-    let mut ch = GoChannel::<i32>::new_buffered(1 as usize);
+    let mut ch = GoChannel::<i64>::new_buffered(1 as usize);
     let mut out = replace(ch.clone());
     println!("{}", format!("{}", out.recv().unwrap_or_default()));
 }

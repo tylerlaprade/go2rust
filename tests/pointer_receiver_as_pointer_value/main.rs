@@ -5,7 +5,7 @@ use std::rc::{Rc};
 #[derive(Debug, Clone)]
 pub struct node {
     pub next: Rc<RefCell<Option<node>>>,
-    pub v: Rc<RefCell<Option<i32>>>,
+    pub v: Rc<RefCell<Option<i64>>>,
 }
 
 impl node {
@@ -41,9 +41,9 @@ impl std::fmt::Display for node {
 
 
 impl node {
-    pub fn walk(&self) -> i32 {
+    pub fn walk(&self) -> i64 {
         let mut y = Rc::new(RefCell::new(Some(self.clone())));
-        let mut sum = Rc::new(RefCell::new(Some(0)));
+        let mut sum = Rc::new(RefCell::new(Some(0i64)));
         while { let __nil_result = (*y.borrow()).is_some(); __nil_result } {
         { let __rhs = (*(*y.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = (*y.borrow().as_ref().unwrap()).next.clone(); y = new_val; };

@@ -46,7 +46,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct scanner {
-    pub offset: Rc<RefCell<Option<i32>>>,
+    pub offset: Rc<RefCell<Option<i64>>>,
     pub data: Rc<RefCell<Option<Vec<u8>>>>,
 }
 
@@ -86,15 +86,15 @@ impl scanner {
     pub fn advance(&mut self) {
         for (i, b) in { let __seq_holder = self.data.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (*self.offset.clone().borrow().as_ref().unwrap()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().copied().enumerate() {
         if b == (' ' as u8) {
-        { let __target = self.offset.clone(); let __rhs = (i as i32); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.offset.clone(); let __rhs = (i as i64); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         break
     }
     }
     }
 }
 
-pub fn print_indices(n: Rc<RefCell<Option<i32>>>) {
-    let mut a: Rc<RefCell<Option<[i32; 4]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 4, _>(|_| 0))));
+pub fn print_indices(n: Rc<RefCell<Option<i64>>>) {
+    let mut a: Rc<RefCell<Option<[i64; 4]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 4, _>(|_| 0))));
     print!("{}:", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v });
     for i in 0..({ let __seq_holder = a.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ((*n.borrow().as_ref().unwrap())) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.len()) {
         print!(" {}", i);

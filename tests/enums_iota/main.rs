@@ -3,14 +3,14 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub const STATE_IDLE: i32 = 0;
-pub const STATE_CONNECTED: i32 = 1;
-pub const STATE_ERROR: i32 = 2;
-pub const STATE_RETRYING: i32 = 3;
+pub const STATE_IDLE: i64 = 0;
+pub const STATE_CONNECTED: i64 = 1;
+pub const STATE_ERROR: i64 = 2;
+pub const STATE_RETRYING: i64 = 3;
 
 
 #[derive(Debug, Default)]
-pub struct ServerState(pub Rc<RefCell<Option<i32>>>);
+pub struct ServerState(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for ServerState {
     fn clone(&self) -> Self {
@@ -33,8 +33,8 @@ impl PartialEq for ServerState {
     }
 }
 
-impl PartialEq<i32> for ServerState {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for ServerState {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -47,19 +47,19 @@ impl PartialOrd for ServerState {
     }
 }
 
-impl PartialOrd<i32> for ServerState {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for ServerState {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<ServerState> for i32 {
+impl PartialEq<ServerState> for i64 {
     fn eq(&self, other: &ServerState) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<ServerState> for i32 {
+impl PartialOrd<ServerState> for i64 {
     fn partial_cmp(&self, other: &ServerState) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -72,14 +72,14 @@ impl std::ops::Add for ServerState {
     }
 }
 
-impl std::ops::Add<i32> for ServerState {
+impl std::ops::Add<i64> for ServerState {
     type Output = ServerState;
-    fn add(self, other: i32) -> ServerState {
+    fn add(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<ServerState> for i32 {
+impl std::ops::Add<ServerState> for i64 {
     type Output = ServerState;
     fn add(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -93,14 +93,14 @@ impl std::ops::Sub for ServerState {
     }
 }
 
-impl std::ops::Sub<i32> for ServerState {
+impl std::ops::Sub<i64> for ServerState {
     type Output = ServerState;
-    fn sub(self, other: i32) -> ServerState {
+    fn sub(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<ServerState> for i32 {
+impl std::ops::Sub<ServerState> for i64 {
     type Output = ServerState;
     fn sub(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -114,14 +114,14 @@ impl std::ops::Mul for ServerState {
     }
 }
 
-impl std::ops::Mul<i32> for ServerState {
+impl std::ops::Mul<i64> for ServerState {
     type Output = ServerState;
-    fn mul(self, other: i32) -> ServerState {
+    fn mul(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<ServerState> for i32 {
+impl std::ops::Mul<ServerState> for i64 {
     type Output = ServerState;
     fn mul(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -135,14 +135,14 @@ impl std::ops::Div for ServerState {
     }
 }
 
-impl std::ops::Div<i32> for ServerState {
+impl std::ops::Div<i64> for ServerState {
     type Output = ServerState;
-    fn div(self, other: i32) -> ServerState {
+    fn div(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<ServerState> for i32 {
+impl std::ops::Div<ServerState> for i64 {
     type Output = ServerState;
     fn div(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -163,14 +163,14 @@ impl std::ops::Rem for ServerState {
     }
 }
 
-impl std::ops::Rem<i32> for ServerState {
+impl std::ops::Rem<i64> for ServerState {
     type Output = ServerState;
-    fn rem(self, other: i32) -> ServerState {
+    fn rem(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<ServerState> for i32 {
+impl std::ops::Rem<ServerState> for i64 {
     type Output = ServerState;
     fn rem(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -184,14 +184,14 @@ impl std::ops::BitAnd for ServerState {
     }
 }
 
-impl std::ops::BitAnd<i32> for ServerState {
+impl std::ops::BitAnd<i64> for ServerState {
     type Output = ServerState;
-    fn bitand(self, other: i32) -> ServerState {
+    fn bitand(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<ServerState> for i32 {
+impl std::ops::BitAnd<ServerState> for i64 {
     type Output = ServerState;
     fn bitand(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -205,14 +205,14 @@ impl std::ops::BitOr for ServerState {
     }
 }
 
-impl std::ops::BitOr<i32> for ServerState {
+impl std::ops::BitOr<i64> for ServerState {
     type Output = ServerState;
-    fn bitor(self, other: i32) -> ServerState {
+    fn bitor(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<ServerState> for i32 {
+impl std::ops::BitOr<ServerState> for i64 {
     type Output = ServerState;
     fn bitor(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -226,14 +226,14 @@ impl std::ops::BitXor for ServerState {
     }
 }
 
-impl std::ops::BitXor<i32> for ServerState {
+impl std::ops::BitXor<i64> for ServerState {
     type Output = ServerState;
-    fn bitxor(self, other: i32) -> ServerState {
+    fn bitxor(self, other: i64) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<ServerState> for i32 {
+impl std::ops::BitXor<ServerState> for i64 {
     type Output = ServerState;
     fn bitxor(self, other: ServerState) -> ServerState {
         ServerState(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -424,10 +424,10 @@ fn __go_init_globals() {
     *stateName.borrow_mut() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<ServerState, Rc<RefCell<Option<String>>>>::new();
-        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))), Rc::new(RefCell::new(Some("idle".to_string()))));
-        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))), Rc::new(RefCell::new(Some("connected".to_string()))));
-        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))), Rc::new(RefCell::new(Some("error".to_string()))));
-        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i32)))), Rc::new(RefCell::new(Some("retrying".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i64)))), Rc::new(RefCell::new(Some("idle".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i64)))), Rc::new(RefCell::new(Some("connected".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i64)))), Rc::new(RefCell::new(Some("error".to_string()))));
+        __go_map.insert(ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i64)))), Rc::new(RefCell::new(Some("retrying".to_string()))));
         *stateName.borrow_mut() = Some(__go_map);
     }
 }
@@ -441,7 +441,7 @@ impl ServerState {
 
 fn main() {
     __go_init_all();
-    let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))))));
+    let mut ns = transition(Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i64))))))));
     println!("{}", format!("{}", { let __v = (*ns.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut ns2 = transition(Rc::new(RefCell::new(Some({ let __arg_holder = ns.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -450,12 +450,12 @@ fn main() {
 
 pub fn transition(s: Rc<RefCell<Option<ServerState>>>) -> Rc<RefCell<Option<ServerState>>> {
     { let _switch_val = (*s.borrow().as_ref().unwrap()).clone();
-    if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32))))) {
-            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32)))))));
-        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i32))))) || _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i32))))) {
-            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i32)))))));
-        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32))))) {
-            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i32)))))));
+    if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i64))))) {
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i64)))))));
+        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_CONNECTED as i64))))) || _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_RETRYING as i64))))) {
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_IDLE as i64)))))));
+        } else if _switch_val == (ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i64))))) {
+            return Rc::new(RefCell::new(Some(ServerState(Rc::new(RefCell::new(Some(STATE_ERROR as i64)))))));
         } else {
             panic!("unknown state: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v });
         }

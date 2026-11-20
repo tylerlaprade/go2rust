@@ -176,8 +176,8 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
-    pub y: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -254,7 +254,7 @@ pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool;
-    fn area(&self) -> i32;
+    fn area(&self) -> i64;
 }
 
 impl Clone for Box<dyn Shape + Send + Sync> {
@@ -265,8 +265,8 @@ impl Clone for Box<dyn Shape + Send + Sync> {
 
 #[derive(Debug, Clone)]
 pub struct Rect {
-    pub w: Arc<Mutex<Option<i32>>>,
-    pub h: Arc<Mutex<Option<i32>>>,
+    pub w: Arc<Mutex<Option<i64>>>,
+    pub h: Arc<Mutex<Option<i64>>>,
 }
 
 impl Rect {
@@ -302,13 +302,13 @@ impl std::fmt::Display for Rect {
 
 
 impl Rect {
-    pub fn area(&self) -> i32 {
+    pub fn area(&self) -> i64 {
         return { let __tmp_x = (*self.w.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.h.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
     }
 }
 
 impl Shape for Rect {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         Rect::area(self)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -337,7 +337,7 @@ impl std::fmt::Display for RectPtr {
 }
 
 impl Shape for RectPtr {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Rect::area(__recv)
@@ -433,7 +433,7 @@ fn main() {
         for _i in 0.._n {
             (*copied.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();
         }
-        Arc::new(Mutex::new(Some(_n as i32)))
+        Arc::new(Mutex::new(Some(_n as i64)))
     };
     { let new_val = 500; *{ let __seq = { let __seq_holder = copied.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.y.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice copied with copy".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = copied.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));

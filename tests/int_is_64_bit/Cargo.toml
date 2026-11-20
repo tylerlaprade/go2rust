@@ -1,0 +1,11 @@
+[package]
+name = "int_is_64_bit"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "int_is_64_bit"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

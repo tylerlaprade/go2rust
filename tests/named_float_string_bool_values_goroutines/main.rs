@@ -283,20 +283,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -1293,7 +1293,7 @@ impl PartialEq for Color {
 
 impl PartialOrd for Color {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1370,7 +1370,7 @@ impl PartialEq for Status {
 
 impl PartialOrd for Status {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1604,7 +1604,7 @@ impl Celsius {
     }
 
     pub fn truncated(&self) -> Arc<Mutex<Option<Celsius>>> {
-        Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i32 as f64 as f64)))))))
+        Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64 as f64 as f64)))))))
     }
 }
 
@@ -1621,11 +1621,11 @@ impl Status {
 }
 
 pub fn c_to_f(c: Arc<Mutex<Option<Celsius>>>) -> Arc<Mutex<Option<Fahrenheit>>> {
-    Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some(((({ let __named_float = *{ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 9.0) / 5.0) + 32.0) as f64)))))))
+    Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some((((({ let __named_float = *{ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 9.0) / 5.0) + 32.0)) as f64)))))))
 }
 
 pub fn f_to_c(f: Arc<Mutex<Option<Fahrenheit>>>) -> Arc<Mutex<Option<Celsius>>> {
-    Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some((((({ let __named_float = *{ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } - 32.0)) * 5.0) / 9.0) as f64)))))))
+    Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(((((({ let __named_float = *{ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } - 32.0)) * 5.0) / 9.0)) as f64)))))))
 }
 
 pub fn zero() -> Arc<Mutex<Option<Celsius>>> {
@@ -1672,16 +1672,16 @@ fn main() {
 
     let mut boiling = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(100.0 as f64)))))));
     println!("{} {} {}", format!("{}", { let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Arc::new(Mutex::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*f_to_c(Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some(212.0)))))))).lock().unwrap().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).sqrt()))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3; __tmp_x / __tmp_y }), format!("{}", Celsius(Arc::new(Mutex::new(Some(-{ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))), format!("{}", Celsius(Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))));
+    println!("{} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).sqrt()))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3; __tmp_x / __tmp_y }), format!("{}", Celsius(Arc::new(Mutex::new(Some(-{ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))), format!("{}", Celsius(Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))));
     let mut temps = Arc::new(Mutex::new(Some(vec![Celsius(Arc::new(Mutex::new(Some(20.5)))), Celsius(Arc::new(Mutex::new(Some(18.0)))), Celsius(Arc::new(Mutex::new(Some(25.25))))])));
     println!("{}", format!("{}", (*average(temps.clone()).lock().unwrap().as_ref().unwrap())));
-    let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>| -> bool {
+    let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = { let __seq = { let __seq_holder = temps_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
             let __tmp_y = { let __seq = { let __seq_holder = temps_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
             __tmp_x < __tmp_y
         };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i32))), Arc::new(Mutex::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&temps)));
     let mut hottest = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
     for t in {
@@ -1715,13 +1715,13 @@ fn main() {
     { let __target = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); let __rhs = 0.5; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     println!("{} {}", format!("{}", (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __tmp_x = { let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = 20.0; __tmp_x > __tmp_y }));
     let mut rs = Arc::new(Mutex::new(Some(vec![Reading { place: Arc::new(Mutex::new(Some("a".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(3.0))))))), ..Default::default() }, Reading { place: Arc::new(Mutex::new(Some("b".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1.0))))))), ..Default::default() }, Reading { place: Arc::new(Mutex::new(Some("c".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(2.0))))))), ..Default::default() }])));
-    let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>| -> bool {
+    let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = { let __selector_holder = { let __seq = { let __seq_holder = rs_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.temp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
             let __tmp_y = { let __selector_holder = { let __seq = { let __seq_holder = rs_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.temp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
             __tmp_x < __tmp_y
         };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i32))), Arc::new(Mutex::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     { let __range_holder = rs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
         print!("{}{}{}", format!("{}", (*x.place.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*x.temp.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
@@ -1737,13 +1737,13 @@ fn main() {
 
     let mut col = Arc::new(Mutex::new(Some(Color(Arc::new(Mutex::new(Some(RED.to_string())))))));
     println!("{} {} {} {} {}", format!("{}", { let __v = (*col.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.lock().unwrap().as_ref().unwrap()).upper().lock().unwrap().as_ref().unwrap())), format!("{}", ((*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()), format!("{}", { let __tmp_x = (*col.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Color(Arc::new(Mutex::new(Some(RED.to_string())))); __tmp_x == __tmp_y }), format!("{}", { let __tmp_x = (*col.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Color(Arc::new(Mutex::new(Some(GREEN.to_string())))); __tmp_x != __tmp_y }));
-    let mut colors = Arc::new(Mutex::new(Some(BTreeMap::<Color, Arc<Mutex<Option<i32>>>>::from([(Color(Arc::new(Mutex::new(Some(RED.to_string())))), Arc::new(Mutex::new(Some(1)))), (Color(Arc::new(Mutex::new(Some(GREEN.to_string())))), Arc::new(Mutex::new(Some(2))))]))));
+    let mut colors = Arc::new(Mutex::new(Some(BTreeMap::<Color, Arc<Mutex<Option<i64>>>>::from([(Color(Arc::new(Mutex::new(Some(RED.to_string())))), Arc::new(Mutex::new(Some(1i64)))), (Color(Arc::new(Mutex::new(Some(GREEN.to_string())))), Arc::new(Mutex::new(Some(2i64))))]))));
     println!("{} {}", format!("{}", { let __map = { let __map_holder = colors.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&Color(Arc::new(Mutex::new(Some(RED.to_string())))))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map = { let __map_holder = colors.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&Color(Arc::new(Mutex::new(Some("green".to_string())))))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut name = Arc::new(Mutex::new(Some(Color(Arc::new(Mutex::new(Some("blue".to_string())))))));
     { let __rhs = "ish"; let mut guard = name.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     println!("{} {} {} {} {}", format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __s = &((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }), format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap())), format!("{}", ((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()));
     for (i, ch) in ((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).char_indices() {
-        if { let __tmp_x = i as i32; let __tmp_y = 2; __tmp_x == __tmp_y } {
+        if { let __tmp_x = i as i64; let __tmp_y = 2; __tmp_x == __tmp_y } {
         println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32(((ch as i32)) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())));
     }
     }
@@ -1751,13 +1751,13 @@ fn main() {
     let mut s = Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))))));
     println!("{} {} {} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*label(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*label(Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some(INACTIVE.to_string())))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*label(Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some("other".to_string())))))))).lock().unwrap().as_ref().unwrap())));
     let mut statuses = Arc::new(Mutex::new(Some(vec![Status(Arc::new(Mutex::new(Some(INACTIVE.to_string())))), Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))), Status(Arc::new(Mutex::new(Some("pending".to_string()))))])));
-    let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>| -> bool {
+    let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = { let __seq = { let __seq_holder = statuses_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
             let __tmp_y = { let __seq = { let __seq_holder = statuses_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
             __tmp_x < __tmp_y
         };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i32))), Arc::new(Mutex::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&statuses)));
     let mut parts = Arc::new(Mutex::new(Some(Vec::<String>::new())));
     { let __range_holder = statuses.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for st in __range_values.iter().cloned() {
@@ -1804,7 +1804,7 @@ fn main() {
             println!("{} {}", format!("{}", { let __tmp_x = (*st.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))); __tmp_x == __tmp_y }), format!("{}", ((*(*st.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()));;
         }
     }
-    let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<Status, Arc<Mutex<Option<i32>>>>::from([]))));
+    let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<Status, Arc<Mutex<Option<i64>>>>::from([]))));
     { let __map_holder = counts.clone(); let __key = Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
     { let __map_holder = counts.clone(); let __key = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __rhs = 2; let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
     println!("{} {}", format!("{}", { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", format_map(&counts)));

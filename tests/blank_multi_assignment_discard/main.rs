@@ -17,7 +17,7 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static n: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static n: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -25,7 +25,7 @@ fn __go_init_globals() {
 }
 
 
-pub fn next() -> i32 {
+pub fn next() -> i64 {
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     (*n.borrow().as_ref().unwrap())
 }

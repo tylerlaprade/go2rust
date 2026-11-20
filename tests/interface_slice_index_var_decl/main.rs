@@ -108,6 +108,6 @@ fn main() {
     let mut specs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Concrete { n: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(Concrete { n: Rc::new(RefCell::new(Some("omega".to_string()))), ..Default::default() }) as Box<dyn Spec>)))])));
 
         // short var decl from indexed wrapped interface slice element.
-    let mut lastSpec = (*specs.borrow().as_ref().unwrap())[(((*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize].clone();
+    let mut lastSpec = (*specs.borrow().as_ref().unwrap())[(((*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone();
     println!("{}", format!("{}", (*(*lastSpec.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())));
 }

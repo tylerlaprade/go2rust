@@ -261,12 +261,12 @@ pub fn deferred() {
     let __go_previous_panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let mut x = Arc::new(Mutex::new(Some(1)));
+        let mut x = Arc::new(Mutex::new(Some(1i64)));
         let x_defer_captured = Arc::new(Mutex::new((*x.lock().unwrap()).clone())); __defer_stack.push(Box::new(move || {
         println!("{} {}", format!("{}", "deferred x:".to_string()), format!("{}", { let __v = (*x_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }));
         { let new_val = 2; *x.lock().unwrap() = Some(new_val); };
-        let mut i = Arc::new(Mutex::new(Some(3)));
+        let mut i = Arc::new(Mutex::new(Some(3i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         let i_defer_captured = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); __defer_stack.push(Box::new(move || {
         print!("{}{}", format!("{}", { let __v = (*i_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " ".to_string()));
@@ -318,19 +318,19 @@ fn main() {
     });
     started.recv().unwrap_or_default();
 
-    let mut funcs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i32 + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut funcs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
-        let i_closure_clone = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); { let new_val = { let __append_target = funcs.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(move || -> i32 {
+        let i_closure_clone = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); { let new_val = { let __append_target = funcs.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
         return { let __bin_i = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i };
-    }) as Box<dyn FnMut() -> i32 + Send + Sync>))); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; funcs = new_val; };
+    }) as Box<dyn FnMut() -> i64 + Send + Sync>))); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; funcs = new_val; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     { let __range_holder = funcs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter().cloned() {
         print!("{}{}", format!("{}", {
-            let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
                 let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
@@ -341,7 +341,7 @@ fn main() {
     println!();
 
     let mut printers: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-    let (mut i, mut s) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some("a".to_string()))));
+    let (mut i, mut s) = (Arc::new(Mutex::new(Some(0i64))), Arc::new(Mutex::new(Some("a".to_string()))));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         let i_closure_clone = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); let s_closure_clone = Arc::new(Mutex::new((*s.lock().unwrap()).clone())); { let new_val = { let __append_target = printers.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(move || {
         print!("{}{}{}", format!("{}", { let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*s_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " ".to_string()));
@@ -367,8 +367,8 @@ fn main() {
     } }
     println!();
 
-    let mut total = Arc::new(Mutex::new(Some(0)));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut total = Arc::new(Mutex::new(Some(0i64)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
         let i_closure_clone = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); let mut total_closure_clone = total.clone(); let mut add = Arc::new(Mutex::new(Some(Box::new(move || {
         { let __rhs = (*i_closure_clone.lock().unwrap().as_ref().unwrap()); let mut guard = total_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -387,8 +387,8 @@ fn main() {
     }
     println!("{} {}", format!("{}", "total:".to_string()), format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut count = Arc::new(Mutex::new(Some(0)));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut count = Arc::new(Mutex::new(Some(0i64)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
         let mut i_closure_clone = i.clone(); let mut step = Arc::new(Mutex::new(Some(Box::new(move || {
         { let __rhs = 3; let mut guard = i_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

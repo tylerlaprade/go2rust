@@ -171,7 +171,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn worker(id: Arc<Mutex<Option<i32>>>, jobs: GoChannel<i32>, results: GoChannel<i32>) {
+pub fn worker(id: Arc<Mutex<Option<i64>>>, jobs: GoChannel<i64>, results: GoChannel<i64>) {
     let _ = &id;
     for j in jobs.clone() {
         results.send({ let __tmp_x = j; let __tmp_y = 2; __tmp_x * __tmp_y });
@@ -179,12 +179,12 @@ pub fn worker(id: Arc<Mutex<Option<i32>>>, jobs: GoChannel<i32>, results: GoChan
 }
 
 fn main() {
-    const numJobs: i32 = 5;
+    const numJobs: i64 = 5;
 
-    let mut jobs = GoChannel::<i32>::new_buffered((numJobs) as usize);
-    let mut results = GoChannel::<i32>::new_buffered((numJobs) as usize);
+    let mut jobs = GoChannel::<i64>::new_buffered((numJobs) as usize);
+    let mut results = GoChannel::<i64>::new_buffered((numJobs) as usize);
 
-    let mut w = Arc::new(Mutex::new(Some(1)));
+    let mut w = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         let jobs_thread = jobs.clone(); let results_thread = results.clone(); let w_thread = Arc::new(Mutex::new(Some((*w.lock().unwrap().as_ref().unwrap()).clone()))); std::thread::spawn(move || {
         worker(Arc::new(Mutex::new(Some({ let __arg_holder = w_thread.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), jobs_thread.clone(), results_thread.clone());
@@ -192,15 +192,15 @@ fn main() {
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut j = Arc::new(Mutex::new(Some(1)));
+    let mut j = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         jobs.send((*j.lock().unwrap().as_ref().unwrap()));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     jobs.close();
 
-    let mut total = Arc::new(Mutex::new(Some(0)));
-    let mut a = Arc::new(Mutex::new(Some(1)));
+    let mut total = Arc::new(Mutex::new(Some(0i64)));
+    let mut a = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         { let __rhs = results.recv().unwrap_or_default(); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let mut guard = a.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -173,7 +173,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct Holder {
-    pub ch: GoChannel<i32>,
+    pub ch: GoChannel<i64>,
 }
 
 impl Holder {
@@ -198,7 +198,7 @@ impl Holder {
     }
 
     pub fn fill(&mut self) {
-        self.ch = GoChannel::<i32>::new_buffered(2 as usize);
+        self.ch = GoChannel::<i64>::new_buffered(2 as usize);
         self.ch.send(1);
         println!("{} {} {}", format!("{}", !self.ch.is_nil()), format!("{}", self.ch.len()), format!("{}", self.ch.capacity()));
         println!("{}", format!("{}", self.ch.recv().unwrap_or_default()));
@@ -212,7 +212,7 @@ fn main() {
     println!("{}", format!("{}", (*h.lock().unwrap().as_ref().unwrap()).ready()));
     (*h.lock().unwrap().as_mut().unwrap()).fill();
 
-    let mut h2 = Arc::new(Mutex::new(Some(Holder { ch: GoChannel::<i32>::new_buffered(1 as usize), ..Default::default() })));
+    let mut h2 = Arc::new(Mutex::new(Some(Holder { ch: GoChannel::<i64>::new_buffered(1 as usize), ..Default::default() })));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ready()));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len()));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity()));

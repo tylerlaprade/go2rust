@@ -15,7 +15,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         drop(_ts_guard);
         { let new_val = "int".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
@@ -27,6 +27,6 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
 }
 
 fn main() {
-    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

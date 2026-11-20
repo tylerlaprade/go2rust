@@ -221,17 +221,17 @@ fn __go_init_globals() {
 }
 
 
-pub fn target(label: Arc<Mutex<Option<String>>>, values: Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Vec<i32>>>> {
+pub fn target(label: Arc<Mutex<Option<String>>>, values: Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
     { (*trace.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", { let __v = (*label.lock().unwrap().as_ref().unwrap()).clone(); __v }, "|".to_string())); };
     return values.clone();
 }
 
-pub fn index(label: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<i32>>>) -> i32 {
+pub fn index(label: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<i64>>>) -> i64 {
     { (*trace.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", { let __v = (*label.lock().unwrap().as_ref().unwrap()).clone(); __v }, "|".to_string())); };
     return { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
-pub fn result(label: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<i32>>>) -> i32 {
+pub fn result(label: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<i64>>>) -> i64 {
     { (*trace.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", { let __v = (*label.lock().unwrap().as_ref().unwrap()).clone(); __v }, "|".to_string())); };
     return { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
@@ -244,10 +244,10 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut left = Arc::new(Mutex::new(Some(vec![0, 0])));
-    let mut right = Arc::new(Mutex::new(Some(vec![0, 0])));
-    let mut __go_lhs_sequence_0 = Arc::new(Mutex::new(Some(vec![10])));
-    let mut __go_lhs_index_0 = Arc::new(Mutex::new(Some(0)));
+    let mut left = Arc::new(Mutex::new(Some(vec![0i64, 0i64])));
+    let mut right = Arc::new(Mutex::new(Some(vec![0i64, 0i64])));
+    let mut __go_lhs_sequence_0 = Arc::new(Mutex::new(Some(vec![10i64])));
+    let mut __go_lhs_index_0 = Arc::new(Mutex::new(Some(0i64)));
     {
         let __go_lhs_sequence_0_ = target(Arc::new(Mutex::new(Some("left sequence".to_string()))), left.clone()).clone();
         let __go_lhs_index_0_ = (index(Arc::new(Mutex::new(Some("left index".to_string()))), Arc::new(Mutex::new(Some(0))))) as usize;

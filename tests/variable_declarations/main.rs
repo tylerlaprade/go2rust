@@ -3,12 +3,12 @@ use std::rc::{Rc};
 
 fn main() {
         // Basic variable declarations that currently fail
-    let mut x: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(42)));
+    let mut x: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(42)));
     let mut y: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some("hello".to_string())));
     let mut z: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(3.14)));
 
         // Short variable declarations
-    let mut a = Rc::new(RefCell::new(Some(100)));
+    let mut a = Rc::new(RefCell::new(Some(100i64)));
     let mut b = Rc::new(RefCell::new(Some("world".to_string())));
     let mut c = Rc::new(RefCell::new(Some(2.71)));
 

@@ -25,7 +25,7 @@ pub struct User {
     // tags: `json:"name"`
     pub name: Rc<RefCell<Option<String>>>,
     // tags: `json:"age"`
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
 }
 
 impl User {

@@ -46,8 +46,8 @@ where
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -177,7 +177,7 @@ impl std::fmt::Display for Node {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub name: Rc<RefCell<Option<String>>>,
-    pub port: Rc<RefCell<Option<i32>>>,
+    pub port: Rc<RefCell<Option<i64>>>,
 }
 
 impl Config {

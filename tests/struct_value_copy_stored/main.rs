@@ -6,8 +6,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -84,7 +84,7 @@ pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
-    fn area(&self) -> i32;
+    fn area(&self) -> i64;
 }
 
 impl Clone for Box<dyn Shape> {
@@ -95,8 +95,8 @@ impl Clone for Box<dyn Shape> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rect {
-    pub w: Rc<RefCell<Option<i32>>>,
-    pub h: Rc<RefCell<Option<i32>>>,
+    pub w: Rc<RefCell<Option<i64>>>,
+    pub h: Rc<RefCell<Option<i64>>>,
 }
 
 impl Rect {
@@ -132,13 +132,13 @@ impl std::fmt::Display for Rect {
 
 
 impl Rect {
-    pub fn area(&self) -> i32 {
+    pub fn area(&self) -> i64 {
         return (*self.w.borrow().as_ref().unwrap()) * (*self.h.borrow().as_ref().unwrap());
     }
 }
 
 impl Shape for Rect {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         Rect::area(self)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
@@ -167,7 +167,7 @@ impl std::fmt::Display for RectPtr {
 }
 
 impl Shape for RectPtr {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Rect::area(__recv)
@@ -256,7 +256,7 @@ fn main() {
         for _i in 0.._n {
             (*copied.borrow_mut().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();
         }
-        Rc::new(RefCell::new(Some(_n as i32)))
+        Rc::new(RefCell::new(Some(_n as i64)))
     };
     { let new_val = 500; *(*copied.borrow().as_ref().unwrap())[(1) as usize].clone().y.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice copied with copy".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*list.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*copied.borrow().as_ref().unwrap())[(1) as usize].clone()));

@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 
 struct WaitGroup {
-    count: std::sync::Arc<(std::sync::Mutex<i32>, std::sync::Condvar)>,
+    count: std::sync::Arc<(std::sync::Mutex<i64>, std::sync::Condvar)>,
 }
 
 impl WaitGroup {
@@ -14,7 +14,7 @@ impl WaitGroup {
         }
     }
 
-    fn add(&self, n: i32) {
+    fn add(&self, n: i64) {
         let (lock, _) = &*self.count;
         let mut count = lock.lock().unwrap();
         *count += n;
@@ -98,7 +98,7 @@ impl Group {
     }
 }
 
-pub fn worker(id: Rc<RefCell<Option<i32>>>, wg: WaitGroup) {
+pub fn worker(id: Rc<RefCell<Option<i64>>>, wg: WaitGroup) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let wg_defer_captured = wg.clone(); __defer_stack.push(Box::new(move || {
@@ -115,7 +115,7 @@ pub fn worker(id: Rc<RefCell<Option<i32>>>, wg: WaitGroup) {
 
 fn main() {
     let mut wg = WaitGroup::new();
-    let mut i = Rc::new(RefCell::new(Some(1)));
+    let mut i = Rc::new(RefCell::new(Some(1i64)));
     while (*i.borrow().as_ref().unwrap()) <= 3 {
         wg.add(1);
         worker(Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), wg.clone());

@@ -9,7 +9,7 @@ use std::rc::{Rc};
 /// so both receive the required copy-trait implementations.
 #[derive(Debug, Clone)]
 pub struct P {
-    pub x: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
 }
 
 impl P {
@@ -40,7 +40,7 @@ impl std::fmt::Display for P {
 
 
 #[derive(Debug, Default)]
-pub struct Number(pub Rc<RefCell<Option<i32>>>);
+pub struct Number(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Number {
     fn clone(&self) -> Self {
@@ -63,8 +63,8 @@ impl PartialEq for Number {
     }
 }
 
-impl PartialEq<i32> for Number {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Number {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -77,19 +77,19 @@ impl PartialOrd for Number {
     }
 }
 
-impl PartialOrd<i32> for Number {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Number {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Number> for i32 {
+impl PartialEq<Number> for i64 {
     fn eq(&self, other: &Number) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Number> for i32 {
+impl PartialOrd<Number> for i64 {
     fn partial_cmp(&self, other: &Number) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -102,14 +102,14 @@ impl std::ops::Add for Number {
     }
 }
 
-impl std::ops::Add<i32> for Number {
+impl std::ops::Add<i64> for Number {
     type Output = Number;
-    fn add(self, other: i32) -> Number {
+    fn add(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Number> for i32 {
+impl std::ops::Add<Number> for i64 {
     type Output = Number;
     fn add(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -123,14 +123,14 @@ impl std::ops::Sub for Number {
     }
 }
 
-impl std::ops::Sub<i32> for Number {
+impl std::ops::Sub<i64> for Number {
     type Output = Number;
-    fn sub(self, other: i32) -> Number {
+    fn sub(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Number> for i32 {
+impl std::ops::Sub<Number> for i64 {
     type Output = Number;
     fn sub(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -144,14 +144,14 @@ impl std::ops::Mul for Number {
     }
 }
 
-impl std::ops::Mul<i32> for Number {
+impl std::ops::Mul<i64> for Number {
     type Output = Number;
-    fn mul(self, other: i32) -> Number {
+    fn mul(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Number> for i32 {
+impl std::ops::Mul<Number> for i64 {
     type Output = Number;
     fn mul(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -165,14 +165,14 @@ impl std::ops::Div for Number {
     }
 }
 
-impl std::ops::Div<i32> for Number {
+impl std::ops::Div<i64> for Number {
     type Output = Number;
-    fn div(self, other: i32) -> Number {
+    fn div(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Number> for i32 {
+impl std::ops::Div<Number> for i64 {
     type Output = Number;
     fn div(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -193,14 +193,14 @@ impl std::ops::Rem for Number {
     }
 }
 
-impl std::ops::Rem<i32> for Number {
+impl std::ops::Rem<i64> for Number {
     type Output = Number;
-    fn rem(self, other: i32) -> Number {
+    fn rem(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Number> for i32 {
+impl std::ops::Rem<Number> for i64 {
     type Output = Number;
     fn rem(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -214,14 +214,14 @@ impl std::ops::BitAnd for Number {
     }
 }
 
-impl std::ops::BitAnd<i32> for Number {
+impl std::ops::BitAnd<i64> for Number {
     type Output = Number;
-    fn bitand(self, other: i32) -> Number {
+    fn bitand(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Number> for i32 {
+impl std::ops::BitAnd<Number> for i64 {
     type Output = Number;
     fn bitand(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -235,14 +235,14 @@ impl std::ops::BitOr for Number {
     }
 }
 
-impl std::ops::BitOr<i32> for Number {
+impl std::ops::BitOr<i64> for Number {
     type Output = Number;
-    fn bitor(self, other: i32) -> Number {
+    fn bitor(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Number> for i32 {
+impl std::ops::BitOr<Number> for i64 {
     type Output = Number;
     fn bitor(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -256,14 +256,14 @@ impl std::ops::BitXor for Number {
     }
 }
 
-impl std::ops::BitXor<i32> for Number {
+impl std::ops::BitXor<i64> for Number {
     type Output = Number;
-    fn bitxor(self, other: i32) -> Number {
+    fn bitxor(self, other: i64) -> Number {
         Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Number> for i32 {
+impl std::ops::BitXor<Number> for i64 {
     type Output = Number;
     fn bitxor(self, other: Number) -> Number {
         Number(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))

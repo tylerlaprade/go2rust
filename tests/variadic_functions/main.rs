@@ -1,8 +1,8 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
-    let mut total = Rc::new(RefCell::new(Some(0)));
+pub fn sum(numbers: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
+    let mut total = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
@@ -10,7 +10,7 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
 }
 
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
-    if ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
+    if ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
         return 0.0;
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
@@ -23,7 +23,7 @@ pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
 pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) {
     print!("{}: ", { let __v = (*prefix.borrow().as_ref().unwrap()).clone(); __v });
     { let __range_holder = strings.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, str) in __range_values.iter().enumerate() {
-        if i as i32 > 0 {
+        if i as i64 > 0 {
         print!("{}", format!("{}", ", ".to_string()));
     }
         print!("{}", format!("{}", str));
@@ -31,7 +31,7 @@ pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Op
     println!();
 }
 
-pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
+pub fn min(first: Rc<RefCell<Option<i64>>>, rest: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
     let mut minimum = { let __owned = first.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let __range_holder = rest.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
         if num < (*minimum.borrow().as_ref().unwrap()) {
@@ -42,7 +42,7 @@ pub fn min(first: Rc<RefCell<Option<i32>>>, rest: Rc<RefCell<Option<Vec<i32>>>>)
 }
 
 pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
-    if ((*strings.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
+    if ((*strings.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
         return Rc::new(RefCell::new(Some("".to_string())));
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));
@@ -59,7 +59,7 @@ fn main() {
     println!("{} {}", format!("{}", "Sum of 1, 2, 3, 4, 5:".to_string()), format!("{}", sum(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))))));
 
         // Passing slice to variadic function
-    let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64, 40i64])));
     println!("{} {}", format!("{}", "Sum of slice:".to_string()), format!("{}", sum(numbers.clone())));
 
         // Variadic with different types

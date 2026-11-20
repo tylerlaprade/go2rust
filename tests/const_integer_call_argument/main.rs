@@ -2,10 +2,10 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub(crate) const DELTA_NEW_FILE: i32 = -64;
+pub(crate) const DELTA_NEW_FILE: i64 = -64;
 
 
-pub(crate) const BUNDLE_VERSION: i32 = 1;
+pub(crate) const BUNDLE_VERSION: i64 = 1;
 
 
 #[derive(Debug, Clone, Default)]

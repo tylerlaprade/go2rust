@@ -2,10 +2,10 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn load() -> (Rc<RefCell<Option<Vec<i64>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let _: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
+    let _: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
@@ -15,7 +15,7 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Rc<dyn StdErr
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-    let mut values = Rc::new(RefCell::new(Some(vec![1, 2])));
+    let mut values = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
     {
         let __return_0 = Rc::new(RefCell::new(Some((*values.borrow().as_ref().unwrap()).clone())));
         *err.borrow_mut() = None;;
@@ -27,14 +27,14 @@ pub fn load() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Rc<dyn StdErr
     }
 }
 
-pub fn pair() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-    (Rc::new(RefCell::new(Some(vec![3, 4, 5]))), Rc::new(RefCell::new(None)))
+pub fn pair() -> (Rc<RefCell<Option<Vec<i64>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    (Rc::new(RefCell::new(Some(vec![3i64, 4i64, 5i64]))), Rc::new(RefCell::new(None)))
 }
 
-pub fn load_tuple() -> (Rc<RefCell<Option<Vec<i32>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn load_tuple() -> (Rc<RefCell<Option<Vec<i64>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let _: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
+    let _: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {

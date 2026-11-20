@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct printer {
-    pub indent: Rc<RefCell<Option<i32>>>,
+    pub indent: Rc<RefCell<Option<i64>>>,
 }
 
 impl printer {

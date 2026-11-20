@@ -174,7 +174,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Params {
-    pub n: Arc<Mutex<Option<i32>>>,
+    pub n: Arc<Mutex<Option<i64>>>,
 }
 
 impl Params {
@@ -205,21 +205,21 @@ impl std::fmt::Display for Params {
 
 
 impl Params {
-    pub fn len(&self) -> i32 {
+    pub fn len(&self) -> i64 {
         return (*self.n.lock().unwrap().as_ref().unwrap());
     }
 
-    pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> i32 {
+    pub fn at(&self, i: Arc<Mutex<Option<i64>>>) -> i64 {
         return { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
     }
 }
 
-pub fn total(p: Arc<Mutex<Option<Params>>>) -> i32 {
-    let mut sum = Arc::new(Mutex::new(Some(0)));
+pub fn total(p: Arc<Mutex<Option<Params>>>) -> i64 {
+    let mut sum = Arc::new(Mutex::new(Some(0i64)));
     for mut i in 0..({ let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }) {
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x == __tmp_y } {
         {
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.len(); __result }; __tmp_x < __tmp_y } {
         { let __rhs = { let __recv = p.clone(); let __recv_ptr: *const Params = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Params }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

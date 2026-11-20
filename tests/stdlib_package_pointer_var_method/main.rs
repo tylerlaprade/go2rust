@@ -9,15 +9,15 @@ fn __go_next_external_interface_id() -> usize {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct token_Pos(pub i32);
+pub struct token_Pos(pub i64);
 
-impl PartialEq<i32> for token_Pos {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for token_Pos {
+    fn eq(&self, other: &i64) -> bool {
         self.0 == *other
     }
 }
 
-impl PartialEq<token_Pos> for i32 {
+impl PartialEq<token_Pos> for i64 {
     fn eq(&self, other: &token_Pos) -> bool {
         *self == other.0
     }
@@ -94,7 +94,7 @@ impl Eq for types_Object {}
 
 impl PartialOrd for types_Object {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -185,7 +185,7 @@ impl Eq for types_Type {}
 
 impl PartialOrd for types_Type {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 

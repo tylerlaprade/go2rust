@@ -35,7 +35,7 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
 
 #[derive(Debug, Clone)]
 pub struct node {
-    pub value: Arc<Mutex<Option<i32>>>,
+    pub value: Arc<Mutex<Option<i64>>>,
 }
 
 impl node {

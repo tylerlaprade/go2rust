@@ -467,10 +467,10 @@ pub fn safe_line() {
     }
 }
 
-pub fn divide(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+pub fn divide(a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut result: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut result: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -515,10 +515,10 @@ pub fn divide(a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>) -> (i32, A
     }
 }
 
-pub fn element(xs: Arc<Mutex<Option<Vec<i32>>>>, i: Arc<Mutex<Option<i32>>>) -> (i32, bool) {
+pub fn element(xs: Arc<Mutex<Option<Vec<i64>>>>, i: Arc<Mutex<Option<i64>>>) -> (i64, bool) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut v: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut v: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -563,10 +563,10 @@ pub fn element(xs: Arc<Mutex<Option<Vec<i32>>>>, i: Arc<Mutex<Option<i32>>>) -> 
     }
 }
 
-pub fn with_error() -> i32 {
+pub fn with_error() -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut n: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
     let __go_previous_panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));
@@ -727,7 +727,7 @@ pub fn nested() {
     }
 }
 
-pub fn no_panic() -> i32 {
+pub fn no_panic() -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -765,7 +765,7 @@ pub fn no_panic() -> i32 {
             }
             std::panic::set_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
-            0 as i32
+            0 as i64
         }
     }
 }
@@ -788,7 +788,7 @@ fn main() {
         { let (__tmp_0, __tmp_1) = divide(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(0)))); q = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         println!("{} {}", format!("{}", q), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         let (mut v, mut ok) = element(
-            Arc::new(Mutex::new(Some(vec![1, 2, 3]))),
+            Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64]))),
             Arc::new(Mutex::new(Some(5)))
         );
         println!("{} {}", format!("{}", v), format!("{}", ok));

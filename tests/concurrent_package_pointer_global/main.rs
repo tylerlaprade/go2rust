@@ -175,7 +175,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct counter {
-    pub value: Arc<Mutex<Option<i32>>>,
+    pub value: Arc<Mutex<Option<i64>>>,
 }
 
 impl counter {
@@ -209,7 +209,7 @@ pub trait valueReader: std::fmt::Display + Any {
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool;
-    fn value(&self) -> i32;
+    fn value(&self) -> i64;
 }
 
 impl Clone for Box<dyn valueReader + Send + Sync> {
@@ -231,13 +231,13 @@ fn __go_init_globals() {
 
 
 impl counter {
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*self.value.lock().unwrap().as_ref().unwrap());
     }
 }
 
 impl valueReader for counter {
-    fn value(&self) -> i32 {
+    fn value(&self) -> i64 {
         counter::value(self)
     }
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync> {
@@ -266,7 +266,7 @@ impl std::fmt::Display for counterPtr {
 }
 
 impl valueReader for counterPtr {
-    fn value(&self) -> i32 {
+    fn value(&self) -> i64 {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         counter::value(__recv)
@@ -286,7 +286,7 @@ impl valueReader for counterPtr {
     }
 }
 
-pub fn new_counter(value: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<counter>>> {
+pub fn new_counter(value: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<counter>>> {
     Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
@@ -298,11 +298,11 @@ pub fn get_counter() -> Arc<Mutex<Option<counter>>> {
     (*current.lock().unwrap().as_ref().unwrap()).clone()
 }
 
-pub fn current_value() -> i32 {
+pub fn current_value() -> i64 {
     return (*(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap());
 }
 
-pub fn set_current_value(value: Arc<Mutex<Option<i32>>>) {
+pub fn set_current_value(value: Arc<Mutex<Option<i64>>>) {
     { let new_val = value.lock().unwrap().as_ref().unwrap().clone(); *(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap() = Some(new_val); };
 }
 

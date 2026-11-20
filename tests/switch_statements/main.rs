@@ -4,28 +4,28 @@ use std::rc::{Rc};
 
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<Rc<RefCell<Option<Vec<i32>>>>>() { return "[]int" }
+    if val.is::<Rc<RefCell<Option<Vec<i64>>>>>() { return "[]int" }
     std::any::type_name_of_val(val)
 }
 
-pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
+pub fn basic_switch(day: Rc<RefCell<Option<i64>>>) {
     { let _switch_val = (*day.borrow().as_ref().unwrap());
     if _switch_val == (1) {
             println!("{}", format!("{}", "Monday".to_string()));
@@ -46,7 +46,7 @@ pub fn basic_switch(day: Rc<RefCell<Option<i32>>>) {
 }
 
 pub fn switch_with_expression() {
-    let mut x = Rc::new(RefCell::new(Some(10)));
+    let mut x = Rc::new(RefCell::new(Some(10i64)));
     { let _switch_val = (*x.borrow().as_ref().unwrap()) * 2;
     if _switch_val == (20) {
             println!("{}", format!("{}", "x * 2 equals 20".to_string()));
@@ -59,7 +59,7 @@ pub fn switch_with_expression() {
 }
 
 pub fn switch_without_expression() {
-    let mut score = Rc::new(RefCell::new(Some(85)));
+    let mut score = Rc::new(RefCell::new(Some(85i64)));
     if (*score.borrow().as_ref().unwrap()) >= 90 {
             println!("{}", format!("{}", "Grade: A".to_string()));
         } else if (*score.borrow().as_ref().unwrap()) >= 80 {
@@ -73,7 +73,7 @@ pub fn switch_without_expression() {
         }
 }
 
-pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i32>>>) {
+pub fn switch_with_fallthrough(num: Rc<RefCell<Option<i64>>>) {
     {
         let _switch_val = (*num.borrow().as_ref().unwrap());
         let mut _fallthrough = false;
@@ -115,8 +115,8 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         print!("Integer: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -157,9 +157,9 @@ fn main() {
     switch_with_fallthrough(Rc::new(RefCell::new(Some(4))));
 
     println!("{}", format!("{}", "\n=== Type switch ===".to_string()));
-    type_switch(Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new("hello".to_string()) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))));
     type_switch(Rc::new(RefCell::new(Some(Box::new(3.14) as Box<dyn Any>))));
-    type_switch(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3]))).clone()) as Box<dyn Any>))));
+    type_switch(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))).clone()) as Box<dyn Any>))));
 }

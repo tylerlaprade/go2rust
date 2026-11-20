@@ -79,7 +79,7 @@ impl std::fmt::Debug for GoMutex {
 #[derive(Clone)]
 pub struct Counter {
     pub mu: GoMutex,
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {

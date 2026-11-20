@@ -40,20 +40,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -672,10 +672,10 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 }
 use __go_runtime_format::go_sprintf;
 
-pub(crate) const WIDTH: i32 = 4;
+pub(crate) const WIDTH: i64 = 4;
 
 
-pub(crate) const PRECISION: i32 = 2;
+pub(crate) const PRECISION: i64 = 2;
 
 
 pub(crate) struct GoGlobal<T> {
@@ -703,27 +703,27 @@ pub(crate) static verb: GoGlobal<i32> = GoGlobal::new();
 
 pub(crate) static text: GoGlobal<String> = GoGlobal::new();
 
-pub(crate) static spec: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static spec: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static out: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static out: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static args: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static args: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static format: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static format: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static digits: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static digits: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static sign: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static sign: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static chars: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static chars: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static next: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static next: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static items: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static items: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static fill: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static fill: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static magnitude: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static magnitude: GoGlobal<i64> = GoGlobal::new();
 
 pub(crate) static negative: GoGlobal<bool> = GoGlobal::new();
 
@@ -765,13 +765,13 @@ fn __go_init_globals() {
 fn main() {
     __go_init_all();
     let mut f = Rc::new(RefCell::new(Some("%s%d %q %5.2f|%-4s|%x\n".to_string())));
-    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(WIDTH) as Box<dyn Any>, Box::new({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(255) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(4i64) as Box<dyn Any>, Box::new({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>], false));
     let mut g = Rc::new(RefCell::new(Some("%v %c %v %+d\n".to_string())));
-    print!("{}", go_sprintf(&(*g.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(WIDTH + PRECISION) as Box<dyn Any>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*g.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(6i64) as Box<dyn Any>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     let mut h = Rc::new(RefCell::new(Some("%v %v %v %v %v %v\n".to_string())));
     print!("{}", go_sprintf(&(*h.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = spec.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = out.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = args.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = format.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     print!("{}", go_sprintf(&(*h.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = chars.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = items.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = fill.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = magnitude.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new("x".to_string()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>, Box::new("y".to_string()) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>, Box::new(16) as Box<dyn Any>], false))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new("x".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>, Box::new("y".to_string()) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>, Box::new(16i64) as Box<dyn Any>], false))))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

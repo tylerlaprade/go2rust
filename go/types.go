@@ -17,6 +17,12 @@ var anonymousStructTypeMap = make(map[string]string) // maps struct signature to
 var anonymousStructModuleNames = make(map[string]string)
 var anonymousStructAliases = make(map[string]string) // maps package global type aliases to anonymous struct names
 
+// rustIntType is the Rust type of Go's int, which is 64 bits wide on every
+// platform the generated code targets.
+func rustIntType() string {
+	return "i64"
+}
+
 func rustUintType() string {
 	if strconv.IntSize == 64 {
 		return "u64"
@@ -972,7 +978,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "string":
 			return "String"
 		case "int":
-			return "i32"
+			return rustIntType()
 		case "int8":
 			return "i8"
 		case "int16":
@@ -1670,9 +1676,9 @@ func goTypesTypeToRust(t types.Type) string {
 		case types.UntypedString:
 			return "String"
 		case types.Int:
-			return "i32"
+			return rustIntType()
 		case types.UntypedInt:
-			return "i32"
+			return rustIntType()
 		case types.UntypedRune:
 			return "i32"
 		case types.Int8:
@@ -1851,7 +1857,9 @@ func goTypesConstTypeToRust(t types.Type) string {
 			return "&'static str"
 		case types.UntypedBool:
 			return "bool"
-		case types.UntypedInt, types.UntypedRune:
+		case types.UntypedInt:
+			return rustIntType()
+		case types.UntypedRune:
 			return "i32"
 		case types.UntypedFloat:
 			return "f64"

@@ -58,11 +58,11 @@ impl GoReflectType {
         Arc::new(Mutex::new(Some(elem)))
     }
 
-    fn num_field(&self) -> i32 {
-        self.fields.lock().unwrap().as_ref().unwrap().len() as i32
+    fn num_field(&self) -> i64 {
+        self.fields.lock().unwrap().as_ref().unwrap().len() as i64
     }
 
-    fn field(&self, index: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<GoReflectField>>> {
+    fn field(&self, index: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<GoReflectField>>> {
         let index = *index.lock().unwrap().as_ref().unwrap() as usize;
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
     }
@@ -102,7 +102,7 @@ impl GoReflectValue {
         self.typ.lock().unwrap().as_ref().unwrap().kind()
     }
 
-    fn field(&self, index: i32) -> Arc<Mutex<Option<GoReflectValue>>> {
+    fn field(&self, index: i64) -> Arc<Mutex<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))

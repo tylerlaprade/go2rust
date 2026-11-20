@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -39,7 +39,7 @@ impl Counter {
         { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap());
     }
 }

@@ -282,7 +282,7 @@ func syntaxIntegerRustType(expr ast.Expr) (string, bool) {
 	switch e := expr.(type) {
 	case *ast.Ident:
 		if rangeLoopVars[e.Name] == "usize" {
-			return "i32", true
+			return rustIntType(), true
 		}
 		if info := lookupVarInfo(e.Name); info != nil && info.RustType != "" {
 			return rustIntegerCastTypeFromRustType(info.RustType)
@@ -658,6 +658,16 @@ func writeConstShiftCountValue(out *strings.Builder, expr ast.Expr) bool {
 }
 
 func rustConstTypeForUntypedIntegerValue(expr ast.Expr, value constant.Value) (string, bool) {
+	return rustConstTypeForUntypedIntegerValueAtLeast(expr, value, 64)
+}
+
+// rustConstTypeForUntypedRuneValue is the type of an untyped rune constant,
+// '\uFFFD', whose default type is rune.
+func rustConstTypeForUntypedRuneValue(expr ast.Expr, value constant.Value) (string, bool) {
+	return rustConstTypeForUntypedIntegerValueAtLeast(expr, value, 32)
+}
+
+func rustConstTypeForUntypedIntegerValueAtLeast(expr ast.Expr, value constant.Value, minBits uint) (string, bool) {
 	min, max, ok := typedIntegerConstBounds(expr)
 	if valueMin, valueMax, valueOK := integerConstValueBounds(value); valueOK {
 		if ok {
@@ -674,7 +684,12 @@ func rustConstTypeForUntypedIntegerValue(expr ast.Expr, value constant.Value) (s
 	if !ok {
 		return "", false
 	}
-	return rustIntegerTypeForConstBounds(min, max)
+	// An untyped integer constant is an int unless it is used as something
+	// else, and int is 64 bits.
+	if rustType, ok := rustIntegerTypeForConstBounds(min, max); ok && rustIntegerTypeWidth(rustType) >= minBits {
+		return rustType, true
+	}
+	return rustIntegerTypeForConstBoundsAtLeast(min, max, minBits)
 }
 
 func typedIntegerConstBounds(expr ast.Expr) (*big.Int, *big.Int, bool) {
@@ -767,7 +782,7 @@ func goIntConstFitsRustInt(value constant.Value) bool {
 	if !ok {
 		return false
 	}
-	return n.Cmp(minSignedBigInt(32)) >= 0 && n.Cmp(maxSignedBigInt(32)) <= 0
+	return n.Cmp(minSignedBigInt(64)) >= 0 && n.Cmp(maxSignedBigInt(64)) <= 0
 }
 
 func goIntBoundaryLiteralForRustModel(value constant.Value) (string, bool) {
@@ -776,10 +791,10 @@ func goIntBoundaryLiteralForRustModel(value constant.Value) (string, bool) {
 		return "", false
 	}
 	if n.Cmp(maxSignedBigInt(uint(strconv.IntSize))) == 0 {
-		return "i32::MAX", true
+		return rustIntType() + "::MAX", true
 	}
 	if n.Cmp(minSignedBigInt(uint(strconv.IntSize))) == 0 {
-		return "i32::MIN", true
+		return rustIntType() + "::MIN", true
 	}
 	return "", false
 }
@@ -1791,6 +1806,9 @@ func rustIntegerCastTypeForConstObject(obj *types.Const) (string, bool) {
 		return rustType, true
 	}
 	if obj.Val() != nil {
+		if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedRune {
+			return rustConstTypeForUntypedRuneValue(nil, obj.Val())
+		}
 		return rustConstTypeForUntypedIntegerValue(nil, obj.Val())
 	}
 	return "", false

@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct P {
-    pub pos: Rc<RefCell<Option<i32>>>,
-    pub tok: Rc<RefCell<Option<i32>>>,
+    pub pos: Rc<RefCell<Option<i64>>>,
+    pub tok: Rc<RefCell<Option<i64>>>,
 }
 
 impl P {
@@ -45,7 +45,7 @@ impl P {
     /// (`a, b := p.pos, p.tok`) must copy each field's value, not re-wrap the
     /// already-wrapped field handle. go/parser's `pos, op := p.pos, p.tok` hit a
     /// double-wrap (Arc<Mutex<Option<Arc<Mutex<Option<Pos>>>>>>) before this.
-    pub fn pair(&self) -> (i32, i32) {
+    pub fn pair(&self) -> (i64, i64) {
         let (mut a, mut b) = (Rc::new(RefCell::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         return ((*a.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()));
     }

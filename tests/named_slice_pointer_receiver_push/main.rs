@@ -45,7 +45,7 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Stack(pub Rc<RefCell<Option<Vec<i32>>>>);
+pub struct Stack(pub Rc<RefCell<Option<Vec<i64>>>>);
 
 impl Display for Stack {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -55,12 +55,12 @@ impl Display for Stack {
 
 
 impl Stack {
-    pub fn push(&mut self, n: Rc<RefCell<Option<i32>>>) {
+    pub fn push(&mut self, n: Rc<RefCell<Option<i64>>>) {
         { let new_val = { let __base = self.0.clone(); let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push((*n.borrow().as_ref().unwrap()).clone()); Rc::new(RefCell::new(Some(Stack(Rc::new(RefCell::new(Some(__values))))))) }; *self = new_val.borrow_mut().take().unwrap_or_default(); };
     }
 
-    pub fn pop(&mut self) -> i32 {
-        let mut i = Rc::new(RefCell::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
+    pub fn pop(&mut self) -> i64 {
+        let mut i = Rc::new(RefCell::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i64)));
         if (*i.borrow().as_ref().unwrap()) == 0 {
         return -(1);
     }

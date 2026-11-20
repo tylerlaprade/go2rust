@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn describe(ptr: Rc<RefCell<Option<i32>>>) {
+pub fn describe(ptr: Rc<RefCell<Option<i64>>>) {
     { let _switch_val = ptr.clone();
     if (*_switch_val.borrow()).is_none() {
             println!("{}", format!("{}", "nil pointer".to_string()));
@@ -13,6 +13,6 @@ pub fn describe(ptr: Rc<RefCell<Option<i32>>>) {
 
 fn main() {
     describe(Rc::new(RefCell::new(None)));
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
     describe(x.clone());
 }

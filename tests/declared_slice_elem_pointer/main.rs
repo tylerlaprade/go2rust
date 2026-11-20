@@ -525,7 +525,7 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 
 #[derive(Debug, Clone)]
 pub struct entry {
-    pub key: Arc<Mutex<Option<i32>>>,
+    pub key: Arc<Mutex<Option<i64>>>,
     pub value: Arc<Mutex<Option<String>>>,
 }
 

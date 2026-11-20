@@ -243,7 +243,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -276,7 +276,7 @@ impl std::fmt::Display for Point {
 #[derive(Debug, Clone, Default)]
 pub struct Registry {
     pub by_name: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Point>>>>>>>,
-    pub counts: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>,
+    pub counts: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>,
 }
 
 impl Registry {
@@ -300,7 +300,7 @@ impl std::fmt::Display for Registry {
 
 
 #[derive(Debug, Clone, Default)]
-pub struct Scores(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>);
+pub struct Scores(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>);
 
 impl Display for Scores {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -320,12 +320,12 @@ fn main() {
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
-    let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))]))));
+    let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
     let (mut n, mut ok) = { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
     { let new_val = 5; *n.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "int".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok), format!("{}", { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
-    let mut names = Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<String>>>>::from([(1, Arc::new(Mutex::new(Some("one".to_string()))))]))));
+    let mut names = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<String>>>>::from([(1i64, Arc::new(Mutex::new(Some("one".to_string()))))]))));
     let (mut name, mut ok) = { let __map = { let __map_holder = names.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&1)) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(String::new()))), false) } };
     { (*name.lock().unwrap().as_mut().unwrap()).push_str(&"!".to_string()); };
     println!("{} {} {} {}", format!("{}", "string".to_string()), format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ok), format!("{}", { let __map = { let __map_holder = names.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
@@ -338,7 +338,7 @@ fn main() {
         }
     }
 
-    let mut m: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut m: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut found: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
     { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *m.lock().unwrap() = __moved_tmp_0; *found.lock().unwrap() = Some(__tmp_1); };
     { let __rhs = 10; let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -371,19 +371,19 @@ fn main() {
     { let new_val = 5; *(*missing.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "struct, missing key".to_string()), format!("{}", ok), format!("{}", (*{ let __field = (*missing.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*points.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
-    let mut reg = Arc::new(Mutex::new(Some(Registry { by_name: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Point>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }))))])))), counts: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))])))), ..Default::default() })));
+    let mut reg = Arc::new(Mutex::new(Some(Registry { by_name: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Point>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }))))])))), counts: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() })));
     let (mut rp, mut ok) = { let __map = { let __map_holder = (*reg.lock().unwrap().as_ref().unwrap()).by_name.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().__go_value_clone()))), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };
     { let new_val = 7; *(*rp.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     let (mut c, mut ok2) = { let __map = { let __map_holder = (*reg.lock().unwrap().as_ref().unwrap()).counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
     { let mut guard = c.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     println!("{} {} {} {} {} {} {}", format!("{}", "map in a field".to_string()), format!("{}", ok), format!("{}", ok2), format!("{}", (*{ let __map = { let __map_holder = (*reg.lock().unwrap().as_ref().unwrap()).by_name.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().__go_value_clone()).unwrap_or_else(|| Default::default()) }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*rp.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", { let __map = { let __map_holder = (*reg.lock().unwrap().as_ref().unwrap()).counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut c2: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut c2: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = (*reg.lock().unwrap().as_ref().unwrap()).counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *c2.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
     { let __rhs = 5; let mut guard = c2.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     println!("{} {} {} {}", format!("{}", "map in a field into variables".to_string()), format!("{}", ok), format!("{}", { let __map = { let __map_holder = (*reg.lock().unwrap().as_ref().unwrap()).counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __v = (*c2.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut sc = Arc::new(Mutex::new(Some(Scores(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))]))))))));
+    let mut sc = Arc::new(Mutex::new(Some(Scores(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))))));
     let (mut v, mut ok) = { let __map = { let __map_holder = { let __named_map = (*sc.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
     { let new_val = 3; *v.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "named map type".to_string()), format!("{}", ok), format!("{}", { let __map = { let __map_holder = { let __named_map = (*sc.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -393,7 +393,7 @@ fn main() {
     { let new_val = 4; *z.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "blank results".to_string()), format!("{}", has), format!("{}", { let __map = { let __map_holder = { let __named_map = (*sc.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut nested = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1))))])))))]))));
+    let mut nested = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))])))))]))));
     let (mut x, mut ok) = { let __map = { let __map_holder = { let __map = { let __map_holder = nested.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"x".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
     { let new_val = 99; *x.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "nested lookup".to_string()), format!("{}", ok), format!("{}", { let __map = { let __map_holder = { let __map = { let __map_holder = nested.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -409,12 +409,12 @@ fn main() {
     { let new_val = 10; *(*pq.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "pointer value into variables".to_string()), format!("{}", ok), format!("{}", (*(*{ let __map = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*pq.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
-    let mut lists = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i32>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![1, 2]))))]))));
+    let mut lists = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![1i64, 2i64]))))]))));
     let (mut l, mut ok) = { let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
     { let __idx = (0) as usize; let __rhs = 50; (*l.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {} {}", format!("{}", "slice value".to_string()), format!("{}", ok), format!("{}", format_slice(&{ let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice(&l)));
 
-    let mut l2: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+    let mut l2: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
     { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l2 = __tmp_0; ok = __tmp_1; };
     { let __idx = (1) as usize; let __rhs = 60; (*l2.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {} {}", format!("{}", "slice value into variables".to_string()), format!("{}", ok), format!("{}", format_slice(&{ let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice(&l2)));
@@ -423,7 +423,7 @@ fn main() {
     { let __map_key = "x".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*inner.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {} {}", format!("{}", "map value".to_string()), format!("{}", ok), format!("{}", { let __map = { let __map_holder = { let __map = { let __map_holder = nested.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map = { let __map_holder = inner.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
-    let mut inner2: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+    let mut inner2: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
     { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = nested.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } }; inner2 = __tmp_0; ok = __tmp_1; };
     { let __map_key = "x".to_string(); let __map_value = Arc::new(Mutex::new(Some(3))); (*inner2.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {} {}", format!("{}", "map value into variables".to_string()), format!("{}", ok), format!("{}", { let __map = { let __map_holder = { let __map = { let __map_holder = nested.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map = { let __map_holder = inner2.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));

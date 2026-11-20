@@ -71,7 +71,7 @@ fn go_errors_is(err: Option<Rc<dyn StdError>>, target: Option<Rc<dyn StdError>>)
 
 #[derive(Debug, Clone)]
 pub struct CustomError {
-    pub code: Rc<RefCell<Option<i32>>>,
+    pub code: Rc<RefCell<Option<i64>>>,
     pub message: Rc<RefCell<Option<String>>>,
 }
 
@@ -128,7 +128,7 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Rc<dyn StdEr
 
         // Simple approximation
     let mut result = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()) / 2.0)));
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 10 {
         { let new_val = ((*result.borrow().as_ref().unwrap()) + (*x.borrow().as_ref().unwrap()) / (*result.borrow().as_ref().unwrap())) / 2.0; *result.borrow_mut() = Some(new_val); };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -136,7 +136,7 @@ pub fn sqrt(x: Rc<RefCell<Option<f64>>>) -> (f64, Rc<RefCell<Option<Rc<dyn StdEr
     return ((*result.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));
 }
 
-pub fn process_value(val: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+pub fn process_value(val: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
     if (*val.borrow().as_ref().unwrap()) < 0 {
         return Rc::new(RefCell::new(Some(Rc::new(CustomError { code: Rc::new(RefCell::new(Some(100))), message: Rc::new(RefCell::new(Some("negative value not allowed".to_string()))), ..Default::default() }) as Rc<dyn StdError>)));
     }

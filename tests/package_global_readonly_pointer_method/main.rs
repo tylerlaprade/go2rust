@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -63,7 +63,7 @@ fn __go_init_globals() {
 
 
 impl Counter {
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*(*(*shared.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
     }
 }

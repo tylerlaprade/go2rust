@@ -7,7 +7,7 @@ pub trait Expr: std::fmt::Display + Any {
     fn __go_clone_box_expr(&self) -> Box<dyn Expr>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_expr(&self, other: &dyn Expr) -> bool;
-    fn pos(&self) -> i32;
+    fn pos(&self) -> i64;
 }
 
 impl Clone for Box<dyn Expr> {
@@ -93,13 +93,13 @@ impl std::fmt::Display for Field {
 
 
 impl Ident {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         1
     }
 }
 
 impl Expr for Ident {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         Ident::pos(self)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
@@ -128,7 +128,7 @@ impl std::fmt::Display for IdentPtr {
 }
 
 impl Expr for IdentPtr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Ident::pos(__recv)
@@ -149,13 +149,13 @@ impl Expr for IdentPtr {
 }
 
 impl StarExpr {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         2
     }
 }
 
 impl Expr for StarExpr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         StarExpr::pos(self)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
@@ -184,7 +184,7 @@ impl std::fmt::Display for StarExprPtr {
 }
 
 impl Expr for StarExprPtr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         StarExpr::pos(__recv)

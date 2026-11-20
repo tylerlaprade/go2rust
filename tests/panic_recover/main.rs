@@ -134,10 +134,10 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     }
 }
 
-pub fn process_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, index: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn process_slice(slice: Rc<RefCell<Option<Vec<i64>>>>, index: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut value: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut value: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -407,7 +407,7 @@ fn main() {
 
     println!("{}", format!("{}", "\n=== Slice access examples ===".to_string()));
 
-    let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64])));
 
     let (mut value, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(2)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {

@@ -2,11 +2,11 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub const INVALID: i32 = -1;
+pub const INVALID: i64 = -1;
 
 
 #[derive(Debug, Default)]
-pub struct Code(pub Rc<RefCell<Option<i32>>>);
+pub struct Code(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Code {
     fn clone(&self) -> Self {
@@ -29,8 +29,8 @@ impl PartialEq for Code {
     }
 }
 
-impl PartialEq<i32> for Code {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Code {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -43,19 +43,19 @@ impl PartialOrd for Code {
     }
 }
 
-impl PartialOrd<i32> for Code {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Code {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Code> for i32 {
+impl PartialEq<Code> for i64 {
     fn eq(&self, other: &Code) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Code> for i32 {
+impl PartialOrd<Code> for i64 {
     fn partial_cmp(&self, other: &Code) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -68,14 +68,14 @@ impl std::ops::Add for Code {
     }
 }
 
-impl std::ops::Add<i32> for Code {
+impl std::ops::Add<i64> for Code {
     type Output = Code;
-    fn add(self, other: i32) -> Code {
+    fn add(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Code> for i32 {
+impl std::ops::Add<Code> for i64 {
     type Output = Code;
     fn add(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -89,14 +89,14 @@ impl std::ops::Sub for Code {
     }
 }
 
-impl std::ops::Sub<i32> for Code {
+impl std::ops::Sub<i64> for Code {
     type Output = Code;
-    fn sub(self, other: i32) -> Code {
+    fn sub(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Code> for i32 {
+impl std::ops::Sub<Code> for i64 {
     type Output = Code;
     fn sub(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -110,14 +110,14 @@ impl std::ops::Mul for Code {
     }
 }
 
-impl std::ops::Mul<i32> for Code {
+impl std::ops::Mul<i64> for Code {
     type Output = Code;
-    fn mul(self, other: i32) -> Code {
+    fn mul(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Code> for i32 {
+impl std::ops::Mul<Code> for i64 {
     type Output = Code;
     fn mul(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -131,14 +131,14 @@ impl std::ops::Div for Code {
     }
 }
 
-impl std::ops::Div<i32> for Code {
+impl std::ops::Div<i64> for Code {
     type Output = Code;
-    fn div(self, other: i32) -> Code {
+    fn div(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Code> for i32 {
+impl std::ops::Div<Code> for i64 {
     type Output = Code;
     fn div(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -159,14 +159,14 @@ impl std::ops::Rem for Code {
     }
 }
 
-impl std::ops::Rem<i32> for Code {
+impl std::ops::Rem<i64> for Code {
     type Output = Code;
-    fn rem(self, other: i32) -> Code {
+    fn rem(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Code> for i32 {
+impl std::ops::Rem<Code> for i64 {
     type Output = Code;
     fn rem(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -180,14 +180,14 @@ impl std::ops::BitAnd for Code {
     }
 }
 
-impl std::ops::BitAnd<i32> for Code {
+impl std::ops::BitAnd<i64> for Code {
     type Output = Code;
-    fn bitand(self, other: i32) -> Code {
+    fn bitand(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Code> for i32 {
+impl std::ops::BitAnd<Code> for i64 {
     type Output = Code;
     fn bitand(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -201,14 +201,14 @@ impl std::ops::BitOr for Code {
     }
 }
 
-impl std::ops::BitOr<i32> for Code {
+impl std::ops::BitOr<i64> for Code {
     type Output = Code;
-    fn bitor(self, other: i32) -> Code {
+    fn bitor(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Code> for i32 {
+impl std::ops::BitOr<Code> for i64 {
     type Output = Code;
     fn bitor(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -222,14 +222,14 @@ impl std::ops::BitXor for Code {
     }
 }
 
-impl std::ops::BitXor<i32> for Code {
+impl std::ops::BitXor<i64> for Code {
     type Output = Code;
-    fn bitxor(self, other: i32) -> Code {
+    fn bitxor(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Code> for i32 {
+impl std::ops::BitXor<Code> for i64 {
     type Output = Code;
     fn bitxor(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -396,7 +396,7 @@ impl Ord for Code {
 
 fn main() {
     let mut x: Rc<RefCell<Option<[AnonymousStruct1; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
-    let _ = (*x.borrow().as_ref().unwrap())[(INVALID as i32 - -1) as usize].clone();
+    let _ = (*x.borrow().as_ref().unwrap())[(INVALID as i64 - -1) as usize].clone();
     println!("{}", format!("{}", "ok".to_string()));
 }
 

@@ -173,15 +173,15 @@ impl<T> Iterator for GoChannel<T> {
 
 pub mod math {
     use super::*;
-    pub const MAX_INT32: i32 = 2147483647;
+    pub const MAX_INT32: i64 = 2147483647;
     pub const MAX_INT64: i64 = 9223372036854775807;
 }
 
 
 pub fn fnv32(s: Arc<Mutex<Option<String>>>) -> u32 {
     let mut h = Arc::new(Mutex::new(Some(2166136261 as u32)));
-    let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i64); __tmp_x < __tmp_y } {
         { let __rhs = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let mut guard = h.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() ^ __rhs); };
         { let __rhs = 16777619 as u32; let mut guard = h.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

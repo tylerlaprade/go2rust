@@ -4,8 +4,8 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Box__int {
-    pub value: Rc<RefCell<Option<i32>>>,
-    pub count: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
+    pub count: Rc<RefCell<Option<i64>>>,
 }
 
 impl Box__int {

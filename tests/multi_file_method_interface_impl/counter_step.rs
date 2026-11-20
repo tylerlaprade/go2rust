@@ -7,7 +7,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -47,7 +47,7 @@ impl Stepper for Counter {
     fn step(&mut self) {
         Counter::step(self)
     }
-    fn value(&self) -> i32 {
+    fn value(&self) -> i64 {
         Counter::value(self)
     }
     fn __go_clone_box_stepper(&self) -> Box<dyn Stepper> {
@@ -81,7 +81,7 @@ impl Stepper for CounterPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Counter::step(__recv)
     }
-    fn value(&self) -> i32 {
+    fn value(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Counter::value(__recv)

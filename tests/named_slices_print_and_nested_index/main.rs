@@ -70,7 +70,7 @@ pub struct Matrix(pub Rc<RefCell<Option<Vec<Vec<f64>>>>>);
 
 
 #[derive(Debug, Clone, Default)]
-pub struct Ints(pub Rc<RefCell<Option<Vec<i32>>>>);
+pub struct Ints(pub Rc<RefCell<Option<Vec<i64>>>>);
 
 impl Display for Ints {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -103,12 +103,12 @@ impl Matrix {
 }
 
 pub fn mk() -> Rc<RefCell<Option<Ints>>> {
-    Rc::new(RefCell::new(Some(Ints(Rc::new(RefCell::new(Some(vec![1, 2])))))))
+    Rc::new(RefCell::new(Some(Ints(Rc::new(RefCell::new(Some(vec![1i64, 2i64])))))))
 }
 
 fn main() {
     let mut m = Rc::new(RefCell::new(Some(Matrix(Rc::new(RefCell::new(Some(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]])))))));
-    let mut xs = Rc::new(RefCell::new(Some(Ints(Rc::new(RefCell::new(Some(vec![5, 6])))))));
+    let mut xs = Rc::new(RefCell::new(Some(Ints(Rc::new(RefCell::new(Some(vec![5i64, 6i64])))))));
     let mut ws = Rc::new(RefCell::new(Some(Words(Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()])))))));
     println!("{} {} {}", format!("{}", format_nested_slice(&{ let __named_slice = (*m.borrow().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*ws.borrow().as_ref().unwrap()).0.clone(); __named_slice })));
     println!("{} {}", format!("{}", format_nested_slice(&{ let __named_slice = (*(*m.borrow().as_ref().unwrap()).transpose().borrow().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*mk().borrow().as_ref().unwrap()).0.clone(); __named_slice })));

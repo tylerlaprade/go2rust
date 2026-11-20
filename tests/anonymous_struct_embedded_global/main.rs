@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Payload {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl Payload {
@@ -72,7 +72,7 @@ fn main() {
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
     pub payload: Rc<RefCell<Option<Payload>>>,
-    pub version: Rc<RefCell<Option<i32>>>,
+    pub version: Rc<RefCell<Option<i64>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

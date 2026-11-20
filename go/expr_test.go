@@ -985,10 +985,10 @@ func makeMapper() mapper {
 }
 `)
 
-	if strings.Contains(rust, "{ mmap() }) as Box<dyn FnMut() -> i32>") {
+	if strings.Contains(rust, "{ mmap() }) as Box<dyn FnMut() -> i64>") {
 		t.Fatalf("function value should not call the colliding base Rust name:\n%s", rust)
 	}
-	if !strings.Contains(rust, "{ mmap_1() }) as Box<dyn FnMut() -> i32>") {
+	if !strings.Contains(rust, "{ mmap_1() }) as Box<dyn FnMut() -> i64>") {
 		t.Fatalf("function value should use the renamed Rust function target:\n%s", rust)
 	}
 }
@@ -1701,7 +1701,7 @@ func add(valueStart []int, steps []string) []int {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "let __append_value = (*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") {
+	if !strings.Contains(rust, "let __append_value = (*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") {
 		t.Fatalf("append len() to []int should cast usize length to Go int:\n%s", rust)
 	}
 }
@@ -1714,7 +1714,7 @@ func seq(words []string) []int {
 }
 `)
 
-	if !strings.Contains(rust, " as i32") {
+	if !strings.Contains(rust, " as i64") {
 		t.Fatalf("[]int literal len element should cast Rust usize to Go int:\n%s", rust)
 	}
 	if strings.Contains(rust, "len()).unwrap_or(0)]") {
@@ -1737,7 +1737,7 @@ func indexes(values []string) []int {
 	if strings.Contains(rust, "let __append_value = i;") {
 		t.Fatalf("append range index to []int should not push usize directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __append_value = i as i32;") {
+	if !strings.Contains(rust, "let __append_value = i as i64;") {
 		t.Fatalf("append range index to []int should cast usize to Go int:\n%s", rust)
 	}
 }
@@ -3797,7 +3797,7 @@ func last(values []any) int {
 		strings.Contains(rust, "let guard = val.lock().unwrap()") {
 		t.Fatalf("[]any element type assertion should not clone the Vec or treat the element as a handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "downcast_ref::<i32>()") {
+	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "downcast_ref::<i64>()") {
 		t.Fatalf("[]any element type assertion should downcast the boxed element directly:\n%s", rust)
 	}
 }
@@ -3872,8 +3872,8 @@ func TestTrackedRangeSlicePrintArgWithoutTypeInfo(t *testing.T) {
 	}
 	registerCompositeLiteralRangeElemType(ast.NewIdent("testData"), expr.(*ast.CompositeLit))
 	elemRustType, ok := trackedRangeElemRustType(ast.NewIdent("testData"))
-	if !ok || elemRustType != "Vec<i32>" {
-		t.Fatalf("tracked range elem type = %q, %v; want Vec<i32>, true", elemRustType, ok)
+	if !ok || elemRustType != "Vec<i64>" {
+		t.Fatalf("tracked range elem type = %q, %v; want Vec<i64>, true", elemRustType, ok)
 	}
 
 	rangeLoopVars = map[string]string{"data": rangeValueTypeFromTrackedRustElem(elemRustType)}
@@ -4378,11 +4378,11 @@ func main() {
 		}
 	}
 	for _, want := range []string{
-		`BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new()`,
+		`BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new()`,
 		`let __key = "go".to_string();`,
 		`let __key = "rust".to_string();`,
 		`.get(&"go".to_string())`,
-		`BTreeMap::<i32, Rc<RefCell<Option<bool>>>>::new()`,
+		`BTreeMap::<i64, Rc<RefCell<Option<bool>>>>::new()`,
 		`.insert(__map_key, __map_value)`,
 		`.get(&10)`,
 	} {
@@ -5735,7 +5735,7 @@ func boxMap() any {
 		strings.Contains(rust, "Box::new(None)") {
 		t.Fatalf("typed nil map in any initializer should not emit a nil interface or untyped None:\n%s", rust)
 	}
-	if !strings.Contains(rust, "None::<BTreeMap<i32,") || !strings.Contains(rust, "as Box<dyn Any") {
+	if !strings.Contains(rust, "None::<BTreeMap<i64,") || !strings.Contains(rust, "as Box<dyn Any") {
 		t.Fatalf("typed nil map in any initializer should preserve the typed nil map inside Any:\n%s", rust)
 	}
 }
@@ -5907,7 +5907,7 @@ func boxChan() any {
 	if strings.Contains(rust, "let __v = None") || strings.Contains(rust, "Box::new(None)") {
 		t.Fatalf("typed nil channel in any initializer should not emit untyped None:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(GoChannel::<i32>::default()) as Box<dyn Any") {
+	if !strings.Contains(rust, "Box::new(GoChannel::<i64>::default()) as Box<dyn Any") {
 		t.Fatalf("typed nil channel in any initializer should preserve the channel type inside Any:\n%s", rust)
 	}
 }
@@ -5944,7 +5944,7 @@ func use() int {
 	if strings.Contains(rust, "identity.clone()") || strings.Contains(rust, "int.borrow") || strings.Contains(rust, "int.lock") {
 		t.Fatalf("explicit generic function call should not lower the type argument as an index expression:\n%s", rust)
 	}
-	if !strings.Contains(rust, "identity::<i32>(") {
+	if !strings.Contains(rust, "identity::<i64>(") {
 		t.Fatalf("explicit generic function call should emit Rust type arguments:\n%s", rust)
 	}
 }
@@ -7916,10 +7916,10 @@ func main() {
 		strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(VAL_STRING))))") {
 		t.Fatalf("typed constants should not be passed as wrapped raw ints to interface params:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32))))) as Box<dyn Code>))))") {
+	if !strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i64))))) as Box<dyn Code>))))") {
 		t.Fatalf("typed constant should be constructed as its named value for interface params:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32))))) as Box<dyn Code>))))") {
+	if !strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i64))))) as Box<dyn Code>))))") {
 		t.Fatalf("implicit typed constant should reuse the previous named type for interface params:\n%s", rust)
 	}
 }
@@ -8386,7 +8386,7 @@ func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
 		"go_integer_from_i128::<T>(0",
 		"go_integer_cast::<T, _>",
 		"go_integer_add_one",
-		"go_integer_cast::<i32, _>",
+		"go_integer_cast::<i64, _>",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("numeric type-parameter loop should use integer trait helper %q:\n%s", want, rust)
@@ -8659,7 +8659,7 @@ func f() {
 	var assignOut strings.Builder
 	TranspileStatementSimple(&assignOut, fn.Body.List[0], nil, token.NewFileSet())
 	assignRust := assignOut.String()
-	if !strings.Contains(assignRust, "let mut ch = GoChannel::<i32>::new()") {
+	if !strings.Contains(assignRust, "let mut ch = GoChannel::<i64>::new()") {
 		t.Fatalf("make channel short decl should emit a bare GoChannel local:\n%s", assignRust)
 	}
 	if !isVarBare("ch") {
@@ -9622,13 +9622,13 @@ func f(xs []int) int {
 	if strings.Contains(rust, "0 as usize") || strings.Contains(rust, "1 as usize") {
 		t.Fatalf("range index untyped integer peers should use Go int, not usize:\n%s", rust)
 	}
-	hasComparison := strings.Contains(rust, "i as i32 > 0 as i32") ||
-		strings.Contains(rust, "let __tmp_x = i as i32; let __tmp_y = 0 as i32")
+	hasComparison := strings.Contains(rust, "i as i64 > 0 as i64") ||
+		strings.Contains(rust, "let __tmp_x = i as i64; let __tmp_y = 0 as i64")
 	if !hasComparison {
 		t.Fatalf("range index comparison should cast the range index and constant to Go int:\n%s", rust)
 	}
-	hasArithmetic := strings.Contains(rust, "i as i32 + 1 as i32") ||
-		strings.Contains(rust, "let __tmp_x = i as i32; let __tmp_y = 1 as i32")
+	hasArithmetic := strings.Contains(rust, "i as i64 + 1 as i64") ||
+		strings.Contains(rust, "let __tmp_x = i as i64; let __tmp_y = 1 as i64")
 	if !hasArithmetic {
 		t.Fatalf("range index arithmetic should cast the range index and constant to Go int:\n%s", rust)
 	}

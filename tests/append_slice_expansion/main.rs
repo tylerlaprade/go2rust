@@ -45,8 +45,8 @@ where
 }
 
 fn main() {
-    let mut dst = Rc::new(RefCell::new(Some(vec![1, 2])));
-    let mut src = Rc::new(RefCell::new(Some(vec![3, 4, 5])));
+    let mut dst = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
+    let mut src = Rc::new(RefCell::new(Some(vec![3i64, 4i64, 5i64])));
     { let new_val = { let __append_target = dst.clone(); let __append_values: Vec<_> = { let __slice_holder = src.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; dst = new_val; };
     println!("{}", format!("{}", format_slice(&dst)));
 

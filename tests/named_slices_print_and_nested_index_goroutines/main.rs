@@ -239,7 +239,7 @@ pub struct Matrix(pub Arc<Mutex<Option<Vec<Vec<f64>>>>>);
 
 
 #[derive(Debug, Clone, Default)]
-pub struct Ints(pub Arc<Mutex<Option<Vec<i32>>>>);
+pub struct Ints(pub Arc<Mutex<Option<Vec<i64>>>>);
 
 impl Display for Ints {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -272,7 +272,7 @@ impl Matrix {
 }
 
 pub fn mk() -> Arc<Mutex<Option<Ints>>> {
-    Arc::new(Mutex::new(Some(Ints(Arc::new(Mutex::new(Some(vec![1, 2])))))))
+    Arc::new(Mutex::new(Some(Ints(Arc::new(Mutex::new(Some(vec![1i64, 2i64])))))))
 }
 
 fn main() {
@@ -283,7 +283,7 @@ fn main() {
     started.recv().unwrap_or_default();
 
     let mut m = Arc::new(Mutex::new(Some(Matrix(Arc::new(Mutex::new(Some(vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]])))))));
-    let mut xs = Arc::new(Mutex::new(Some(Ints(Arc::new(Mutex::new(Some(vec![5, 6])))))));
+    let mut xs = Arc::new(Mutex::new(Some(Ints(Arc::new(Mutex::new(Some(vec![5i64, 6i64])))))));
     let mut ws = Arc::new(Mutex::new(Some(Words(Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()])))))));
     println!("{} {} {}", format!("{}", format_nested_slice(&{ let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*xs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*ws.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
     println!("{} {}", format!("{}", format_nested_slice(&{ let __named_slice = (*(*m.lock().unwrap().as_ref().unwrap()).transpose().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*mk().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));

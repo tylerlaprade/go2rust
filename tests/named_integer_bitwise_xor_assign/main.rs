@@ -2,13 +2,13 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-pub const NEED_NAME: i32 = 1 << 0;
-pub const NEED_FILES: i32 = 1 << 1;
-pub const NEED_IMPORTS: i32 = 1 << 2;
+pub const NEED_NAME: i64 = 1 << 0;
+pub const NEED_FILES: i64 = 1 << 1;
+pub const NEED_IMPORTS: i64 = 1 << 2;
 
 
 #[derive(Debug, Default)]
-pub struct LoadMode(pub Rc<RefCell<Option<i32>>>);
+pub struct LoadMode(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for LoadMode {
     fn clone(&self) -> Self {
@@ -31,8 +31,8 @@ impl PartialEq for LoadMode {
     }
 }
 
-impl PartialEq<i32> for LoadMode {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for LoadMode {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -45,19 +45,19 @@ impl PartialOrd for LoadMode {
     }
 }
 
-impl PartialOrd<i32> for LoadMode {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for LoadMode {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<LoadMode> for i32 {
+impl PartialEq<LoadMode> for i64 {
     fn eq(&self, other: &LoadMode) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<LoadMode> for i32 {
+impl PartialOrd<LoadMode> for i64 {
     fn partial_cmp(&self, other: &LoadMode) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -70,14 +70,14 @@ impl std::ops::Add for LoadMode {
     }
 }
 
-impl std::ops::Add<i32> for LoadMode {
+impl std::ops::Add<i64> for LoadMode {
     type Output = LoadMode;
-    fn add(self, other: i32) -> LoadMode {
+    fn add(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<LoadMode> for i32 {
+impl std::ops::Add<LoadMode> for i64 {
     type Output = LoadMode;
     fn add(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -91,14 +91,14 @@ impl std::ops::Sub for LoadMode {
     }
 }
 
-impl std::ops::Sub<i32> for LoadMode {
+impl std::ops::Sub<i64> for LoadMode {
     type Output = LoadMode;
-    fn sub(self, other: i32) -> LoadMode {
+    fn sub(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<LoadMode> for i32 {
+impl std::ops::Sub<LoadMode> for i64 {
     type Output = LoadMode;
     fn sub(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -112,14 +112,14 @@ impl std::ops::Mul for LoadMode {
     }
 }
 
-impl std::ops::Mul<i32> for LoadMode {
+impl std::ops::Mul<i64> for LoadMode {
     type Output = LoadMode;
-    fn mul(self, other: i32) -> LoadMode {
+    fn mul(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<LoadMode> for i32 {
+impl std::ops::Mul<LoadMode> for i64 {
     type Output = LoadMode;
     fn mul(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -133,14 +133,14 @@ impl std::ops::Div for LoadMode {
     }
 }
 
-impl std::ops::Div<i32> for LoadMode {
+impl std::ops::Div<i64> for LoadMode {
     type Output = LoadMode;
-    fn div(self, other: i32) -> LoadMode {
+    fn div(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<LoadMode> for i32 {
+impl std::ops::Div<LoadMode> for i64 {
     type Output = LoadMode;
     fn div(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -161,14 +161,14 @@ impl std::ops::Rem for LoadMode {
     }
 }
 
-impl std::ops::Rem<i32> for LoadMode {
+impl std::ops::Rem<i64> for LoadMode {
     type Output = LoadMode;
-    fn rem(self, other: i32) -> LoadMode {
+    fn rem(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<LoadMode> for i32 {
+impl std::ops::Rem<LoadMode> for i64 {
     type Output = LoadMode;
     fn rem(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -182,14 +182,14 @@ impl std::ops::BitAnd for LoadMode {
     }
 }
 
-impl std::ops::BitAnd<i32> for LoadMode {
+impl std::ops::BitAnd<i64> for LoadMode {
     type Output = LoadMode;
-    fn bitand(self, other: i32) -> LoadMode {
+    fn bitand(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<LoadMode> for i32 {
+impl std::ops::BitAnd<LoadMode> for i64 {
     type Output = LoadMode;
     fn bitand(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -203,14 +203,14 @@ impl std::ops::BitOr for LoadMode {
     }
 }
 
-impl std::ops::BitOr<i32> for LoadMode {
+impl std::ops::BitOr<i64> for LoadMode {
     type Output = LoadMode;
-    fn bitor(self, other: i32) -> LoadMode {
+    fn bitor(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<LoadMode> for i32 {
+impl std::ops::BitOr<LoadMode> for i64 {
     type Output = LoadMode;
     fn bitor(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -224,14 +224,14 @@ impl std::ops::BitXor for LoadMode {
     }
 }
 
-impl std::ops::BitXor<i32> for LoadMode {
+impl std::ops::BitXor<i64> for LoadMode {
     type Output = LoadMode;
-    fn bitxor(self, other: i32) -> LoadMode {
+    fn bitxor(self, other: i64) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<LoadMode> for i32 {
+impl std::ops::BitXor<LoadMode> for i64 {
     type Output = LoadMode;
     fn bitxor(self, other: LoadMode) -> LoadMode {
         LoadMode(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -422,9 +422,9 @@ fn __go_init_globals() {
     *modes.borrow_mut() = Some(std::array::from_fn::<_, 3, _>(|_| Default::default()));
     {
         let mut __go_array = Vec::<AnonymousStruct1>::with_capacity(3);
-        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i32))))))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() });
-        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i32))))))), name: Rc::new(RefCell::new(Some("NeedFiles".to_string()))), ..Default::default() });
-        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i32))))))), name: Rc::new(RefCell::new(Some("NeedImports".to_string()))), ..Default::default() });
+        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_NAME as i64))))))), name: Rc::new(RefCell::new(Some("NeedName".to_string()))), ..Default::default() });
+        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_FILES as i64))))))), name: Rc::new(RefCell::new(Some("NeedFiles".to_string()))), ..Default::default() });
+        __go_array.push(AnonymousStruct1 { mode: Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some(NEED_IMPORTS as i64))))))), name: Rc::new(RefCell::new(Some("NeedImports".to_string()))), ..Default::default() });
         let __go_array: [AnonymousStruct1; 3] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
         *modes.borrow_mut() = Some(__go_array);
     }
@@ -435,7 +435,7 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
     { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         let item = &item.__go_value_clone();
-        if (LoadMode(Rc::new(RefCell::new(Some(((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*item.mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))) {
+        if (LoadMode(Rc::new(RefCell::new(Some(((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*item.mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i64)))) {
         { let __rhs = (*((*item.mode.borrow().as_ref().unwrap()).clone()).0.borrow().as_ref().unwrap()).clone(); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
         if (*out.borrow().as_ref().unwrap()).clone() != "".to_string() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
@@ -443,11 +443,11 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&(*item.name.borrow().as_ref().unwrap()).clone()); };
     }
     } }
-    if (*mode.borrow().as_ref().unwrap()) != LoadMode(Rc::new(RefCell::new(Some(0 as i32)))) {
+    if (*mode.borrow().as_ref().unwrap()) != LoadMode(Rc::new(RefCell::new(Some(0 as i64)))) {
         if (*out.borrow().as_ref().unwrap()).clone() != "".to_string() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
     }
-        { (*out.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!("{}", format!("{:#x}", (*Rc::new(RefCell::new(Some((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
+        { (*out.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!("{}", format!("{:#x}", (*Rc::new(RefCell::new(Some((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
     if (*out.borrow().as_ref().unwrap()).clone() == "".to_string() {
         return Rc::new(RefCell::new(Some("none".to_string())));
@@ -457,8 +457,8 @@ pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<Strin
 
 fn main() {
     __go_init_all();
-    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_NAME as i32 | NEED_IMPORTS as i32) as i32)))))))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_FILES as i32 | (8 as i32)) as i32)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_NAME as i64 | NEED_IMPORTS as i64) as i64)))))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strip(Rc::new(RefCell::new(Some(LoadMode(Rc::new(RefCell::new(Some((NEED_FILES as i64 | (8 as i64)) as i64)))))))).borrow().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone)]

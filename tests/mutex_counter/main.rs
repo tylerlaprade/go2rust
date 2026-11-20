@@ -79,7 +79,7 @@ impl std::fmt::Debug for GoMutex {
 #[derive(Clone)]
 pub struct Counter {
     pub mu: GoMutex,
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {
@@ -120,7 +120,7 @@ impl Counter {
         { let __target = self.value.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         let __mutex_guard_source_208 = self.mu.clone(); let __mutex_guard_208 = __mutex_guard_source_208.guard();
         // mu.Unlock() handled by RAII guard
         return (*self.value.borrow().as_ref().unwrap());

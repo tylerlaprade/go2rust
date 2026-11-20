@@ -161,10 +161,10 @@ pub fn safe_line() {
     }
 }
 
-pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -209,10 +209,10 @@ pub fn divide(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32,
     }
 }
 
-pub fn element(xs: Rc<RefCell<Option<Vec<i32>>>>, i: Rc<RefCell<Option<i32>>>) -> (i32, bool) {
+pub fn element(xs: Rc<RefCell<Option<Vec<i64>>>>, i: Rc<RefCell<Option<i64>>>) -> (i64, bool) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut v: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut v: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut ok: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -257,10 +257,10 @@ pub fn element(xs: Rc<RefCell<Option<Vec<i32>>>>, i: Rc<RefCell<Option<i32>>>) -
     }
 }
 
-pub fn with_error() -> i32 {
+pub fn with_error() -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut n: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut n: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     let __go_previous_panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));
@@ -421,7 +421,7 @@ pub fn nested() {
     }
 }
 
-pub fn no_panic() -> i32 {
+pub fn no_panic() -> i64 {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -459,7 +459,7 @@ pub fn no_panic() -> i32 {
             }
             std::panic::set_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
-            0 as i32
+            0 as i64
         }
     }
 }
@@ -476,7 +476,7 @@ fn main() {
         println!("{} {}", format!("{}", q), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(0)))); q = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
         println!("{} {}", format!("{}", q), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-        let (mut v, mut ok) = element(Rc::new(RefCell::new(Some(vec![1, 2, 3]))), Rc::new(RefCell::new(Some(5))));
+        let (mut v, mut ok) = element(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))), Rc::new(RefCell::new(Some(5))));
         println!("{} {}", format!("{}", v), format!("{}", ok));
         println!("{}", format!("{}", with_error()));
         replaced();

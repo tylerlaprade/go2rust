@@ -65,7 +65,7 @@ fn main() {
         // interface{} can hold any value
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
 
-    { let new_val = Box::new(42) as Box<dyn Any>; *x.borrow_mut() = Some(new_val); };
+    { let new_val = Box::new(42i64) as Box<dyn Any>; *x.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", "x is int:".to_string()), format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
     print_any(x.clone());
 
@@ -78,6 +78,6 @@ fn main() {
     print_any(x.clone());
 
         // interface{} in slice
-    let mut values = Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.0) as Box<dyn Any>])));
+    let mut values = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.0) as Box<dyn Any>])));
     println!("{} {}", format!("{}", "Mixed values:".to_string()), format!("{}", format_any_slice(&values)));
 }

@@ -7,7 +7,7 @@ pub fn run(r#fn: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
 }
 
 fn main() {
-    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(7) as Box<dyn Any>)));
+    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>)));
 
     let v_closure_clone = v.clone(); let mut f = Rc::new(RefCell::new(Some(Box::new(move || {
         let v_closure_clone_closure_clone = v_closure_clone.clone(); run(Rc::new(RefCell::new(Some(Box::new(move || {
@@ -15,7 +15,7 @@ fn main() {
         let val = v_closure_clone_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<i32>() {
+            if let Some(typed_val) = any_val.downcast_ref::<i64>() {
                 (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
                 (Rc::new(RefCell::new(Some(0))), false)
@@ -30,7 +30,7 @@ fn main() {
         let val = v_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<i32>() {
+            if let Some(typed_val) = any_val.downcast_ref::<i64>() {
                 (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
             } else {
                 (Rc::new(RefCell::new(Some(0))), false)

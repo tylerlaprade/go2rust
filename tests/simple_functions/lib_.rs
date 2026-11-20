@@ -9,6 +9,6 @@ pub fn get_world() -> Rc<RefCell<Option<String>>> {
     Rc::new(RefCell::new(Some("World".to_string())))
 }
 
-pub fn get_magic_number() -> i32 {
+pub fn get_magic_number() -> i64 {
     42
 }

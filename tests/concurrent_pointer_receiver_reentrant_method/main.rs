@@ -174,7 +174,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct state {
-    pub value: Arc<Mutex<Option<i32>>>,
+    pub value: Arc<Mutex<Option<i64>>>,
 }
 
 impl state {
@@ -205,7 +205,7 @@ impl std::fmt::Display for state {
 
 
 impl state {
-    pub fn read(&self) -> i32 {
+    pub fn read(&self) -> i64 {
         return (*self.value.lock().unwrap().as_ref().unwrap());
     }
 

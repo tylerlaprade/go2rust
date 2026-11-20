@@ -49,8 +49,8 @@ pub trait List: std::fmt::Display + Any {
     fn __go_clone_box_list(&self) -> Box<dyn List>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_list(&self, other: &dyn List) -> bool;
-    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool;
-    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32;
+    fn valid(&self, index: Rc<RefCell<Option<i64>>>) -> bool;
+    fn label(&self, index: Rc<RefCell<Option<i64>>>) -> i64;
 }
 
 impl Clone for Box<dyn List> {
@@ -61,7 +61,7 @@ impl Clone for Box<dyn List> {
 
 #[derive(Debug, Clone, Default)]
 pub struct list {
-    pub labels: Rc<RefCell<Option<Vec<i32>>>>,
+    pub labels: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl list {
@@ -82,20 +82,20 @@ impl std::fmt::Display for list {
 
 
 impl list {
-    pub fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
-        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i32) < (({ let __len_target = { let __field = self.labels.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)
+    pub fn valid(&self, index: Rc<RefCell<Option<i64>>>) -> bool {
+        (*index.borrow().as_ref().unwrap()) >= 0 && ((*index.borrow().as_ref().unwrap()) as i64) < (({ let __len_target = { let __field = self.labels.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64)
     }
 
-    pub fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
+    pub fn label(&self, index: Rc<RefCell<Option<i64>>>) -> i64 {
         (*self.labels.borrow().as_ref().unwrap())[((*index.borrow().as_ref().unwrap())) as usize].clone()
     }
 }
 
 impl List for list {
-    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
+    fn label(&self, index: Rc<RefCell<Option<i64>>>) -> i64 {
         list::label(self, index)
     }
-    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
+    fn valid(&self, index: Rc<RefCell<Option<i64>>>) -> bool {
         list::valid(self, index)
     }
     fn __go_clone_box_list(&self) -> Box<dyn List> {
@@ -124,12 +124,12 @@ impl std::fmt::Display for listPtr {
 }
 
 impl List for listPtr {
-    fn label(&self, index: Rc<RefCell<Option<i32>>>) -> i32 {
+    fn label(&self, index: Rc<RefCell<Option<i64>>>) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         list::label(__recv, index)
     }
-    fn valid(&self, index: Rc<RefCell<Option<i32>>>) -> bool {
+    fn valid(&self, index: Rc<RefCell<Option<i64>>>) -> bool {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         list::valid(__recv, index)
@@ -150,7 +150,7 @@ impl List for listPtr {
 }
 
 fn main() {
-    let mut l = Rc::new(RefCell::new(Some(list { labels: Rc::new(RefCell::new(Some(vec![3]))), ..Default::default() })));
+    let mut l = Rc::new(RefCell::new(Some(list { labels: Rc::new(RefCell::new(Some(vec![3i64]))), ..Default::default() })));
     let mut valid = (*l.borrow().as_ref().unwrap()).valid(Rc::new(RefCell::new(Some(0))));
     let mut label = (*l.borrow().as_ref().unwrap()).label(Rc::new(RefCell::new(Some(0))));
     println!("{} {}", format!("{}", valid), format!("{}", label));

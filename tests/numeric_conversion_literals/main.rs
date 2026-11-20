@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn byte_bit(i: Rc<RefCell<Option<i32>>>) -> u8 {
+pub fn byte_bit(i: Rc<RefCell<Option<i64>>>) -> u8 {
     (1 as u8) << ((*i.borrow().as_ref().unwrap()) % 8)
 }
 
@@ -10,7 +10,7 @@ pub fn uint64_mask(i: Rc<RefCell<Option<u64>>>) -> u64 {
 }
 
 pub fn byte_from_expr(v: Rc<RefCell<Option<u8>>>) -> u8 {
-    (*Rc::new(RefCell::new(Some(((*v.borrow().as_ref().unwrap()) + ('0' as u8)) as u8))).borrow().as_ref().unwrap())
+    (*Rc::new(RefCell::new(Some((((*v.borrow().as_ref().unwrap()) + ('0' as u8))) as u8))).borrow().as_ref().unwrap())
 }
 
 fn main() {

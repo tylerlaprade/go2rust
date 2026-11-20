@@ -18,7 +18,7 @@ impl Clone for Box<dyn describer> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct base {
-    pub num: Rc<RefCell<Option<i32>>>,
+    pub num: Rc<RefCell<Option<i64>>>,
 }
 
 impl base {

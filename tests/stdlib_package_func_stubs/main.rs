@@ -2,15 +2,15 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ast_ChanDir(pub i32);
+pub struct ast_ChanDir(pub i64);
 
-impl PartialEq<i32> for ast_ChanDir {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for ast_ChanDir {
+    fn eq(&self, other: &i64) -> bool {
         self.0 == *other
     }
 }
 
-impl PartialEq<ast_ChanDir> for i32 {
+impl PartialEq<ast_ChanDir> for i64 {
     fn eq(&self, other: &ast_ChanDir) -> bool {
         *self == other.0
     }
@@ -130,7 +130,7 @@ pub mod ast {
 
 pub mod binary {
     use super::*;
-    pub const MAX_VARINT_LEN64: i32 = 10;
+    pub const MAX_VARINT_LEN64: i64 = 10;
 }
 
 
@@ -158,7 +158,7 @@ fn main() {
         { let (__tmp_0, __tmp_1) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), parser::SKIP_OBJECT_RESOLUTION); };
         let _ = binary::MAX_VARINT_LEN64;
         let mut dir = Arc::new(Mutex::new(Some(ast::S_E_N_D)));
-        { let new_val = ast_ChanDir((((ast::S_E_N_D).0 as i32) | ((ast::R_E_C_V).0 as i32)) as i32); *dir.lock().unwrap() = Some(new_val); };
+        { let new_val = ast_ChanDir(((((ast::S_E_N_D).0 as i64) | ((ast::R_E_C_V).0 as i64))) as i64); *dir.lock().unwrap() = Some(new_val); };
         let _ = &dir;
     }
     println!("{}", format!("{}", "ok".to_string()));

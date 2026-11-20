@@ -2,9 +2,9 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
-    let mut pairs: Rc<RefCell<Option<Vec<[i32; 2]>>>> = Rc::new(RefCell::new(None));
-    for (i, value) in vec![4, 5].iter().copied().enumerate() {
-        { let new_val = { let __append_target = pairs.clone(); let __append_value = [i as i32, value]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; pairs = new_val; };
+    let mut pairs: Rc<RefCell<Option<Vec<[i64; 2]>>>> = Rc::new(RefCell::new(None));
+    for (i, value) in vec![4i64, 5i64].iter().copied().enumerate() {
+        { let new_val = { let __append_target = pairs.clone(); let __append_value = [i as i64, value]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; pairs = new_val; };
     }
     let mut prev = Rc::new(RefCell::new(Some([0, 0])));
     { let __range_holder = pairs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for pair in __range_values.iter().copied() {

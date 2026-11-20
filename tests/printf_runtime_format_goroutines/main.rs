@@ -121,13 +121,13 @@ fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
         match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
-    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Point>>>>() {
         go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Status>>>>() {
         match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
-    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i32>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         format_slice(v)
@@ -358,27 +358,27 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>>>() { return "map[string]int" }
+    if val.is::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() { return "map[string]int" }
     if val.is::<Arc<Mutex<Option<Point>>>>() { return "*main.Point" }
     if val.is::<Arc<Mutex<Option<Status>>>>() { return "*main.Status" }
-    if val.is::<Arc<Mutex<Option<Vec<i32>>>>>() { return "[]int" }
+    if val.is::<Arc<Mutex<Option<Vec<i64>>>>>() { return "[]int" }
     if val.is::<Arc<Mutex<Option<Vec<u8>>>>>() { return "[]uint8" }
     if val.is::<Point>() { return "main.Point" }
     if val.is::<Status>() { return "main.Status" }
@@ -1121,8 +1121,8 @@ pub(crate) const PAIR_LAYOUT: &'static str = "%v=%v\n";
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
-    pub y: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -1163,7 +1163,7 @@ impl std::fmt::Display for Point {
 
 #[derive(Debug, Clone)]
 pub struct Status {
-    pub code: Arc<Mutex<Option<i32>>>,
+    pub code: Arc<Mutex<Option<i64>>>,
 }
 
 impl Status {
@@ -1255,28 +1255,28 @@ fn main() {
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
         // The format is a parameter, the result of a call, or a variable.
-    logf(Arc::new(Mutex::new(Some("count %d of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>, Box::new(2) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("count %d of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>]))));
     print!("{}", go_sprintf(&(*pick(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("x".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(true) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d-%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d-%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
     let mut f = Arc::new(Mutex::new(Some("value: %d\n".to_string())));
-    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(42) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(42i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
 
-    show_pair(Arc::new(Mutex::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any + Send + Sync>, Box::new(1) as Box<dyn Any + Send + Sync>]))));
-    later(Arc::new(Mutex::new(Some("%d and %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>]))));
+    show_pair(Arc::new(Mutex::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any + Send + Sync>, Box::new(1i64) as Box<dyn Any + Send + Sync>]))));
+    later(Arc::new(Mutex::new(Some("%d and %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>]))));
 
         // Verbs, flags, width and precision.
-    logf(Arc::new(Mutex::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(42) as Box<dyn Any + Send + Sync>, Box::new(42) as Box<dyn Any + Send + Sync>, Box::new(42) as Box<dyn Any + Send + Sync>, Box::new(42) as Box<dyn Any + Send + Sync>, Box::new(255) as Box<dyn Any + Send + Sync>, Box::new(255) as Box<dyn Any + Send + Sync>, Box::new(8) as Box<dyn Any + Send + Sync>, Box::new(5) as Box<dyn Any + Send + Sync>, Box::new(65) as Box<dyn Any + Send + Sync>, Box::new(65) as Box<dyn Any + Send + Sync>, Box::new(65) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(255i64) as Box<dyn Any + Send + Sync>, Box::new(255i64) as Box<dyn Any + Send + Sync>, Box::new(8i64) as Box<dyn Any + Send + Sync>, Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new(65i64) as Box<dyn Any + Send + Sync>, Box::new(65i64) as Box<dyn Any + Send + Sync>, Box::new(65i64) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("%s|%10s|%-10s|%.2s|%q|%x".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("golang".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("%v|%f|%.2f|%8.3f|%e|%g".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(123456.789) as Box<dyn Any + Send + Sync>, Box::new(1e21) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("%t|%v|%5t".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(true) as Box<dyn Any + Send + Sync>, Box::new(false) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
-    logf(Arc::new(Mutex::new(Some("%v %v %v %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
-    logf(Arc::new(Mutex::new(Some("%T %T %T %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
-    logf(Arc::new(Mutex::new(Some("100%% of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(3) as Box<dyn Any + Send + Sync>]))));
-    logf(Arc::new(Mutex::new(Some("%*d|%-*d|%.*f".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5) as Box<dyn Any + Send + Sync>, Box::new(42) as Box<dyn Any + Send + Sync>, Box::new(5) as Box<dyn Any + Send + Sync>, Box::new(42) as Box<dyn Any + Send + Sync>, Box::new(2) as Box<dyn Any + Send + Sync>, Box::new(3.14159) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%v %v %v %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%T %T %T %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("100%% of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(3i64) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%*d|%-*d|%.*f".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new(3.14159) as Box<dyn Any + Send + Sync>]))));
 
         // Values that print the way Println prints them.
     logf(Arc::new(Mutex::new(Some("point %v, pointer %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>]))));
-    logf(Arc::new(Mutex::new(Some("slice %v, map %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1, 2]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1))))])))).clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("slice %v, map %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("error: %v / %s".to_string()))), Arc::new(Mutex::new(Some(vec![{ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bang".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
     let mut failed = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("failed".to_string())))));
     logf(Arc::new(Mutex::new(Some("%v|%s|%10v|".to_string()))), Arc::new(Mutex::new(Some(vec![{ let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
@@ -1291,30 +1291,30 @@ fn main() {
 
         // A []byte prints as text where a string would.
     logf(Arc::new(Mutex::new(Some("bytes %s, hex %x, list %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any + Send + Sync>]))));
-    logf(Arc::new(Mutex::new(Some("%*d|%#v|%#v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(-(4)) as Box<dyn Any + Send + Sync>, Box::new(7) as Box<dyn Any + Send + Sync>, Box::new("quoted".to_string()) as Box<dyn Any + Send + Sync>, Box::new({ let __v = Arc::new(Mutex::new(Some(255 as u8))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%*d|%#v|%#v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(-4i64) as Box<dyn Any + Send + Sync>, Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("quoted".to_string()) as Box<dyn Any + Send + Sync>, Box::new(255u8) as Box<dyn Any + Send + Sync>]))));
 
         // What fmt writes when the format and the arguments do not fit.
     println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>, Box::new(2) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%z".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%z".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("trailing %".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("no verbs".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("no verbs".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("plain".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap())));
 
         // The same through Sprintf, Errorf and Fprintf.
-    let mut err = errorf(Arc::new(Mutex::new(Some("code %d: %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7) as Box<dyn Any + Send + Sync>, { let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
+    let mut err = errorf(Arc::new(Mutex::new(Some("code %d: %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, { let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
     println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // %w is for an error. fmt reports it for a number or a string.
-    println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w and %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![65 as u8, 66 as u8]))).clone()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(43) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(43i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut pair = Arc::new(Mutex::new(Some("%s=%d".to_string())));
     let mut b: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*b.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("k".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)));
+    (*b.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("k".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __builder = b.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())));
 
         // A constant format is known when the program is translated.

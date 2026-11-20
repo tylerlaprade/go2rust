@@ -569,7 +569,7 @@ impl<T: 'static> std::fmt::Debug for GoPtr<T> {
 #[derive(Debug, Clone)]
 pub struct Item {
     pub name: Rc<RefCell<Option<String>>>,
-    pub count: Rc<RefCell<Option<i32>>>,
+    pub count: Rc<RefCell<Option<i64>>>,
 }
 
 impl Item {
@@ -606,7 +606,7 @@ impl std::fmt::Display for Item {
 
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
     pub last: Rc<RefCell<Option<Counter>>>,
 }
 
@@ -657,7 +657,7 @@ impl Clone for Box<dyn Shape> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Square {
-    pub side: Rc<RefCell<Option<i32>>>,
+    pub side: Rc<RefCell<Option<i64>>>,
 }
 
 impl Square {

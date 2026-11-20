@@ -5,7 +5,7 @@ use std::rc::{Rc};
 #[derive(Debug, Clone)]
 pub struct Pair {
     pub left: Rc<RefCell<Option<String>>>,
-    pub right: Rc<RefCell<Option<i32>>>,
+    pub right: Rc<RefCell<Option<i64>>>,
 }
 
 impl Pair {

@@ -7,8 +7,8 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn pos(&self) -> i32;
-    fn end(&self) -> i32;
+    fn pos(&self) -> i64;
+    fn end(&self) -> i64;
 }
 
 impl Clone for Box<dyn Node> {
@@ -39,17 +39,17 @@ impl Node for Box<dyn Expr> {
     fn __go_eq_node(&self, other: &dyn Node) -> bool {
         (**self).__go_eq_node(other)
     }
-    fn end(&self) -> i32 {
+    fn end(&self) -> i64 {
         (**self).end()
     }
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         (**self).pos()
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lit {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Lit {
@@ -80,11 +80,11 @@ impl std::fmt::Display for Lit {
 
 
 impl Lit {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap());
     }
 
-    pub fn end(&self) -> i32 {
+    pub fn end(&self) -> i64 {
         return (*self.value.borrow().as_ref().unwrap()) + 1;
     }
 
@@ -137,10 +137,10 @@ impl Expr for LitPtr {
 }
 
 impl Node for Lit {
-    fn end(&self) -> i32 {
+    fn end(&self) -> i64 {
         Lit::end(self)
     }
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         Lit::pos(self)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -159,12 +159,12 @@ impl Node for Lit {
 }
 
 impl Node for LitPtr {
-    fn end(&self) -> i32 {
+    fn end(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Lit::end(__recv)
     }
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Lit::pos(__recv)
@@ -184,7 +184,7 @@ impl Node for LitPtr {
     }
 }
 
-pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (i32, i32) {
+pub fn describe(e: Rc<RefCell<Option<Box<dyn Expr>>>>) -> (i64, i64) {
     ((*e.borrow().as_ref().unwrap()).pos(), (*e.borrow().as_ref().unwrap()).end())
 }
 

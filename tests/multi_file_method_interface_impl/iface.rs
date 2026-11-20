@@ -7,7 +7,7 @@ pub trait Stepper: std::fmt::Display + Any {
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_stepper(&self, other: &dyn Stepper) -> bool;
     fn step(&mut self);
-    fn value(&self) -> i32;
+    fn value(&self) -> i64;
 }
 
 impl Clone for Box<dyn Stepper> {

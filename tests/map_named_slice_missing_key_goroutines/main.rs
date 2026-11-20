@@ -215,7 +215,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Numbers(pub Arc<Mutex<Option<Vec<i32>>>>);
+pub struct Numbers(pub Arc<Mutex<Option<Vec<i64>>>>);
 
 impl Display for Numbers {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -231,7 +231,7 @@ fn main() {
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); let ok_thread = ok.clone(); let one_thread = one.clone(); let two_thread = two.clone(); std::thread::spawn(move || {
         println!("{} {} {} {} {}", format!("{}", { let __slice_holder = { let __named_slice = (*one_thread.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = one_thread.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_none() }), format!("{}", ok_thread), format!("{}", { let __slice_holder = { let __named_slice = (*two_thread.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = two_thread.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_none() }));;
-        let mut s = Arc::new(Mutex::new(Some(Numbers(Arc::new(Mutex::new(Some(vec![1])))))));;
+        let mut s = Arc::new(Mutex::new(Some(Numbers(Arc::new(Mutex::new(Some(vec![1i64])))))));;
         println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = s.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_none() }), format!("{}", { let __slice_holder = { let __named_slice = s.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_some() }));;
         *s.lock().unwrap() = None;;
         println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = s.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_none() }), format!("{}", { let __slice_holder = { let __named_slice = s.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_some() }));;

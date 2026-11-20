@@ -49,7 +49,7 @@ impl PartialEq for GoObjectInterfaceKey {
 }
 impl Eq for GoObjectInterfaceKey {}
 impl PartialOrd for GoObjectInterfaceKey {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(std::cmp::Ord::cmp(self, other)) }
 }
 impl Ord for GoObjectInterfaceKey {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {

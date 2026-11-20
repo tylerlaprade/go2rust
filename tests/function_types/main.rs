@@ -45,13 +45,13 @@ where
 }
 
 /// Function type definitions
-pub type BinaryOp = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>>>>;
+pub type BinaryOp = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>>>>;
 
 
-pub type UnaryOp = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>>>>;
+pub type UnaryOp = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>>;
 
 
-pub type Predicate = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> bool>>>>;
+pub type Predicate = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>>>>;
 
 
 pub type StringProcessor = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>>>>;
@@ -89,19 +89,19 @@ impl std::fmt::Display for Calculator {
 
 
 /// Functions that match the types
-pub fn add(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn add(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> i64 {
     (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap())
 }
 
-pub fn multiply(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn multiply(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> i64 {
     (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap())
 }
 
-pub fn square(x: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn square(x: Rc<RefCell<Option<i64>>>) -> i64 {
     { let __bin_x = (*x.borrow().as_ref().unwrap()).clone(); __bin_x * __bin_x }
 }
 
-pub fn is_even(x: Rc<RefCell<Option<i32>>>) -> bool {
+pub fn is_even(x: Rc<RefCell<Option<i64>>>) -> bool {
     (*x.borrow().as_ref().unwrap()) % 2 == 0
 }
 
@@ -109,7 +109,7 @@ pub fn to_upper(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
     let mut result = Rc::new(RefCell::new(Some("".to_string())));
     for (_, char) in (*s.borrow().as_ref().unwrap()).char_indices() {
         if char >= 'a' && char <= 'z' {
-        { (*result.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(char::from_u32((((char as i32) - 32)) as u32).unwrap().to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
+        { (*result.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(char::from_u32(((((char as i32) - 32))) as u32).unwrap().to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     } else {
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(char::from_u32(((char as i32)) as u32).unwrap().to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
@@ -118,28 +118,28 @@ pub fn to_upper(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 /// Higher-order functions
-pub fn apply_binary(op: BinaryOp, a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> i32 {
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(a.clone(), b.clone()) }
+pub fn apply_binary(op: BinaryOp, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> i64 {
+    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(a.clone(), b.clone()) }
 }
 
-pub fn apply_unary(op: UnaryOp, x: Rc<RefCell<Option<i32>>>) -> i32 {
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) }
+pub fn apply_unary(op: UnaryOp, x: Rc<RefCell<Option<i64>>>) -> i64 {
+    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) }
 }
 
-pub fn filter(numbers: Rc<RefCell<Option<Vec<i32>>>>, pred: Predicate) -> Rc<RefCell<Option<Vec<i32>>>> {
-    let mut result: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
+pub fn filter(numbers: Rc<RefCell<Option<Vec<i64>>>>, pred: Predicate) -> Rc<RefCell<Option<Vec<i64>>>> {
+    let mut result: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
-        if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> bool> = { let mut __f_guard = pred.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) } {
+        if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool> = { let mut __f_guard = pred.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) } {
         { let new_val = { let __append_target = result.clone(); let __append_value = num; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; result = new_val; };
     }
     } }
     return result.clone();
 }
 
-pub fn transform(numbers: Rc<RefCell<Option<Vec<i32>>>>, op: UnaryOp) -> Rc<RefCell<Option<Vec<i32>>>> {
+pub fn transform(numbers: Rc<RefCell<Option<Vec<i64>>>>, op: UnaryOp) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut result = Rc::new(RefCell::new(Some(vec![0; ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
-        { let __idx = (i) as usize; let __rhs = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) }; (*result.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (i) as usize; let __rhs = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) }; (*result.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     } }
     return result.clone();
 }
@@ -149,16 +149,16 @@ pub fn process_string(s: Rc<RefCell<Option<String>>>, processor: StringProcessor
 }
 
 /// Function that returns a function
-pub fn make_multiplier(factor: Rc<RefCell<Option<i32>>>) -> UnaryOp {
-    let factor_closure_clone = factor.clone(); return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> i32 {
+pub fn make_multiplier(factor: Rc<RefCell<Option<i64>>>) -> UnaryOp {
+    let factor_closure_clone = factor.clone(); return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * (*factor_closure_clone.borrow().as_ref().unwrap())
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>)));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>)));
 }
 
-pub fn make_adder(addend: Rc<RefCell<Option<i32>>>) -> BinaryOp {
-    let addend_closure_clone = addend.clone(); return Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> i32 {
+pub fn make_adder(addend: Rc<RefCell<Option<i64>>>) -> BinaryOp {
+    let addend_closure_clone = addend.clone(); return Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>| -> i64 {
         (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()) + (*addend_closure_clone.borrow().as_ref().unwrap())
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>)));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>)));
 }
 
 fn main() {
@@ -166,43 +166,43 @@ fn main() {
     println!("{}", format!("{}", "=== Basic function types ===".to_string()));
 
     let mut op: BinaryOp = Rc::new(RefCell::new(None));
-    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> i32 { add(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>; *op.borrow_mut() = Some(new_val); };
-    print!("5 + 3 = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) });
+    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i64>>>, __arg1: Rc<RefCell<Option<i64>>>| -> i64 { add(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>; *op.borrow_mut() = Some(new_val); };
+    print!("5 + 3 = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) });
 
-    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> i32 { multiply(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>; *op.borrow_mut() = Some(new_val); };
-    print!("5 * 3 = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) });
+    { let new_val = Box::new(move |__arg0: Rc<RefCell<Option<i64>>>, __arg1: Rc<RefCell<Option<i64>>>| -> i64 { multiply(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>; *op.borrow_mut() = Some(new_val); };
+    print!("5 * 3 = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) });
 
         // Higher-order functions
     println!("{}", format!("{}", "\n=== Higher-order functions ===".to_string()));
-    let mut result = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> i32 { add(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
+    let mut result = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i64>>>, __arg1: Rc<RefCell<Option<i64>>>| -> i64 { add(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>))), Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(20))));
     print!("applyBinary(add, 10, 20) = {}\n", result);
 
-    { let new_val = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> i32 { multiply(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); result = new_val; };
+    { let new_val = apply_binary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i64>>>, __arg1: Rc<RefCell<Option<i64>>>| -> i64 { multiply(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>))), Rc::new(RefCell::new(Some(4))), Rc::new(RefCell::new(Some(7)))); result = new_val; };
     print!("applyBinary(multiply, 4, 7) = {}\n", result);
 
-    let mut unaryResult = apply_unary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> i32 { square(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>))), Rc::new(RefCell::new(Some(6))));
+    let mut unaryResult = apply_unary(Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { square(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>))), Rc::new(RefCell::new(Some(6))));
     print!("applyUnary(square, 6) = {}\n", unaryResult);
 
         // Function slices and filtering
     println!("{}", format!("{}", "\n=== Function slices and filtering ===".to_string()));
-    let mut numbers = Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64, 6i64, 7i64, 8i64, 9i64, 10i64])));
 
-    let mut evens = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> bool { is_even(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> bool>))));
+    let mut evens = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> bool { is_even(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>))));
     print!("Even numbers: {}\n", format_slice(&evens));
 
-    let mut odds = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> bool {
+    let mut odds = filter(numbers.clone(), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i64>>>| -> bool {
         (*x.borrow().as_ref().unwrap()) % 2 != 0
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> bool>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>))));
     print!("Odd numbers: {}\n", format_slice(&odds));
 
         // Transform with function types
     println!("{}", format!("{}", "\n=== Transform operations ===".to_string()));
-    let mut squared = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>| -> i32 { square(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>))));
+    let mut squared = transform(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64]))), Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { square(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>))));
     print!("Squared: {}\n", format_slice(&squared));
 
-    let mut doubled = transform(Rc::new(RefCell::new(Some(vec![1, 2, 3, 4, 5]))), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i32>>>| -> i32 {
+    let mut doubled = transform(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64]))), Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * 2
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>))));
     print!("Doubled: {}\n", format_slice(&doubled));
 
         // String processing
@@ -213,7 +213,7 @@ fn main() {
 
     let mut reversed = process_string(Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         let mut runes = Rc::new(RefCell::new(Some(((*s.borrow().as_ref().unwrap())).chars().map(|c| c as i32).collect::<Vec<_>>())));
-        let (mut i, mut j) = (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(((*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)))));
+        let (mut i, mut j) = (Rc::new(RefCell::new(Some(0i64))), Rc::new(RefCell::new(Some(((*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)))));
     while (*i.borrow().as_ref().unwrap()) < (*j.borrow().as_ref().unwrap()) {
         {
             let __go_lhs_sequence_0 = runes.clone();
@@ -239,23 +239,23 @@ fn main() {
         // Functions that return functions
     println!("{}", format!("{}", "\n=== Functions returning functions ===".to_string()));
     let mut triple = make_multiplier(Rc::new(RefCell::new(Some(3))));
-    print!("triple(4) = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = triple.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) });
+    print!("triple(4) = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = triple.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) });
 
     let mut addTen = make_adder(Rc::new(RefCell::new(Some(10))));
-    print!("addTen(5, 3) = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = addTen.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) });
+    print!("addTen(5, 3) = {}\n", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = addTen.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3)))) });
 
         // Struct with function fields
     println!("{}", format!("{}", "\n=== Struct with function fields ===".to_string()));
-    let mut calc = Rc::new(RefCell::new(Some(Calculator { add: Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> i32 {
+    let mut calc = Rc::new(RefCell::new(Some(Calculator { add: Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>| -> i64 {
         (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap())
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>))), subtract: Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>| -> i32 {
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>))), subtract: Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>| -> i64 {
         (*a.borrow().as_ref().unwrap()) - (*b.borrow().as_ref().unwrap())
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>))), multiply: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i32>>>, __arg1: Rc<RefCell<Option<i32>>>| -> i32 { multiply(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32>))), ..Default::default() })));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>))), multiply: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<i64>>>, __arg1: Rc<RefCell<Option<i64>>>| -> i64 { multiply(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>))), ..Default::default() })));
 
         // Reuse existing function
-    print!("calc.Add(10, 5) = {}\n", { let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) });
-    print!("calc.Subtract(10, 5) = {}\n", { let __f_holder = (*calc.borrow().as_ref().unwrap()).subtract.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) });
-    print!("calc.Multiply(10, 5) = {}\n", { let __f_holder = (*calc.borrow().as_ref().unwrap()).multiply.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) });
+    print!("calc.Add(10, 5) = {}\n", { let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) });
+    print!("calc.Subtract(10, 5) = {}\n", { let __f_holder = (*calc.borrow().as_ref().unwrap()).subtract.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) });
+    print!("calc.Multiply(10, 5) = {}\n", { let __f_holder = (*calc.borrow().as_ref().unwrap()).multiply.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(5)))) });
 
         // Function variables
     println!("{}", format!("{}", "\n=== Function variables ===".to_string()));

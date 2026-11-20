@@ -6,7 +6,7 @@ use std::rc::{Rc};
 pub struct Settings {
     pub enabled: Rc<RefCell<Option<bool>>>,
     pub name: Rc<RefCell<Option<String>>>,
-    pub count: Rc<RefCell<Option<i32>>>,
+    pub count: Rc<RefCell<Option<i64>>>,
     pub ratio: Rc<RefCell<Option<f64>>>,
 }
 

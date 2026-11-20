@@ -63,7 +63,7 @@ fn __go_init_globals() {
 
 
 pub fn lookup(methods: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>>>>>>, receiver: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>> {
-    if (*receiver.borrow().as_ref().unwrap()).clone() != "".to_string() && ((*{ let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) > (0 as i32) {
+    if (*receiver.borrow().as_ref().unwrap()).clone() != "".to_string() && ((*{ let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) > (0 as i64) {
         return { let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     }
     fallback.clone()

@@ -54,8 +54,8 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 	tokenType := gotypes.NewNamed(tokenName, gotypes.Typ[gotypes.Int], nil)
 	RegisterExternalPackageStubConstantValue("token", rustConstName("ADD"), tokenType, goconstant.MakeInt64(12))
 
-	if got := ctx.File.ExternalTypeStubIntegerTypes["token_Token"]; got != "i32" {
-		t.Fatalf("token package constants should register token_Token as i32, got %q", got)
+	if got := ctx.File.ExternalTypeStubIntegerTypes["token_Token"]; got != "i64" {
+		t.Fatalf("token package constants should register token_Token as i64, got %q", got)
 	}
 
 	got := generateExternalStubs(
@@ -69,7 +69,7 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 		ctx.File.ExternalPackageStubs,
 	)
 	for _, want := range []string{
-		"pub struct token_Token(pub i32);",
+		"pub struct token_Token(pub i64);",
 		"pub const A_D_D: token_Token = token_Token(12);",
 	} {
 		if !strings.Contains(got, want) {
@@ -96,8 +96,8 @@ func TestAstPackageConstantsUseGenericConstStub(t *testing.T) {
 	RegisterExternalPackageStubConstantValue("ast", rustConstName("SEND"), chanDirType, goconstant.MakeInt64(1))
 	RegisterExternalPackageStubConstantValue("ast", rustConstName("RECV"), chanDirType, goconstant.MakeInt64(2))
 
-	if got := ctx.File.ExternalTypeStubIntegerTypes["ast_ChanDir"]; got != "i32" {
-		t.Fatalf("ast package constants should register ast_ChanDir as i32, got %q", got)
+	if got := ctx.File.ExternalTypeStubIntegerTypes["ast_ChanDir"]; got != "i64" {
+		t.Fatalf("ast package constants should register ast_ChanDir as i64, got %q", got)
 	}
 
 	got := generateExternalStubs(
@@ -111,7 +111,7 @@ func TestAstPackageConstantsUseGenericConstStub(t *testing.T) {
 		ctx.File.ExternalPackageStubs,
 	)
 	for _, want := range []string{
-		"pub struct ast_ChanDir(pub i32);",
+		"pub struct ast_ChanDir(pub i64);",
 		"pub const R_E_C_V: ast_ChanDir = ast_ChanDir(2);",
 		"pub const S_E_N_D: ast_ChanDir = ast_ChanDir(1);",
 	} {
@@ -758,13 +758,13 @@ func TestRuntimeGOMAXPROCSStubMatchesBareReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeRuntimeGOMAXPROCSStub(&out, externalPackageStubFunction{
 		ParamCount:  1,
-		ReturnTypes: []string{"i32"},
+		ReturnTypes: []string{"i64"},
 	})
 	got := out.String()
-	if strings.Contains(got, "Some::<i32>") || strings.Contains(got, "RefCell::new") || strings.Contains(got, "Mutex::new") {
-		t.Fatalf("runtime.GOMAXPROCS stub should return bare i32 for bare signatures:\n%s", got)
+	if strings.Contains(got, "Some::<i64>") || strings.Contains(got, "RefCell::new") || strings.Contains(got, "Mutex::new") {
+		t.Fatalf("runtime.GOMAXPROCS stub should return bare i64 for bare signatures:\n%s", got)
 	}
-	if !strings.Contains(got, "pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i32") ||
+	if !strings.Contains(got, "pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i64") ||
 		!strings.Contains(got, "std::thread::available_parallelism()") {
 		t.Fatalf("runtime.GOMAXPROCS stub should preserve the runtime fallback body:\n%s", got)
 	}

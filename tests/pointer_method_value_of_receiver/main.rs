@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct lexer {
-    pub pos: Rc<RefCell<Option<i32>>>,
+    pub pos: Rc<RefCell<Option<i64>>>,
 }
 
 impl lexer {
@@ -35,18 +35,18 @@ impl std::fmt::Display for lexer {
 
 
 impl lexer {
-    pub fn next(&mut self) -> i32 {
+    pub fn next(&mut self) -> i64 {
         { let __target = self.pos.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*self.pos.borrow().as_ref().unwrap());
     }
 
-    pub fn scan_with(&self, f: Rc<RefCell<Option<Box<dyn FnMut() -> i32>>>>) -> i32 {
-        { let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-        { let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
+    pub fn scan_with(&self, f: Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>) -> i64 {
+        { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
     }
 
-    pub fn scan(&self) -> i32 {
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move || -> i32 { __recv.next() }) as Box<dyn FnMut() -> i32> }))); self.scan_with(__method_arg0) }
+    pub fn scan(&self) -> i64 {
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move || -> i64 { __recv.next() }) as Box<dyn FnMut() -> i64> }))); self.scan_with(__method_arg0) }
     }
 }
 

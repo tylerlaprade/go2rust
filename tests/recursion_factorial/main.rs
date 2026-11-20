@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn fact(n: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn fact(n: Rc<RefCell<Option<i64>>>) -> i64 {
     if (*n.borrow().as_ref().unwrap()) == 0 {
         return 1;
     }

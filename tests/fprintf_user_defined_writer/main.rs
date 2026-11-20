@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct userWriter {
-    pub count: Arc<Mutex<Option<i32>>>,
+    pub count: Arc<Mutex<Option<i64>>>,
     pub buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>,
 }
 
@@ -43,7 +43,7 @@ impl std::fmt::Display for userWriter {
 
 
 impl userWriter {
-    pub fn write(&mut self, data: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write(&mut self, data: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         { let __target = self.count.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         (*self.buf.lock().unwrap().as_mut().unwrap()).write(data.clone())
     }

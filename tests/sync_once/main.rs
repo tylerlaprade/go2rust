@@ -35,7 +35,7 @@ impl Default for GoOnce {
 	
 fn main() {
     let mut once = GoOnce::new();
-    let mut count = Rc::new(RefCell::new(Some(0)));
+    let mut count = Rc::new(RefCell::new(Some(0i64)));
 
     { let __once = once.clone(); __once.r#do(|| {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

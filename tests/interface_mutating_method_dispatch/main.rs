@@ -7,7 +7,7 @@ pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
-    fn count(&self) -> i32;
+    fn count(&self) -> i64;
 }
 
 impl Clone for Box<dyn Node> {
@@ -63,8 +63,8 @@ impl Clone for Box<dyn Visitor> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct collector {
-    pub total: Rc<RefCell<Option<i32>>>,
-    pub hits: Rc<RefCell<Option<i32>>>,
+    pub total: Rc<RefCell<Option<i64>>>,
+    pub hits: Rc<RefCell<Option<i64>>>,
 }
 
 impl collector {
@@ -100,13 +100,13 @@ impl std::fmt::Display for collector {
 
 
 impl word {
-    pub fn count(&self) -> i32 {
-        (*self.text.borrow().as_ref().unwrap()).len() as i32
+    pub fn count(&self) -> i64 {
+        (*self.text.borrow().as_ref().unwrap()).len() as i64
     }
 }
 
 impl Node for word {
-    fn count(&self) -> i32 {
+    fn count(&self) -> i64 {
         word::count(self)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -135,7 +135,7 @@ impl std::fmt::Display for wordPtr {
 }
 
 impl Node for wordPtr {
-    fn count(&self) -> i32 {
+    fn count(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         word::count(__recv)
@@ -157,7 +157,7 @@ impl Node for wordPtr {
 
 impl collector {
     /// Inherent &mut-self method: assigns through the receiver.
-    pub fn add(&mut self, n: Rc<RefCell<Option<i32>>>) {
+    pub fn add(&mut self, n: Rc<RefCell<Option<i64>>>) {
         { let new_val = (*self.total.borrow().as_ref().unwrap()) + (*n.borrow().as_ref().unwrap()); *self.total.borrow_mut() = Some(new_val); };
         { let new_val = (*self.hits.borrow().as_ref().unwrap()) + 1; *self.hits.borrow_mut() = Some(new_val); };
     }

@@ -83,20 +83,20 @@ fn go_resume_unrecovered_panic() {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -106,8 +106,8 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 
 #[derive(Debug, Clone)]
 pub struct Rect {
-    pub w: Rc<RefCell<Option<i32>>>,
-    pub h: Rc<RefCell<Option<i32>>>,
+    pub w: Rc<RefCell<Option<i64>>>,
+    pub h: Rc<RefCell<Option<i64>>>,
 }
 
 impl Rect {
@@ -185,7 +185,7 @@ pub fn r#try(f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
 }
 
 fn main() {
-    let mut a: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
+    let mut a: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
     let a_closure_clone = a.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
         let _ = ({
         let val = a_closure_clone.clone();
@@ -197,7 +197,7 @@ fn main() {
         }
     });
     }) as Box<dyn FnMut() -> ()>))));
-    let mut b: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
+    let mut b: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
     let b_closure_clone = b.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
         let _ = ({
         let val = b_closure_clone.clone();
@@ -209,7 +209,7 @@ fn main() {
         }
     });
     }) as Box<dyn FnMut() -> ()>))));
-    let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>)));
+    let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
     let c_closure_clone = c.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
         let _ = ({
         let val = c_closure_clone.clone();
@@ -227,7 +227,7 @@ fn main() {
         let val = d_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<i32>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
+            any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
@@ -251,7 +251,7 @@ fn main() {
         let val = f_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<i32>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
+            any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
@@ -273,7 +273,7 @@ fn main() {
         let val = g_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
+            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }

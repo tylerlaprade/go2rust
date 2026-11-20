@@ -247,7 +247,7 @@ impl<T> Iterator for GoChannel<T> {
 pub struct Cache__string__User {
     pub data: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<User>>>>>>>,
     pub order: Arc<Mutex<Option<Vec<String>>>>,
-    pub limit: Arc<Mutex<Option<i32>>>,
+    pub limit: Arc<Mutex<Option<i64>>>,
 }
 
 impl Cache__string__User {
@@ -289,9 +289,9 @@ impl std::fmt::Display for Cache__string__User {
 
 #[derive(Debug, Clone)]
 pub struct Cache__int__slice_string {
-    pub data: Arc<Mutex<Option<BTreeMap<i32, Arc<Mutex<Option<Vec<String>>>>>>>>,
-    pub order: Arc<Mutex<Option<Vec<i32>>>>,
-    pub limit: Arc<Mutex<Option<i32>>>,
+    pub data: Arc<Mutex<Option<BTreeMap<i64, Arc<Mutex<Option<Vec<String>>>>>>>>,
+    pub order: Arc<Mutex<Option<Vec<i64>>>>,
+    pub limit: Arc<Mutex<Option<i64>>>,
 }
 
 impl Cache__int__slice_string {
@@ -334,7 +334,7 @@ impl std::fmt::Display for Cache__int__slice_string {
 #[derive(Debug, Clone)]
 pub struct User {
     pub name: Arc<Mutex<Option<String>>>,
-    pub age: Arc<Mutex<Option<i32>>>,
+    pub age: Arc<Mutex<Option<i64>>>,
 }
 
 impl User {
@@ -738,7 +738,7 @@ impl std::ops::Neg for Celsius {
 
 
 impl Cache__int__slice_string {
-    pub fn put(&mut self, k: Arc<Mutex<Option<i32>>>, v: Arc<Mutex<Option<Vec<String>>>>) {
+    pub fn put(&mut self, k: Arc<Mutex<Option<i64>>>, v: Arc<Mutex<Option<Vec<String>>>>) {
         {
         let (_, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&{ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v })) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if !ok {
@@ -747,8 +747,8 @@ impl Cache__int__slice_string {
     }
         { let __map_key = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __map_value = v.clone(); (*self.data.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         if {
-            let __tmp_x = (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
-            let __tmp_y = ((*self.limit.clone().lock().unwrap().as_ref().unwrap()) as i32);
+            let __tmp_x = (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64);
+            let __tmp_y = ((*self.limit.clone().lock().unwrap().as_ref().unwrap()) as i64);
             __tmp_x > __tmp_y
         } {
         let mut oldest = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.order.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
@@ -771,7 +771,7 @@ impl Cache__int__slice_string {
     }
     }
 
-    pub fn get(&self, k: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<Vec<String>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn get(&self, k: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<Vec<String>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let (mut v, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&{ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v })) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         if !ok {
         let mut zero: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
@@ -794,8 +794,8 @@ impl Cache__string__User {
     }
         { let __map_key = (*k.lock().unwrap().as_ref().unwrap()).clone(); let __map_value = { let __owned = v.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) }; (*self.data.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         if {
-            let __tmp_x = (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
-            let __tmp_y = ((*self.limit.clone().lock().unwrap().as_ref().unwrap()) as i32);
+            let __tmp_x = (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64);
+            let __tmp_y = ((*self.limit.clone().lock().unwrap().as_ref().unwrap()) as i64);
             __tmp_x > __tmp_y
         } {
         let mut oldest = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.order.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
@@ -850,23 +850,23 @@ impl Number for Celsius {
     }
 }
 
-pub fn new_cache__string___user(limit: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Cache__string__User>>> {
+pub fn new_cache__string___user(limit: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Cache__string__User>>> {
     Arc::new(Mutex::new(Some(Cache__string__User { data: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<User>>>>::new()))), limit: Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
-pub fn new_cache__int__slice_string(limit: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Cache__int__slice_string>>> {
-    Arc::new(Mutex::new(Some(Cache__int__slice_string { data: Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<Vec<String>>>>>::new()))), limit: Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
+pub fn new_cache__int__slice_string(limit: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Cache__int__slice_string>>> {
+    Arc::new(Mutex::new(Some(Cache__int__slice_string { data: Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<String>>>>>::new()))), limit: Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
 }
 
-pub fn sum_by___user__int(xs: Arc<Mutex<Option<Vec<User>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync>>>>) -> i32 {
-    let mut total: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+pub fn sum_by___user__int(xs: Arc<Mutex<Option<Vec<User>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>>>>) -> i64 {
+    let mut total: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
         { let __rhs = {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync> = {
                 let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
@@ -914,14 +914,14 @@ pub fn sum_by___celsius___celsius(xs: Arc<Mutex<Option<Vec<Celsius>>>>, f: Arc<M
     return { let __owned = total.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
 }
 
-pub fn group_by___user__int(xs: Arc<Mutex<Option<Vec<User>>>>, key: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync>>>>) -> Arc<Mutex<Option<BTreeMap<i32, Arc<Mutex<Option<Vec<User>>>>>>>> {
-    let mut out = Arc::new(Mutex::new(Some(BTreeMap::<i32, Arc<Mutex<Option<Vec<User>>>>>::new())));
+pub fn group_by___user__int(xs: Arc<Mutex<Option<Vec<User>>>>, key: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<BTreeMap<i64, Arc<Mutex<Option<Vec<User>>>>>>>> {
+    let mut out = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<User>>>>>::new())));
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
         let mut k = {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync> = {
                 let mut __f_guard = key.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
@@ -962,9 +962,9 @@ fn main() {
         User { name: Arc::new(Mutex::new(Some("Cy".to_string()))), age: Arc::new(Mutex::new(Some(40))), ..Default::default() },
         User { name: Arc::new(Mutex::new(Some("Di".to_string()))), age: Arc::new(Mutex::new(Some(25))), ..Default::default() },
     ])));
-    println!("{}", format!("{}", sum_by___user__int(users.clone(), Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> i32 {
+    println!("{}", format!("{}", sum_by___user__int(users.clone(), Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> i64 {
         return (*(*u.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
-    }) as Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync>))))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>))))));
     println!("{}", format!("{}", sum_by___user__float64(
         users.clone(),
         Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> f64 {
@@ -979,10 +979,10 @@ fn main() {
     println!("{}", format!("{}", (*sum_by___celsius___celsius(temps.clone(), Arc::new(Mutex::new(Some(Box::new(move |c: Arc<Mutex<Option<Celsius>>>| -> Arc<Mutex<Option<Celsius>>> {
         return { let __owned = c.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }) as Box<dyn FnMut(Arc<Mutex<Option<Celsius>>>) -> Arc<Mutex<Option<Celsius>>> + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
-    let mut groups = group_by___user__int(users.clone(), Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> i32 {
+    let mut groups = group_by___user__int(users.clone(), Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> i64 {
         return (*(*u.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
-    }) as Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i32 + Send + Sync>))));
-    let mut ages = Arc::new(Mutex::new(Some(Vec::<i32>::with_capacity(((*groups.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>))));
+    let mut ages = Arc::new(Mutex::new(Some(Vec::<i64>::with_capacity(((*groups.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (age, _) in { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = ages.clone(); let __append_value = age; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; ages = new_val; };
     }

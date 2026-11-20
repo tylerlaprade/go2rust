@@ -175,8 +175,8 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
-    pub y: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -214,7 +214,7 @@ impl std::fmt::Display for Point {
 /// Status has a String method on the value, so *Status has it too.
 #[derive(Debug, Clone)]
 pub struct Status {
-    pub code: Arc<Mutex<Option<i32>>>,
+    pub code: Arc<Mutex<Option<i64>>>,
 }
 
 impl Status {
@@ -246,7 +246,7 @@ impl std::fmt::Display for Status {
 /// Gauge has a String method on the pointer only.
 #[derive(Debug, Clone)]
 pub struct Gauge {
-    pub level: Arc<Mutex<Option<i32>>>,
+    pub level: Arc<Mutex<Option<i64>>>,
 }
 
 impl Gauge {
@@ -310,7 +310,7 @@ impl std::fmt::Display for Broken {
 /// Timeout is an error through its value.
 #[derive(Debug, Clone)]
 pub struct Timeout {
-    pub seconds: Arc<Mutex<Option<i32>>>,
+    pub seconds: Arc<Mutex<Option<i64>>>,
 }
 
 impl Timeout {

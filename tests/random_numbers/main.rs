@@ -19,11 +19,11 @@ fn go_rand_next_u64() -> u64 {
     *state
 }
 
-fn go_rand_intn(n: i32) -> i32 {
+fn go_rand_intn(n: i64) -> i64 {
     if n <= 0 {
         panic!("invalid argument to Intn");
     }
-    (go_rand_next_u64() % n as u64) as i32
+    (go_rand_next_u64() % n as u64) as i64
 }
 
 fn go_rand_float64() -> f64 {
@@ -32,7 +32,7 @@ fn go_rand_float64() -> f64 {
 
 fn main() {
     go_rand_seed(1 as i64);
-    let mut n = Rc::new(RefCell::new(Some(go_rand_intn(100 as i32))));
+    let mut n = Rc::new(RefCell::new(Some(go_rand_intn(100 as i64))));
     let mut f = Rc::new(RefCell::new(Some(go_rand_float64())));
     println!("{} {}", format!("{}", "Random int in range:".to_string()), format!("{}", (*n.borrow().as_ref().unwrap()) >= 0 && (*n.borrow().as_ref().unwrap()) < 100));
     println!("{} {}", format!("{}", "Random float in range:".to_string()), format!("{}", (*f.borrow().as_ref().unwrap()) >= 0.0 && (*f.borrow().as_ref().unwrap()) < 1.0));

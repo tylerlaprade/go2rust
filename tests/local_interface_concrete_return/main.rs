@@ -7,7 +7,7 @@ pub trait Reader: std::fmt::Display + Any {
     fn __go_clone_box_reader(&self) -> Box<dyn Reader>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool;
-    fn read(&self) -> i32;
+    fn read(&self) -> i64;
 }
 
 impl Clone for Box<dyn Reader> {
@@ -18,7 +18,7 @@ impl Clone for Box<dyn Reader> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct counter {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl counter {
@@ -52,7 +52,7 @@ pub trait Valuer: std::fmt::Display + Any {
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool;
-    fn value(&self) -> i32;
+    fn value(&self) -> i64;
 }
 
 impl Clone for Box<dyn Valuer> {
@@ -63,7 +63,7 @@ impl Clone for Box<dyn Valuer> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct number {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl number {
@@ -94,13 +94,13 @@ impl std::fmt::Display for number {
 
 
 impl counter {
-    pub fn read(&self) -> i32 {
+    pub fn read(&self) -> i64 {
         return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl Reader for counter {
-    fn read(&self) -> i32 {
+    fn read(&self) -> i64 {
         counter::read(self)
     }
     fn __go_clone_box_reader(&self) -> Box<dyn Reader> {
@@ -129,7 +129,7 @@ impl std::fmt::Display for counterPtr {
 }
 
 impl Reader for counterPtr {
-    fn read(&self) -> i32 {
+    fn read(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         counter::read(__recv)
@@ -150,13 +150,13 @@ impl Reader for counterPtr {
 }
 
 impl number {
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*self.n.borrow().as_ref().unwrap());
     }
 }
 
 impl Valuer for number {
-    fn value(&self) -> i32 {
+    fn value(&self) -> i64 {
         number::value(self)
     }
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer> {
@@ -185,7 +185,7 @@ impl std::fmt::Display for numberPtr {
 }
 
 impl Valuer for numberPtr {
-    fn value(&self) -> i32 {
+    fn value(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         number::value(__recv)

@@ -46,7 +46,7 @@ where
 
 #[derive(Debug, Clone, Default)]
 pub struct dict {
-    pub tparams: Rc<RefCell<Option<Vec<i32>>>>,
+    pub tparams: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl dict {
@@ -93,7 +93,7 @@ impl std::fmt::Display for reader {
 
 
 impl reader {
-    pub fn collect(&mut self, vals: Rc<RefCell<Option<Vec<i32>>>>) {
+    pub fn collect(&mut self, vals: Rc<RefCell<Option<Vec<i64>>>>) {
         let mut tparams = (*self.dict.borrow().as_ref().unwrap()).tparams.clone();
         let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let new_val = { let __append_target = self.later.clone(); let __append_value = Rc::new(RefCell::new(Some(Box::new(move || {
         { let __range_holder = vals_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
@@ -104,8 +104,8 @@ impl reader {
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(reader { dict: Rc::new(RefCell::new(Some(dict { tparams: Rc::new(RefCell::new(Some(vec![1, 2]))), ..Default::default() }))).clone(), later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>::new()))), ..Default::default() })));
-    let mut vals = Rc::new(RefCell::new(Some(vec![3, 4])));
+    let mut r = Rc::new(RefCell::new(Some(reader { dict: Rc::new(RefCell::new(Some(dict { tparams: Rc::new(RefCell::new(Some(vec![1i64, 2i64]))), ..Default::default() }))).clone(), later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>::new()))), ..Default::default() })));
+    let mut vals = Rc::new(RefCell::new(Some(vec![3i64, 4i64])));
     (*r.borrow_mut().as_mut().unwrap()).collect(vals.clone());
     { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     println!("{} {}", format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone()));

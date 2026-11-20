@@ -17,13 +17,13 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static a: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static a: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static b: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static b: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static c: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static c: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static d: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static d: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -38,7 +38,7 @@ fn __go_init_globals() {
 }
 
 
-pub fn f() -> i32 {
+pub fn f() -> i64 {
     { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     (*d.borrow().as_ref().unwrap())
 }

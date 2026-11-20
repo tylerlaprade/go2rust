@@ -45,7 +45,7 @@ where
 }
 
 fn main() {
-    let mut numbers = Rc::new(RefCell::new(Some(vec![64, 34, 25, 12, 22, 11, 90])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![64i64, 34i64, 25i64, 12i64, 22i64, 11i64, 90i64])));
     println!("{} {}", format!("{}", "Before:".to_string()), format!("{}", format_slice(&numbers)));
     { let __sort_target = numbers.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     println!("{} {}", format!("{}", "After:".to_string()), format!("{}", format_slice(&numbers)));

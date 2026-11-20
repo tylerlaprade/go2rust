@@ -67,13 +67,13 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static globalCounter: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static globalCounter: GoGlobal<i64> = GoGlobal::new();
 
 pub(crate) static initialized: GoGlobal<bool> = GoGlobal::new();
 
 pub(crate) static configData: GoGlobal<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
-pub(crate) static computedValue: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static computedValue: GoGlobal<i64> = GoGlobal::new();
 
 pub(crate) static appConfig: GoGlobal<Config> = GoGlobal::new();
 
@@ -118,7 +118,7 @@ fn __go_init_2() {
     { let __map_key = "target".to_string(); let __map_value = Rc::new(RefCell::new(Some("rust".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
-pub fn compute_initial_value() -> i32 {
+pub fn compute_initial_value() -> i64 {
     println!("{}", format!("{}", "Computing initial value during package initialization".to_string()));
     84
 }
@@ -153,7 +153,7 @@ fn __go_init_6() {
     setup_logging();
 
         // Validate configuration
-    if ((*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
+    if ((*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
         println!("{}", format!("{}", "Warning: No configuration data found".to_string()));
     } else {
         print!("Configuration loaded with {} entries\n", (*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));

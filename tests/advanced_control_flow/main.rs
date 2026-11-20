@@ -217,9 +217,9 @@ fn main() {
         // Nested loops with labels
     println!("{}", format!("{}", "=== Nested loops with labels ===".to_string()));
 
-    let mut i = Arc::new(Mutex::new(Some(1)));
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     'outer: while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
-        let mut j = Arc::new(Mutex::new(Some(1)));
+        let mut j = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
         print!("Breaking outer loop at i={}, j={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -234,9 +234,9 @@ fn main() {
         // Continue with labels
     println!("{}", format!("{}", "\n=== Continue with labels ===".to_string()));
 
-    let mut i = Arc::new(Mutex::new(Some(1)));
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     'outer_continue: while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
-        let mut j = Arc::new(Mutex::new(Some(1)));
+        let mut j = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         if { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
         print!("Continuing outer loop at i={}, j={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -251,7 +251,7 @@ fn main() {
         // Complex switch with fallthrough
     println!("{}", format!("{}", "\n=== Complex switch with fallthrough ===".to_string()));
 
-    let mut num = Arc::new(Mutex::new(Some(1)));
+    let mut num = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         print!("Number {}: ", { let __v = (*num.lock().unwrap().as_ref().unwrap()).clone(); __v });
         {
@@ -292,9 +292,9 @@ fn main() {
         // Nested switch statements
     println!("{}", format!("{}", "\n=== Nested switch statements ===".to_string()));
 
-    let mut category = Arc::new(Mutex::new(Some(1)));
+    let mut category = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x <= __tmp_y } {
-        let mut item = Arc::new(Mutex::new(Some(1)));
+        let mut item = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x <= __tmp_y } {
         print!("Category {}, Item {}: ", format!("{}", { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
@@ -326,7 +326,7 @@ fn main() {
     println!("{}", format!("{}", "\n=== Complex for loop conditions ===".to_string()));
 
         // Multiple variables in for loop
-    let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(10))));
+    let (mut i, mut j) = (Arc::new(Mutex::new(Some(0i64))), Arc::new(Mutex::new(Some(10i64))));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         print!("i={}, j={}, sum={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }));
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x >= __tmp_y } {
@@ -343,7 +343,7 @@ fn main() {
         // For loop with complex condition
     println!("{}", format!("{}", "\n=== For loop with complex condition ===".to_string()));
 
-    let (mut x, mut y) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
+    let (mut x, mut y) = (Arc::new(Mutex::new(Some(1i64))), Arc::new(Mutex::new(Some(1i64))));
     while { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = 100; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
         print!("x={}, y={}, product={}\n", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }));
         if { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -357,7 +357,7 @@ fn main() {
         // Complex if-else chains
     println!("{}", format!("{}", "\n=== Complex if-else chains ===".to_string()));
 
-    let mut score = Arc::new(Mutex::new(Some(0)));
+    let mut score = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x <= __tmp_y } {
         let mut grade: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
         let mut message: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
@@ -394,7 +394,7 @@ fn main() {
         // Range with complex break/continue logic
     println!("{}", format!("{}", "\n=== Range with complex break/continue ===".to_string()));
 
-    let mut numbers = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
+    let mut numbers = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64, 6i64, 7i64, 8i64, 9i64, 10i64])));
 
     println!("{}", format!("{}", "Processing numbers:".to_string()));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
@@ -424,7 +424,7 @@ fn main() {
         print!("Found center at [{}][{}]: {}\n", format!("{}", rowIdx), format!("{}", colIdx), format!("{}", cell));
         continue
     }
-        if { let __tmp_x = rowIdx as i32; let __tmp_y = 2; __tmp_x == __tmp_y } && { let __tmp_x = colIdx as i32; let __tmp_y = 2; __tmp_x == __tmp_y } {
+        if { let __tmp_x = rowIdx as i64; let __tmp_y = 2; __tmp_x == __tmp_y } && { let __tmp_x = colIdx as i64; let __tmp_y = 2; __tmp_x == __tmp_y } {
         print!("Last cell [{}][{}]: {}\n", format!("{}", rowIdx), format!("{}", colIdx), format!("{}", cell));
         break
     }
@@ -436,7 +436,7 @@ fn main() {
         // Select with complex channel operations
     println!("{}", format!("{}", "\n=== Select with complex channel operations ===".to_string()));
 
-    let mut ch1 = GoChannel::<i32>::new_buffered(2 as usize);
+    let mut ch1 = GoChannel::<i64>::new_buffered(2 as usize);
     let mut ch2 = GoChannel::<String>::new_buffered(2 as usize);
 
     ch1.send(1);
@@ -520,8 +520,8 @@ fn main() {
         // Complex error handling flow
     println!("{}", format!("{}", "\n=== Complex error handling flow ===".to_string()));
 
-    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i32>>>>| -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
-        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i64>>>>| -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("empty data"))))));
     }
         { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
@@ -533,23 +533,23 @@ fn main() {
     }
     } }
         return Arc::new(Mutex::new(None));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
     let mut testData = Arc::new(Mutex::new(Some(vec![
-        vec![1, 2, 3],
-        Vec::<i32>::new(),
-        vec![1, -2, 3],
-        vec![1, 200, 3],
-        vec![10, 20, 30],
+        vec![1i64, 2i64, 3i64],
+        Vec::<i64>::new(),
+        vec![1i64, (-2i64), 3i64],
+        vec![1i64, 200i64, 3i64],
+        vec![10i64, 20i64, 30i64],
     ])));
 
     { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, data) in __range_values.iter().enumerate() {
-        print!("Testing dataset {}: {}\n", format!("{}", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", format_slice_values(data)));
+        print!("Testing dataset {}: {}\n", format!("{}", { let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", format_slice_values(data)));
         {
         let mut err = {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
                 let mut __f_guard = processData.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(

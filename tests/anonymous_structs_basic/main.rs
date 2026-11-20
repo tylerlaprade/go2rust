@@ -53,8 +53,8 @@ fn main() {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -91,7 +91,7 @@ impl std::fmt::Display for AnonymousStruct1 {
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct2 {
     pub name: Rc<RefCell<Option<String>>>,
-    pub age: Rc<RefCell<Option<i32>>>,
+    pub age: Rc<RefCell<Option<i64>>>,
 }
 impl AnonymousStruct2 {
     pub fn __go_value_clone(&self) -> Self {
@@ -128,7 +128,7 @@ impl std::fmt::Display for AnonymousStruct2 {
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct3 {
     pub host: Rc<RefCell<Option<String>>>,
-    pub port: Rc<RefCell<Option<i32>>>,
+    pub port: Rc<RefCell<Option<i64>>>,
     pub settings: Rc<RefCell<Option<AnonymousStruct4>>>,
 }
 impl AnonymousStruct3 {
@@ -207,7 +207,7 @@ impl std::fmt::Display for AnonymousStruct4 {
 
 #[derive(Debug, Clone)]
 pub struct AnonymousStruct5 {
-    pub i_d: Rc<RefCell<Option<i32>>>,
+    pub i_d: Rc<RefCell<Option<i64>>>,
     pub value: Rc<RefCell<Option<String>>>,
 }
 impl AnonymousStruct5 {

@@ -4,7 +4,7 @@ use std::thread;
 
 #[derive(Debug, Clone)]
 pub struct finder {
-    pub base: Arc<Mutex<Option<i32>>>,
+    pub base: Arc<Mutex<Option<i64>>>,
 }
 
 impl finder {
@@ -35,12 +35,12 @@ impl std::fmt::Display for finder {
 
 
 impl finder {
-    pub fn find(&self, delta: Arc<Mutex<Option<i32>>>) -> i32 {
+    pub fn find(&self, delta: Arc<Mutex<Option<i64>>>) -> i64 {
         return { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
     }
 }
 
-pub fn call_find() -> i32 {
+pub fn call_find() -> i64 {
     {
         let __recv = (Arc::new(Mutex::new(Some(finder { base: Arc::new(Mutex::new(Some(2))), ..Default::default() }))));
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).find(

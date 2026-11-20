@@ -16,20 +16,20 @@ fn main() {
     { let __map_key = "Target".to_string(); let __map_value = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::new()))); (*conversions.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "Source".to_string(); let __map_value = Rc::new(RefCell::new(Some(true))); (*{ let __map_holder = conversions.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"Target".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    let mut count = Rc::new(RefCell::new(Some(0)));
+    let mut count = Rc::new(RefCell::new(Some(0i64)));
     for (targetName, sourceNames) in { let __range_holder = conversions.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        if ((*sourceNames.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
+        if ((*sourceNames.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
         continue
     }
         if { let __map_holder = sourceNames.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"Source".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
-        { let __rhs = targetName.len() as i32; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = targetName.len() as i64; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
 
-    let mut buckets = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<Vec<String>>>>>::new())));
+    let mut buckets = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Vec<String>>>>>::new())));
     { let __map_key = 1; let __map_value = Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()]))); (*buckets.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __range_holder = { let __map_holder = buckets.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        { let __rhs = name.len() as i32; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = name.len() as i64; let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
 
     let mut missing = { let __map_holder = fields.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"Missing".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };

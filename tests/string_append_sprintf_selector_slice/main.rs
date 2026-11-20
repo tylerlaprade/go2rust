@@ -69,7 +69,7 @@ impl std::fmt::Display for loadError {
 fn main() {
     let mut err = Rc::new(RefCell::new(Some(loadError { import_stack: Rc::new(RefCell::new(Some(vec!["root".to_string(), "dep".to_string()]))), ..Default::default() })));
     let mut msg = Rc::new(RefCell::new(Some("import cycle not allowed".to_string())));
-    if (({ let __len_target = { let __field = (*err.borrow().as_ref().unwrap()).import_stack.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32) != (0 as i32) {
+    if (({ let __len_target = { let __field = (*err.borrow().as_ref().unwrap()).import_stack.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) != (0 as i64) {
         { (*msg.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(format!(": import stack: {}", format_slice_values(&(*(*err.borrow().as_ref().unwrap()).import_stack.borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     }
     println!("{}", format!("{}", { let __v = (*msg.borrow().as_ref().unwrap()).clone(); __v }));

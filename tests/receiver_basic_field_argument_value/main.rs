@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Parser {
-    pub offset: Rc<RefCell<Option<i32>>>,
+    pub offset: Rc<RefCell<Option<i64>>>,
 }
 
 impl Parser {
@@ -35,7 +35,7 @@ impl std::fmt::Display for Parser {
 
 
 impl Parser {
-    pub fn add_line(&mut self, offset: Rc<RefCell<Option<i32>>>) {
+    pub fn add_line(&mut self, offset: Rc<RefCell<Option<i64>>>) {
         { let new_val = 99; *self.offset.borrow_mut() = Some(new_val); };
         println!("{}", format!("{}", { let __v = (*offset.borrow().as_ref().unwrap()).clone(); __v }));
     }

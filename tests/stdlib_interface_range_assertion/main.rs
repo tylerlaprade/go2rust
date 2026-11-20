@@ -11,15 +11,15 @@ fn __go_next_external_interface_id() -> usize {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct token_Pos(pub i32);
+pub struct token_Pos(pub i64);
 
-impl PartialEq<i32> for token_Pos {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for token_Pos {
+    fn eq(&self, other: &i64) -> bool {
         self.0 == *other
     }
 }
 
-impl PartialEq<token_Pos> for i32 {
+impl PartialEq<token_Pos> for i64 {
     fn eq(&self, other: &token_Pos) -> bool {
         *self == other.0
     }
@@ -96,7 +96,7 @@ impl Eq for types_Object {}
 
 impl PartialOrd for types_Object {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -167,7 +167,7 @@ impl Eq for types_Type {}
 
 impl PartialOrd for types_Type {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -219,8 +219,8 @@ impl exporter {
     }
 }
 
-pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> i32 {
-    let mut count = Rc::new(RefCell::new(Some(0)));
+pub fn count_type_names(objs: Rc<RefCell<Option<Vec<types_Object>>>>) -> i64 {
+    let mut count = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = objs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for o in __range_values.iter() {
         {
         let (_, mut ok) = ({

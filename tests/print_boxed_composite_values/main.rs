@@ -137,9 +137,9 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Point>>>>>>>>() {
         format_map(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() {
         format_map(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<String>>>>>>>>() {
         format_map(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Node>>>>() {
         go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
@@ -157,7 +157,7 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<f64>>>>>() {
         format_slice(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Report>() {
         format!("{}", v)
@@ -209,8 +209,8 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<Outcome>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Point>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Point>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<String>>>>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Node>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<NotFound>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
@@ -219,7 +219,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<bool>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<f64>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Report>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Status>() { return Box::new(v.clone()) as Box<dyn Any>; }
 
@@ -228,8 +228,8 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
-    pub y: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
+    pub y: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -266,7 +266,7 @@ impl std::fmt::Display for Point {
 
 #[derive(Debug, Clone)]
 pub struct Status {
-    pub code: Rc<RefCell<Option<i32>>>,
+    pub code: Rc<RefCell<Option<i64>>>,
 }
 
 impl Status {
@@ -370,7 +370,7 @@ impl std::fmt::Display for Node {
 /// Label sits in the value being printed.
 #[derive(Debug, Clone)]
 pub struct Label {
-    pub x: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
 }
 
 impl Label {
@@ -402,7 +402,7 @@ impl std::fmt::Display for Label {
 /// Missing does the same from its Error method.
 #[derive(Debug, Clone)]
 pub struct Missing {
-    pub line: Rc<RefCell<Option<i32>>>,
+    pub line: Rc<RefCell<Option<i64>>>,
 }
 
 impl Missing {
@@ -435,7 +435,7 @@ impl std::fmt::Display for Missing {
 /// failed.
 #[derive(Clone)]
 pub struct Outcome {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
     pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
 }
 
@@ -534,7 +534,7 @@ pub fn render(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
 /// shape describes text around the addresses in it, which change from run to
 /// run: whether it starts with prefix, and how many addresses it holds.
 pub fn shape(text: Rc<RefCell<Option<String>>>, prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{} {}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = (*prefix.borrow().as_ref().unwrap()).clone(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap()), ((*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __sep = "0x".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)))))
+    Rc::new(RefCell::new(Some(format!("{} {}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = (*prefix.borrow().as_ref().unwrap()).clone(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap()), ((*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __sep = "0x".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)))))
 }
 
 /// show prints whatever it is given. The value arrives as an interface, so
@@ -544,29 +544,29 @@ pub fn show(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
 }
 
 fn main() {
-    show(Rc::new(RefCell::new(Some(Box::new(42) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new("hi".to_string()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(2.5) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1, 2, 3]))).clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![true, false]))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1.5, 2.0]))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }]))).clone()) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(2)))), ("a".to_string(), Rc::new(RefCell::new(Some(1))))])))).clone()) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(2, Rc::new(RefCell::new(Some("two".to_string())))), (1, Rc::new(RefCell::new(Some("one".to_string()))))])))).clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(2i64)))), ("a".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<String>>>>::from([(2i64, Rc::new(RefCell::new(Some("two".to_string())))), (1i64, Rc::new(RefCell::new(Some("one".to_string()))))])))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Point>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }))))])))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Status { code: Rc::new(RefCell::new(Some(404))), ..Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(NotFound { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }) as Box<dyn Any>))));
 
-    let mut none: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
+    let mut none: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     show(Rc::new(RefCell::new(Some(Box::new(none.clone()) as Box<dyn Any>))));
     let mut nowhere: Rc<RefCell<Option<Point>>> = Rc::new(RefCell::new(None));
     show(Rc::new(RefCell::new(Some(Box::new(nowhere.clone()) as Box<dyn Any>))));
 
-    let mut xs = Rc::new(RefCell::new(Some(vec![4, 5])));
+    let mut xs = Rc::new(RefCell::new(Some(vec![4i64, 5i64])));
     let mut p = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(6))), y: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(xs.clone()) as Box<dyn Any>)));
     println!("{} {} {}", format!("{}", "println:".to_string()), format!("{}", format_any(boxed.borrow().as_ref().unwrap().as_ref())), format!("{}", Point { x: Rc::new(RefCell::new(Some(5))), y: Rc::new(RefCell::new(Some(6))), ..Default::default() }));
@@ -574,7 +574,7 @@ fn main() {
     { let new_val = Box::new(p.clone()) as Box<dyn Any>; *boxed.borrow_mut() = Some(new_val); };
     print!("printf: {}\n", format_any(boxed.borrow().as_ref().unwrap().as_ref()));
 
-    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1, 2]))).clone()) as Box<dyn Any>, Box::new(Point { x: Rc::new(RefCell::new(Some(7))), y: Rc::new(RefCell::new(Some(8))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1))))])))).clone()) as Box<dyn Any>, Box::new("s".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>])));
+    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>, Box::new(Point { x: Rc::new(RefCell::new(Some(7))), y: Rc::new(RefCell::new(Some(8))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>, Box::new("s".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>])));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         println!("{} {}", format!("{}", "item:".to_string()), format!("{}", format_any(item.as_ref())));
     } }
@@ -589,7 +589,7 @@ fn main() {
     let mut r#loop = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("loop".to_string()))), ..Default::default() })));
     { let new_val = Box::new(r#loop.clone()) as Box<dyn Any>; *(*r#loop.borrow().as_ref().unwrap()).next.borrow_mut() = Some(new_val); };
     let mut text = render(Rc::new(RefCell::new(Some(Box::new(r#loop.clone()) as Box<dyn Any>))));
-    println!("{} {} {} {}", format!("{}", "cycle:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "&{loop 0x".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "}".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", ((*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __sep = "loop".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)));
+    println!("{} {} {} {}", format!("{}", "cycle:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "&{loop 0x".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "}".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", ((*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __sep = "loop".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)));
     let mut tail = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("tail".to_string()))), ..Default::default() })));
     { let new_val = render(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("head".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(tail.clone()) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
     println!("{} {} {}", format!("{}", "chain:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "&{head 0x".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap())));
@@ -602,7 +602,7 @@ fn main() {
     println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", { let __text = match r#loop.borrow().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })))), Rc::new(RefCell::new(Some("&{loop 0x".to_string())))).borrow().as_ref().unwrap())));
     { let new_val = render(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("holder".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(tail.clone()) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>)))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
     println!("{} {} {}", format!("{}", "struct holding a pointer:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some("{holder 0x".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = "tail".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap())));
-    let mut mixed = Rc::new(RefCell::new(Some(vec![Box::new(tail.clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])));
+    let mut mixed = Rc::new(RefCell::new(Some(vec![Box::new(tail.clone()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>])));
     { let new_val = Rc::new(RefCell::new(Some(format!("{}", format_any_slice(&mixed))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *text.borrow_mut() = __moved_val; };
     println!("{} {} {}", format!("{}", "slice holding a pointer:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some("[0x".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __arg = " 1]".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap())));
     let mut noNode: Rc<RefCell<Option<Node>>> = Rc::new(RefCell::new(None));
@@ -615,7 +615,7 @@ fn main() {
     println!("{}", format!("{}", Node { name: Rc::new(RefCell::new(Some("typed".to_string()))), ..Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("boxed".to_string()))), ..Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("pointer".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any>))));
-    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("full".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
+    show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("full".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
     println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(1))), ..Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Outcome { value: Rc::new(RefCell::new(Some(3))), err: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("failed")))))), ..Default::default() }) as Box<dyn Any>))));
@@ -631,7 +631,7 @@ fn main() {
     println!("{}", format!("{}", Node { name: Rc::new(RefCell::new(Some("row".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }));
     show(Rc::new(RefCell::new(Some(Box::new(Node { name: Rc::new(RefCell::new(Some("row".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("row".to_string()))), next: Rc::new(RefCell::new(Some(Box::new(Label { x: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }))).clone()) as Box<dyn Any>))));
-    let mut labels = Rc::new(RefCell::new(Some(vec![Box::new(Label { x: Rc::new(RefCell::new(Some(8))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(1) as Box<dyn Any>])));
+    let mut labels = Rc::new(RefCell::new(Some(vec![Box::new(Label { x: Rc::new(RefCell::new(Some(8))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>])));
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", (*shape(Rc::new(RefCell::new(Some(format!("{}", format_any_slice(&labels))))), Rc::new(RefCell::new(Some("[&{8 0} 0x".to_string())))).borrow().as_ref().unwrap())));
     println!("{}", format_any_variadic(&labels));
     println!("{}", format!("{}", Outcome { value: Rc::new(RefCell::new(Some(4))), err: Rc::new(RefCell::new(Some(Rc::new(Missing { line: Rc::new(RefCell::new(Some(9))), ..Default::default() }) as Rc<dyn StdError>))), ..Default::default() }));

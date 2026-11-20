@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug, Default)]
-pub struct ObjKind(pub Rc<RefCell<Option<i32>>>);
+pub struct ObjKind(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for ObjKind {
     fn clone(&self) -> Self {
@@ -29,8 +29,8 @@ impl PartialEq for ObjKind {
     }
 }
 
-impl PartialEq<i32> for ObjKind {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for ObjKind {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -43,19 +43,19 @@ impl PartialOrd for ObjKind {
     }
 }
 
-impl PartialOrd<i32> for ObjKind {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for ObjKind {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<ObjKind> for i32 {
+impl PartialEq<ObjKind> for i64 {
     fn eq(&self, other: &ObjKind) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<ObjKind> for i32 {
+impl PartialOrd<ObjKind> for i64 {
     fn partial_cmp(&self, other: &ObjKind) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -68,14 +68,14 @@ impl std::ops::Add for ObjKind {
     }
 }
 
-impl std::ops::Add<i32> for ObjKind {
+impl std::ops::Add<i64> for ObjKind {
     type Output = ObjKind;
-    fn add(self, other: i32) -> ObjKind {
+    fn add(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<ObjKind> for i32 {
+impl std::ops::Add<ObjKind> for i64 {
     type Output = ObjKind;
     fn add(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -89,14 +89,14 @@ impl std::ops::Sub for ObjKind {
     }
 }
 
-impl std::ops::Sub<i32> for ObjKind {
+impl std::ops::Sub<i64> for ObjKind {
     type Output = ObjKind;
-    fn sub(self, other: i32) -> ObjKind {
+    fn sub(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<ObjKind> for i32 {
+impl std::ops::Sub<ObjKind> for i64 {
     type Output = ObjKind;
     fn sub(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -110,14 +110,14 @@ impl std::ops::Mul for ObjKind {
     }
 }
 
-impl std::ops::Mul<i32> for ObjKind {
+impl std::ops::Mul<i64> for ObjKind {
     type Output = ObjKind;
-    fn mul(self, other: i32) -> ObjKind {
+    fn mul(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<ObjKind> for i32 {
+impl std::ops::Mul<ObjKind> for i64 {
     type Output = ObjKind;
     fn mul(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -131,14 +131,14 @@ impl std::ops::Div for ObjKind {
     }
 }
 
-impl std::ops::Div<i32> for ObjKind {
+impl std::ops::Div<i64> for ObjKind {
     type Output = ObjKind;
-    fn div(self, other: i32) -> ObjKind {
+    fn div(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<ObjKind> for i32 {
+impl std::ops::Div<ObjKind> for i64 {
     type Output = ObjKind;
     fn div(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -159,14 +159,14 @@ impl std::ops::Rem for ObjKind {
     }
 }
 
-impl std::ops::Rem<i32> for ObjKind {
+impl std::ops::Rem<i64> for ObjKind {
     type Output = ObjKind;
-    fn rem(self, other: i32) -> ObjKind {
+    fn rem(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<ObjKind> for i32 {
+impl std::ops::Rem<ObjKind> for i64 {
     type Output = ObjKind;
     fn rem(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -180,14 +180,14 @@ impl std::ops::BitAnd for ObjKind {
     }
 }
 
-impl std::ops::BitAnd<i32> for ObjKind {
+impl std::ops::BitAnd<i64> for ObjKind {
     type Output = ObjKind;
-    fn bitand(self, other: i32) -> ObjKind {
+    fn bitand(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<ObjKind> for i32 {
+impl std::ops::BitAnd<ObjKind> for i64 {
     type Output = ObjKind;
     fn bitand(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -201,14 +201,14 @@ impl std::ops::BitOr for ObjKind {
     }
 }
 
-impl std::ops::BitOr<i32> for ObjKind {
+impl std::ops::BitOr<i64> for ObjKind {
     type Output = ObjKind;
-    fn bitor(self, other: i32) -> ObjKind {
+    fn bitor(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<ObjKind> for i32 {
+impl std::ops::BitOr<ObjKind> for i64 {
     type Output = ObjKind;
     fn bitor(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -222,14 +222,14 @@ impl std::ops::BitXor for ObjKind {
     }
 }
 
-impl std::ops::BitXor<i32> for ObjKind {
+impl std::ops::BitXor<i64> for ObjKind {
     type Output = ObjKind;
-    fn bitxor(self, other: i32) -> ObjKind {
+    fn bitxor(self, other: i64) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<ObjKind> for i32 {
+impl std::ops::BitXor<ObjKind> for i64 {
     type Output = ObjKind;
     fn bitxor(self, other: ObjKind) -> ObjKind {
         ObjKind(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))

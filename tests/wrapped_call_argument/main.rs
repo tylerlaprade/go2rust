@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct Box_ {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Box_ {
@@ -39,7 +39,7 @@ impl Box_ {
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
-    pub fn r#use(&self, other: Rc<RefCell<Option<Box_>>>) -> i32 {
+    pub fn r#use(&self, other: Rc<RefCell<Option<Box_>>>) -> i64 {
         return (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
     }
 }

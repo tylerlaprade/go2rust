@@ -48,7 +48,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct T {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl T {
@@ -79,14 +79,14 @@ impl std::fmt::Display for T {
 
 
 fn main() {
-    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1, 2]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(T { n: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1))))])))).clone()) as Box<dyn Any>])));
+    let mut items = Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(T { n: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>])));
     let (mut v, mut ok) = ({
         let __idx = (0) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>() {
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Rc::new(RefCell::new(None::<Vec<i32>>)), false),
+            None => (Rc::new(RefCell::new(None::<Vec<i64>>)), false),
         }
     });
     println!("{} {}", format!("{}", format_slice(&v)), format!("{}", ok));
@@ -104,9 +104,9 @@ fn main() {
         let __idx = (2) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i32>>>>>)), false),
+            None => (Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i64>>>>>)), false),
         }
     });
     println!("{} {}", format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", ok));
@@ -114,9 +114,9 @@ fn main() {
         let __idx = (0) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
-        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>() {
+        match __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() {
             Some(typed_val) => (typed_val.clone(), true),
-            None => (Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i32>>>>>)), false),
+            None => (Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i64>>>>>)), false),
         }
     }); ok = __tmp_1; };
     println!("{}", format!("{}", ok));

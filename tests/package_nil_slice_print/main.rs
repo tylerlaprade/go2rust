@@ -91,9 +91,9 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static global: GoGlobal<Vec<i32>> = GoGlobal::new();
+pub(crate) static global: GoGlobal<Vec<i64>> = GoGlobal::new();
 
-pub(crate) static labels: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
+pub(crate) static labels: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {

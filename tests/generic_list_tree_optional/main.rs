@@ -82,20 +82,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -754,7 +754,7 @@ impl std::fmt::Display for Node__string {
 
 #[derive(Debug, Clone)]
 pub struct Node__int {
-    pub val: Rc<RefCell<Option<i32>>>,
+    pub val: Rc<RefCell<Option<i64>>>,
     pub next: Rc<RefCell<Option<Node__int>>>,
 }
 
@@ -793,7 +793,7 @@ impl std::fmt::Display for Node__int {
 #[derive(Debug, Clone)]
 pub struct List__string {
     pub head: Rc<RefCell<Option<Node__string>>>,
-    pub size: Rc<RefCell<Option<i32>>>,
+    pub size: Rc<RefCell<Option<i64>>>,
 }
 
 impl List__string {
@@ -831,7 +831,7 @@ impl std::fmt::Display for List__string {
 #[derive(Debug, Clone)]
 pub struct List__int {
     pub head: Rc<RefCell<Option<Node__int>>>,
-    pub size: Rc<RefCell<Option<i32>>>,
+    pub size: Rc<RefCell<Option<i64>>>,
 }
 
 impl List__int {
@@ -870,7 +870,7 @@ impl std::fmt::Display for List__int {
 pub struct Tree__int {
     pub left: Rc<RefCell<Option<Tree__int>>>,
     pub right: Rc<RefCell<Option<Tree__int>>>,
-    pub val: Rc<RefCell<Option<i32>>>,
+    pub val: Rc<RefCell<Option<i64>>>,
 }
 
 impl Tree__int {
@@ -956,7 +956,7 @@ impl std::fmt::Display for Tree__string {
 
 #[derive(Debug, Clone)]
 pub struct Optional__int {
-    pub val: Rc<RefCell<Option<i32>>>,
+    pub val: Rc<RefCell<Option<i64>>>,
     pub ok: Rc<RefCell<Option<bool>>>,
 }
 
@@ -1031,24 +1031,24 @@ impl std::fmt::Display for Optional__string {
 
 
 impl List__int {
-    pub fn push(&mut self, v: Rc<RefCell<Option<i32>>>) {
+    pub fn push(&mut self, v: Rc<RefCell<Option<i64>>>) {
         { let new_val = Rc::new(RefCell::new(Some(Node__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
         { let __target = self.size.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn each(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>>>>) {
+    pub fn each(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>>>>) {
         let mut n = self.head.clone();
     while { let __nil_result = (*n.borrow()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
         { let new_val = (*n.borrow().as_ref().unwrap()).next.clone(); n = new_val; };
     }
     }
 
-    pub fn slice(&self) -> Rc<RefCell<Option<Vec<i32>>>> {
-        let mut out: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
-        let mut out_closure_clone = out.clone(); self.each(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i32>>>| {
+    pub fn slice(&self) -> Rc<RefCell<Option<Vec<i64>>>> {
+        let mut out: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
+        let mut out_closure_clone = out.clone(); self.each(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i64>>>| {
         { let __append_target = out_closure_clone.clone(); let __append_value = (*v.borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>))));
         return out.clone();
     }
 }
@@ -1077,7 +1077,7 @@ impl List__string {
 }
 
 impl Tree__int {
-    pub fn insert(&mut self, v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Tree__int>>> {
+    pub fn insert(&mut self, v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Tree__int>>> {
         if false {
         return Rc::new(RefCell::new(Some(Tree__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1089,12 +1089,12 @@ impl Tree__int {
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
-    pub fn walk(&self, visit: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>>>>) {
+    pub fn walk(&self, visit: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>>>>) {
         if false {
         return;
     }
         __go_nil_recv_tree__int_walk({ let __field = self.left.clone(); __field }, visit.clone());
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
         __go_nil_recv_tree__int_walk({ let __field = self.right.clone(); __field }, visit.clone());
     }
 }
@@ -1123,11 +1123,11 @@ impl Tree__string {
 }
 
 impl Optional__int {
-    pub fn get(&self) -> (i32, bool) {
+    pub fn get(&self) -> (i64, bool) {
         return ((*self.val.borrow().as_ref().unwrap()), (*self.ok.borrow().as_ref().unwrap()));
     }
 
-    pub fn or_else(&self, d: Rc<RefCell<Option<i32>>>) -> i32 {
+    pub fn or_else(&self, d: Rc<RefCell<Option<i64>>>) -> i64 {
         if (*self.ok.clone().borrow().as_ref().unwrap()) {
         return (*self.val.borrow().as_ref().unwrap());
     }
@@ -1148,7 +1148,7 @@ impl Optional__string {
     }
 }
 
-pub fn some__int(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Optional__int>>> {
+pub fn some__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Optional__int>>> {
     Rc::new(RefCell::new(Some(Optional__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ok: Rc::new(RefCell::new(Some(true))), ..Default::default() })))
 }
 
@@ -1156,7 +1156,7 @@ pub fn none__string() -> Rc<RefCell<Option<Optional__string>>> {
     Rc::new(RefCell::new(Some(Optional__string { val: Rc::new(RefCell::new(Some(String::new()))), ok: Rc::new(RefCell::new(Some(false))) })))
 }
 
-pub fn describe__int(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
+pub fn describe__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>> {
     {
     let _ts_subject = Rc::new(RefCell::new(Some(Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>))).clone();
     let _ts_guard = _ts_subject.borrow();
@@ -1168,8 +1168,8 @@ pub fn describe__int(v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>>
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -1197,8 +1197,8 @@ pub fn describe__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Str
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -1226,8 +1226,8 @@ pub fn describe__float64(v: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Strin
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -1250,24 +1250,24 @@ fn main() {
     (*l.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some("a".to_string()))));
     println!("{} {}", format!("{}", format_slice(&(*l.borrow().as_ref().unwrap()).slice())), format!("{}", (*(*l.borrow().as_ref().unwrap()).size.borrow().as_ref().unwrap())));
     let mut nums = Rc::new(RefCell::new(Some(List__int { head: Default::default(), size: Rc::new(RefCell::new(Some(0))) })));
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 4 {
         (*nums.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some({ let __bin_i = (*i.borrow().as_ref().unwrap()).clone(); __bin_i * __bin_i }))));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    let mut sum = Rc::new(RefCell::new(Some(0)));
-    let mut sum_closure_clone = sum.clone(); (*nums.borrow().as_ref().unwrap()).each(Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<i32>>>| {
+    let mut sum = Rc::new(RefCell::new(Some(0i64)));
+    let mut sum_closure_clone = sum.clone(); (*nums.borrow().as_ref().unwrap()).each(Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<i64>>>| {
         { let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = sum_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>))));
     println!("{} {}", format!("{}", { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&(*nums.borrow().as_ref().unwrap()).slice())));
 
     let mut root: Rc<RefCell<Option<Tree__int>>> = Rc::new(RefCell::new(None));
-    for v in vec![5, 3, 8, 1, 4].iter().copied() {
+    for v in vec![5i64, 3i64, 8i64, 1i64, 4i64].iter().copied() {
         { let new_val = __go_nil_recv_tree__int_insert(root.clone(), Rc::new(RefCell::new(Some(v.clone())))).clone(); root = new_val; };
     }
-    __go_nil_recv_tree__int_walk(root.clone(), Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i32>>>| {
+    __go_nil_recv_tree__int_walk(root.clone(), Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i64>>>| {
         print!("{}{}", format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", " ".to_string()));
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>))));
     println!();
     let mut words: Rc<RefCell<Option<Tree__string>>> = Rc::new(RefCell::new(None));
     for w in &vec!["pear".to_string(), "apple".to_string(), "fig".to_string()] {
@@ -1285,7 +1285,7 @@ fn main() {
     println!("{} {} {}", format!("{}", (*describe__int(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap())), format!("{}", (*describe__string(Rc::new(RefCell::new(Some("hi".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*describe__float64(Rc::new(RefCell::new(Some(2.5)))).borrow().as_ref().unwrap())));
 }
 
-pub fn __go_nil_recv_tree__int_insert(t: Rc<RefCell<Option<Tree__int>>>, v: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Tree__int>>> {
+pub fn __go_nil_recv_tree__int_insert(t: Rc<RefCell<Option<Tree__int>>>, v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Tree__int>>> {
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return Rc::new(RefCell::new(Some(Tree__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1297,12 +1297,12 @@ pub fn __go_nil_recv_tree__int_insert(t: Rc<RefCell<Option<Tree__int>>>, v: Rc<R
     t.clone()
 }
 
-pub fn __go_nil_recv_tree__int_walk(t: Rc<RefCell<Option<Tree__int>>>, visit: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()>>>>) {
+pub fn __go_nil_recv_tree__int_walk(t: Rc<RefCell<Option<Tree__int>>>, visit: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>>>>) {
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return;
     }
     __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, visit.clone());
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
     __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, visit.clone());
 }
 

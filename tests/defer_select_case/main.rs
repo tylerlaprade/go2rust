@@ -254,7 +254,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn run(ch: GoChannel<i32>) {
+pub fn run(ch: GoChannel<i64>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
     let __go_previous_panic_hook = std::panic::take_hook();
@@ -297,7 +297,7 @@ pub fn run(ch: GoChannel<i32>) {
 }
 
 fn main() {
-    let mut ch = GoChannel::<i32>::new_buffered(1 as usize);
+    let mut ch = GoChannel::<i64>::new_buffered(1 as usize);
     ch.send(1);
     run(ch.clone());
 }

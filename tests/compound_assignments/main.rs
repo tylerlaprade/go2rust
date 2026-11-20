@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Integer compound assignments
-    let mut x = Rc::new(RefCell::new(Some(10)));
+    let mut x = Rc::new(RefCell::new(Some(10i64)));
     { let __rhs = 5; let mut guard = x.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     print!("x += 5: {}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
 
@@ -20,7 +20,7 @@ fn main() {
     print!("x %= 5: {}\n", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v });
 
         // Bitwise compound assignments
-    let mut y = Rc::new(RefCell::new(Some(0b1010)));
+    let mut y = Rc::new(RefCell::new(Some(10i64)));
     { let __rhs = 12; let mut guard = y.borrow_mut(); *guard = Some(guard.as_ref().unwrap() & __rhs); };
     print!("y &= 0b1100: {:b}\n", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v });
 

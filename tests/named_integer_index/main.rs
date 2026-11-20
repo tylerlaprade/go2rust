@@ -392,21 +392,21 @@ impl Ord for Kind {
 
 
 impl Kind {
-    pub fn method_pick(&self, values: Rc<RefCell<Option<Vec<i32>>>>) -> i32 {
+    pub fn method_pick(&self, values: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
         (*values.borrow().as_ref().unwrap())[(*self.0.borrow().as_ref().unwrap()) as usize].clone()
     }
 }
 
-pub fn pick(values: Rc<RefCell<Option<Vec<i32>>>>, k: Rc<RefCell<Option<Kind>>>) -> i32 {
+pub fn pick(values: Rc<RefCell<Option<Vec<i64>>>>, k: Rc<RefCell<Option<Kind>>>) -> i64 {
     (*values.borrow().as_ref().unwrap())[(*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as usize].clone()
 }
 
-pub fn previous(values: Rc<RefCell<Option<Vec<i32>>>>, k: Rc<RefCell<Option<Kind>>>) -> i32 {
+pub fn previous(values: Rc<RefCell<Option<Vec<i64>>>>, k: Rc<RefCell<Option<Kind>>>) -> i64 {
     (*values.borrow().as_ref().unwrap())[((*(*k.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 1) as usize].clone()
 }
 
 fn main() {
-    let mut values = Rc::new(RefCell::new(Some(vec![10, 20, 30])));
+    let mut values = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64])));
     let mut k: Rc<RefCell<Option<Kind>>> = Rc::new(RefCell::new(Some(Kind(Rc::new(RefCell::new(Some(1 as i32)))))));
     println!("{}", format!("{}", pick(values.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
     println!("{}", format!("{}", previous(values.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))));

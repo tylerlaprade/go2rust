@@ -1,4 +1,4 @@
-pub fn vals() -> (i32, i32) {
+pub fn vals() -> (i64, i64) {
     (3, 7)
 }
 

@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Even simpler: mutation through aliasing
-    let mut x = Rc::new(RefCell::new(Some(10)));
+    let mut x = Rc::new(RefCell::new(Some(10i64)));
     let mut y = x.clone();
     let mut z = y.clone();
 

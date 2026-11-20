@@ -5,7 +5,7 @@ use std::rc::{Rc};
 /// Counter holds a numeric value
 #[derive(Debug, Clone)]
 pub struct Counter {
-    pub value: Rc<RefCell<Option<i32>>>,
+    pub value: Rc<RefCell<Option<i64>>>,
 }
 
 impl Counter {

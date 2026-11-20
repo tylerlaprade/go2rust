@@ -14,7 +14,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some("int".to_string())));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -40,7 +40,7 @@ pub fn nested(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         drop(_ts_guard);
         {
     let _ts_subject = v.clone();
@@ -53,7 +53,7 @@ pub fn nested(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some("nested-int".to_string())));;
     } else {
@@ -71,8 +71,8 @@ pub fn nested(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>
 }
 
 fn main() {
-    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new("x".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(false) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*nested(Rc::new(RefCell::new(Some(Box::new(1) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*nested(Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
 }

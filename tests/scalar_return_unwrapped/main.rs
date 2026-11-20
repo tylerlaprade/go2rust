@@ -2,7 +2,7 @@
 /// returning a predeclared scalar should emit a bare Rust scalar, not a
 /// wrapped Rc<RefCell<Option<i32>>>. There is no addressable callee return
 /// slot to preserve, so the wrapping had no semantic effect.
-pub fn get_year() -> i32 {
+pub fn get_year() -> i64 {
     2024
 }
 

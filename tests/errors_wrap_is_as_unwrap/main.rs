@@ -98,20 +98,20 @@ fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -883,7 +883,7 @@ impl std::fmt::Display for NotFound {
 
 
 #[derive(Debug, Default)]
-pub struct Code(pub Rc<RefCell<Option<i32>>>);
+pub struct Code(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Code {
     fn clone(&self) -> Self {
@@ -906,8 +906,8 @@ impl PartialEq for Code {
     }
 }
 
-impl PartialEq<i32> for Code {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Code {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.borrow().as_ref().unwrap() == *other
     }
 }
@@ -920,19 +920,19 @@ impl PartialOrd for Code {
     }
 }
 
-impl PartialOrd<i32> for Code {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Code {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.borrow().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Code> for i32 {
+impl PartialEq<Code> for i64 {
     fn eq(&self, other: &Code) -> bool {
         *self == *other.0.borrow().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Code> for i32 {
+impl PartialOrd<Code> for i64 {
     fn partial_cmp(&self, other: &Code) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.borrow().as_ref().unwrap())
     }
@@ -945,14 +945,14 @@ impl std::ops::Add for Code {
     }
 }
 
-impl std::ops::Add<i32> for Code {
+impl std::ops::Add<i64> for Code {
     type Output = Code;
-    fn add(self, other: i32) -> Code {
+    fn add(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Code> for i32 {
+impl std::ops::Add<Code> for i64 {
     type Output = Code;
     fn add(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self + *other.0.borrow().as_ref().unwrap()))))
@@ -966,14 +966,14 @@ impl std::ops::Sub for Code {
     }
 }
 
-impl std::ops::Sub<i32> for Code {
+impl std::ops::Sub<i64> for Code {
     type Output = Code;
-    fn sub(self, other: i32) -> Code {
+    fn sub(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Code> for i32 {
+impl std::ops::Sub<Code> for i64 {
     type Output = Code;
     fn sub(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
@@ -987,14 +987,14 @@ impl std::ops::Mul for Code {
     }
 }
 
-impl std::ops::Mul<i32> for Code {
+impl std::ops::Mul<i64> for Code {
     type Output = Code;
-    fn mul(self, other: i32) -> Code {
+    fn mul(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Code> for i32 {
+impl std::ops::Mul<Code> for i64 {
     type Output = Code;
     fn mul(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
@@ -1008,14 +1008,14 @@ impl std::ops::Div for Code {
     }
 }
 
-impl std::ops::Div<i32> for Code {
+impl std::ops::Div<i64> for Code {
     type Output = Code;
-    fn div(self, other: i32) -> Code {
+    fn div(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Code> for i32 {
+impl std::ops::Div<Code> for i64 {
     type Output = Code;
     fn div(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
@@ -1036,14 +1036,14 @@ impl std::ops::Rem for Code {
     }
 }
 
-impl std::ops::Rem<i32> for Code {
+impl std::ops::Rem<i64> for Code {
     type Output = Code;
-    fn rem(self, other: i32) -> Code {
+    fn rem(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Code> for i32 {
+impl std::ops::Rem<Code> for i64 {
     type Output = Code;
     fn rem(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
@@ -1057,14 +1057,14 @@ impl std::ops::BitAnd for Code {
     }
 }
 
-impl std::ops::BitAnd<i32> for Code {
+impl std::ops::BitAnd<i64> for Code {
     type Output = Code;
-    fn bitand(self, other: i32) -> Code {
+    fn bitand(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Code> for i32 {
+impl std::ops::BitAnd<Code> for i64 {
     type Output = Code;
     fn bitand(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self & *other.0.borrow().as_ref().unwrap()))))
@@ -1078,14 +1078,14 @@ impl std::ops::BitOr for Code {
     }
 }
 
-impl std::ops::BitOr<i32> for Code {
+impl std::ops::BitOr<i64> for Code {
     type Output = Code;
-    fn bitor(self, other: i32) -> Code {
+    fn bitor(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Code> for i32 {
+impl std::ops::BitOr<Code> for i64 {
     type Output = Code;
     fn bitor(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self | *other.0.borrow().as_ref().unwrap()))))
@@ -1099,14 +1099,14 @@ impl std::ops::BitXor for Code {
     }
 }
 
-impl std::ops::BitXor<i32> for Code {
+impl std::ops::BitXor<i64> for Code {
     type Output = Code;
-    fn bitxor(self, other: i32) -> Code {
+    fn bitxor(self, other: i64) -> Code {
         Code(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Code> for i32 {
+impl std::ops::BitXor<Code> for i64 {
     type Output = Code;
     fn bitxor(self, other: Code) -> Code {
         Code(Rc::new(RefCell::new(Some(self ^ *other.0.borrow().as_ref().unwrap()))))
@@ -1359,7 +1359,7 @@ impl StdError for NotFound {}
 
 impl Code {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("code {}", (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())))))
+        Rc::new(RefCell::new(Some(format!("code {}", (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())))))
     }
 }
 
@@ -1452,9 +1452,9 @@ fn main() {
     }
     let mut code: Rc<RefCell<Option<Code>>> = Rc::new(RefCell::new(Some(Code(Rc::new(RefCell::new(Some(0)))))));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let mut __as_found = None; for __as_err in go_error_chain({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }) { if let Some(__as_value) = __as_err.downcast_ref::<Code>() { __as_found = Some(__as_value.clone()); break; } } match __as_found { Some(__as_value) => { *code.borrow_mut() = Some(__as_value); true } None => false } }))).borrow().as_ref().unwrap())));
-    { let __rhs_holder = Rc::new(RefCell::new(Some(go_error_wrap(format!("outer: {}", match { let __err_handle = Rc::new(RefCell::new(Some(Rc::new(Code(Rc::new(RefCell::new(Some(7 as i32 as i32))))) as Rc<dyn StdError>))); let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = Rc::new(RefCell::new(Some(Rc::new(Code(Rc::new(RefCell::new(Some(7 as i32 as i32))))) as Rc<dyn StdError>))); let __err_value = (*__err_handle.borrow()).clone(); __err_value }])))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };
+    { let __rhs_holder = Rc::new(RefCell::new(Some(go_error_wrap(format!("outer: {}", match { let __err_handle = Rc::new(RefCell::new(Some(Rc::new(Code(Rc::new(RefCell::new(Some(7 as i64 as i64))))) as Rc<dyn StdError>))); let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = Rc::new(RefCell::new(Some(Rc::new(Code(Rc::new(RefCell::new(Some(7 as i64 as i64))))) as Rc<dyn StdError>))); let __err_value = (*__err_handle.borrow()).clone(); __err_value }])))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };
     if (*Rc::new(RefCell::new(Some({ let mut __as_found = None; for __as_err in go_error_chain({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }) { if let Some(__as_value) = __as_err.downcast_ref::<Code>() { __as_found = Some(__as_value.clone()); break; } } match __as_found { Some(__as_value) => { *code.borrow_mut() = Some(__as_value); true } None => false } }))).borrow().as_ref().unwrap()) {
-        println!("{} {} {}", format!("{}", "code:".to_string()), format!("{}", { let __v = (*code.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some((*(*code.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap())));
+        println!("{} {} {}", format!("{}", "code:".to_string()), format!("{}", { let __v = (*code.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some((*(*code.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())));
     }
 
     let mut both = Rc::new(RefCell::new(Some(go_error_wrap(format!("{} and {}", match { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }, match { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));

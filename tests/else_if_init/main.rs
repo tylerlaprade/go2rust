@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn classify(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
+pub fn classify(n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>> {
     if (*n.borrow().as_ref().unwrap()) < 0 {
         return Rc::new(RefCell::new(Some("negative".to_string())));
     } else {

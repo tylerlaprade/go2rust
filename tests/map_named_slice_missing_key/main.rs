@@ -46,7 +46,7 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Numbers(pub Rc<RefCell<Option<Vec<i32>>>>);
+pub struct Numbers(pub Rc<RefCell<Option<Vec<i64>>>>);
 
 impl Display for Numbers {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -61,7 +61,7 @@ fn main() {
     let (mut two, mut ok) = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"zzz".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Rc::new(RefCell::new(Some(Default::default()))), false) } };
     println!("{} {} {} {} {}", format!("{}", { let __slice_holder = { let __named_slice = (*one.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = one.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_none() }), format!("{}", ok), format!("{}", { let __slice_holder = { let __named_slice = (*two.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = two.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_none() }));
 
-    let mut s = Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![1])))))));
+    let mut s = Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![1i64])))))));
     println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = s.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_none() }), format!("{}", { let __slice_holder = { let __named_slice = s.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_some() }));
     *s.borrow_mut() = None;
     println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = s.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_none() }), format!("{}", { let __slice_holder = { let __named_slice = s.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_some() }));

@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct item {
-    pub index: Rc<RefCell<Option<i32>>>,
+    pub index: Rc<RefCell<Option<i64>>>,
 }
 
 impl item {
@@ -35,7 +35,7 @@ impl std::fmt::Display for item {
 
 
 impl item {
-    pub fn index(&self) -> i32 {
+    pub fn index(&self) -> i64 {
         return (*self.index.borrow().as_ref().unwrap());
     }
 }

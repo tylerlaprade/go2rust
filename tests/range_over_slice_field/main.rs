@@ -46,7 +46,7 @@ where
 
 #[derive(Debug, Clone, Default)]
 pub struct bag {
-    pub values: Rc<RefCell<Option<Vec<i32>>>>,
+    pub values: Rc<RefCell<Option<Vec<i64>>>>,
 }
 
 impl bag {
@@ -67,8 +67,8 @@ impl std::fmt::Display for bag {
 
 
 impl bag {
-    pub fn sum(&self) -> i32 {
-        let mut sum = Rc::new(RefCell::new(Some(0)));
+    pub fn sum(&self) -> i64 {
+        let mut sum = Rc::new(RefCell::new(Some(0i64)));
         { let __range_holder = self.values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         { let __rhs = value; let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
@@ -77,6 +77,6 @@ impl bag {
 }
 
 fn main() {
-    let mut bag = Rc::new(RefCell::new(Some(bag { values: Rc::new(RefCell::new(Some(vec![1, 2, 3]))), ..Default::default() })));
+    let mut bag = Rc::new(RefCell::new(Some(bag { values: Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))), ..Default::default() })));
     println!("{}", format!("{}", (*bag.borrow().as_ref().unwrap()).sum()));
 }

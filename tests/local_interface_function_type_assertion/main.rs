@@ -7,7 +7,7 @@ pub trait hasValue: std::fmt::Display + Any {
     fn __go_clone_box_has_value(&self) -> Box<dyn hasValue>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool;
-    fn value(&self) -> i32;
+    fn value(&self) -> i64;
 }
 
 impl Clone for Box<dyn hasValue> {
@@ -18,7 +18,7 @@ impl Clone for Box<dyn hasValue> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct r#box {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl r#box {
@@ -49,7 +49,7 @@ impl std::fmt::Display for r#box {
 
 
 impl r#box {
-    pub fn value(&self) -> i32 {
+    pub fn value(&self) -> i64 {
         return (*self.n.borrow().as_ref().unwrap());
     }
 }

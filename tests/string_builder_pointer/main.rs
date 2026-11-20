@@ -12,8 +12,8 @@ pub fn read(out: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
     Rc::new(RefCell::new(Some({ let __builder = out.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })))
 }
 
-pub fn size(out: Rc<RefCell<Option<String>>>) -> i32 {
-    (*out.borrow().as_ref().unwrap()).len() as i32
+pub fn size(out: Rc<RefCell<Option<String>>>) -> i64 {
+    (*out.borrow().as_ref().unwrap()).len() as i64
 }
 
 fn main() {

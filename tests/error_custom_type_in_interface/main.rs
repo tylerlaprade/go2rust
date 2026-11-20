@@ -170,7 +170,7 @@ impl std::fmt::Display for Missing {
 
 #[derive(Debug, Clone)]
 pub struct NotFound {
-    pub code: Rc<RefCell<Option<i32>>>,
+    pub code: Rc<RefCell<Option<i64>>>,
 }
 
 impl NotFound {

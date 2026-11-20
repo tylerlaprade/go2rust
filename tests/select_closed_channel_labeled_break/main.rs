@@ -175,7 +175,7 @@ impl<T> Iterator for GoChannel<T> {
 fn main() {
     let mut done = GoChannel::<AnonymousStruct1>::new();
     done.close();
-    let mut n = Arc::new(Mutex::new(Some(0)));
+    let mut n = Arc::new(Mutex::new(Some(0i64)));
     'r#loop: loop {
         loop {
         if let Some(_) = done.try_recv_select() {
@@ -192,10 +192,10 @@ fn main() {
     }
     }
 
-    let mut results = GoChannel::<i32>::new_buffered(2 as usize);
+    let mut results = GoChannel::<i64>::new_buffered(2 as usize);
     results.send(7);
     results.close();
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         loop {
         if let Some(__select_recv) = results.try_recv_select() {
@@ -212,16 +212,16 @@ fn main() {
     }
 
     let mut quit = GoChannel::<bool>::new();
-    let mut work = GoChannel::<i32>::new();
+    let mut work = GoChannel::<i64>::new();
     let quit_thread = quit.clone(); let work_thread = work.clone(); std::thread::spawn(move || {
-        let mut i = Arc::new(Mutex::new(Some(1)));
+        let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         work_thread.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     };
         quit_thread.close();;;
     });
-    let mut sum = Arc::new(Mutex::new(Some(0)));
+    let mut sum = Arc::new(Mutex::new(Some(0i64)));
     'outer: loop {
         loop {
         if let Some(__select_recv) = work.try_recv_select() {

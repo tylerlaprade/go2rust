@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 pub const PI: f64 = 3.14159;
 pub const EULER: f64 = 2.71828;
-pub const MAX_USERS: i32 = 100;
+pub const MAX_USERS: i64 = 100;
 
 
 pub const NAME: &'static str = "Go2Rust";
@@ -11,13 +11,13 @@ pub const VERSION: f64 = 1.0;
 pub const DEBUG: bool = true;
 
 
-pub const SUNDAY: i32 = 0;
-pub const MONDAY: i32 = 1;
-pub const TUESDAY: i32 = 2;
-pub const WEDNESDAY: i32 = 3;
-pub const THURSDAY: i32 = 4;
-pub const FRIDAY: i32 = 5;
-pub const SATURDAY: i32 = 6;
+pub const SUNDAY: i64 = 0;
+pub const MONDAY: i64 = 1;
+pub const TUESDAY: i64 = 2;
+pub const WEDNESDAY: i64 = 3;
+pub const THURSDAY: i64 = 4;
+pub const FRIDAY: i64 = 5;
+pub const SATURDAY: i64 = 6;
 
 
 pub const K_B: i64 = 1 << (10 * 1);
@@ -26,17 +26,17 @@ pub const G_B: i64 = 1 << (10 * 3);
 pub const T_B: i64 = 1 << (10 * 4);
 
 
-pub const RED: i32 = 0;
-pub const GREEN: i32 = 1;
-pub const BLUE: i32 = 2;
+pub const RED: i64 = 0;
+pub const GREEN: i64 = 1;
+pub const BLUE: i64 = 2;
 
 
-pub const A: i32 = 0 * 2;
-pub const B: i32 = 1 * 2;
-pub const C: i32 = 2 * 2;
-pub const D: i32 = 3 + 10;
-pub const E_E: i32 = 4 + 10;
-pub const F: i32 = 5 + 10;
+pub const A: i64 = 0 * 2;
+pub const B: i64 = 1 * 2;
+pub const C: i64 = 2 * 2;
+pub const D: i64 = 3 + 10;
+pub const E_E: i64 = 4 + 10;
+pub const F: i64 = 5 + 10;
 
 
 fn main() {
@@ -64,7 +64,7 @@ fn main() {
     print!("KB = {} bytes\n", K_B);
     print!("MB = {} bytes\n", M_B);
     print!("GB = {} bytes\n", G_B);
-    print!("TB = {} bytes\n", T_B);
+    print!("TB = {} bytes\n", 1099511627776i64);
 
         // Color constants
     println!("{}", format!("{}", "\n=== Color constants ===".to_string()));
@@ -83,11 +83,11 @@ fn main() {
 
         // Local constants
     println!("{}", format!("{}", "\n=== Local constants ===".to_string()));
-    const localConst: i32 = 42;
+    const localConst: i64 = 42;
 
-    const x: i32 = 10;
-const y: i32 = 20;
-const z: i32 = x + y;
+    const x: i64 = 10;
+const y: i64 = 20;
+const z: i64 = x + y;
 
 
     print!("localConst = {}\n", localConst);
@@ -95,14 +95,14 @@ const z: i32 = x + y;
 
         // Untyped constants in expressions
     println!("{}", format!("{}", "\n=== Untyped constants in expressions ===".to_string()));
-    const untypedInt: i32 = 100;
+    const untypedInt: i64 = 100;
 
     const untypedFloat: f64 = 3.14;
 
 
-    let mut i: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(100)));
+    let mut i: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(100)));
     let mut f: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(untypedFloat)));
-    let mut mixed = Rc::new(RefCell::new(Some(untypedInt + 3)));
+    let mut mixed = Rc::new(RefCell::new(Some(103i64)));
 
     print!("i = {}\n", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v });
     print!("f = {:.2}\n", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v });

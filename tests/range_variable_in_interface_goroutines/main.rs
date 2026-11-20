@@ -231,20 +231,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -911,7 +911,7 @@ fn main() {
     for dir in &vec!["a".to_string(), "b".to_string()] {
         print!("{}", go_sprintf(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new((*dir).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
         { let new_val = "%s\n".to_string(); *format.lock().unwrap() = Some(new_val); };
-        show(Arc::new(Mutex::new(Some(vec![Box::new((*dir).clone()) as Box<dyn Any + Send + Sync>, Box::new(1) as Box<dyn Any + Send + Sync>]))));
+        show(Arc::new(Mutex::new(Some(vec![Box::new((*dir).clone()) as Box<dyn Any + Send + Sync>, Box::new(1i64) as Box<dyn Any + Send + Sync>]))));
         let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new((*dir).clone()) as Box<dyn Any + Send + Sync>)));
         println!("{}", format!("{}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
     }
@@ -926,13 +926,13 @@ fn main() {
         println!("{} {}", format!("{}", { let __text = format_any(boxed.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", (*it.name.lock().unwrap().as_ref().unwrap()).clone()));
     }
 
-    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1))))]))));
+    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
     for (k, v) in { let __range_holder = m.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(k.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
         show(Arc::new(Mutex::new(Some(vec![Box::new(k.clone()) as Box<dyn Any + Send + Sync>, Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
     }
 
-    for n in vec![3, 4].iter().copied() {
+    for n in vec![3i64, 4i64].iter().copied() {
         show(Arc::new(Mutex::new(Some(vec![Box::new(n.clone()) as Box<dyn Any + Send + Sync>]))));
     }
 }

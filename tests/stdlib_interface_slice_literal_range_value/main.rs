@@ -225,7 +225,7 @@ impl Eq for ast_Expr {}
 
 impl PartialOrd for ast_Expr {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 

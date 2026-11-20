@@ -53,7 +53,7 @@ impl Eq for types_Type {}
 
 impl PartialOrd for types_Type {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -90,7 +90,7 @@ impl cache {
 
 pub fn exercise(T: Rc<RefCell<Option<types_Type>>>, c: Rc<RefCell<Option<cache>>>) {
     (*c.borrow().as_ref().unwrap()).r#use(T.clone());
-    let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<types_Type, Rc<RefCell<Option<i32>>>>::from([((*T.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some(1))))]))));
+    let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<types_Type, Rc<RefCell<Option<i64>>>>::from([((*T.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some(1i64))))]))));
     println!("{}", format!("{}", { let __map_holder = seen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*T.borrow().as_ref().unwrap()).clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 }
 

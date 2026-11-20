@@ -566,7 +566,7 @@ impl<T: 'static> std::fmt::Debug for GoPtr<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i32>>>,
+    pub x: Rc<RefCell<Option<i64>>>,
 }
 
 impl Point {
@@ -601,8 +601,8 @@ fn main() {
     let mut px = (*p.borrow().as_ref().unwrap()).x.clone();
     { let new_val = 20; *px.borrow_mut() = Some(new_val); };
 
-    let mut nums = Rc::new(RefCell::new(Some(vec![1, 2, 3])));
-    let mut first: Option<GoSliceElemPtr<i32>> = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize));
+    let mut nums = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
+    let mut first: Option<GoSliceElemPtr<i64>> = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize));
     { let new_val = 9; *first.as_ref().unwrap().borrow_mut() = Some(new_val); };
 
     println!("{} {}", format!("{}", (*(*p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())), format!("{}", format_slice(&nums)));

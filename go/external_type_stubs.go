@@ -65,7 +65,7 @@ func RegisterExternalTypeStub(name string) {
 		RegisterExternalTypeStubInterface("types_Type")
 	}
 	if name == "types_TypeName" {
-		RegisterExternalIntegerTypeStub("token_Pos", "i32")
+		RegisterExternalIntegerTypeStub("token_Pos", rustIntType())
 		RegisterExternalTypeStub("types_Package")
 		RegisterExternalTypeStubInterface("types_Type")
 	}
@@ -167,7 +167,7 @@ func externalIntegerRustTypeForNamed(named *types.Named) (string, bool) {
 	}
 	switch basic.Kind() {
 	case types.Int:
-		return "i32", true
+		return rustIntType(), true
 	case types.Int8:
 		return "i8", true
 	case types.Int16:
@@ -686,7 +686,7 @@ func RegisterExternalPackageStubConstantValue(pkgName string, constName string, 
 		return
 	}
 	if pkgName == "token" {
-		RegisterExternalIntegerTypeStub("token_Token", "i32")
+		RegisterExternalIntegerTypeStub("token_Token", rustIntType())
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Constants[constName] = goTypesConstTypeToRust(constType)
@@ -1937,7 +1937,7 @@ func writeIoWriterStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	// Predeclared Copy scalar return slots stay bare to match the widened
 	// signatures user-defined io.Writer impls and direct callers use.
-	intType := "i32"
+	intType := rustIntType()
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
@@ -1976,7 +1976,7 @@ impl io_Writer {
         } else {
             Vec::new()
         };
-        let n = bytes.len() as i32;
+        let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
         (%s, %s)
     }
@@ -2012,7 +2012,7 @@ impl Eq for io_Writer {}
 
 impl PartialOrd for io_Writer {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -2182,7 +2182,7 @@ func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	int64Type := wrappedExternalStubType("i64")
 	stringType := wrappedExternalStubType("String")
-	intType := wrappedExternalStubType("i32")
+	intType := wrappedExternalStubType(rustIntType())
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
@@ -2251,7 +2251,7 @@ impl os_File {
         } else {
             Vec::new()
         };
-        let n = bytes.len() as i32;
+        let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
         (%s, %s)
     }
@@ -2267,7 +2267,7 @@ impl os_File {
             String::new()
         };
         let bytes = value.into_bytes();
-        let n = bytes.len() as i32;
+        let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
         (%s, %s)
     }
@@ -2285,7 +2285,7 @@ impl os_File {
             0
         };
         let data = self.__go_read_all();
-        let mut n = 0i32;
+        let mut n = 0i64;
         if offset >= 0 {
             let start = offset as usize;
             if start < data.len() {
@@ -2294,7 +2294,7 @@ impl os_File {
                     if let Some(target) = guard.as_mut() {
                         let count = std::cmp::min(target.len(), data.len() - start);
                         target[..count].copy_from_slice(&data[start..start + count]);
-                        n = count as i32;
+                        n = count as i64;
                     }
                 }
             }
@@ -2304,10 +2304,10 @@ impl os_File {
 }
 `,
 		errorType, noneError,
-		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
-		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
-		intType, errorType, wrappedExternalStubExpr("i32", "0"), noneError,
-		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, wrappedExternalStubExpr("i32", "n"), noneError)
+		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
+		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
+		intType, errorType, wrappedExternalStubExpr(rustIntType(), "0"), noneError,
+		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError)
 }
 
 // PERMANENT: not scaffold — Rust std::process::Command is the long-term implementation;
@@ -2644,7 +2644,7 @@ func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[s
 	out.WriteString(name)
 	out.WriteString(" {\n")
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n\n")
 	out.WriteString("impl Ord for ")
@@ -3220,8 +3220,8 @@ func writeOsErrorHelpers(out *strings.Builder) {
 
 // PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
 func writeOsExitFunction(out *strings.Builder) {
-	out.WriteString("    pub fn exit<T0: Into<i32>>(_arg0: T0) {\n")
-	out.WriteString("        std::process::exit(_arg0.into());\n")
+	out.WriteString("    pub fn exit<T0: Into<i64>>(_arg0: T0) {\n")
+	out.WriteString("        std::process::exit(_arg0.into() as i32);\n")
 	out.WriteString("    }\n")
 }
 
@@ -3833,7 +3833,7 @@ func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunc
 	out.WriteString(") -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n        ")
-	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "i32", "std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)")
+	writeExternalStubReturnValue(out, fn.ReturnTypes[0], rustIntType(), "std::thread::available_parallelism().map(|n| n.get() as i64).unwrap_or(1).max(1)")
 	out.WriteString("\n    }\n")
 }
 

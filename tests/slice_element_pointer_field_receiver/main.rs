@@ -694,8 +694,8 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 
 #[derive(Debug, Clone)]
 pub struct Inst {
-    pub op: Arc<Mutex<Option<i32>>>,
-    pub out: Arc<Mutex<Option<i32>>>,
+    pub op: Arc<Mutex<Option<i64>>>,
+    pub out: Arc<Mutex<Option<i64>>>,
 }
 
 impl Inst {
@@ -753,7 +753,7 @@ impl std::fmt::Display for runner {
 
 
 impl Inst {
-    pub fn matches(&self, op: Arc<Mutex<Option<i32>>>) -> bool {
+    pub fn matches(&self, op: Arc<Mutex<Option<i64>>>) -> bool {
         return { let __tmp_x = (*self.op.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
     }
 }
@@ -762,7 +762,7 @@ pub fn assign(r: Arc<Mutex<Option<runner>>>, program: Arc<Mutex<Option<Vec<Inst>
     { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(program.clone(), (0) as usize)); (*r.lock().unwrap().as_mut().unwrap()).inst = new_val; };
 }
 
-pub fn step(r: Arc<Mutex<Option<runner>>>) -> i32 {
+pub fn step(r: Arc<Mutex<Option<runner>>>) -> i64 {
     let mut i: GoPtr<Inst> = (*r.lock().unwrap().as_ref().unwrap()).inst.clone();
     if { let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).matches(Arc::new(Mutex::new(Some(2)))); __result } {
         return (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.out.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());

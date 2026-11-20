@@ -77,7 +77,7 @@ pub trait Expr: std::fmt::Display + Any {
     fn __go_clone_box_expr(&self) -> Box<dyn Expr>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_expr(&self, other: &dyn Expr) -> bool;
-    fn pos(&self) -> i32;
+    fn pos(&self) -> i64;
 }
 
 impl Clone for Box<dyn Expr> {
@@ -88,7 +88,7 @@ impl Clone for Box<dyn Expr> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lit {
-    pub p: Rc<RefCell<Option<i32>>>,
+    pub p: Rc<RefCell<Option<i64>>>,
 }
 
 impl Lit {
@@ -141,13 +141,13 @@ impl std::fmt::Display for Assign {
 
 
 impl Lit {
-    pub fn pos(&self) -> i32 {
+    pub fn pos(&self) -> i64 {
         return (*self.p.borrow().as_ref().unwrap());
     }
 }
 
 impl Expr for Lit {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         Lit::pos(self)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
@@ -176,7 +176,7 @@ impl std::fmt::Display for LitPtr {
 }
 
 impl Expr for LitPtr {
-    fn pos(&self) -> i32 {
+    fn pos(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Lit::pos(__recv)
@@ -199,7 +199,7 @@ impl Expr for LitPtr {
 impl Assign {
     /// Mirrors ast.AssignStmt.Pos(): method body indexes the wrapped
     /// interface slice field and calls a trait method on the result.
-    pub fn first_pos(&self) -> i32 {
+    pub fn first_pos(&self) -> i64 {
         { let __recv = (*self.lhs.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).pos(); __result }
     }
 }

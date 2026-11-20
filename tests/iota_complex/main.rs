@@ -1,10 +1,10 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub const FLAG_READ: i32 = 1 << 0;
-pub const FLAG_WRITE: i32 = 1 << 1;
-pub const FLAG_EXECUTE: i32 = 1 << 2;
-pub const FLAG_DELETE: i32 = 1 << 3;
+pub const FLAG_READ: i64 = 1 << 0;
+pub const FLAG_WRITE: i64 = 1 << 1;
+pub const FLAG_EXECUTE: i64 = 1 << 2;
+pub const FLAG_DELETE: i64 = 1 << 3;
 
 
 pub const K_B: i64 = 1 << (10 * 1);
@@ -13,25 +13,25 @@ pub const G_B: i64 = 1 << (10 * 3);
 pub const T_B: i64 = 1 << (10 * 4);
 
 
-pub const A: i32 = 0;
-pub const B: i32 = 0 * 10;
-pub const C: i32 = 1;
-pub const D: i32 = 1 * 10;
-pub const E: i32 = 2;
-pub const F: i32 = 2 * 10;
+pub const A: i64 = 0;
+pub const B: i64 = 0 * 10;
+pub const C: i64 = 1;
+pub const D: i64 = 1 * 10;
+pub const E: i64 = 2;
+pub const F: i64 = 2 * 10;
 
 
-pub const FIRST: i32 = 0;
-pub const SECOND: i32 = 1;
+pub const FIRST: i64 = 0;
+pub const SECOND: i64 = 1;
 
 
-pub const THIRD: i32 = 0;
-pub const FOURTH: i32 = 1;
+pub const THIRD: i64 = 0;
+pub const FOURTH: i64 = 1;
 
 
 fn main() {
         // Test bit flags
-    let mut perms = Rc::new(RefCell::new(Some(FLAG_READ | FLAG_WRITE)));
+    let mut perms = Rc::new(RefCell::new(Some(3i64)));
     print!("Permissions: {} (Read={}, Write={})\n", { let __v = (*perms.borrow().as_ref().unwrap()).clone(); __v }, FLAG_READ, FLAG_WRITE);
 
         // Test size constants

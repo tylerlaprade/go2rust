@@ -71,7 +71,7 @@ impl std::fmt::Display for entry {
 
 #[derive(Clone, Default)]
 pub struct holder {
-    pub table: Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<Vec<entry>>>>>>>>,
+    pub table: Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<Vec<entry>>>>>>>>,
 }
 
 impl holder {

@@ -71,27 +71,27 @@ fn __go_init_globals() {
 }
 
 
-pub fn target(label: Rc<RefCell<Option<String>>>, values: Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
+pub fn target(label: Rc<RefCell<Option<String>>>, values: Rc<RefCell<Option<Vec<i64>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     { (*trace.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*label.borrow().as_ref().unwrap()), "|".to_string())); };
     values.clone()
 }
 
-pub fn index(label: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn index(label: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i64>>>) -> i64 {
     { (*trace.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*label.borrow().as_ref().unwrap()), "|".to_string())); };
     (*value.borrow().as_ref().unwrap())
 }
 
-pub fn result(label: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i32>>>) -> i32 {
+pub fn result(label: Rc<RefCell<Option<String>>>, value: Rc<RefCell<Option<i64>>>) -> i64 {
     { (*trace.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*label.borrow().as_ref().unwrap()), "|".to_string())); };
     (*value.borrow().as_ref().unwrap())
 }
 
 fn main() {
     __go_init_all();
-    let mut left = Rc::new(RefCell::new(Some(vec![0, 0])));
-    let mut right = Rc::new(RefCell::new(Some(vec![0, 0])));
-    let mut __go_lhs_sequence_0 = Rc::new(RefCell::new(Some(vec![10])));
-    let mut __go_lhs_index_0 = Rc::new(RefCell::new(Some(0)));
+    let mut left = Rc::new(RefCell::new(Some(vec![0i64, 0i64])));
+    let mut right = Rc::new(RefCell::new(Some(vec![0i64, 0i64])));
+    let mut __go_lhs_sequence_0 = Rc::new(RefCell::new(Some(vec![10i64])));
+    let mut __go_lhs_index_0 = Rc::new(RefCell::new(Some(0i64)));
     {
         let __go_lhs_sequence_0_ = target(Rc::new(RefCell::new(Some("left sequence".to_string()))), left.clone()).clone();
         let __go_lhs_index_0_ = (index(Rc::new(RefCell::new(Some("left index".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;

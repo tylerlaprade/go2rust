@@ -215,8 +215,8 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Arc<Mutex<Option<i32>>>,
-    pub y: Arc<Mutex<Option<i32>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
@@ -346,7 +346,7 @@ impl std::fmt::Display for Node {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub name: Arc<Mutex<Option<String>>>,
-    pub port: Arc<Mutex<Option<i32>>>,
+    pub port: Arc<Mutex<Option<i64>>>,
 }
 
 impl Config {

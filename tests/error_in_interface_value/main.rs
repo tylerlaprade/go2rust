@@ -232,8 +232,8 @@ pub fn show(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
     } }
 }
 
-pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
-    (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
+pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
+    (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
 }
 
 /// kind tells values apart with a type switch, the way a handler does.
@@ -249,8 +249,8 @@ pub fn kind(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>>
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -293,7 +293,7 @@ pub fn is_error(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
 fn main() {
     let mut plain = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string())))));
     let mut wrapped = Rc::new(RefCell::new(Some(go_error_wrap(format!("wrapped: {}", match { let __err_handle = { let __err_source = plain.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = plain.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));
-    show(Rc::new(RefCell::new(Some(vec![Box::new("first".to_string()) as Box<dyn Any>, { let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new(3) as Box<dyn Any>]))));
+    show(Rc::new(RefCell::new(Some(vec![Box::new("first".to_string()) as Box<dyn Any>, { let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new(3i64) as Box<dyn Any>]))));
     println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![{ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))))));
 
         // Putting an error in an interface value does not turn it into a string,
@@ -360,7 +360,7 @@ fn main() {
         println!("{}", format!("{}", format_any(item.as_ref())));
     } }
 
-    let mut number: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(5) as Box<dyn Any>)));
+    let mut number: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(5i64) as Box<dyn Any>)));
     let (_, mut numberIsError) = ({
         let val = number.clone();
         let guard = val.borrow();
@@ -380,6 +380,6 @@ fn main() {
 
         // A type switch finds the error as well, and its case variable is the
         // error.
-    println!("{} {} {} {} {} {} {} {} {}", format!("{}", (*kind(Rc::new(RefCell::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some({ let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some(Box::new(3) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some(Box::new("s".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some(Box::new(2.5) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    println!("{} {} {}", format!("{}", is_error(Rc::new(RefCell::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }))))), format!("{}", is_error(Rc::new(RefCell::new(Some(Box::new("bad".to_string()) as Box<dyn Any>))))), format!("{}", is_error(Rc::new(RefCell::new(Some(Box::new(4) as Box<dyn Any>))))));
+    println!("{} {} {} {} {} {} {} {} {}", format!("{}", (*kind(Rc::new(RefCell::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some({ let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some(Box::new("s".to_string()) as Box<dyn Any>)))).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*kind(Rc::new(RefCell::new(Some(Box::new(2.5) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", is_error(Rc::new(RefCell::new(Some({ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }))))), format!("{}", is_error(Rc::new(RefCell::new(Some(Box::new("bad".to_string()) as Box<dyn Any>))))), format!("{}", is_error(Rc::new(RefCell::new(Some(Box::new(4i64) as Box<dyn Any>))))));
 }

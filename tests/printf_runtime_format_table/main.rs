@@ -84,20 +84,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -741,14 +741,14 @@ pub fn show(format: Rc<RefCell<Option<String>>>, text: Rc<RefCell<Option<String>
 
 fn main() {
     let mut intFormats = Rc::new(RefCell::new(Some(vec!["%d".to_string(), "%5d".to_string(), "%-5d|".to_string(), "%05d".to_string(), "%+d".to_string(), "% d".to_string(), "%x".to_string(), "%X".to_string(), "%#x".to_string(), "%o".to_string(), "%#o".to_string(), "%O".to_string(), "%b".to_string(), "%c".to_string(), "%q".to_string(), "%U".to_string(), "%#U".to_string(), "%v".to_string(), "%3v".to_string(), "%.3d".to_string(), "%8.3d".to_string(), "%08.3d".to_string(), "%-8.3d|".to_string(), "%+05d".to_string(), "%.0d".to_string(), "%s".to_string(), "%t".to_string(), "%f".to_string(), "%e".to_string(), "%T".to_string()])));
-    let mut ints = Rc::new(RefCell::new(Some(vec![0, 7, -42, 65, 255, 123456789])));
+    let mut ints = Rc::new(RefCell::new(Some(vec![0i64, 7i64, (-42i64), 65i64, 255i64, 123456789i64])));
     { let __range_holder = intFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
         { let __range_holder = ints.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
     } }
     } }
-    show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(9000000000) as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(200 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%x %X %#x".to_string()))), sprintf(Rc::new(RefCell::new(Some("%x %X %#x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(255) as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(200 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(4096 as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-9000000000i64) as Box<dyn Any>, Box::new(200u8) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%x %X %#x".to_string()))), sprintf(Rc::new(RefCell::new(Some("%x %X %#x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-255i64) as Box<dyn Any>, Box::new(200u8) as Box<dyn Any>, Box::new(4096i64) as Box<dyn Any>])))));
 
     let mut floatFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%g".to_string(), "%G".to_string(), "%e".to_string(), "%E".to_string(), "%f".to_string(), "%F".to_string(), "%.2f".to_string(), "%8.2f|".to_string(), "%-8.2f|".to_string(), "%08.2f".to_string(), "%+.2f".to_string(), "% .2f".to_string(), "%.0f".to_string(), "%.3e".to_string(), "%.3g".to_string(), "%.10g".to_string(), "%.1g".to_string(), "%10.3g|".to_string(), "%6.2f".to_string(), "%d".to_string(), "%s".to_string(), "%T".to_string(), "%5v|".to_string(), "%.0e".to_string(), "%.0g".to_string()])));
     let mut floats = Rc::new(RefCell::new(Some(vec![0.0, 1.0, 2.5, -(2.5), 0.1, 100000.0, 1000000.0, 1234567.0, 123456789.0, 1e20, 1e21, 1e-4, 1e-5, 0.000123456, 3.141592653589793, 1e100, 123.456, 0.5, 1.5, 2.675, 99.995])));
@@ -770,8 +770,8 @@ fn main() {
     let mut stringFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%s".to_string(), "%q".to_string(), "%10s|".to_string(), "%-10s|".to_string(), "%.2s".to_string(), "%10.2s|".to_string(), "%x".to_string(), "%X".to_string(), "% x".to_string(), "%#x".to_string(), "%d".to_string(), "%t".to_string(), "%T".to_string(), "%05s".to_string(), "%#q".to_string(), "%c".to_string()])));
     let mut texts = Rc::new(RefCell::new(Some(vec!["hi".to_string(), "".to_string(), "h\u{e9}llo w\u{f6}rld".to_string(), "tab\there".to_string(), "quote\"d".to_string(), "back\\slash".to_string(), "new\nline".to_string(), "bell\u{7}".to_string(), "`tick`".to_string()])));
     { let __range_holder = stringFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
-        let mut i = Rc::new(RefCell::new(Some(0)));
-    while ((*i.borrow().as_ref().unwrap()) as i32) < ((*texts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) {
+        let mut i = Rc::new(RefCell::new(Some(0i64)));
+    while ((*i.borrow().as_ref().unwrap()) as i64) < ((*texts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new((*texts.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()) as Box<dyn Any>])))));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -785,29 +785,29 @@ fn main() {
 
     show(Rc::new(RefCell::new(Some("plain text".to_string()))), sprintf(Rc::new(RefCell::new(Some("plain text".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
     show(Rc::new(RefCell::new(Some("100%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("100%%".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
-    show(Rc::new(RefCell::new(Some("%d%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d%%".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(50) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new(2) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%!".to_string()))), sprintf(Rc::new(RefCell::new(Some("%!".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%z".to_string()))), sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d%%".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d%%".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(50i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %s %v %t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d %d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%!".to_string()))), sprintf(Rc::new(RefCell::new(Some("%!".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%z".to_string()))), sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("trailing %".to_string()))), sprintf(Rc::new(RefCell::new(Some("trailing %".to_string()))), Rc::new(RefCell::new(Some(vec![])))));
-    show(Rc::new(RefCell::new(Some("%5".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%-*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*.*f|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*.*f|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(8) as Box<dyn Any>, Box::new(3) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%5".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%-*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*.*f|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*.*f|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(8i64) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%w".to_string()))), sprintf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("wrapped".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%v %v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%v %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%-5d|%5s|%05.1f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-5d|%5s|%05.1f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(2.25) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%v %v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%v %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%-5d|%5s|%05.1f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-5d|%5s|%05.1f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3i64) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(2.25) as Box<dyn Any>])))));
 
         // A negative width from an argument means left alignment. A negative
         // precision is reported and then ignored.
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-(6)) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-(6)) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%-*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-(6)) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%.*f|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-(2)) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-6i64) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%-*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-2i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
 
         // Precision counts bytes for %x and characters for %s.
     show(Rc::new(RefCell::new(Some("%.1x".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.1x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{e9}".to_string()) as Box<dyn Any>])))));
@@ -820,22 +820,22 @@ fn main() {
         // a number or a string.
     show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("hello".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("new\nline".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(5) as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(200 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-5i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(200u8) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1000000.0) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%#10v|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#10v|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("hi".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("hello".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%+v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42i64) as Box<dyn Any>])))));
 
         // Zero padding and a precision count digits, and 0x, 0b or 0o comes on
         // top of them. The 0 that # puts before an octal number is not added to
         // a number that already starts with one. A precision of zero prints
         // nothing for zero.
     let mut prefixFormats = Rc::new(RefCell::new(Some(vec!["%#08x".to_string(), "%#08X".to_string(), "%#08b".to_string(), "%#08o".to_string(), "%08O".to_string(), "%#8x|".to_string(), "%#-8x|".to_string(), "%#-08x|".to_string(), "%#.3o".to_string(), "%#.1o".to_string(), "%#.3x".to_string(), "%#8.3x|".to_string(), "%+08d".to_string(), "% 08d".to_string(), "%+.0d|".to_string(), "%#.0x|".to_string(), "%5.0d|".to_string(), "%#o".to_string(), "%#b".to_string(), "%O".to_string(), "%#O".to_string(), "%#.3O".to_string(), "%#08O".to_string()])));
-    let mut prefixValues = Rc::new(RefCell::new(Some(vec![0, 7, 8, -42, 255])));
+    let mut prefixValues = Rc::new(RefCell::new(Some(vec![0i64, 7i64, 8i64, (-42i64), 255i64])));
     { let __range_holder = prefixFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
         { let __range_holder = prefixValues.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
@@ -843,42 +843,42 @@ fn main() {
     } }
 
         // A width or a precision from an argument can be any integer type.
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as u32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(-(6) as i8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as i64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(6 as i16))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(2 as u8))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(3 as u64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>, Box::new(42) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6u32) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-6i8) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6u64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(6i16) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2u8) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.*f".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3u64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%*d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%*d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>])))));
 
         // %+q writes characters outside ASCII as escapes.
     show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{e9}".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("a\tb\u{263a}".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{1f600}".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("plain".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{e9}' as i32)) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('x' as i32)) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{1f600}' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(233i32) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(120i32) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(128512i32) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{e9}\u{263a}".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\'' as i32)) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\\' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(39i32) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(92i32) as Box<dyn Any>])))));
 
         // Zero padding applies to a character, a quoted character, a bool and
         // the name of a type as it does to a string.
-    show(Rc::new(RefCell::new(Some("%05c|%05q|%-05c|%05U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05c|%05q|%-05c|%05U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%05c|%05q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05c|%05q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{e9}' as i32)) as Box<dyn Any>, Box::new(('\u{e9}' as i32)) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%05T|%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05T|%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65) as Box<dyn Any>, Box::new(true) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%05c|%05q|%-05c|%05U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05c|%05q|%-05c|%05U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%05c|%05q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05c|%05q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(233i32) as Box<dyn Any>, Box::new(233i32) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%05T|%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05T|%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65i64) as Box<dyn Any>, Box::new(true) as Box<dyn Any>])))));
 
         // %q writes a character that cannot be seen as an escape.
     show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("zero\u{200b}width".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("soft\u{ad}hyphen".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("\u{feff}mark".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("no\u{a0}break".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{200b}' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(8203i32) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%#v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("zero\u{200b}width".to_string()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(('\u{200b}' as i32)) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new((' ' as i32)) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(8203i32) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%#U".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(32i32) as Box<dyn Any>])))));
 
         // %q writes a byte that is not UTF-8 as an escape too.
     let mut broken = Rc::new(RefCell::new(Some(vec![0xff as u8, 0x41 as u8, 0xc3 as u8, 0xa9 as u8])));
@@ -906,7 +906,7 @@ fn main() {
     show(Rc::new(RefCell::new(Some("%#q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%#q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("zero\u{200b}width".to_string()) as Box<dyn Any>])))));
 
         // A precision above four gives %U more digits.
-    show(Rc::new(RefCell::new(Some("%.8U|%.2U|%#.6U|%10.6U|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.8U|%.2U|%#.6U|%10.6U|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>, Box::new(65) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%.8U|%.2U|%#.6U|%10.6U|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.8U|%.2U|%#.6U|%10.6U|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>])))));
 
         // Infinity keeps its sign and is never padded with zeros. NaN has no
         // sign unless a flag asks for one.
@@ -947,12 +947,12 @@ fn main() {
     show(Rc::new(RefCell::new(Some("%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%.3t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.3t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%+t|%-4t|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+t|%-4t|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(vec![1 as u8, 42 as u8]))).clone()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%+t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%5s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%05t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%05t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%+t".to_string()))), sprintf(Rc::new(RefCell::new(Some("%+t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%5s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%-5d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%-5d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%.1d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.1d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("abc".to_string()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%8.2d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%8.2d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%6d|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%6d|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%5d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new(2) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%5d".to_string()))), sprintf(Rc::new(RefCell::new(Some("%5d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])))));
 }

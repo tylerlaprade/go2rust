@@ -24,8 +24,8 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
-pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
-    let mut n = Rc::new(RefCell::new(Some(0)));
+pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
+    let mut n = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
         let _ = &arg;
         { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -35,7 +35,7 @@ pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i32 {
 
 fn main() {
     {
-            let __go_print_arg_0 = format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new(1) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>, Box::new(3) as Box<dyn Any>])))));
+            let __go_print_arg_0 = format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("a".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>])))));
             eprintln!("{}", __go_print_arg_0)
         };
 }

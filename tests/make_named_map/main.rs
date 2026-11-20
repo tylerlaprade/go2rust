@@ -32,7 +32,7 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Counts(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>);
+pub struct Counts(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>);
 
 impl Display for Counts {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -42,7 +42,7 @@ impl Display for Counts {
 
 
 fn main() {
-    let mut m = Rc::new(RefCell::new(Some(Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))));
+    let mut m = Rc::new(RefCell::new(Some(Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())))))));
     { let __map_key = "a".to_string(); let __map_value = Rc::new(RefCell::new(Some(1))); (*{ let __named_map = (*m.borrow().as_ref().unwrap()).0.clone(); __named_map }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new(Some(2))); (*{ let __named_map = (*m.borrow().as_ref().unwrap()).0.clone(); __named_map }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "c".to_string(); let __map_value = Rc::new(RefCell::new(Some(3))); (*{ let __named_map = (*m.borrow().as_ref().unwrap()).0.clone(); __named_map }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };

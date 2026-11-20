@@ -68,7 +68,7 @@ impl Eq for types_Type {}
 
 impl PartialOrd for types_Type {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 

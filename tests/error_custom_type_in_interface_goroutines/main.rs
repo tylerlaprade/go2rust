@@ -339,7 +339,7 @@ impl std::fmt::Display for Missing {
 
 #[derive(Debug, Clone)]
 pub struct NotFound {
-    pub code: Arc<Mutex<Option<i32>>>,
+    pub code: Arc<Mutex<Option<i64>>>,
 }
 
 impl NotFound {

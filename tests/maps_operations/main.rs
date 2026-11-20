@@ -32,7 +32,7 @@ where
 }
 
 fn main() {
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())));
     { let __map_key = "k1".to_string(); let __map_value = Rc::new(RefCell::new(Some(7))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "k2".to_string(); let __map_value = Rc::new(RefCell::new(Some(13))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "map:".to_string()), format!("{}", format_map(&m)));

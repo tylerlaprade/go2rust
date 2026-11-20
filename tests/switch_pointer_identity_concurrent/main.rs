@@ -171,7 +171,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn equal(p: Arc<Mutex<Option<i32>>>, q: Arc<Mutex<Option<i32>>>) -> bool {
+pub fn equal(p: Arc<Mutex<Option<i64>>>, q: Arc<Mutex<Option<i64>>>) -> bool {
     { let _switch_val = p.clone();
     if { let __case = q.clone(); let __same = Arc::ptr_eq(&_switch_val, &__case); if __same { true } else { let __tag_nil = _switch_val.lock().unwrap().is_none(); let __both_nil = __tag_nil && __case.lock().unwrap().is_none(); __both_nil } } {
             return true;
@@ -186,7 +186,7 @@ fn main() {
         done_thread.send(true);;;
     });
     done.recv().unwrap_or_default();
-    let (mut a, mut b) = (Arc::new(Mutex::new(Some(3))), Arc::new(Mutex::new(Some(3))));
+    let (mut a, mut b) = (Arc::new(Mutex::new(Some(3i64))), Arc::new(Mutex::new(Some(3i64))));
     let (mut p, mut q) = (a.clone(), b.clone());
     println!("{} {} {} {} {}", format!("{}", equal(p.clone(), q.clone())), format!("{}", equal(p.clone(), p.clone())), format!("{}", equal(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)))), format!("{}", equal(p.clone(), Arc::new(Mutex::new(None)))), format!("{}", equal(Arc::new(Mutex::new(None)), q.clone())));
 }

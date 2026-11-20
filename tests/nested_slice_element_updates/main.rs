@@ -94,7 +94,7 @@ where
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Grid(pub Rc<RefCell<Option<Vec<Vec<i32>>>>>);
+pub struct Grid(pub Rc<RefCell<Option<Vec<Vec<i64>>>>>);
 
 
 #[derive(Debug, Clone, Default)]
@@ -124,14 +124,14 @@ impl std::fmt::Display for Sheet {
 
 
 impl Sheet {
-    pub fn bump(&mut self, i: Rc<RefCell<Option<i32>>>) {
+    pub fn bump(&mut self, i: Rc<RefCell<Option<i64>>>) {
         { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = 0.5; let __seq_holder = self.cells.clone(); let mut __seq_guard = __seq_holder.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
         { let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = "!".to_string(); let __seq_holder = self.names.clone(); let mut __seq_guard = __seq_holder.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx].clone() + &__rhs; };
     }
 }
 
 fn main() {
-    let mut a = Rc::new(RefCell::new(Some(vec![vec![1, 2], vec![3, 4]])));
+    let mut a = Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
     {
         let __go_lhs_sequence_0 = a.clone();
@@ -147,7 +147,7 @@ fn main() {
     };
     { let __outer_idx = (0) as usize; let __idx = (0) as usize; let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + 1; }
     { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = 2; let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] - __rhs; };
-    let mut g = Rc::new(RefCell::new(Some(Grid(Rc::new(RefCell::new(Some(vec![vec![1, 2], vec![3, 4]])))))));
+    let mut g = Rc::new(RefCell::new(Some(Grid(Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])))))));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 7; let __seq_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let mut __seq_guard = __seq_holder.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] * __rhs; };
     {
         let __go_lhs_sequence_0 = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }.clone();
@@ -164,16 +164,16 @@ fn main() {
     { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let mut __seq_guard = __seq_holder.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] - 1; }
     println!("{} {}", format!("{}", format_nested_slice(&a)), format!("{}", format_nested_slice(&{ let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice })));
 
-    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1, 2], vec![3]], vec![vec![4]]])));
+    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1i64, 2i64], vec![3i64]], vec![vec![4i64]]])));
     { let __outer_idx = (0) as usize; let __outer_idx_1 = (1) as usize; let __idx = (0) as usize; let __rhs = 30; (*cube.borrow_mut().as_mut().unwrap())[__outer_idx][__outer_idx_1][__idx] = __rhs; };
     { let __outer_idx = (1) as usize; let __outer_idx_1 = (0) as usize; let __idx = (0) as usize; let __rhs = 5; let mut __seq_guard = cube.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx][__outer_idx_1]; __seq[__idx] = __seq[__idx] * __rhs; };
     { let __outer_idx = (0) as usize; let __outer_idx_1 = (0) as usize; let __idx = (1) as usize; let mut __seq_guard = cube.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx][__outer_idx_1]; __seq[__idx] = __seq[__idx] - 1; }
     println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone()); __formatted }), format!("{}", (*cube.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone()[(0) as usize].clone()));
 
     let mut board: Rc<RefCell<Option<[[String; 3]; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 3, _>(|_| std::array::from_fn::<_, 3, _>(|_| String::new())))));
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 3 {
-        let mut j = Rc::new(RefCell::new(Some(0)));
+        let mut j = Rc::new(RefCell::new(Some(0i64)));
     while (*j.borrow().as_ref().unwrap()) < 3 {
         { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = ((*j.borrow().as_ref().unwrap())) as usize; let __rhs = ".".to_string(); (*board.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -185,7 +185,7 @@ fn main() {
     println!("{}", format!("{}", format_nested_slice(&board)));
 
     let mut grid = Rc::new(RefCell::new(Some([std::array::from_fn::<_, 3, _>(|_| 0), std::array::from_fn::<_, 3, _>(|_| 0), std::array::from_fn::<_, 3, _>(|_| 0)])));
-    let mut i = Rc::new(RefCell::new(Some(0)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 3 {
         { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = (*i.borrow().as_ref().unwrap()) + 1; (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
         { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = (2 - (*i.borrow().as_ref().unwrap())) as usize; let __rhs = 10; let mut __seq_guard = grid.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
@@ -198,10 +198,10 @@ fn main() {
         { let __idx = (i) as usize; let __rhs = (*Rc::new(RefCell::new(Some(vec![0; (4) as usize]))).borrow().as_ref().unwrap()).clone(); (*paths.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         { let __outer_idx = (i) as usize; let __idx = (0) as usize; let __rhs = 1; (*paths.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     }
-    let mut i = Rc::new(RefCell::new(Some(1)));
+    let mut i = Rc::new(RefCell::new(Some(1i64)));
     while (*i.borrow().as_ref().unwrap()) < 4 {
         { let __outer_idx = (0) as usize; let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = 1; (*paths.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-        let mut j = Rc::new(RefCell::new(Some(1)));
+        let mut j = Rc::new(RefCell::new(Some(1i64)));
     while (*j.borrow().as_ref().unwrap()) < 4 {
         { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = ((*j.borrow().as_ref().unwrap())) as usize; let __rhs = (*paths.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap()) - 1) as usize].clone()[((*j.borrow().as_ref().unwrap())) as usize].clone() + (*paths.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone(); (*paths.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -65,5 +65,5 @@ fn main() {
     std::thread::spawn(move || {
         ;
     });
-    log(Arc::new(Mutex::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any + Send + Sync>, Box::new(7) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
+    log(Arc::new(Mutex::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any + Send + Sync>, Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
 }

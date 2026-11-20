@@ -174,7 +174,7 @@ impl<T> Iterator for GoChannel<T> {
 fn main() {
         // Range over slice
     println!("{}", format!("{}", "=== Range over slice ===".to_string()));
-    let mut numbers = Arc::new(Mutex::new(Some(vec![10, 20, 30, 40, 50])));
+    let mut numbers = Arc::new(Mutex::new(Some(vec![10i64, 20i64, 30i64, 40i64, 50i64])));
 
         // With index and value
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
@@ -211,7 +211,7 @@ fn main() {
 
         // Range over map
     println!("{}", format!("{}", "\n=== Range over map ===".to_string()));
-    let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i32>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35))))]))));
+    let mut ages = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("Alice".to_string(), Arc::new(Mutex::new(Some(25i64)))), ("Bob".to_string(), Arc::new(Mutex::new(Some(30i64)))), ("Charlie".to_string(), Arc::new(Mutex::new(Some(35i64))))]))));
 
     let mut sortedNames: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
@@ -231,10 +231,10 @@ fn main() {
 
         // Range over channel
     println!("{}", format!("{}", "\n=== Range over channel ===".to_string()));
-    let mut ch = GoChannel::<i32>::new_buffered(5 as usize);
+    let mut ch = GoChannel::<i64>::new_buffered(5 as usize);
 
         // Send some values
-    let mut i = Arc::new(Mutex::new(Some(1)));
+    let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5; __tmp_x <= __tmp_y } {
         ch.send({ let __bin_i = (*i.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -248,7 +248,7 @@ fn main() {
 
         // Range with break and continue
     println!("{}", format!("{}", "\n=== Range with break/continue ===".to_string()));
-    let mut data = Arc::new(Mutex::new(Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10])));
+    let mut data = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64, 6i64, 7i64, 8i64, 9i64, 10i64])));
 
     println!("{}", format!("{}", "Even numbers only (with continue):".to_string()));
     { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
@@ -270,7 +270,7 @@ fn main() {
 
         // Nested range loops
     println!("{}", format!("{}", "\n=== Nested range loops ===".to_string()));
-    let mut matrix = Arc::new(Mutex::new(Some(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]])));
+    let mut matrix = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64, 3i64], vec![4i64, 5i64, 6i64], vec![7i64, 8i64, 9i64]])));
 
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         for (j, val) in row.iter().copied().enumerate() {
@@ -280,8 +280,8 @@ fn main() {
 
         // Range over empty collections
     println!("{}", format!("{}", "\n=== Range over empty collections ===".to_string()));
-    let mut emptySlice: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
-    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i32>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+    let mut emptySlice: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
+    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
 
     println!("{}", format!("{}", "Empty slice:".to_string()));
     { let __range_holder = emptySlice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, v) in __range_values.iter().copied().enumerate() {

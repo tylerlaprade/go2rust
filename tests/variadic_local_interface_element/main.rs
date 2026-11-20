@@ -50,7 +50,7 @@ impl std::fmt::Display for lit {
 
 #[derive(Debug, Clone)]
 pub struct checker {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl checker {
@@ -139,7 +139,7 @@ impl Expr for litPtr {
 impl checker {
     pub fn r#use(&mut self, args: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Expr>>>>>>>>) {
         { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for a in __range_values.iter() {
-        { let __target = self.n.clone(); let __rhs = (*(*a.borrow().as_ref().unwrap()).kind().borrow().as_ref().unwrap()).len() as i32; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.n.clone(); let __rhs = (*(*a.borrow().as_ref().unwrap()).kind().borrow().as_ref().unwrap()).len() as i64; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     }
 

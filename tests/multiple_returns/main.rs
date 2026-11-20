@@ -46,38 +46,38 @@ where
 }
 
 /// Functions with multiple return values
-pub fn divmod(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, i32) {
+pub fn divmod(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64, i64) {
     ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))
 }
 
-pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i32, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-    let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
+pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i64>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i64, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         return (0, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))))));
     }
     (num, Rc::new(RefCell::new(None)))
 }
 
-pub fn get_name_age() -> (Rc<RefCell<Option<String>>>, i32) {
+pub fn get_name_age() -> (Rc<RefCell<Option<String>>>, i64) {
     (Rc::new(RefCell::new(Some("Alice".to_string()))), 30)
 }
 
 /// Named return values
-pub fn calculate(a: Rc<RefCell<Option<i32>>>, b: Rc<RefCell<Option<i32>>>) -> (i32, i32) {
-    let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
-    let mut product: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+pub fn calculate(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64, i64) {
+    let mut sum: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
+    let mut product: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     { let new_val = (*a.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()); *sum.borrow_mut() = Some(new_val); };
     { let new_val = (*a.borrow().as_ref().unwrap()) * (*b.borrow().as_ref().unwrap()); *product.borrow_mut() = Some(new_val); };
     return ((*sum.borrow().as_ref().unwrap()), (*product.borrow().as_ref().unwrap()));
 }
 
-pub fn process_data(data: Rc<RefCell<Option<Vec<i32>>>>) -> (i32, i32, i32) {
-    let mut min: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
-    let mut max: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
-    let mut sum: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+pub fn process_data(data: Rc<RefCell<Option<Vec<i64>>>>) -> (i64, i64, i64) {
+    let mut min: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
+    let mut max: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
+    let mut sum: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
-    if ((*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) == (0 as i32) {
+    if ((*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
         return (0, 0, 0);
     }
 
@@ -103,9 +103,9 @@ pub fn swap(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>) -> (
 }
 
 /// Function returning multiple values of different types
-pub fn get_person_info() -> (Rc<RefCell<Option<String>>>, i32, f64, bool) {
+pub fn get_person_info() -> (Rc<RefCell<Option<String>>>, i64, f64, bool) {
     let mut name: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
-    let mut age: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+    let mut age: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut height: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
     let mut married: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
@@ -113,13 +113,13 @@ pub fn get_person_info() -> (Rc<RefCell<Option<String>>>, i32, f64, bool) {
 }
 
 /// Function that can return early with different values
-pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i32>>>>, target: Rc<RefCell<Option<i32>>>) -> (i32, bool) {
-    let mut index: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
+pub fn find_in_slice(slice: Rc<RefCell<Option<Vec<i64>>>>, target: Rc<RefCell<Option<i64>>>) -> (i64, bool) {
+    let mut index: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut found: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         if val == (*target.borrow().as_ref().unwrap()) {
-        return (i as i32, true);
+        return (i as i64, true);
     }
     } }
     (-(1), false)
@@ -167,7 +167,7 @@ fn main() {
     print!("Sum: {}, Product: {}\n", s, p);
 
         // Processing data with multiple named returns
-    let mut data = Rc::new(RefCell::new(Some(vec![3, 1, 4, 1, 5, 9, 2, 6])));
+    let mut data = Rc::new(RefCell::new(Some(vec![3i64, 1i64, 4i64, 1i64, 5i64, 9i64, 2i64, 6i64])));
     let (mut min, mut max, mut sum) = process_data(data.clone());
     print!("Data: {}\n", format_slice(&data));
     print!("Min: {}, Max: {}, Sum: {}\n", min, max, sum);
@@ -186,7 +186,7 @@ fn main() {
 
         // Finding in slice
     println!("{}", format!("{}", "\n=== Finding in slice ===".to_string()));
-    let mut numbers = Rc::new(RefCell::new(Some(vec![10, 20, 30, 40, 50])));
+    let mut numbers = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64, 40i64, 50i64])));
 
     let (mut index, mut found) = find_in_slice(numbers.clone(), Rc::new(RefCell::new(Some(30))));
     if found {
@@ -228,7 +228,7 @@ fn main() {
 
         // Multiple assignment
     println!("{}", format!("{}", "\n=== Multiple assignment ===".to_string()));
-    let (mut a, mut b, mut c) = (Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(2))), Rc::new(RefCell::new(Some(3))));
+    let (mut a, mut b, mut c) = (Rc::new(RefCell::new(Some(1i64))), Rc::new(RefCell::new(Some(2i64))), Rc::new(RefCell::new(Some(3i64))));
     print!("a={}, b={}, c={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v });
 
         // Reassignment with multiple returns

@@ -74,7 +74,7 @@ impl std::fmt::Display for List__int {
 #[derive(Debug, Clone)]
 pub struct element__int {
     pub next: Rc<RefCell<Option<element__int>>>,
-    pub val: Rc<RefCell<Option<i32>>>,
+    pub val: Rc<RefCell<Option<i64>>>,
 }
 
 impl element__int {
@@ -110,7 +110,7 @@ impl std::fmt::Display for element__int {
 
 
 impl List__int {
-    pub fn push(&mut self, v: Rc<RefCell<Option<i32>>>) {
+    pub fn push(&mut self, v: Rc<RefCell<Option<i64>>>) {
         if { let __nil_target = self.tail.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result } {
         { let new_val = Rc::new(RefCell::new(Some(element__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); self.head = new_val; };
         { let new_val = self.head.clone(); self.tail = new_val; };
@@ -121,8 +121,8 @@ impl List__int {
     }
 }
 
-pub fn map_keys__int__string(m: Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
-    let mut r = Rc::new(RefCell::new(Some(Vec::<i32>::with_capacity(((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
+pub fn map_keys__int__string(m: Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
+    let mut r = Rc::new(RefCell::new(Some(Vec::<i64>::with_capacity(((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize))));
     for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let new_val = { let __append_target = r.clone(); let __append_value = k; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; r = new_val; };
     }
@@ -130,7 +130,7 @@ pub fn map_keys__int__string(m: Rc<RefCell<Option<BTreeMap<i32, Rc<RefCell<Optio
 }
 
 fn main() {
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i32, Rc<RefCell<Option<String>>>>::from([(1, Rc::new(RefCell::new(Some("2".to_string())))), (2, Rc::new(RefCell::new(Some("4".to_string())))), (4, Rc::new(RefCell::new(Some("8".to_string()))))]))));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<String>>>>::from([(1i64, Rc::new(RefCell::new(Some("2".to_string())))), (2i64, Rc::new(RefCell::new(Some("4".to_string())))), (4i64, Rc::new(RefCell::new(Some("8".to_string()))))]))));
     let mut keys = map_keys__int__string(m.clone());
     { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     println!("{} {}", format!("{}", "keys:".to_string()), format!("{}", format_slice(&keys)));

@@ -3,7 +3,7 @@ use std::rc::{Rc};
 
 fn main() {
         // Every variable should be wrapped
-    let mut x = Rc::new(RefCell::new(Some(42)));
+    let mut x = Rc::new(RefCell::new(Some(42i64)));
     let mut y = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()) + 1)));
 
         // Taking address should work naturally

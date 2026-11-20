@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct exporter {
-    pub indent: Rc<RefCell<Option<i32>>>,
+    pub indent: Rc<RefCell<Option<i64>>>,
 }
 
 impl exporter {

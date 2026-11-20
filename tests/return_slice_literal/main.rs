@@ -1,7 +1,7 @@
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-pub fn single(n: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Vec<i32>>>> {
+pub fn single(n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     Rc::new(RefCell::new(Some(vec![(*n.borrow().as_ref().unwrap()).clone()])))
 }
 

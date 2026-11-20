@@ -114,20 +114,20 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -1124,7 +1124,7 @@ impl PartialEq for Color {
 
 impl PartialOrd for Color {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1201,7 +1201,7 @@ impl PartialEq for Status {
 
 impl PartialOrd for Status {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1435,7 +1435,7 @@ impl Celsius {
     }
 
     pub fn truncated(&self) -> Rc<RefCell<Option<Celsius>>> {
-        Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32 as f64 as f64)))))))
+        Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i64 as f64 as f64)))))))
     }
 }
 
@@ -1452,11 +1452,11 @@ impl Status {
 }
 
 pub fn c_to_f(c: Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Fahrenheit>>> {
-    Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(((((*(*c.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 9.0) / 5.0) + 32.0) as f64)))))))
+    Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some((((((*(*c.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 9.0) / 5.0) + 32.0)) as f64)))))))
 }
 
 pub fn f_to_c(f: Rc<RefCell<Option<Fahrenheit>>>) -> Rc<RefCell<Option<Celsius>>> {
-    Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some((((((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 32.0)) * 5.0) / 9.0) as f64)))))))
+    Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(((((((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 32.0)) * 5.0) / 9.0)) as f64)))))))
 }
 
 pub fn zero() -> Rc<RefCell<Option<Celsius>>> {
@@ -1497,12 +1497,12 @@ pub fn describe(e: Rc<RefCell<Option<Enabled>>>) -> Rc<RefCell<Option<String>>> 
 fn main() {
     let mut boiling = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(100.0 as f64)))))));
     println!("{} {} {}", format!("{}", { let __v = (*boiling.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Rc::new(RefCell::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*f_to_c(Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212.0)))))))).borrow().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
+    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
     let mut temps = Rc::new(RefCell::new(Some(vec![Celsius(Rc::new(RefCell::new(Some(20.5)))), Celsius(Rc::new(RefCell::new(Some(18.0)))), Celsius(Rc::new(RefCell::new(Some(25.25))))])));
     println!("{}", format!("{}", (*average(temps.clone()).borrow().as_ref().unwrap())));
-    let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
         return (*temps_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone() < (*temps_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&temps)));
     let mut hottest = Rc::new(RefCell::new(Some((*temps.borrow().as_ref().unwrap())[(0) as usize].clone())));
     for t in { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().cloned() {
@@ -1522,9 +1522,9 @@ fn main() {
     { let __target = (*r.borrow().as_ref().unwrap()).temp.clone(); let __rhs = 0.5; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     println!("{} {}", format!("{}", (*(*r.borrow().as_ref().unwrap()).temp.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*r.borrow().as_ref().unwrap()).temp.borrow().as_ref().unwrap()).clone() > 20.0));
     let mut rs = Rc::new(RefCell::new(Some(vec![Reading { place: Rc::new(RefCell::new(Some("a".to_string()))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(3.0))))))), ..Default::default() }, Reading { place: Rc::new(RefCell::new(Some("b".to_string()))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1.0))))))), ..Default::default() }, Reading { place: Rc::new(RefCell::new(Some("c".to_string()))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(2.0))))))), ..Default::default() }])));
-    let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
         return (*(*rs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().temp.borrow().as_ref().unwrap()).clone() < (*(*rs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().temp.borrow().as_ref().unwrap()).clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     { let __range_holder = rs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
         print!("{}{}{}", format!("{}", (*x.place.borrow().as_ref().unwrap()).clone()), format!("{}", (*x.temp.borrow().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
@@ -1540,13 +1540,13 @@ fn main() {
 
     let mut col = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some(RED.to_string())))))));
     println!("{} {} {} {} {}", format!("{}", { let __v = (*col.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.borrow().as_ref().unwrap()).upper().borrow().as_ref().unwrap())), format!("{}", ((*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()), format!("{}", (*col.borrow().as_ref().unwrap()) == Color(Rc::new(RefCell::new(Some(RED.to_string()))))), format!("{}", (*col.borrow().as_ref().unwrap()) != Color(Rc::new(RefCell::new(Some(GREEN.to_string()))))));
-    let mut colors = Rc::new(RefCell::new(Some(BTreeMap::<Color, Rc<RefCell<Option<i32>>>>::from([(Color(Rc::new(RefCell::new(Some(RED.to_string())))), Rc::new(RefCell::new(Some(1)))), (Color(Rc::new(RefCell::new(Some(GREEN.to_string())))), Rc::new(RefCell::new(Some(2))))]))));
+    let mut colors = Rc::new(RefCell::new(Some(BTreeMap::<Color, Rc<RefCell<Option<i64>>>>::from([(Color(Rc::new(RefCell::new(Some(RED.to_string())))), Rc::new(RefCell::new(Some(1i64)))), (Color(Rc::new(RefCell::new(Some(GREEN.to_string())))), Rc::new(RefCell::new(Some(2i64))))]))));
     println!("{} {}", format!("{}", { let __map_holder = colors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Color(Rc::new(RefCell::new(Some(RED.to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = colors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Color(Rc::new(RefCell::new(Some("green".to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut name = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some("blue".to_string())))))));
     { let __rhs = "ish"; let mut guard = name.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     println!("{} {} {} {} {}", format!("{}", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*Rc::new(RefCell::new(Some((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", { let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap())), format!("{}", ((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()));
     for (i, ch) in ((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).char_indices() {
-        if i as i32 == 2 {
+        if i as i64 == 2 {
         println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((ch as i32)) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())));
     }
     }
@@ -1554,9 +1554,9 @@ fn main() {
     let mut s = Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))))));
     println!("{} {} {} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*label(Rc::new(RefCell::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*label(Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some(INACTIVE.to_string())))))))).borrow().as_ref().unwrap())), format!("{}", (*label(Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some("other".to_string())))))))).borrow().as_ref().unwrap())));
     let mut statuses = Rc::new(RefCell::new(Some(vec![Status(Rc::new(RefCell::new(Some(INACTIVE.to_string())))), Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))), Status(Rc::new(RefCell::new(Some("pending".to_string()))))])));
-    let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
         return (*statuses_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone() < (*statuses_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&statuses)));
     let mut parts = Rc::new(RefCell::new(Some(Vec::<String>::new())));
     { let __range_holder = statuses.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for st in __range_values.iter().cloned() {
@@ -1603,7 +1603,7 @@ fn main() {
             println!("{} {}", format!("{}", (*st.borrow().as_ref().unwrap()) == Status(Rc::new(RefCell::new(Some(ACTIVE.to_string()))))), format!("{}", ((*(*st.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()));;
         }
     }
-    let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<Status, Rc<RefCell<Option<i32>>>>::from([]))));
+    let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<Status, Rc<RefCell<Option<i64>>>>::from([]))));
     { let __map_holder = counts.clone(); let __key = Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))); let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
     { let __map_holder = counts.clone(); let __key = (*s.borrow().as_ref().unwrap()).clone(); let __rhs = 2; let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
     println!("{} {}", format!("{}", { let __map_holder = counts.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", format_map(&counts)));

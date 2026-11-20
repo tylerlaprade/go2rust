@@ -298,7 +298,7 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub(crate) const STEP: i32 = 5;
+pub(crate) const STEP: i64 = 5;
 
 
 #[derive(Debug, Default)]
@@ -691,7 +691,7 @@ impl Ord for I8 {
 
 
 #[derive(Debug, Default)]
-pub struct Level(pub Arc<Mutex<Option<i32>>>);
+pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
@@ -714,8 +714,8 @@ impl PartialEq for Level {
     }
 }
 
-impl PartialEq<i32> for Level {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Level {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -728,19 +728,19 @@ impl PartialOrd for Level {
     }
 }
 
-impl PartialOrd<i32> for Level {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Level {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Level> for i32 {
+impl PartialEq<Level> for i64 {
     fn eq(&self, other: &Level) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Level> for i32 {
+impl PartialOrd<Level> for i64 {
     fn partial_cmp(&self, other: &Level) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -753,14 +753,14 @@ impl std::ops::Add for Level {
     }
 }
 
-impl std::ops::Add<i32> for Level {
+impl std::ops::Add<i64> for Level {
     type Output = Level;
-    fn add(self, other: i32) -> Level {
+    fn add(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Level> for i32 {
+impl std::ops::Add<Level> for i64 {
     type Output = Level;
     fn add(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -774,14 +774,14 @@ impl std::ops::Sub for Level {
     }
 }
 
-impl std::ops::Sub<i32> for Level {
+impl std::ops::Sub<i64> for Level {
     type Output = Level;
-    fn sub(self, other: i32) -> Level {
+    fn sub(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Level> for i32 {
+impl std::ops::Sub<Level> for i64 {
     type Output = Level;
     fn sub(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -795,14 +795,14 @@ impl std::ops::Mul for Level {
     }
 }
 
-impl std::ops::Mul<i32> for Level {
+impl std::ops::Mul<i64> for Level {
     type Output = Level;
-    fn mul(self, other: i32) -> Level {
+    fn mul(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Level> for i32 {
+impl std::ops::Mul<Level> for i64 {
     type Output = Level;
     fn mul(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -816,14 +816,14 @@ impl std::ops::Div for Level {
     }
 }
 
-impl std::ops::Div<i32> for Level {
+impl std::ops::Div<i64> for Level {
     type Output = Level;
-    fn div(self, other: i32) -> Level {
+    fn div(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Level> for i32 {
+impl std::ops::Div<Level> for i64 {
     type Output = Level;
     fn div(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -844,14 +844,14 @@ impl std::ops::Rem for Level {
     }
 }
 
-impl std::ops::Rem<i32> for Level {
+impl std::ops::Rem<i64> for Level {
     type Output = Level;
-    fn rem(self, other: i32) -> Level {
+    fn rem(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Level> for i32 {
+impl std::ops::Rem<Level> for i64 {
     type Output = Level;
     fn rem(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -865,14 +865,14 @@ impl std::ops::BitAnd for Level {
     }
 }
 
-impl std::ops::BitAnd<i32> for Level {
+impl std::ops::BitAnd<i64> for Level {
     type Output = Level;
-    fn bitand(self, other: i32) -> Level {
+    fn bitand(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Level> for i32 {
+impl std::ops::BitAnd<Level> for i64 {
     type Output = Level;
     fn bitand(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -886,14 +886,14 @@ impl std::ops::BitOr for Level {
     }
 }
 
-impl std::ops::BitOr<i32> for Level {
+impl std::ops::BitOr<i64> for Level {
     type Output = Level;
-    fn bitor(self, other: i32) -> Level {
+    fn bitor(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Level> for i32 {
+impl std::ops::BitOr<Level> for i64 {
     type Output = Level;
     fn bitor(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -907,14 +907,14 @@ impl std::ops::BitXor for Level {
     }
 }
 
-impl std::ops::BitXor<i32> for Level {
+impl std::ops::BitXor<i64> for Level {
     type Output = Level;
-    fn bitxor(self, other: i32) -> Level {
+    fn bitxor(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Level> for i32 {
+impl std::ops::BitXor<Level> for i64 {
     type Output = Level;
     fn bitxor(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1858,18 +1858,18 @@ fn main() {
     started.recv().unwrap_or_default();
 
     let mut a = Arc::new(Mutex::new(Some(I8(Arc::new(Mutex::new(Some(-2 as i8)))))));
-    let mut b = Arc::new(Mutex::new(Some(Level(Arc::new(Mutex::new(Some(-3 as i32)))))));
-    let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(-4 as i32))))) as Box<dyn Any + Send + Sync>)));
-    let mut levels = Arc::new(Mutex::new(Some(vec![Level(Arc::new(Mutex::new(Some(-5 as i32 as i32)))), Level(Arc::new(Mutex::new(Some(-6 as i32))))])));
+    let mut b = Arc::new(Mutex::new(Some(Level(Arc::new(Mutex::new(Some(-3 as i64)))))));
+    let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(-4 as i64))))) as Box<dyn Any + Send + Sync>)));
+    let mut levels = Arc::new(Mutex::new(Some(vec![Level(Arc::new(Mutex::new(Some(-5 as i64 as i64)))), Level(Arc::new(Mutex::new(Some(-6 as i64))))])));
     println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = format_any(c.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", format_slice(&levels)));
 
-    println!("{} {} {} {} {} {} {}", format!("{}", Level(Arc::new(Mutex::new(Some((-3 + 1) as i32))))), format!("{}", I8(Arc::new(Mutex::new(Some(-128 as i8))))), format!("{}", Level(Arc::new(Mutex::new(Some(!0 as i32))))), format!("{}", Level(Arc::new(Mutex::new(Some(-STEP as i32))))), format!("{}", Big(Arc::new(Mutex::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(7 as i32))))), format!("{}", U8(Arc::new(Mutex::new(Some(!0 as u8 as u8))))));
+    println!("{} {} {} {} {} {} {}", format!("{}", Level(Arc::new(Mutex::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Arc::new(Mutex::new(Some(-128 as i8))))), format!("{}", Level(Arc::new(Mutex::new(Some(!0 as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(-STEP as i64))))), format!("{}", Big(Arc::new(Mutex::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(7 as i64))))), format!("{}", U8(Arc::new(Mutex::new(Some(!0 as u8 as u8))))));
 
-    let mut n = Arc::new(Mutex::new(Some(4)));
-    println!("{} {}", format!("{}", Level(Arc::new(Mutex::new(Some(-((*n.lock().unwrap().as_ref().unwrap())) as i32))))), format!("{}", Level(Arc::new(Mutex::new(Some({ let __tmp_x = -((*n.lock().unwrap().as_ref().unwrap())); let __tmp_y = 1; __tmp_x + __tmp_y } as i32))))));
+    let mut n = Arc::new(Mutex::new(Some(4i64)));
+    println!("{} {}", format!("{}", Level(Arc::new(Mutex::new(Some(-((*n.lock().unwrap().as_ref().unwrap())) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(({ let __tmp_x = -((*n.lock().unwrap().as_ref().unwrap())); let __tmp_y = 1; __tmp_x + __tmp_y }) as i64))))));
 
     print!("{} {} {}\n", format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "main.I8"));
-    let mut vals = Arc::new(Mutex::new(Some(vec![Box::new(I8(Arc::new(Mutex::new(Some(-2 as i8))))) as Box<dyn Any + Send + Sync>, Box::new(Level(Arc::new(Mutex::new(Some(-9 as i32))))) as Box<dyn Any + Send + Sync>, Box::new(Big(Arc::new(Mutex::new(Some(-1 as i64))))) as Box<dyn Any + Send + Sync>])));
+    let mut vals = Arc::new(Mutex::new(Some(vec![Box::new(I8(Arc::new(Mutex::new(Some(-2 as i8))))) as Box<dyn Any + Send + Sync>, Box::new(Level(Arc::new(Mutex::new(Some(-9 as i64))))) as Box<dyn Any + Send + Sync>, Box::new(Big(Arc::new(Mutex::new(Some(-1 as i64))))) as Box<dyn Any + Send + Sync>])));
     println!("{}", format_any_variadic(&vals));
     { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
         print!("{}|", format_any(v.as_ref()));
@@ -1878,7 +1878,7 @@ fn main() {
 
     if {
         let __tmp_x = (*b.lock().unwrap().as_ref().unwrap()).clone();
-        let __tmp_y = Level(Arc::new(Mutex::new(Some(-2 as i32))));
+        let __tmp_y = Level(Arc::new(Mutex::new(Some(-2 as i64))));
         __tmp_x < __tmp_y
     } {
         println!("{}", format!("{}", "below -2".to_string()));

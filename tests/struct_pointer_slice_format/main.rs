@@ -46,7 +46,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct item {
-    pub n: Rc<RefCell<Option<i32>>>,
+    pub n: Rc<RefCell<Option<i64>>>,
 }
 
 impl item {
