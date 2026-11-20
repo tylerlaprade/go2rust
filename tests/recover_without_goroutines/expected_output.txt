@@ -1,0 +1,14 @@
+recovered: in named function
+recovered too: same function
+5 <nil>
+0 caught: runtime error: integer divide by zero
+element: runtime error: index out of range [5] with length 3
+0 false
+-1
+still runs
+last: second
+inner: original
+outer: again
+7
+done
+deferred in main

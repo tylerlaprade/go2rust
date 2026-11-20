@@ -1,0 +1,8 @@
+[package]
+name = "recover_without_goroutines_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "recover_without_goroutines_goroutines"
+path = "main.rs"

@@ -640,7 +640,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_any_clone")
 	}
 	if ht.needsPanicRecover {
-		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload")
+		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1215,6 +1215,10 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 }
 
 func generatePanicRecoverHelper(out *strings.Builder) {
+	if !NeedsConcurrentWrapper() {
+		generateSingleThreadPanicRecoverHelper(out)
+		return
+	}
 	TrackImport("Any")
 	TrackImport("Arc")
 	TrackImport("Mutex")
@@ -1256,14 +1260,14 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
@@ -1292,12 +1296,87 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
 }
 `)
+	writeGoRuntimeErrorText(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
     }
+}
+`)
+}
+
+// generateSingleThreadPanicRecoverHelper is the panic/recover runtime for a
+// program without goroutines, where an interface value is a
+// Rc<RefCell<Option<Box<dyn Any>>>>. A function with a defer runs its body
+// under catch_unwind; a panic's payload is kept here until a deferred
+// function calls recover(), which takes it. If none does, the panic goes on.
+//
+// The payload of panic("x") is the string. A panic the Rust code raises
+// itself, such as a division by zero or an index out of range, is given the
+// text Go's runtime error has.
+func generateSingleThreadPanicRecoverHelper(out *strings.Builder) {
+	TrackImport("Any")
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString(`
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Err(__payload) => __payload,
+        },
+    };
+    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+}
+`)
+	writeGoRuntimeErrorText(out, visibility)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_resume_unrecovered_panic() {
+    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        match __payload.downcast::<String>() {
+            Ok(__text) => std::panic::panic_any(*__text),
+            Err(__payload) => std::panic::resume_unwind(__payload),
+        }
+    }
+}
+`)
+}
+
+// writeGoRuntimeErrorText writes go_runtime_error_text, which gives a panic
+// the Rust code raises itself the text of Go's runtime error.
+func writeGoRuntimeErrorText(out *strings.Builder, visibility string) {
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
 }
 `)
 }

@@ -4009,3 +4009,57 @@ func main() {
 		t.Fatalf("ExprList should print with format_slice:\n%s", rust)
 	}
 }
+
+// Without goroutines, a function with a defer in a program that calls
+// recover() runs its body under catch_unwind, and recover() takes the panic
+// from go_recover(). recover() used to be a literal nil there. A deferred
+// function runs under a catch of its own, so that its panic replaces the one
+// in flight, as in Go.
+func TestRecoverWithoutGoroutines(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func safe() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("recovered:", r)
+		}
+	}()
+	panic("boom")
+}
+
+func main() {
+	safe()
+}
+`)
+	for _, want := range []string{
+		"let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {",
+		"go_recover()",
+		"fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {",
+		"if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "None::<Box<dyn Any>>));") {
+		t.Fatalf("recover() must not be a literal nil:\n%s", rust)
+	}
+}
+
+// A program that never calls recover() keeps its functions as they were.
+func TestNoCatchUnwindWithoutRecover(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	defer fmt.Println("bye")
+	fmt.Println("hi")
+}
+`)
+	if strings.Contains(rust, "catch_unwind") {
+		t.Fatalf("no catch_unwind without recover():\n%s", rust)
+	}
+}
