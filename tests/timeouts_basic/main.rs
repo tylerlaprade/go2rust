@@ -95,6 +95,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -267,12 +289,14 @@ fn main() {
 
     let mut timeout1 = go_channel_after(std::time::Duration::from_millis(500));
     loop {
-        if let Some(res) = c1.try_recv() {
+        if let Some(__select_recv) = c1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let res = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut res = Arc::new(Mutex::new(Some(res)));
             println!("{}", format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(_) = timeout1.try_recv() {
+        if let Some(_) = timeout1.try_recv_select() {
             println!("{}", format!("{}", "timeout 1".to_string()));
             break;
         }
@@ -286,12 +310,14 @@ fn main() {
     });
     let mut timeout2 = go_channel_after(std::time::Duration::from_millis(1500));
     loop {
-        if let Some(res) = c2.try_recv() {
+        if let Some(__select_recv) = c2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let res = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut res = Arc::new(Mutex::new(Some(res)));
             println!("{}", format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(_) = timeout2.try_recv() {
+        if let Some(_) = timeout2.try_recv_select() {
             println!("{}", format!("{}", "timeout 2".to_string()));
             break;
         }

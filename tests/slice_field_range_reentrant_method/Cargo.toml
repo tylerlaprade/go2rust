@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "slice_field_range_reentrant_method"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

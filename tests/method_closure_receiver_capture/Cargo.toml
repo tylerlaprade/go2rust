@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "method_closure_receiver_capture"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

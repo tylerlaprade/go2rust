@@ -95,6 +95,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -166,12 +188,16 @@ fn main() {
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
         loop {
-        if let Some(msg1) = c1.try_recv() {
+        if let Some(__select_recv) = c1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg1 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
             println!("{} {}", format!("{}", "received".to_string()), format!("{}", { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(msg2) = c2.try_recv() {
+        if let Some(__select_recv) = c2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
             println!("{} {}", format!("{}", "received".to_string()), format!("{}", { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;

@@ -15792,24 +15792,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// case val := <-ch or case val, ok := <-ch
 				if len(comm.Rhs) == 1 {
 					if unary, ok := comm.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
-						out.WriteString("        if let Some(")
-						// Variable name(s)
-						if len(comm.Lhs) == 1 {
-							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
-								out.WriteString(EscapeRustIdent(ident.Name))
-								// Register as range var so it's not unwrapped
-								rangeLoopVars[ident.Name] = "select_val"
-							}
-						} else if len(comm.Lhs) == 2 {
-							// val, ok := <-ch — just bind val
-							if ident, ok := comm.Lhs[0].(*ast.Ident); ok {
-								out.WriteString(EscapeRustIdent(ident.Name))
-								rangeLoopVars[ident.Name] = "select_val"
-							}
-						}
-						out.WriteString(") = ")
+						// A closed channel is ready too: it gives the zero
+						// value, and ok is false.
+						out.WriteString("        if let Some(__select_recv) = ")
 						writeChannelExpression(out, unary.X)
-						out.WriteString(".try_recv() {\n")
+						out.WriteString(".try_recv_select() {\n")
+						out.WriteString("            let __select_ok = __select_recv.is_some();\n")
+						if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
+							out.WriteString("            let ")
+							out.WriteString(EscapeRustIdent(ident.Name))
+							out.WriteString(" = match __select_recv { Some(__v) => __v, None => ")
+							out.WriteString(selectReceiveZeroValue(unary.X))
+							out.WriteString(" };\n")
+							// Register as range var so it's not unwrapped
+							rangeLoopVars[ident.Name] = "select_val"
+						}
 
 						// Handle ok variable if present
 						if len(comm.Lhs) == 2 {
@@ -15818,7 +15815,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(EscapeRustIdent(okIdent.Name))
 								out.WriteString(" = ")
 								WriteWrapperPrefix(out)
-								out.WriteString("true")
+								out.WriteString("__select_ok")
 								WriteWrapperSuffix(out)
 								out.WriteString(";\n")
 							}
@@ -15847,6 +15844,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						for _, bodyStmt := range cc.Body {
 							out.WriteString("            ")
 							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+							writeSelectBranchTerminator(out, bodyStmt)
 							out.WriteString("\n")
 						}
 						if !stmtListTerminates(cc.Body) {
@@ -15861,11 +15859,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 					out.WriteString("        if let Some(_) = ")
 					writeChannelExpression(out, unary.X)
-					out.WriteString(".try_recv() {\n")
+					out.WriteString(".try_recv_select() {\n")
 
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("            ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+						writeSelectBranchTerminator(out, bodyStmt)
 						out.WriteString("\n")
 					}
 					if !stmtListTerminates(cc.Body) {
@@ -15885,6 +15884,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				for _, bodyStmt := range cc.Body {
 					out.WriteString("            ")
 					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+					writeSelectBranchTerminator(out, bodyStmt)
 					out.WriteString("\n")
 				}
 				if !stmtListTerminates(cc.Body) {
@@ -15901,6 +15901,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("        ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
+						writeSelectBranchTerminator(out, bodyStmt)
 						out.WriteString("\n")
 					}
 					if !stmtListTerminates(cc.Body) {
@@ -17258,5 +17259,21 @@ func suppressCaptureRename(name string) func() {
 	delete(currentCaptureRenames, name)
 	return func() {
 		currentCaptureRenames[name] = renamed
+	}
+}
+
+// selectReceiveZeroValue writes the value a receive from the closed channel
+// ch gives, the zero value of its element type, as a comma-ok receive does.
+func selectReceiveZeroValue(ch ast.Expr) string {
+	return "Default::default()"
+}
+
+// writeSelectBranchTerminator ends a break, continue or goto in a select
+// clause with a semicolon. Without it, "break 'outer" followed by the
+// clause's own "break" was read as break 'outer with the value of break,
+// which left only the select.
+func writeSelectBranchTerminator(out *strings.Builder, stmt ast.Stmt) {
+	if _, ok := stmt.(*ast.BranchStmt); ok {
+		out.WriteString(";")
 	}
 }

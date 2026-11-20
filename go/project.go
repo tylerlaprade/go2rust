@@ -1629,6 +1629,12 @@ name = "%s"
 path = "main.rs"
 `, packageName, packageName)
 	}
+	// Go's integer arithmetic wraps on overflow; Rust's panics in a debug
+	// build unless overflow checks are off.
+	cargoContent += `
+[profile.dev]
+overflow-checks = false
+`
 
 	// Add workspace configuration if we have external packages
 	if len(dependencyCrateNames) > 0 {

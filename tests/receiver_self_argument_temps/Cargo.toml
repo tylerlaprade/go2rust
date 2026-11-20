@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "receiver_self_argument_temps"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -22,6 +22,9 @@ edition = "2021"
 name = "source_stdlib_go_token_fileset"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 cmp = { path = "vendor/cmp" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

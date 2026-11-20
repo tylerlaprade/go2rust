@@ -137,6 +137,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -451,17 +473,17 @@ fn main() {
     print!("{:#}\n", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v });
     print!("{:#}\n", { let __v = (*l.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v });
     print!("{}\n", { let __v = (*l.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v });
-    let mut s = Arc::new(Mutex::new(Some(format!("p={:#} n={:#} i={:#} d={:+} str={:#}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }, Named { n: Arc::new(Mutex::new(Some(3))), ..Default::default() }, 5, 6, "x".to_string()))));
+    let mut s = Arc::new(Mutex::new(Some(format!("p={} n={} i={} d={} str={}", format!("{:#}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{:#}", Named { n: Arc::new(Mutex::new(Some(3))), ..Default::default() }), format!("{:#}", 5), format!("{:+}", 6), format!("{:#}", "x".to_string())))));
     println!("{}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     print!("{:#}\n", { let __text = match Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     let mut pts = Arc::new(Mutex::new(Some(vec![Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }, Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }])));
-    print!("{:#} {}\n", { let __plus_holder = pts.clone(); let __plus_guard = __plus_holder.lock().unwrap(); match __plus_guard.as_ref() { Some(__s) => format!("[{}]", __s.iter().map(|__v| format!("{:#}", __v)).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } }, format_slice(&pts));
+    print!("{} {}\n", format!("{:#}", { let __plus_holder = pts.clone(); let __plus_guard = __plus_holder.lock().unwrap(); match __plus_guard.as_ref() { Some(__s) => format!("[{}]", __s.iter().map(|__v| format!("{:#}", __v)).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } }), format!("{}", format_slice(&pts)));
     let mut pp = p.clone();
-    print!("{:#} {}\n", { let __text = match pp.lock().unwrap().as_ref() { Some(__value) => format!("&{:#}", __value), None => "<nil>".to_string() }; __text }, { let __text = match pp.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text });
+    print!("{} {}\n", format!("{:#}", { let __text = match pp.lock().unwrap().as_ref() { Some(__value) => format!("&{:#}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match pp.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{:#}\n", AnonymousStruct1 { a: Arc::new(Mutex::new(Some(1))), b: Arc::new(Mutex::new(Some(2))) });
     let mut cfg = Arc::new(Mutex::new(Some(Config { name: Arc::new(Mutex::new(Some("svc".to_string()))), retries: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
     print!("config: {:#}\n", { let __v = (*cfg.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v });
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}|{:#}", { let __v = (*cfg.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }, { let __v = (*cfg.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}|{}", format!("{}", { let __v = (*cfg.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{:#}", { let __v = (*cfg.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }))))).lock().unwrap().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone)]

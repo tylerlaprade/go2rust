@@ -94,6 +94,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -151,7 +173,7 @@ impl<T> Iterator for GoChannel<T> {
 
 /// Function with anonymous struct parameter
 pub fn print_person(p: Arc<Mutex<Option<AnonymousStruct1>>>) {
-    print!("Person: {} is {} years old\n", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).age.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    print!("Person: {} is {} years old\n", format!("{}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).age.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 }
 
 /// Function returning anonymous struct
@@ -181,7 +203,7 @@ pub fn update_settings(s: Arc<Mutex<Option<AnonymousStruct4>>>) {
 /// Function with anonymous struct in channel
 pub fn process_events(ch: GoChannel<AnonymousStruct5>) {
     for event in ch.clone() {
-        print!("Event [{}]: {}\n", (*event.r#type.lock().unwrap().as_ref().unwrap()).clone(), (*event.message.lock().unwrap().as_ref().unwrap()).clone());
+        print!("Event [{}]: {}\n", format!("{}", (*event.r#type.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*event.message.lock().unwrap().as_ref().unwrap()).clone()));
     }
 }
 
@@ -191,7 +213,7 @@ fn main() {
 
         // Test function returning anonymous struct
     let mut point = get_point();
-    print!("Point: ({}, {})\n", (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    print!("Point: ({}, {})\n", format!("{}", (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*point.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
         // Test function with multiple anonymous struct parameters
     let mut p1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(10))) })));
@@ -202,13 +224,13 @@ fn main() {
 
         // Test function returning multiple values including anonymous struct
     let (mut name, mut config) = get_config();
-    print!("Config for {}: Port={}, Timeout={}\n", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*{ let __field = (*config.lock().unwrap().as_ref().unwrap()).port.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*config.lock().unwrap().as_ref().unwrap()).timeout.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    print!("Config for {}: Port={}, Timeout={}\n", format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*{ let __field = (*config.lock().unwrap().as_ref().unwrap()).port.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*config.lock().unwrap().as_ref().unwrap()).timeout.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
         // Test function with anonymous struct pointer
     let mut settings = Arc::new(Mutex::new(Some(AnonymousStruct4 { debug: Arc::new(Mutex::new(Some(false))), verbose: Arc::new(Mutex::new(Some(false))) })));
-    print!("Settings before: Debug={}, Verbose={}\n", (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).debug.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).verbose.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    print!("Settings before: Debug={}, Verbose={}\n", format!("{}", (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).debug.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).verbose.clone(); __field }.lock().unwrap().as_ref().unwrap())));
     update_settings(settings.clone());
-    print!("Settings after: Debug={}, Verbose={}\n", (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).debug.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).verbose.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+    print!("Settings after: Debug={}, Verbose={}\n", format!("{}", (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).debug.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*settings.lock().unwrap().as_ref().unwrap()).verbose.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
         // Test function with anonymous struct in channel
     let mut eventCh = GoChannel::<AnonymousStruct5>::new_buffered(2 as usize);

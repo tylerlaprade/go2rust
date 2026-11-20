@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concurrent_repeated_interface_field_call_args"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

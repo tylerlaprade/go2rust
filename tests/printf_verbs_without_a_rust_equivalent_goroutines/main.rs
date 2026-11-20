@@ -135,6 +135,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -1123,7 +1145,7 @@ fn main() {
     let mut shapes = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(3.0))), h: Arc::new(Mutex::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>)))])));
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, sh) in __range_values.iter().enumerate() {
                 // Two calls on one interface value in one Printf.
-        print!("{}: area={:.2} perim={:.2}\n", i, { let __arg_value = (*sh.lock().unwrap().as_ref().unwrap()).area(); __arg_value }, { let __arg_value = (*sh.lock().unwrap().as_ref().unwrap()).perimeter(); __arg_value });
+        print!("{}: area={} perim={}\n", format!("{}", i), format!("{:.2}", { let __arg_value = (*sh.lock().unwrap().as_ref().unwrap()).area(); __arg_value }), format!("{:.2}", { let __arg_value = (*sh.lock().unwrap().as_ref().unwrap()).perimeter(); __arg_value }));
     } }
         // Two calls on one interface value in one Printf.
     for (i, row) in vec![vec![1.0, 2.5], vec![10.25, 300.0]].iter().enumerate() {

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "return_indexed_pointer"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

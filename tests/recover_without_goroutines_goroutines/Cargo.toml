@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "recover_without_goroutines_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

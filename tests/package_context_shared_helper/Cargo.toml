@@ -16,6 +16,9 @@ edition = "2021"
 name = "package_context_shared_helper"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_contextshared_core = { path = "vendor/example_com_contextshared_core" }
 example_com_contextshared_event = { path = "vendor/example_com_contextshared_event" }

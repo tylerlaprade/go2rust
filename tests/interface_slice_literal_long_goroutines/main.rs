@@ -96,6 +96,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -467,7 +489,7 @@ fn main() {
     ])));
     let mut total = Arc::new(Mutex::new(Some(0.0)));
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
-        print!("{} {:.2}\n", i, { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value });
+        print!("{} {}\n", format!("{}", i), format!("{:.2}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value }));
         { let __rhs = (*s.lock().unwrap().as_ref().unwrap()).area(); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     print!("total {:.2}\n", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v });

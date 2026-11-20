@@ -19,6 +19,9 @@ edition = "2021"
 name = "os_readdir_filepath"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 internal_bytealg = { path = "vendor/internal_bytealg" }

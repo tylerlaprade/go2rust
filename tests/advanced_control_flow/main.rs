@@ -136,6 +136,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -200,10 +222,10 @@ fn main() {
         let mut j = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
-        print!("Breaking outer loop at i={}, j={}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        print!("Breaking outer loop at i={}, j={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         break 'outer
     }
-        print!("i={}, j={}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        print!("i={}, j={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -217,10 +239,10 @@ fn main() {
         let mut j = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         if { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
-        print!("Continuing outer loop at i={}, j={}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        print!("Continuing outer loop at i={}, j={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue 'outer_continue
     }
-        print!("i={}, j={}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        print!("i={}, j={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -274,7 +296,7 @@ fn main() {
     while { let __tmp_x = { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x <= __tmp_y } {
         let mut item = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x <= __tmp_y } {
-        print!("Category {}, Item {}: ", { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        print!("Category {}, Item {}: ", format!("{}", { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*item.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         { let _switch_val = { let __v = (*category.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (1) {
@@ -306,7 +328,7 @@ fn main() {
         // Multiple variables in for loop
     let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(10))));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        print!("i={}, j={}, sum={}\n", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y });
+        print!("i={}, j={}, sum={}\n", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }));
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x >= __tmp_y } {
         break
     }
@@ -323,7 +345,7 @@ fn main() {
 
     let (mut x, mut y) = (Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(1))));
     while { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = 100; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
-        print!("x={}, y={}, product={}\n", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y });
+        print!("x={}, y={}, product={}\n", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }));
         if { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let __rhs = 2; let mut guard = y.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
@@ -365,7 +387,7 @@ fn main() {
         { let new_val = "Needs improvement".to_string(); *message.lock().unwrap() = Some(new_val); };
     }
 
-        print!("Score {}: Grade {} - {}\n", { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*grade.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*message.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        print!("Score {}: Grade {} - {}\n", format!("{}", { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*grade.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*message.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         { let __rhs = 25; let mut guard = score.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
@@ -378,17 +400,17 @@ fn main() {
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = { let __tmp_x = num; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         if { let __tmp_x = num; let __tmp_y = 6; __tmp_x > __tmp_y } {
-        print!("Stopping at even number {} (index {})\n", num, i);
+        print!("Stopping at even number {} (index {})\n", format!("{}", num), format!("{}", i));
         break
     }
-        print!("Skipping even number {} (index {})\n", num, i);
+        print!("Skipping even number {} (index {})\n", format!("{}", num), format!("{}", i));
         continue
     }
         if { let __tmp_x = num; let __tmp_y = 7; __tmp_x == __tmp_y } {
-        print!("Found lucky number {} at index {}\n", num, i);
+        print!("Found lucky number {} at index {}\n", format!("{}", num), format!("{}", i));
         continue
     }
-        print!("Processing odd number {} (index {})\n", num, i);
+        print!("Processing odd number {} (index {})\n", format!("{}", num), format!("{}", i));
     } }
 
         // Nested range loops
@@ -399,14 +421,14 @@ fn main() {
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (rowIdx, row) in __range_values.iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
         if { let __tmp_x = (*cell).clone(); let __tmp_y = "e".to_string(); __tmp_x == __tmp_y } {
-        print!("Found center at [{}][{}]: {}\n", rowIdx, colIdx, cell);
+        print!("Found center at [{}][{}]: {}\n", format!("{}", rowIdx), format!("{}", colIdx), format!("{}", cell));
         continue
     }
         if { let __tmp_x = rowIdx as i32; let __tmp_y = 2; __tmp_x == __tmp_y } && { let __tmp_x = colIdx as i32; let __tmp_y = 2; __tmp_x == __tmp_y } {
-        print!("Last cell [{}][{}]: {}\n", rowIdx, colIdx, cell);
+        print!("Last cell [{}][{}]: {}\n", format!("{}", rowIdx), format!("{}", colIdx), format!("{}", cell));
         break
     }
-        print!("[{}][{}]: {} ", rowIdx, colIdx, cell);
+        print!("[{}][{}]: {} ", format!("{}", rowIdx), format!("{}", colIdx), format!("{}", cell));
     }
         println!();
     } }
@@ -419,12 +441,16 @@ fn main() {
 
     ch1.send(1);
     loop {
-        if let Some(val) = ch1.try_recv() {
+        if let Some(__select_recv) = ch1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(val) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received string: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
@@ -434,12 +460,16 @@ fn main() {
 
     ch2.send("hello".to_string());
     loop {
-        if let Some(val) = ch1.try_recv() {
+        if let Some(__select_recv) = ch1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(val) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received string: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
@@ -449,12 +479,16 @@ fn main() {
 
     ch2.send("world".to_string());
     loop {
-        if let Some(val) = ch1.try_recv() {
+        if let Some(__select_recv) = ch1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(val) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received string: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
@@ -464,12 +498,16 @@ fn main() {
 
     ch1.send(2);
     loop {
-        if let Some(val) = ch1.try_recv() {
+        if let Some(__select_recv) = ch1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(val) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received string: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
@@ -506,7 +544,7 @@ fn main() {
     ])));
 
     { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, data) in __range_values.iter().enumerate() {
-        print!("Testing dataset {}: {}\n", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }, format_slice_values(data));
+        print!("Testing dataset {}: {}\n", format!("{}", { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", format_slice_values(data)));
         {
         let mut err = {
             let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i32>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {

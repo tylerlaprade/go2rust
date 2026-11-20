@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "waitgroup_sync"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

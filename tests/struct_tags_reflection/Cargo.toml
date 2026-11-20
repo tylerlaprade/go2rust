@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "struct_tags_reflection"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

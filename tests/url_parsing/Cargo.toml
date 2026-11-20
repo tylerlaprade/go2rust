@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "url_parsing"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -1,0 +1,11 @@
+[package]
+name = "time_sleep_duration_forms"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "time_sleep_duration_forms"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -15,6 +15,9 @@ edition = "2021"
 name = "external_atomic_int32_add"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_atomicdep_dep = { path = "vendor/example_com_atomicdep_dep" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

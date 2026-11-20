@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "variadic_selector_repeated_field"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

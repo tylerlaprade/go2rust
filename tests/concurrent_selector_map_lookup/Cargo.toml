@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concurrent_selector_map_lookup"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

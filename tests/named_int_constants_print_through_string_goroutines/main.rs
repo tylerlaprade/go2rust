@@ -177,6 +177,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -1679,5 +1701,5 @@ fn main() {
     println!("{} {} {}", format!("{}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", Weekday(Arc::new(Mutex::new(Some(TUESDAY as i32))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Weekday(Arc::new(Mutex::new(Some(MONDAY as i32)))).string().lock().unwrap().as_ref().unwrap())));
     let mut d = Arc::new(Mutex::new(Some(Weekday(Arc::new(Mutex::new(Some(MONDAY as i32)))))));
     println!("{} {} {} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![Weekday(Arc::new(Mutex::new(Some(SUNDAY as i32)))), Weekday(Arc::new(Mutex::new(Some(TUESDAY as i32))))]))))));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}-{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }, Weekday(Arc::new(Mutex::new(Some(SUNDAY as i32)))))))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}-{}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(SUNDAY as i32))))))))).lock().unwrap().as_ref().unwrap())));
 }

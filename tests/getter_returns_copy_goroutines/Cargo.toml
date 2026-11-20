@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "getter_returns_copy_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "named_integer_arithmetic_returns_named"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

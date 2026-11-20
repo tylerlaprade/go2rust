@@ -690,6 +690,17 @@ func RegisterExternalPackageStubConstantValue(pkgName string, constName string, 
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Constants[constName] = goTypesConstTypeToRust(constType)
+	// An untyped integer constant too big for i32, math.MaxInt64, gets the
+	// smallest Rust integer that holds it. Uses cast it to their type.
+	if basic, ok := constType.Underlying().(*types.Basic); ok && basic.Kind() == types.UntypedInt && constValue != nil {
+		if v := constant.ToInt(constValue); v.Kind() == constant.Int {
+			if _, fits := constant.Int64Val(v); !fits {
+				pkg.Constants[constName] = "u64"
+			} else if n, _ := constant.Int64Val(v); n > 2147483647 || n < -2147483648 {
+				pkg.Constants[constName] = "i64"
+			}
+		}
+	}
 	if constValue != nil {
 		pkg.ConstantValues[constName] = constValue
 	} else {

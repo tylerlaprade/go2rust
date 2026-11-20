@@ -157,6 +157,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -265,7 +287,7 @@ fn main() {
     let mut ws = Arc::new(Mutex::new(Some(Words(Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()])))))));
     println!("{} {} {}", format!("{}", format_nested_slice(&{ let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*xs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*ws.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
     println!("{} {}", format!("{}", format_nested_slice(&{ let __named_slice = (*(*m.lock().unwrap().as_ref().unwrap()).transpose().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*mk().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
-    print!("{} {}\n", format_nested_slice(&{ let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }), format_slice(&{ let __named_slice = (*mk().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }));
+    print!("{} {}\n", format!("{}", format_nested_slice(&{ let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", format_slice(&{ let __named_slice = (*mk().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
     { let __seq = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (1) as usize; let __idx = (2) as usize; let __rhs = 9.0; (*__seq.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     let mut grid = Arc::new(Mutex::new(Some(Matrix(Arc::new(Mutex::new(Some(vec![vec![]; (2) as usize])))))));
     for i in 0..(({ let __range_holder = { let __named_slice = (*grid.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {

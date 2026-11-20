@@ -1,0 +1,5 @@
+closed
+recv 7 true
+recv 0 false
+recv 0 false
+sum 6 n 0

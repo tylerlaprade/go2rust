@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "generic_parallel_map"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

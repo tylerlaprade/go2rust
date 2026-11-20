@@ -178,6 +178,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -275,7 +297,9 @@ pub fn receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mu
 
 pub fn select_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
     loop {
-        if let Some(err) = ch.try_recv() {
+        if let Some(__select_recv) = ch.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let err = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut err = Arc::new(Mutex::new(err));
             return { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
         }

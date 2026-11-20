@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "pointer_slice_element_boxed_as_interface"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

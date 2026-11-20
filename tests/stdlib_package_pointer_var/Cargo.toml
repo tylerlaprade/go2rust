@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "stdlib_package_pointer_var"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

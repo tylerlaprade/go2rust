@@ -94,6 +94,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -156,7 +178,7 @@ fn main() {
 
         // With index and value
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
-        print!("Index {}: {}\n", i, num);
+        print!("Index {}: {}\n", format!("{}", i), format!("{}", num));
     } }
 
         // Only value
@@ -177,14 +199,14 @@ fn main() {
     println!("{}", format!("{}", "\n=== Range over array ===".to_string()));
     let mut arr = Arc::new(Mutex::new(Some(["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string()])));
     { let __range_holder = arr.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, fruit) in __range_values.iter().enumerate() {
-        print!("{}: {}\n", i, fruit);
+        print!("{}: {}\n", format!("{}", i), format!("{}", fruit));
     } }
 
         // Range over string
     println!("{}", format!("{}", "\n=== Range over string ===".to_string()));
     let mut text = Arc::new(Mutex::new(Some("Hello, \u{4e16}\u{754c}".to_string())));
     for (i, char) in (*text.lock().unwrap().as_ref().unwrap()).char_indices() {
-        print!("Byte {}: {} (Unicode: U+{:04X})\n", i, char, char as u32);
+        print!("Byte {}: {} (Unicode: U+{})\n", format!("{}", i), format!("{}", char), format!("{:04X}", char as u32));
     }
 
         // Range over map
@@ -197,7 +219,7 @@ fn main() {
     }
     { let __sort_target = sortedNames.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = sortedNames.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        print!("{} is {} years old\n", name, { let __map = { let __map_holder = ages.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(name)).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+        print!("{} is {} years old\n", format!("{}", name), format!("{}", { let __map = { let __map_holder = ages.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(name)).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     } }
 
         // Only keys
@@ -252,7 +274,7 @@ fn main() {
 
     { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         for (j, val) in row.iter().copied().enumerate() {
-        print!("matrix[{}][{}] = {}\n", i, j, val);
+        print!("matrix[{}][{}] = {}\n", format!("{}", i), format!("{}", j), format!("{}", val));
     }
     } }
 
@@ -263,13 +285,13 @@ fn main() {
 
     println!("{}", format!("{}", "Empty slice:".to_string()));
     { let __range_holder = emptySlice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, v) in __range_values.iter().copied().enumerate() {
-        print!("This won't print: {}, {}\n", i, v);
+        print!("This won't print: {}, {}\n", format!("{}", i), format!("{}", v));
     } }
     println!("{}", format!("{}", "Empty slice range completed".to_string()));
 
     println!("{}", format!("{}", "Empty map:".to_string()));
     for (k, v) in { let __range_holder = emptyMap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        print!("This won't print: {}, {}\n", k, (*v.lock().unwrap().as_mut().unwrap()));
+        print!("This won't print: {}, {}\n", format!("{}", k), format!("{}", (*v.lock().unwrap().as_mut().unwrap())));
     }
     println!("{}", format!("{}", "Empty map range completed".to_string()));
 }

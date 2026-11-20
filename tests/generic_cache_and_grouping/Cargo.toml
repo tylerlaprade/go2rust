@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "generic_cache_and_grouping"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

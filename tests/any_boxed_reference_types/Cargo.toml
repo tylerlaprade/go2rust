@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "any_boxed_reference_types"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

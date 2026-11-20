@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "local_large_fixed_array_zero"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

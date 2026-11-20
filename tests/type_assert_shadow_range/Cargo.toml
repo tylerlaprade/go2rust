@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "type_assert_shadow_range"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

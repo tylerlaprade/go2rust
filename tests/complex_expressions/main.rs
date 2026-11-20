@@ -96,6 +96,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -242,7 +264,7 @@ let __go_binary_6 = 1;
 let __go_binary_7 = __go_binary_5 << __go_binary_6;
 let __go_binary_8 = __go_binary_2 | __go_binary_7;
 let mut bitwiseResult = Arc::new(Mutex::new(Some(__go_binary_8)));
-    print!("(bits1 & bits2) | (bits1 ^ bits2) << 1 = {:b} ({})\n", { let __v = (*bitwiseResult.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*bitwiseResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("(bits1 & bits2) | (bits1 ^ bits2) << 1 = {} ({})\n", format!("{:b}", { let __v = (*bitwiseResult.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*bitwiseResult.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         // Function calls in expressions
     println!("{}", format!("{}", "\n=== Function calls in expressions ===".to_string()));
@@ -523,7 +545,7 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
         { let new_val = "F".to_string(); *grade.lock().unwrap() = Some(new_val); };
     }
 
-    print!("Grade for score {}: {}\n", { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*grade.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Grade for score {}: {}\n", format!("{}", { let __v = (*score.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*grade.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         // Complex assignment expressions
     println!("{}", format!("{}", "\n=== Complex assignment expressions ===".to_string()));
@@ -534,7 +556,7 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
 
         // Multiple assignment with expressions
     let (mut sum, mut product) = (Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }))));
-    print!("Sum: {}, Product: {}\n", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*product.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Sum: {}, Product: {}\n", format!("{}", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*product.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         // Range expressions
     println!("{}", format!("{}", "\n=== Range expressions ===".to_string()));

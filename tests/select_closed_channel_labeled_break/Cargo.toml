@@ -1,0 +1,11 @@
+[package]
+name = "select_closed_channel_labeled_break"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "select_closed_channel_labeled_break"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

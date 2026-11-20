@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "cross_file_global_init_dependency"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "var_decl_concrete_to_interface_box"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

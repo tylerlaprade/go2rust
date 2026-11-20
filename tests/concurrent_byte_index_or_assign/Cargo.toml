@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concurrent_byte_index_or_assign"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
