@@ -141,8 +141,15 @@ fn go_json_escape(input: &str) -> String {
     escaped
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Mode(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Mode {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Mode(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Mode {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

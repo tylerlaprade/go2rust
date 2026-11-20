@@ -5,8 +5,15 @@ use std::rc::{Rc};
 pub const INVALID: i32 = -1;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Code(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for Code {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Code(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Code {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

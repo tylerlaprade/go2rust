@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/constant"
 	"go/token"
+	"go/types"
 	"sort"
 	"strconv"
 	"strings"
@@ -47,7 +48,173 @@ func expandedFormat(call *ast.CallExpr, formatIndex int) (string, bool) {
 	if call.Ellipsis.IsValid() {
 		return "", false
 	}
-	return translationTimeFormat(call.Args[formatIndex])
+	format, ok := translationTimeFormat(call.Args[formatIndex])
+	if !ok || !formatExpandsToRust(format) {
+		return "", false
+	}
+	if !namedScalarArgsUseDisplay(format, call.Args[formatIndex+1:]) {
+		return "", false
+	}
+	return format, true
+}
+
+// namedScalarArgsUseDisplay reports whether every argument of a type the
+// package defines over a basic type is formatted with %v, %s or %T. The
+// newtype's Display is its String method, or its value without the verb's
+// precision, and Go does not call String for "%.2f".
+func namedScalarArgsUseDisplay(quoted string, args []ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	hasNamedScalar := false
+	for _, arg := range args {
+		if anyFormatTypeIsLocalNamedBasic(typeInfo.GetType(arg)) {
+			hasNamedScalar = true
+			break
+		}
+	}
+	if !hasNamedScalar {
+		return true
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil || strings.Contains(format, "[") {
+		return false
+	}
+	var verbs []byte
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		i++
+		for i < len(format) && strings.IndexByte("+-# 0123456789.", format[i]) >= 0 {
+			i++
+		}
+		if i >= len(format) {
+			return false
+		}
+		if format[i] != '%' {
+			verbs = append(verbs, format[i])
+		}
+	}
+	for index, arg := range args {
+		typ := typeInfo.GetType(arg)
+		if !anyFormatTypeIsLocalNamedBasic(typ) {
+			continue
+		}
+		// A named integer or bool without a String method is formatted
+		// as the value it holds, %x included, by the Rust format.
+		if !typeHasGoStringMethod(typ) {
+			if basic, ok := typ.Underlying().(*types.Basic); ok && basic.Info()&(types.IsInteger|types.IsBoolean) != 0 {
+				continue
+			}
+		}
+		if index >= len(verbs) || strings.IndexByte("vsT", verbs[index]) < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// formatExpandsToRust reports whether every verb of a literal format is one
+// that convertFormatStringWithSkips turns into a Rust format with the same
+// output. Any other verb, such as "%8.2f", "%e", "%g", "%.3d", "%+5d" or
+// "%q", is formatted by go_sprintf when the program runs, as a format that
+// is not a literal is. The Rust format for it used to be wrong: "%05.1f"
+// was copied through as text and its argument was left over.
+func formatExpandsToRust(quoted string) bool {
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+	isDigit := func(c byte) bool { return c >= '0' && c <= '9' }
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		i++
+		if i >= len(format) {
+			return false
+		}
+		switch format[i] {
+		case '%', 'T':
+			continue
+		case '+':
+			i++
+			if i < len(format) && format[i] == '.' {
+				j := i + 1
+				for j < len(format) && isDigit(format[j]) {
+					j++
+				}
+				if j > i+1 && j < len(format) && format[j] == 'f' {
+					i = j
+					continue
+				}
+				return false
+			}
+			if i < len(format) && strings.IndexByte("dfv", format[i]) >= 0 {
+				continue
+			}
+			return false
+		case '#':
+			i++
+			if i < len(format) && strings.IndexByte("xXvU", format[i]) >= 0 {
+				continue
+			}
+			return false
+		case '.':
+			j := i + 1
+			for j < len(format) && isDigit(format[j]) {
+				j++
+			}
+			if j > i+1 && j < len(format) && (format[j] == 'f' || format[j] == 's') {
+				i = j
+				continue
+			}
+			return false
+		}
+		leftAlign := format[i] == '-'
+		if leftAlign {
+			i++
+		}
+		zeroPad := i < len(format) && format[i] == '0'
+		if zeroPad {
+			i++
+		}
+		widthStart := i
+		for i < len(format) && isDigit(format[i]) {
+			i++
+		}
+		if i >= len(format) {
+			return false
+		}
+		if i > widthStart {
+			switch format[i] {
+			case 's':
+				if zeroPad {
+					return false
+				}
+			case 'x', 'X':
+				if leftAlign {
+					return false
+				}
+			case 'd', 'f':
+				if leftAlign && zeroPad {
+					return false
+				}
+			default:
+				return false
+			}
+			continue
+		}
+		if leftAlign || zeroPad {
+			return false
+		}
+		if strings.IndexByte("dsvtwpfxXcbU", format[i]) < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // writeRuntimeFormatCall writes the call that formats args with a format
@@ -74,6 +241,15 @@ func writeRuntimeFormatCall(out *strings.Builder, format ast.Expr, args []ast.Ex
 		for i, arg := range args {
 			if i > 0 {
 				out.WriteString(", ")
+			}
+			if NeedsConcurrentWrapper() {
+				// Each argument reads its variable through a lock. Taken in
+				// one expression, the locks were all held until the call, so
+				// printing one variable twice waited on itself.
+				out.WriteString("{ let __go_format_arg = ")
+				writeVariadicPackedElementValue(out, arg, nil, nil, true)
+				out.WriteString("; __go_format_arg }")
+				continue
 			}
 			writeVariadicPackedElementValue(out, arg, nil, nil, true)
 		}
@@ -106,12 +282,17 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 	trackWrapperImports()
 	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard)
 	textTypes := make([]string, 0, len(anyFormatArms))
+	var namedBasicTypes []string
 	for rustType, arm := range anyFormatArms {
 		if arm.text {
 			textTypes = append(textTypes, rustType)
 		}
+		if arm.namedBasic {
+			namedBasicTypes = append(namedBasicTypes, rustType)
+		}
 	}
 	sort.Strings(textTypes)
+	sort.Strings(namedBasicTypes)
 	// go_format_is_text names the program's own types, so it stays where
 	// they are in scope. Its one name is one Go cannot declare.
 	out.WriteString(`
@@ -123,6 +304,19 @@ fn go_format_is_text(__value: &` + anyValue + `) -> bool {
 		out.WriteString("\n        || __value.is::<" + rustType + ">()")
 	}
 	out.WriteString("\n}\n")
+	// A "type Level int" value is the one basic value it holds, for the
+	// verbs its own text does not take: %d, %x, a width on %v.
+	out.WriteString(`
+// The basic value a newtype such as "type Level int" holds, boxed.
+fn go_format_named_basic_value(__value: &` + anyValue + `) -> Option<` + anyBox + `> {`)
+	for _, rustType := range namedBasicTypes {
+		var inner strings.Builder
+		inner.WriteString("(*__v.0")
+		WriteBorrowMethod(&inner, false)
+		inner.WriteString(".as_ref().unwrap()).clone()")
+		out.WriteString("\n    if let Some(__v) = __value.downcast_ref::<" + rustType + ">() {\n        return Some(Box::new(" + inner.String() + "));\n    }")
+	}
+	out.WriteString("\n    None\n}\n")
 	// The rest is in a module of its own. The crate root, where helpers are
 	// written, imports every package-level variable and constant of the Go
 	// package, and Rust does not let a local name or a parameter be the
@@ -131,7 +325,7 @@ fn go_format_is_text(__value: &` + anyValue + `) -> bool {
 	out.WriteString(`
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -579,6 +773,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
         return go_format_string(&basic, verb, &format_any(value));
+    }
+    if let Some(inner) = go_format_named_basic_value(value) {
+        return go_format_argument(spec, verb, inner.as_ref());
     }
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or

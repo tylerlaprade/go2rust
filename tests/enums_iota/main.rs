@@ -9,8 +9,15 @@ pub const STATE_ERROR: i32 = 2;
 pub const STATE_RETRYING: i32 = 3;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ServerState(pub Rc<RefCell<Option<i32>>>);
+
+impl Clone for ServerState {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        ServerState(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for ServerState {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

@@ -11,8 +11,15 @@ pub(crate) const NUM_VERSIONS: i32 = 3;
 pub(crate) const FLAG_SYNC_MARKERS: i32 = 1 << 0;
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Version(pub Rc<RefCell<Option<u32>>>);
+
+impl Clone for Version {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Version(Rc::new(RefCell::new(__value)))
+    }
+}
 
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {

@@ -1,0 +1,8 @@
+[package]
+name = "named_scalar_copies_are_values_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_scalar_copies_are_values_goroutines"
+path = "main.rs"
