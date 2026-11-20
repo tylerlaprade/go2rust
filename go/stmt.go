@@ -1035,22 +1035,33 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	}
 }
 
-func compositeLiteralIsStruct(lit *ast.CompositeLit) bool {
+// compositeLiteralNeedsLocalValueWrapper reports whether a composite literal
+// emits a bare value that a local Go variable must store in its outer value
+// cell. Named composite types emit their named Rust value around any inner
+// collection handle, while an unnamed struct emits its bare struct value.
+// Unnamed maps, slices, and arrays already emit their own local handle.
+//
+// The second result is false when authoritative type information is missing.
+// Callers must emit a loud unsupported path instead of guessing from the AST
+// shape; identifiers and selectors can denote structs, maps, slices, or arrays.
+func compositeLiteralNeedsLocalValueWrapper(lit *ast.CompositeLit) (bool, bool) {
 	if lit == nil {
-		return false
+		return false, true
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(lit); typ != nil {
-			_, ok := types.Unalias(typ).Underlying().(*types.Struct)
-			return ok
-		}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
 	}
-	switch lit.Type.(type) {
-	case *ast.Ident, *ast.SelectorExpr, *ast.StructType:
-		return true
-	default:
-		return false
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		return false, false
 	}
+	typ = types.Unalias(typ)
+	if _, ok := typ.(*types.Named); ok {
+		return true, true
+	}
+	_, isStruct := typ.Underlying().(*types.Struct)
+	return isStruct, true
 }
 
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
@@ -13312,14 +13323,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													registerCompositeLiteralRangeElemType(s.Lhs[i], compositeLit)
 													registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
 												}
-												// Check if it's a struct literal vs array/slice/map literal
-												isStructLiteral := compositeLiteralIsStruct(compositeLit)
-												if compositeLiteralEmitsBareStructValue(compositeLit) {
+												needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+												emitsBareSpecialValue := compositeLiteralEmitsBareStructValue(compositeLit)
+												if emitsBareSpecialValue {
 													registerBareShortDecl(s.Lhs[0])
 												}
 
-												if isStructLiteral {
-													// Struct literals need to be wrapped
+												if !hasTypeInfo {
+													out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+												} else if needsLocalWrapper && !emitsBareSpecialValue {
+													// Named composites and unnamed structs need an outer local value wrapper.
 													WriteWrapperPrefix(out)
 													TranspileExpression(out, rhs)
 													WriteWrapperSuffix(out)
@@ -13702,11 +13715,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// "var mu = sync.Mutex{}" is the bare value, as "mu := sync.Mutex{}" is.
 										registerBareShortDecl(name)
 									}
-									// Check if it's a struct literal vs array/slice/map literal
-									isStructLiteral := compositeLiteralIsStruct(compositeLit)
+									needsLocalWrapper, hasTypeInfo := compositeLiteralNeedsLocalValueWrapper(compositeLit)
+									emitsBareSpecialValue := valueSpec.Type == nil && compositeLiteralEmitsBareStructValue(compositeLit)
 
-									if isStructLiteral {
-										// Struct literals need to be wrapped
+									if !hasTypeInfo {
+										out.WriteString(`unimplemented!("type info required for composite literal initializer")`)
+									} else if needsLocalWrapper && !emitsBareSpecialValue {
+										// Named composites and unnamed structs need an outer local value wrapper.
 										WriteWrapperPrefix(out)
 										TranspileExpression(out, valueSpec.Values[i])
 										WriteWrapperSuffix(out)

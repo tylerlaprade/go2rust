@@ -3933,6 +3933,68 @@ func use() {
 	}
 }
 
+func TestCompositeLiteralLocalWrapperUsesTypeInfoAndPreservesEmitterShape(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"strings"
+	"sync"
+)
+
+type Index map[string]int
+
+func use() {
+	builder := strings.Builder{}
+	var otherBuilder = strings.Builder{}
+	mu := sync.Mutex{}
+	var otherMu = sync.Mutex{}
+	index := Index{"a": 1}
+	var otherIndex = Index{"b": 2}
+	_, _, _, _, _, _ = builder, otherBuilder, mu, otherMu, index, otherIndex
+}
+`)
+
+	for _, unwanted := range []string{
+		"Some(String::new())",
+		"Some(GoMutex {",
+		"let mut index = Index(",
+		"let mut otherIndex = Index(",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("composite literal local representation must agree with its emitter and variable registration; found %q:\n%s", unwanted, rust)
+		}
+	}
+	for _, want := range []string{
+		"let mut builder = String::new();",
+		"let mut otherBuilder = String::new();",
+		"let mut mu = GoMutex {",
+		"let mut otherMu = GoMutex {",
+		"let mut index = Rc::new(RefCell::new(Some(Index(",
+		"let mut otherIndex = Rc::new(RefCell::new(Some(Index(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected composite literal local representation %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestCompositeLiteralLocalWrapperRequiresTypeInfo(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+type Index map[string]int
+
+func use() {
+	value := Index{"a": 1}
+	var explicit = Index{"b": 2}
+	_, _ = value, explicit
+}
+`)
+
+	if got := strings.Count(rust, `unimplemented!("type info required for composite literal initializer")`); got != 2 {
+		t.Fatalf("missing type information must fail loudly for both composite literal local forms; got %d:\n%s", got, rust)
+	}
+}
+
 func TestStructLiteralLenFieldUsesGoInt(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
