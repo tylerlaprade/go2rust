@@ -3984,3 +3984,28 @@ type Seq2[K, V any] func(yield func(K, V) bool)
 		t.Fatalf("generic named function type must declare all type params (want `pub type Seq2<K, V> = ...`):\n%s", rust)
 	}
 }
+
+// A named slice of an interface from a bridged stdlib package, such as
+// []ast.Expr when go/ast is not translated from source, holds the stand-in
+// struct bare, not a trait object in a cell. Its Display must use the plain
+// slice formatter; the one for wrapped trait objects did not compile.
+func TestNamedSliceOfBridgedInterfaceUsesThePlainFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"go/ast"
+)
+
+type ExprList []ast.Expr
+
+func main() {
+	var list ExprList
+	fmt.Println(len(list))
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for ExprList {\n    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n        write!(f, \"{}\", format_slice(&self.0))") {
+		t.Fatalf("ExprList should print with format_slice:\n%s", rust)
+	}
+}

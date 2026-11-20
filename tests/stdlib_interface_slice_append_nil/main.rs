@@ -44,34 +44,6 @@ where
     }
 }
 
-
-fn format_slice_wrapped_stringer<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
-where
-    C: AsRef<[Arc<Mutex<Option<T>>>]>,
-    T: Display,
-{
-    let guard = slice.lock().unwrap();
-    if let Some(ref s) = *guard {
-        format_slice_wrapped_stringer_values(s.as_ref())
-    } else {
-        "[]".to_string()
-    }
-}
-
-fn format_slice_wrapped_stringer_values<T>(slice: &[Arc<Mutex<Option<T>>>]) -> String
-where
-    T: Display,
-{
-    let formatted: Vec<String> = slice.iter().map(|v| {
-        let inner = v.lock().unwrap();
-        match inner.as_ref() {
-            Some(value) => value.to_string(),
-            None => "<nil>".to_string(),
-        }
-    }).collect();
-    format!("[{}]", formatted.join(" "))
-}
-
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -289,7 +261,7 @@ pub struct ExprList(pub Arc<Mutex<Option<Vec<ast_Expr>>>>);
 
 impl Display for ExprList {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", format_slice_wrapped_stringer(&self.0))
+        write!(f, "{}", format_slice(&self.0))
     }
 }
 
