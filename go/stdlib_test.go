@@ -1444,6 +1444,25 @@ func fail() {
 	}
 }
 
+func TestPanicAnyExternalStubStructUsesRustClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/token"
+
+func fail() {
+	var value any = token.Position{}
+	panic(value)
+}
+`)
+
+	if !strings.Contains(rust, `value.downcast_ref::<token_Position>() { return Box::new(v.clone()) as Box<dyn Any>`) {
+		t.Fatalf("external stub struct panic payload should use its available Rust Clone implementation:\n%s", rust)
+	}
+	if strings.Contains(rust, `value.downcast_ref::<token_Position>() { return Box::new(v.__go_value_clone())`) {
+		t.Fatalf("external stub struct does not define __go_value_clone:\n%s", rust)
+	}
+}
+
 func TestConcurrentPanicNilUsesSendSyncErrorPayload(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

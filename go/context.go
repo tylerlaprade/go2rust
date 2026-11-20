@@ -948,8 +948,11 @@ func RegisterAnyCloneType(typ types.Type) {
 		if helpers.anyCloneTypes == nil {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
-		_, valueStruct := typ.Underlying().(*types.Struct)
-		helpers.anyCloneTypes[rustType] = helpers.anyCloneTypes[rustType] || valueStruct
+		// Only program/source-transpiled structs define __go_value_clone.
+		// Hand-written stdlib representations and external stub structs use
+		// their ordinary Rust Clone implementation.
+		valueClone := typeNeedsGoValueClone(typ)
+		helpers.anyCloneTypes[rustType] = helpers.anyCloneTypes[rustType] || valueClone
 		arm, hasArm := anyFormatArmForType(typ)
 		if hasArm {
 			if helpers.anyFormatArms == nil {

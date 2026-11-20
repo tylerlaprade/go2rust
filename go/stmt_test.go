@@ -759,6 +759,27 @@ func rewrite(args []any) {
 	}
 }
 
+func TestTypeSwitchNativeStdlibStructUsesRustClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "strings"
+
+func inspect(value any) {
+	switch builder := value.(type) {
+	case strings.Builder:
+		_ = builder
+	}
+}
+`)
+
+	if !strings.Contains(rust, `downcast_ref::<String>()).unwrap().clone()`) {
+		t.Fatalf("native strings.Builder representation should use Rust Clone in a type-switch binding:\n%s", rust)
+	}
+	if strings.Contains(rust, `downcast_ref::<String>()).unwrap().__go_value_clone()`) {
+		t.Fatalf("native String representation does not define __go_value_clone:\n%s", rust)
+	}
+}
+
 func TestConcurrentTypeSwitchOnAnyUnwrapsBoxedAnyPayload(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

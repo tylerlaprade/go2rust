@@ -16532,7 +16532,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(">()).unwrap()")
 							caseType := typeSwitchCaseResolvedType(typeInfo, caseClause.List[0])
 							if caseType != nil {
-								if _, valueStruct := types.Unalias(caseType).Underlying().(*types.Struct); valueStruct {
+								if typeNeedsGoValueClone(caseType) {
 									out.WriteString(".__go_value_clone()")
 								} else {
 									out.WriteString(".clone()")
