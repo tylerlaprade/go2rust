@@ -1,0 +1,2 @@
+source_stdlib_packages = "slices,cmp,iter,math/bits"
+test_timeout = "120s"

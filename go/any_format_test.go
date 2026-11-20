@@ -148,3 +148,51 @@ func main() {
 		})
 	}
 }
+
+// A value of a type with no formatting case cannot be printed. The program
+// has to stop and say so; a placeholder would be a wrong answer that looks
+// like a right one.
+func TestFormatAnyStopsOnAValueItCannotPrint(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Row struct{ Value interface{} }
+
+func main() {
+	fmt.Println(Row{Value: 2})
+}
+`)
+
+	if !strings.Contains(rust, "    } else {\n        panic!(\"go2rust: cannot print this value held in an interface: its type has no formatting case yet\")\n    }\n}") {
+		t.Fatalf("format_any must stop on a type it has no case for:\n%s", rust)
+	}
+	if strings.Contains(rust, "<unknown>") {
+		t.Fatalf("format_any must not print a placeholder:\n%s", rust)
+	}
+	for _, intType := range []string{"i8", "i16", "isize", "u8", "u16", "u32", "u64", "usize"} {
+		if !strings.Contains(rust, "} else if let Some(v) = value.downcast_ref::<"+intType+">() {\n        v.to_string()") {
+			t.Errorf("format_any has no case for %s:\n%s", intType, rust)
+		}
+	}
+}
+
+// Go prints a map sorted by key, false before true. Rust orders bool the
+// same way, so a map with boolean keys gets a formatting case like a map with
+// integer or string keys.
+func TestBoxedMapWithBooleanKeysHasAFormattingCase(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func show(v interface{}) { fmt.Println(v) }
+
+func main() {
+	show(map[bool]int{true: 1})
+}
+`)
+
+	if !strings.Contains(rust, "value.downcast_ref::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i32>>>>>>>>() {\n        format_map(v)") {
+		t.Fatalf("a boxed map[bool]int has no formatting case:\n%s", rust)
+	}
+}

@@ -1,0 +1,8 @@
+[package]
+name = "blank_assignment_of_nil_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "blank_assignment_of_nil_values"
+path = "main.rs"
