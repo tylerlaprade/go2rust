@@ -880,6 +880,23 @@ impl std::fmt::Display for GoTime {
 }
 
 pub fn sink(args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> i64 {
+    if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = 1; __tmp_x != __tmp_y } {
+        std::panic::panic_any(Box::new("unexpected argument count".to_string()) as Box<dyn Any + Send + Sync>);
+    }
+    let (mut value, mut ok) = ({
+        let __idx = (0) as usize;
+        let __seq_holder = args.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+if let Some(typed_val) = any_val.downcast_ref::<GoTime>() {
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+        } else {
+            (Arc::new(Mutex::new(Some(Default::default()))), false)
+        }
+    });
+    if !ok || { let __tmp_x = (*value.lock().unwrap().as_ref().unwrap()).unix_nano(); let __tmp_y = 1_000_000_002 as i64; __tmp_x != __tmp_y } {
+        std::panic::panic_any(Box::new("unexpected time value".to_string()) as Box<dyn Any + Send + Sync>);
+    }
     (*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
 }
 

@@ -3801,6 +3801,27 @@ func last(values []any) int {
 	}
 }
 
+func TestAnySliceElementTypeAssertionCommaOkUsesBareBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func last(values []any) (int, bool) {
+	value, ok := values[len(values)-1].(int)
+	return value, ok
+}
+`)
+
+	if strings.Contains(rust, "let val = { let __seq =") ||
+		strings.Contains(rust, "].clone() }.clone()") ||
+		strings.Contains(rust, "let guard = val.borrow()") ||
+		strings.Contains(rust, "let guard = val.lock().unwrap()") {
+		t.Fatalf("comma-ok []any element type assertion should not clone Box<dyn Any> or treat it as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref()") ||
+		!strings.Contains(rust, "if let Some(typed_val) = any_val.downcast_ref::<i64>()") {
+		t.Fatalf("comma-ok []any element type assertion should downcast the boxed element in place:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {

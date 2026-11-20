@@ -20472,6 +20472,55 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 	return true
 }
 
+// writeAnySliceElementAssertionCommaOk lowers `v, ok := items[i].(T)` for a
+// concrete T when items is []any. The element is already a bare Box<dyn Any>,
+// so inspect it through the slice guard instead of trying to clone the box.
+func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool, targetIsError bool) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	if targetIsError && typeAssertionSourceIsEmptyInterface(e.X) {
+		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">() {\n")
+		out.WriteString("            (")
+		writeErrorHandleCopy(out, func() { out.WriteString("typed_val") })
+		out.WriteString(", true)\n")
+		out.WriteString("        } else ")
+	}
+	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">() {\n")
+	out.WriteString("            (")
+	WriteWrapperPrefix(out)
+	if targetIsError {
+		out.WriteString(rustErrorFromText("typed_val.clone()"))
+	} else {
+		out.WriteString("typed_val.clone()")
+	}
+	WriteWrapperSuffix(out)
+	out.WriteString(", true)\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+	out.WriteString(", false)\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+	return true
+}
+
 func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool) {
 	if targetIsPointer || targetIsInterface {
 		writeTypedWrappedNone(out, rustType)
@@ -21254,6 +21303,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	}
 	if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
 		rustType = aliasRustType
+	}
+
+	if writeAnySliceElementAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsInterface, targetIsError) {
+		return
 	}
 
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {

@@ -609,6 +609,100 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
+struct GoLocalPanicFrame {
+    payload: Option<Box<dyn Any>>,
+    message: String,
+    recoverable: bool,
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+}
+
+fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
+    std::panic::panic_any(__message)
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recoverable { frame.payload.take() } else { None }
+        })
+    });
+    Rc::new(RefCell::new(__payload))
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recoverable;
+            frame.recoverable = recoverable;
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recoverable = previous;
+            }
+        });
+    }
+    result
+}
+
+fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+            payload: Some(__go_payload),
+            message: __message,
+            recoverable: false,
+        }));
+        return;
+    }
+    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Err(__payload) => __payload as Box<dyn Any>,
+        },
+    };
+    let __message = __payload.downcast_ref::<String>().cloned()
+        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+        payload: Some(__payload),
+        message: __message,
+        recoverable: false,
+    }));
+}
+
+fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(__payload);
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
+    {
+        go_panic_any_local(__payload, __message)
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
@@ -711,6 +805,23 @@ impl std::fmt::Display for GoTime {
 }
 
 pub fn sink(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
+    if ((*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) != (1 as i64) {
+        { let __go_panic_text = format!("{}", "unexpected argument count".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+    }
+    let (mut value, mut ok) = ({
+        let __idx = (0) as usize;
+        let __seq_holder = args.clone();
+        let __seq_guard = __seq_holder.borrow();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+if let Some(typed_val) = any_val.downcast_ref::<GoTime>() {
+            (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+        } else {
+            (Rc::new(RefCell::new(Some(Default::default()))), false)
+        }
+    });
+    if !ok || (*value.borrow().as_ref().unwrap()).unix_nano() != 1_000_000_002 as i64 {
+        { let __go_panic_text = format!("{}", "unexpected time value".to_string()); go_panic_any_local(Box::new(__go_panic_text.clone()) as Box<dyn Any>, __go_panic_text) };
+    }
     (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
 }
 
