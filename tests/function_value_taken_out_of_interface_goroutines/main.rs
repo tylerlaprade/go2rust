@@ -151,6 +151,30 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+fn __go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>() { return "func()" }
+    if val.is::<Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>() { return "func() string" }
+    if val.is::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> i32 + Send + Sync>>>>>() { return "func(int) int" }
+    std::any::type_name_of_val(val)
+}
+
 pub fn run(f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
     {
         let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
@@ -270,7 +294,7 @@ fn main() {
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>().expect("type assertion failed").clone()
+        any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "func() string")).clone()
     });
     println!("{}", format!("{}", (*{
         let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {

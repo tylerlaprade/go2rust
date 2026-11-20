@@ -3,6 +3,29 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+fn __go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Rc<RefCell<Option<Signature>>>>() { return "*main.Signature" }
+    std::any::type_name_of_val(val)
+}
+
 #[derive(Debug, Clone)]
 pub struct Signature {
     pub name: Rc<RefCell<Option<String>>>,
@@ -46,9 +69,9 @@ pub fn recv_name(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Stri
         let val = v.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<Rc<RefCell<Option<Signature>>>>().expect("type assertion failed").clone()
+            any_val.downcast_ref::<Rc<RefCell<Option<Signature>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "*main.Signature")).clone()
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "*main.Signature")
         }
     }); let __result = (*__recv.borrow().as_ref().unwrap()).recv(); __result }
 }

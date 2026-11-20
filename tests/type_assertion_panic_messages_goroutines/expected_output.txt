@@ -1,0 +1,9 @@
+recovered: interface conversion: interface {} is int, not string
+recovered: interface conversion: interface {} is int, not main.Rect
+recovered: interface conversion: interface {} is int, not *main.Rect
+recovered: interface conversion: interface {} is main.Rect, not int
+1
+recovered: interface conversion: interface {} is nil, not int
+recovered: interface conversion: interface {} is float64, not string
+recovered: interface conversion: interface {} is string, not []int
+3.5

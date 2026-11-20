@@ -569,7 +569,7 @@ fn main() {
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
+        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "[]string")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
     }))));
     println!("{} {} {}", format!("{}", "appended:".to_string()), format!("{}", (*appended.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*appended.borrow().as_ref().unwrap())[(0) as usize].clone()));
 
@@ -727,9 +727,9 @@ fn main() {
         let val = declared.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
+            { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]int")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }
     })))))));
     let mut lookup = ({ let val = boxedMap.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
@@ -739,21 +739,21 @@ fn main() {
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
+        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "[]int")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
     }))));
     let mut second = Rc::new(RefCell::new(Some(({
         let __idx = (1) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>().expect("type assertion failed").clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
+        { let __handle = any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "map[string]int")).clone(); let __value = (*__handle.borrow()).clone().unwrap_or_default(); __value }
     }))));
     let mut third = ({
         let __idx = (2) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
-        any_val.downcast_ref::<Rc<RefCell<Option<Point>>>>().expect("type assertion failed").clone()
+        any_val.downcast_ref::<Rc<RefCell<Option<Point>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "*main.Point")).clone()
     }).clone();
     println!("{} {} {} {}", format!("{}", "single element:".to_string()), format!("{}", (*first.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __map_holder = second.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", (*(*third.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
     let mut empty: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
