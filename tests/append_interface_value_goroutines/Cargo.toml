@@ -1,0 +1,8 @@
+[package]
+name = "append_interface_value_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "append_interface_value_goroutines"
+path = "main.rs"

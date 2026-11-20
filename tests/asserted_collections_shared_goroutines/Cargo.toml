@@ -1,0 +1,8 @@
+[package]
+name = "asserted_collections_shared_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "asserted_collections_shared_goroutines"
+path = "main.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "print_boxed_bool_key_map_and_integers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_boxed_bool_key_map_and_integers"
+path = "main.rs"

@@ -84,7 +84,7 @@ impl std::fmt::Display for cache {
 
 impl cache {
     pub fn r#use(&self, T: Rc<RefCell<Option<types_Type>>>) {
-        let _ = (*T.borrow().as_ref().unwrap());
+        let _ = &T;
     }
 }
 

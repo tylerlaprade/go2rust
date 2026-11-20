@@ -499,3 +499,84 @@ func main() {
 		t.Logf("generated Rust:\n%s", rust)
 	}
 }
+
+// A map or slice taken out of an interface{} shares its data with the one
+// that was put in. A new variable takes the handle the interface value holds,
+// in a short declaration and in a var declaration, and so does a use that
+// needs a handle, such as len(x.(map[string]int)) or printing x.([]int).
+func TestAssertedMapOrSliceSharesTheInterfaceValuesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var counts any = map[string]int{"a": 1}
+	m := counts.(map[string]int)
+	m["b"] = 2
+	var c = counts.(map[string]int)
+	c["x"] = 7
+	fmt.Println(len(counts.(map[string]int)))
+	var list any = []int{1}
+	fmt.Println(list.([]int))
+}
+`)
+
+	const mapHandle = "Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>"
+	shared := "({ let val = counts.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + mapHandle + ">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })"
+	for what, want := range map[string]string{
+		"a short declaration": "let mut m = " + shared + ";",
+		"a var declaration":   "let mut c = " + shared + ";",
+		"len of an assertion": shared,
+		"printing a slice":    "format_slice(&({ let val = list.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect(\"type assertion failed\").clone() }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// "var n Numbers = x.([]int)" declares a Numbers, not the asserted []int:
+// the initializer must build the Numbers value, not hand over the []int
+// handle the interface holds.
+func TestAssertedSliceIntoVarOfAnotherSliceTypeBuildsThatType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Numbers []int
+
+func main() {
+	var x any = []int{1}
+	var n Numbers = x.([]int)
+	var s []int = x.([]int)
+	_, _ = n, s
+}
+`)
+	if !strings.Contains(rust, "let mut n: Rc<RefCell<Option<Numbers>>> = Rc::new(RefCell::new(Some(Numbers(") {
+		t.Fatalf("var n Numbers should be built as a Numbers value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut s: Rc<RefCell<Option<Vec<i32>>>> = ({ let val = x.clone();") {
+		t.Fatalf("var s []int should keep the interface's slice handle:\n%s", rust)
+	}
+}
+
+// "any(a.([]int))" puts the handle the assertion reads into the new box, so
+// both interface values hold the same slice, as in Go. Wrapping that handle
+// in a new cell gave a box the next assertion did not recognize.
+func TestReboxedAssertedSliceSharesTheHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	a := any([]int{1, 2})
+	b := any(a.([]int))
+	_ = b
+}
+`)
+	if !strings.Contains(rust, "Box::new(({ let val = a.clone();") {
+		t.Fatalf("the new box should hold the asserted handle itself:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new(Rc::new(RefCell::new(Some(({ let val = a.clone();") {
+		t.Fatalf("the asserted handle must not be wrapped in a new cell:\n%s", rust)
+	}
+}

@@ -9085,6 +9085,16 @@ func anyBoxedCollectionExprIsBare(expr ast.Expr, typ types.Type) bool {
 		case *types.Array:
 			return arraySliceElementExpectedStoresBareCollection(c.Elem())
 		}
+	case *ast.TypeAssertExpr:
+		// "x.([]int)" read for its handle is the handle the interface value
+		// holds (writeAnyHandleAssertionHandle), so boxing it again shares
+		// the slice or map, as Go does. Only an element of a []any, which
+		// that helper leaves alone, is taken out as the bare slice or map.
+		if _, _, ok := typeAssertionAnyHandleTarget(e); !ok {
+			return false
+		}
+		_, isElement := anySliceElementAssertionSource(e.X)
+		return isElement
 	}
 	return false
 }
@@ -9190,6 +9200,39 @@ func functionAssertionAnyHandleTarget(e *ast.TypeAssertExpr) (handleType string,
 		return "", "", 0, false
 	}
 	return handleType, goTypesTypeToRust(sig), sig.Params().Len(), true
+}
+
+// writeAnyHandleAssertionHandle writes "x.([]int)" or "x.(map[K]V)", where x
+// is an interface{}, as the handle the interface value holds, for a new
+// variable that keeps it. A map or slice taken out of an interface shares its
+// data with the one that was put in, so after "y := x.(map[string]int)",
+// "y["k"] = 1" changes the map x holds and every other name for it. The value
+// writeAnyHandleAssertionExpectBareValue gives is a copy, which is right only
+// where the result is used and dropped.
+func writeAnyHandleAssertionHandle(out *strings.Builder, expr ast.Expr) bool {
+	e, ok := unwrapParens(expr).(*ast.TypeAssertExpr)
+	if !ok {
+		return false
+	}
+	handleType, _, ok := typeAssertionAnyHandleTarget(e)
+	if !ok {
+		return false
+	}
+	if _, isElement := anySliceElementAssertionSource(e.X); isElement {
+		return false
+	}
+	out.WriteString("({ let val = ")
+	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpressionContext(out, e.X, LValue)
+	}
+	out.WriteString(".clone(); let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; if let Some(ref any_val) = *guard { any_val.downcast_ref::<")
+	out.WriteString(handleType)
+	out.WriteString(">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })")
+	return true
 }
 
 // writeAnyHandleAssertionExpectBareValue downcasts receiver to the boxed
@@ -15362,6 +15405,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.TypeAssertExpr:
 		// Handle type assertions like value.(Type)
 		// Type assertions work on interface{} values (Box<dyn Any>)
+		if ctx == LValue && writeAnyHandleAssertionHandle(out, e) {
+			// Where the handle is wanted, as in len(x.([]int)) or
+			// x.(map[string]int)["k"], it is the one the interface holds.
+			return
+		}
 		if e.Type != nil {
 			if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
 				writeStaticallyKnownInterfaceAssertionValue(out, e, ifaceName)
@@ -15454,7 +15502,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError)
+				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError, false)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -15475,7 +15523,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError)
+				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError, false)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -15515,7 +15563,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if targetKeepsAnyHandle {
 				writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 			} else {
-				writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError)
+				writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 			}
 			if assertionReturnsPointer {
 				WriteWrapperSuffix(out)
@@ -19815,7 +19863,7 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	if anyHandleType, _, ok := typeAssertionAnyHandleTarget(e); ok {
 		writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 	} else {
-		writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError)
+		writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 	}
 	if assertionReturnsPointer {
 		WriteWrapperSuffix(out)
@@ -19845,14 +19893,35 @@ func anySliceElementAssertionSource(expr ast.Expr) (*ast.IndexExpr, bool) {
 	return index, true
 }
 
-func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, rustType string, targetIsError bool) {
+// writeTypeAssertionExpectBareValue writes "x.(T)" in its one-value form: the
+// value, or a panic when x does not hold a T.
+//
+// holdsErrorHandle says x is an interface{} that may hold an error as its own
+// handle (see writeOpaqueGoErrorAnyBox), which is how the value errors.New or
+// fmt.Errorf returns is boxed. "x.(error)" then yields that same error. The
+// caller puts it in a cell of its own, so assigning to the result afterwards
+// does not change what x holds.
+func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, rustType string, targetIsError bool, holdsErrorHandle bool) {
 	if targetIsError {
-		out.WriteString("{ let typed_val = ")
+		out.WriteString("{ ")
+		if holdsErrorHandle {
+			out.WriteString("if let Some(__err_handle) = ")
+			out.WriteString(receiver)
+			out.WriteString(".downcast_ref::<")
+			out.WriteString(rustGoErrorHandleType())
+			out.WriteString(">() { (*__err_handle")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone().expect(\"type assertion failed\") } else { ")
+		}
+		out.WriteString("let typed_val = ")
 		out.WriteString(receiver)
 		out.WriteString(".downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">().expect(\"type assertion failed\"); ")
 		writeTypeAssertionSuccessBareValue(out, true)
+		if holdsErrorHandle {
+			out.WriteString(" }")
+		}
 		out.WriteString(" }")
 		return
 	}
@@ -21014,11 +21083,15 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	if targetIsError && typeAssertionSourceIsEmptyInterface(e.X) {
 		// An error whose dynamic type cannot be named sits in the box as its
 		// own handle (see writeOpaqueGoErrorAnyBox). Asserting it back to
-		// error hands out that handle, so it is still the same error.
+		// error gives the result a handle of its own to the same error: it
+		// is still that error, and assigning to the result afterwards does
+		// not change what the interface value holds.
 		out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
 		out.WriteString(rustGoErrorHandleType())
 		out.WriteString(">() {\n")
-		out.WriteString("                (typed_val.clone(), true)\n")
+		out.WriteString("                (")
+		writeErrorHandleCopy(out, func() { out.WriteString("typed_val") })
+		out.WriteString(", true)\n")
 		out.WriteString("            } else ")
 	}
 	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
