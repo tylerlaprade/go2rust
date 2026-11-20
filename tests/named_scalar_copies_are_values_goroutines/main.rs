@@ -753,6 +753,58 @@ impl PartialEq for Name {
     }
 }
 
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Name {}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for Name {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.lock().unwrap().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for Name {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.lock().unwrap().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for Name {
+    type Output = Name;
+    fn add(self, other: Self) -> Name {
+        let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other.0.lock().unwrap().as_ref().unwrap());
+        Name(Arc::new(Mutex::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for Name {
+    type Output = Name;
+    fn add(self, other: String) -> Name {
+        let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other);
+        Name(Arc::new(Mutex::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for Name {
+    type Output = Name;
+    fn add(self, other: &str) -> Name {
+        let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other);
+        Name(Arc::new(Mutex::new(Some(__joined))))
+    }
+}
+
 
 #[derive(Debug, Default)]
 pub struct Flag(pub Arc<Mutex<Option<bool>>>);
@@ -825,13 +877,13 @@ impl Counter {
 
 impl Celsius {
     pub fn warm(&mut self) {
-        { let __rhs = 1.5; let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = 1.5; let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
 }
 
 impl Name {
     pub fn shout(&mut self) {
-        { (*self.0.lock().unwrap().as_mut().unwrap()).push_str(&"!".to_string()); };
+        { let __rhs = "!".to_string(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
 }
 
@@ -858,7 +910,7 @@ fn main() {
     (*b.lock().unwrap().as_mut().unwrap()).inc();
     println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*bump(Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut x = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1 as f64)))))));
+    let mut x = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1.0 as f64)))))));
     let mut y = { let __owned = x.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     (*y.lock().unwrap().as_mut().unwrap()).warm();
     println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }));
@@ -873,7 +925,7 @@ fn main() {
     (*g.lock().unwrap().as_mut().unwrap()).toggle();
     println!("{} {}", format!("{}", { let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*g.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mut s = Arc::new(Mutex::new(Some(Stats { hits: Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(5 as i32))))))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(20 as f64))))))), ..Default::default() })));
+    let mut s = Arc::new(Mutex::new(Some(Stats { hits: Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(5 as i32))))))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(20.0))))))), ..Default::default() })));
     let mut t = { let __owned = s.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
     (*(*t.lock().unwrap().as_ref().unwrap()).hits.lock().unwrap().as_mut().unwrap()).inc();
     (*(*t.lock().unwrap().as_ref().unwrap()).temp.lock().unwrap().as_mut().unwrap()).warm();

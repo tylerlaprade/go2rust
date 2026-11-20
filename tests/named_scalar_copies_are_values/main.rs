@@ -606,6 +606,58 @@ impl PartialEq for Name {
     }
 }
 
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Name {}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for Name {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for Name {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.borrow().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for Name {
+    type Output = Name;
+    fn add(self, other: Self) -> Name {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other.0.borrow().as_ref().unwrap());
+        Name(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for Name {
+    type Output = Name;
+    fn add(self, other: String) -> Name {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Name(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for Name {
+    type Output = Name;
+    fn add(self, other: &str) -> Name {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Name(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
 
 #[derive(Debug, Default)]
 pub struct Flag(pub Rc<RefCell<Option<bool>>>);
@@ -678,13 +730,13 @@ impl Counter {
 
 impl Celsius {
     pub fn warm(&mut self) {
-        { let __rhs = 1.5; let mut guard = self.0.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = 1.5; let mut guard = self.0.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
 }
 
 impl Name {
     pub fn shout(&mut self) {
-        { (*self.0.borrow_mut().as_mut().unwrap()).push_str(&"!".to_string()); };
+        { let __rhs = "!".to_string(); let mut guard = self.0.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
 }
 
@@ -705,7 +757,7 @@ fn main() {
     (*b.borrow_mut().as_mut().unwrap()).inc();
     println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*bump(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }));
 
-    let mut x = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1 as f64)))))));
+    let mut x = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1.0 as f64)))))));
     let mut y = { let __owned = x.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     (*y.borrow_mut().as_mut().unwrap()).warm();
     println!("{} {}", format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v }));
@@ -720,7 +772,7 @@ fn main() {
     (*g.borrow_mut().as_mut().unwrap()).toggle();
     println!("{} {}", format!("{}", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*g.borrow().as_ref().unwrap()).clone(); __v }));
 
-    let mut s = Rc::new(RefCell::new(Some(Stats { hits: Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(5 as i32))))))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(20 as f64))))))), ..Default::default() })));
+    let mut s = Rc::new(RefCell::new(Some(Stats { hits: Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(5 as i32))))))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(20.0))))))), ..Default::default() })));
     let mut t = { let __owned = s.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     (*(*t.borrow().as_ref().unwrap()).hits.borrow_mut().as_mut().unwrap()).inc();
     (*(*t.borrow().as_ref().unwrap()).temp.borrow_mut().as_mut().unwrap()).warm();
