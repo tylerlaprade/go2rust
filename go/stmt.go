@@ -2092,7 +2092,7 @@ func rangeElementUsesCopied(typ types.Type) bool {
 	if typ == nil {
 		return false
 	}
-	if isNamedIntegerType(typ) {
+	if isNamedScalarNewtype(typ) {
 		return false
 	}
 	switch underlying := types.Unalias(typ).Underlying().(type) {
@@ -2153,7 +2153,7 @@ func typeSyntaxIsRustCopyRangeElement(expr ast.Expr) bool {
 }
 
 func rangeElementUsesCloned(typ types.Type) bool {
-	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedIntegerType(typ)
+	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedScalarNewtype(typ)
 }
 
 func compositeLiteralRangeElemRustType(lit *ast.CompositeLit) (string, bool) {
@@ -8487,7 +8487,7 @@ func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, op token.Token) bool
 		return false
 	}
 	lhsNamed, ok := types.Unalias(typeInfo.GetType(lhs)).(*types.Named)
-	if !ok || !isNamedIntegerType(lhsNamed) {
+	if !ok || !isNamedScalarNewtype(lhsNamed) {
 		return false
 	}
 	return true
@@ -8637,6 +8637,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if writeNamedIntegerCompoundAssignUnderlyingValue(out, expr, expected) {
+		return
+	}
+	if writeNamedFloatCompoundAssignUnderlyingValue(out, expr, expected) {
 		return
 	}
 	if writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out, expr, expected) {
@@ -10999,6 +11002,9 @@ func transpileConditionInline(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
+	if writeNamedBoolUnderlyingValue(out, expr) {
+		return
+	}
 	if exprNeedsBoolWrapperUnwrap(expr) {
 		writeUnwrappedBoolExpression(out, expr)
 		return
@@ -12035,7 +12041,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
 						isString = true
 					}
-					if !isString {
+					// A named string newtype concatenates through its Add impl.
+					namedStringNewtype := typeInfo != nil && isNamedScalarNewtype(typeInfo.GetType(s.Lhs[0]))
+					if namedStringNewtype {
+						isString = false
+					}
+					if !isString && !namedStringNewtype {
 						// Type info not available - check if RHS is a string literal at least
 						if lit, ok := s.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 							isString = true
@@ -13752,7 +13763,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else {
 										if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-												if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+												if writeNamedScalarVarSpecValue(out, valueSpec, i) {
+													// A float, string or bool of a type the package defines.
+												} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 													WriteWrapperPrefix(out)
 													out.WriteString(typeIdent.Name)
 													out.WriteString("(")
@@ -13804,7 +13817,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// A slice or map taken out of an interface value shares its data with it.
 									} else if valueSpec.Type != nil {
 										if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
-											if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
+											if writeNamedScalarVarSpecValue(out, valueSpec, i) {
+												// A float, string or bool of a type the package defines.
+											} else if underlyingType, isTypeDef := LookupTypeDefinition(typeIdent.Name); isTypeDef {
 												WriteWrapperPrefix(out)
 												out.WriteString(typeIdent.Name)
 												out.WriteString("(")
@@ -14665,7 +14680,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// String iteration - iterate over chars
 			// Check if the range target is already a bare string (no wrapping needed).
 			_, isStringLit := s.X.(*ast.BasicLit)
-			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X)
+			// A named string ranges over a copy of the String it holds.
+			var namedStringSource strings.Builder
+			hasNamedStringSource := writeNamedStringNewtypeInnerValue(&namedStringSource, s.X)
+			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource
+			writeBareStringRangeSource := func() {
+				if hasNamedStringSource {
+					out.WriteString("(")
+					out.WriteString(namedStringSource.String())
+					out.WriteString(")")
+					return
+				}
+				TranspileExpression(out, s.X)
+			}
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
@@ -14674,7 +14701,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
 					out.WriteString(") in ")
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString(") in (*")
@@ -14692,7 +14719,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
 					out.WriteString(" in ")
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString(" in (*")
@@ -14711,7 +14738,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeRangeKeyBinding()
 				out.WriteString(", _) in ")
 				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
 					out.WriteString("(*")
@@ -14727,7 +14754,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// for range str
 				out.WriteString("_ in ")
 				if isBareStringRangeSource {
-					TranspileExpression(out, s.X)
+					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
 					out.WriteString("(*")

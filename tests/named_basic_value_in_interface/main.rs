@@ -1115,6 +1115,58 @@ impl PartialEq for Name {
     }
 }
 
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Name {}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for Name {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for Name {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.borrow().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for Name {
+    type Output = Name;
+    fn add(self, other: Self) -> Name {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other.0.borrow().as_ref().unwrap());
+        Name(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for Name {
+    type Output = Name;
+    fn add(self, other: String) -> Name {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Name(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for Name {
+    type Output = Name;
+    fn add(self, other: &str) -> Name {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Name(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
@@ -1269,7 +1321,7 @@ fn main() {
     let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Celsius(Rc::new(RefCell::new(Some(21.5 as f64))))) as Box<dyn Any>)));
     println!("{} {} {}", format!("{}", format_any(a.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(b.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(c.borrow().as_ref().unwrap().as_ref())));
     print!("{}", go_sprintf(&"%v %d %s %v|%5v|%-4d|%x\n".to_string(), &[{ let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = b.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = c.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }, { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }], false));
-    let mut values = Rc::new(RefCell::new(Some(vec![Box::new(Level(Rc::new(RefCell::new(Some(1 as i32))))) as Box<dyn Any>, Box::new(Name(Rc::new(RefCell::new(Some("y".to_string()))))) as Box<dyn Any>, Box::new(Celsius(Rc::new(RefCell::new(Some(-(3) as f64))))) as Box<dyn Any>])));
+    let mut values = Rc::new(RefCell::new(Some(vec![Box::new(Level(Rc::new(RefCell::new(Some(1 as i32))))) as Box<dyn Any>, Box::new(Name(Rc::new(RefCell::new(Some("y".to_string()))))) as Box<dyn Any>, Box::new(Celsius(Rc::new(RefCell::new(Some((-3.0) as f64))))) as Box<dyn Any>])));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
         print!("{}{}", format!("{}", format_any(v.as_ref())), format!("{}", " ".to_string()));
     } }
