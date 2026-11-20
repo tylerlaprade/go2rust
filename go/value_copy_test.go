@@ -445,6 +445,29 @@ func (c C[T]) Bump() { c.N++ }
 	}
 }
 
+func TestGenericCopyBoundPreservesDirectValueCloneRequirement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type C[T any] struct { V T }
+
+func (c C[T]) Store(value T) { c.V = value }
+
+func StoreAndCopy[T any](c C[T], value T) C[T] {
+	c.V = value
+	return c
+}
+`)
+
+	for _, want := range []string{
+		"impl<T: Any + GoValueClone + GoTypeParamFieldClone + 'static> C<T> {\n    pub fn store(&self",
+		"pub fn store_and_copy<T: Any + GoValueClone + GoTypeParamFieldClone + 'static>(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("generic code that copies a struct and assigns T must preserve both copy bounds, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestGenericStructFunctionTypeArgumentUsesCloneableFieldProxy(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -459,7 +482,8 @@ func main() {
 
 	for _, want := range []string{
 		"impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R>",
-		"let original = field.borrow_mut().take();",
+		"go_fn_field_target::<std::cell::RefCell<Option<Self>>>",
+		"go_register_fn_field_target(copy_key, proxy_data, &copy, &target);",
 		"<T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v)",
 	} {
 		if !strings.Contains(rust, want) {

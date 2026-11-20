@@ -2516,8 +2516,14 @@ const (
 
 func rustGenericMethodImplGenerics(typeSpec *ast.TypeSpec, boundKind genericMethodBoundKind) rustTypeGenerics {
 	if boundKind&genericMethodBoundGoTypeParamFieldClone != 0 {
+		if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
+			return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustCloneGoValueCloneAndGoTypeParamFieldCloneTypeParam)
+		}
 		if boundKind&genericMethodBoundRustClone != 0 {
 			return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustCloneAndGoTypeParamFieldCloneTypeParam)
+		}
+		if boundKind&genericMethodBoundGoValueClone != 0 {
+			return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustGoValueCloneAndGoTypeParamFieldCloneTypeParam)
 		}
 		return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustGoTypeParamFieldCloneTypeParam)
 	}

@@ -2095,6 +2095,10 @@ run_xfail_test() {
     run_test "tests/panic_fmt_errorf_dynamic"
 }
 
+@test "panic_recover" {
+    run_test "tests/panic_recover"
+}
+
 @test "panic_recover_deferred_type_switch" {
     run_test "tests/panic_recover_deferred_type_switch"
 }
@@ -2457,6 +2461,14 @@ run_xfail_test() {
 
 @test "recover_named_type_assertion" {
     run_test "tests/recover_named_type_assertion"
+}
+
+@test "recover_without_goroutines" {
+    run_test "tests/recover_without_goroutines"
+}
+
+@test "recover_without_goroutines_goroutines" {
+    run_test "tests/recover_without_goroutines_goroutines"
 }
 
 @test "recursion_basic" {
@@ -3373,10 +3385,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: panic_recover" {
-    run_xfail_test "tests/XFAIL/panic_recover"
 }
 
 @test "XFAIL: slice_shared_with_package_variable_or_element" {

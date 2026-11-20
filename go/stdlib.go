@@ -6682,7 +6682,7 @@ func writePanicDisplayArg(out *strings.Builder, arg ast.Expr) {
 
 // transpileRecover handles the recover() builtin function
 func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
-	if NeedsConcurrentWrapper() {
+	if NeedsConcurrentWrapper() || packageCallsRecover() {
 		NeedPanicRecover()
 		out.WriteString("go_recover()")
 		return

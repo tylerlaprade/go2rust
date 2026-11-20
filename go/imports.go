@@ -650,7 +650,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_any_clone")
 	}
 	if ht.needsPanicRecover {
-		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload")
+		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1228,6 +1228,10 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 }
 
 func generatePanicRecoverHelper(out *strings.Builder) {
+	if !NeedsConcurrentWrapper() {
+		generateSingleThreadPanicRecoverHelper(out)
+		return
+	}
 	TrackImport("Any")
 	TrackImport("Arc")
 	TrackImport("Mutex")
@@ -1269,14 +1273,14 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
@@ -1305,12 +1309,87 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
 }
 `)
+	writeGoRuntimeErrorText(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
     }
+}
+`)
+}
+
+// generateSingleThreadPanicRecoverHelper is the panic/recover runtime for a
+// program without goroutines, where an interface value is a
+// Rc<RefCell<Option<Box<dyn Any>>>>. A function with a defer runs its body
+// under catch_unwind; a panic's payload is kept here until a deferred
+// function calls recover(), which takes it. If none does, the panic goes on.
+//
+// The payload of panic("x") is the string. A panic the Rust code raises
+// itself, such as a division by zero or an index out of range, is given the
+// text Go's runtime error has.
+func generateSingleThreadPanicRecoverHelper(out *strings.Builder) {
+	TrackImport("Any")
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString(`
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Err(__payload) => __payload,
+        },
+    };
+    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+}
+`)
+	writeGoRuntimeErrorText(out, visibility)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_resume_unrecovered_panic() {
+    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        match __payload.downcast::<String>() {
+            Ok(__text) => std::panic::panic_any(*__text),
+            Err(__payload) => std::panic::resume_unwind(__payload),
+        }
+    }
+}
+`)
+}
+
+// writeGoRuntimeErrorText writes go_runtime_error_text, which gives a panic
+// the Rust code raises itself the text of Go's runtime error.
+func writeGoRuntimeErrorText(out *strings.Builder, visibility string) {
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
 }
 `)
 }
@@ -1390,6 +1469,41 @@ pub trait GoTypeParamFieldClone: Sized {
     fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>>;
 }
 
+struct GoFnFieldTargetEntry {
+    proxy_data: usize,
+    field: std::sync::Weak<dyn Any + Send + Sync>,
+    target: std::sync::Weak<dyn Any + Send + Sync>,
+}
+
+static GO_FN_FIELD_TARGETS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoFnFieldTargetEntry>>> = std::sync::OnceLock::new();
+
+fn go_fn_field_target<T: Any + Send + Sync>(field_key: usize, proxy_data: usize) -> Option<std::sync::Arc<T>> {
+    let mut registry = GO_FN_FIELD_TARGETS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new())).lock().unwrap();
+    registry.retain(|_, entry| entry.field.strong_count() > 0 && entry.target.strong_count() > 0);
+    let matches = registry.get(&field_key).map(|entry| entry.proxy_data == proxy_data).unwrap_or(false);
+    if !matches {
+        registry.remove(&field_key);
+        return None;
+    }
+    let target = registry.get(&field_key)?.target.upgrade()?;
+    std::sync::Arc::downcast::<T>(target).ok()
+}
+
+fn go_register_fn_field_target<F: Any + Send + Sync, T: Any + Send + Sync>(
+    field_key: usize,
+    proxy_data: usize,
+    field: &std::sync::Arc<F>,
+    target: &std::sync::Arc<T>,
+) {
+    let erased_field: std::sync::Arc<dyn Any + Send + Sync> = field.clone();
+    let erased_target: std::sync::Arc<dyn Any + Send + Sync> = target.clone();
+    GO_FN_FIELD_TARGETS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new())).lock().unwrap().insert(field_key, GoFnFieldTargetEntry {
+        proxy_data,
+        field: std::sync::Arc::downgrade(&erased_field),
+        target: std::sync::Arc::downgrade(&erased_target),
+    });
+}
+
 macro_rules! impl_go_type_param_field_clone_value {
     ($($t:ty),* $(,)?) => {
         $(impl GoTypeParamFieldClone for $t {
@@ -1438,36 +1552,64 @@ impl<T> GoTypeParamFieldClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
 impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R + Send + Sync> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
     fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-        let original = field.lock().unwrap().take();
-        let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
-        let target = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
-        let original_target = target.clone();
-        *field.lock().unwrap() = Some(Box::new(move || {
-            let callable_ptr = { let mut callable = original_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
+        let field_key = std::sync::Arc::as_ptr(field) as usize;
+        let current_proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize);
+        let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::sync::Mutex<Option<Self>>>(field_key, proxy_data));
+        if target.is_none() {
+            let original = field.lock().unwrap().take();
+            let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
+            let shared = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
+            let source_target = shared.clone();
+            *field.lock().unwrap() = Some(Box::new(move || {
+                let callable_ptr = { let mut callable = source_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
+                unsafe { (&mut *callable_ptr)() }
+            }));
+            let proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
+            go_register_fn_field_target(field_key, proxy_data, field, &shared);
+            target = Some(shared);
+        }
+        let target = target.unwrap();
+        let copy_target = target.clone();
+        let copy = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
+            let callable_ptr = { let mut callable = copy_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
             unsafe { (&mut *callable_ptr)() }
-        }));
-        std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
-            let callable_ptr = { let mut callable = target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
-            unsafe { (&mut *callable_ptr)() }
-        }))))
+        }) as Box<dyn FnMut() -> R + Send + Sync>)));
+        let copy_key = std::sync::Arc::as_ptr(&copy) as usize;
+        let proxy_data = copy.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
+        go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
+        copy
     }
 }
 macro_rules! impl_go_type_param_field_clone_fn {
     ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R + Send + Sync> {
         const GO_COPY_KEEPS_HANDLE: bool = true;
         fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-            let original = field.lock().unwrap().take();
-            let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
-            let target = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
-            let original_target = target.clone();
-            *field.lock().unwrap() = Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = original_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
+            let field_key = std::sync::Arc::as_ptr(field) as usize;
+            let current_proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize);
+            let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::sync::Mutex<Option<Self>>>(field_key, proxy_data));
+            if target.is_none() {
+                let original = field.lock().unwrap().take();
+                let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
+                let shared = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
+                let source_target = shared.clone();
+                *field.lock().unwrap() = Some(Box::new(move |$($arg),+| {
+                    let callable_ptr = { let mut callable = source_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
+                    unsafe { (&mut *callable_ptr)($($arg),+) }
+                }));
+                let proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
+                go_register_fn_field_target(field_key, proxy_data, field, &shared);
+                target = Some(shared);
+            }
+            let target = target.unwrap();
+            let copy_target = target.clone();
+            let copy = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |$($arg),+| {
+                let callable_ptr = { let mut callable = copy_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
                 unsafe { (&mut *callable_ptr)($($arg),+) }
-            }));
-            std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
-                unsafe { (&mut *callable_ptr)($($arg),+) }
-            }))))
+            }) as Box<dyn FnMut($($arg),+) -> R + Send + Sync>)));
+            let copy_key = std::sync::Arc::as_ptr(&copy) as usize;
+            let proxy_data = copy.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
+            go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
+            copy
         }
     })* };
 }
@@ -1478,6 +1620,45 @@ const goTypeParamFieldCloneLocal = `
 pub trait GoTypeParamFieldClone: Sized {
     const GO_COPY_KEEPS_HANDLE: bool;
     fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>>;
+}
+
+struct GoFnFieldTargetEntry {
+    proxy_data: usize,
+    field: std::rc::Weak<dyn Any>,
+    target: std::rc::Weak<dyn Any>,
+}
+
+std::thread_local! {
+    static GO_FN_FIELD_TARGETS: std::cell::RefCell<std::collections::HashMap<usize, GoFnFieldTargetEntry>> = std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
+fn go_fn_field_target<T: Any>(field_key: usize, proxy_data: usize) -> Option<std::rc::Rc<T>> {
+    GO_FN_FIELD_TARGETS.with(|registry| {
+        let mut registry = registry.borrow_mut();
+        registry.retain(|_, entry| entry.field.strong_count() > 0 && entry.target.strong_count() > 0);
+        let matches = registry.get(&field_key).map(|entry| entry.proxy_data == proxy_data).unwrap_or(false);
+        if !matches {
+            registry.remove(&field_key);
+            return None;
+        }
+        let target = registry.get(&field_key)?.target.upgrade()?;
+        std::rc::Rc::downcast::<T>(target).ok()
+    })
+}
+
+fn go_register_fn_field_target<F: Any, T: Any>(
+    field_key: usize,
+    proxy_data: usize,
+    field: &std::rc::Rc<F>,
+    target: &std::rc::Rc<T>,
+) {
+    let erased_field: std::rc::Rc<dyn Any> = field.clone();
+    let erased_target: std::rc::Rc<dyn Any> = target.clone();
+    GO_FN_FIELD_TARGETS.with(|registry| registry.borrow_mut().insert(field_key, GoFnFieldTargetEntry {
+        proxy_data,
+        field: std::rc::Rc::downgrade(&erased_field),
+        target: std::rc::Rc::downgrade(&erased_target),
+    }));
 }
 
 macro_rules! impl_go_type_param_field_clone_value {
@@ -1528,36 +1709,64 @@ impl<T> GoTypeParamFieldClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
 impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R> {
     const GO_COPY_KEEPS_HANDLE: bool = true;
     fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
-        let original = field.borrow_mut().take();
-        let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
-        let target = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
-        let original_target = target.clone();
-        *field.borrow_mut() = Some(Box::new(move || {
-            let callable_ptr = { let mut callable = original_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
+        let field_key = std::rc::Rc::as_ptr(field) as usize;
+        let current_proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize);
+        let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::cell::RefCell<Option<Self>>>(field_key, proxy_data));
+        if target.is_none() {
+            let original = field.borrow_mut().take();
+            let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
+            let shared = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
+            let source_target = shared.clone();
+            *field.borrow_mut() = Some(Box::new(move || {
+                let callable_ptr = { let mut callable = source_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
+                unsafe { (&mut *callable_ptr)() }
+            }));
+            let proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
+            go_register_fn_field_target(field_key, proxy_data, field, &shared);
+            target = Some(shared);
+        }
+        let target = target.unwrap();
+        let copy_target = target.clone();
+        let copy = std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move || {
+            let callable_ptr = { let mut callable = copy_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
             unsafe { (&mut *callable_ptr)() }
-        }));
-        std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move || {
-            let callable_ptr = { let mut callable = target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
-            unsafe { (&mut *callable_ptr)() }
-        }))))
+        }) as Box<dyn FnMut() -> R>)));
+        let copy_key = std::rc::Rc::as_ptr(&copy) as usize;
+        let proxy_data = copy.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
+        go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
+        copy
     }
 }
 macro_rules! impl_go_type_param_field_clone_fn {
     ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R> {
         const GO_COPY_KEEPS_HANDLE: bool = true;
         fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
-            let original = field.borrow_mut().take();
-            let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
-            let target = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
-            let original_target = target.clone();
-            *field.borrow_mut() = Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = original_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
+            let field_key = std::rc::Rc::as_ptr(field) as usize;
+            let current_proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize);
+            let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::cell::RefCell<Option<Self>>>(field_key, proxy_data));
+            if target.is_none() {
+                let original = field.borrow_mut().take();
+                let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
+                let shared = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
+                let source_target = shared.clone();
+                *field.borrow_mut() = Some(Box::new(move |$($arg),+| {
+                    let callable_ptr = { let mut callable = source_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
+                    unsafe { (&mut *callable_ptr)($($arg),+) }
+                }));
+                let proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
+                go_register_fn_field_target(field_key, proxy_data, field, &shared);
+                target = Some(shared);
+            }
+            let target = target.unwrap();
+            let copy_target = target.clone();
+            let copy = std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move |$($arg),+| {
+                let callable_ptr = { let mut callable = copy_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
                 unsafe { (&mut *callable_ptr)($($arg),+) }
-            }));
-            std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
-                unsafe { (&mut *callable_ptr)($($arg),+) }
-            }))))
+            }) as Box<dyn FnMut($($arg),+) -> R>)));
+            let copy_key = std::rc::Rc::as_ptr(&copy) as usize;
+            let proxy_data = copy.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
+            go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
+            copy
         }
     })* };
 }

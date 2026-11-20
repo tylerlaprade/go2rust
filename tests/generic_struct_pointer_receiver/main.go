@@ -25,6 +25,15 @@ func (c *C[T]) Self() *C[T] { return c }
 // the type-parameter field.
 func (c C[T]) BumpValue() { c.N++ }
 
+// The implicit receiver copy and the direct type-parameter assignment require
+// both generated copy traits on T.
+func (c C[T]) StoreValue(value T) { c.V = value }
+
+func StoreAndCopy[T any](c C[T], value T) C[T] {
+	c.V = value
+	return c
+}
+
 // A pointer method of a struct with type parameters can hand on its
 // receiver: a closure over it and a returned receiver are the same struct.
 func main() {
@@ -108,6 +117,11 @@ func main() {
 	valueReceiver.BumpValue()
 	fmt.Println("generic value receiver", valueReceiver.N)
 
+	combinedBoundPtr := &C[P]{V: P{X: 26}}
+	combinedBound := *combinedBoundPtr
+	combinedBound.StoreValue(P{X: 27})
+	fmt.Println("combined generic copy bounds", combinedBound.V.X)
+
 	next := 30
 	originalFuncPtr := &C[func() int]{V: func() int { next++; return next }}
 	originalFunc := *originalFuncPtr
@@ -123,4 +137,18 @@ func main() {
 	fmt.Println("function type argument parameter", originalUnary.V(1), copiedUnary.V(2))
 	copiedUnary.V = func(value int) int { return value * 10 }
 	fmt.Println("function type argument parameter field", originalUnary.V(3), copiedUnary.V(4))
+
+	// Repeatedly copying the same function field must keep a stable callable
+	// target rather than growing a forwarding chain on the source value.
+	stableNext := 100
+	stableFuncPtr := &C[func() int]{V: func() int { stableNext++; return stableNext }}
+	stableFunc := *stableFuncPtr
+	for i := 0; i < 100000; i++ {
+		discarded := stableFunc
+		_ = discarded
+	}
+	fmt.Println("function repeated copy", stableFunc.V())
+	stableFunc.V = func() int { return 200 }
+	replacementCopy := stableFunc
+	fmt.Println("function repeated copy replacement", stableFunc.V(), replacementCopy.V())
 }

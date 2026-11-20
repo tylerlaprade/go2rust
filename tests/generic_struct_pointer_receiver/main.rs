@@ -136,8 +136,22 @@ impl<T: Any + GoTypeParamFieldClone + 'static> C<T> {
     }
 }
 
+impl<T: Any + GoValueClone + GoTypeParamFieldClone + 'static> C<T> {
+    /// The implicit receiver copy and the direct type-parameter assignment require
+    /// both generated copy traits on T.
+    pub fn store_value(&self, value: Rc<RefCell<Option<T>>>) {
+        let mut __self = self.__go_value_clone();
+        { let new_val = (*value.borrow().as_ref().unwrap()).go_value_clone(); *__self.v.borrow_mut() = Some(new_val); };
+    }
+}
+
 pub fn copy_c<T: Any + GoTypeParamFieldClone + 'static>(value: Rc<RefCell<Option<C<T>>>>) -> Rc<RefCell<Option<C<T>>>> {
     { let __owned = value.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) }
+}
+
+pub fn store_and_copy<T: Any + GoValueClone + GoTypeParamFieldClone + 'static>(c: Rc<RefCell<Option<C<T>>>>, value: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<C<T>>>> {
+    { let new_val = (*value.borrow().as_ref().unwrap()).go_value_clone(); *(*c.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
+    { let __owned = c.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) }
 }
 
 /// A pointer method of a struct with type parameters can hand on its
@@ -223,6 +237,11 @@ fn main() {
     (*valueReceiver.borrow().as_ref().unwrap()).bump_value();
     println!("{} {}", format!("{}", "generic value receiver".to_string()), format!("{}", (*(*valueReceiver.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
+    let mut combinedBoundPtr = Rc::new(RefCell::new(Some(C::<P> { v: Rc::new(RefCell::new(Some(P { x: Rc::new(RefCell::new(Some(26))), ..Default::default() }))), ..Default::default() })));
+    let mut combinedBound = Rc::new(RefCell::new(Some({ let __v = (*combinedBoundPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    (*combinedBound.borrow().as_ref().unwrap()).store_value(Rc::new(RefCell::new(Some(P { x: Rc::new(RefCell::new(Some(27))), ..Default::default() }))));
+    println!("{} {}", format!("{}", "combined generic copy bounds".to_string()), format!("{}", (*(*(*combinedBound.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
+
     let mut next = Rc::new(RefCell::new(Some(30)));
     let mut next_closure_clone = next.clone(); let mut originalFuncPtr = Rc::new(RefCell::new(Some(C::<Box<dyn FnMut() -> i32>> { v: Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
         { let mut guard = next_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -248,6 +267,27 @@ fn main() {
         (*value.borrow().as_ref().unwrap()) * 10
     }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32>; *(*copiedUnary.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "function type argument parameter field".to_string()), format!("{}", { let __f_holder = (*originalUnary.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(3)))) }), format!("{}", { let __f_holder = (*copiedUnary.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(4)))) }));
+
+        // Repeatedly copying the same function field must keep a stable callable
+        // target rather than growing a forwarding chain on the source value.
+    let mut stableNext = Rc::new(RefCell::new(Some(100)));
+    let mut stableNext_closure_clone = stableNext.clone(); let mut stableFuncPtr = Rc::new(RefCell::new(Some(C::<Box<dyn FnMut() -> i32>> { v: Rc::new(RefCell::new(Some(Box::new(move || -> i32 {
+        { let mut guard = stableNext_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        return (*stableNext_closure_clone.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut() -> i32>))), ..Default::default() })));
+    let mut stableFunc = Rc::new(RefCell::new(Some({ let __v = (*stableFuncPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut i = Rc::new(RefCell::new(Some(0)));
+    while (*i.borrow().as_ref().unwrap()) < 100000 {
+        let mut discarded = { let __owned = stableFunc.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
+        let _ = &discarded;
+        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    println!("{} {}", format!("{}", "function repeated copy".to_string()), format!("{}", { let __f_holder = (*stableFunc.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
+    { let new_val = Box::new(move || -> i32 {
+        200
+    }) as Box<dyn FnMut() -> i32>; *(*stableFunc.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
+    let mut replacementCopy = { let __owned = stableFunc.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
+    println!("{} {} {}", format!("{}", "function repeated copy replacement".to_string()), format!("{}", { let __f_holder = (*stableFunc.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }), format!("{}", { let __f_holder = (*replacementCopy.borrow().as_ref().unwrap()).v.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
 }
 
 impl<T: Any + GoTypeParamFieldClone + 'static> GoValueClone for C<T> {
