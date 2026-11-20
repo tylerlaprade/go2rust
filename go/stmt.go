@@ -8256,7 +8256,36 @@ func isGoErrorType(typ types.Type) bool {
 	if errorObj == nil {
 		return false
 	}
-	return types.Identical(typ, errorObj.Type())
+	if types.Identical(types.Unalias(typ), types.Unalias(errorObj.Type())) {
+		return true
+	}
+	// Go interfaces are satisfied structurally. A named or anonymous
+	// interface whose complete method set is exactly Error() string accepts
+	// precisely the same values as the predeclared error interface, so it can
+	// use the same run-time representation. Keeping it on the generic local
+	// trait-object path loses errors.New/fmt.Errorf values because those are
+	// carried by the dedicated error handle.
+	iface, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	errorIface, ok := types.Unalias(errorObj.Type()).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	iface.Complete()
+	errorIface.Complete()
+	if !iface.IsMethodSet() || iface.NumMethods() != errorIface.NumMethods() {
+		return false
+	}
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		errorMethod := errorIface.Method(i)
+		if method.Id() != errorMethod.Id() || !types.Identical(method.Type(), errorMethod.Type()) {
+			return false
+		}
+	}
+	return true
 }
 
 func isConcreteGoErrorValue(typ types.Type) bool {
