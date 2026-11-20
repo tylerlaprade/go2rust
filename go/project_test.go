@@ -1375,6 +1375,9 @@ func use(expr *dep.SelectorExpr) {
 }
 
 func TestGenericStructFieldCopyTraitsAreDiscoveredBeforeSiblingEmission(t *testing.T) {
+	// The Rust generic path, which a program takes when its generics are
+	// not written once per instantiation.
+	t.Setenv("GO2RUST_GENERIC_RUST", "1")
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/main\n\ngo 1.22\n")
 	writeTestFile(t, filepath.Join(tempDir, "p.go"), `package main

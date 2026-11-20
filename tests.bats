@@ -1287,6 +1287,14 @@ run_xfail_test() {
     run_test "tests/generic_any_method_value_copy"
 }
 
+@test "generic_cache_and_grouping" {
+    run_test "tests/generic_cache_and_grouping"
+}
+
+@test "generic_cache_and_grouping_goroutines" {
+    run_test "tests/generic_cache_and_grouping_goroutines"
+}
+
 @test "generic_comparable_pointer_identity" {
     run_test "tests/generic_comparable_pointer_identity"
 }
@@ -1295,8 +1303,28 @@ run_xfail_test() {
     run_test "tests/generic_function_type_alias"
 }
 
+@test "generic_helpers_and_sets" {
+    run_test "tests/generic_helpers_and_sets"
+}
+
+@test "generic_helpers_and_sets_goroutines" {
+    run_test "tests/generic_helpers_and_sets_goroutines"
+}
+
+@test "generic_list_tree_optional" {
+    run_test "tests/generic_list_tree_optional"
+}
+
+@test "generic_list_tree_optional_goroutines" {
+    run_test "tests/generic_list_tree_optional_goroutines"
+}
+
 @test "generic_mutating_type_param_slice" {
     run_test "tests/generic_mutating_type_param_slice"
+}
+
+@test "generic_parallel_map" {
+    run_test "tests/generic_parallel_map"
 }
 
 @test "generic_pointer_interface_type_arg" {
@@ -1317,6 +1345,14 @@ run_xfail_test() {
 
 @test "generic_struct_pointer_receiver_goroutines" {
     run_test "tests/generic_struct_pointer_receiver_goroutines"
+}
+
+@test "generic_type_param_method_call" {
+    run_test "tests/generic_type_param_method_call"
+}
+
+@test "generics_basic" {
+    run_test "tests/generics_basic"
 }
 
 @test "getter_returns_copy" {
@@ -2417,6 +2453,14 @@ run_xfail_test() {
 
 @test "range_any_slice_materialize" {
     run_test "tests/range_any_slice_materialize"
+}
+
+@test "range_defined_float_call_argument" {
+    run_test "tests/range_defined_float_call_argument"
+}
+
+@test "range_defined_float_call_argument_goroutines" {
+    run_test "tests/range_defined_float_call_argument_goroutines"
 }
 
 @test "range_index_array_literal" {
@@ -3537,14 +3581,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: generic_type_param_method_call" {
-    run_xfail_test "tests/XFAIL/generic_type_param_method_call"
-}
-
-@test "XFAIL: generics_basic" {
-    run_xfail_test "tests/XFAIL/generics_basic"
 }
 
 @test "XFAIL: http_client" {

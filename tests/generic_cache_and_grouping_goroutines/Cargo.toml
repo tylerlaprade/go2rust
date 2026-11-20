@@ -1,0 +1,8 @@
+[package]
+name = "generic_cache_and_grouping_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_cache_and_grouping_goroutines"
+path = "main.rs"

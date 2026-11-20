@@ -3633,7 +3633,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if !exists2 {
 			return true
 		}
-		return pos1 < pos2
+		// The instantiations of one generic type share its position.
+		if pos1 != pos2 {
+			return pos1 < pos2
+		}
+		return typeNames[i] < typeNames[j]
 	})
 
 	for _, typeName := range typeNames {

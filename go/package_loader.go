@@ -126,7 +126,34 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 	}
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
+	pl.monomorphizeMainPackage()
 	return nil
+}
+
+// monomorphizeMainPackage writes the main package's generic declarations
+// once per instantiation, as the project generator does for a program with
+// no dependencies.
+func (pl *PackageLoader) monomorphizeMainPackage() {
+	pkg := pl.mainPkg
+	if pkg == nil || pkg.Types == nil || len(pkg.Syntax) == 0 {
+		return
+	}
+	fileSet := pkg.Fset
+	if fileSet == nil {
+		fileSet = pl.fileSet
+	}
+	imp := pl.projectImporter()
+	files, ok := monomorphizeGenericsWith(pkg.PkgPath, pkg.Syntax, fileSet, imp)
+	if !ok {
+		return
+	}
+	ti, err := NewTypeInfoWithImporter(pkg.PkgPath, files, fileSet, imp)
+	if err != nil || ti == nil {
+		return
+	}
+	pkg.Syntax = files
+	pkg.Types = ti.pkg
+	pkg.TypesInfo = ti.info
 }
 
 func packageLoadBuildFlags(goFlags string) []string {

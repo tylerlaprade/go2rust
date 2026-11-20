@@ -3108,6 +3108,11 @@ func isCopyTypeForRangeRef(expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
+	// A defined number type, type Celsius float64, is a newtype over a
+	// handle, which is not Copy.
+	if isNamedScalarNewtype(typ) {
+		return false
+	}
 	if basic, ok := typ.Underlying().(*types.Basic); ok {
 		info := basic.Info()
 		return info&types.IsNumeric != 0 || info&types.IsBoolean != 0

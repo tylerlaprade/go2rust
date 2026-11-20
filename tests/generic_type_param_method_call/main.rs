@@ -104,14 +104,15 @@ impl Shape for SqPtr {
     }
 }
 
-pub fn total<T: Shape + 'static>(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<T>>>>>>>) -> i32 {
+pub fn total___sq(items: Rc<RefCell<Option<Vec<Sq>>>>) -> i32 {
     let mut sum = Rc::new(RefCell::new(Some(0)));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
-        { let __rhs = (*it.borrow().as_ref().unwrap()).area(); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        let it = &it.__go_value_clone();
+        { let __rhs = it.area(); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*sum.borrow().as_ref().unwrap());
 }
 
 fn main() {
-    println!("{}", format!("{}", total::<Sq>(Rc::new(RefCell::new(Some(vec![Sq { s: Rc::new(RefCell::new(Some(2))), ..Default::default() }, Sq { s: Rc::new(RefCell::new(Some(3))), ..Default::default() }]))))));
+    println!("{}", format!("{}", total___sq(Rc::new(RefCell::new(Some(vec![Sq { s: Rc::new(RefCell::new(Some(2))), ..Default::default() }, Sq { s: Rc::new(RefCell::new(Some(3))), ..Default::default() }]))))));
 }
