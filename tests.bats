@@ -1091,6 +1091,14 @@ run_xfail_test() {
     run_test "tests/errors_new_string_from_byte_field"
 }
 
+@test "errors_wrap_is_as_unwrap" {
+    run_test "tests/errors_wrap_is_as_unwrap"
+}
+
+@test "errors_wrap_is_as_unwrap_goroutines" {
+    run_test "tests/errors_wrap_is_as_unwrap_goroutines"
+}
+
 @test "evaluation_order_of_element_writes" {
     run_test "tests/evaluation_order_of_element_writes"
 }
@@ -3291,12 +3299,24 @@ run_xfail_test() {
     run_test "tests/type_assertion_method_receiver"
 }
 
+@test "type_assertion_panic_messages" {
+    run_test "tests/type_assertion_panic_messages"
+}
+
+@test "type_assertion_panic_messages_goroutines" {
+    run_test "tests/type_assertion_panic_messages_goroutines"
+}
+
 @test "type_assertion_pointer_argument" {
     run_test "tests/type_assertion_pointer_argument"
 }
 
 @test "type_assertion_simple" {
     run_test "tests/type_assertion_simple"
+}
+
+@test "type_assertions" {
+    run_test "tests/type_assertions"
 }
 
 @test "type_embedding" {
@@ -3501,10 +3521,6 @@ run_xfail_test() {
 
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
-}
-
-@test "XFAIL: type_assertions" {
-    run_xfail_test "tests/XFAIL/type_assertions"
 }
 
 @test "XFAIL: type_conversions" {

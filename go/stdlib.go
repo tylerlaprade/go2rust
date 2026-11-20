@@ -126,6 +126,10 @@ func init() {
 		"strconv.FormatInt":        transpileStrconvFormatInt,
 		"strconv.Quote":            transpileStrconvQuote,
 		"errors.New":               transpileErrorsNew,
+		"errors.Is":                transpileErrorsIs,
+		"errors.As":                transpileErrorsAs,
+		"errors.Unwrap":            transpileErrorsUnwrap,
+		"errors.Join":              transpileErrorsJoin,
 		"sort.Strings":             transpileSortStrings,
 		"sort.Ints":                transpileSortInts,
 		"sort.Sort":                transpileSortInterfaceSort,
@@ -2180,8 +2184,37 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
+	// %w keeps the error it formats, for errors.Is, errors.As and
+	// errors.Unwrap: the result wraps it.
+	var wrapped strings.Builder
+	wraps := false
+	wrapArgs := map[int]bool{}
+	if len(call.Args) > 0 && !call.Ellipsis.IsValid() {
+		// The format may be formatted at run time ("%q: %w"); its verbs are
+		// still known now.
+		if literal, ok := translationTimeFormat(call.Args[0]); ok {
+			for _, index := range formatVerbArgIndices(literal, 'w') {
+				wrapArgs[index] = true
+				if index+1 >= len(call.Args) {
+					continue
+				}
+				if wraps {
+					wrapped.WriteString(", ")
+				}
+				if !writeGoErrorOptionValue(&wrapped, call.Args[index+1]) {
+					wrapped.WriteString("None")
+				}
+				wraps = true
+			}
+		}
+	}
 	WriteWrapperPrefix(out)
-	out.WriteString(rustErrorFromTextStart() + "format!")
+	if wraps {
+		NeedGoErrorChain()
+		out.WriteString("go_error_wrap(format!")
+	} else {
+		out.WriteString(rustErrorFromTextStart() + "format!")
+	}
 	out.WriteString("(")
 
 	var skipIndices []int
@@ -2225,6 +2258,14 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				out.WriteString(", ")
+				var nilWrapped strings.Builder
+				if wrapArgs[i-1] && writeGoErrorOptionValue(&nilWrapped, call.Args[i]) {
+					// %w of a nil error prints as Go prints it.
+					out.WriteString("match ")
+					out.WriteString(nilWrapped.String())
+					out.WriteString(" { Some(__wrapped) => format!(\"{}\", __wrapped), None => \"%!w(<nil>)\".to_string() }")
+					continue
+				}
 				withPrintArgPlusV(plusVArgs[i-1], func() {
 					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
 				})
@@ -2232,8 +2273,43 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 
-	out.WriteString(")" + rustErrorFromTextEnd())
+	if wraps {
+		out.WriteString("), vec![")
+		out.WriteString(wrapped.String())
+		out.WriteString("])")
+	} else {
+		out.WriteString(")" + rustErrorFromTextEnd())
+	}
 	WriteWrapperSuffix(out)
+}
+
+// formatVerbArgIndices returns the arguments of a literal format that the
+// verb formats, counted as convertFormatStringWithSkips counts them.
+func formatVerbArgIndices(format string, verb byte) []int {
+	var indices []int
+	argIndex := 0
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		if i+1 < len(format) && format[i+1] == '%' {
+			i++
+			continue
+		}
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0123456789.", format[j]) >= 0 {
+			j++
+		}
+		if j >= len(format) {
+			break
+		}
+		if format[j] == verb {
+			indices = append(indices, argIndex)
+		}
+		argIndex++
+		i = j
+	}
+	return indices
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {

@@ -1410,7 +1410,7 @@ func check(err error) bool {
 		strings.Contains(rust, "io::EOF.borrow().as_ref().unwrap()).clone()") {
 		t.Fatalf("errors.Is selector error argument should not clone the boxed trait object:\n%s", rust)
 	}
-	if !strings.Contains(rust, "errors::is({ let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, { let __err_source = { let __field = io::EOF.clone(); __field }; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) })") {
+	if !strings.Contains(rust, "go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = io::EOF.clone(); __field }; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })") {
 		t.Fatalf("errors.Is selector error argument should pass the error handle:\n%s", rust)
 	}
 }

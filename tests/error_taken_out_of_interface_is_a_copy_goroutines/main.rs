@@ -199,6 +199,27 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+fn __go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    std::any::type_name_of_val(val)
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct errors_errorString;
 
@@ -290,9 +311,9 @@ fn main() {
         let val = boxed.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().expect("type assertion failed"); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
+            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "error")); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
     println!("{}", format!("{}", { let __text = match single.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -357,9 +378,9 @@ fn main() {
         let val = held.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().expect("type assertion failed"); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
+            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "error")); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
     println!("{} {}", format!("{}", { let __left = back.clone(); let __right = sentinel.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }), format!("{}", { let __text = match back.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -370,9 +391,9 @@ fn main() {
         let val = wrapped.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().expect("type assertion failed"); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
+            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "error")); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
     let (mut w2, mut ok) = ({
@@ -396,9 +417,9 @@ fn main() {
         let val = wrapped.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().expect("type assertion failed"); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
+            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "error")); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
     println!("{} {}", format!("{}", { let __nil_result = (*w.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __text = match w3.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

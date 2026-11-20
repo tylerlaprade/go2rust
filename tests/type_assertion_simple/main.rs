@@ -3,6 +3,28 @@ use std::cell::{RefCell};
 use std::fmt::{Display};
 use std::rc::{Rc};
 
+
+fn __go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i32>() { return "int" }
+    if val.is::<i64>() { return "int64" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u32>() { return "uint" }
+    if val.is::<u64>() { return "uint64" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i32>>() { return "[]int" }
+    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    std::any::type_name_of_val(val)
+}
+
 pub trait hasName: std::fmt::Display + Any {
     fn __go_clone_box_has_name(&self) -> Box<dyn hasName>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -79,9 +101,9 @@ fn main() {
         let val = x.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<String>().expect("type assertion failed").clone()
+            any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "string")).clone()
         } else {
-            panic!("type assertion on nil interface")
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "string")
         }
     }))));
     println!("{} {}", format!("{}", "Asserted string:".to_string()), format!("{}", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }));

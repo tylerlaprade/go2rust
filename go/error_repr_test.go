@@ -281,7 +281,7 @@ func main() {
 	const handle = "Rc<RefCell<Option<Rc<dyn StdError>>>>"
 	for what, want := range map[string]string{
 		"the two-value form": "if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)",
-		"the one-value form": "{ if let Some(__err_handle) = any_val.downcast_ref::<" + handle + ">() { (*__err_handle.borrow()).clone().expect(\"type assertion failed\") } else { let typed_val = any_val.downcast_ref::<std::string::String>().expect(\"type assertion failed\");",
+		"the one-value form": "{ if let Some(__err_handle) = any_val.downcast_ref::<" + handle + ">() { (*__err_handle.borrow()).clone().expect(\"type assertion failed\") } else { let typed_val = any_val.downcast_ref::<std::string::String>().unwrap_or_else(|| panic!(\"interface conversion: {} is {}, not {}\", \"interface {}\", __go_type_name(&**any_val), \"error\"));",
 		"case error":         "let mut v = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<" + handle + ">()).unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };",
 	} {
 		if !strings.Contains(rust, want) {

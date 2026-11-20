@@ -112,6 +112,71 @@ fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
+// An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
+// true when it wraps more than one, and then errors.Unwrap does not see it.
+#[derive(Debug)]
+struct GoWrapError {
+    msg: String,
+    wrapped: Vec<Rc<dyn StdError>>,
+    many: bool,
+}
+
+impl std::fmt::Display for GoWrapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.msg)
+    }
+}
+
+impl StdError for GoWrapError {}
+
+fn go_error_wrap(msg: String, wrapped: Vec<Option<Rc<dyn StdError>>>) -> Rc<dyn StdError> {
+    let many = wrapped.len() > 1;
+    Rc::new(GoWrapError { msg, wrapped: wrapped.into_iter().flatten().collect(), many }) as Rc<dyn StdError>
+}
+
+fn go_errors_join(errs: Vec<Option<Rc<dyn StdError>>>) -> Option<Rc<dyn StdError>> {
+    let errs: Vec<Rc<dyn StdError>> = errs.into_iter().flatten().collect();
+    if errs.is_empty() {
+        return None;
+    }
+    let msg = errs.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
+    Some(Rc::new(GoWrapError { msg, wrapped: errs, many: true }) as Rc<dyn StdError>)
+}
+
+// err and every error it wraps, depth first, in the order errors.Is and
+// errors.As visit them.
+fn go_error_chain(err: Option<Rc<dyn StdError>>) -> Vec<Rc<dyn StdError>> {
+    let mut out = Vec::new();
+    let mut stack: Vec<Rc<dyn StdError>> = err.into_iter().collect();
+    while let Some(e) = stack.pop() {
+        if let Some(w) = e.downcast_ref::<GoWrapError>() {
+            stack.extend(w.wrapped.iter().rev().cloned());
+        }
+        out.push(e);
+    }
+    out
+}
+
+fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
+    let err = err?;
+    if let Some(w) = err.downcast_ref::<GoWrapError>() {
+        return if w.many { None } else { w.wrapped.first().cloned() };
+    }
+    let e = err;
+    let mut stack: Vec<Rc<dyn StdError>> = Vec::new();
+    stack.pop()
+}
+
+// Two errors are the same error when they point to the same value, as ==
+// on two errors is written.
+fn go_errors_is(err: Option<Rc<dyn StdError>>, target: Option<Rc<dyn StdError>>) -> bool {
+    match (err, target) {
+        (None, None) => true,
+        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        _ => false,
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct errors_errorString;
 
@@ -227,7 +292,7 @@ pub fn is_error(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
 
 fn main() {
     let mut plain = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string())))));
-    let mut wrapped = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped: {}", { let __text = match plain.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }))))));
+    let mut wrapped = Rc::new(RefCell::new(Some(go_error_wrap(format!("wrapped: {}", match { let __err_handle = { let __err_source = plain.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = plain.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));
     show(Rc::new(RefCell::new(Some(vec![Box::new("first".to_string()) as Box<dyn Any>, { let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new(3) as Box<dyn Any>]))));
     println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![{ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))))));
 
