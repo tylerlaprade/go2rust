@@ -10309,6 +10309,16 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 		return true
 	}
 	if _, isNamed := types.Unalias(expected).(*types.Named); !isNamed {
+		var floatValue strings.Builder
+		if writeConstExpressionForExpectedFloat(&floatValue, value, expected) {
+			out.WriteString(floatValue.String())
+			if rustType, ok := rustFloatTypeForGoType(expected); ok && rustType == "f32" {
+				// A collection literal otherwise leaves Rust to infer an
+				// unconstrained decimal as f64, losing Go's float32 element type.
+				out.WriteString("f32")
+			}
+			return true
+		}
 		if writeConstExpressionForExpectedInteger(out, value, expected) {
 			return true
 		}

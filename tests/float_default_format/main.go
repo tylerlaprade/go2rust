@@ -20,7 +20,9 @@ func main() {
 	var boxed any = 8100000000.0
 	fmt.Println(boxed)
 	fmt.Println([]float64{1000000, 0.00001})
-	fmt.Println([]float32{1000000, 0.00001})
+	float32s := []float32{1000000, 0.00001}
+	fmt.Println(float32s)
+	fmt.Printf("%T\n", float32s[0])
 	fmt.Println(map[string]float64{"large": 1000000, "small": 0.00001})
 	fmt.Println(map[string]float32{"large": 1000000, "small": 0.00001})
 	fmt.Println(sample{Large: 1000000, Small: 0.00001})

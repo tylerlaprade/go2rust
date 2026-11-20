@@ -63,3 +63,19 @@ func main() {
 		t.Fatalf("%%#v must not debug-format the helper's String and add quotes:\n%s", flaggedRust)
 	}
 }
+
+func TestFloat32CollectionLiteralKeepsElementTypeWithoutValueUse(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	values := []float32{0.1, 2.5}
+	fmt.Printf("%T\n", values[0])
+}
+`)
+
+	if !strings.Contains(rust, "vec![0.1f32, 2.5f32]") {
+		t.Fatalf("float32 collection constants must constrain Rust's element type:\n%s", rust)
+	}
+}

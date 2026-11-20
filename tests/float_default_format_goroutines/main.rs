@@ -1029,14 +1029,14 @@ impl std::fmt::Display for sample {
 pub fn print_values() {
     let mut values = Arc::new(Mutex::new(Some(vec![
         100000.0,
-        1000000.0,
-        1234567.0,
-        2500000.5,
-        8100000000.0,
-        1e21,
+        1e+06,
+        1.234567e+06,
+        2.5000005e+06,
+        8.1e+09,
+        1e+21,
         0.0001,
-        0.00001,
-        { let __v = Arc::new(Mutex::new(Some(-(1000000) as f64))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned },
+        1e-05,
+        -1e+06,
     ])));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         println!("{}", format!("{}", go_format_float64(value)));
@@ -1048,8 +1048,10 @@ pub fn print_values() {
 
     let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(8100000000.0) as Box<dyn Any + Send + Sync>)));
     println!("{}", format!("{}", { let __text = format_any(boxed.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
-    println!("{}", format!("{}", format_float64_slice(&Arc::new(Mutex::new(Some(vec![1000000.0, 0.00001]))))));
-    println!("{}", format!("{}", format_float32_slice(&Arc::new(Mutex::new(Some(vec![1000000.0, 0.00001]))))));
+    println!("{}", format!("{}", format_float64_slice(&Arc::new(Mutex::new(Some(vec![1e+06, 1e-05]))))));
+    let mut float32s = Arc::new(Mutex::new(Some(vec![1e+06f32, 1e-05f32])));
+    println!("{}", format!("{}", format_float32_slice(&float32s)));
+    print!("{}\n", { let __type_name = __go_type_name(&{ let __seq = { let __seq_holder = float32s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __type_name });
     println!("{}", format!("{}", format_float64_map_values(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<f64>>>>::from([("large".to_string(), Arc::new(Mutex::new(Some(1000000.0)))), ("small".to_string(), Arc::new(Mutex::new(Some(0.00001))))])))))));
     println!("{}", format!("{}", format_float32_map_values(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<f32>>>>::from([("large".to_string(), Arc::new(Mutex::new(Some(1000000.0)))), ("small".to_string(), Arc::new(Mutex::new(Some(0.00001))))])))))));
     println!("{}", format!("{}", sample { large: Arc::new(Mutex::new(Some(1e+06))), small: Arc::new(Mutex::new(Some(1e-05))), ..Default::default() }));

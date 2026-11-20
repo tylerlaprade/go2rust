@@ -858,7 +858,7 @@ impl std::fmt::Display for sample {
 
 
 fn main() {
-    let mut values = Rc::new(RefCell::new(Some(vec![100000.0, 1000000.0, 1234567.0, 2500000.5, 8100000000.0, 1e21, 0.0001, 0.00001, { let __v = Rc::new(RefCell::new(Some(-(1000000) as f64))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }])));
+    let mut values = Rc::new(RefCell::new(Some(vec![100000.0, 1e+06, 1.234567e+06, 2.5000005e+06, 8.1e+09, 1e+21, 0.0001, 1e-05, -1e+06])));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
         println!("{}", format!("{}", go_format_float64(value)));
     } }
@@ -869,8 +869,10 @@ fn main() {
 
     let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(8100000000.0) as Box<dyn Any>)));
     println!("{}", format!("{}", format_any(boxed.borrow().as_ref().unwrap().as_ref())));
-    println!("{}", format!("{}", format_float64_slice(&Rc::new(RefCell::new(Some(vec![1000000.0, 0.00001]))))));
-    println!("{}", format!("{}", format_float32_slice(&Rc::new(RefCell::new(Some(vec![1000000.0, 0.00001]))))));
+    println!("{}", format!("{}", format_float64_slice(&Rc::new(RefCell::new(Some(vec![1e+06, 1e-05]))))));
+    let mut float32s = Rc::new(RefCell::new(Some(vec![1e+06f32, 1e-05f32])));
+    println!("{}", format!("{}", format_float32_slice(&float32s)));
+    print!("{}\n", __go_type_name(&(*float32s.borrow().as_ref().unwrap())[(0) as usize].clone()));
     println!("{}", format!("{}", format_float64_map_values(&Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<f64>>>>::from([("large".to_string(), Rc::new(RefCell::new(Some(1000000.0)))), ("small".to_string(), Rc::new(RefCell::new(Some(0.00001))))])))))));
     println!("{}", format!("{}", format_float32_map_values(&Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<f32>>>>::from([("large".to_string(), Rc::new(RefCell::new(Some(1000000.0)))), ("small".to_string(), Rc::new(RefCell::new(Some(0.00001))))])))))));
     println!("{}", format!("{}", sample { large: Rc::new(RefCell::new(Some(1e+06))), small: Rc::new(RefCell::new(Some(1e-05))), ..Default::default() }));
