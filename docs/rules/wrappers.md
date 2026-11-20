@@ -22,7 +22,7 @@ Use this when generated Rust fails with missing `.borrow()` / `.lock()` methods,
 - Wrapped map range sources must clone the inner map inside a block and drop the borrow guard before the loop body.
 - Owned non-copy map range keys must be cloned before insertion, wrapping, or call arguments if the Go variable is reused later.
 - Wrapped map range values are handles. Clone or unwrap the inner value according to the map element type; do not move from the ranged wrapper.
-- Map values whose Go type is handle-shaped (`*T`, `[]T`, `map[K]V`, `chan T`, `func`, `interface`, or `error`) must preserve the stored handle through lookup, comma-ok, short declarations, calls, returns, and assignments.
+- Map values whose Go type is handle-shaped (`*T`, `[]T`, `map[K]V`, `chan T`, `func`, `interface`, or `error`) must preserve the stored handle through lookup, comma-ok, short declarations, calls, returns, and assignments. The exception is a named interface value read into a new variable, which is a copy (see Interfaces And Errors).
 - Nil map values for handle-shaped element types are nil handles, not `Some(None)`.
 - Pointer and interface map values are handles. Do not deep-copy pointees or interface payloads unless Go value semantics require a real copy and the inner type is cloneable.
 - Assignments into pointer-valued maps must preserve the RHS pointer handle, including selector-field RHS values.
@@ -56,6 +56,9 @@ Use this when generated Rust fails with missing `.borrow()` / `.lock()` methods,
 
 - `interface{}` / `any` values are handles to `Box<dyn Any>`. Passing or assigning an existing `any` clones the handle; do not re-box from a shared reference.
 - The predeclared `any` alias follows the same path as explicit `interface{}`.
+- A named interface value is a handle to `Option<Box<dyn Trait>>`, and assigning to the variable writes into that handle. So a value stored somewhere new (`y := x`, a field, a slice or map element, an appended value, a field returned from a function) gets a handle of its own holding a clone of the box. The clone keeps a pointer inside the box pointing at the same value. Use `writeLocalInterfaceHandleClone`, which copies values read from a variable, field or element.
+- A value of an interface that embeds the expected one is a different trait object. Convert it with `writeLocalInterfaceSubtraitUpcast`, which keeps a nil value nil.
+- An interface that embeds two or more interfaces inherits `__go_as_any` from each of them, so method syntax on its trait object is ambiguous (E0034). Write the call with `goAsAnyCall`, which names one of the declaring traits.
 - The predeclared `error` is special. Slices and maps of `error` store normal wrapped error handles; `chan error` carries the nullable payload option.
 - Sending on `chan error` moves the payload with `take()`. Receiving into an `error` variable stores that payload directly; select receives wrap the payload for the case body.
 - Returning or assigning selector fields of type `error` clones the error handle, not the boxed payload.

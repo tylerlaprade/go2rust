@@ -983,6 +983,59 @@ func markComparableStructType(result map[string]bool, typ types.Type) {
 	}
 }
 
+// markComparableStructWithFields marks a struct of the current package as
+// compared, together with the structs of the current package that its fields
+// hold: Rust equality on the struct needs equality on each of them. It marks
+// nothing when a field holds a struct of another package, whose Rust type
+// this package cannot give equality.
+func markComparableStructWithFields(result map[string]bool, named *types.Named, pkg *types.Package) {
+	var structs []string
+	seen := map[*types.Named]bool{}
+	var collect func(typ types.Type) bool
+	collect = func(typ types.Type) bool {
+		switch t := types.Unalias(typ).(type) {
+		case *types.Array:
+			return collect(t.Elem())
+		case *types.Named:
+			st, ok := t.Underlying().(*types.Struct)
+			if !ok {
+				if array, ok := t.Underlying().(*types.Array); ok {
+					return collect(array.Elem())
+				}
+				return true
+			}
+			if t.Obj() == nil || t.Obj().Pkg() != pkg || t.TypeArgs().Len() > 0 {
+				return false
+			}
+			if seen[t] {
+				return true
+			}
+			seen[t] = true
+			structs = append(structs, t.Obj().Name())
+			for i := 0; i < st.NumFields(); i++ {
+				if !collect(st.Field(i).Type()) {
+					return false
+				}
+			}
+			return true
+		case *types.Struct:
+			for i := 0; i < t.NumFields(); i++ {
+				if !collect(t.Field(i).Type()) {
+					return false
+				}
+			}
+			return true
+		}
+		return true
+	}
+	if !collect(named) {
+		return
+	}
+	for _, name := range structs {
+		result[name] = true
+	}
+}
+
 func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *TypeInfo) {
 	if typ == nil {
 		return
@@ -1003,9 +1056,6 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 	spec *ast.TypeSpec
 	decl *ast.GenDecl
 }, methods map[string][]*ast.FuncDecl, interfaces map[string]*ast.InterfaceType) {
-	if NeedsConcurrentWrapper() {
-		return
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return
@@ -1021,7 +1071,9 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 		}
 		for _, ifaceType := range interfaces {
 			if implementsInterface(methods[decl.spec.Name.Name], ifaceType) {
-				comparableStructTypes[decl.spec.Name.Name] = true
+				if named, ok := obj.Type().(*types.Named); ok {
+					markComparableStructWithFields(comparableStructTypes, named, typeInfo.pkg)
+				}
 				break
 			}
 		}
@@ -1867,7 +1919,9 @@ func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, con
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(_other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(_other) = ")
+	out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitFor(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(concreteType)
 	out.WriteString(">() {\n")
 	out.WriteString("            false\n")

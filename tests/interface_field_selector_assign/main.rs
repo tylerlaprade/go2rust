@@ -790,7 +790,7 @@ impl Expr for StarExprPtr {
 }
 
 pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> Rc<RefCell<Option<String>>> {
-    let mut t = (*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.clone();
+    let mut t = { let __iface_value = (*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     {
         let (mut p, _) = ({
         let val = t.clone();

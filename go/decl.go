@@ -1105,21 +1105,25 @@ func writeStructComparableFieldEq(out *strings.Builder, structName string, field
 		writeStructComparablePointerFieldEq(out, field)
 		return
 	}
+	// Each side is read under its own lock, one after the other. Two values
+	// can share a field's cell (an interface value and its copy share the
+	// fields of the struct they hold), and holding both locks at once would
+	// then lock one mutex twice.
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
-		out.WriteString("{ let __left = self.")
+		out.WriteString("{ let __left = { self.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap(); let __right = other.")
+		out.WriteString(".lock().unwrap().clone() }; let __right = { other.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap(); match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+		out.WriteString(".lock().unwrap().clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 		out.WriteString(traitMethodSuffix(ifaceName))
 		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
 		return
 	}
-	out.WriteString("{ let __left = self.")
+	out.WriteString("{ let __left = { self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap(); let __right = other.")
+	out.WriteString(".lock().unwrap().as_ref().cloned() }; let __right = { other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
+	out.WriteString(".lock().unwrap().as_ref().cloned() }; __left == __right }")
 }
 
 func writeStructComparableFieldOrd(out *strings.Builder, structName string, field structComparableField) {
@@ -3009,7 +3013,9 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 		out.WriteString("            None => (0, String::new()),\n")
 		out.WriteString("            Some(__v) => {\n")
 		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);\n")
+		out.WriteString("                std::hash::Hash::hash(&")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
+		out.WriteString(".type_id(), &mut __hasher);\n")
 		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
 		out.WriteString("            }\n")
 		out.WriteString("        }\n")
@@ -3042,7 +3048,9 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 		out.WriteString("            None => (0, String::new()),\n")
 		out.WriteString("            Some(__v) => {\n")
 		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);\n")
+		out.WriteString("                std::hash::Hash::hash(&")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
+		out.WriteString(".type_id(), &mut __hasher);\n")
 		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
 		out.WriteString("            }\n")
 		out.WriteString("        }\n")
@@ -3142,7 +3150,9 @@ func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedNa
 	writeEmbeddedTraitObjectClone(out, embeddedName)
 	if !interfaceTypeHasNamedEmbedded(embeddedIface) {
 		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        (**self).__go_as_any()\n")
+		out.WriteString("        ")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "(**self)", "&**self"))
+		out.WriteString("\n")
 		out.WriteString("    }\n")
 	}
 	writeEmbeddedTraitObjectEq(out, ifaceName, embeddedName, delegateEquality)
@@ -3807,7 +3817,9 @@ func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrap
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(__other) = ")
+	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(wrapperName)
 	out.WriteString(">() {\n")
 	if NeedsConcurrentWrapper() {
@@ -6320,7 +6332,9 @@ func writeOrderedPrimitiveInterfaceImpls(out *strings.Builder, rustTypeName stri
 		out.WriteString("(&self, other: ")
 		out.WriteString(paramBare)
 		out.WriteString(") -> bool {\n")
-		out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+		out.WriteString("        if let Some(__other) = ")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(rustTypeName), "other", "other"))
+		out.WriteString(".downcast_ref::<")
 		out.WriteString(primitive)
 		out.WriteString(">() {\n")
 		out.WriteString("            self == __other\n")
@@ -7159,7 +7173,9 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(__other) = ")
+	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(RustTypeNameForUse(typeName))
 	out.WriteString(">() {\n")
 	if localConcreteTypeCanUsePartialEq(typeName) {

@@ -1432,7 +1432,7 @@ fn main() {
 
     let mut s: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(SquarePtr(Rc::new(RefCell::new(Some(Square { side: Rc::new(RefCell::new(Some(1))), ..Default::default() }))).clone())) as Box<dyn Shape>)));
     (*s.borrow_mut().as_mut().unwrap()).grow();
-    let mut t = s.clone();
+    let mut t = { let __iface_value = s.borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     (*t.borrow_mut().as_mut().unwrap()).grow();
     println!("{} {}", format!("{}", "interface holding a pointer".to_string()), format!("{}", (*(*({
         let val = s.clone();

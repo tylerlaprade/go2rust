@@ -713,7 +713,7 @@ impl Key for namedKeyPtr {
 
 impl Label {
     pub fn key(&self) -> Rc<RefCell<Option<Box<dyn Key>>>> {
-        { let __field = self.key.clone(); __field }
+        { let __iface_value = self.key.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }
     }
 }
 

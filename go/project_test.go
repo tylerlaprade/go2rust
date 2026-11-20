@@ -2848,8 +2848,10 @@ func collect(ident dep.Ident) []dep.Node {
 	if strings.Contains(mainRS, "node: Rc::new(RefCell::new(Some(Box::new((*node.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("existing imported interface handles should not be cloned into a nested box, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "node: node.clone()") {
-		t.Fatalf("existing imported interface handles should be preserved at struct fields, got:\n%s", mainRS)
+	// The field gets a copy of the parameter's interface value in a handle of
+	// its own.
+	if !strings.Contains(mainRS, "node: { let __iface_value = node.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("existing imported interface values should be copied into struct fields, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, ".push((*ident.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("append to imported interface slice should not push the concrete value directly, got:\n%s", mainRS)
@@ -4322,8 +4324,10 @@ func lang(v version) bool {
 	if !strings.Contains(mainRS, "impl PartialEq for version") {
 		t.Fatalf("concurrent comparable struct should get custom PartialEq, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__left.as_ref() == __right.as_ref()") {
-		t.Fatalf("custom PartialEq should compare locked field values by reference, got:\n%s", mainRS)
+	// Each side is read under its own lock, so two values that share a
+	// field's cell do not lock one mutex twice.
+	if !strings.Contains(mainRS, "let __left = { self.minor.lock().unwrap().as_ref().cloned() }; let __right = { other.minor.lock().unwrap().as_ref().cloned() }; __left == __right") {
+		t.Fatalf("custom PartialEq should compare field values read one lock at a time, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap());") {
 		t.Fatalf("string selector comparison should not move String out of a shared reference, got:\n%s", mainRS)

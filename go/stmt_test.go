@@ -3002,9 +3002,10 @@ func remember(seen map[Type]Expr, typ Type, nodes []Expr) {
 	if strings.Contains(rust, "Some((*node).clone())") {
 		t.Fatalf("interface map value assignment should not wrap an existing interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __map_value = node.clone();") &&
-		!strings.Contains(rust, "let __map_value = (*node).clone();") {
-		t.Fatalf("interface map value assignment should store the existing interface handle:\n%s", rust)
+	// The range variable refers to the slice's element, so the map gets a
+	// copy of the value in a handle of its own.
+	if !strings.Contains(rust, "let __map_value = { let __iface_value = (*node).borrow().clone(); Rc::new(RefCell::new(__iface_value)) };") {
+		t.Fatalf("interface map value assignment should store a copy of the interface value:\n%s", rust)
 	}
 }
 
@@ -3508,7 +3509,7 @@ func lookupParam(objMap map[Object]*declInfo, obj dependency) bool {
 	if !strings.Contains(rust, "as Box<dyn Object") {
 		t.Fatalf("subinterface map lookup key should convert to the expected interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __inner: Box<dyn Object") {
+	if !strings.Contains(rust, "let __inner: Option<Box<dyn Object") {
 		t.Fatalf("subinterface map lookup key should use the typed embedded-interface upcast:\n%s", rust)
 	}
 }
@@ -8404,9 +8405,10 @@ func get(i int) Type {
 	if strings.Contains(rust, "Some({ let __seq") || strings.Contains(rust, "Some((*types.borrow") {
 		t.Fatalf("returning a local-interface slice element should not wrap the existing handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "return (*types.borrow().as_ref().unwrap())") &&
-		!strings.Contains(rust, "return { let __seq") {
-		t.Fatalf("returning a local-interface slice element should return the cloned handle directly:\n%s", rust)
+	// The caller gets a copy of the element in a handle of its own, so
+	// assigning to its variable leaves the element alone.
+	if !strings.Contains(rust, "return { let __iface_value = (*types.borrow().as_ref().unwrap())") {
+		t.Fatalf("returning a local-interface slice element should return a copy of it:\n%s", rust)
 	}
 }
 

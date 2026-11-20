@@ -1258,13 +1258,13 @@ func record(h *Holder) Pair {
 		strings.Contains(rust, "first: (*h.lock().unwrap().as_ref().unwrap()).first.clone()") {
 		t.Fatalf("local interface selector field should not hold the owner lock in the struct literal:\n%s", rust)
 	}
-	if !strings.Contains(rust, "first: { let __field = (*h.borrow().as_ref().unwrap()).first.clone(); __field }") &&
-		!strings.Contains(rust, "first: { let __field = (*h.lock().unwrap().as_ref().unwrap()).first.clone(); __field }") {
-		t.Fatalf("local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	// Each field gets a copy of the interface value, read inside a block
+	// that drops the owner's guard.
+	if !strings.Contains(rust, "first: { let __iface_value = (*h.borrow().as_ref().unwrap()).first.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("local interface selector field should be copied inside a guard-dropping block:\n%s", rust)
 	}
-	if !strings.Contains(rust, "second: { let __field = (*h.borrow().as_ref().unwrap()).second.clone(); __field }") &&
-		!strings.Contains(rust, "second: { let __field = (*h.lock().unwrap().as_ref().unwrap()).second.clone(); __field }") {
-		t.Fatalf("second local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	if !strings.Contains(rust, "second: { let __iface_value = (*h.borrow().as_ref().unwrap()).second.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("second local interface selector field should be copied inside a guard-dropping block:\n%s", rust)
 	}
 }
 
@@ -2179,8 +2179,10 @@ func withNil(nodes []Node) []Node {
 		strings.Contains(rust, ".push((*n.lock().unwrap().as_ref().unwrap()).clone())") {
 		t.Fatalf("append of local interface handle should not clone the boxed trait object out of the handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__values.push(n.clone())") {
-		t.Fatalf("named slice append should keep the existing local interface handle:\n%s", rust)
+	// The element gets a copy of the parameter's interface value in a handle
+	// of its own, so assigning to n afterwards leaves the element alone.
+	if !strings.Contains(rust, "__values.push({ let __iface_value = n.borrow().clone(); Rc::new(RefCell::new(__iface_value)) })") {
+		t.Fatalf("named slice append should store a copy of the local interface value:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __append_value = None;") {
 		t.Fatalf("append nil to local interface slice should push a wrapped None handle:\n%s", rust)

@@ -845,6 +845,13 @@ impl std::fmt::Display for animal {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for animal {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 #[derive(Debug, Clone)]
@@ -953,6 +960,13 @@ impl std::fmt::Display for counter {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for counter {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.n.lock().unwrap().as_ref().cloned() }; let __right = { other.n.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl animal {
@@ -973,7 +987,7 @@ impl namer for animal {
     }
     fn __go_eq_namer(&self, other: &(dyn namer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<animal>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1253,7 +1267,7 @@ impl incer for counter {
     }
     fn __go_eq_incer(&self, other: &(dyn incer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
-            false
+            self == __other
         } else {
             false
         }

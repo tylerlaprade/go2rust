@@ -826,8 +826,8 @@ impl std::fmt::Display for Entry {
 impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
         (
-            { let __left = self.kind.lock().unwrap(); let __right = other.kind.lock().unwrap(); __left.as_ref() == __right.as_ref() }
-                && { let __left = self.index.lock().unwrap(); let __right = other.index.lock().unwrap(); __left.as_ref() == __right.as_ref() }
+            { let __left = { self.kind.lock().unwrap().as_ref().cloned() }; let __right = { other.kind.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.index.lock().unwrap().as_ref().cloned() }; let __right = { other.index.lock().unwrap().as_ref().cloned() }; __left == __right }
         )
     }
 }

@@ -1,0 +1,11 @@
+[package]
+name = "interface_embedding_two_interfaces_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_embedding_two_interfaces_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

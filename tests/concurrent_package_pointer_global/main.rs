@@ -787,6 +787,13 @@ impl std::fmt::Display for counter {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for counter {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.value.lock().unwrap().as_ref().cloned() }; let __right = { other.value.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 pub trait valueReader: std::fmt::Display + Any {
@@ -832,7 +839,7 @@ impl valueReader for counter {
     }
     fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
-            false
+            self == __other
         } else {
             false
         }

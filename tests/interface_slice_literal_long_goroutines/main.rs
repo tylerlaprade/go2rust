@@ -806,6 +806,14 @@ impl std::fmt::Display for Rect {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for Rect {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.w.lock().unwrap().as_ref().cloned() }; let __right = { other.w.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.h.lock().unwrap().as_ref().cloned() }; let __right = { other.h.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 #[derive(Debug, Clone)]
@@ -876,6 +884,14 @@ impl std::fmt::Display for Tri {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for Tri {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.b.lock().unwrap().as_ref().cloned() }; let __right = { other.b.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.h.lock().unwrap().as_ref().cloned() }; let __right = { other.h.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl Rect {
@@ -896,7 +912,7 @@ impl Shape for Rect {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Rect>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -956,7 +972,7 @@ impl Shape for Tri {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Tri>() {
-            false
+            self == __other
         } else {
             false
         }

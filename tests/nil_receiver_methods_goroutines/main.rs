@@ -953,6 +953,14 @@ impl std::fmt::Display for Elem {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for Elem {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.val.lock().unwrap().as_ref().cloned() }; let __right = { other.val.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left_some = self.next.lock().unwrap().is_some(); let __right_some = other.next.lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && Arc::ptr_eq(&self.next, &other.next)) }
+        )
+    }
+}
 
 
 pub trait Stringer: std::fmt::Display + Any {
@@ -1113,7 +1121,7 @@ impl Stringer for Elem {
     }
     fn __go_eq_stringer(&self, other: &(dyn Stringer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Elem>() {
-            false
+            self == __other
         } else {
             false
         }

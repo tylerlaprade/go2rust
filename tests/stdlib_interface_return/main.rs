@@ -54,7 +54,7 @@ pub fn make_expr_slice_len() -> i64 {
 
 pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
     let mut field = Arc::new(Mutex::new(Some(go_ast::r#mod::Field { r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ArrayType { elt: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() })));
-    return { let __field = (*({
+    return { let __iface_value = (*({
         let val = (*field.lock().unwrap().as_ref().unwrap()).r#type.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -66,7 +66,7 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).elt.clone(); __field };
+    }).lock().unwrap().as_ref().unwrap()).elt.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
 }
 
 fn main() {
