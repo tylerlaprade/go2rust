@@ -1243,6 +1243,14 @@ run_xfail_test() {
     run_test "tests/function_literals_closures"
 }
 
+@test "function_local_interface_impls" {
+    run_test "tests/function_local_interface_impls"
+}
+
+@test "function_local_interface_impls_goroutines" {
+    run_test "tests/function_local_interface_impls_goroutines"
+}
+
 @test "function_map_literal" {
     run_test "tests/function_map_literal"
 }

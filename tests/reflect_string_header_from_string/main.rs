@@ -523,6 +523,7 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct reflect_StringHeader {
+    pub data: Arc<Mutex<Option<usize>>>,
     pub len: Arc<Mutex<Option<i64>>>,
 }
 
@@ -542,6 +543,6 @@ impl reflect_StringHeader {
 
 fn main() {
     let mut value = Arc::new(Mutex::new(Some("abc".to_string())));
-    let mut hdr: GoPtr<reflect_StringHeader> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&value.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut hdr: GoPtr<reflect_StringHeader> = GoPtr::local(Arc::new(Mutex::new(Some(reflect_StringHeader { data: Arc::new(Mutex::new(Some(0 as usize))), len: Arc::new(Mutex::new(Some({ let __s = (*value.lock().unwrap().as_ref().unwrap()).clone(); __s.len() as i64 }))), ..Default::default() }))));
     println!("{}", format!("{}", (*{ let __ptr_value = hdr.borrow(); __ptr_value.as_ref().unwrap().len.clone() }.lock().unwrap().as_ref().unwrap())));
 }

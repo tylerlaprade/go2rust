@@ -524,6 +524,7 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct reflect_StringHeader {
+    pub data: Arc<Mutex<Option<usize>>>,
     pub len: Arc<Mutex<Option<i64>>>,
 }
 
@@ -580,7 +581,7 @@ impl std::fmt::Display for Label {
 
 
 pub fn make_label(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Label>>> {
-    let mut hdr: GoPtr<reflect_StringHeader> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&v.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut hdr: GoPtr<reflect_StringHeader> = GoPtr::local(Arc::new(Mutex::new(Some(reflect_StringHeader { data: Arc::new(Mutex::new(Some(0 as usize))), len: Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); __s.len() as i64 }))), ..Default::default() }))));
     Arc::new(Mutex::new(Some(Label { packed: Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = hdr.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), again: Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = hdr.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), ..Default::default() })))
 }
 
