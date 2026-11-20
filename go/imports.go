@@ -153,6 +153,7 @@ type HelperTracker struct {
 	needsAnyEq                           bool
 	needsAnyClone                        bool
 	needsPanicRecover                    bool
+	needsGoPointerError                  bool
 	needsGoValueClone                    bool
 	needsGoTypeParamFieldClone           bool
 	needsGoComparable                    bool
@@ -355,6 +356,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generatePanicRecoverHelper(&result)
 	}
 
+	if ht.needsGoPointerError {
+		generateGoPointerError(&result)
+	}
+
 	if ht.needsGoValueClone {
 		generateGoValueClone(&result)
 	}
@@ -518,6 +523,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
 		ht.needsPanicRecover ||
+		ht.needsGoPointerError ||
 		ht.needsGoValueClone ||
 		ht.needsGoTypeParamFieldClone ||
 		ht.needsGoComparable ||
@@ -661,6 +667,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsPanicRecover {
 		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
+	}
+	if ht.needsGoPointerError {
+		add("GoPointerError")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1237,6 +1246,79 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 	out.WriteString(`
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
+`)
+}
+
+// generateGoPointerError emits an error adapter that keeps the original Go
+// pointer handle. Error interface bindings must observe later whole-value
+// replacement through that handle instead of snapshotting the pointee.
+func generateGoPointerError(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString("\n")
+		out.WriteString(visibility)
+		out.WriteString(`struct GoPointerError<T> {
+    handle: Arc<Mutex<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Arc<Mutex<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.lock().unwrap();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + Send + Sync + 'static> std::error::Error for GoPointerError<T> {}
+`)
+		return
+	}
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`struct GoPointerError<T> {
+    handle: Rc<RefCell<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Rc<RefCell<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.borrow();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + 'static> std::error::Error for GoPointerError<T> {}
 `)
 }
 

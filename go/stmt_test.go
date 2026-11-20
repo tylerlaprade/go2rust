@@ -455,6 +455,7 @@ func has(err error) bool {
 		return false
 	}
 }
+
 `)
 
 	if strings.Contains(rust, "downcast_ref::<multiPtr>()") {
@@ -476,6 +477,31 @@ func has(err error) bool {
 	}
 	if !strings.Contains(rust, "None::<Box<dyn GoAnonymousInterface") {
 		t.Fatalf("anonymous interface type-switch binding should initialize unreachable cases with typed nil:\n%s", rust)
+	}
+}
+
+func TestErrorAssertionPointerCandidateKeepsOriginalHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type pointerError struct{ code int }
+func (e *pointerError) Error() string { return "" }
+
+func text(v any, p *pointerError) string {
+	switch err := v.(type) {
+	case error:
+		*p = pointerError{code: 8}
+		return err.Error()
+	}
+	return ""
+}
+`)
+
+	if !strings.Contains(rust, "GoPointerError::new(typed_val.clone())") {
+		t.Fatalf("pointer error binding should retain the original pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc::new(__typed_error.clone()) as Rc<dyn StdError>") ||
+		strings.Contains(rust, "Arc::new(__typed_error.clone()) as Arc<dyn StdError + Send + Sync>") {
+		t.Fatalf("pointer error binding should not snapshot the pointee:\n%s", rust)
 	}
 }
 
@@ -9972,8 +9998,11 @@ func normalize(err any) error {
 	if !strings.Contains(rust, "Box::<dyn StdError") {
 		t.Fatalf("asserting any to error should rebuild an error interface value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "if let Some(__err_handle) = any_val.downcast_ref::<") {
 		t.Fatalf("error assertion used as an error result should be stored in a wrapped error handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+		t.Fatalf("a plain string must not satisfy an assertion to error:\n%s", rust)
 	}
 }
 
@@ -10064,7 +10093,7 @@ func use() string {
 		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
 	}
 	// The case variable is a copy: a handle of its own to the same error.
-	if !strings.Contains(rust, "let x = { let __err_source = _ts_val.and_then(|__v| "+handle+").unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };") {
+	if !strings.Contains(rust, "let x = if let Some(__err_handle) = _ts_val.and_then(|__v| "+handle+") { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else") {
 		t.Fatalf("the case variable should get its own handle to the error the interface value holds:\n%s", rust)
 	}
 	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
