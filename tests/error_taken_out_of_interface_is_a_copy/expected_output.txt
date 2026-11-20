@@ -1,0 +1,10 @@
+true x
+true x <nil>
+x
+true x replaced
+case error: x
+true
+true x
+true sentinel
+wrapped: 7 wrapped: 7 true
+true wrapped: 7

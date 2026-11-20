@@ -19,10 +19,26 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<bool>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
     } else if let Some(v) = value.downcast_ref::<node>() {
         format!("{}", v)
     } else {
-        "<unknown>".to_string()
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
 
