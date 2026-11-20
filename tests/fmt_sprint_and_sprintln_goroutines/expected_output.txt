@@ -1,0 +1,11 @@
+a1 true 7
+1 2x3 4.5 {1 2} <nil>
+"a 1 true 42 {3 4}\n"
+"" "\n"
+"1b2 3" "1 b 2 3\n"
+TOTAL: 7! n5
+0-1-2
+boom true
+a1 2b
+1 2x3
+HI 7
