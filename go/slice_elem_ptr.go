@@ -8065,6 +8065,16 @@ func writeGoPtrRawPointerValue(out *strings.Builder, arg ast.Expr, elemRustType 
 		return false
 	}
 	if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+		// (*reflect.StringHeader)(unsafe.Pointer(&s)) points at a header
+		// built from s, which a raw address cannot be read through.
+		var header strings.Builder
+		if writeReflectStringHeaderPointerConversion(&header, call) {
+			writeGoPtrQualifiedConstructor(out, helperQualifier, "local")
+			out.WriteString("(")
+			out.WriteString(header.String())
+			out.WriteString(")")
+			return true
+		}
 		if target, ok := typedPointerTypeConversionTarget(call); ok {
 			if writeInternalABIEmptyInterfaceGoPtrValue(out, target, source, helperQualifier) {
 				return true

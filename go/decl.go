@@ -2769,6 +2769,12 @@ func localInterfaceNamedTypeByName(name string) (*types.Named, *types.Interface)
 	}
 	obj := typeInfo.pkg.Scope().Lookup(name)
 	if obj == nil {
+		// An interface declared inside a function body is hoisted to a
+		// top-level trait, so its implementors need the same trait impls as
+		// those of a package-level interface.
+		if named := typeInfo.functionLocalInterfaceNamedByName(name); named != nil {
+			return named, named.Underlying().(*types.Interface)
+		}
 		return nil, nil
 	}
 	typeName, ok := obj.(*types.TypeName)
@@ -9055,6 +9061,9 @@ func registerInterfaceMethodMutableReceivers(pkgs []*types.Package) {
 				concreteTypes = append(concreteTypes, named)
 			}
 		}
+		// Interfaces declared inside function bodies become top-level traits
+		// too, so their methods need the same receiver mutability.
+		ifaceTypes = append(ifaceTypes, functionLocalInterfaceTypes(pkg)...)
 	}
 	for _, ifaceNamed := range ifaceTypes {
 		iface, _ := ifaceNamed.Underlying().(*types.Interface)

@@ -548,7 +548,7 @@ fn main() {
     });
 
     let mut value: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-    let mut hdr: GoPtr<reflect_StringHeader> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&value.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut hdr: GoPtr<reflect_StringHeader> = GoPtr::local(Arc::new(Mutex::new(Some(reflect_StringHeader { data: Arc::new(Mutex::new(Some(0 as usize))), len: Arc::new(Mutex::new(Some({ let __s = (*value.lock().unwrap().as_ref().unwrap()).clone(); __s.len() as i64 }))), ..Default::default() }))));
     { let new_val = Arc::new(Mutex::new(Some(0 as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = hdr.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
     { let new_val = 3; *{ let __ptr_value = hdr.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", (*{ let __ptr_value = hdr.borrow(); __ptr_value.as_ref().unwrap().len.clone() }.lock().unwrap().as_ref().unwrap())));

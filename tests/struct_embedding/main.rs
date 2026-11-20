@@ -92,6 +92,56 @@ impl base {
     }
 }
 
+impl describer for base {
+    fn describe(&self) -> Rc<RefCell<Option<String>>> {
+        base::describe(self)
+    }
+    fn __go_clone_box_describer(&self) -> Box<dyn describer> {
+        Box::new(self.clone()) as Box<dyn describer>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_describer(&self, other: &dyn describer) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<base>() {
+            self == __other
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct basePtr(pub Rc<RefCell<Option<base>>>);
+
+impl std::fmt::Display for basePtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl describer for basePtr {
+    fn describe(&self) -> Rc<RefCell<Option<String>>> {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        base::describe(__recv)
+    }
+    fn __go_clone_box_describer(&self) -> Box<dyn describer> {
+        Box::new(self.clone()) as Box<dyn describer>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_describer(&self, other: &dyn describer) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<basePtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 impl container {
     pub fn describe(&self) -> Rc<RefCell<Option<String>>> {
         // Forward to embedded type's method
@@ -99,6 +149,56 @@ impl container {
         let guard = embedded.borrow();
         let embedded_ref = guard.as_ref().unwrap();
         embedded_ref.describe()
+    }
+}
+
+impl describer for container {
+    fn describe(&self) -> Rc<RefCell<Option<String>>> {
+        container::describe(self)
+    }
+    fn __go_clone_box_describer(&self) -> Box<dyn describer> {
+        Box::new(self.clone()) as Box<dyn describer>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_describer(&self, other: &dyn describer) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<container>() {
+            false
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct containerPtr(pub Rc<RefCell<Option<container>>>);
+
+impl std::fmt::Display for containerPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl describer for containerPtr {
+    fn describe(&self) -> Rc<RefCell<Option<String>>> {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        container::describe(__recv)
+    }
+    fn __go_clone_box_describer(&self) -> Box<dyn describer> {
+        Box::new(self.clone()) as Box<dyn describer>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_describer(&self, other: &dyn describer) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<containerPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
     }
 }
 

@@ -54,6 +54,56 @@ impl r#box {
     }
 }
 
+impl hasValue for r#box {
+    fn value(&self) -> i64 {
+        r#box::value(self)
+    }
+    fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {
+        Box::new(self.clone()) as Box<dyn hasValue>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<r#box>() {
+            self == __other
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct boxPtr(pub Rc<RefCell<Option<r#box>>>);
+
+impl std::fmt::Display for boxPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl hasValue for boxPtr {
+    fn value(&self) -> i64 {
+        let __recv_guard = self.0.borrow();
+        let __recv = __recv_guard.as_ref().unwrap();
+        r#box::value(__recv)
+    }
+    fn __go_clone_box_has_value(&self) -> Box<dyn hasValue> {
+        Box::new(self.clone()) as Box<dyn hasValue>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_has_value(&self, other: &dyn hasValue) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<boxPtr>() {
+            Rc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 pub fn probe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
     
 
