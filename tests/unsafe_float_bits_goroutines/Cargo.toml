@@ -1,0 +1,8 @@
+[package]
+name = "unsafe_float_bits_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unsafe_float_bits_goroutines"
+path = "main.rs"

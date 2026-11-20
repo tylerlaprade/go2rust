@@ -13881,6 +13881,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeUnsafePointerInterfaceDerefValue(out, e) {
 				break
 			}
+			if writeUnsafeScalarReinterpretValue(out, e) {
+				break
+			}
 			out.WriteString("{ let __v = (*")
 			TranspileExpressionContext(out, e.X, LValue)
 			WriteBorrowMethod(out, false)
