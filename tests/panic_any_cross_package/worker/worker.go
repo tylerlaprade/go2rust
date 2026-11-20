@@ -7,3 +7,8 @@ func Fail(value any) {
 func RunNormalDefer(callback func()) {
 	defer callback()
 }
+
+//go:noinline
+func Run(callback func()) {
+	callback()
+}

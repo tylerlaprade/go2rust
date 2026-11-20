@@ -756,6 +756,44 @@ fn go_resume_unrecovered_panic() {
     }
 }
 
+fn go_terminate_unrecovered_goroutine_panic(
+    payload: Box<dyn Any + Send>,
+    formatter: fn(&(dyn Any + Send + Sync)) -> String,
+) -> ! {
+    let payload: Box<dyn Any + Send + Sync> = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => *boxed,
+        Err(payload) => match payload.downcast::<String>() {
+            Ok(value) => Box::new(go_runtime_error_text(*value)),
+            Err(payload) => match payload.downcast::<&'static str>() {
+                Ok(value) => Box::new(go_runtime_error_text(value.to_string())),
+                Err(payload) => match payload.downcast::<i32>() {
+                    Ok(value) => Box::new(*value),
+                    Err(payload) => match payload.downcast::<i64>() {
+                        Ok(value) => Box::new(*value),
+                        Err(payload) => match payload.downcast::<bool>() {
+                            Ok(value) => Box::new(*value),
+                            Err(_) => {
+                                eprintln!("panic: unrecovered Go panic");
+                                std::process::exit(2)
+                            }
+                        },
+                    },
+                },
+            },
+        },
+    };
+    let mut payload = payload;
+    loop {
+        match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+            Ok(boxed) => payload = *boxed,
+            Err(value) => {
+                eprintln!("panic: {}", formatter(value.as_ref()));
+                std::process::exit(2)
+            }
+        }
+    }
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,

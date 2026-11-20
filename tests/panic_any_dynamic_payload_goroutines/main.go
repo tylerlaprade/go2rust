@@ -11,6 +11,8 @@ type payload struct {
 
 type lazyPayload struct{}
 
+type label string
+
 func (*lazyPayload) String() string {
 	panic("formatted while recover was still possible")
 }
@@ -145,6 +147,49 @@ func recoverNilValue(useLiteral bool) (result string) {
 	panic(value)
 }
 
+func explicitStringIsNotError() (result string) {
+	defer func() {
+		_, ok := recover().(error)
+		result = fmt.Sprintf("string error %t", ok)
+	}()
+	panic("panic called with nil argument")
+}
+
+func recoverNamedString() (result string) {
+	defer func() {
+		recovered := recover()
+		value, namedOK := recovered.(label)
+		_, stringOK := recovered.(string)
+		result = fmt.Sprintf("named %t %t %s", namedOK, stringOK, value)
+	}()
+	panic(label("kept"))
+}
+
+func recoverShadowedString(nil string) (result string) {
+	defer func() {
+		value, ok := recover().(string)
+		result = fmt.Sprintf("shadow string %t %s", ok, value)
+	}()
+	panic(nil)
+}
+
+func recoverShadowedInt(nil int) (result string) {
+	defer func() {
+		value, ok := recover().(int)
+		result = fmt.Sprintf("shadow int %t %d", ok, value)
+	}()
+	panic(nil)
+}
+
+func recoverSliceElement() (result string) {
+	defer func() {
+		value, ok := recover().(string)
+		result = fmt.Sprintf("slice panic %t %s", ok, value)
+	}()
+	values := []any{"element"}
+	panic(values[0])
+}
+
 func recoverInGoroutineLiterals() {
 	done := make(chan string)
 	go func() {
@@ -164,6 +209,33 @@ func recoverInGoroutineLiterals() {
 		panic("with args")
 	}(1)
 	fmt.Println(<-done)
+
+	go func() int {
+		defer func() {
+			recover()
+			done <- "go result recovered"
+		}()
+		panic("result")
+	}()
+	fmt.Println(<-done)
+
+	go func(code int) int {
+		defer func() {
+			recover()
+			done <- fmt.Sprintf("go result arg %d recovered", code)
+		}()
+		panic("result arg")
+	}(2)
+	fmt.Println(<-done)
+}
+
+func recoverAndReadInterface(value any) (result string) {
+	saved := value
+	defer func() {
+		recovered := recover()
+		result = fmt.Sprintf("lock %v %v", recovered, saved)
+	}()
+	panic(value)
 }
 
 func main() {
@@ -191,5 +263,11 @@ func main() {
 	fmt.Println(formatterRunsOnlyForUncaughtPanic())
 	fmt.Println("dynamic", recoverNilValue(false))
 	fmt.Println("literal", recoverNilValue(true))
+	fmt.Println(explicitStringIsNotError())
+	fmt.Println(recoverNamedString())
+	fmt.Println(recoverShadowedString("shadowed"))
+	fmt.Println(recoverShadowedInt(17))
+	fmt.Println(recoverSliceElement())
+	fmt.Println(recoverAndReadInterface("same"))
 	recoverInGoroutineLiterals()
 }

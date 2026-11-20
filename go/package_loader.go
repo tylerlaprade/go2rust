@@ -639,6 +639,9 @@ func (pl *PackageLoader) TranspileAll() error {
 	// helpers. The project generator ends this once the main package and
 	// the shared crate are written.
 	beginProgramAnyCases()
+	if currentProgramAnyCases != nil {
+		currentProgramAnyCases.callsRecover = pl.programCallsRecover()
+	}
 
 	// Set the global type info from the main package
 	// This gives us access to all type information including imports
@@ -698,6 +701,15 @@ func (pl *PackageLoader) TranspileAll() error {
 	// but now with full type information available
 
 	return nil
+}
+
+func (pl *PackageLoader) programCallsRecover() bool {
+	for _, pkg := range pl.allPackages {
+		if pkg != nil && typesInfoCallsRecover(pkg.TypesInfo) {
+			return true
+		}
+	}
+	return pl.mainPkg != nil && typesInfoCallsRecover(pl.mainPkg.TypesInfo)
 }
 
 func (pl *PackageLoader) removeStaleGeneratedVendorCrates(vendorDir string) error {

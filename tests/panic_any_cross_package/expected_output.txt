@@ -1,3 +1,4 @@
 int 7
 string text
 mask outer nil
+direct outer nil

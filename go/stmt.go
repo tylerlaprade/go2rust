@@ -16173,8 +16173,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		oldCaptureRenames := snapshotCaptureRenames()
 		currentCaptureRenames = captureRenames
 
-		// Generate the thread::spawn call
+		// A Rust thread panic is otherwise confined to the detached worker.
+		// Go terminates the process after an unrecovered goroutine panic, so
+		// catch at the generated goroutine boundary, report the typed value,
+		// and exit nonzero after the goroutine's pending defers have run.
+		NeedPanicRecover()
+		NeedFormatAny()
 		out.WriteString("std::thread::spawn(move || {\n")
+		out.WriteString("        let __go_panic_hook_guard = go_suppress_panic_hook();\n")
+		out.WriteString("        let __go_goroutine_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
 
 		// Check if it's an immediately invoked function literal
 		if funcLit, ok := s.Call.Fun.(*ast.FuncLit); ok {
@@ -16239,7 +16246,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if wrapClosurePanic {
 					out.WriteString("\n")
-					finishPanicRecoverCatchWith(out, "            ", func() { writeFuncLitRecoveredPanicReturnValue(out, funcLit.Type) })
+					finishPanicRecoverCatchWith(out, "            ", func() { out.WriteString("()") })
 				}
 
 				out.WriteString("\n        };\n")
@@ -16278,7 +16285,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if wrapClosurePanic {
 					out.WriteString("\n")
-					finishPanicRecoverCatchWith(out, "        ", func() { writeFuncLitRecoveredPanicReturnValue(out, funcLit.Type) })
+					finishPanicRecoverCatchWith(out, "        ", func() { out.WriteString("()") })
 				}
 			}
 		} else {
@@ -16288,6 +16295,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString(";\n")
+		out.WriteString("        }));\n")
+		out.WriteString("        drop(__go_panic_hook_guard);\n")
+		out.WriteString("        if let Err(__go_panic_payload) = __go_goroutine_result {\n")
+		out.WriteString("            go_terminate_unrecovered_goroutine_panic(__go_panic_payload, format_any);\n")
+		out.WriteString("        }\n")
 		out.WriteString("    })")
 		out.WriteString(";")
 

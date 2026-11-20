@@ -8562,6 +8562,9 @@ var packageCallsRecoverCache = map[*types.Info]bool{}
 // packageCallsRecover reports whether the package being translated calls the
 // recover builtin anywhere.
 func packageCallsRecover() bool {
+	if currentProgramAnyCases != nil && currentProgramAnyCases.callsRecover {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
@@ -8569,15 +8572,21 @@ func packageCallsRecover() bool {
 	if calls, ok := packageCallsRecoverCache[typeInfo.info]; ok {
 		return calls
 	}
-	calls := false
-	for _, obj := range typeInfo.info.Uses {
-		if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "recover" {
-			calls = true
-			break
-		}
-	}
+	calls := typesInfoCallsRecover(typeInfo.info)
 	packageCallsRecoverCache[typeInfo.info] = calls
 	return calls
+}
+
+func typesInfoCallsRecover(info *types.Info) bool {
+	if info == nil {
+		return false
+	}
+	for _, obj := range info.Uses {
+		if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "recover" {
+			return true
+		}
+	}
+	return false
 }
 
 func beginPanicRecoverCatch(out *strings.Builder, indent string) string {

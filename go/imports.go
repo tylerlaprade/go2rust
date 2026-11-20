@@ -694,6 +694,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsPanicRecover {
 		add("GoFunctionDepthGuard", "GoPanicHookSuppression", "go_enter_function", "go_recover", "go_replace_panic_payload", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_suppress_panic_hook")
+		if NeedsConcurrentWrapper() {
+			add("go_terminate_unrecovered_goroutine_panic")
+		}
 		if !NeedsConcurrentWrapper() {
 			add("go_panic_any_local")
 		}
@@ -1418,6 +1421,46 @@ thread_local! {
 	out.WriteString(`fn go_resume_unrecovered_panic() {
     if let Some(GoPanicFrame { payload: Some(payload), .. }) = __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop()) {
         std::panic::panic_any(payload);
+    }
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_terminate_unrecovered_goroutine_panic(
+    payload: Box<dyn Any + Send>,
+    formatter: fn(&(dyn Any + Send + Sync)) -> String,
+) -> ! {
+    let payload: Box<dyn Any + Send + Sync> = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => *boxed,
+        Err(payload) => match payload.downcast::<String>() {
+            Ok(value) => Box::new(go_runtime_error_text(*value)),
+            Err(payload) => match payload.downcast::<&'static str>() {
+                Ok(value) => Box::new(go_runtime_error_text(value.to_string())),
+                Err(payload) => match payload.downcast::<i32>() {
+                    Ok(value) => Box::new(*value),
+                    Err(payload) => match payload.downcast::<i64>() {
+                        Ok(value) => Box::new(*value),
+                        Err(payload) => match payload.downcast::<bool>() {
+                            Ok(value) => Box::new(*value),
+                            Err(_) => {
+                                eprintln!("panic: unrecovered Go panic");
+                                std::process::exit(2)
+                            }
+                        },
+                    },
+                },
+            },
+        },
+    };
+    let mut payload = payload;
+    loop {
+        match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+            Ok(boxed) => payload = *boxed,
+            Err(value) => {
+                eprintln!("panic: {}", formatter(value.as_ref()));
+                std::process::exit(2)
+            }
+        }
     }
 }
 `)

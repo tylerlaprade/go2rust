@@ -15,3 +15,8 @@ depth true direct
 lazy true
 dynamic nil true panic called with nil argument
 literal nil true panic called with nil argument
+string error false
+named true false kept
+shadow string true shadowed
+shadow int true 17
+slice panic true element

@@ -26,9 +26,10 @@ import "go/types"
 // one's cases rewrites the helpers of most of the translated library for a
 // flow no fixture exercises yet.
 type programAnyCases struct {
-	cloneTypes map[string]bool
-	formatArms map[string]anyFormatArm
-	typeNames  map[string]string
+	cloneTypes   map[string]bool
+	formatArms   map[string]anyFormatArm
+	typeNames    map[string]string
+	callsRecover bool
 
 	// currentPackage is the import path of the dependency being translated.
 	// It is empty while the main package is translated.

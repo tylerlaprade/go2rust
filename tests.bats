@@ -1479,6 +1479,14 @@ run_xfail_test() {
     run_test "tests/interface_mutating_method_dispatch"
 }
 
+@test "interface_slice_element_argument" {
+    run_test "tests/interface_slice_element_argument"
+}
+
+@test "interface_slice_element_argument_goroutines" {
+    run_test "tests/interface_slice_element_argument_goroutines"
+}
+
 @test "interface_slice_index_arg" {
     run_test "tests/interface_slice_index_arg"
 }

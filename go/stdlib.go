@@ -7086,12 +7086,20 @@ const goPanicNilMessage = "panic called with nil argument"
 // in an interface is handled by the interface payload writers below, after
 // they inspect the interface's Option at run time.
 func writePanicNilArg(out *strings.Builder, arg ast.Expr) bool {
-	ident, ok := unwrapParens(arg).(*ast.Ident)
-	if !ok || ident.Name != "nil" {
+	if !isPredeclaredNilExpr(arg) {
 		return false
 	}
 	writePanicNilPayload(out)
 	return true
+}
+
+func isPredeclaredNilExpr(expr ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.GetObject(ident) == types.Universe.Lookup("nil")
 }
 
 // writePanicNilPayload emits Go 1.21+'s non-nil recover value for panic(nil).
@@ -7118,7 +7126,11 @@ func writeLocalStringPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsString(arg) {
+	if typeInfo == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(arg)).(*types.Basic)
+	if !ok || basic.Kind() != types.String {
 		return false
 	}
 	// Keep an explicit Go string distinct from Rust runtime-fault text. The
@@ -7136,7 +7148,7 @@ func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	if isEmptyInterfaceValueExpr(arg) {
-		if isBareAnyReferenceExpr(arg) {
+		if isBareAnyBoxExpr(arg) {
 			out.WriteString("std::panic::panic_any(")
 			if !writeExistingAnyBoxClone(out, arg) {
 				return false
@@ -7147,9 +7159,9 @@ func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 		NeedAnyClone()
 		out.WriteString("{ let __any_holder = ")
 		TranspileExpressionContext(out, arg, LValue)
-		out.WriteString(".clone(); let __any_guard = __any_holder")
+		out.WriteString(".clone(); let __any_payload = { let __any_guard = __any_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; match __any_guard.as_ref() { Some(__any_value) => std::panic::panic_any(go_any_clone(__any_value.as_ref())), None => ")
+		out.WriteString("; __any_guard.as_ref().map(|__any_value| go_any_clone(__any_value.as_ref())) }; match __any_payload { Some(__any_value) => std::panic::panic_any(__any_value), None => ")
 		writePanicNilPayload(out)
 		out.WriteString(" } }")
 		return true
@@ -7161,7 +7173,7 @@ func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
-	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+	if isPredeclaredNilExpr(arg) {
 		return false
 	}
 	if NeedsConcurrentWrapper() {
@@ -7189,17 +7201,12 @@ func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
 }
 
 func writeLocalPanicAnyPayloadArg(out *strings.Builder, arg ast.Expr) bool {
-	if isBareAnyReferenceExpr(arg) {
-		ident := unwrapParens(arg).(*ast.Ident)
-		writeRef := func() {
-			out.WriteString(rustIdentForUseWithCapture(ident))
-			if rangeVarIsAnyBoxRef(ident) {
-				out.WriteString(".as_ref()")
-			}
+	if isBareAnyBoxExpr(arg) {
+		out.WriteString("go_panic_any_local(")
+		if !writeExistingAnyBoxClone(out, arg) {
+			return false
 		}
-		out.WriteString("go_panic_any_local(go_any_clone(")
-		writeRef()
-		out.WriteString("), None, Some(format_any))")
+		out.WriteString(", None, Some(format_any))")
 		return true
 	}
 	if !isEmptyInterfaceValueExpr(arg) {

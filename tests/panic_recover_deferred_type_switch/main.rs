@@ -782,6 +782,44 @@ fn go_resume_unrecovered_panic() {
     }
 }
 
+fn go_terminate_unrecovered_goroutine_panic(
+    payload: Box<dyn Any + Send>,
+    formatter: fn(&(dyn Any + Send + Sync)) -> String,
+) -> ! {
+    let payload: Box<dyn Any + Send + Sync> = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => *boxed,
+        Err(payload) => match payload.downcast::<String>() {
+            Ok(value) => Box::new(go_runtime_error_text(*value)),
+            Err(payload) => match payload.downcast::<&'static str>() {
+                Ok(value) => Box::new(go_runtime_error_text(value.to_string())),
+                Err(payload) => match payload.downcast::<i32>() {
+                    Ok(value) => Box::new(*value),
+                    Err(payload) => match payload.downcast::<i64>() {
+                        Ok(value) => Box::new(*value),
+                        Err(payload) => match payload.downcast::<bool>() {
+                            Ok(value) => Box::new(*value),
+                            Err(_) => {
+                                eprintln!("panic: unrecovered Go panic");
+                                std::process::exit(2)
+                            }
+                        },
+                    },
+                },
+            },
+        },
+    };
+    let mut payload = payload;
+    loop {
+        match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+            Ok(boxed) => payload = *boxed,
+            Err(value) => {
+                eprintln!("panic: {}", formatter(value.as_ref()));
+                std::process::exit(2)
+            }
+        }
+    }
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -1047,7 +1085,7 @@ pub fn run(payload: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex
     }));
         let mut done = GoChannel::<bool>::new();
         let _ = &done;
-        { let __any_holder = payload.clone(); let __any_guard = __any_holder.lock().unwrap(); match __any_guard.as_ref() { Some(__any_value) => std::panic::panic_any(go_any_clone(__any_value.as_ref())), None => { let __go_panic_nil = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("panic called with nil argument".to_string()))))); std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) } } };
+        { let __any_holder = payload.clone(); let __any_payload = { let __any_guard = __any_holder.lock().unwrap(); __any_guard.as_ref().map(|__any_value| go_any_clone(__any_value.as_ref())) }; match __any_payload { Some(__any_value) => std::panic::panic_any(__any_value), None => { let __go_panic_nil = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("panic called with nil argument".to_string()))))); std::panic::panic_any(Box::new(__go_panic_nil) as Box<dyn Any + Send + Sync>) } } };
     }));
     match __go_panic_result {
         Ok(__go_value) => {

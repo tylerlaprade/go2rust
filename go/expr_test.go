@@ -128,6 +128,131 @@ func sum(s float64, h float64) float64 {
 	}
 }
 
+func TestNilArgumentToEmptyInterfaceUsesNilInterfaceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) bool { return v == nil }
+
+func main() { describe(nil) }
+`)
+
+	want := "describe(Rc::new(RefCell::new(None::<Box<dyn Any>>)))"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("nil argument should be a nil interface handle; want %q in:\n%s", want, rust)
+	}
+	if strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("nil argument must not be boxed as an untyped Option:\n%s", rust)
+	}
+}
+
+func TestAssertedCollectionsKeepHandlesForDirectConsumers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func use(x interface{}, y interface{}) (int, int) {
+	return len(x.([]int)), y.(map[string]int)["k"]
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()") {
+		t.Fatalf("len of asserted slice should consume the boxed slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()") {
+		t.Fatalf("indexing an asserted map should consume the boxed map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __value =") {
+		t.Fatalf("direct consumers should not turn asserted collections into bare temporary values:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementCommaOkAssertionDowncastsInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func read(list []interface{}) (int, bool) {
+	n, ok := list[0].(int)
+	return n, ok
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("comma-ok assertion on []any element must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "any_val.downcast_ref::<i64>()") {
+		t.Fatalf("comma-ok assertion on []any element should downcast the boxed value in place:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementArgumentClonesDynamicValueInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) {}
+
+func call(list []interface{}) {
+	describe(list[0])
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("[]any element passed as any must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_clone(__seq_guard.as_ref().expect(\"nil []any in interface argument\")[__idx].as_ref())") {
+		t.Fatalf("[]any element passed as any should clone its dynamic value under the slice guard:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementAssertionEvaluatesSequenceBeforeIndex(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sequence() []any { return []any{7} }
+func index() int { return 0 }
+
+func read() (int, bool) {
+	value, ok := sequence()[index()].(int)
+	return value, ok
+}
+`)
+
+	seqAt := strings.Index(rust, "let __seq_holder = sequence()")
+	idxAt := strings.Index(rust, "let __idx = (index())")
+	if seqAt < 0 || idxAt < 0 || seqAt > idxAt {
+		t.Fatalf("[]any assertion must evaluate the sequence before the index:\n%s", rust)
+	}
+}
+
+func TestNamedAnySliceElementAssertionUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Items []any
+
+func read(items Items) (int, bool) {
+	value, ok := items[0].(int)
+	return value, ok
+}
+`)
+
+	if !strings.Contains(rust, "let __seq_holder = { let __named_slice = (*items.borrow().as_ref().unwrap()).0.clone(); __named_slice }") {
+		t.Fatalf("named []any assertion must index its inner slice handle:\n%s", rust)
+	}
+}
+
+func TestAnyAssertionsCopyStructValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type S struct{ N int }
+
+func read(value any, items []any) (S, S, bool) {
+	direct := value.(S)
+	fromSlice, ok := items[0].(S)
+	return direct, fromSlice, ok
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<S>()") ||
+		!strings.Contains(rust, ")).__go_value_clone()") ||
+		!strings.Contains(rust, "typed_val.__go_value_clone()") {
+		t.Fatalf("successful struct assertions must make Go value copies:\n%s", rust)
+	}
+}
+
 func TestSelectorStructCompositeLiteralUsesTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
