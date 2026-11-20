@@ -150,7 +150,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 pub fn worker(id: Arc<Mutex<Option<i32>>>, jobs: GoChannel<i32>, results: GoChannel<i32>) {
-    let _ = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    let _ = &id;
     for j in jobs.clone() {
         results.send({ let __tmp_x = j; let __tmp_y = 2; __tmp_x * __tmp_y });
     }

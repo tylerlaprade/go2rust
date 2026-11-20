@@ -8252,6 +8252,36 @@ func writeErrorHandleCopy(out *strings.Builder, writeSource func()) {
 	out.WriteString(" }")
 }
 
+// blankAssignmentOnlyNamesAVariable reports whether the right side of
+// "_ = x" is a plain variable. Go evaluates nothing there that can fail, so
+// the generated code must not read the variable's value: a nil error,
+// pointer, slice, map, function or interface has none to read.
+//
+// A field of a variable is the same: "_ = t.err" reads nothing from the
+// field. Reaching the field through a nil pointer still stops the program,
+// as it does in Go.
+func blankAssignmentOnlyNamesAVariable(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		if e.Name == "_" {
+			return false
+		}
+		variable, ok := typeInfo.info.Uses[e].(*types.Var)
+		return ok && !variable.IsField()
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[e]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return false
+		}
+		return blankAssignmentOnlyNamesAVariable(e.X)
+	}
+	return false
+}
+
 // expressionCallsOrReceives reports whether evaluating expr calls a function
 // or receives from a channel, so that evaluating it one more time, or one
 // time less, changes what the program does.
@@ -12456,6 +12486,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if i > 0 {
 								out.WriteString(", ")
 							}
+							if blankAssignmentOnlyNamesAVariable(rhs) {
+								// "_ = err" uses the variable and reads
+								// nothing from it. Reading its value here
+								// would stop the program when it is nil.
+								out.WriteString("&")
+								TranspileExpressionContext(out, rhs, LValue)
+								continue
+							}
 							TranspileExpression(out, rhs)
 						}
 					} else {
@@ -15927,6 +15965,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(wrapperType)
 							out.WriteString(">()).unwrap().0.clone()")
+						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok && isErrorInterfaceType(typeInfo.GetType(caseClause.List[0])) {
+							// An error is a value. The case variable gets a
+							// handle of its own to the same error, so
+							// assigning to it does not change what the
+							// interface value holds.
+							writeErrorHandleCopy(out, func() {
+								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(handleType)
+								out.WriteString(">()).unwrap()")
+							})
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.

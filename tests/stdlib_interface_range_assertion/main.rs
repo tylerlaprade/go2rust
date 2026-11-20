@@ -215,7 +215,7 @@ impl std::fmt::Display for exporter {
 
 impl exporter {
     pub fn accept(&self, obj: Rc<RefCell<Option<types_Object>>>) {
-        let _ = (*obj.borrow().as_ref().unwrap());
+        let _ = &obj;
     }
 }
 
