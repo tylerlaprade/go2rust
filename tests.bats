@@ -3151,6 +3151,14 @@ run_xfail_test() {
     run_test "tests/stdlib_typed_const_index"
 }
 
+@test "stdlib_unknown_call_stays_local" {
+    run_test "tests/stdlib_unknown_call_stays_local"
+}
+
+@test "stdlib_unknown_call_with_goroutine" {
+    run_test "tests/stdlib_unknown_call_with_goroutine"
+}
+
 @test "strconv_itoa_wrapped_call" {
     run_test "tests/strconv_itoa_wrapped_call"
 }
