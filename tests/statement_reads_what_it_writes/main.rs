@@ -172,10 +172,10 @@ fn main() {
     };
     println!("{} {}", format!("{}", "index reads the slice in an increment, a compound assignment and a swap".to_string()), format!("{}", format_slice(&s2)));
 
-    let mut grid = Rc::new(RefCell::new(Some(vec![vec![1, 2], vec![3, 4]])));
-    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = (*grid.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone(); (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    { let __outer_idx = (((*grid.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", (*grid.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone()), format!("{}", (*grid.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone()));
+    let mut grid = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(vec![3, 4])))])));
+    { let __outer_holder = grid.clone(); let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = (*(*grid.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap())[(0) as usize].clone(); let __outer_guard = __outer_holder.borrow(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __rhs; };
+    { let __outer_holder = grid.clone(); let __outer_idx = (((*grid.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize; let __idx = (0) as usize; let __rhs = 5; let __outer_guard = __outer_holder.borrow(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", (*(*grid.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*(*grid.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap())[(0) as usize].clone()));
 
     let mut pts = Rc::new(RefCell::new(Some(vec![Pt { x: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Pt { x: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
     { let __idx = (((*pts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize; let __rhs = (*pts.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); (*pts.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };

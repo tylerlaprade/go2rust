@@ -2051,6 +2051,10 @@ run_xfail_test() {
     run_test "tests/nested_slice_array_append"
 }
 
+@test "nested_slice_backing_alias" {
+    run_test "tests/nested_slice_backing_alias"
+}
+
 @test "nested_slice_element_updates" {
     run_test "tests/nested_slice_element_updates"
 }

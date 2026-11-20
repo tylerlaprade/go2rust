@@ -1066,7 +1066,7 @@ func asVar(n *node) (*Var, bool) {
 	}
 }
 
-func TestAppendExpansionFromBareNestedSliceIndex(t *testing.T) {
+func TestAppendExpansionFromNestedSliceIndexBorrowsSharedHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -1095,11 +1095,9 @@ func flatten(split [][][]Expr) []Expr {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, "let __slice_holder = or[(0) as usize].clone().clone()") {
-		t.Fatalf("append expansion from a bare nested slice index should not treat the source as wrapped:\n%s", rust)
-	}
-	if !strings.Contains(rust, "or[(0) as usize].clone().iter().cloned()") {
-		t.Fatalf("append expansion from a bare nested slice index should extend from the bare Vec:\n%s", rust)
+	if !strings.Contains(rust, "let __slice_holder = (*or.borrow().as_ref().unwrap())[(0) as usize].clone().clone()") ||
+		!strings.Contains(rust, "let __slice_guard = __slice_holder.borrow()") {
+		t.Fatalf("append expansion from a nested slice index should borrow the shared inner slice handle:\n%s", rust)
 	}
 }
 
@@ -2046,7 +2044,7 @@ func pick(i, j int) *arena {
 	}
 }
 
-func TestNestedIndexThroughArrayOfSlicesUsesBareInnerSlice(t *testing.T) {
+func TestNestedIndexThroughArrayOfSlicesUsesSharedInnerHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type holder struct {
@@ -2060,11 +2058,8 @@ func pick(h *holder, i int) uint64 {
 }
 `)
 
-	if strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
-		t.Fatalf("nested index through array-of-slices should not borrow a bare inner Vec as a wrapped slice handle:\n%s", rust)
-	}
-	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }[") {
-		t.Fatalf("nested index through array-of-slices should index the bare inner Vec directly:\n%s", rust)
+	if !strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("nested index through array-of-slices should borrow the shared inner slice handle:\n%s", rust)
 	}
 }
 

@@ -2817,7 +2817,7 @@ func writeTypeParamSliceCompositeLiteral(out *strings.Builder, lit *ast.Composit
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			out.WriteString(zeroValueForCollectionElementType(elemType))
 			continue
 		}
 		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
@@ -7883,7 +7883,7 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			out.WriteString(zeroValueForCollectionElementType(elemType))
 			continue
 		}
 		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
@@ -8153,6 +8153,38 @@ func sliceLiteralNeedsExplicitElemType(elemType types.Type) bool {
 	return elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType))
 }
 
+// writeSliceCollectionElementHandle writes a plain slice stored inside a
+// slice or array as the same wrapped handle used by a top-level slice
+// variable. Go copies a slice header when it is stored in a collection; the
+// copies still share the backing array. Storing the inner Vec directly would
+// instead deep-copy it whenever the outer collection is cloned or indexed.
+func writeSliceCollectionElementHandle(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
+	if elemType == nil {
+		return false
+	}
+	if _, isNamed := types.Unalias(elemType).(*types.Named); isNamed {
+		return false
+	}
+	if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	if _, ok := expr.(*ast.CompositeLit); ok {
+		WriteWrapperPrefix(out)
+		if !writeBareSliceCompositeLiteral(out, expr, elemType) {
+			TranspileExpression(out, expr)
+		}
+		WriteWrapperSuffix(out)
+		return true
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
 	if isGoErrorType(elemType) {
@@ -8173,6 +8205,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 		}
 	}
 	if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
+		return true
+	}
+	if writeSliceCollectionElementHandle(out, expr, elemType) {
 		return true
 	}
 	if writeBareSliceCompositeLiteral(out, expr, elemType) {
@@ -14917,7 +14952,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if elt == nil {
 					if elemType != nil {
-						out.WriteString(zeroValueForTypesType(elemType))
+						out.WriteString(zeroValueForCollectionElementType(elemType))
 					} else {
 						out.WriteString(zeroValueForGoType(arrayType.Elt))
 					}
@@ -15094,7 +15129,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								out.WriteString(", ")
 							}
 							if elt == nil {
-								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+								out.WriteString(zeroValueForCollectionElementType(sliceType.Elem()))
 							} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 								TranspileExpression(out, elt)
 							}

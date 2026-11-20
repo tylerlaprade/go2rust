@@ -83,7 +83,7 @@ func main() {
 		"s[len(s)-1]++":                         "{ let __idx = " + lastIndex + "; let mut __seq_guard = s.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }",
 		"s[len(s)-1] += s[0]":                   "{ let __idx = " + lastIndex + "; let __rhs = (*s.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __seq_guard = s.borrow_mut();",
 		"s[len(s)-1], s[0] = s[0], s[len(s)-1]": "let __go_lhs_index_0 = " + lastIndex + ";",
-		"grid[len(grid)-1][0] = grid[0][1]":     "let __idx = (0) as usize; let __rhs = (*grid.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone(); (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
+		"grid[len(grid)-1][0] = grid[0][1]":     "let __idx = (0) as usize; let __rhs = (*(*grid.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())[(1) as usize].clone(); let __outer_guard = __outer_holder.borrow();",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
@@ -135,12 +135,12 @@ func main() {
 		"the map is held before its key":           "{ let __map_holder = m.clone(); let __key = ",
 		"the held map is locked last":              "let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap();",
 		"a package-level map is written in place":  "let mut __map_guard = totals.borrow_mut();",
-		"an element is indexed before the value":   "{ let __append_idx = (0) as usize; let __append_value = ",
+		"an element is indexed before the value":   "{ let __append_slice = (*grid.borrow().as_ref().unwrap())[(0) as usize].clone(); let __append_value = ",
 		"the index of the target is evaluated too": "{ let _ = ({ let __f_ptr",
 		"a sequence that is a call is held first":  "{ let __seq = { let __f_ptr",
 		"the held sequence is locked last":         "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
 		"a plain sequence is not held":             "; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
-		"a nested sequence that is a call":         "; (*__seq.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
+		"a nested sequence that is a call":         "let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.borrow_mut();",
 		"a call among several targets":             "(*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {

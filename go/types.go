@@ -1443,7 +1443,7 @@ func zeroValueForTypesType(typ types.Type) string {
 	case *types.Slice:
 		return "vec![]"
 	case *types.Array:
-		return arrayZeroValueFromFn(t.Len(), zeroValueForTypesType(t.Elem()))
+		return arrayZeroValueFromFn(t.Len(), zeroValueForCollectionElementType(t.Elem()))
 	case *types.Map:
 		TrackImport("BTreeMap")
 		return "BTreeMap::new()"
@@ -1453,6 +1453,19 @@ func zeroValueForTypesType(typ types.Type) string {
 	default:
 		return "Default::default()"
 	}
+}
+
+func zeroValueForCollectionElementType(typ types.Type) string {
+	if typ != nil {
+		if _, isNamed := types.Unalias(typ).(*types.Named); !isNamed {
+			if _, isSlice := types.Unalias(typ).Underlying().(*types.Slice); isSlice {
+				var out strings.Builder
+				WriteWrappedNone(&out)
+				return out.String()
+			}
+		}
+	}
+	return zeroValueForTypesType(typ)
 }
 
 func zeroValueForNamedOverNamedArray(named *types.Named) (string, bool) {
@@ -1555,6 +1568,13 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		typ := typeInfo.GetType(expr)
+		if typ != nil {
+			if _, isNamed := types.Unalias(typ).(*types.Named); !isNamed {
+				if _, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
+					return GoTypeToRust(expr)
+				}
+			}
+		}
 		if goTypeParamHasOrderedConstraint(typ) {
 			return goTypeToRustBase(expr)
 		}
@@ -1765,6 +1785,11 @@ func goTypesTypeToRust(t types.Type) string {
 }
 
 func goTypesCollectionElemTypeToRust(t types.Type) string {
+	if _, isNamed := types.Unalias(t).(*types.Named); !isNamed {
+		if _, ok := types.Unalias(t).Underlying().(*types.Slice); ok {
+			return goTypesTypeToRustWrapped(t)
+		}
+	}
 	if isFunctionSignatureType(t) {
 		return goTypesTypeToRustWrapped(t)
 	}

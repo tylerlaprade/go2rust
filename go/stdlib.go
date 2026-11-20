@@ -1919,6 +1919,12 @@ func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType t
 
 	arg = unwrapParens(arg)
 	NeedFormatNestedSlice()
+	if ident, ok := arg.(*ast.Ident); ok && isWrappedSliceRangeVar(ident.Name) {
+		out.WriteString("format_nested_slice(")
+		out.WriteString(RustLocalIdent(ident.Name))
+		out.WriteString(")")
+		return true
+	}
 	if ident, ok := arg.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
 		out.WriteString("{ let __rows = ")
 		TranspileExpressionContext(out, arg, LValue)
@@ -5207,6 +5213,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					if writeWrappedRangeValueForExpectedType(out, expr, elemType) {
 						return
 					}
+					if writeSliceCollectionElementHandle(out, expr, elemType) {
+						return
+					}
 					if _, isNamed := types.Unalias(elemType).(*types.Named); !isNamed {
 						if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
 							writeUnwrappedSliceClone(out, expr)
@@ -5317,6 +5326,18 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
 			if !appendCallReturnsBareIndexedSlice(call) {
 				return false
+			}
+			if typeInfo := GetTypeInfo(); typeInfo != nil && indexExpressionResultKeepsHandle(indexExpr, typeInfo) {
+				out.WriteString("{ let __append_slice = ")
+				TranspileExpression(out, indexExpr)
+				out.WriteString("; ")
+				store := writeAppendedValues()
+				out.WriteString("(*__append_slice")
+				WriteBorrowMethod(out, true)
+				out.WriteString(").get_or_insert_with(Vec::new)")
+				out.WriteString(store)
+				out.WriteString("; __append_slice.clone() }")
+				return true
 			}
 			writeMutableTarget := func() {
 				out.WriteString("(*")
@@ -5679,7 +5700,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(call.Args[0]); typ != nil {
 					if sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
-						elementType = zeroValueForTypesType(sliceType.Elem())
+						elementType = zeroValueForCollectionElementType(sliceType.Elem())
 						elementRustType = goTypesCollectionElemTypeToRust(sliceType.Elem())
 					}
 				}
@@ -5758,7 +5779,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	if elemType, ok := goTypeParamSliceConstraintElem(unaliased); ok {
 		WriteWrapperPrefix(out)
-		writeSliceMakeBody(out, call.Args, zeroValueForTypesType(elemType), goTypesCollectionElemTypeToRust(elemType))
+		writeSliceMakeBody(out, call.Args, zeroValueForCollectionElementType(elemType), goTypesCollectionElemTypeToRust(elemType))
 		WriteWrapperSuffix(out)
 		return true
 	}
@@ -5783,7 +5804,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 		WriteWrapperSuffix(out)
 		return true
 	case *types.Slice:
-		elementType := zeroValueForTypesType(ut.Elem())
+		elementType := zeroValueForCollectionElementType(ut.Elem())
 		WriteWrapperPrefix(out)
 		if namedName != "" {
 			out.WriteString(namedName)
@@ -6727,11 +6748,29 @@ func generateNestedSliceFormatter(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`fn format_nested_slice<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+		out.WriteString(`trait GoNestedSliceRow {
+    fn go_format_nested_row(&self) -> String;
+}
+
+impl<T: Display> GoNestedSliceRow for Vec<T> {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display, const N: usize> GoNestedSliceRow for [T; N] {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display> GoNestedSliceRow for Arc<Mutex<Option<Vec<T>>>> {
+    fn go_format_nested_row(&self) -> String {
+        let guard = self.lock().unwrap();
+        match guard.as_ref() { Some(row) => format_slice_values(row.as_slice()), None => "[]".to_string() }
+    }
+}
+
+fn format_nested_slice<C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[Inner]>,
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -6744,11 +6783,29 @@ where
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`fn format_nested_slice<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+		out.WriteString(`trait GoNestedSliceRow {
+    fn go_format_nested_row(&self) -> String;
+}
+
+impl<T: Display> GoNestedSliceRow for Vec<T> {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display, const N: usize> GoNestedSliceRow for [T; N] {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display> GoNestedSliceRow for Rc<RefCell<Option<Vec<T>>>> {
+    fn go_format_nested_row(&self) -> String {
+        let guard = self.borrow();
+        match guard.as_ref() { Some(row) => format_slice_values(row.as_slice()), None => "[]".to_string() }
+    }
+}
+
+fn format_nested_slice<C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
     C: AsRef<[Inner]>,
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
@@ -6759,12 +6816,11 @@ where
 }
 `)
 	}
-	out.WriteString(`fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+	out.WriteString(`fn format_nested_slice_values<Inner>(slice: &[Inner]) -> String
 where
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
-    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    let formatted: Vec<String> = slice.iter().map(|inner| inner.go_format_nested_row()).collect();
     format!("[{}]", formatted.join(" "))
 }
 `)

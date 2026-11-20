@@ -66,17 +66,17 @@ impl std::fmt::Display for source {
 }
 
 
-pub fn flatten(groups: Rc<RefCell<Option<Vec<Vec<String>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+pub fn flatten(groups: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Vec<String>>>>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
     let mut out: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     { let __range_holder = groups.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
-        { let new_val = { let __append_target = out.clone(); let __append_values: Vec<_> = group.iter().cloned().collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; out = new_val; };
+        { let new_val = { let __append_target = out.clone(); let __append_values: Vec<_> = { let __slice_holder = group.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values); __append_target.clone() }; out = new_val; };
     } }
     return out.clone();
 }
 
 fn main() {
     let mut src: Rc<RefCell<Option<source>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let mut groups = Rc::new(RefCell::new(Some(vec![{ let __slice_holder = (*src.borrow().as_ref().unwrap()).files.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, vec!["go".to_string()]])));
-    println!("{}", format!("{}", (*groups.borrow().as_ref().unwrap())[(0) as usize].clone().len()));
+    let mut groups = Rc::new(RefCell::new(Some(vec![(*src.borrow().as_ref().unwrap()).files.clone(), Rc::new(RefCell::new(Some(vec!["go".to_string()])))])));
+    println!("{}", format!("{}", (*(*groups.borrow().as_ref().unwrap())[(0) as usize].clone().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*flatten(groups.clone()).borrow()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
 }

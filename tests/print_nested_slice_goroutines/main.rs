@@ -43,11 +43,29 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+trait GoNestedSliceRow {
+    fn go_format_nested_row(&self) -> String;
+}
+
+impl<T: Display> GoNestedSliceRow for Vec<T> {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display, const N: usize> GoNestedSliceRow for [T; N] {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display> GoNestedSliceRow for Arc<Mutex<Option<Vec<T>>>> {
+    fn go_format_nested_row(&self) -> String {
+        let guard = self.lock().unwrap();
+        match guard.as_ref() { Some(row) => format_slice_values(row.as_slice()), None => "[]".to_string() }
+    }
+}
+
+fn format_nested_slice<C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[Inner]>,
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -56,12 +74,11 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+fn format_nested_slice_values<Inner>(slice: &[Inner]) -> String
 where
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
-    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    let formatted: Vec<String> = slice.iter().map(|inner| inner.go_format_nested_row()).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -214,7 +231,7 @@ impl<T> Iterator for GoChannel<T> {
 
 #[derive(Debug, Clone, Default)]
 pub struct board {
-    pub rows: Arc<Mutex<Option<Vec<Vec<i32>>>>>,
+    pub rows: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Vec<i32>>>>>>>>,
 }
 
 impl board {
@@ -234,7 +251,7 @@ impl std::fmt::Display for board {
 }
 
 
-pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Vec<i32>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<Mutex<Option<Vec<i32>>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
@@ -250,21 +267,21 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut grid = Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4], Vec::new()])));
+    let mut grid = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2]))), Arc::new(Mutex::new(Some(vec![3, 4]))), Arc::new(Mutex::new(None))])));
     println!("{}", format!("{}", format_nested_slice(&grid)));
-    println!("{}", format!("{}", format_nested_slice(&Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string()], vec!["c".to_string()]]))))));
+    println!("{}", format!("{}", format_nested_slice(&Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()]))), Arc::new(Mutex::new(Some(vec!["c".to_string()])))]))))));
 
-    let mut empty: Arc<Mutex<Option<Vec<Vec<i32>>>>> = Arc::new(Mutex::new(None));
+    let mut empty: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Vec<i32>>>>>>>> = Arc::new(Mutex::new(None));
     println!("{}", format!("{}", format_nested_slice(&empty)));
 
-    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![5], vec![6, 7]]])));
-    println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __formatted }), format!("{}", { let __formatted = format_nested_slice_values(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __formatted }));
+    let mut cube = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![5]))), Arc::new(Mutex::new(Some(vec![6, 7])))])))])));
+    println!("{} {}", format!("{}", format_nested_slice(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })), format!("{}", format_nested_slice(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
     { let __range_holder = cube.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for layer in __range_values.iter() {
-        println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&layer); __formatted }));
+        println!("{}", format!("{}", format_nested_slice(layer)));
     } }
-    println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Arc::new(Mutex::new(Some(vec![vec![8]]))), ..Default::default() }.rows.lock().unwrap().as_ref().unwrap()).clone()); __formatted }));
+    println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![8])))]))), ..Default::default() }.rows.lock().unwrap().as_ref().unwrap()).clone()); __formatted }));
     println!("{} {}", format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }), format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }));
-    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![vec![9]]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *global.lock().unwrap() = new_val; };
+    { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![9])))]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *global.lock().unwrap() = new_val; };
     println!("{} {}", format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }), format!("{}", { let __rows = global.lock().unwrap(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }));
 }
 

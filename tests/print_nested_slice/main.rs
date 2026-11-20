@@ -43,11 +43,29 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+trait GoNestedSliceRow {
+    fn go_format_nested_row(&self) -> String;
+}
+
+impl<T: Display> GoNestedSliceRow for Vec<T> {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display, const N: usize> GoNestedSliceRow for [T; N] {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display> GoNestedSliceRow for Rc<RefCell<Option<Vec<T>>>> {
+    fn go_format_nested_row(&self) -> String {
+        let guard = self.borrow();
+        match guard.as_ref() { Some(row) => format_slice_values(row.as_slice()), None => "[]".to_string() }
+    }
+}
+
+fn format_nested_slice<C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
     C: AsRef<[Inner]>,
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
@@ -56,18 +74,17 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+fn format_nested_slice_values<Inner>(slice: &[Inner]) -> String
 where
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
-    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    let formatted: Vec<String> = slice.iter().map(|inner| inner.go_format_nested_row()).collect();
     format!("[{}]", formatted.join(" "))
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct board {
-    pub rows: Rc<RefCell<Option<Vec<Vec<i32>>>>>,
+    pub rows: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Vec<i32>>>>>>>>,
 }
 
 impl board {
@@ -106,7 +123,7 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static global: GoGlobal<Vec<Vec<i32>>> = GoGlobal::new();
+pub(crate) static global: GoGlobal<Vec<Rc<RefCell<Option<Vec<i32>>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -116,21 +133,21 @@ fn __go_init_globals() {
 
 fn main() {
     __go_init_all();
-    let mut grid = Rc::new(RefCell::new(Some(vec![vec![1, 2], vec![3, 4], Vec::new()])));
+    let mut grid = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![1, 2]))), Rc::new(RefCell::new(Some(vec![3, 4]))), Rc::new(RefCell::new(None))])));
     println!("{}", format!("{}", format_nested_slice(&grid)));
-    println!("{}", format!("{}", format_nested_slice(&Rc::new(RefCell::new(Some(vec![vec!["a".to_string(), "b".to_string()], vec!["c".to_string()]]))))));
+    println!("{}", format!("{}", format_nested_slice(&Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))), Rc::new(RefCell::new(Some(vec!["c".to_string()])))]))))));
 
-    let mut empty: Rc<RefCell<Option<Vec<Vec<i32>>>>> = Rc::new(RefCell::new(None));
+    let mut empty: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Vec<i32>>>>>>>> = Rc::new(RefCell::new(None));
     println!("{}", format!("{}", format_nested_slice(&empty)));
 
-    let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![5], vec![6, 7]]])));
-    println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone()); __formatted }), format!("{}", { let __formatted = format_nested_slice_values(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone()); __formatted }));
+    let mut cube = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![5]))), Rc::new(RefCell::new(Some(vec![6, 7])))])))])));
+    println!("{} {}", format!("{}", format_nested_slice(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone())), format!("{}", format_nested_slice(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone())));
     { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for layer in __range_values.iter() {
-        println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&layer); __formatted }));
+        println!("{}", format!("{}", format_nested_slice(layer)));
     } }
-    println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Rc::new(RefCell::new(Some(vec![vec![8]]))), ..Default::default() }.rows.borrow().as_ref().unwrap()).clone()); __formatted }));
+    println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![8])))]))), ..Default::default() }.rows.borrow().as_ref().unwrap()).clone()); __formatted }));
     println!("{} {}", format!("{}", { let __rows = global.borrow(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }), format!("{}", { let __rows = global.borrow(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }));
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(vec![vec![9]]))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *global.borrow_mut() = new_val; };
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(vec![9])))]))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *global.borrow_mut() = new_val; };
     println!("{} {}", format!("{}", { let __rows = global.borrow(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }), format!("{}", { let __rows = global.borrow(); match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => "[]".to_string() } }));
 }
 

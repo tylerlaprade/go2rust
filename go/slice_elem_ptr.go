@@ -7076,6 +7076,15 @@ func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *as
 	if !ok {
 		return false
 	}
+	if unary, ok := unwrapParens(arg).(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr); ok {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil && collectionElementTypeKeepsHandle(typeInfo.GetType(indexExpr)) {
+				TranspileExpression(out, indexExpr)
+				return true
+			}
+		}
+	}
 	if elemRustType, ok := sliceElemPtrAddressElemRustType(arg); ok {
 		if elemRustType != goTypesTypeToRust(ptr.Elem()) {
 			return false

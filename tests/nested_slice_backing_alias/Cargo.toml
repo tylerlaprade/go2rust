@@ -1,0 +1,8 @@
+[package]
+name = "nested_slice_backing_alias"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nested_slice_backing_alias"
+path = "main.rs"

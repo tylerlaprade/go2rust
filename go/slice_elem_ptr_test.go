@@ -4562,9 +4562,9 @@ func use(chunks [][]int) int {
 		strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new") {
 		t.Fatalf("pointer parameter should not receive a cloned direct slice element pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "fn dump(values: GoPtr<Vec<i32>>)") ||
-		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
-		t.Fatalf("pointer parameter should receive a GoPtr slice element handle:\n%s", rust)
+	if !strings.Contains(rust, "fn dump(values: Rc<RefCell<Option<Vec<i32>>>>)") ||
+		!strings.Contains(rust, "dump((*chunks.borrow().as_ref().unwrap())[(0) as usize].clone())") {
+		t.Fatalf("read-only pointer parameter should receive the stored inner slice handle:\n%s", rust)
 	}
 }
 
@@ -6885,11 +6885,11 @@ func use(chunks [][]int) int {
 		strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new") {
 		t.Fatalf("read-only pointer parameter passed through a function literal should not receive a cloned pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn dump(values: GoPtr<Vec<i32>>) -> i32") ||
-		!strings.Contains(rust, "Box<dyn FnMut(GoPtr<Vec<i32>>) -> i32>") ||
+	if !strings.Contains(rust, "pub fn dump(values: Rc<RefCell<Option<Vec<i32>>>>) -> i32") ||
+		!strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<Vec<i32>>>>) -> i32>") ||
 		!strings.Contains(rust, "(*__f)(values.clone())") ||
-		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
-		t.Fatalf("read-only pointer parameter passed through a function literal should preserve GoPtr handles:\n%s", rust)
+		!strings.Contains(rust, "dump((*chunks.borrow().as_ref().unwrap())[(0) as usize].clone())") {
+		t.Fatalf("read-only pointer parameter passed through a function literal should preserve the stored inner handle:\n%s", rust)
 	}
 }
 

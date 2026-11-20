@@ -75,9 +75,9 @@ func main() {
 		t.Fatalf("package global slice literal should not emit one nested wrapper expression:\n%s", rust)
 	}
 	for _, want := range []string{
-		"let mut __go_slice = Vec::<Vec<rank>>::with_capacity(3);",
-		"__go_slice.push(Vec::<rank>::new());",
-		"__go_slice.push(vec![rank(",
+		"let mut __go_slice = Vec::<Arc<Mutex<Option<Vec<rank>>>>>::with_capacity(3);",
+		"__go_slice.push(Arc::new(Mutex::new(Some(Vec::<rank>::new()))));",
+		"__go_slice.push(Arc::new(Mutex::new(Some(vec![rank(",
 		"*order.lock().unwrap() = Some(__go_slice);",
 	} {
 		if !strings.Contains(rust, want) {

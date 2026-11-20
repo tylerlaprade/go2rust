@@ -17,17 +17,17 @@ func update(a [][]int, words []string) {
 `)
 
 	for _, want := range []string{
-		"let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs;",
-		"let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + 1;",
-		"(*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;",
+		"let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __outer_guard = __outer_holder.borrow(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone();",
+		"let mut __seq_guard = __nested_holder_0.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1;",
+		"let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_0_0].clone(); drop(__outer_guard); (*__inner_holder.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;",
 		"__seq[__idx] = __seq[__idx].clone() + &__rhs;",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("nested slice element update should lock the outer slice and index down, missing %q:\n%s", want, rust)
 		}
 	}
-	if strings.Contains(rust, "[(0) as usize].clone().borrow_mut()") || strings.Contains(rust, "[(1) as usize].clone().clone();") {
-		t.Fatalf("nested slice element update should not lock a copy of the inner slice:\n%s", rust)
+	if !strings.Contains(rust, "let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone()") {
+		t.Fatalf("nested slice element update should clone the shared inner handle before locking it:\n%s", rust)
 	}
 }
 
@@ -39,8 +39,9 @@ func set(cube [][][]int) {
 }
 `)
 
-	if !strings.Contains(rust, "(*cube.borrow_mut().as_mut().unwrap())[__outer_idx][__outer_idx_1][__idx] = __rhs;") {
-		t.Fatalf("three-level slice assignment should index every level under one lock:\n%s", rust)
+	if !strings.Contains(rust, "let __nested_holder_1 = __nested_guard_0.as_ref().unwrap()[__outer_idx_1].clone()") ||
+		!strings.Contains(rust, "let mut __seq_guard = __nested_holder_1.borrow_mut()") {
+		t.Fatalf("three-level slice assignment should traverse each shared inner handle:\n%s", rust)
 	}
 }
 

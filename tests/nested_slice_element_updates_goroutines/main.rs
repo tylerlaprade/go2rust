@@ -71,11 +71,29 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+trait GoNestedSliceRow {
+    fn go_format_nested_row(&self) -> String;
+}
+
+impl<T: Display> GoNestedSliceRow for Vec<T> {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display, const N: usize> GoNestedSliceRow for [T; N] {
+    fn go_format_nested_row(&self) -> String { format_slice_values(self.as_slice()) }
+}
+
+impl<T: Display> GoNestedSliceRow for Arc<Mutex<Option<Vec<T>>>> {
+    fn go_format_nested_row(&self) -> String {
+        let guard = self.lock().unwrap();
+        match guard.as_ref() { Some(row) => format_slice_values(row.as_slice()), None => "[]".to_string() }
+    }
+}
+
+fn format_nested_slice<C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[Inner]>,
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -84,12 +102,11 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+fn format_nested_slice_values<Inner>(slice: &[Inner]) -> String
 where
-    Inner: AsRef<[T]>,
-    T: Display,
+    Inner: GoNestedSliceRow,
 {
-    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    let formatted: Vec<String> = slice.iter().map(|inner| inner.go_format_nested_row()).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -241,12 +258,12 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Grid(pub Arc<Mutex<Option<Vec<Vec<i32>>>>>);
+pub struct Grid(pub Arc<Mutex<Option<Vec<Arc<Mutex<Option<Vec<i32>>>>>>>>);
 
 
 #[derive(Debug, Clone, Default)]
 pub struct Sheet {
-    pub cells: Arc<Mutex<Option<Vec<Vec<f64>>>>>,
+    pub cells: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Vec<f64>>>>>>>>,
     pub names: Arc<Mutex<Option<Vec<String>>>>,
 }
 
@@ -272,7 +289,7 @@ impl std::fmt::Display for Sheet {
 
 impl Sheet {
     pub fn bump(&mut self, i: Arc<Mutex<Option<i32>>>) {
-        { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = 0.5; let __seq_holder = self.cells.clone(); let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
+        { let __outer_holder = self.cells.clone(); let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = 0.5; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
         { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = "!".to_string(); let __seq_holder = self.names.clone(); let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx].clone() + &__rhs; };
     }
 }
@@ -283,8 +300,8 @@ fn main() {
         started_thread.send(true);;;
     });
     started.recv().unwrap_or_default();
-    let mut a = Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4]])));
-    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let mut __seq_guard = a.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs; };
+    let mut a = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2]))), Arc::new(Mutex::new(Some(vec![3, 4])))])));
+    { let __outer_holder = a.clone(); let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     {
         let __go_lhs_sequence_0 = a.clone();
         let __go_lhs_outer_index_0_0 = (1) as usize;
@@ -292,15 +309,15 @@ fn main() {
         let __go_lhs_sequence_1 = a.clone();
         let __go_lhs_outer_index_1_0 = (1) as usize;
         let __go_lhs_index_1 = (1) as usize;
-        let __tmp_0 = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(1) as usize].clone();
-        let __tmp_1 = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone();
-        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;
-        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_1_0][__go_lhs_index_1] = __tmp_1;
+        let __tmp_0 = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+        let __tmp_1 = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        { let __outer_holder = __go_lhs_sequence_0.clone(); let __outer_guard = __outer_holder.lock().unwrap(); let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_0_0].clone(); drop(__outer_guard); (*__inner_holder.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0; }
+        { let __outer_holder = __go_lhs_sequence_1.clone(); let __outer_guard = __outer_holder.lock().unwrap(); let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_1_0].clone(); drop(__outer_guard); (*__inner_holder.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1; }
     };
-    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let mut __seq_guard = a.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + 1; }
-    { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = 2; let mut __seq_guard = a.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] - __rhs; };
-    let mut g = Arc::new(Mutex::new(Some(Grid(Arc::new(Mutex::new(Some(vec![vec![1, 2], vec![3, 4]])))))));
-    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 7; let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] * __rhs; };
+    { let __outer_holder = a.clone(); let __outer_idx = (0) as usize; let __idx = (0) as usize; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
+    { let __outer_holder = a.clone(); let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = 2; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] - __rhs; };
+    let mut g = Arc::new(Mutex::new(Some(Grid(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2]))), Arc::new(Mutex::new(Some(vec![3, 4])))])))))));
+    { let __outer_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 7; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] * __rhs; };
     {
         let __go_lhs_sequence_0 = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.clone();
         let __go_lhs_outer_index_0_0 = (1) as usize;
@@ -308,19 +325,19 @@ fn main() {
         let __go_lhs_sequence_1 = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.clone();
         let __go_lhs_outer_index_1_0 = (1) as usize;
         let __go_lhs_index_1 = (1) as usize;
-        let __tmp_0 = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }[(1) as usize].clone();
-        let __tmp_1 = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }[(0) as usize].clone();
-        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;
-        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_1_0][__go_lhs_index_1] = __tmp_1;
+        let __tmp_0 = { let __seq = { let __seq_holder = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+        let __tmp_1 = { let __seq = { let __seq_holder = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        { let __outer_holder = __go_lhs_sequence_0.clone(); let __outer_guard = __outer_holder.lock().unwrap(); let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_0_0].clone(); drop(__outer_guard); (*__inner_holder.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0; }
+        { let __outer_holder = __go_lhs_sequence_1.clone(); let __outer_guard = __outer_holder.lock().unwrap(); let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_1_0].clone(); drop(__outer_guard); (*__inner_holder.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1; }
     };
-    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] - 1; }
+    { let __outer_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (0) as usize; let __idx = (0) as usize; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] - 1; }
     println!("{} {}", format!("{}", format_nested_slice(&a)), format!("{}", format_nested_slice(&{ let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
 
-    let mut cube = Arc::new(Mutex::new(Some(vec![vec![vec![1, 2], vec![3]], vec![vec![4]]])));
-    { let __outer_idx = (0) as usize; let __outer_idx_1 = (1) as usize; let __idx = (0) as usize; let __rhs = 30; (*cube.lock().unwrap().as_mut().unwrap())[__outer_idx][__outer_idx_1][__idx] = __rhs; };
-    { let __outer_idx = (1) as usize; let __outer_idx_1 = (0) as usize; let __idx = (0) as usize; let __rhs = 5; let mut __seq_guard = cube.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx][__outer_idx_1]; __seq[__idx] = __seq[__idx] * __rhs; };
-    { let __outer_idx = (0) as usize; let __outer_idx_1 = (0) as usize; let __idx = (1) as usize; let mut __seq_guard = cube.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx][__outer_idx_1]; __seq[__idx] = __seq[__idx] - 1; }
-    println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __formatted }), format!("{}", { let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone()[(0) as usize].clone()));
+    let mut cube = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1, 2]))), Arc::new(Mutex::new(Some(vec![3])))]))), Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![4])))])))])));
+    { let __outer_holder = cube.clone(); let __outer_idx = (0) as usize; let __outer_idx_1 = (1) as usize; let __idx = (0) as usize; let __rhs = 30; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let __nested_guard_0 = __nested_holder_0.lock().unwrap(); let __nested_holder_1 = __nested_guard_0.as_ref().unwrap()[__outer_idx_1].clone(); drop(__nested_guard_0); let mut __seq_guard = __nested_holder_1.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __rhs; };
+    { let __outer_holder = cube.clone(); let __outer_idx = (1) as usize; let __outer_idx_1 = (0) as usize; let __idx = (0) as usize; let __rhs = 5; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let __nested_guard_0 = __nested_holder_0.lock().unwrap(); let __nested_holder_1 = __nested_guard_0.as_ref().unwrap()[__outer_idx_1].clone(); drop(__nested_guard_0); let mut __seq_guard = __nested_holder_1.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] * __rhs; };
+    { let __outer_holder = cube.clone(); let __outer_idx = (0) as usize; let __outer_idx_1 = (0) as usize; let __idx = (1) as usize; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let __nested_guard_0 = __nested_holder_0.lock().unwrap(); let __nested_holder_1 = __nested_guard_0.as_ref().unwrap()[__outer_idx_1].clone(); drop(__nested_guard_0); let mut __seq_guard = __nested_holder_1.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] - 1; }
+    println!("{} {}", format!("{}", format_nested_slice(&{ let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })), format!("{}", { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = cube.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
 
     let mut board: Arc<Mutex<Option<[[String; 3]; 3]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 3, _>(|_| std::array::from_fn::<_, 3, _>(|_| String::new())))));
     let mut i = Arc::new(Mutex::new(Some(0)));
@@ -345,28 +362,28 @@ fn main() {
     }
     println!("{}", format!("{}", format_nested_slice(&grid)));
 
-    let mut paths = Arc::new(Mutex::new(Some(vec![vec![]; (4) as usize])));
+    let mut paths = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None)); (4) as usize])));
     for i in 0..(({ let __range_holder = paths.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        { let __idx = (i) as usize; let __rhs = (*Arc::new(Mutex::new(Some(vec![0; (4) as usize]))).lock().unwrap().as_ref().unwrap()).clone(); (*paths.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-        { let __outer_idx = (i) as usize; let __idx = (0) as usize; let __rhs = 1; (*paths.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+        { let __idx = (i) as usize; let __rhs = Arc::new(Mutex::new(Some(vec![0; (4) as usize]))).clone(); (*paths.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __outer_holder = paths.clone(); let __outer_idx = (i) as usize; let __idx = (0) as usize; let __rhs = 1; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __rhs; };
     }
     let mut i = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
-        { let __outer_idx = (0) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = 1; (*paths.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+        { let __outer_holder = paths.clone(); let __outer_idx = (0) as usize; let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = 1; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __rhs; };
         let mut j = Arc::new(Mutex::new(Some(1)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
-        { let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = {
-            let __tmp_x = { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone();
-            let __tmp_y = { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone();
+        { let __outer_holder = paths.clone(); let __outer_idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __idx = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = {
+            let __tmp_x = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __tmp_y = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
             __tmp_x + __tmp_y
-        }; (*paths.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+        }; let __outer_guard = __outer_holder.lock().unwrap(); let __nested_holder_0 = __outer_guard.as_ref().unwrap()[__outer_idx].clone(); drop(__outer_guard); let mut __seq_guard = __nested_holder_0.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __rhs; };
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    println!("{} {}", format!("{}", { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() }[(3) as usize].clone()), format!("{}", format_nested_slice(&paths)));
+    println!("{} {}", format!("{}", { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = paths.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() }), format!("{}", format_nested_slice(&paths)));
 
-    let mut s = Arc::new(Mutex::new(Some(Sheet { cells: Arc::new(Mutex::new(Some(vec![vec![1.0, 2.0], vec![3.0, 4.0]]))), names: Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()]))), ..Default::default() })));
+    let mut s = Arc::new(Mutex::new(Some(Sheet { cells: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(vec![1.0, 2.0]))), Arc::new(Mutex::new(Some(vec![3.0, 4.0])))]))), names: Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()]))), ..Default::default() })));
     (*s.lock().unwrap().as_mut().unwrap()).bump(Arc::new(Mutex::new(Some(0))));
     (*s.lock().unwrap().as_mut().unwrap()).bump(Arc::new(Mutex::new(Some(1))));
     {
@@ -376,10 +393,10 @@ fn main() {
         let __go_lhs_sequence_1 = (*s.lock().unwrap().as_ref().unwrap()).cells.clone();
         let __go_lhs_outer_index_1_0 = (1) as usize;
         let __go_lhs_index_1 = (1) as usize;
-        let __tmp_0 = { let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(1) as usize].clone();
-        let __tmp_1 = { let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone();
-        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;
-        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_1_0][__go_lhs_index_1] = __tmp_1;
+        let __tmp_0 = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+        let __tmp_1 = { let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        { let __outer_holder = __go_lhs_sequence_0.clone(); let __outer_guard = __outer_holder.lock().unwrap(); let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_0_0].clone(); drop(__outer_guard); (*__inner_holder.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0; }
+        { let __outer_holder = __go_lhs_sequence_1.clone(); let __outer_guard = __outer_holder.lock().unwrap(); let __inner_holder = __outer_guard.as_ref().unwrap()[__go_lhs_outer_index_1_0].clone(); drop(__outer_guard); (*__inner_holder.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1; }
     };
     let mut words = Arc::new(Mutex::new(Some(vec!["x".to_string(), "y".to_string()])));
     { let __idx = (0) as usize; let __rhs = "z".to_string(); let mut __seq_guard = words.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx].clone() + &__rhs; };

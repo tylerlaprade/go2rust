@@ -1,8 +1,7 @@
 package main
 
-// append(stack, nil) where stack is [][]int: the inner []int element is stored
-// as a raw Vec, so a nil element is the zero value (empty Vec), not a wrapped
-// None to deref.
+// append(stack, nil) where stack is [][]int: the inner []int element is a
+// nilable shared handle, and ranging over the nil row behaves as an empty slice.
 
 func main() {
 	var stack [][]int
