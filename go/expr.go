@@ -8387,6 +8387,12 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	out.WriteString("Box::new(")
+	if writeNamedIntegerConstNewtypeValue(out, expr) {
+		// A constant goes into the interface as a value of its type.
+		out.WriteString(") as ")
+		out.WriteString(rustAnyTraitObject())
+		return
+	}
 	if call, ok := expr.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if _, ok := typedNilConversionType(call); ok {

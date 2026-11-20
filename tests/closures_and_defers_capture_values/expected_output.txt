@@ -1,0 +1,9 @@
+0 1 4 
+0a 1aa 2aaa 
+total: 6
+steps: 4
+x is 2
+closure sees: second
+arg: first
+1 2 3 deferred x: 1
+

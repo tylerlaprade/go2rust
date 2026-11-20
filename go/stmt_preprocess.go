@@ -410,9 +410,25 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 		}
 		out.WriteString(RustLocalIdent(cloneName))
 		out.WriteString(" = ")
+		if !capturesReceiver && !assignedCaptured[varName] && closuresCaptureLoopVariableValue(info.Closures, varName) {
+			// Each iteration of a three-clause loop has its own variable.
+			writeCapturedValueCopy(out, RustLocalIdent(sourceName))
+			out.WriteString("; ")
+			continue
+		}
 		writeReceiverCaptureSourceValue(out, sourceName, capturesReceiver)
 		out.WriteString(".clone(); ")
 	}
+}
+
+func closuresCaptureLoopVariableValue(closures []*ast.FuncLit, name string) bool {
+	nodes := make([]ast.Node, 0, len(closures))
+	for _, closure := range closures {
+		if closure != nil && closure.Body != nil {
+			nodes = append(nodes, closure.Body)
+		}
+	}
+	return capturedNameCopiesValue(name, nodes, nil, nil)
 }
 
 func (sp *StatementPreprocessor) assignedCapturedVars(info *CaptureInfo) map[string]bool {

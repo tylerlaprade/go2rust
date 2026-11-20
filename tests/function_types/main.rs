@@ -216,10 +216,14 @@ fn main() {
         let (mut i, mut j) = (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(((*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)))));
     while (*i.borrow().as_ref().unwrap()) < (*j.borrow().as_ref().unwrap()) {
         {
+            let __go_lhs_sequence_0 = runes.clone();
+            let __go_lhs_index_0 = ((*i.borrow().as_ref().unwrap())) as usize;
+            let __go_lhs_sequence_1 = runes.clone();
+            let __go_lhs_index_1 = ((*j.borrow().as_ref().unwrap())) as usize;
             let __tmp_0 = (*runes.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone();
             let __tmp_1 = (*runes.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone();
-            { let __idx = ((*i.borrow().as_ref().unwrap())) as usize; (*runes.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; }
-            { let __idx = ((*j.borrow().as_ref().unwrap())) as usize; (*runes.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; }
+            (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
+            (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
         };
         {
             let __tmp_0 = (*i.borrow().as_ref().unwrap()) + 1;

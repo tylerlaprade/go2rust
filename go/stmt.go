@@ -1067,7 +1067,34 @@ func compositeLiteralNeedsLocalValueWrapper(lit *ast.CompositeLit) (bool, bool) 
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
 // Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
 // the wrapper off a literal/expression.
+// writeNamedIntegerConstNewtypeValue writes a constant of a type the
+// package defines over an integer, `Monday` with `type Weekday int`, as a
+// value of that type. Its Rust constant is the integer.
+func writeNamedIntegerConstNewtypeValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isConstantExpression(expr) {
+		return false
+	}
+	// A conversion, Weekday(2), is written as a Weekday already.
+	if _, isCall := unwrapParens(expr).(*ast.CallExpr); isCall {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if !isNamedIntegerType(typ) || !anyFormatTypeIsLocalNamedBasic(typ) {
+		return false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return false
+	}
+	return writeExpressionForExpectedTypesType(out, expr, named)
+}
+
 func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
+	// A constant goes into the interface as a value of its type.
+	if writeNamedIntegerConstNewtypeValue(out, expr) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		switch ident.Name {
 		case "nil", "true", "false":
@@ -1748,8 +1775,16 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
 	// handle is then taken first and held, not locked.
 	holdsSequence := expressionCallsOrReceives(innerIndex.X)
+	// A named slice ("type Matrix [][]float64") keeps its elements in the
+	// handle inside the newtype.
+	_, _, namedSequence := namedSliceTypeForExpr(innerIndex.X)
 	out.WriteString("{ ")
-	if holdsSequence {
+	if namedSequence {
+		out.WriteString("let __seq = ")
+		writeNamedSliceInnerHandleClone(out, innerIndex.X)
+		out.WriteString("; ")
+		holdsSequence = true
+	} else if holdsSequence {
 		out.WriteString("let __seq = ")
 		TranspileExpressionContext(out, innerIndex.X, LValue)
 		out.WriteString(".clone(); ")
@@ -15725,17 +15760,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString(cloneName)
 			out.WriteString(" = ")
+			source := varName
 			if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[varName]; exists {
-					out.WriteString(RustLocalIdent(renamed))
-				} else {
-					out.WriteString(varName)
+					source = RustLocalIdent(renamed)
 				}
 			} else if currentReceiver != "" && varName == currentReceiver {
-				out.WriteString(currentReceiverRustName())
-			} else {
-				out.WriteString(varName)
+				source = currentReceiverRustName()
 			}
+			if !assignedCaptured[varName] && !(currentReceiver != "" && varName == currentReceiver) && deferCapturedNameCopiesValue(s.Call, varName) {
+				// The value the variable has when the defer statement runs.
+				writeCapturedValueCopy(out, source)
+				out.WriteString("; ")
+				continue
+			}
+			out.WriteString(source)
 			out.WriteString(".clone(); ")
 		}
 
@@ -16742,6 +16781,103 @@ func channelAssignmentRHSNeedsClone(rhs ast.Expr) bool {
 // sharing it.
 var loopVariableObjects = map[types.Object]bool{}
 
+// forClauseLoopVariableObjects holds the variables the init statement of a
+// three-clause for loop declares. Since Go 1.22 each iteration has its own
+// copy; the generated loop has one cell for the whole loop.
+var forClauseLoopVariableObjects = map[types.Object]bool{}
+
+// capturedNameCopiesValue reports whether a closure or a deferred call made
+// in nodes should capture a copy of the value of the variable name rather
+// than its cell. It does for a three-clause loop variable, which is a
+// variable of its own in each iteration (Go 1.22), and, when argsOnly is
+// set, for a variable named only in the arguments of a deferred call, which
+// Go evaluates when the defer statement runs. Only numbers, strings, bools
+// and types defined over them are copied; their Rust values clone as values.
+func capturedNameCopiesValue(name string, loopVarNodes []ast.Node, argNodes []ast.Node, otherNodes []ast.Node) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || name == "" {
+		return false
+	}
+	find := func(nodes []ast.Node) types.Object {
+		var found types.Object
+		for _, node := range nodes {
+			if node == nil {
+				continue
+			}
+			ast.Inspect(node, func(n ast.Node) bool {
+				if found != nil {
+					return false
+				}
+				if ident, ok := n.(*ast.Ident); ok && ident.Name == name {
+					if obj, ok := typeInfo.info.Uses[ident].(*types.Var); ok {
+						found = obj
+					}
+				}
+				return true
+			})
+		}
+		return found
+	}
+	scalar := func(obj types.Object) bool {
+		basic, ok := types.Unalias(obj.Type()).Underlying().(*types.Basic)
+		return ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0
+	}
+	if obj := find(loopVarNodes); obj != nil && forClauseLoopVariableObjects[obj] && scalar(obj) {
+		return true
+	}
+	if obj := find(argNodes); obj != nil && find(otherNodes) == nil && scalar(obj) {
+		return true
+	}
+	return false
+}
+
+// writeCapturedValueCopy writes a new cell holding a copy of what the cell
+// named source holds.
+func writeCapturedValueCopy(out *strings.Builder, source string) {
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*")
+		out.WriteString(source)
+		out.WriteString(".lock().unwrap()).clone()))")
+		return
+	}
+	out.WriteString("Rc::new(RefCell::new((*")
+	out.WriteString(source)
+	out.WriteString(".borrow()).clone()))")
+}
+
+func deferCapturedNameCopiesValue(call *ast.CallExpr, name string) bool {
+	if call == nil {
+		return false
+	}
+	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
+		nodes := []ast.Node{funcLit.Body}
+		for _, arg := range call.Args {
+			nodes = append(nodes, arg)
+		}
+		return capturedNameCopiesValue(name, nodes, nil, nil)
+	}
+	args := make([]ast.Node, 0, len(call.Args))
+	addressTaken := false
+	for _, arg := range call.Args {
+		args = append(args, arg)
+		ast.Inspect(arg, func(n ast.Node) bool {
+			if unary, ok := n.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+				if ident, ok := unwrapParens(unary.X).(*ast.Ident); ok && ident.Name == name {
+					addressTaken = true
+				}
+			}
+			return !addressTaken
+		})
+	}
+	// "defer handle(&err)" passes a pointer to the variable itself.
+	if addressTaken {
+		return false
+	}
+	return capturedNameCopiesValue(name, append([]ast.Node{call.Fun}, args...), args, []ast.Node{call.Fun})
+}
+
 func registerLoopVariables(stmt ast.Stmt) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
@@ -16758,10 +16894,14 @@ func registerLoopVariables(stmt ast.Stmt) {
 			idents = []ast.Expr{s.Key, s.Value}
 		}
 	}
+	_, forClause := stmt.(*ast.ForStmt)
 	for _, expr := range idents {
 		if ident, ok := expr.(*ast.Ident); ok {
 			if obj := typeInfo.info.Defs[ident]; obj != nil {
 				loopVariableObjects[obj] = true
+				if forClause {
+					forClauseLoopVariableObjects[obj] = true
+				}
 			}
 		}
 	}

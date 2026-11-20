@@ -304,10 +304,14 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; let mut __seq_guard = s.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     { let __idx = (1) as usize; let mut __seq_guard = s.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
     {
+        let __go_lhs_sequence_0 = s.clone();
+        let __go_lhs_index_0 = (0) as usize;
+        let __go_lhs_sequence_1 = s.clone();
+        let __go_lhs_index_1 = (2) as usize;
         let __tmp_0 = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
         let __tmp_1 = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
-        { let __idx = (0) as usize; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __tmp_0; }
-        { let __idx = (2) as usize; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __tmp_1; }
+        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
+        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     println!("{} {}", format!("{}", "compound, increment, swap".to_string()), format!("{}", format_slice(&s)));
 
@@ -315,10 +319,14 @@ fn main() {
     { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
     { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     {
+        let __go_lhs_sequence_0 = s2.clone();
+        let __go_lhs_index_0 = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
+        let __go_lhs_sequence_1 = s2.clone();
+        let __go_lhs_index_1 = (0) as usize;
         let __tmp_0 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
         let __tmp_1 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
-        { let __idx = ({ let __tmp_x = ((*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; (*s2.lock().unwrap().as_mut().unwrap())[__idx] = __tmp_0; }
-        { let __idx = (0) as usize; (*s2.lock().unwrap().as_mut().unwrap())[__idx] = __tmp_1; }
+        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
+        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     println!("{} {}", format!("{}", "index reads the slice in an increment, a compound assignment and a swap".to_string()), format!("{}", format_slice(&s2)));
 
