@@ -2231,8 +2231,7 @@ func addEmbedded(ityp *Interface, pos Pos) {
 		t.Fatalf("append through pointer-to-slice field should not unwrap the target to a bare Vec:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".embed_pos.clone(); let __append_value = ") ||
-		(!strings.Contains(rust, "; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value)") &&
-			!strings.Contains(rust, "; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value)")) {
+		!strings.Contains(rust, "__appended.push(__append_value)") {
 		t.Fatalf("append through pointer-to-slice field should mutate the slice handle:\n%s", rust)
 	}
 }
@@ -5980,8 +5979,10 @@ func makeTypes(n int) []Type {
 }
 `)
 
-	if !(strings.Contains(rust, "Vec::<Rc<RefCell<Option<Box<dyn Type") && strings.Contains(rust, ">::with_capacity")) &&
-		!(strings.Contains(rust, "Vec::<Arc<Mutex<Option<Box<dyn Type + Send + Sync") && strings.Contains(rust, ">::with_capacity")) {
+	// The backing array holds the capacity's zero values; the header views
+	// none of them.
+	if !(strings.Contains(rust, "Vec<Rc<RefCell<Option<Box<dyn Type") && strings.Contains(rust, ".collect(); v.truncate(")) &&
+		!(strings.Contains(rust, "Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync") && strings.Contains(rust, ".collect(); v.truncate(")) {
 		t.Fatalf("make([]Type, 0, n) should emit the wrapped interface slice element type:\n%s", rust)
 	}
 }
@@ -6004,7 +6005,7 @@ func take(values []int, h *Header) []int {
 	if !strings.Contains(rust, "let __low = 0;") ||
 		!strings.Contains(rust, "let __max = ((*") ||
 		!strings.Contains(rust, " as usize;") ||
-		!strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
+		!strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
 		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
 	}
 }
@@ -6022,10 +6023,11 @@ func grow() []byte {
 	if !strings.Contains(rust, "let __source_cap = ") {
 		t.Fatalf("two-index slice should capture source capacity before cloning:\n%s", rust)
 	}
-	if !strings.Contains(rust, "if __seq.len() < __high { __seq.resize_with(__high, Default::default); }") {
-		t.Fatalf("two-index slice should materialize zero values when reslicing within capacity:\n%s", rust)
+	// The new header views the source's backing array up to its capacity.
+	if !strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
+		t.Fatalf("two-index slice should reslice within the source's capacity:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
+	if !strings.Contains(rust, "let __max = __source_cap;") {
 		t.Fatalf("two-index slice should preserve Go cap(source)-low capacity:\n%s", rust)
 	}
 }
@@ -6269,7 +6271,7 @@ func bytes(s string) []byte {
 	if !strings.Contains(rust, `let __len = __string.len()`) {
 		t.Fatalf("unsafe.Slice string-data path should reuse the borrowed string length:\n%s", rust)
 	}
-	if !strings.Contains(rust, `__string.as_bytes()[..__len].to_vec()`) {
+	if !strings.Contains(rust, `__string.as_bytes()[..__len].to_go_slice()`) {
 		t.Fatalf("unsafe.Slice string-data path should build bytes from the borrowed string:\n%s", rust)
 	}
 }
@@ -9870,7 +9872,7 @@ func makeField(names []*Ident) func() *Field {
 		t.Fatalf("captured struct field value should not move the outer binding into the closure:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let names_closure_clone = names.clone();") ||
-		!strings.Contains(rust, "names: names_closure_clone.clone()") {
+		!strings.Contains(rust, "names: { let __slice_header = GoSliceHeader::go_slice_header(&names_closure_clone);") {
 		t.Fatalf("captured struct field value should use the closure clone:\n%s", rust)
 	}
 }

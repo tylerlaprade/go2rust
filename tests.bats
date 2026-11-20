@@ -2883,6 +2883,10 @@ run_xfail_test() {
     run_test "tests/slice_field_range_reentrant_method"
 }
 
+@test "slice_headers_copy_and_share" {
+    run_test "tests/slice_headers_copy_and_share"
+}
+
 @test "slice_literal_nil_slice_element" {
     run_test "tests/slice_literal_nil_slice_element"
 }
@@ -2901,6 +2905,10 @@ run_xfail_test() {
 
 @test "slice_reslice_within_capacity" {
     run_test "tests/slice_reslice_within_capacity"
+}
+
+@test "slice_shared_with_package_variable_or_element" {
+    run_test "tests/slice_shared_with_package_variable_or_element"
 }
 
 @test "slices_append" {
@@ -3641,10 +3649,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: slice_shared_with_package_variable_or_element" {
-    run_xfail_test "tests/XFAIL/slice_shared_with_package_variable_or_element"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {

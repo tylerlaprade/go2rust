@@ -1,9 +1,21 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 
 fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
@@ -159,7 +171,7 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_previous_panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));

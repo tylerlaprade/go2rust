@@ -1061,10 +1061,13 @@ func WriteSharedStdlibStubCrate(workDir string, states []*PackageState, packageM
 
 	mergedState := MergeExternalStubPackageStates(states...)
 	parts := []string{}
+	if goSliceModeEnabled() {
+		parts = append(parts, goSliceVecMacro)
+	}
 	if helperCode := mergedState.Helpers.GenerateSharedStdlibHelperModule(); helperCode != "" {
 		parts = append(parts, helperCode)
 	}
-	if stubCode := GeneratePackageExternalStubs(mergedState); stubCode != "" {
+	if stubCode := goSliceStubText(GeneratePackageExternalStubs(mergedState)); stubCode != "" {
 		parts = append(parts, GenerateExternalStubModuleImports(), stubCode)
 	}
 	stubCode := hoistAndDedupeUseLines(strings.Join(parts, "\n"))
@@ -2908,6 +2911,10 @@ func wrappedExternalStubType(innerType string) string {
 }
 
 func wrappedExternalStubExpr(innerType string, expr string) string {
+	if goSliceModeEnabled() && strings.HasPrefix(innerType, "Vec<") {
+		// The value may be the standard library's Vec, from a std API.
+		expr = "Vec::from(" + expr + ")"
+	}
 	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType, expr)
 }
 

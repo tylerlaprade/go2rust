@@ -4379,7 +4379,7 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString("let __json = format!(\"{{{}}}\", __json_fields.join(\",\")); (")
 	WriteWrapperPrefix(out)
-	out.WriteString("__json.into_bytes()")
+	out.WriteString(goSliceFromStdVec("__json.into_bytes()"))
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	writeTypedErrorNone(out)
@@ -4795,7 +4795,7 @@ func writeUnsafeSliceFromStringData(out *strings.Builder, call *ast.CallExpr) bo
 	} else {
 		writeExpressionAsUsize(out, call.Args[1])
 	}
-	out.WriteString("; __string.as_bytes()[..__len].to_vec() }")
+	out.WriteString("; __string.as_bytes()[..__len]" + sliceToVecMethod() + " }")
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -5448,6 +5448,31 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		writeAppendTarget(call.Args[0])
 		out.WriteString(".clone(); ")
 		store := writeAppendedValues()
+		if goSliceModeEnabled() {
+			// append returns a new header and leaves its operand as it
+			// was; the two share the backing array while it has room.
+			out.WriteString("let mut __appended")
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if resultType := typeInfo.GetType(call); resultType != nil {
+					if _, ok := types.Unalias(resultType).(*types.Slice); ok {
+						if rustType := goTypesTypeToRust(resultType); strings.HasPrefix(rustType, "Vec<") {
+							out.WriteString(": ")
+							out.WriteString(rustType)
+						}
+					}
+				}
+			}
+			out.WriteString(" = (*__append_target")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone().unwrap_or_default(); __appended")
+			out.WriteString(store)
+			out.WriteString("; ")
+			WriteWrapperPrefix(out)
+			out.WriteString("__appended")
+			WriteWrapperSuffix(out)
+			out.WriteString(" }")
+			return
+		}
 		out.WriteString("(*__append_target")
 		WriteBorrowMethod(out, true)
 		out.WriteString(").get_or_insert_with(Vec::new)")
@@ -5748,7 +5773,9 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			WriteWrapperPrefix(out)
-			if len(call.Args) >= 2 {
+			if len(call.Args) >= 3 && goSliceModeEnabled() {
+				writeGoSliceMakeWithCapacity(out, call.Args, elementType, elementRustType)
+			} else if len(call.Args) >= 2 {
 				// Check if size is 0
 				if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Value == "0" {
 					// Empty vector with capacity
@@ -5869,6 +5896,10 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType string, elementRustType string) {
 	if len(args) < 2 {
 		out.WriteString("Vec::new()")
+		return
+	}
+	if len(args) >= 3 && goSliceModeEnabled() {
+		writeGoSliceMakeWithCapacity(out, args, elementType, elementRustType)
 		return
 	}
 	if lit, ok := args[1].(*ast.BasicLit); ok && lit.Value == "0" {
@@ -7654,4 +7685,19 @@ func formatArgsEachInOwnFormat(format string, args []string) (string, []string, 
 		wrapped[i] = "format!(\"" + specs[i] + "\", " + arg + ")"
 	}
 	return "\"" + outer.String() + "\"", wrapped, true
+}
+
+// writeGoSliceMakeWithCapacity writes make([]T, len, cap) in GoSlice mode:
+// a backing array of cap zero values, each made on its own, viewed through
+// a header of length len. Reslicing up to the capacity then reads zeros.
+func writeGoSliceMakeWithCapacity(out *strings.Builder, args []ast.Expr, elementType string, elementRustType string) {
+	out.WriteString("{ let mut v: Vec<")
+	out.WriteString(elementRustType)
+	out.WriteString("> = (0..")
+	writeExpressionAsUsize(out, args[2])
+	out.WriteString(").map(|_| ")
+	out.WriteString(elementType)
+	out.WriteString(").collect(); v.truncate(")
+	writeExpressionAsUsize(out, args[1])
+	out.WriteString("); v }")
 }

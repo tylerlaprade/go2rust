@@ -1160,6 +1160,9 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
+	if writeGoSliceElementHeaderFromVariable(out, rhs, expected) {
+		return
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && arraySliceElementExpectedStoresBareCollection(expected) {
 		out.WriteString(zeroValueForTypesType(expected))
 		return
@@ -5478,6 +5481,9 @@ func writeRangeHandleReturnValue(out *strings.Builder, ident *ast.Ident) bool {
 }
 
 func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.Type) {
+	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, expr) {
+		return
+	}
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
@@ -7994,7 +8000,7 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
-			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = Vec::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
+			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = " + stdVecPath() + "::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
 			WriteBorrowMethod(out, true)
 			out.WriteString("; let __range_value = std::mem::replace(&mut __range_guard.as_mut().unwrap()[__range_index], Box::new(()) as ")
 			out.WriteString(rustAnyTraitObject())
@@ -11668,6 +11674,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 	}
 
+	if assign, ok := stmt.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE && goSliceModeEnabled() {
+		defer writeGoSliceDefineShadows(out, assign, indent)
+	}
+
 	switch s := stmt.(type) {
 	case *ast.SendStmt:
 		// Channel send: ch <- val
@@ -12419,6 +12429,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				WriteBorrowMethod(out, true)
 				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
 			}
+		} else if writeGoSliceHeaderAssignment(out, s) {
+			// A slice variable keeps its cell and takes the new header.
 		} else if isChannelAssignment(s) {
 			writeChannelAssignmentTarget(out, s.Lhs[0])
 			out.WriteString(" = ")
@@ -16170,7 +16182,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			currentFunctionHasDefer = hasClosureDefer
 			defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
 			if hasClosureDefer {
-				out.WriteString("let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n        ")
+				out.WriteString(deferStackDecl() + "\n        ")
 			}
 
 			// Generate the closure body inline
@@ -16541,6 +16553,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Case body
 			if typeSwitchSubjectHasGuard {
 				out.WriteString("        drop(_ts_guard);\n")
+			}
+			if varName != "" && len(caseClause.List) == 1 {
+				writeGoSliceTypeSwitchBindingCopy(out, typeInfo, varName, caseClause.List[0])
 			}
 			restoreRangeLoopShadow := func() {}
 			if varName != "" {

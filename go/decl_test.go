@@ -3047,6 +3047,7 @@ var Features struct {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
+	rust = stripGoSliceRuntime(rust)
 	for _, invalid := range []string{"pub _:", " _:", "self._."} {
 		if strings.Contains(rust, invalid) {
 			t.Fatalf("blank struct fields should not emit invalid Rust field %q:\n%s", invalid, rust)

@@ -4261,10 +4261,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	// Initialize defer stack if needed
 	if hasDefer {
-		out.WriteString("    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+		out.WriteString("    " + deferStackDecl() + "\n")
 		// We'll execute defers before each return statement
 		out.WriteString("\n")
 	}
+	writeGoSliceParamHeaderCopies(out, fn, "    ")
 
 	// Declare named return values as mutable variables
 	hasNamedReturns := false
@@ -9623,8 +9624,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		activeMutexGuards = make(map[string]string)
 		defer func() { activeMutexGuards = oldActiveMutexGuards }()
 		if hasDefer {
-			out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n\n")
+			out.WriteString("        " + deferStackDecl() + "\n\n")
 		}
+		writeGoSliceParamHeaderCopies(out, fn, "        ")
 		writeNamedReturnDeclarations(out, fn.Type)
 	}
 

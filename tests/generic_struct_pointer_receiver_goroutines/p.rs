@@ -1,7 +1,12 @@
 use crate::{
     GoChannel,
+    GoSlice,
+    GoSliceAppendBoxed,
+    GoSliceFromSlice,
+    GoSliceHeader,
     GoTypeParamFieldClone,
     GoValueClone,
+    Vec,
     format_slice,
     format_slice_values,
     format_slice_wrapped,
@@ -11,6 +16,12 @@ use crate::{
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 /// These value types deliberately live in a sibling file that is emitted
 /// before main.rs. Generic-struct copy support must be discovered package-wide
 /// so both receive the required copy-trait implementations.

@@ -63,7 +63,7 @@ func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	}
 
 	helpers := &HelperTracker{needsFormatSlice: true}
-	helperImports := prefixPackageHelperImports("", helpers, false)
+	helperImports := withoutGoSliceUses(prefixPackageHelperImports("", helpers, false))
 	if helperImports != "use crate::{format_slice, format_slice_values, format_slice_wrapped};\n" {
 		t.Fatalf("empty module helper imports should not add a trailing blank line: %q", helperImports)
 	}
@@ -3578,7 +3578,7 @@ func main() {
 	clockRS := mustReadFile(t, filepath.Join(tempDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(tempDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(code, "use crate::{GoTime, go_time_civil_from_days};") {
+		if !strings.Contains(withoutGoSliceUses(code), "use crate::{GoTime, go_time_civil_from_days};") {
 			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "use crate::*;") {
@@ -3672,7 +3672,7 @@ func main() {}
 	if !strings.Contains(printerRS, "format_any_variadic(&values)") {
 		t.Fatalf("fmt.Println(values...) should call the variadic any formatter, got:\n%s", printerRS)
 	}
-	if !strings.Contains(printerRS, "use crate::{format_any, format_any_slice, format_any_variadic};") {
+	if !strings.Contains(withoutGoSliceUses(printerRS), "use crate::{format_any, format_any_slice, format_any_variadic};") {
 		t.Fatalf("multi-file module should import the crate-root variadic any formatter, got:\n%s", printerRS)
 	}
 
@@ -3867,7 +3867,7 @@ func main() {
 	if strings.Contains(normalizeRS, "use crate::*;") {
 		t.Fatalf("module should not glob-import crate root and shadow termlist type with termlist module, got:\n%s", normalizeRS)
 	}
-	if !strings.Contains(normalizeRS, "use crate::{__go_type_name};") {
+	if !strings.Contains(withoutGoSliceUses(normalizeRS), "use crate::{__go_type_name};") {
 		t.Fatalf("module should import only the needed crate-root helper, got:\n%s", normalizeRS)
 	}
 	if !strings.Contains(normalizeRS, "pub terms: Rc<RefCell<Option<termlist>>>") {
@@ -3950,7 +3950,7 @@ func main() {
 	if strings.Contains(typexprRS, "use crate::{go_type_name};") {
 		t.Fatalf("module should not import a helper name that collides with its own function, got:\n%s", typexprRS)
 	}
-	if !strings.Contains(typexprRS, "use crate::{__go_type_name};") {
+	if !strings.Contains(withoutGoSliceUses(typexprRS), "use crate::{__go_type_name};") {
 		t.Fatalf("module should import the internal type-name helper, got:\n%s", typexprRS)
 	}
 	if !strings.Contains(typexprRS, "pub fn go_type_name(") {

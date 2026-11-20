@@ -1,7 +1,19 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 fn main() {
     ::internal_bytealg::__go_init_all();
     ::internal_cpu::__go_init_all();
@@ -10,6 +22,7 @@ fn main() {
     ::path_filepath::__go_init_all();
 
     let (mut entries, mut err) = os::read_dir("data".to_string());
+    let mut entries = { let __slice_header = GoSliceHeader::go_slice_header(&entries); Arc::new(Mutex::new(__slice_header)) };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", "read error".to_string()));
         return;

@@ -1,7 +1,19 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 fn main() {
     ::cmp::__go_init_all();
     ::go_ast::__go_init_all();
@@ -21,6 +33,6 @@ fn main() {
 
     const mode: u64 = go_parser::ALL_ERRORS as u64 | go_parser::PARSE_COMMENTS as u64;
 
-    { let (__tmp_0, __tmp_1) = go_parser::parse_file(go_token::new_file_set(), Arc::new(Mutex::new(Some("x.go".to_string()))), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(("package main".to_string()).as_bytes().to_vec()))).clone()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(go_parser::interface::Mode(Arc::new(Mutex::new(Some(mode as u64)))))))); };
+    { let (__tmp_0, __tmp_1) = go_parser::parse_file(go_token::new_file_set(), Arc::new(Mutex::new(Some("x.go".to_string()))), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(("package main".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(go_parser::interface::Mode(Arc::new(Mutex::new(Some(mode as u64)))))))); };
     println!("{}", format!("{}", "parsed".to_string()));
 }

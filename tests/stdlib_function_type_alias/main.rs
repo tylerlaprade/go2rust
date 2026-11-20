@@ -1,6 +1,18 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 pub fn make_qualifier() -> go_types::typestring::Qualifier {
     return Arc::new(Mutex::new(Some(Box::new(move |pkg: Arc<Mutex<Option<go_types::package::Package>>>| -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("".to_string())))

@@ -6,10 +6,7 @@ var global []int
 
 // A slice assigned to a package variable, or to an element of a slice of
 // slices, is the same slice afterwards: a write through one name shows
-// through the other. The generated code gives these two targets elements of
-// their own, because a package-level slice and an element of [][]int each
-// hold their elements directly instead of a handle that could be shared
-// (DEV-36). The last case does not compile yet.
+// through the other, because the two headers share a backing array (DEV-36).
 func main() {
 	lists := map[string][]int{"a": {1, 2}}
 	var ok bool
