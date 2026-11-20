@@ -6115,6 +6115,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				if isBitwiseDefinedUnderlying(ident.Name) {
 					writeScalarTypeDefinitionOrd(out, typeSpec.Name.Name)
 				}
+				if ident.Name == "string" {
+					writeScalarTypeDefinitionStringOps(out, typeSpec.Name.Name)
+				}
 			}
 		}
 	}
@@ -6515,6 +6518,68 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
 		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
 		writeScalarTypeDefinitionShiftOps(out, rustTypeName)
+	}
+}
+
+// writeScalarTypeDefinitionStringOps gives a type the package defines as a
+// string, "type Color string", what Go allows on it: ordering, so it can
+// key a map and be sorted, and concatenation with itself and with strings.
+func writeScalarTypeDefinitionStringOps(out *strings.Builder, typeName string) {
+	rustTypeName := RustTypeNameForUse(typeName)
+	borrow := func() string {
+		var b strings.Builder
+		WriteBorrowMethod(&b, false)
+		return b.String()
+	}()
+	wrap := func(value string) string {
+		var b strings.Builder
+		b.WriteString(rustTypeName)
+		b.WriteString("(")
+		WriteWrapperPrefix(&b)
+		b.WriteString(value)
+		WriteWrapperSuffix(&b)
+		b.WriteString(")")
+		return b.String()
+	}
+	inner := func(name string) string {
+		return name + ".0" + borrow + ".as_ref().unwrap()"
+	}
+
+	out.WriteString("\nimpl PartialOrd for " + rustTypeName + " {\n")
+	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
+	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+	writeScalarTypeDefinitionOrd(out, typeName)
+
+	out.WriteString("\nimpl PartialEq<String> for " + rustTypeName + " {\n")
+	out.WriteString("    fn eq(&self, other: &String) -> bool {\n")
+	out.WriteString("        *" + inner("self") + " == *other\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+
+	out.WriteString("\nimpl PartialEq<&str> for " + rustTypeName + " {\n")
+	out.WriteString("    fn eq(&self, other: &&str) -> bool {\n")
+	out.WriteString("        " + inner("self") + ".as_str() == *other\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+
+	out.WriteString("\nimpl std::ops::Add for " + rustTypeName + " {\n")
+	out.WriteString("    type Output = " + rustTypeName + ";\n")
+	out.WriteString("    fn add(self, other: Self) -> " + rustTypeName + " {\n")
+	out.WriteString("        let __joined = format!(\"{}{}\", " + inner("self") + ", " + inner("other") + ");\n")
+	out.WriteString("        " + wrap("__joined") + "\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+
+	for _, rhs := range []string{"String", "&str"} {
+		out.WriteString("\nimpl std::ops::Add<" + rhs + "> for " + rustTypeName + " {\n")
+		out.WriteString("    type Output = " + rustTypeName + ";\n")
+		out.WriteString("    fn add(self, other: " + rhs + ") -> " + rustTypeName + " {\n")
+		out.WriteString("        let __joined = format!(\"{}{}\", " + inner("self") + ", other);\n")
+		out.WriteString("        " + wrap("__joined") + "\n")
+		out.WriteString("    }\n")
+		out.WriteString("}\n")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/constant"
 	"go/token"
+	"go/types"
 	"sort"
 	"strconv"
 	"strings"
@@ -51,7 +52,68 @@ func expandedFormat(call *ast.CallExpr, formatIndex int) (string, bool) {
 	if !ok || !formatExpandsToRust(format) {
 		return "", false
 	}
+	if !namedScalarArgsUseDisplay(format, call.Args[formatIndex+1:]) {
+		return "", false
+	}
 	return format, true
+}
+
+// namedScalarArgsUseDisplay reports whether every argument of a type the
+// package defines over a basic type is formatted with %v, %s or %T. The
+// newtype's Display is its String method, or its value without the verb's
+// precision, and Go does not call String for "%.2f".
+func namedScalarArgsUseDisplay(quoted string, args []ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	hasNamedScalar := false
+	for _, arg := range args {
+		if anyFormatTypeIsLocalNamedBasic(typeInfo.GetType(arg)) {
+			hasNamedScalar = true
+			break
+		}
+	}
+	if !hasNamedScalar {
+		return true
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil || strings.Contains(format, "[") {
+		return false
+	}
+	var verbs []byte
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		i++
+		for i < len(format) && strings.IndexByte("+-# 0123456789.", format[i]) >= 0 {
+			i++
+		}
+		if i >= len(format) {
+			return false
+		}
+		if format[i] != '%' {
+			verbs = append(verbs, format[i])
+		}
+	}
+	for index, arg := range args {
+		typ := typeInfo.GetType(arg)
+		if !anyFormatTypeIsLocalNamedBasic(typ) {
+			continue
+		}
+		// A named integer or bool without a String method is formatted
+		// as the value it holds, %x included, by the Rust format.
+		if !typeHasGoStringMethod(typ) {
+			if basic, ok := typ.Underlying().(*types.Basic); ok && basic.Info()&(types.IsInteger|types.IsBoolean) != 0 {
+				continue
+			}
+		}
+		if index >= len(verbs) || strings.IndexByte("vsT", verbs[index]) < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // formatExpandsToRust reports whether every verb of a literal format is one

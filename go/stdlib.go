@@ -5273,6 +5273,14 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		var namedString strings.Builder
+		if writeNamedStringNewtypeInnerValue(&namedString, call.Args[0]) {
+			out.WriteString("(")
+			out.WriteString(namedString.String())
+			out.WriteString(").len()")
+			return
+		}
+
 		// len() returns the length of arrays, slices, maps, strings, or channels
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
