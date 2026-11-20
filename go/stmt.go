@@ -4584,6 +4584,117 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 	return true
 }
 
+// writeWrappedCollectionCopyFromIdent writes the initializer of a new
+// variable that is a copy of a local slice or map variable: "t := s",
+// "var t = s". Writing the read of s there moved the Vec or map out of a
+// borrow, which rustc rejects, so "t := s" did not compile.
+//
+// A map variable holds a handle on the map. Passing it to a function and
+// "d = m" share that handle, so the new variable shares it too, and
+// "d := m; d[k] = v" changes m, as in Go.
+//
+// A slice is one Vec behind a handle with no header of its own (DEV-36):
+// sharing the handle would make "next := prev; next = append(next, x)" grow
+// prev, and "cur := queue; queue = nil" empty cur. The new variable gets a
+// clone of the elements instead, which keeps both of those right. A write
+// through one of them, "t[0] = x", does not reach the other.
+func writeWrappedCollectionCopyFromIdent(out *strings.Builder, ident *ast.Ident, destination types.Type) bool {
+	if !localCollectionIdentNeedsClone(ident) {
+		return false
+	}
+	typ := GetTypeInfo().GetType(ident)
+	if destination != nil && !types.Identical(destination, typ) {
+		return false
+	}
+	if _, isMap := types.Unalias(typ).Underlying().(*types.Map); isMap {
+		name := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			name = RustLocalIdent(renamed)
+		}
+		out.WriteString(name)
+		out.WriteString(".clone()")
+		return true
+	}
+	WriteWrapperPrefix(out)
+	writeIdentValueClone(out, ident)
+	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeChannelCopyFromIdent writes the initializer of a new variable that is
+// a copy of a channel variable: "ch2 := ch". A channel is a handle held
+// bare, so the copy is a clone of the handle. Writing the variable itself
+// moved the channel into the new one, and the next use of ch did not compile.
+func writeChannelCopyFromIdent(out *strings.Builder, ident *ast.Ident, destination types.Type) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Chan); !ok {
+		return false
+	}
+	if destination != nil && !types.Identical(destination, typ) {
+		return false
+	}
+	TranspileExpression(out, ident)
+	out.WriteString(".clone()")
+	return true
+}
+
+// localCollectionIdentNeedsClone reports whether ident is a local slice or
+// map variable held in its own cell. Its read is a place, so storing it
+// anywhere else takes a clone.
+func localCollectionIdentNeedsClone(ident *ast.Ident) bool {
+	if ident == nil || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	if isVarBare(ident.Name) || isPackageGlobalIdent(ident) || isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if isSliceElemPtrVar(ident.Name) || isArrayElemPtrVar(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	}
+	return false
+}
+
+// declaredVarType is the type of the i-th name a var spec declares, or nil
+// when the spec has no type and the name takes the type of its value.
+func declaredVarType(valueSpec *ast.ValueSpec, i int) types.Type {
+	if valueSpec.Type == nil || i >= len(valueSpec.Names) {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	if obj := typeInfo.info.Defs[valueSpec.Names[i]]; obj != nil {
+		return obj.Type()
+	}
+	return nil
+}
+
 func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil || !isPackageGlobalIdent(ident) {
 		return false
@@ -12816,7 +12927,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString("let mut ")
 								TranspileExpressionContext(out, s.Lhs[0], LValue)
 								out.WriteString(" = ")
-								TranspileExpression(out, s.Rhs[0])
+								writeChannelAssignmentValue(out, s.Rhs[0])
 							} else {
 								// Check for slice element pointer short declaration
 								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
@@ -13170,6 +13281,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 												} else if writeWrappedValueCopyFromIdent(out, ident) {
 													// Copied by value from an existing wrapped value
+												} else if writeWrappedCollectionCopyFromIdent(out, ident, nil) {
+													// A copy of a local slice or map variable.
+												} else if writeChannelCopyFromIdent(out, ident, nil) {
+													// A channel variable: share the channel.
 												} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 													// Typed named integer const identifiers need the named newtype, not the raw const.
 												} else if rhsIsPointerType(rhs) {
@@ -13534,6 +13649,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										// Package-global slices are stored as global values; clone the current slice into the local wrapper.
 									} else if writeWrappedValueCopyFromIdent(out, ident) {
 										// Copied by value from an existing wrapped value
+									} else if writeWrappedCollectionCopyFromIdent(out, ident, declaredVarType(valueSpec, i)) {
+										// A copy of a local slice or map variable.
+									} else if writeChannelCopyFromIdent(out, ident, declaredVarType(valueSpec, i)) {
+										// A channel variable: share the channel.
 									} else {
 										if valueSpec.Type != nil {
 											if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok {
@@ -13549,6 +13668,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														} else {
 															TranspileExpression(out, valueSpec.Values[i])
 														}
+													} else if localCollectionIdentNeedsClone(ident) {
+														writeIdentValueClone(out, ident)
 													} else {
 														TranspileExpression(out, valueSpec.Values[i])
 													}
