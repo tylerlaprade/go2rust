@@ -8149,12 +8149,39 @@ func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 	WriteWrapperSuffix(out)
 }
 
+// shouldWrapDeferPanicRecover reports whether a function with a defer runs
+// its body under catch_unwind, so that a deferred function can recover a
+// panic. With goroutines every such function does. Without them only a
+// program that calls recover() pays for it.
 func shouldWrapDeferPanicRecover(hasDefer bool) bool {
-	if !hasDefer || !NeedsConcurrentWrapper() {
+	if !hasDefer || !(NeedsConcurrentWrapper() || packageCallsRecover()) {
 		return false
 	}
 	NeedPanicRecover()
 	return true
+}
+
+var packageCallsRecoverCache = map[*types.Info]bool{}
+
+// packageCallsRecover reports whether the package being translated calls the
+// recover builtin anywhere.
+func packageCallsRecover() bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if calls, ok := packageCallsRecoverCache[typeInfo.info]; ok {
+		return calls
+	}
+	calls := false
+	for _, obj := range typeInfo.info.Uses {
+		if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "recover" {
+			calls = true
+			break
+		}
+	}
+	packageCallsRecoverCache[typeInfo.info] = calls
+	return calls
 }
 
 func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
@@ -8168,14 +8195,29 @@ func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
 }
 
 func finishPanicRecoverCatch(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	finishPanicRecoverCatchWith(out, indent, func() { writeRecoveredPanicReturnValue(out, fn) })
+}
+
+// finishPanicRecoverCatchWith closes the catch_unwind that
+// beginPanicRecoverCatch opened. On a panic it keeps the payload for
+// recover() and runs the deferred functions that are left. Each runs under
+// a catch_unwind of its own: as in Go, a deferred function that panics
+// replaces the panic and the rest still run. If none recovers, the panic
+// goes on; otherwise the function returns writeZero's value, or its named
+// results.
+func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero func()) {
 	out.WriteString(indent)
 	out.WriteString("}));\n")
 	out.WriteString(indent)
-	out.WriteString("std::panic::set_hook(__go_previous_panic_hook);\n")
-	out.WriteString(indent)
 	out.WriteString("match __go_panic_result {\n")
 	out.WriteString(indent)
-	out.WriteString("    Ok(__go_value) => __go_value,\n")
+	out.WriteString("    Ok(__go_value) => {\n")
+	out.WriteString(indent)
+	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString(indent)
+	out.WriteString("        __go_value\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
 	out.WriteString(indent)
 	out.WriteString("    Err(__go_panic_payload) => {\n")
 	out.WriteString(indent)
@@ -8183,14 +8225,20 @@ func finishPanicRecoverCatch(out *strings.Builder, fn *ast.FuncDecl, indent stri
 	out.WriteString(indent)
 	out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
 	out.WriteString(indent)
-	out.WriteString("            f();\n")
+	out.WriteString("            if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {\n")
+	out.WriteString(indent)
+	out.WriteString("                go_store_panic_payload(__go_defer_panic);\n")
+	out.WriteString(indent)
+	out.WriteString("            }\n")
 	out.WriteString(indent)
 	out.WriteString("        }\n")
+	out.WriteString(indent)
+	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
 	out.WriteString(indent)
 	out.WriteString("        go_resume_unrecovered_panic();\n")
 	out.WriteString(indent)
 	out.WriteString("        ")
-	writeRecoveredPanicReturnValue(out, fn)
+	writeZero()
 	out.WriteString("\n")
 	out.WriteString(indent)
 	out.WriteString("    }\n")

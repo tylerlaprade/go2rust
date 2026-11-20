@@ -16655,6 +16655,12 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	defer func() { currentReturnStatementIsTail = prevReturnTail }()
 	restoreFuncLitReturnContext := pushFuncLitReturnContext()
 	defer restoreFuncLitReturnContext()
+	// A function literal with a defer can recover a panic, as a declared
+	// function can (see shouldWrapDeferPanicRecover).
+	recoverCatch := funcLit.Body != nil && hasClosureDefer && len(resultOverrides) == 0 && shouldWrapDeferPanicRecover(true)
+	if recoverCatch {
+		beginPanicRecoverCatch(out, "        ")
+	}
 	if funcLit.Body != nil {
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body
@@ -16678,6 +16684,9 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 			}
 		}
 	}
+	if recoverCatch {
+		finishPanicRecoverCatchWith(out, "        ", func() { writeFuncLitRecoveredPanicReturnValue(out, funcLit.Type) })
+	}
 	out.WriteString("    })")
 
 	// Cast to the right type and close wrappers
@@ -16685,6 +16694,33 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	out.WriteString(generateFuncLitClosureTypeWithResultOverrides(funcLit, resultOverrides))
 	if len(inlineCaptures) > 0 {
 		out.WriteString(" }")
+	}
+}
+
+// writeFuncLitRecoveredPanicReturnValue writes what a function literal
+// returns after a deferred function recovers a panic: its named results, or
+// the zero value of each result.
+func writeFuncLitRecoveredPanicReturnValue(out *strings.Builder, fnType *ast.FuncType) {
+	if hasNamedReturns(fnType) {
+		writeNamedReturnValues(out, fnType)
+		return
+	}
+	resultTypes := functionResultTypeExprs(fnType)
+	if len(resultTypes) == 0 {
+		out.WriteString("()")
+		return
+	}
+	if len(resultTypes) > 1 {
+		out.WriteString("(")
+	}
+	for i, resultType := range resultTypes {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeNamedReturnZeroValue(out, resultType)
+	}
+	if len(resultTypes) > 1 {
+		out.WriteString(")")
 	}
 }
 
