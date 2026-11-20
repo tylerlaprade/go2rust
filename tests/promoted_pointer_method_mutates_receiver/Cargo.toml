@@ -1,0 +1,11 @@
+[package]
+name = "promoted_pointer_method_mutates_receiver"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "promoted_pointer_method_mutates_receiver"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

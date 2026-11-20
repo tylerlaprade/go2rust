@@ -48,6 +48,9 @@ edition = "2021"
 name = "source_stdlib_go_types_checker_files"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 bytes = { path = "vendor/bytes" }
 cmp = { path = "vendor/cmp" }

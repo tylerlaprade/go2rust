@@ -95,6 +95,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -273,12 +295,16 @@ pub fn basic_select() {
     });
 
     loop {
-        if let Some(msg1) = ch1.try_recv() {
+        if let Some(__select_recv) = ch1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg1 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
             println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(msg2) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
             println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg2.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
@@ -297,12 +323,14 @@ pub fn select_with_timeout() {
     });
 
     loop {
-        if let Some(msg) = ch.try_recv() {
+        if let Some(__select_recv) = ch.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "Got message:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(_) = timeout.try_recv() {
+        if let Some(_) = timeout.try_recv_select() {
             println!("{}", format!("{}", "Timeout occurred".to_string()));
             break;
         }
@@ -325,7 +353,9 @@ pub fn select_with_default() {
 
         // Non-blocking receive
     loop {
-        if let Some(msg) = ch.try_recv() {
+        if let Some(__select_recv) = ch.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
@@ -336,7 +366,9 @@ pub fn select_with_default() {
 
         // Try to receive again (should hit default)
     loop {
-        if let Some(msg) = ch.try_recv() {
+        if let Some(__select_recv) = ch.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
@@ -371,17 +403,21 @@ pub fn select_loop() {
     println!("{}", format!("{}", "Starting select loop:".to_string()));
     loop {
         loop {
-        if let Some(val1) = ch1.try_recv() {
+        if let Some(__select_recv) = ch1.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val1 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val1 = Arc::new(Mutex::new(Some(val1)));
             print!("From ch1: {}\n", { let __v = (*val1.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(val2) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let val2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val2 = Arc::new(Mutex::new(Some(val2)));
             print!("From ch2: {}\n", { let __v = (*val2.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(_) = quit.try_recv() {
+        if let Some(_) = quit.try_recv_select() {
             println!("{}", format!("{}", "Quit signal received".to_string()));
             return;
         }
@@ -412,7 +448,9 @@ pub fn select_with_send() {
     println!("{} {}", format!("{}", "Reading from ch1:".to_string()), format!("{}", ch1.recv().unwrap_or_default()));
 
     loop {
-        if let Some(msg) = ch2.try_recv() {
+        if let Some(__select_recv) = ch2.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "Reading from ch2:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;

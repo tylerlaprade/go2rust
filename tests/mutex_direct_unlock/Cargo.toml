@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "mutex_direct_unlock"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

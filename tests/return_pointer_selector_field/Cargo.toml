@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "return_pointer_selector_field"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

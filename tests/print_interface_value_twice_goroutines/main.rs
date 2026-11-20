@@ -138,6 +138,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -240,10 +262,10 @@ impl std::fmt::Display for Holder {
 /// with a goroutine every variable is locked while it is read, and reading
 /// the same one twice in a statement must not wait on itself.
 pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
-    print!("{}|{}\n", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text });
-    print!("{}: {}\n", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text });
+    print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+    print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
     println!("{} {}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
-    let mut text = Arc::new(Mutex::new(Some(format!("{} and {}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));
+    let mut text = Arc::new(Mutex::new(Some(format!("{} and {}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text })))));
     println!("{}", format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }
 
@@ -260,7 +282,7 @@ fn main() {
     describe(Arc::new(Mutex::new(Some(Box::new(true) as Box<dyn Any + Send + Sync>))));
 
     let mut held: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(2.5) as Box<dyn Any + Send + Sync>)));
-    print!("{} {} {}\n", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }, { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }, { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text });
+    print!("{} {} {}\n", format!("{}", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
     let mut h = Arc::new(Mutex::new(Some(Holder { value: Arc::new(Mutex::new(Some(Box::new(true) as Box<dyn Any + Send + Sync>))), ..Default::default() })));
     println!("{} {}", format!("{}", { let __text = format_any((*h.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any((*h.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
 }

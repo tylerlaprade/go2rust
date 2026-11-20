@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "range_nil_map_parameter"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "promoted_pointer_map_field_range"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

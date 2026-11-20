@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "embedded_method_promotion"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

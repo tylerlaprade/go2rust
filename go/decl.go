@@ -9376,6 +9376,12 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 			}
 			called := methodDeclByName(methodsByReceiver[receiverKey], sel.Sel.Name)
 			if called == nil {
+				// A method promoted from an embedded field, s.Deposit with
+				// Deposit declared on Basic, mutates the receiver when it
+				// mutates its own.
+				called = promotedMethodDecl(sel, methodsByReceiver, typeInfo)
+			}
+			if called == nil {
 				return true
 			}
 			if methodMutatesReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
@@ -9386,6 +9392,40 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 		return true
 	})
 	return mutates
+}
+
+// promotedMethodDeclInContext is promotedMethodDecl over the methods of the
+// package being transpiled.
+func promotedMethodDeclInContext(sel *ast.SelectorExpr) *ast.FuncDecl {
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return nil
+	}
+	return promotedMethodDecl(sel, ctx.Package.MethodsByType, GetTypeInfo())
+}
+
+// promotedMethodDecl returns the declaration of the method sel selects
+// through an embedded field, when the package declares it.
+func promotedMethodDecl(sel *ast.SelectorExpr, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo) *ast.FuncDecl {
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.MethodVal || len(selection.Index()) < 2 {
+		return nil
+	}
+	method, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return nil
+	}
+	for _, methods := range methodsByReceiver {
+		for _, decl := range methods {
+			if methodFuncForDecl(decl, typeInfo) == method {
+				return decl
+			}
+		}
+	}
+	return nil
 }
 
 func callArgumentMayMutateReceiver(arg ast.Expr, receiverName string) bool {
@@ -9459,6 +9499,10 @@ func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiv
 				return true
 			}
 			called := methodDeclByName(methodsForReceiverType(receiverType), sel.Sel.Name)
+			if called == nil {
+				// A method promoted from an embedded field.
+				called = promotedMethodDeclInContext(sel)
+			}
 			if called == nil {
 				return true
 			}

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "address_of_fields_and_elements"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

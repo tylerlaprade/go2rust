@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "string_map_parameter_keys"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

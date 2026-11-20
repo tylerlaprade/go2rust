@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "generic_function_type_alias"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

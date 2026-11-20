@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "range_string_key_slice_literal_reuse"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

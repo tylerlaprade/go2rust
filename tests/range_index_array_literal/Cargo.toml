@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "range_index_array_literal"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

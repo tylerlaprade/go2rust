@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "any_slice_element_comma_ok"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

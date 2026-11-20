@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "any_field_handle_reuse"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

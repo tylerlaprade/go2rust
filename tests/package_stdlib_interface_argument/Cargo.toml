@@ -15,6 +15,9 @@ edition = "2021"
 name = "package_stdlib_interface_argument"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_package_stdlib_interface_argument_helper = { path = "vendor/example_com_package_stdlib_interface_argument_helper" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

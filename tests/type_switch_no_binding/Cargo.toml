@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "type_switch_no_binding"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

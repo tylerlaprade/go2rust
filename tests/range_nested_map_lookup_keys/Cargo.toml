@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "range_nested_map_lookup_keys"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

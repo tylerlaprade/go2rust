@@ -27,6 +27,9 @@ edition = "2021"
 name = "source_stdlib_io_copy"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

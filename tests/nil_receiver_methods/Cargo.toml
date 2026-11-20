@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "nil_receiver_methods"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

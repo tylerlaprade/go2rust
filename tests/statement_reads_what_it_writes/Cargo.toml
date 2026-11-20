@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "statement_reads_what_it_writes"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

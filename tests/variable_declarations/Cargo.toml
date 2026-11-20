@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "variable_declarations"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

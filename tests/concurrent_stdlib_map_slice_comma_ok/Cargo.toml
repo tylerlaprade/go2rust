@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concurrent_stdlib_map_slice_comma_ok"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

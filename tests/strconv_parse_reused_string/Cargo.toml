@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "strconv_parse_reused_string"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

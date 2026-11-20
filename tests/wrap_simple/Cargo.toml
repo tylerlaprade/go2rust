@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "wrap_simple"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "printf_verbs_without_a_rust_equivalent_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

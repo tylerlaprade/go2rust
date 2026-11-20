@@ -19,6 +19,9 @@ edition = "2021"
 name = "source_stdlib_go_ast_manual_decl_cross_package"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_source_stdlib_go_ast_manual_decl_cross_package_walker = { path = "vendor/example_com_source_stdlib_go_ast_manual_decl_cross_package_walker" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

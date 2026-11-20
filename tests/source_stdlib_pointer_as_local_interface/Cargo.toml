@@ -18,6 +18,9 @@ edition = "2021"
 name = "source_stdlib_pointer_as_local_interface"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_ast = { path = "vendor/go_ast" }

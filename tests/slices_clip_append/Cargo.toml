@@ -18,6 +18,9 @@ edition = "2021"
 name = "slices_clip_append"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 cmp = { path = "vendor/cmp" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

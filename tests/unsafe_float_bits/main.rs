@@ -22,7 +22,7 @@ pub fn abs(x: Arc<Mutex<Option<f64>>>) -> f64 {
 
 fn main() {
     let mut b = float64bits(Arc::new(Mutex::new(Some(1.5))));
-    print!("{} {} {}\n", format!("{:x}", b), float64frombits(Arc::new(Mutex::new(Some(b)))), format!("{:x}", float32bits(Arc::new(Mutex::new(Some(-2.0))))));
+    print!("{} {} {}\n", format!("{}", format!("{:x}", b)), format!("{}", float64frombits(Arc::new(Mutex::new(Some(b))))), format!("{}", format!("{:x}", float32bits(Arc::new(Mutex::new(Some(-2.0)))))));
     let mut u = Arc::new(Mutex::new(Some(((1 as u64) << (63 as u64)) as u64)));
     println!("{} {} {}", format!("{}", signed_of(u.clone())), format!("{}", abs(Arc::new(Mutex::new(Some(-0.25))))), format!("{}", abs(Arc::new(Mutex::new(Some(3.0))))));
 }

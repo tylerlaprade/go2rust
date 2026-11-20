@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "iota_enums"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

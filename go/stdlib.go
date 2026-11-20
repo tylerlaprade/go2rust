@@ -2,9 +2,11 @@ package main
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -1531,6 +1533,30 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			unicodeIndices = unicodes
 			pointerIndices = pointers
 			hexFormats = hexes
+			if NeedsConcurrentWrapper() {
+				// The arguments are written first, so that each can be
+				// formatted on its own; see formatArgsEachInOwnFormat.
+				var args []string
+				for i := formatArgIndex + 1; i < len(call.Args); i++ {
+					if slices.Contains(skipIndices, i-formatArgIndex-1) {
+						continue
+					}
+					var arg strings.Builder
+					withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
+						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					})
+					args = append(args, arg.String())
+				}
+				if outer, wrapped, ok := formatArgsEachInOwnFormat(format, args); ok {
+					out.WriteString(outer)
+					for _, arg := range wrapped {
+						out.WriteString(", ")
+						out.WriteString(arg)
+					}
+					out.WriteString(")")
+					return
+				}
+			}
 			out.WriteString(format)
 		} else {
 			out.WriteString("\"{}\"")
@@ -2161,6 +2187,30 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			unicodeIndices = unicodes
 			pointerIndices = pointers
 			hexFormats = hexes
+			if NeedsConcurrentWrapper() {
+				// The arguments are written first, so that each can be
+				// formatted on its own; see formatArgsEachInOwnFormat.
+				var args []string
+				for i := 1; i < len(call.Args); i++ {
+					if slices.Contains(skipIndices, i-1) {
+						continue
+					}
+					var arg strings.Builder
+					withPrintArgPlusV(plusVArgs[i-1], func() {
+						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					})
+					args = append(args, arg.String())
+				}
+				if outer, wrapped, ok := formatArgsEachInOwnFormat(format, args); ok {
+					out.WriteString(outer)
+					for _, arg := range wrapped {
+						out.WriteString(", ")
+						out.WriteString(arg)
+					}
+					out.WriteString("))))")
+					return
+				}
+			}
 			out.WriteString(format)
 		} else {
 			out.WriteString("\"{}\"")
@@ -7095,30 +7145,46 @@ func transpileTimeSleep(out *strings.Builder, call *ast.CallExpr) {
 		// Check if it's a simple multiplication like 500 * time.Millisecond
 		if binOp, ok := call.Args[0].(*ast.BinaryExpr); ok && binOp.Op == token.MUL {
 			if multiplier, unit, ok := durationBinaryParts(binOp); ok {
+				// time.Duration(n) * time.Millisecond: the count is n.
+				var countExpr ast.Expr
+				if conv, isCall := unwrapParens(multiplier).(*ast.CallExpr); isCall && len(conv.Args) == 1 {
+					if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsTypeConversion(conv) && isTimeDurationType(typeInfo.GetType(conv)) {
+						countExpr = conv.Args[0]
+					}
+				}
+				writeCount := func(expr ast.Expr) {
+					if countExpr != nil {
+						out.WriteString("(")
+						TranspileExpression(out, countExpr)
+						out.WriteString(") as u64")
+						return
+					}
+					TranspileExpression(out, expr)
+				}
 				out.WriteString("std::thread::sleep(std::time::Duration::")
 				switch unit {
 				case "Millisecond":
 					out.WriteString("from_millis(")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				case "Second":
 					out.WriteString("from_secs(")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				case "Microsecond":
 					out.WriteString("from_micros(")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				case "Nanosecond":
 					out.WriteString("from_nanos(")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				case "Minute":
 					out.WriteString("from_secs(60 * ")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				case "Hour":
 					out.WriteString("from_secs(3600 * ")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				default:
 					// Unknown unit, default to milliseconds
 					out.WriteString("from_millis(")
-					TranspileExpression(out, multiplier)
+					writeCount(multiplier)
 				}
 
 				if unit == "Minute" || unit == "Hour" {
@@ -7129,6 +7195,30 @@ func transpileTimeSleep(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 
+		// A constant duration, time.Millisecond, is its count of
+		// nanoseconds.
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			if tv, ok := typeInfo.info.Types[call.Args[0]]; ok && tv.Value != nil {
+				if nanos, exact := constant.Int64Val(constant.ToInt(tv.Value)); exact {
+					if nanos < 0 {
+						nanos = 0
+					}
+					out.WriteString("std::thread::sleep(std::time::Duration::from_nanos(")
+					out.WriteString(strconv.FormatInt(nanos, 10))
+					out.WriteString("))")
+					return
+				}
+			}
+		}
+		// A time.Duration value is a std::time::Duration already.
+		if !isConstantExpression(call.Args[0]) {
+			if typeInfo := GetTypeInfo(); typeInfo != nil && isTimeDurationType(typeInfo.GetType(call.Args[0])) {
+				out.WriteString("std::thread::sleep(")
+				TranspileExpression(out, call.Args[0])
+				out.WriteString(")")
+				return
+			}
+		}
 		// Fallback: assume it's a duration in nanoseconds
 		out.WriteString("std::thread::sleep(std::time::Duration::from_nanos(")
 		TranspileExpression(out, call.Args[0])
@@ -7505,4 +7595,63 @@ func timeDurationUnitName(expr ast.Expr) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// formatArgsEachInOwnFormat rewrites print!("{} {:.2}", a, b) as
+// print!("{} {}", format!("{}", a), format!("{:.2}", b)). In a program with
+// goroutines reading a value locks it, and the locks a macro argument takes
+// are held until the whole macro is done, so a second argument that locks
+// the same value, as p.In.V and p.Age both lock p, waited forever. A
+// format! of its own drops its locks when it returns. It reports false for
+// a format it cannot split: fewer than two arguments, a positional or a
+// computed width.
+func formatArgsEachInOwnFormat(format string, args []string) (string, []string, bool) {
+	if len(args) < 2 || len(format) < 2 || format[0] != '"' || format[len(format)-1] != '"' {
+		return "", nil, false
+	}
+	body := format[1 : len(format)-1]
+	var outer strings.Builder
+	var specs []string
+	for i := 0; i < len(body); i++ {
+		c := body[i]
+		switch {
+		case c == '\\' && i+1 < len(body):
+			outer.WriteByte(c)
+			outer.WriteByte(body[i+1])
+			i++
+		case c == '{' && i+1 < len(body) && body[i+1] == '{':
+			outer.WriteString("{{")
+			i++
+		case c == '}' && i+1 < len(body) && body[i+1] == '}':
+			outer.WriteString("}}")
+			i++
+		case c == '{':
+			end := strings.IndexByte(body[i:], '}')
+			if end < 0 {
+				return "", nil, false
+			}
+			spec := body[i : i+end+1]
+			inner := spec[1 : len(spec)-1]
+			name := inner
+			if colon := strings.IndexByte(inner, ':'); colon >= 0 {
+				name = inner[:colon]
+			}
+			if name != "" || strings.Contains(inner, "$") || strings.Contains(inner, "*") {
+				return "", nil, false
+			}
+			specs = append(specs, spec)
+			outer.WriteString("{}")
+			i += end
+		default:
+			outer.WriteByte(c)
+		}
+	}
+	if len(specs) != len(args) {
+		return "", nil, false
+	}
+	wrapped := make([]string, len(args))
+	for i, arg := range args {
+		wrapped[i] = "format!(\"" + specs[i] + "\", " + arg + ")"
+	}
+	return "\"" + outer.String() + "\"", wrapped, true
 }

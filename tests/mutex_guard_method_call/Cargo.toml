@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "mutex_guard_method_call"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

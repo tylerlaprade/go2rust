@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "os_file_readcloser_assignment"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

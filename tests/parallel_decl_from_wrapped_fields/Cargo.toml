@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "parallel_decl_from_wrapped_fields"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

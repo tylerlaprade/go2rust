@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "range_defined_float_call_argument_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

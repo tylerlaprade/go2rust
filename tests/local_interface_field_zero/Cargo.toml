@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "local_interface_field_zero"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

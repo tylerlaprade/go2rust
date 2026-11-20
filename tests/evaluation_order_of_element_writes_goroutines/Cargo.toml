@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "evaluation_order_of_element_writes_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "json_marshal_driver_request_shape"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

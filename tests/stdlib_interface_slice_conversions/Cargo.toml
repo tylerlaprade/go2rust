@@ -45,6 +45,9 @@ edition = "2021"
 name = "stdlib_interface_slice_conversions"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 bytes = { path = "vendor/bytes" }
 cmp = { path = "vendor/cmp" }

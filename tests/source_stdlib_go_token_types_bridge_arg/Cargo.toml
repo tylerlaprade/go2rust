@@ -44,6 +44,9 @@ edition = "2021"
 name = "source_stdlib_go_token_types_bridge_arg"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 bytes = { path = "vendor/bytes" }
 cmp = { path = "vendor/cmp" }

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "type_assertion_panic_messages_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

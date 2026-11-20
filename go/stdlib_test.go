@@ -1814,12 +1814,12 @@ func main() {
 	describe(5)
 }
 `)
-	want := `print!("{}|{}\n", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text });`
+	want := `print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
 	if !strings.Contains(locked, want) {
 		t.Fatalf("missing %q in:\n%s", want, locked)
 	}
 	// %T reads the variable as well.
-	wantType := `print!("{}: {}\n", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }, { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text });`
+	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
 	if !strings.Contains(locked, wantType) {
 		t.Fatalf("missing %q in:\n%s", wantType, locked)
 	}

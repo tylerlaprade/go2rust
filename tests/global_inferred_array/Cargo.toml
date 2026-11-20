@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "global_inferred_array"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

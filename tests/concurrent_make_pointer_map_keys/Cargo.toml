@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concurrent_make_pointer_map_keys"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -152,6 +152,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -256,7 +278,7 @@ fn main() {
         println!("{} {}", format!("{}", "s".to_string()), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
     } else {
         let v = _ts_val.unwrap();
-        print!("{} {}\n", __go_type_name(v), format_any(v));;
+        print!("{} {}\n", format!("{}", __go_type_name(v)), format!("{}", format_any(v)));;
         show(Arc::new(Mutex::new(Some(go_any_clone(v)))));;
     }
     }

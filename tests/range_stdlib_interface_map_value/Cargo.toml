@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "range_stdlib_interface_map_value"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

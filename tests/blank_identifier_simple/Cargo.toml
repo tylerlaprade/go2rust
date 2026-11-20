@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "blank_identifier_simple"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

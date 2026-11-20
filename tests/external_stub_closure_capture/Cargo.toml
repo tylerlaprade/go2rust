@@ -20,6 +20,9 @@ edition = "2021"
 name = "external_stub_closure_capture"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 internal_abi = { path = "vendor/internal_abi" }

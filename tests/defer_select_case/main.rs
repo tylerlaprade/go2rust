@@ -177,6 +177,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -239,7 +261,7 @@ pub fn run(ch: GoChannel<i32>) {
     std::panic::set_hook(Box::new(|_| {}));
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         loop {
-        if let Some(_) = ch.try_recv() {
+        if let Some(_) = ch.try_recv_select() {
             __defer_stack.push(Box::new(move || {
         println!("{}", format!("{}", "deferred".to_string()));
     }));

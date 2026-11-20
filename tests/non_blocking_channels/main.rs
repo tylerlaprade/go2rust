@@ -93,6 +93,28 @@ impl<T> GoChannel<T> {
         value
     }
 
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
     fn close(&self) {
         *self.tx.lock().unwrap() = None;
     }
@@ -153,7 +175,9 @@ fn main() {
     let mut signals = GoChannel::<bool>::new();
 
     loop {
-        if let Some(msg) = messages.try_recv() {
+        if let Some(__select_recv) = messages.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "received message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
@@ -173,12 +197,16 @@ fn main() {
     }
 
     loop {
-        if let Some(msg) = messages.try_recv() {
+        if let Some(__select_recv) = messages.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "received message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(sig) = signals.try_recv() {
+        if let Some(__select_recv) = signals.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let sig = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut sig = Arc::new(Mutex::new(Some(sig)));
             println!("{} {}", format!("{}", "received signal".to_string()), format!("{}", { let __v = (*sig.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;

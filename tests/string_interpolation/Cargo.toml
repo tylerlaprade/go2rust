@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "string_interpolation"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

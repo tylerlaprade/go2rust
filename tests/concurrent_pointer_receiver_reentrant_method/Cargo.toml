@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concurrent_pointer_receiver_reentrant_method"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

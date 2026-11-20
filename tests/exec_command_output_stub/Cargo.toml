@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "exec_command_output_stub"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

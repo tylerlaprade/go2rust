@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "map_range_string_value_assignment_key"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

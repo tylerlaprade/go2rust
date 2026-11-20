@@ -1427,6 +1427,14 @@ run_xfail_test() {
     run_test "tests/init_order_complex"
 }
 
+@test "integer_overflow_wraps" {
+    run_test "tests/integer_overflow_wraps"
+}
+
+@test "integer_overflow_wraps_goroutines" {
+    run_test "tests/integer_overflow_wraps_goroutines"
+}
+
 @test "interface_arg_wrapped_struct_field" {
     run_test "tests/interface_arg_wrapped_struct_field"
 }
@@ -2399,6 +2407,10 @@ run_xfail_test() {
     run_test "tests/print_self_referencing_value_goroutines"
 }
 
+@test "printf_args_lock_one_value_goroutines" {
+    run_test "tests/printf_args_lock_one_value_goroutines"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
 }
@@ -2441,6 +2453,14 @@ run_xfail_test() {
 
 @test "promoted_pointer_map_field_range" {
     run_test "tests/promoted_pointer_map_field_range"
+}
+
+@test "promoted_pointer_method_mutates_receiver" {
+    run_test "tests/promoted_pointer_method_mutates_receiver"
+}
+
+@test "promoted_pointer_method_mutates_receiver_goroutines" {
+    run_test "tests/promoted_pointer_method_mutates_receiver_goroutines"
 }
 
 @test "random_numbers" {
@@ -2745,6 +2765,10 @@ run_xfail_test() {
 
 @test "select_basic" {
     run_test "tests/select_basic"
+}
+
+@test "select_closed_channel_labeled_break" {
+    run_test "tests/select_closed_channel_labeled_break"
 }
 
 @test "select_statements" {
@@ -3353,6 +3377,10 @@ run_xfail_test() {
 
 @test "time_operations" {
     run_test "tests/time_operations"
+}
+
+@test "time_sleep_duration_forms" {
+    run_test "tests/time_sleep_duration_forms"
 }
 
 @test "timeouts_basic" {

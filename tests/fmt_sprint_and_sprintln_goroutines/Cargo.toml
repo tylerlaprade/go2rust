@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "fmt_sprint_and_sprintln_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

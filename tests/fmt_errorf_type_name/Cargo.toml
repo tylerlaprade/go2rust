@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "fmt_errorf_type_name"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
