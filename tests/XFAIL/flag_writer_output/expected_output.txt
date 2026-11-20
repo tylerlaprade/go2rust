@@ -1,0 +1,3 @@
+true
+flag provided but not defined: -missing
+Usage of probe:
