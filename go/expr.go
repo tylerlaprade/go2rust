@@ -9314,7 +9314,7 @@ func writeAnyHandleAssertionHandle(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	if _, isElement := anySliceElementAssertionSource(e.X); isElement {
-		return false
+		return writeAnySliceElementPointerHandleAssertionValue(out, e, handleType)
 	}
 	out.WriteString("({ let val = ")
 	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {

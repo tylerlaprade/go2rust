@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cmp::Ord;
 use std::collections::BTreeMap;
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -108,6 +109,32 @@ fn format_float64_slice_values(values: &[f64]) -> String {
 fn format_float32_slice_values(values: &[f32]) -> String {
     format!("[{}]", values.iter().map(|v| go_format_float32(*v)).collect::<Vec<_>>().join(" "))
 }
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
+where
+    V: Display,
+{
+    let guard = map.lock().unwrap();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.lock().unwrap();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", k, val)
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
 fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
@@ -181,6 +208,10 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<f64>>>>>>>>() {
+        format_map(v)
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<f64>>>>>() {
+        format_slice(v)
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
@@ -373,6 +404,8 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<f64>>>>>>>>() { return "map[string]float64" }
+    if val.is::<Arc<Mutex<Option<Vec<f64>>>>>() { return "[]float64" }
     std::any::type_name_of_val(val)
 }
 
@@ -1026,6 +1059,163 @@ impl std::fmt::Display for sample {
 }
 
 
+#[derive(Debug, Default)]
+pub struct floatError(pub Arc<Mutex<Option<f64>>>);
+
+impl Clone for floatError {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        floatError(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Display for floatError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl PartialEq for floatError {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialEq<f64> for floatError {
+    fn eq(&self, other: &f64) -> bool {
+        *self.0.lock().unwrap().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialOrd for floatError {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.partial_cmp(&__right)
+    }
+}
+
+impl PartialOrd<f64> for floatError {
+    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+        self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
+    }
+}
+
+impl PartialEq<floatError> for f64 {
+    fn eq(&self, other: &floatError) -> bool {
+        *self == *other.0.lock().unwrap().as_ref().unwrap()
+    }
+}
+
+impl PartialOrd<floatError> for f64 {
+    fn partial_cmp(&self, other: &floatError) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
+impl std::ops::Add for floatError {
+    type Output = floatError;
+    fn add(self, other: Self) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Add<f64> for floatError {
+    type Output = floatError;
+    fn add(self, other: f64) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
+    }
+}
+
+impl std::ops::Add<floatError> for f64 {
+    type Output = floatError;
+    fn add(self, other: floatError) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Sub for floatError {
+    type Output = floatError;
+    fn sub(self, other: Self) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Sub<f64> for floatError {
+    type Output = floatError;
+    fn sub(self, other: f64) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
+    }
+}
+
+impl std::ops::Sub<floatError> for f64 {
+    type Output = floatError;
+    fn sub(self, other: floatError) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for floatError {
+    type Output = floatError;
+    fn mul(self, other: Self) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<f64> for floatError {
+    type Output = floatError;
+    fn mul(self, other: f64) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<floatError> for f64 {
+    type Output = floatError;
+    fn mul(self, other: floatError) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for floatError {
+    type Output = floatError;
+    fn div(self, other: Self) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<f64> for floatError {
+    type Output = floatError;
+    fn div(self, other: f64) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<floatError> for f64 {
+    type Output = floatError;
+    fn div(self, other: floatError) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for floatError {
+    type Output = floatError;
+    fn neg(self) -> floatError {
+        floatError(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+
+impl floatError {
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some("failed".to_string())))
+    }
+}
+
+impl StdError for floatError {}
+
+
 pub fn print_values() {
     let mut values = Arc::new(Mutex::new(Some(vec![
         100000.0,
@@ -1052,6 +1242,24 @@ pub fn print_values() {
     let mut float32s = Arc::new(Mutex::new(Some(vec![1e+06f32, 1e-05f32])));
     println!("{}", format!("{}", format_float32_slice(&float32s)));
     print!("{}\n", { let __type_name = __go_type_name(&{ let __seq = { let __seq_holder = float32s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }); __type_name });
+    println!("{}", format!("{}", floatError(Arc::new(Mutex::new(Some(1e+06 as f64))))));
+    let mut boxedSlice: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec![1e+06, 1e-05]))).clone()) as Box<dyn Any + Send + Sync>)));
+    println!("{}", format!("{}", format_float64_slice(&({ let val = boxedSlice.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Vec<f64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }))));
+    let mut boxedCollections = Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1e+06, 1e-05]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<f64>>>>::from([("large".to_string(), Arc::new(Mutex::new(Some(1000000.0))))])))).clone()) as Box<dyn Any + Send + Sync>])));
+    println!("{}", format!("{}", format_float64_slice(&({
+        let __idx = (0) as usize;
+        let __seq_holder = boxedCollections.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<Arc<Mutex<Option<Vec<f64>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "[]float64")).clone()
+    }))));
+    println!("{}", format!("{}", format_float64_map_values(&({
+        let __idx = (1) as usize;
+        let __seq_holder = boxedCollections.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
+        any_val.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<f64>>>>>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "map[string]float64")).clone()
+    }))));
     println!("{}", format!("{}", format_float64_map_values(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<f64>>>>::from([("large".to_string(), Arc::new(Mutex::new(Some(1000000.0)))), ("small".to_string(), Arc::new(Mutex::new(Some(0.00001))))])))))));
     println!("{}", format!("{}", format_float32_map_values(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<f32>>>>::from([("large".to_string(), Arc::new(Mutex::new(Some(1000000.0)))), ("small".to_string(), Arc::new(Mutex::new(Some(0.00001))))])))))));
     println!("{}", format!("{}", sample { large: Arc::new(Mutex::new(Some(1e+06))), small: Arc::new(Mutex::new(Some(1e-05))), ..Default::default() }));

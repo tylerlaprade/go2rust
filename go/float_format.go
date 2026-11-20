@@ -71,7 +71,7 @@ func writeGoDefaultFloatFormat(out *strings.Builder, arg ast.Expr, typ types.Typ
 		return false
 	}
 	bits, ok := goFloatBits(typ)
-	if !ok || typeHasGoStringMethod(typ) {
+	if !ok || typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ) {
 		return false
 	}
 	NeedGoFloatFormat()

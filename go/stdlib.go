@@ -2184,6 +2184,14 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 		out.WriteString(")")
 		return
 	}
+	var assertionHandle strings.Builder
+	if writeAnyHandleAssertionHandle(&assertionHandle, arg) {
+		out.WriteString(wrappedHelper)
+		out.WriteString("(&")
+		out.WriteString(assertionHandle.String())
+		out.WriteString(")")
+		return
+	}
 	out.WriteString(wrappedHelper)
 	out.WriteString("(&")
 	TranspileExpression(out, arg)

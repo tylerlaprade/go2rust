@@ -79,3 +79,50 @@ func main() {
 		t.Fatalf("float32 collection constants must constrain Rust's element type:\n%s", rust)
 	}
 }
+
+func TestFloatFormattingPreservesErrorMethodAndAssertedSliceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type floatError float64
+
+func (floatError) Error() string { return "failed" }
+
+func main() {
+	fmt.Println(floatError(1000000))
+	var value any = []float64{1000000}
+	fmt.Println(value.([]float64))
+}
+`)
+
+	mainBody := rust[strings.LastIndex(rust, "fn main()"):]
+	if strings.Contains(mainBody, "go_format_float64(1e+06)") {
+		t.Fatalf("named float Error method must take precedence over numeric formatting:\n%s", rust)
+	}
+	if !strings.Contains(mainBody, "format_float64_slice(&({ let val = value.clone()") {
+		t.Fatalf("asserted float slice must pass its wrapped handle to the formatter:\n%s", rust)
+	}
+}
+
+func TestFloatFormattingPreservesAnySliceElementCollectionHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	values := []any{
+		[]float64{1000000},
+		map[string]float64{"large": 1000000},
+	}
+	fmt.Println(values[0].([]float64))
+	fmt.Println(values[1].(map[string]float64))
+}
+`)
+
+	mainBody := rust[strings.LastIndex(rust, "fn main()"):]
+	if !strings.Contains(mainBody, "format_float64_slice(&({") ||
+		!strings.Contains(mainBody, "format_float64_map_values(&({") {
+		t.Fatalf("[]any element assertions must pass their collection handles to float formatters:\n%s", rust)
+	}
+}

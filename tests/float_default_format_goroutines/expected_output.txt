@@ -12,6 +12,10 @@
 [1e+06 1e-05]
 [1e+06 1e-05]
 float32
+failed
+[1e+06 1e-05]
+[1e+06 1e-05]
+map[large:1e+06]
 map[large:1e+06 small:1e-05]
 map[large:1e+06 small:1e-05]
 {1e+06 1e-05}
