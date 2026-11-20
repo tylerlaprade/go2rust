@@ -8523,6 +8523,79 @@ func (h *holder) assign() {
 	}
 }
 
+func TestChannelSendCopiesPointerHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Point struct{ X int }
+
+var global = &Point{X: 2}
+
+func point() *Point { return &Point{X: 3} }
+
+func main() {
+	p := &Point{X: 1}
+	points := make(chan *Point, 1)
+	points <- p
+	points <- global
+	points <- point()
+}
+`)
+
+	for what, want := range map[string]string{
+		"local pointer":  "points.send(p.clone());",
+		"global pointer": "points.send((*global.borrow().as_ref().unwrap()).clone());",
+		"pointer call":   "points.send(point().clone());",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("sending a %s did not copy the stored Go pointer handle, missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+func TestChannelSendUnwrapsCollectionValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+var globalSlice = []int{2}
+var globalMap = map[string]int{"b": 2}
+
+func sliceValue() []int { return []int{3} }
+func mapValue() map[string]int { return map[string]int{"c": 3} }
+
+func main() {
+	s := []int{1}
+	slices := make(chan []int, 1)
+	slices <- s
+	slices <- globalSlice
+	slices <- sliceValue()
+
+	m := map[string]int{"a": 1}
+	maps := make(chan map[string]int, 1)
+	maps <- m
+	maps <- globalMap
+	maps <- mapValue()
+}
+`)
+
+	for what, want := range map[string]string{
+		"local slice":  "slices.send(s.borrow().as_ref().unwrap().clone());",
+		"global slice": "slices.send(globalSlice.borrow().as_ref().unwrap().clone());",
+		"slice call":   "slices.send((*slice_value().borrow().as_ref().unwrap()).clone());",
+		"local map":    "maps.send(m.borrow().as_ref().unwrap().clone());",
+		"global map":   "maps.send(globalMap.borrow().as_ref().unwrap().clone());",
+		"map call":     "maps.send((*map_value().borrow().as_ref().unwrap()).clone());",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("sending a %s did not unwrap the collection value expected by the channel, missing %q", what, want)
+		}
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
 func TestChannelFieldAssignmentUsesMutableStructTarget(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

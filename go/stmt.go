@@ -10645,10 +10645,17 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// Check if this is a Copy type using TypeInfo
 	isCopyType := false
+	keepsHandle := false
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil {
 		exprType := typeInfo.GetType(expr)
 		if exprType != nil {
+			// Pointer and channel elements are represented by the same handle
+			// shape inside GoChannel, so sending them copies that handle. Slice
+			// and map channel elements still use the historical bare collection
+			// shape and must follow the unwrap path below; cloning their variable
+			// wrapper here produces the wrong Rust element type.
+			keepsHandle = channelValueKeepsHandle(exprType)
 			if isGoErrorType(exprType) {
 				writeErrorOptionFromHandleExpression(out, expr)
 				return
@@ -10663,6 +10670,18 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 				}
 			}
 		}
+	}
+	if keepsHandle {
+		if ident, ok := unwrapParens(expr).(*ast.Ident); ok && isPackageGlobalIdent(ident) {
+			writePackageGlobalPointerHandleClone(out, ident)
+			return
+		}
+		if writeSourceMappedPackageGlobalPointerHandleClone(out, expr) {
+			return
+		}
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+		return
 	}
 
 	if call, ok := expr.(*ast.CallExpr); ok {
@@ -10736,6 +10755,18 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// For other expressions, try to unwrap
 	TranspileExpression(out, expr)
+}
+
+func channelValueKeepsHandle(valueType types.Type) bool {
+	if valueType == nil {
+		return false
+	}
+	switch types.Unalias(valueType).Underlying().(type) {
+	case *types.Pointer, *types.Chan:
+		return true
+	default:
+		return false
+	}
 }
 
 func callReturnsBareChannelValue(call *ast.CallExpr) bool {

@@ -639,6 +639,10 @@ run_xfail_test() {
     run_test "tests/channel_error_values"
 }
 
+@test "channel_pointer_send" {
+    run_test "tests/channel_pointer_send"
+}
+
 @test "channel_receive_closed" {
     run_test "tests/channel_receive_closed"
 }
@@ -3669,6 +3673,10 @@ run_xfail_test() {
 
 @test "wrapped_call_argument" {
     run_test "tests/wrapped_call_argument"
+}
+
+@test "XFAIL: channel_collection_copy_semantics" {
+    run_xfail_test "tests/XFAIL/channel_collection_copy_semantics"
 }
 
 @test "XFAIL: concurrency_patterns" {
