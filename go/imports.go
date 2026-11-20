@@ -214,6 +214,10 @@ type anyFormatArm struct {
 	// value as the one text the method returns, so a width, a precision, %q
 	// and %x apply to that text and not to the fields of the value.
 	text bool
+	// namedBasic says the value is a newtype around one basic value, "type
+	// Level int". A format known only at run time formats that value for any
+	// verb the type's own text does not take.
+	namedBasic bool
 }
 
 var generatingPublicHelpers bool

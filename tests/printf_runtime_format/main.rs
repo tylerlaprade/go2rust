@@ -225,9 +225,14 @@ fn go_format_is_text(__value: &dyn Any) -> bool {
         || __value.is::<Status>()
 }
 
+// The basic value a newtype such as "type Level int" holds, boxed.
+fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
+    None
+}
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -655,6 +660,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
         return go_format_string(&basic, verb, &format_any(value));
+    }
+    if let Some(inner) = go_format_named_basic_value(value) {
+        return go_format_argument(spec, verb, inner.as_ref());
     }
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or
