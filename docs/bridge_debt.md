@@ -210,6 +210,29 @@ against the `// TEMPORARY:` comments of that one file.
   and this row is deleted with the move.
 - Added: 2026-11-19
 
+**errors-chain**
+
+- Location: `go/error_chain.go`: the generated `GoWrapError`,
+  `go_error_wrap`, `go_errors_join`, `go_error_chain`, `go_errors_unwrap`
+  and `go_errors_is`, and the handlers `transpileErrorsIs`,
+  `transpileErrorsAs`, `transpileErrorsUnwrap` and `transpileErrorsJoin`.
+  `transpileFmtErrorf` in `go/stdlib.go` builds a `GoWrapError` for `%w`.
+- Go symbol: `errors.Is`, `errors.As`, `errors.Unwrap`, `errors.Join`, and
+  the wrapping that `fmt.Errorf` does for `%w`.
+- Transpiler gap: `errors` is a source-tier package, but it is not
+  translated from source by default (DEV-12), and its `Is` needs `==` on two
+  error values, type assertions to `interface{ Unwrap() error }` and
+  `reflectlite`. `fmt.Errorf` is bridged with the rest of `fmt`
+  (fmt-runtime-format), so its `%w` has to build a wrapper this walk knows.
+  Before this, the four went to the generic stub, which panics (DEV-50).
+- Fixture: `tests/errors_wrap_is_as_unwrap/` and
+  `tests/errors_wrap_is_as_unwrap_goroutines/`.
+- Removal trigger: `errors` is translated from source and `fmt.Errorf`'s
+  `%w` produces the `wrapError` that the translated `errors` unwraps through
+  an interface assertion. A type's own `Is` and `As` methods are not called
+  yet; that waits for the same change.
+- Added: 2026-11-20
+
 ## Shims
 
 The rows below were backfilled on 2026-05-27 from the existing 36

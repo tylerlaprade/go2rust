@@ -168,6 +168,7 @@ type HelperTracker struct {
 	needsGoOnce                          bool
 	needsGoAtomicPointer                 bool
 	needsGoTypeName                      bool
+	needsGoErrorChain                    bool
 	needsGoSprintf                       bool
 	needsGoSprintfSpread                 bool
 	needsBase64                          bool
@@ -414,6 +415,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoTypeNameHelper(&result, anyTypeNames)
 	}
 
+	if ht.needsGoErrorChain {
+		generateGoErrorChainHelper(&result)
+	}
+
 	if ht.needsGoSprintf {
 		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
 	}
@@ -528,6 +533,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoOnce ||
 		ht.needsGoAtomicPointer ||
 		ht.needsGoTypeName ||
+		ht.needsGoErrorChain ||
 		ht.needsBase64 ||
 		ht.needsSha256 ||
 		ht.needsHexFormat ||
@@ -700,6 +706,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoTypeName {
 		add(goTypeNameHelperRustName)
+	}
+	if ht.needsGoErrorChain {
+		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
 	}
 	if ht.needsGoSprintf {
 		add("go_sprintf")

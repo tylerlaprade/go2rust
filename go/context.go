@@ -1151,6 +1151,17 @@ func NeedGoAtomicPointer() {
 }
 
 // NeedGoTypeName marks that we need the go_type_name helper function
+// NeedGoErrorChain marks that we need the errors written by fmt.Errorf with
+// %w and errors.Join, and the walk over them that errors.Is, errors.As and
+// errors.Unwrap make.
+func NeedGoErrorChain() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoErrorChain = true
+		TrackImport("Error")
+		trackWrapperImports()
+	}
+}
+
 func NeedGoTypeName() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoTypeName = true

@@ -1,0 +1,16 @@
+true false
+true true
+ctx: base
+load: find "k": not found true false
+true not found
+as: empty missing empty
+false
+code: code 7 7
+not found and denied true true true
+true false
+denied
+base
+true true false
+wrap nil: %!w(<nil>) true
+select: timeout true true
+true true select
