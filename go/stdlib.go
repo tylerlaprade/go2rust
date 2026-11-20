@@ -7108,12 +7108,40 @@ func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
 		out.WriteString(")")
 		return true
 	}
+	// Rust requires a panic payload to be Send, but a single-threaded Go
+	// interface may contain Rc/RefCell values. Put the actual Go value in a
+	// thread-local slot and panic with its formatted text. The catch/recover
+	// runtime swaps the original value back in before deferred functions run.
+	NeedPanicRecover()
+	NeedAnyClone()
 	NeedFormatAny()
-	out.WriteString("panic!(\"{}\", { let __any_holder = ")
+	return writeLocalPanicAnyPayloadArg(out, arg)
+}
+
+func writeLocalPanicAnyPayloadArg(out *strings.Builder, arg ast.Expr) bool {
+	if isBareAnyReferenceExpr(arg) {
+		ident := unwrapParens(arg).(*ast.Ident)
+		writeRef := func() {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			if rangeVarIsAnyBoxRef(ident) {
+				out.WriteString(".as_ref()")
+			}
+		}
+		out.WriteString("go_panic_any_local(go_any_clone(")
+		writeRef()
+		out.WriteString("), format_any(")
+		writeRef()
+		out.WriteString("))")
+		return true
+	}
+	if !isEmptyInterfaceValueExpr(arg) {
+		return false
+	}
+	out.WriteString("{ let __any_holder = ")
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".clone(); let __any_guard = __any_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; format_any(__any_guard.as_ref().expect(\"nil interface in panic argument\").as_ref()) })")
+	out.WriteString("; let __any_ref = __any_guard.as_ref().expect(\"nil interface in panic argument\").as_ref(); go_panic_any_local(go_any_clone(__any_ref), format_any(__any_ref)) }")
 	return true
 }
 

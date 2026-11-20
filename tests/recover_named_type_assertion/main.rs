@@ -588,23 +588,78 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+struct GoLocalPanicFrame {
+    payload: Option<Box<dyn Any>>,
+    message: String,
+    recoverable: bool,
+}
+
 thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+}
+
+fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
+    std::panic::panic_any(__message)
 }
 
 fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+    let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recoverable { frame.payload.take() } else { None }
+        })
+    });
+    Rc::new(RefCell::new(__payload))
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recoverable;
+            frame.recoverable = recoverable;
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recoverable = previous;
+            }
+        });
+    }
+    result
 }
 
 fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
-    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
-        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+            payload: Some(__go_payload),
+            message: __message,
+            recoverable: false,
+        }));
+        return;
+    }
+    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
-            Err(__payload) => __payload,
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Err(__payload) => __payload as Box<dyn Any>,
         },
     };
-    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+    let __message = __payload.downcast_ref::<String>().cloned()
+        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+        payload: Some(__payload),
+        message: __message,
+        recoverable: false,
+    }));
+}
+
+fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(__payload);
 }
 
 fn go_runtime_error_text(__text: String) -> String {
@@ -620,11 +675,10 @@ fn go_runtime_error_text(__text: String) -> String {
 }
 
 fn go_resume_unrecovered_panic() {
-    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
-        match __payload.downcast::<String>() {
-            Ok(__text) => std::panic::panic_any(*__text),
-            Err(__payload) => std::panic::resume_unwind(__payload),
-        }
+    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
+    {
+        go_panic_any_local(__payload, __message)
     }
 }
 
@@ -743,7 +797,9 @@ fn main() {
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
-            f();
+            if let Err(__go_defer_panic) = go_call_deferred(f, false) {
+                std::panic::resume_unwind(__go_defer_panic);
+            }
         }
     }));
     match __go_panic_result {
@@ -754,8 +810,8 @@ fn main() {
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
             std::panic::set_hook(__go_previous_panic_hook);

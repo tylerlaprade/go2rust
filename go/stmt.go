@@ -11733,7 +11733,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString("        // Execute deferred functions\n")
 				out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-				out.WriteString("            f();\n")
+				writeNormalDeferredCall(out, "            ")
 				out.WriteString("        }\n")
 				out.WriteString("        return ")
 				writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
@@ -11775,7 +11775,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("        // Execute deferred functions\n")
 			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-			out.WriteString("            f();\n")
+			writeNormalDeferredCall(out, "            ")
 			out.WriteString("        }\n")
 			out.WriteString("        return ")
 			writeNamedReturnValuesWithBlankTemps(out, fnType, blankTemps)
@@ -11814,7 +11814,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("{\n")
 			out.WriteString("        // Execute deferred functions\n")
 			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-			out.WriteString("            f();\n")
+			writeNormalDeferredCall(out, "            ")
 			out.WriteString("        }\n")
 			out.WriteString("        return")
 		} else if !tailReturn {
@@ -16223,7 +16223,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				if hasClosureDefer {
 					out.WriteString("\n            while let Some(f) = __defer_stack.pop() {\n")
-					out.WriteString("                f();\n")
+					writeNormalDeferredCall(out, "                ")
 					out.WriteString("            }")
 				}
 
@@ -16249,7 +16249,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if hasClosureDefer {
 					out.WriteString("\n        while let Some(f) = __defer_stack.pop() {\n")
-					out.WriteString("            f();\n")
+					writeNormalDeferredCall(out, "            ")
 					out.WriteString("        }")
 				}
 			}
@@ -16529,7 +16529,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							WriteWrapperPrefix(out)
 							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 							out.WriteString(rustType)
-							out.WriteString(">()).unwrap().clone()")
+							out.WriteString(">()).unwrap()")
+							caseType := typeSwitchCaseResolvedType(typeInfo, caseClause.List[0])
+							if caseType != nil {
+								if _, valueStruct := types.Unalias(caseType).Underlying().(*types.Struct); valueStruct {
+									out.WriteString(".__go_value_clone()")
+								} else {
+									out.WriteString(".clone()")
+								}
+							} else {
+								out.WriteString(".clone()")
+							}
 							WriteWrapperSuffix(out)
 						}
 						out.WriteString(";\n")

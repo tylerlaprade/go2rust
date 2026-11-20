@@ -4038,7 +4038,7 @@ func main() {
 		"let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {",
 		"go_recover()",
 		"fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {",
-		"if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {",
+		"if let Err(__go_defer_panic) = go_call_deferred(f, true) {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)

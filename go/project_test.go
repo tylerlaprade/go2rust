@@ -3228,6 +3228,9 @@ func main() {
 	if !strings.Contains(mainRS, "fn format(&self") {
 		t.Fatalf("GoTime helper should include Format support, got:\n%s", mainRS)
 	}
+	if !strings.Contains(mainRS, "pub fn __go_value_clone(&self) -> Self") {
+		t.Fatalf("GoTime helper should support value cloning when boxed in any, got:\n%s", mainRS)
+	}
 }
 
 func TestWrappedArrayFieldRangeAndFormatting(t *testing.T) {

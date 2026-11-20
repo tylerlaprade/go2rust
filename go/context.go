@@ -873,6 +873,9 @@ func NeedPanicRecover() {
 		TrackImport("RefCell")
 		trackWrapperImports()
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsPanicRecover = true
+	})
 }
 
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
@@ -945,7 +948,8 @@ func RegisterAnyCloneType(typ types.Type) {
 		if helpers.anyCloneTypes == nil {
 			helpers.anyCloneTypes = make(map[string]bool)
 		}
-		helpers.anyCloneTypes[rustType] = true
+		_, valueStruct := typ.Underlying().(*types.Struct)
+		helpers.anyCloneTypes[rustType] = helpers.anyCloneTypes[rustType] || valueStruct
 		arm, hasArm := anyFormatArmForType(typ)
 		if hasArm {
 			if helpers.anyFormatArms == nil {
@@ -989,7 +993,7 @@ func RegisterOpaqueErrorAnyPayload() {
 	if helpers.anyCloneTypes == nil {
 		helpers.anyCloneTypes = make(map[string]bool)
 	}
-	helpers.anyCloneTypes[rustType] = true
+	helpers.anyCloneTypes[rustType] = false
 	if helpers.anyFormatArms == nil {
 		helpers.anyFormatArms = make(map[string]anyFormatArm)
 	}

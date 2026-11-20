@@ -1382,7 +1382,7 @@ func log(args ...any) {
 	}
 }
 
-func TestPanicAnyFormatsInterfacePayload(t *testing.T) {
+func TestPanicAnyPreservesLocalInterfacePayload(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 func fail(value any) {
@@ -1390,11 +1390,19 @@ func fail(value any) {
 }
 `)
 
-	if strings.Contains(rust, "panic!(\"{}\", (*value.") {
-		t.Fatalf("panic(any) should not display the raw Box<dyn Any> payload:\n%s", rust)
+	if !strings.Contains(rust, "go_panic_any_local(") || !strings.Contains(rust, "go_any_clone(") || !strings.Contains(rust, "format_any(") {
+		t.Fatalf("panic(any) should preserve the local payload through the panic runtime:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format_any(") {
-		t.Fatalf("panic(any) should format through format_any in single-threaded lowering:\n%s", rust)
+	for _, want := range []string{
+		"static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>>",
+		"static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>>",
+		"fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> !",
+		"std::panic::panic_any(__message)",
+		"if frame.recoverable { frame.payload.take() } else { None }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("single-thread panic runtime missing %q:\n%s", want, rust)
+		}
 	}
 }
 
@@ -1444,14 +1452,14 @@ func fail() {
 }
 `)
 
-	if strings.Contains(rust, "__GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));\n            return;") {
+	if strings.Contains(rust, "go_push_panic_payload(*boxed);\n            return;") {
 		t.Fatalf("recover helper should not stop after the first boxed any payload:\n%s", rust)
 	}
 	for _, want := range []string{
 		"let mut payload = *boxed;",
 		"loop {",
 		"match payload.downcast::<Box<dyn Any + Send + Sync>>()",
-		"__GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));",
+		"go_push_panic_payload(payload);",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("recover helper missing nested boxed any unwrap fragment %q:\n%s", want, rust)

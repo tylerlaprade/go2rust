@@ -69,6 +69,28 @@ func TestEmbeddedOwnerRegistryLivesInSharedStdlibHelpers(t *testing.T) {
 	}
 }
 
+func TestPanicRecoverRuntimeLivesInSharedStdlibHelpers(t *testing.T) {
+	ht := &HelperTracker{needsPanicRecover: true}
+
+	local := ht.GenerateHelperModuleOmittingSharedStdlibHelpers()
+	if strings.Contains(local, "fn go_recover") || strings.Contains(local, "fn go_store_panic_payload") {
+		t.Fatalf("package-local helper module should omit the shared panic runtime:\n%s", local)
+	}
+
+	shared := ht.GenerateSharedStdlibHelperModule()
+	for _, want := range []string{
+		"pub fn go_panic_any_local",
+		"pub fn go_recover",
+		"pub fn go_replace_panic_payload",
+		"pub fn go_store_panic_payload",
+		"pub fn go_resume_unrecovered_panic",
+	} {
+		if !strings.Contains(shared, want) {
+			t.Fatalf("shared stdlib helper module missing %q:\n%s", want, shared)
+		}
+	}
+}
+
 func TestGoPtrKeyHelperModuleImportsWrapperTypes(t *testing.T) {
 	prevConcurrencyDetector := GetConcurrencyDetector()
 	t.Cleanup(func() {

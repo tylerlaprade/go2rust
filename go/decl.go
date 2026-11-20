@@ -4424,8 +4424,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		out.WriteString("// Execute deferred functions\n")
 		out.WriteString(bodyIndent)
 		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
+		writeNormalDeferredCall(out, bodyIndent+"    ")
 		out.WriteString(bodyIndent)
 		out.WriteString("}\n")
 	}
@@ -8530,6 +8529,25 @@ func shouldWrapDeferPanicRecover(hasDefer bool) bool {
 	return true
 }
 
+// writeNormalDeferredCall runs one defer on an ordinary return. When this
+// package has the panic/recover runtime, the call explicitly masks any outer
+// panic frame: recover is only valid in a defer invoked while unwinding that
+// frame, never in a nested function's defer that happens to return normally.
+func writeNormalDeferredCall(out *strings.Builder, indent string) {
+	if NeedsConcurrentWrapper() || packageCallsRecover() {
+		NeedPanicRecover()
+		out.WriteString(indent)
+		out.WriteString("if let Err(__go_defer_panic) = go_call_deferred(f, false) {\n")
+		out.WriteString(indent)
+		out.WriteString("    std::panic::resume_unwind(__go_defer_panic);\n")
+		out.WriteString(indent)
+		out.WriteString("}\n")
+		return
+	}
+	out.WriteString(indent)
+	out.WriteString("f();\n")
+}
+
 var packageCallsRecoverCache = map[*types.Info]bool{}
 
 // packageCallsRecover reports whether the package being translated calls the
@@ -8594,9 +8612,9 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
 	out.WriteString(indent)
-	out.WriteString("            if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {\n")
+	out.WriteString("            if let Err(__go_defer_panic) = go_call_deferred(f, true) {\n")
 	out.WriteString(indent)
-	out.WriteString("                go_store_panic_payload(__go_defer_panic);\n")
+	out.WriteString("                go_replace_panic_payload(__go_defer_panic);\n")
 	out.WriteString(indent)
 	out.WriteString("            }\n")
 	out.WriteString(indent)
@@ -9804,8 +9822,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString("// Execute deferred functions\n")
 		out.WriteString(bodyIndent)
 		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
+		writeNormalDeferredCall(out, bodyIndent+"    ")
 		out.WriteString(bodyIndent)
 		out.WriteString("}\n")
 	}

@@ -194,7 +194,10 @@ type HelperTracker struct {
 	needsGoAnyPtrKey                     bool
 	// omitGoSlice is set on the copy that leaves out the helpers a shared
 	// stub crate provides; GoSlice is one of them.
-	omitGoSlice   bool
+	omitGoSlice bool
+	// anyCloneTypes records dynamic Rust types handled by go_any_clone. The
+	// bool is true for a Go struct value, whose generated Clone only clones
+	// field-cell handles and therefore must be replaced by __go_value_clone.
 	anyCloneTypes map[string]bool
 	// anyTypeNames maps the Rust payload type of a value boxed into an empty
 	// interface to the name Go's %T prints for it.
@@ -235,6 +238,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoChannel = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
+	helperCopy.needsPanicRecover = false
 	if helperCopy.needsGoValueClone && len(helperCopy.anyCloneTypes) == 0 {
 		helperCopy.needsAnyClone = false
 	}
@@ -275,6 +279,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	}
 	if ht.needsGoTime {
 		helperCopy.needsGoTime = true
+	}
+	if ht.needsPanicRecover {
+		helperCopy.needsPanicRecover = true
 	}
 	if ht.needsGoValueClone {
 		helperCopy.needsAnyClone = true
@@ -686,7 +693,10 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_any_clone")
 	}
 	if ht.needsPanicRecover {
-		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
+		add("go_recover", "go_replace_panic_payload", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
+		if !NeedsConcurrentWrapper() {
+			add("go_panic_any_local")
+		}
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1199,7 +1209,13 @@ func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, 
 		trackImportsForAnyPayloadType(rustType)
 		out.WriteString("    if let Some(v) = value.downcast_ref::<")
 		out.WriteString(rustType)
-		out.WriteString(">() { return Box::new(v.clone()) as ")
+		out.WriteString(">() { return Box::new(v")
+		if anyCloneTypes[rustType] {
+			out.WriteString(".__go_value_clone()")
+		} else {
+			out.WriteString(".clone()")
+		}
+		out.WriteString(") as ")
 		out.WriteString(traitObject)
 		out.WriteString("; }\n")
 	}
@@ -1280,14 +1296,54 @@ func generatePanicRecoverHelper(out *strings.Builder) {
 		visibility = "pub "
 	}
 	out.WriteString("\n")
-	out.WriteString(`thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+	out.WriteString(`struct GoPanicFrame {
+    payload: Option<Box<dyn Any + Send + Sync>>,
+    recoverable: bool,
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoPanicFrame>> = RefCell::new(std::vec::Vec::new());
 }
 `)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+    let payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recoverable { frame.payload.take() } else { None }
+        })
+    });
+    Arc::new(Mutex::new(payload))
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_push_panic_payload(payload: Box<dyn Any + Send + Sync>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoPanicFrame {
+        payload: Some(payload),
+        recoverable: false,
+    }));
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recoverable;
+            frame.recoverable = recoverable;
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recoverable = previous;
+            }
+        });
+    }
+    result
 }
 `)
 	out.WriteString("\n")
@@ -1302,7 +1358,7 @@ func generatePanicRecoverHelper(out *strings.Builder) {
                         payload = *boxed;
                     }
                     Err(payload) => {
-                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        go_push_panic_payload(payload);
                         return;
                     }
                 }
@@ -1312,35 +1368,35 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<i32>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<i64>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let _payload = match payload.downcast::<bool>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(_payload) => _payload,
@@ -1348,11 +1404,18 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
 }
 `)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_replace_panic_payload(payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(payload);
+}
+`)
 	writeGoRuntimeErrorText(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
-    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+    if let Some(GoPanicFrame { payload: Some(payload), .. }) = __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop()) {
         std::panic::panic_any(payload);
     }
 }
@@ -1377,38 +1440,98 @@ func generateSingleThreadPanicRecoverHelper(out *strings.Builder) {
 		visibility = "pub "
 	}
 	out.WriteString(`
+struct GoLocalPanicFrame {
+    payload: Option<Box<dyn Any>>,
+    message: String,
+    recoverable: bool,
+}
+
 thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoLocalPanicFrame>> = RefCell::new(std::vec::Vec::new());
+    static __GO_LOCAL_PANIC: RefCell<Option<(Box<dyn Any>, String)>> = RefCell::new(None);
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_panic_any_local(__payload: Box<dyn Any>, __message: String) -> ! {
+    __GO_LOCAL_PANIC.with(|slot| *slot.borrow_mut() = Some((__payload, __message.clone())));
+    std::panic::panic_any(__message)
 }
 `)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+    let __payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recoverable { frame.payload.take() } else { None }
+        })
+    });
+    Rc::new(RefCell::new(__payload))
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recoverable;
+            frame.recoverable = recoverable;
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recoverable = previous;
+            }
+        });
+    }
+    result
 }
 `)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
-    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
-        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+    if let Some((__go_payload, __message)) = __GO_LOCAL_PANIC.with(|slot| slot.borrow_mut().take()) {
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+            payload: Some(__go_payload),
+            message: __message,
+            recoverable: false,
+        }));
+        return;
+    }
+    let __payload: Box<dyn Any> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())) as Box<dyn Any>,
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
-            Err(__payload) => __payload,
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)) as Box<dyn Any>,
+            Err(__payload) => __payload as Box<dyn Any>,
         },
     };
-    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+    let __message = __payload.downcast_ref::<String>().cloned()
+        .unwrap_or_else(|| "unrecovered Go panic".to_string());
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoLocalPanicFrame {
+        payload: Some(__payload),
+        message: __message,
+        recoverable: false,
+    }));
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_replace_panic_payload(__payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(__payload);
 }
 `)
 	writeGoRuntimeErrorText(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
-    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
-        match __payload.downcast::<String>() {
-            Ok(__text) => std::panic::panic_any(*__text),
-            Err(__payload) => std::panic::resume_unwind(__payload),
-        }
+    if let Some(GoLocalPanicFrame { payload: Some(__payload), message: __message, .. }) =
+        __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop())
+    {
+        go_panic_any_local(__payload, __message)
     }
 }
 `)
@@ -4750,6 +4873,10 @@ impl GoTime {
             seconds,
             nanos: nanos as i32,
         }
+    }
+
+    pub fn __go_value_clone(&self) -> Self {
+        self.clone()
     }
 `)
 	if NeedsConcurrentWrapper() {

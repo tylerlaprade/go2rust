@@ -605,18 +605,54 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<bailout>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<surprise>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<bailout>() { return Box::new(v.__go_value_clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<surprise>() { return Box::new(v.__go_value_clone()) as Box<dyn Any + Send + Sync>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
+struct GoPanicFrame {
+    payload: Option<Box<dyn Any + Send + Sync>>,
+    recoverable: bool,
+}
+
 thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+    static __GO_RECOVER_PAYLOADS: RefCell<std::vec::Vec<GoPanicFrame>> = RefCell::new(std::vec::Vec::new());
 }
 
 fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+    let payload = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().and_then(|frame| {
+            if frame.recoverable { frame.payload.take() } else { None }
+        })
+    });
+    Arc::new(Mutex::new(payload))
+}
+
+fn go_push_panic_payload(payload: Box<dyn Any + Send + Sync>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().push(GoPanicFrame {
+        payload: Some(payload),
+        recoverable: false,
+    }));
+}
+
+fn go_call_deferred(f: Box<dyn FnOnce()>, recoverable: bool) -> Result<(), Box<dyn Any + Send>> {
+    let previous = __GO_RECOVER_PAYLOADS.with(|stack| {
+        stack.borrow_mut().last_mut().map(|frame| {
+            let previous = frame.recoverable;
+            frame.recoverable = recoverable;
+            previous
+        })
+    });
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    if let Some(previous) = previous {
+        __GO_RECOVER_PAYLOADS.with(|stack| {
+            if let Some(frame) = stack.borrow_mut().last_mut() {
+                frame.recoverable = previous;
+            }
+        });
+    }
+    result
 }
 
 fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
@@ -629,7 +665,7 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
                         payload = *boxed;
                     }
                     Err(payload) => {
-                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        go_push_panic_payload(payload);
                         return;
                     }
                 }
@@ -639,40 +675,45 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<&'static str>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<i32>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let payload = match payload.downcast::<i64>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(payload) => payload,
     };
     let _payload = match payload.downcast::<bool>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            go_push_panic_payload(Box::new(*value) as Box<dyn Any + Send + Sync>);
             return;
         }
         Err(_payload) => _payload,
     };
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_replace_panic_payload(payload: Box<dyn Any + Send>) {
+    __GO_RECOVER_PAYLOADS.with(|stack| { stack.borrow_mut().pop(); });
+    go_store_panic_payload(payload);
 }
 
 fn go_runtime_error_text(__text: String) -> String {
@@ -688,7 +729,7 @@ fn go_runtime_error_text(__text: String) -> String {
 }
 
 fn go_resume_unrecovered_panic() {
-    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+    if let Some(GoPanicFrame { payload: Some(payload), .. }) = __GO_RECOVER_PAYLOADS.with(|stack| stack.borrow_mut().pop()) {
         std::panic::panic_any(payload);
     }
 }
@@ -929,7 +970,7 @@ pub fn handle(err: Arc<Mutex<Option<String>>>) {
         drop(_ts_guard);
         { let new_val = "nil".to_string(); *err.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<bailout>()).is_some() {
-        let p = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<bailout>()).unwrap().clone())));
+        let p = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<bailout>()).unwrap().__go_value_clone())));
         drop(_ts_guard);
         { let new_val = (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).msg.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(); *err.lock().unwrap() = Some(new_val); };;
     } else {
@@ -967,8 +1008,8 @@ pub fn run(payload: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex
         Err(__go_panic_payload) => {
             go_store_panic_payload(__go_panic_payload);
             while let Some(f) = __defer_stack.pop() {
-                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-                    go_store_panic_payload(__go_defer_panic);
+                if let Err(__go_defer_panic) = go_call_deferred(f, true) {
+                    go_replace_panic_payload(__go_defer_panic);
                 }
             }
             std::panic::set_hook(__go_previous_panic_hook);

@@ -1,0 +1,12 @@
+error true boom
+struct true 11 7
+pointer true true 8
+pointer write 10
+int true 9
+string true text
+inner true B
+after inner
+top A
+replacement true B
+probe nil
+scoped outer nil
