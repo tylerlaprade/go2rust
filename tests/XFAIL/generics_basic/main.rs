@@ -296,7 +296,7 @@ fn main() {
     { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     println!("{} {}", format!("{}", "keys:".to_string()), format!("{}", format_slice(&keys)));
 
-    let mut lst = List::<i32> { ..Default::default() };
+    let mut lst = Rc::new(RefCell::new(Some(List::<i32> { ..Default::default() })));
     (*lst.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some(10))));
     (*lst.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some(13))));
     (*lst.borrow_mut().as_mut().unwrap()).push(Rc::new(RefCell::new(Some(23))));

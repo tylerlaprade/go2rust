@@ -1279,6 +1279,14 @@ run_xfail_test() {
     run_test "tests/generic_pointer_interface_type_arg"
 }
 
+@test "generic_struct_local_copy" {
+    run_test "tests/generic_struct_local_copy"
+}
+
+@test "generic_struct_local_copy_goroutines" {
+    run_test "tests/generic_struct_local_copy_goroutines"
+}
+
 @test "generic_struct_pointer_receiver" {
     run_test "tests/generic_struct_pointer_receiver"
 }

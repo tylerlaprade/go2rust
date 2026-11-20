@@ -1035,6 +1035,24 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	}
 }
 
+func compositeLiteralIsStruct(lit *ast.CompositeLit) bool {
+	if lit == nil {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(lit); typ != nil {
+			_, ok := types.Unalias(typ).Underlying().(*types.Struct)
+			return ok
+		}
+	}
+	switch lit.Type.(type) {
+	case *ast.Ident, *ast.SelectorExpr, *ast.StructType:
+		return true
+	default:
+		return false
+	}
+}
+
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
 // Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
 // the wrapper off a literal/expression.
@@ -13295,12 +13313,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													registerCompositeLiteralSyntaxVarInfo(s.Lhs[i], compositeLit)
 												}
 												// Check if it's a struct literal vs array/slice/map literal
-												isStructLiteral := false
-												if _, ok := compositeLit.Type.(*ast.Ident); ok {
-													isStructLiteral = true
-												} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-													isStructLiteral = true
-												}
+												isStructLiteral := compositeLiteralIsStruct(compositeLit)
 												if compositeLiteralEmitsBareStructValue(compositeLit) {
 													registerBareShortDecl(s.Lhs[0])
 												}
@@ -13690,12 +13703,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										registerBareShortDecl(name)
 									}
 									// Check if it's a struct literal vs array/slice/map literal
-									isStructLiteral := false
-									if _, ok := compositeLit.Type.(*ast.Ident); ok {
-										isStructLiteral = true
-									} else if _, ok := compositeLit.Type.(*ast.StructType); ok {
-										isStructLiteral = true
-									}
+									isStructLiteral := compositeLiteralIsStruct(compositeLit)
 
 									if isStructLiteral {
 										// Struct literals need to be wrapped

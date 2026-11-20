@@ -3914,6 +3914,25 @@ func makeHolder() Holder {
 	}
 }
 
+func TestInstantiatedGenericStructShortDeclWrapsLocalValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Box[T any] struct { Value T }
+
+func use() {
+	value := Box[int]{Value: 7}
+	var explicit = Box[int]{Value: 8}
+	_, _ = value, explicit
+}
+`)
+
+	ordinary := "Rc::new(RefCell::new(Some(Box_::<i32> {"
+	concurrent := "Arc::new(Mutex::new(Some(Box_::<i32> {"
+	if strings.Count(rust, ordinary) < 2 && strings.Count(rust, concurrent) < 2 {
+		t.Fatalf("instantiated generic struct short and var declarations should store locals in their Go value wrappers:\n%s", rust)
+	}
+}
+
 func TestStructLiteralLenFieldUsesGoInt(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
