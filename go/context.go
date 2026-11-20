@@ -837,6 +837,9 @@ func NeedFormatAny() {
 		// Also track the Any import that the helper will need
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
 }
 
 // NeedFormatAnyNested marks that a value held inside another one is printed,
@@ -863,6 +866,23 @@ func NeedAnyClone() {
 		helpers.needsAnyClone = true
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
+}
+
+// NeedGoAnyRuntimeOps marks the erased operation registry used when a value
+// declared in one generated crate is formatted, copied, named, or asserted in
+// another. The registry lives in the shared helper crate, so it never needs a
+// reverse dependency on the crate that declares the concrete type.
+func NeedGoAnyRuntimeOps() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAnyRuntimeOps = true
+		TrackImport("Any")
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoAnyRuntimeOps = true
+	})
 }
 
 // NeedPanicRecover marks that panic/defer/recover runtime helpers are needed.
@@ -1166,6 +1186,9 @@ func NeedGoTypeName() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoTypeName = true
 		TrackImport("Any")
+	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
 	}
 }
 

@@ -53,7 +53,7 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
-fn __go_type_name(val: &dyn Any) -> &'static str {
+fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
