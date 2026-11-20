@@ -1975,6 +1975,14 @@ run_xfail_test() {
     run_test "tests/nil_basic"
 }
 
+@test "nil_receiver_methods" {
+    run_test "tests/nil_receiver_methods"
+}
+
+@test "nil_receiver_methods_goroutines" {
+    run_test "tests/nil_receiver_methods_goroutines"
+}
+
 @test "non_blocking_channels" {
     run_test "tests/non_blocking_channels"
 }

@@ -38,6 +38,19 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 	}
 
 	helpers := make(map[string]string)
+	// A method that tests its receiver for nil is written for a nil
+	// receiver: recursion over a list or a tree ends on one. Every call on
+	// a pointer goes through the helper, which takes the pointer.
+	for _, methodList := range methods {
+		for _, method := range methodList {
+			fn := methodFuncForDecl(method, typeInfo)
+			key := methodOverrideKey(fn)
+			if key != "" && methodComparesReceiverWithNil(method, typeInfo) {
+				helpers[key] = nilPointerReceiverMethodHelperName(fn)
+				nilAwareMethodHelpers[key] = true
+			}
+		}
+	}
 	ast.Inspect(file, func(node ast.Node) bool {
 		call, ok := node.(*ast.CallExpr)
 		if !ok {
@@ -63,6 +76,85 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		return nil
 	}
 	return helpers
+}
+
+// nilAwareMethodHelpers holds the methods whose helper every call on a
+// pointer receiver uses, not only a call on a typed nil.
+var nilAwareMethodHelpers = map[string]bool{}
+
+// methodComparesReceiverWithNil reports whether a method with a pointer
+// receiver compares the receiver with nil in its body, outside a function
+// literal. Generic receivers are left alone.
+func methodComparesReceiverWithNil(method *ast.FuncDecl, typeInfo *TypeInfo) bool {
+	if method == nil || method.Body == nil || method.Recv == nil || len(method.Recv.List) != 1 {
+		return false
+	}
+	receiver := method.Recv.List[0]
+	if len(receiver.Names) != 1 || receiver.Names[0] == nil || receiver.Names[0].Name == "_" {
+		return false
+	}
+	star, ok := receiver.Type.(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := star.X.(*ast.Ident); !ok {
+		return false
+	}
+	receiverObj := typeInfo.info.Defs[receiver.Names[0]]
+	if receiverObj == nil {
+		return false
+	}
+	isReceiver := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		return ok && typeInfo.info.Uses[ident] == receiverObj
+	}
+	isNil := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		if !ok || ident.Name != "nil" {
+			return false
+		}
+		_, isNilObj := typeInfo.info.Uses[ident].(*types.Nil)
+		return isNilObj
+	}
+	found := false
+	ast.Inspect(method.Body, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := node.(*ast.FuncLit); ok {
+			return false
+		}
+		binary, ok := node.(*ast.BinaryExpr)
+		if !ok || (binary.Op != token.EQL && binary.Op != token.NEQ) {
+			return true
+		}
+		if (isReceiver(binary.X) && isNil(binary.Y)) || (isNil(binary.X) && isReceiver(binary.Y)) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+// isPointerReceiverExprMethodCall reports whether a call of a method that
+// tests its receiver for nil is made on a value of pointer type, which may
+// be nil.
+func isPointerReceiverExprMethodCall(typeInfo *TypeInfo, sel *ast.SelectorExpr, method *types.Func) bool {
+	if !methodHasPointerReceiver(method) || sel == nil || !nilAwareMethodHelpers[methodOverrideKey(method)] {
+		return false
+	}
+	// The receiver of the method being written is not nil, and it is not
+	// a handle that the helper could take.
+	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		return false
+	}
+	receiverType := typeInfo.GetType(sel.X)
+	if receiverType == nil {
+		return false
+	}
+	_, ok := types.Unalias(receiverType).(*types.Pointer)
+	return ok
 }
 
 func selectedMethodFuncFromTypeInfo(typeInfo *TypeInfo, sel *ast.SelectorExpr) *types.Func {
@@ -154,13 +246,19 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 	method := selectedMethodFuncFromTypeInfo(typeInfo, sel)
 	key := methodOverrideKey(method)
 	helperName, ok := currentNilPointerReceiverMethodHelpers[key]
-	if !ok || !isTypedNilPointerReceiverMethodCall(typeInfo, sel, method) {
+	if !ok {
+		return false
+	}
+	typedNil := isTypedNilPointerReceiverMethodCall(typeInfo, sel, method)
+	if !typedNil && !isPointerReceiverExprMethodCall(typeInfo, sel, method) {
 		return false
 	}
 
 	out.WriteString(helperName)
 	out.WriteString("(")
-	TranspileExpression(out, sel.X)
+	if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
+		TranspileExpression(out, sel.X)
+	}
 	var args strings.Builder
 	if !writeMethodCallArguments(&args, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
 		for i, arg := range call.Args {
