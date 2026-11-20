@@ -1911,6 +1911,14 @@ run_xfail_test() {
     run_test "tests/named_types_methods"
 }
 
+@test "negative_named_integer_conversions" {
+    run_test "tests/negative_named_integer_conversions"
+}
+
+@test "negative_named_integer_conversions_goroutines" {
+    run_test "tests/negative_named_integer_conversions_goroutines"
+}
+
 @test "nested_closure_type_assert_capture" {
     run_test "tests/nested_closure_type_assert_capture"
 }

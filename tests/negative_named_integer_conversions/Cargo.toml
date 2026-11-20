@@ -1,0 +1,8 @@
+[package]
+name = "negative_named_integer_conversions"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "negative_named_integer_conversions"
+path = "main.rs"

@@ -153,6 +153,12 @@ func writeNamedIntegerUnaryPrimitiveExpression(out *strings.Builder, expr *ast.U
 	if typeInfo == nil || expr == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
 		return false
 	}
+	// go/types leaves the operand of a constant expression untyped, so
+	// `I(-2)` has a named type but its `2` does not. Write the constant.
+	if isConstantExpression(expr) && !isNamedIntegerType(typeInfo.GetType(expr.X)) {
+		TranspileConstExpr(out, expr, 0)
+		return true
+	}
 	switch expr.Op {
 	case token.ADD:
 		writeNamedIntegerPrimitiveExpression(out, expr.X)
