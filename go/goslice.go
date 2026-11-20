@@ -891,8 +891,26 @@ func writeGoSliceDefineShadows(out *strings.Builder, s *ast.AssignStmt, indent s
 	if typeInfo == nil || typeInfo.info == nil {
 		return
 	}
-	if len(s.Rhs) == 1 && len(s.Lhs) == 1 && goSliceValueIsFresh(s.Rhs[0]) {
-		return
+	if len(s.Rhs) == 1 && len(s.Lhs) == 1 {
+		if call, ok := unwrapParens(s.Rhs[0]).(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
+			// append(grid[i], ...) is a bare header; the variable is a cell.
+			if ident, ok := s.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
+				name := RustLocalIdent(ident.Name)
+				out.WriteString("\n")
+				out.WriteString(indent)
+				out.WriteString("let mut ")
+				out.WriteString(name)
+				out.WriteString(" = ")
+				WriteWrapperPrefix(out)
+				out.WriteString(name)
+				WriteWrapperSuffix(out)
+				out.WriteString(";")
+			}
+			return
+		}
+		if goSliceValueIsFresh(s.Rhs[0]) {
+			return
+		}
 	}
 	if len(s.Rhs) == len(s.Lhs) && len(s.Lhs) > 1 {
 		// Parallel definitions copy their values one by one.

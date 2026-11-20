@@ -1505,7 +1505,7 @@ pub fn group_by___user__int(xs: Arc<Mutex<Option<Vec<User>>>>, key: Arc<Mutex<Op
                 Arc::new(Mutex::new(Some((*x).__go_value_clone())))
             )
         };
-        { let __map_key = k; let __map_value = { let __slice = { let __map_holder = out.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&k).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*x).__go_value_clone(); (*__slice.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*out.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = k; let __map_value = { let __slice = { let __map_holder = out.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&k).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*x).__go_value_clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*out.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     return out.clone();
 }

@@ -685,7 +685,7 @@ fn main() {
         for j in 0..({ let __range_len = (*rows.borrow().as_ref().unwrap())[(i) as usize].clone().len(); __range_len }) {
         { let __outer_idx = (i) as usize; let __idx = (j) as usize; let __rhs = "!".to_string(); let mut __seq_guard = rows.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx].clone() + &__rhs; };
     }
-        { let __append_idx = (i) as usize; let __append_value = "+".to_string(); (*rows.borrow_mut().as_mut().unwrap())[__append_idx].push(__append_value); (*rows.borrow().as_ref().unwrap())[__append_idx].clone() };
+        { let __idx = (i) as usize; let __rhs = { let __append_idx = (i) as usize; let __append_value = "+".to_string(); let mut __appended = (*rows.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*rows.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
     println!("{}", format!("{}", format_nested_slice(&rows)));
 

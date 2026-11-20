@@ -5385,6 +5385,15 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeExpressionAsUsize(out, indexExpr.Index)
 			out.WriteString("; ")
 			store := writeAppendedValues()
+			if goSliceModeEnabled() {
+				// A new header; the element keeps its own.
+				out.WriteString("let mut __appended = ")
+				writeReadTarget()
+				out.WriteString(".clone(); __appended")
+				out.WriteString(store)
+				out.WriteString("; __appended }")
+				return true
+			}
 			writeMutableTarget()
 			out.WriteString(store)
 			out.WriteString("; ")
@@ -5425,6 +5434,19 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			WriteWrappedNone(out)
 			out.WriteString(") }; ")
 			store := writeAppendedValues()
+			if goSliceModeEnabled() {
+				// A new header in a new cell; the map's value keeps its own.
+				out.WriteString("let mut __appended = (*__slice")
+				WriteBorrowMethod(out, false)
+				out.WriteString(").clone().unwrap_or_default(); __appended")
+				out.WriteString(store)
+				out.WriteString("; ")
+				WriteWrapperPrefix(out)
+				out.WriteString("__appended")
+				WriteWrapperSuffix(out)
+				out.WriteString(" }")
+				return true
+			}
 			out.WriteString("(*__slice")
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new)")
