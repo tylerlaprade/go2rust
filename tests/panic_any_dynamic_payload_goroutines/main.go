@@ -118,6 +118,27 @@ func recoverNilValue(useLiteral bool) (result string) {
 	panic(value)
 }
 
+func recoverInGoroutineLiterals() {
+	done := make(chan string)
+	go func() {
+		defer func() {
+			value, ok := recover().(string)
+			done <- fmt.Sprintf("go literal %t %s", ok, value)
+		}()
+		panic("without args")
+	}()
+	fmt.Println(<-done)
+
+	go func(code int) {
+		defer func() {
+			value, ok := recover().(string)
+			done <- fmt.Sprintf("go literal arg %d %t %s", code, ok, value)
+		}()
+		panic("with args")
+	}(1)
+	fmt.Println(<-done)
+}
+
 func main() {
 	// Force the synchronized representation; the paired fixture covers the
 	// same panic payloads with local Rc/RefCell wrappers.
@@ -141,4 +162,5 @@ func main() {
 	fmt.Println("scoped", outer, probed)
 	fmt.Println("dynamic", recoverNilValue(false))
 	fmt.Println("literal", recoverNilValue(true))
+	recoverInGoroutineLiterals()
 }

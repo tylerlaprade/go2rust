@@ -13,3 +13,5 @@ probe nil
 scoped outer nil
 dynamic nil true panic called with nil argument
 literal nil true panic called with nil argument
+go literal true without args
+go literal arg 1 true with args

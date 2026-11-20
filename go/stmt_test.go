@@ -8265,6 +8265,32 @@ func run(fn func() error) {
 	}
 }
 
+func TestGoFuncLiteralDefersUnwindPanicsWithAndWithoutArgs(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func launch(done chan string) {
+	go func() {
+		defer func() { done <- recover().(string) }()
+		panic("without args")
+	}()
+	go func(ch chan string) {
+		defer func() { ch <- recover().(string) }()
+		panic("with args")
+	}(done)
+}
+`)
+
+	if got := strings.Count(rust, "let __go_panic_hook_guard = go_suppress_panic_hook();"); got != 2 {
+		t.Fatalf("both goroutine literal paths should catch panics for their defer stacks, got %d:\n%s", got, rust)
+	}
+	if got := strings.Count(rust, "go_store_panic_payload(__go_panic_payload);"); got != 2 {
+		t.Fatalf("both goroutine literal paths should expose panic payloads to deferred recover calls, got %d:\n%s", got, rust)
+	}
+	if got := strings.Count(rust, "if let Err(__go_defer_panic) = go_call_deferred(f, true)"); got != 2 {
+		t.Fatalf("both goroutine literal paths should drain defers while unwinding, got %d:\n%s", got, rust)
+	}
+}
+
 func TestGoFuncLiteralRangeFunctionArgumentPassesHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
