@@ -25071,4 +25071,3 @@ func writeIntConstantWithSuffix(out *strings.Builder, expr ast.Expr, expected ty
 	}
 	return true
 }
-

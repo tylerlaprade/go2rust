@@ -6255,7 +6255,7 @@ func writeCopyLoop(out *strings.Builder, innerIndent string, elementCopy string,
 func finishCopyBlock(out *strings.Builder, indent, innerIndent string) {
 	out.WriteString(innerIndent)
 	WriteWrapperPrefix(out)
-	out.WriteString("_n as "+rustIntType())
+	out.WriteString("_n as " + rustIntType())
 	WriteWrapperSuffix(out)
 	out.WriteString("\n")
 	out.WriteString(indent)
