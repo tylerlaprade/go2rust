@@ -14,3 +14,7 @@ func (t *T) Errorf(_ string, _ ...any) {
 func (t *T) Failed() bool {
 	return t.failed
 }
+
+func (t *T) Reset() {
+	t.failed = false
+}

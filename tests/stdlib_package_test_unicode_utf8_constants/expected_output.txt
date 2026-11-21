@@ -1,2 +1,4 @@
 PASS TestConstants
-summary 1 passed, 0 failed
+PASS TestRuneLen
+PASS TestValidRune
+summary 3 passed, 0 failed
