@@ -2246,6 +2246,31 @@ func collect(values []Value) map[string]bool {
 	}
 }
 
+func TestStructMapAssignmentCopiesRangeKeyByGoValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type key struct {
+	tag int
+}
+
+func copyKey(src map[key]bool) map[key]int {
+	dst := map[key]int{}
+	for k := range src {
+		dst[k] = k.tag
+		k.tag = 2
+	}
+	return dst
+}
+`)
+
+	if strings.Contains(rust, "let __map_key = k.clone();") {
+		t.Fatalf("struct map assignment should copy a range key by Go value, not share its field cells:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_key = k.__go_value_clone();") {
+		t.Fatalf("struct map assignment should use the generated Go value-copy helper:\n%s", rust)
+	}
+}
+
 func TestRangeValueShadowingPackageGlobalUsesLocalBinding(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

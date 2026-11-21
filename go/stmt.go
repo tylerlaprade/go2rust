@@ -5730,7 +5730,11 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 func writeMapAssignmentKeyExpression(out *strings.Builder, key ast.Expr, keyType types.Type, rhs ast.Expr) {
 	if ident, ok := key.(*ast.Ident); ok && mapAssignmentKeyNeedsClone(ident, keyType, rhs) {
 		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(".clone()")
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeNeedsGoValueClone(typeInfo.GetType(ident)) {
+			out.WriteString(goStructValueCopyCall)
+		} else {
+			out.WriteString(".clone()")
+		}
 		return
 	}
 	writeMapKeyExpressionWithType(out, key, keyType)

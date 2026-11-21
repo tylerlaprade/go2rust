@@ -715,4 +715,25 @@ fn main() {
     println!("{}", format!("{}", { let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: left.clone().clone(), tag: Rc::new(RefCell::new(Some(1))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
     println!("{}", format!("{}", { let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: right.clone().clone(), tag: Rc::new(RefCell::new(Some(1))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
     println!("{}", format!("{}", { let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: left.clone().clone(), tag: Rc::new(RefCell::new(Some(2))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+
+        // A map assignment copies its struct key before evaluating the later
+        // mutation. Reading the key on the right-hand side must not turn that Go
+        // value copy into a shared Rust Clone.
+    let mut snapshots = Rc::new(RefCell::new(Some(BTreeMap::<key, Rc<RefCell<Option<String>>>>::from([]))));
+    let mut k = Rc::new(RefCell::new(Some(key { p: left.clone().clone(), tag: Rc::new(RefCell::new(Some(3))), ..Default::default() })));
+    { let __map_key = (*k.borrow().as_ref().unwrap()).__go_value_clone(); let __map_value = Rc::new(RefCell::new(Some(format!("{}", format!("{}", (*(*k.borrow().as_ref().unwrap()).tag.borrow().as_ref().unwrap())))))); (*snapshots.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let new_val = 4; *(*k.borrow().as_ref().unwrap()).tag.borrow_mut() = Some(new_val); };
+    println!("{}", format!("{}", (*snapshots.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", { let __map_holder = snapshots.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: left.clone().clone(), tag: Rc::new(RefCell::new(Some(3))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+    println!("{} {}", format!("{}", "missing".to_string()), format!("{}", { let __map_holder = snapshots.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: left.clone().clone(), tag: Rc::new(RefCell::new(Some(4))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) } == "".to_string()));
+
+    let mut rangeSource = Rc::new(RefCell::new(Some(BTreeMap::<key, Rc<RefCell<Option<bool>>>>::from([(key { p: right.clone().clone(), tag: Rc::new(RefCell::new(Some(5))), ..Default::default() }, Rc::new(RefCell::new(Some(true))))]))));
+    let mut rangeSnapshots = Rc::new(RefCell::new(Some(BTreeMap::<key, Rc<RefCell<Option<String>>>>::from([]))));
+    for (rangeKey, _) in { let __range_holder = rangeSource.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        { let __map_key = rangeKey.__go_value_clone(); let __map_value = Rc::new(RefCell::new(Some(format!("{}", format!("{}", (*rangeKey.tag.borrow().as_ref().unwrap())))))); (*rangeSnapshots.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let new_val = 6; *rangeKey.tag.borrow_mut() = Some(new_val); };
+    }
+    println!("{}", format!("{}", (*rangeSnapshots.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", { let __map_holder = rangeSnapshots.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: right.clone().clone(), tag: Rc::new(RefCell::new(Some(5))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+    println!("{} {}", format!("{}", "missing".to_string()), format!("{}", { let __map_holder = rangeSnapshots.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&key { p: right.clone().clone(), tag: Rc::new(RefCell::new(Some(6))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) } == "".to_string()));
 }
