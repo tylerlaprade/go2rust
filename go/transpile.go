@@ -999,6 +999,17 @@ func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Typ
 	}
 }
 
+// anonymousStructAliasIsCompared reports whether a type declared inside a
+// function, which is written as the anonymous struct typeName, is compared.
+func anonymousStructAliasIsCompared(typeName string) bool {
+	for alias, target := range anonymousStructAliases {
+		if target == typeName && comparableStructTypes[alias] {
+			return true
+		}
+	}
+	return false
+}
+
 // anonymousStructIsCompared reports whether the anonymous struct written as
 // structType is one that the file compares.
 func anonymousStructIsCompared(structType *ast.StructType) bool {
@@ -4219,7 +4230,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		*first = false
 		// A compared anonymous struct gets equality as a named one does.
 		comparedName := ""
-		if anonymousStructIsCompared(structType) {
+		if anonymousStructIsCompared(structType) || anonymousStructAliasIsCompared(typeName) || comparableStructTypes[typeName] {
 			comparedName = typeName
 			comparableStructTypes[typeName] = true
 		}

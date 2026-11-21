@@ -897,7 +897,7 @@ fn main() {
     let mut w = Arc::new(Mutex::new(Some(writer { buffer: Arc::new(Mutex::new(Some(bytes::buffer::Buffer { ..Default::default() }))), ..Default::default() })));
     (*w.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("go".to_string()))));
     (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(("rust".to_string()).as_bytes().to_go_slice()))));
-    (*w.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('!' as i32) as u8))));
+    (*w.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('!' as u8) as u8))));
     (*w.lock().unwrap().as_mut().unwrap()).reset();
     let mut length = (*w.lock().unwrap().as_ref().unwrap()).len();
     let mut text = (*w.lock().unwrap().as_ref().unwrap()).string();

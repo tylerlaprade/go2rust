@@ -3644,7 +3644,9 @@ func use(hash uint32) uint32 {
 	if strings.Contains(rust, "Rc<RefCell<Option<u8>>>") {
 		t.Fatalf("variadic byte conversion should emit raw u8 elements, not wrapped handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "vec![('m' as i32) as u8, (*") {
+	// The type checker gives the untyped 'm' the byte type of the variadic
+	// element, so the literal is a u8 already.
+	if !strings.Contains(rust, "vec![('m' as u8) as u8, (*") {
 		t.Fatalf("variadic byte arguments should use raw u8 vector elements:\n%s", rust)
 	}
 }

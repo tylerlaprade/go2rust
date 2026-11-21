@@ -1634,7 +1634,7 @@ impl std::fmt::Display for upper {
 impl upper {
     pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         { let __range_holder = p.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut b in __range_values.iter().copied() {
-        if { let __tmp_x = b; let __tmp_y = ('a' as i32) as u8; __tmp_x >= __tmp_y } && { let __tmp_x = b; let __tmp_y = ('z' as i32) as u8; __tmp_x <= __tmp_y } {
+        if { let __tmp_x = b; let __tmp_y = ('a' as u8) as u8; __tmp_x >= __tmp_y } && { let __tmp_x = b; let __tmp_y = ('z' as u8) as u8; __tmp_x <= __tmp_y } {
         { let __rhs = ({ let __tmp_x = ('a' as i32); let __tmp_y = ('A' as i32); __tmp_x - __tmp_y }) as u8; b = b - __rhs; };
     }
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.data.clone(); let __append_value = b; let mut __appended: Vec<u8> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.data.lock().unwrap() = __slice_header; };

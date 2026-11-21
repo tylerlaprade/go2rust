@@ -13213,9 +13213,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// In Go, character literals are runes (int32)
 			// Convert 'A' to the numeric value. RustCharLiteral translates
 			// Go-only escapes (\a \b \f \v, octal, \uXXXX) Rust rejects.
+			// An untyped rune constant takes the type of where it goes, as
+			// in []pair{{1, 'r'}} with a byte field; the type checker
+			// records that type.
+			rustType := "i32"
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if basic, ok := types.Unalias(typeInfo.GetType(e)).(*types.Basic); ok && basic.Info()&types.IsInteger != 0 && basic.Info()&types.IsUntyped == 0 && basic.Kind() != types.Int32 {
+					rustType = goTypesTypeToRust(basic)
+				}
+			}
 			out.WriteString("(")
 			out.WriteString(RustCharLiteral(e.Value))
-			out.WriteString(" as i32)")
+			out.WriteString(" as ")
+			out.WriteString(rustType)
+			out.WriteString(")")
 		case token.INT:
 			// Check if this integer is used in a float context
 			typeInfo := GetTypeInfo()

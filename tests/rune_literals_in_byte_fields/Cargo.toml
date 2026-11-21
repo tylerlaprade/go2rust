@@ -1,0 +1,11 @@
+[package]
+name = "rune_literals_in_byte_fields"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rune_literals_in_byte_fields"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -1,0 +1,7 @@
+SELECT * FROM users WHERE age > ? AND name LIKE ? ORDER BY name LIMIT 10
+p0=18 p1=a% 
+al(25) bob(30) 3
+26 al(26) 1
+[dev ops lead] bob(30)
+11 HELLO WORLD
+HELLO WORLD 42!

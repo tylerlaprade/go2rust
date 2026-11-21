@@ -1575,6 +1575,14 @@ run_xfail_test() {
     run_test "tests/iota_enums"
 }
 
+@test "iota_flags_float_constants_and_local_types" {
+    run_test "tests/iota_flags_float_constants_and_local_types"
+}
+
+@test "iota_flags_float_constants_and_local_types_goroutines" {
+    run_test "tests/iota_flags_float_constants_and_local_types_goroutines"
+}
+
 @test "json_marshal" {
     run_test "tests/json_marshal"
 }
@@ -2583,6 +2591,14 @@ run_xfail_test() {
     run_test "tests/promoted_pointer_method_mutates_receiver_goroutines"
 }
 
+@test "query_builder_and_any_arguments" {
+    run_test "tests/query_builder_and_any_arguments"
+}
+
+@test "query_builder_and_any_arguments_goroutines" {
+    run_test "tests/query_builder_and_any_arguments_goroutines"
+}
+
 @test "random_numbers" {
     run_test "tests/random_numbers"
 }
@@ -2877,6 +2893,14 @@ run_xfail_test() {
 
 @test "rune_escape_literals" {
     run_test "tests/rune_escape_literals"
+}
+
+@test "rune_literals_in_byte_fields" {
+    run_test "tests/rune_literals_in_byte_fields"
+}
+
+@test "rune_literals_in_byte_fields_goroutines" {
+    run_test "tests/rune_literals_in_byte_fields_goroutines"
 }
 
 @test "runtime_format_with_package_level_names" {
