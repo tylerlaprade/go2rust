@@ -192,6 +192,21 @@ func main() {
 	}
 }
 
+func TestLiteralComplexSharpValueUsesRuntimeFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	fmt.Printf("%#v\n", complex64(3+4i))
+}
+`)
+
+	if !strings.Contains(rust, `go_sprintf(&"%#v\n".to_string()`) {
+		t.Fatalf("literal complex sharp value formatting did not use the Go formatter:\n%s", rust)
+	}
+}
+
 // What the formatter cannot do must stop the program, not print something
 // that looks right.
 func TestRuntimeFormatterFailsLoudlyOnWhatItDoesNotSupport(t *testing.T) {

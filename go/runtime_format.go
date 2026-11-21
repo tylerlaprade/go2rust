@@ -65,7 +65,8 @@ func expandedFormat(call *ast.CallExpr, formatIndex int) (string, bool) {
 // handle a literal format containing complex arguments. num::Complex only
 // implements Display for floating-point components; Rust's binary and hex
 // traits require those component types to implement the same trait, which
-// f32 and f64 do not. Route such calls through the Go run-time formatter.
+// f32 and f64 do not. Rust's {:?} also quotes the intermediate string used
+// for Go's %#v spelling. Route such calls through the Go run-time formatter.
 func complexArgsUseRustFormat(quoted string, args []ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -97,10 +98,12 @@ func complexArgsUseRustFormat(quoted string, args []ast.Expr) bool {
 		if i < len(format) && format[i] == '%' {
 			continue
 		}
+		sharp := false
 		for i < len(format) && !((format[i] >= 'A' && format[i] <= 'Z') || (format[i] >= 'a' && format[i] <= 'z') || format[i] == '%') {
+			sharp = sharp || format[i] == '#'
 			i++
 		}
-		if i < len(format) && strings.IndexByte("bxX", format[i]) >= 0 {
+		if i < len(format) && (strings.IndexByte("bxX", format[i]) >= 0 || sharp && format[i] == 'v') {
 			return false
 		}
 	}
