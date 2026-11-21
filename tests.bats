@@ -2943,6 +2943,14 @@ run_xfail_test() {
     run_test "tests/regexp_methods"
 }
 
+@test "reserved_prefix_string_literal" {
+    run_test "tests/reserved_prefix_string_literal"
+}
+
+@test "reserved_prefix_string_literal_goroutines" {
+    run_test "tests/reserved_prefix_string_literal_goroutines"
+}
+
 @test "return_conversion_as_interface" {
     run_test "tests/return_conversion_as_interface"
 }

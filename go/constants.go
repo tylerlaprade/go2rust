@@ -539,6 +539,47 @@ func constStringValue(expr ast.Expr) (string, bool) {
 	return constant.StringVal(value), true
 }
 
+const goStringBytesPrefix = "\ufdd0\ufdd1"
+
+// goStringValueCollidesWithByteEncoding reports whether the ordinary UTF-8
+// spelling of a Go string would be mistaken for the reversible representation
+// used by __go_string_from_bytes for invalid UTF-8. Such constants must enter
+// runtime String values through __go_string_from_bytes as well, so the prefix
+// is escaped instead of being decoded as payload bytes.
+func goStringValueCollidesWithByteEncoding(value string) bool {
+	if !strings.HasPrefix(value, goStringBytesPrefix) {
+		return false
+	}
+	hex := value[len(goStringBytesPrefix):]
+	if len(hex)%2 != 0 {
+		return false
+	}
+	for i := 0; i < len(hex); i++ {
+		b := hex[i]
+		if !((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func writeRuntimeStringConstValue(out *strings.Builder, expr ast.Expr) bool {
+	value, ok := constStringValue(expr)
+	if !ok || !goStringValueCollidesWithByteEncoding(value) {
+		return false
+	}
+	NeedGoByteSequence()
+	out.WriteString("__go_string_from_bytes(std::vec::Vec::from([")
+	for i, b := range []byte(value) {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeRustByteLiteral(out, b)
+	}
+	out.WriteString("]))")
+	return true
+}
+
 func constStringValueNeedsByteSlice(value constant.Value) bool {
 	return value != nil && value.Kind() == constant.String && !utf8.ValidString(constant.StringVal(value))
 }
@@ -873,6 +914,9 @@ func isBasicStringGoType(typ types.Type) bool {
 func writeConstExpressionForExpectedString(out *strings.Builder, value ast.Expr, expected types.Type) bool {
 	if !isBasicStringGoType(expected) {
 		return false
+	}
+	if writeRuntimeStringConstValue(out, value) {
+		return true
 	}
 	if !writeConstStringLiteralValue(out, value) {
 		return false
