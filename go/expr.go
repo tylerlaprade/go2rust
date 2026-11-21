@@ -14373,6 +14373,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeStatementBuiltLogicalExpressionValue(out, e) {
 			return
 		}
+		if writeGoStringComparison(out, e) {
+			return
+		}
 
 		// Special handling for string concatenation
 		if e.Op == token.ADD {
@@ -19793,6 +19796,43 @@ func writePairStringConcat(out *strings.Builder, left ast.Expr, right ast.Expr) 
 	out.WriteString(", &")
 	writeStringAppendExpression(out, right)
 	out.WriteString(")")
+}
+
+func writeGoStringComparison(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil {
+		return false
+	}
+	switch expr.Op {
+	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(expr.X) || !typeInfo.IsString(expr.Y) {
+		return false
+	}
+
+	out.WriteString("{ let __left = __go_string_from_bytes(__go_string_bytes(&")
+	writeStringAppendExpression(out, expr.X)
+	out.WriteString(")); let __right = __go_string_from_bytes(__go_string_bytes(&")
+	writeStringAppendExpression(out, expr.Y)
+	out.WriteString(")); __go_string_cmp(&__left, &__right) ")
+	switch expr.Op {
+	case token.EQL:
+		out.WriteString("== std::cmp::Ordering::Equal")
+	case token.NEQ:
+		out.WriteString("!= std::cmp::Ordering::Equal")
+	case token.LSS:
+		out.WriteString("== std::cmp::Ordering::Less")
+	case token.LEQ:
+		out.WriteString("!= std::cmp::Ordering::Greater")
+	case token.GTR:
+		out.WriteString("== std::cmp::Ordering::Greater")
+	case token.GEQ:
+		out.WriteString("!= std::cmp::Ordering::Less")
+	}
+	out.WriteString(" }")
+	return true
 }
 
 func writeLinearStringConcat(out *strings.Builder, operands []ast.Expr) {

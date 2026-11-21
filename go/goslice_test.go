@@ -219,6 +219,9 @@ func roundTrip(b []byte) []byte {
 	if !strings.Contains(goSliceRuntime, "pub fn __go_string_concat") {
 		t.Fatal("GoSlice runtime is missing byte-preserving string concatenation")
 	}
+	if !strings.Contains(goSliceRuntime, "pub fn __go_string_cmp") {
+		t.Fatal("GoSlice runtime is missing bytewise Go string comparison")
+	}
 }
 
 // withoutGoSliceUses rewrites every `use crate::{...};` in code without the

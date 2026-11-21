@@ -14,6 +14,57 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -683,6 +734,6 @@ pub fn append_method(dst: Rc<RefCell<Option<Vec<u8>>>>, l: Rc<RefCell<Option<lab
 }
 
 fn main() {
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*append_string(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some("go".to_string())))).borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*append_method(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some(label { name: Rc::new(RefCell::new(Some("rust".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*append_string(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some("go".to_string())))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*append_method(Rc::new(RefCell::new(Some(Vec::<u8>::new()))), Rc::new(RefCell::new(Some(label { name: Rc::new(RefCell::new(Some("rust".to_string()))), ..Default::default() })))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap())));
 }

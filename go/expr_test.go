@@ -1145,6 +1145,26 @@ func render(name string) string {
 	}
 }
 
+func TestStringComparisonUsesGoBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type label string
+
+func compare(left, right string, namedLeft, namedRight label) bool {
+	return left < right || left >= right || namedLeft > namedRight || left == right
+}
+`)
+
+	if got := strings.Count(rust, "__go_string_cmp("); got != 4 {
+		t.Fatalf("string comparisons should compare decoded Go bytes; got %d helpers:\n%s", got, rust)
+	}
+	if !strings.Contains(rust, "std::cmp::Ordering::Less") ||
+		!strings.Contains(rust, "std::cmp::Ordering::Greater") ||
+		!strings.Contains(rust, "std::cmp::Ordering::Equal") {
+		t.Fatalf("string comparisons should map every ordering result explicitly:\n%s", rust)
+	}
+}
+
 func TestAppendStringSliceToStringSliceUsesBareString(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

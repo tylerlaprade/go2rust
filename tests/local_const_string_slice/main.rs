@@ -45,6 +45,16 @@ pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
         .collect()
 }
 
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
 pub fn __go_string_len(__text: &str) -> usize {
     __go_string_bytes(__text).len()
 }
@@ -685,5 +695,5 @@ pub fn build_args() -> Rc<RefCell<Option<Vec<String>>>> {
 fn main() {
     let mut args = build_args();
     let mut args = { let __slice_header = GoSliceHeader::go_slice_header(&args); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {}", format!("{}", (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", args.borrow().as_ref().unwrap().get_cloned((2) as usize) == "{{.Path}}\n".to_string()));
+    println!("{} {}", format!("{}", (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&args.borrow().as_ref().unwrap().get_cloned((2) as usize))); let __right = __go_string_from_bytes(__go_string_bytes(&"{{.Path}}\n".to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }));
 }

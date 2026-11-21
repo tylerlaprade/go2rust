@@ -42,6 +42,16 @@ pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
         .collect()
 }
 
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
 pub fn __go_string_len(__text: &str) -> usize {
     __go_string_bytes(__text).len()
 }

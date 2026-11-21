@@ -1607,6 +1607,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_string_bytes_goroutines"
 }
 
+@test "invalid_utf8_string_ordering" {
+    run_test "tests/invalid_utf8_string_ordering"
+}
+
+@test "invalid_utf8_string_ordering_goroutines" {
+    run_test "tests/invalid_utf8_string_ordering_goroutines"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }

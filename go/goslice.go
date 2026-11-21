@@ -22,7 +22,7 @@ func goSliceModeEnabled() bool {
 // literals the translator writes as Vec<T> and vec![..] are Go slices.
 var goSliceImportNames = []string{
 	"GoSlice", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "GoSliceView", "Vec",
-	"__go_string_from_bytes", "__go_string_bytes", "__go_string_concat", "__go_string_len", "__go_string_slice",
+	"__go_string_from_bytes", "__go_string_bytes", "__go_string_cmp", "__go_string_concat", "__go_string_len", "__go_string_slice",
 }
 
 // goSliceVecMacro shadows the prelude's vec! with one that makes a GoSlice.
@@ -212,6 +212,10 @@ pub fn __go_string_concat(__left: &str, __right: &str) -> String {
     let mut __bytes = __go_string_bytes(__left);
     __bytes.extend(__go_string_bytes(__right));
     __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
 }
 
 pub fn __go_string_len(__text: &str) -> usize {
