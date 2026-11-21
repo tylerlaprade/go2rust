@@ -539,6 +539,14 @@ run_xfail_test() {
     run_test "tests/append_string_to_bytes"
 }
 
+@test "array_slice_function_result" {
+    run_test "tests/array_slice_function_result"
+}
+
+@test "array_slice_function_result_goroutines" {
+    run_test "tests/array_slice_function_result_goroutines"
+}
+
 @test "array_slice_shares_backing" {
     run_test "tests/array_slice_shares_backing"
 }

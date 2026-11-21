@@ -71,3 +71,40 @@ func local() {
 		t.Fatalf("named-array locals must retain their newtype representation:\n%s", rust)
 	}
 }
+
+func TestSliceBackedArrayCopiesFunctionAndFixedArrayInitializers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func makeArray() [3]int { return [3]int{1, 2, 3} }
+type named [3]int
+
+func f() {
+	a := makeArray()
+	_ = a[:]
+
+	src := [3]int{4, 5, 6}
+	b := src
+	_ = b[:]
+
+	var explicit [3]int = makeArray()
+	_ = explicit[:]
+
+	namedSource := named{10, 11, 12}
+	var fromNamed [3]int = namedSource
+	_ = fromNamed[:]
+}
+`)
+
+	if strings.Count(rust, "let __go_array = make_array();") != 2 {
+		t.Fatalf("function-returned arrays should be converted into slice backing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_array = src.clone();") {
+		t.Fatalf("fixed-array variables should be copied into slice backing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_array.borrow().as_ref().unwrap().0.borrow().as_ref().unwrap().as_slice().to_vec()") {
+		t.Fatalf("named arrays should be copied from their inner fixed-array value:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut a = make_array();") || strings.Contains(rust, "let mut b = { let __owned") {
+		t.Fatalf("slice-backed array initializers retained a fixed-array representation:\n%s", rust)
+	}
+}

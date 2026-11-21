@@ -690,7 +690,7 @@ fn main() {
     let mut middle = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = (1) as usize; let __high = (3) as usize; let __max = __seq.capacity(); __seq.reslice3(__low, __high, __max) })));
     { let __idx = (1) as usize; let __rhs = 8 as u8; middle.borrow_mut().as_mut().unwrap().set(__idx, __rhs); };
 
-    let mut b = { let __owned = Vec::from(a.borrow().as_ref().unwrap().as_slice().to_vec()); Rc::new(RefCell::new(Some(__owned))) };
+    let mut b = { let __go_array = a.clone(); let __owned = Vec::from(__go_array.borrow().as_ref().unwrap().as_slice().to_vec()); Rc::new(RefCell::new(Some(__owned))) };
     let mut copyView = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = 0; let __high = __seq.len(); let __max = __seq.capacity(); __seq.reslice3(__low, __high, __max) })));
     { let __idx = (0) as usize; let __rhs = 7 as u8; copyView.borrow_mut().as_mut().unwrap().set(__idx, __rhs); };
 

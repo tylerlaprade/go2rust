@@ -148,6 +148,77 @@ func writeSliceBackedArrayZeroValue(out *strings.Builder, typ types.Type) bool {
 	return true
 }
 
+// writeSliceBackedArrayInitializerCopy converts an existing fixed-array value
+// into the GoSlice backing selected for a local that is later sliced. Function
+// results and ordinary array variables still use the fixed-array
+// representation, so assigning either one directly would leave the marked
+// local with a Rust type that cannot support reslicing.
+func writeSliceBackedArrayInitializerCopy(out *strings.Builder, lhs, rhs ast.Expr) bool {
+	lhsIdent, ok := lhs.(*ast.Ident)
+	if !ok || !sliceBackedArrayCandidateForDecl(lhsIdent) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(rhsType).Underlying().(*types.Array); !ok {
+		return false
+	}
+	_, rhsIsNamedArray := types.Unalias(rhsType).(*types.Named)
+
+	var source strings.Builder
+	switch value := rhs.(type) {
+	case *ast.Ident:
+		if value.Name == "_" || value.Name == "nil" {
+			return false
+		}
+		name := RustIdentForUse(value)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[value.Name]; exists {
+				name = RustLocalIdent(renamed)
+			}
+		}
+		source.WriteString(name)
+		source.WriteString(".clone()")
+	case *ast.CallExpr:
+		// Named-array call results still have a separate return-representation
+		// gap. Do not guess whether the generated call returns the newtype or
+		// its underlying fixed-array handle here.
+		if rhsIsNamedArray {
+			return false
+		}
+		registerCallResultSyntaxInfo(lhs, value)
+		writeCallExpressionForInitializer(&source, value)
+	default:
+		return false
+	}
+	out.WriteString("{ let __go_array = ")
+	out.WriteString(source.String())
+	out.WriteString("; let __owned = ")
+	var value strings.Builder
+	value.WriteString("__go_array")
+	if rhsIsNamedArray {
+		WriteBorrowMethod(&value, false)
+		value.WriteString(".as_ref().unwrap().0")
+	}
+	WriteBorrowMethod(&value, false)
+	value.WriteString(".as_ref().unwrap()")
+	if !writeSliceBackedArrayValueCopy(out, value.String(), rhsType) {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+	}
+	out.WriteString("; ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__owned")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
+}
+
 func writeSliceBackedArrayValueCopy(out *strings.Builder, valueExpr string, typ types.Type) bool {
 	array, ok := types.Unalias(typ).Underlying().(*types.Array)
 	if !ok {
