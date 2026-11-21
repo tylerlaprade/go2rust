@@ -1,0 +1,3 @@
+direct: (3+4i) (3.00+4.00i) main.Phasor | (2-5i) (2-5i) main.Small | (2+0i)
+boxed: (3+4i) (3.00+4.00i) main.Phasor
+spread: (3+4i) (3.00+4.00i) main.Phasor | (2-5i) (2-5i) main.Small

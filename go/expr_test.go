@@ -1674,6 +1674,30 @@ func main() {
 	}
 }
 
+func TestDefinedComplexConversionUsesTypedConstructor(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Phasor complex128
+
+func main() {
+	p := Phasor(3 + 4i)
+	fmt.Printf("%v %f", p, p)
+}
+`)
+
+	if !strings.Contains(rust, "Phasor(Rc::new(RefCell::new(Some(num::Complex::<f64>::new(3.0, 4.0)))))") {
+		t.Fatalf("defined complex conversion should use a typed Rust constructor:\n%s", rust)
+	}
+	if strings.Contains(rust, "4i") {
+		t.Fatalf("defined complex conversion must not copy a Go imaginary literal into Rust:\n%s", rust)
+	}
+	if !strings.Contains(rust, `write!(f, "({})", self.0`) {
+		t.Fatalf("defined complex Display should retain Go's surrounding parentheses:\n%s", rust)
+	}
+}
+
 func TestConcurrentComplexComparisonCastsZeroConstant(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

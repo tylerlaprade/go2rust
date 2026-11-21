@@ -6606,7 +6606,13 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(rustTypeName)
 				out.WriteString(" {\n")
 				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", self.0")
+				out.WriteString("        write!(f, \"")
+				if typeDefinitionScalarUnderlyingComplex(typeSpec) {
+					out.WriteString("({})")
+				} else {
+					out.WriteString("{}")
+				}
+				out.WriteString("\", self.0")
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())\n")
 				out.WriteString("    }\n")
@@ -6678,7 +6684,7 @@ func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
 			if named, ok := types.Unalias(obj.Type()).(*types.Named); ok {
 				if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
-					return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+					return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsComplex|types.IsString) != 0
 				}
 			}
 		}
@@ -6704,6 +6710,26 @@ func typeDefinitionUnderlyingNamedDisplayable(typeSpec *ast.TypeSpec) bool {
 		return false
 	}
 	return true
+}
+
+func typeDefinitionScalarUnderlyingComplex(typeSpec *ast.TypeSpec) bool {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok {
+		return false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	return ok && basic.Info()&types.IsComplex != 0
 }
 
 func typeDefinitionUnderlyingNamedType(typeSpec *ast.TypeSpec) (*types.Named, bool) {

@@ -95,7 +95,7 @@ func anyFormatTypeIsLocalNamedBasic(typ types.Type) bool {
 		return false
 	}
 	basic, ok := named.Underlying().(*types.Basic)
-	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsComplex|types.IsString) == 0 {
 		return false
 	}
 	typeInfo := GetTypeInfo()
