@@ -611,6 +611,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			if writeNamedSlicePrintArg(out, arg, argType) {
 				return
 			}
+			if writeNamedArrayPrintArg(out, arg, argType) {
+				return
+			}
 			if writeNestedBasicSlicePrintArg(out, arg, argType) {
 				return
 			}
@@ -1898,6 +1901,29 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 // writeNamedSlicePrintArg prints a value of a named slice type, "type Ints
 // []int", as Go prints the slice: the elements are in the handle inside the
 // newtype, which has no Display of its own.
+// writeNamedArrayPrintArg prints a value of "type d [3]rune", a newtype over
+// the array's cell, through the Display its declaration gives it.
+func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	named, ok := types.Unalias(argType).(*types.Named)
+	if !ok || typeHasGoStringMethod(argType) {
+		return false
+	}
+	array, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
 func writeNamedSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
 	_, sliceType, ok := namedSliceTypeForExpr(arg)
 	if !ok || typeHasGoStringMethod(argType) {
@@ -5666,6 +5692,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writeNamedArrayLen(out, call.Args[0]) {
+			return
+		}
+
 		var namedString strings.Builder
 		if writeNamedStringNewtypeInnerValue(&namedString, call.Args[0]) {
 			out.WriteString("(")
@@ -5714,6 +5744,32 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".as_ref().unwrap()).len()")
 		}
 	}
+}
+
+// writeNamedArrayLen writes len of a value of "type d [3]rune", which is
+// its type's length. Only a variable, field or element: anything else may
+// have effects to keep.
+func writeNamedArrayLen(out *strings.Builder, expr ast.Expr) bool {
+	switch unwrapParens(expr).(type) {
+	case *ast.Ident, *ast.SelectorExpr, *ast.IndexExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok {
+		return false
+	}
+	array, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	out.WriteString(strconv.FormatInt(array.Len(), 10))
+	out.WriteString("usize")
+	return true
 }
 
 func writePointerToArrayLen(out *strings.Builder, expr ast.Expr) bool {

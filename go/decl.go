@@ -6187,6 +6187,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("}\n")
 			}
 			writeNamedArrayValueClone(out, typeSpec, rustTypeName)
+			writeNamedArrayPartialEq(out, typeSpec, rustTypeName)
 
 			// Add Display implementation for displayable scalar type definitions
 			if IsStringerImplType(typeSpec.Name.Name) {
