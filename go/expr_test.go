@@ -4495,8 +4495,8 @@ func upper(s string) string {
 	if strings.Contains(rust, "type info required for range statement") {
 		t.Fatalf("string parameter range should use syntax-derived parameter type:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".char_indices()") {
-		t.Fatalf("string parameter range should iterate chars:\n%s", rust)
+	if !strings.Contains(rust, "__go_string_range(") {
+		t.Fatalf("string parameter range should iterate Go string bytes:\n%s", rust)
 	}
 	if !strings.Contains(rust, "to_string()") {
 		t.Fatalf("string(char) over a range rune should use the bare char value:\n%s", rust)

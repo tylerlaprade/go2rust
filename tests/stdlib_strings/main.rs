@@ -47,8 +47,49 @@ pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
         .collect()
 }
 
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
 pub fn __go_string_len(__text: &str) -> usize {
     __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
 }
 
 pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
@@ -1413,10 +1454,10 @@ fn main() {
     let mut second = Rc::new(RefCell::new(Some("World".to_string())));
     let mut combined = Rc::new(RefCell::new(Some({
         let mut __s = String::new();
-        __s.push_str(&format!("{}", (*first.borrow().as_ref().unwrap())));
-        __s.push_str(&format!("{}", ", ".to_string()));
-        __s.push_str(&format!("{}", (*second.borrow().as_ref().unwrap())));
-        __s.push_str(&format!("{}", "!".to_string()));
+        __s = __go_string_concat(&__s, &(*first.borrow().as_ref().unwrap()));
+        __s = __go_string_concat(&__s, &", ".to_string());
+        __s = __go_string_concat(&__s, &(*second.borrow().as_ref().unwrap()));
+        __s = __go_string_concat(&__s, &"!".to_string());
         __s
     })));
     print!("Concatenated: {}\n", { let __v = (*combined.borrow().as_ref().unwrap()).clone(); __v });
@@ -1505,9 +1546,9 @@ fn main() {
     let mut str2 = Rc::new(RefCell::new(Some("banana".to_string())));
     let mut str3 = Rc::new(RefCell::new(Some("apple".to_string())));
 
-    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) == (*str2.borrow().as_ref().unwrap()));
-    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) == (*str3.borrow().as_ref().unwrap()));
-    print!("'{}' < '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) < (*str2.borrow().as_ref().unwrap()));
+    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, { let __left = __go_string_from_bytes(__go_string_bytes(&(*str1.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*str2.borrow().as_ref().unwrap()))); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal });
+    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, { let __left = __go_string_from_bytes(__go_string_bytes(&(*str1.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*str3.borrow().as_ref().unwrap()))); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal });
+    print!("'{}' < '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, { let __left = __go_string_from_bytes(__go_string_bytes(&(*str1.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*str2.borrow().as_ref().unwrap()))); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Less });
     print!("Compare('{}', '{}'): {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str2.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
     print!("Compare('{}', '{}'): {}\n", { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str2.borrow().as_ref().unwrap()).clone(); let __b = (*str1.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
     print!("Compare('{}', '{}'): {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str3.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
@@ -1535,7 +1576,7 @@ fn main() {
     print!("Byte length: {}\n", { let __s = (*unicode.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) });
 
     let mut runeCount = Rc::new(RefCell::new(Some(0i64)));
-    for (_, r) in (*unicode.borrow().as_ref().unwrap()).char_indices() {
+    for (_, r) in __go_string_range(&(*unicode.borrow().as_ref().unwrap())) {
         { let mut guard = runeCount.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         print!("Rune: {} (U+{})\n", r, format!("{:04X}", r as u32));
     }

@@ -17,6 +17,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -2121,7 +2203,7 @@ impl Color {
 
 impl Status {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", "status:".to_string(), (*Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap())))))
+        Rc::new(RefCell::new(Some(__go_string_concat(&"status:".to_string(), &{ let __s = Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()).clone()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }))))
     }
 }
 
@@ -2213,13 +2295,13 @@ fn main() {
     println!("{} {} {}", format!("{}", Meters(Rc::new(RefCell::new(Some(((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) / (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))), format!("{}", Meters(Rc::new(RefCell::new(Some((((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 2.0) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))), format!("{}", Meters(Rc::new(RefCell::new(Some(((((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))) * (((*(*a.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + (*(*b.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))))));
 
     let mut col = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some(RED.to_string())))))));
-    println!("{} {} {} {} {}", format!("{}", { let __v = (*col.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.borrow().as_ref().unwrap()).upper().borrow().as_ref().unwrap())), format!("{}", ((*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()), format!("{}", (*col.borrow().as_ref().unwrap()) == Color(Rc::new(RefCell::new(Some(RED.to_string()))))), format!("{}", (*col.borrow().as_ref().unwrap()) != Color(Rc::new(RefCell::new(Some(GREEN.to_string()))))));
+    println!("{} {} {} {} {}", format!("{}", { let __v = (*col.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.borrow().as_ref().unwrap()).upper().borrow().as_ref().unwrap())), format!("{}", { let __s = (*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&(*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&RED.to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }), format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&(*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&GREEN.to_string())); __go_string_cmp(&__left, &__right) != std::cmp::Ordering::Equal }));
     let mut colors = Rc::new(RefCell::new(Some(BTreeMap::<Color, Rc<RefCell<Option<i64>>>>::from([(Color(Rc::new(RefCell::new(Some(RED.to_string())))), Rc::new(RefCell::new(Some(1i64)))), (Color(Rc::new(RefCell::new(Some(GREEN.to_string())))), Rc::new(RefCell::new(Some(2i64))))]))));
     println!("{} {}", format!("{}", { let __map_holder = colors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Color(Rc::new(RefCell::new(Some(RED.to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = colors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Color(Rc::new(RefCell::new(Some("green".to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut name = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some("blue".to_string())))))));
     { let __rhs = "ish"; let mut guard = name.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
-    println!("{} {} {} {} {}", format!("{}", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*Rc::new(RefCell::new(Some((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", { let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap())), format!("{}", ((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()));
-    for (i, ch) in ((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).char_indices() {
+    println!("{} {} {} {} {}", format!("{}", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*Rc::new(RefCell::new(Some((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", { let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); __go_string_bytes(__s)[(0) as usize] }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __go_string_slice(__s, __low, __high) }))).borrow().as_ref().unwrap())), format!("{}", { let __s = (*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }));
+    for (i, ch) in __go_string_range(&(*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()) {
         if i as i64 == 2 {
         println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((ch as i32)) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())));
     }
@@ -2229,7 +2311,7 @@ fn main() {
     println!("{} {} {} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*label(Rc::new(RefCell::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*label(Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some(INACTIVE.to_string())))))))).borrow().as_ref().unwrap())), format!("{}", (*label(Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some("other".to_string())))))))).borrow().as_ref().unwrap())));
     let mut statuses = Rc::new(RefCell::new(Some(vec![Status(Rc::new(RefCell::new(Some(INACTIVE.to_string())))), Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))), Status(Rc::new(RefCell::new(Some("pending".to_string()))))])));
     let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
-        return statuses_closure_clone.borrow().as_ref().unwrap().get_cloned(((*i.borrow().as_ref().unwrap())) as usize) < statuses_closure_clone.borrow().as_ref().unwrap().get_cloned(((*j.borrow().as_ref().unwrap())) as usize);
+        return { let __left = __go_string_from_bytes(__go_string_bytes(&(*statuses_closure_clone.borrow().as_ref().unwrap().get_cloned(((*i.borrow().as_ref().unwrap())) as usize).0.borrow().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&(*statuses_closure_clone.borrow().as_ref().unwrap().get_cloned(((*j.borrow().as_ref().unwrap())) as usize).0.borrow().as_ref().unwrap()).clone())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Less };
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&statuses)));
     let mut parts = Rc::new(RefCell::new(Some(Vec::<String>::new())));
@@ -2274,7 +2356,7 @@ fn main() {
         }
     });;
         if ok {
-            println!("{} {}", format!("{}", (*st.borrow().as_ref().unwrap()) == Status(Rc::new(RefCell::new(Some(ACTIVE.to_string()))))), format!("{}", ((*(*st.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()));;
+            println!("{} {}", format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&(*(*st.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&ACTIVE.to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }), format!("{}", { let __s = (*(*st.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }));;
         }
     }
     let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<Status, Rc<RefCell<Option<i64>>>>::from([]))));

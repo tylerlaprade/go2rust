@@ -22,7 +22,7 @@ func goSliceModeEnabled() bool {
 // literals the translator writes as Vec<T> and vec![..] are Go slices.
 var goSliceImportNames = []string{
 	"GoSlice", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "GoSliceView", "Vec",
-	"__go_string_from_bytes", "__go_string_bytes", "__go_string_cmp", "__go_string_concat", "__go_string_len", "__go_string_slice",
+	"__go_string_from_bytes", "__go_string_bytes", "__go_string_cmp", "__go_string_concat", "__go_string_len", "__go_string_range", "__go_string_slice",
 }
 
 // goSliceVecMacro shadows the prelude's vec! with one that makes a GoSlice.
@@ -220,6 +220,37 @@ pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
 
 pub fn __go_string_len(__text: &str) -> usize {
     __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
 }
 
 pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {

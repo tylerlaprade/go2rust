@@ -1655,8 +1655,8 @@ func sumIndexes(s string) int {
 	if !strings.Contains(rust, "for i in 0..") && !strings.Contains(rust, "for (i, _) in") {
 		t.Fatalf("key-only string range should bind the byte index:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".char_indices()") {
-		t.Fatalf("key-only string range should iterate string byte indices:\n%s", rust)
+	if !strings.Contains(rust, "__go_string_range(") {
+		t.Fatalf("key-only string range should iterate Go string byte indices:\n%s", rust)
 	}
 }
 
@@ -1755,8 +1755,8 @@ func mask() int {
 	if strings.Contains(rust, "str.borrow()") || strings.Contains(rust, "str.lock()") {
 		t.Fatalf("range over string const should not unwrap a string handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "str.char_indices()") {
-		t.Fatalf("range over string const should use the bare string value:\n%s", rust)
+	if !strings.Contains(rust, "__go_string_range(&str)") {
+		t.Fatalf("range over string const should pass the bare string value to the Go iterator:\n%s", rust)
 	}
 }
 

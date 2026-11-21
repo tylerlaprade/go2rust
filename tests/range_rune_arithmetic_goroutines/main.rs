@@ -13,6 +13,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -806,7 +888,7 @@ impl<T> Iterator for GoChannel<T> {
 
 pub fn atoi(s: Arc<Mutex<Option<String>>>) -> i64 {
     let mut n = Arc::new(Mutex::new(Some(0i64)));
-    for (_, c) in (*s.lock().unwrap().as_ref().unwrap()).char_indices() {
+    for (_, c) in __go_string_range(&{ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }) {
         { let new_val = { let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x * __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(((((c as i32) - ('0' as i32)))) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *n.lock().unwrap() = Some(new_val); };
     }
     return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -814,7 +896,7 @@ pub fn atoi(s: Arc<Mutex<Option<String>>>) -> i64 {
 
 pub fn caesar(s: Arc<Mutex<Option<String>>>, k: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     let mut b: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
-    for (_, c) in (*s.lock().unwrap().as_ref().unwrap()).char_indices() {
+    for (_, c) in __go_string_range(&{ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }) {
         if { let __tmp_x = c; let __tmp_y = 'a'; __tmp_x >= __tmp_y } && { let __tmp_x = c; let __tmp_y = 'z'; __tmp_x <= __tmp_y } {
             (*b.lock().unwrap().as_mut().unwrap()).push(std::char::from_u32((('a' as i32) + ((c as i32) - ('a' as i32) + ((*Arc::new(Mutex::new(Some(({ let __v = (*k.lock().unwrap().as_ref().unwrap()); __v }) as i32))).lock().unwrap().as_ref().unwrap()))) % (26 as i32)) as u32).unwrap_or('\u{FFFD}'));
         } else if { let __tmp_x = c; let __tmp_y = 'A'; __tmp_x >= __tmp_y } && { let __tmp_x = c; let __tmp_y = 'Z'; __tmp_x <= __tmp_y } {
@@ -836,11 +918,11 @@ fn main() {
     println!("{}", format!("{}", { let __tmp_x = atoi(Arc::new(Mutex::new(Some("4096".to_string())))); let __tmp_y = 1; __tmp_x + __tmp_y }));
     println!("{} {}", format!("{}", (*caesar(Arc::new(Mutex::new(Some("Hello, World!".to_string()))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*caesar(Arc::new(Mutex::new(Some("xyz".to_string()))), Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap())));
     let mut counts = Arc::new(Mutex::new(Some([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])));
-    for (_, c) in "banana".to_string().char_indices() {
+    for (_, c) in __go_string_range(&"banana".to_string()) {
         { let __idx = ((c as i32) - ('a' as i32)) as usize; let mut __seq_guard = counts.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
     }
     println!("{} {} {}", format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(13) as usize].clone() }));
-    for (i, c) in "az".to_string().char_indices() {
+    for (i, c) in __go_string_range(&"az".to_string()) {
         let mut up = Arc::new(Mutex::new(Some((c as i32) - ('a' as i32) + ('A' as i32))));
         let mut next = Arc::new(Mutex::new(Some((c as i32) + (1 as i32))));
         println!("{} {} {} {} {} {}", format!("{}", i), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*up.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*next.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (c as i32) * (2 as i32)), format!("{}", (c as i32) | (0x20 as i32)), format!("{}", (c as i32) & ! (0x20 as i32)));

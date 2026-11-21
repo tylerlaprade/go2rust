@@ -222,6 +222,9 @@ func roundTrip(b []byte) []byte {
 	if !strings.Contains(goSliceRuntime, "pub fn __go_string_cmp") {
 		t.Fatal("GoSlice runtime is missing bytewise Go string comparison")
 	}
+	if !strings.Contains(goSliceRuntime, "pub fn __go_string_range") {
+		t.Fatal("GoSlice runtime is missing Go-compatible invalid UTF-8 range decoding")
+	}
 }
 
 // withoutGoSliceUses rewrites every `use crate::{...};` in code without the

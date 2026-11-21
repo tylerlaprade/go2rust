@@ -15425,21 +15425,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			}
 		} else if isString {
-			// String iteration - iterate over chars
-			// Check if the range target is already a bare string (no wrapping needed).
-			_, isStringLit := s.X.(*ast.BasicLit)
-			// A named string ranges over a copy of the String it holds.
-			var namedStringSource strings.Builder
-			hasNamedStringSource := writeNamedStringNewtypeInnerValue(&namedStringSource, s.X)
-			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource
-			writeBareStringRangeSource := func() {
-				if hasNamedStringSource {
-					out.WriteString("(")
-					out.WriteString(namedStringSource.String())
-					out.WriteString(")")
-					return
-				}
-				TranspileExpression(out, s.X)
+			// Go ranges over the original string bytes. Invalid UTF-8 consumes one
+			// byte and yields RuneError, unlike Rust's UTF-8-only char iterators.
+			writeStringRangeSource := func() {
+				out.WriteString("__go_string_range(&")
+				writeStringAppendExpression(out, s.X)
+				out.WriteString(")")
 			}
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
@@ -15447,73 +15438,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeRangeKeyBinding()
 				out.WriteString(", ")
 				writeStringRangeValueBinding()
-				if isBareStringRangeSource {
-					out.WriteString(") in ")
-					writeBareStringRangeSource()
-					out.WriteString(".char_indices()")
-				} else {
-					out.WriteString(") in (*")
-					// Use raw identifier to avoid double-unwrapping
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
-				}
+				out.WriteString(") in ")
+				writeStringRangeSource()
 			} else if s.Value != nil {
 				// for _, c := range str
+				out.WriteString("(_, ")
 				writeStringRangeValueBinding()
-				if isBareStringRangeSource {
-					out.WriteString(" in ")
-					writeBareStringRangeSource()
-					out.WriteString(".chars()")
-				} else {
-					out.WriteString(" in (*")
-					// Use raw identifier to avoid double-unwrapping
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
-				}
+				out.WriteString(") in ")
+				writeStringRangeSource()
 			} else if s.Key != nil {
 				// for i := range str
 				out.WriteString("(")
 				writeRangeKeyBinding()
 				out.WriteString(", _) in ")
-				if isBareStringRangeSource {
-					writeBareStringRangeSource()
-					out.WriteString(".char_indices()")
-				} else {
-					out.WriteString("(*")
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
-				}
+				writeStringRangeSource()
 			} else {
 				// for range str
 				out.WriteString("_ in ")
-				if isBareStringRangeSource {
-					writeBareStringRangeSource()
-					out.WriteString(".chars()")
-				} else {
-					out.WriteString("(*")
-					if ident, ok := s.X.(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					} else {
-						TranspileExpression(out, s.X)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
-				}
+				writeStringRangeSource()
 			}
 		} else if isMap {
 			// Map iteration - need to unwrap the Arc<Mutex<Option<HashMap>>>

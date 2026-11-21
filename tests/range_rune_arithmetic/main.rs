@@ -13,6 +13,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -637,7 +719,7 @@ impl std::io::Write for GoSlice<u8> {
 
 pub fn atoi(s: Rc<RefCell<Option<String>>>) -> i64 {
     let mut n = Rc::new(RefCell::new(Some(0i64)));
-    for (_, c) in (*s.borrow().as_ref().unwrap()).char_indices() {
+    for (_, c) in __go_string_range(&(*s.borrow().as_ref().unwrap())) {
         { let new_val = (*n.borrow().as_ref().unwrap()) * 10 + (*Rc::new(RefCell::new(Some(((((c as i32) - ('0' as i32)))) as i64))).borrow().as_ref().unwrap()); *n.borrow_mut() = Some(new_val); };
     }
     return (*n.borrow().as_ref().unwrap());
@@ -645,7 +727,7 @@ pub fn atoi(s: Rc<RefCell<Option<String>>>) -> i64 {
 
 pub fn caesar(s: Rc<RefCell<Option<String>>>, k: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>> {
     let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
-    for (_, c) in (*s.borrow().as_ref().unwrap()).char_indices() {
+    for (_, c) in __go_string_range(&(*s.borrow().as_ref().unwrap())) {
         if c >= 'a' && c <= 'z' {
             (*b.borrow_mut().as_mut().unwrap()).push(std::char::from_u32((('a' as i32) + ((c as i32) - ('a' as i32) + ((*Rc::new(RefCell::new(Some((*k.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()))) % (26 as i32)) as u32).unwrap_or('\u{FFFD}'));
         } else if c >= 'A' && c <= 'Z' {
@@ -661,11 +743,11 @@ fn main() {
     println!("{}", format!("{}", atoi(Rc::new(RefCell::new(Some("4096".to_string())))) + 1));
     println!("{} {}", format!("{}", (*caesar(Rc::new(RefCell::new(Some("Hello, World!".to_string()))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap())), format!("{}", (*caesar(Rc::new(RefCell::new(Some("xyz".to_string()))), Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
     let mut counts = Rc::new(RefCell::new(Some([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])));
-    for (_, c) in "banana".to_string().char_indices() {
+    for (_, c) in __go_string_range(&"banana".to_string()) {
         { let __idx = ((c as i32) - ('a' as i32)) as usize; let mut __seq_guard = counts.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
     }
     println!("{} {} {}", format!("{}", (*counts.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*counts.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*counts.borrow().as_ref().unwrap())[(13) as usize].clone()));
-    for (i, c) in "az".to_string().char_indices() {
+    for (i, c) in __go_string_range(&"az".to_string()) {
         let mut up = Rc::new(RefCell::new(Some((c as i32) - ('a' as i32) + ('A' as i32))));
         let mut next = Rc::new(RefCell::new(Some((c as i32) + (1 as i32))));
         println!("{} {} {} {} {} {}", format!("{}", i), format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((*up.borrow().as_ref().unwrap())) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((*next.borrow().as_ref().unwrap())) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())), format!("{}", (c as i32) * (2 as i32)), format!("{}", (c as i32) | (0x20 as i32)), format!("{}", (c as i32) & ! (0x20 as i32)));
