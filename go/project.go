@@ -1244,6 +1244,7 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	} else {
 		mainContent, mainImports, mainExternalPkgs = Transpile(file, fileSet, pg.typeInfo)
 	}
+	mainContent = prefixDotImportedCrateUses(mainContent, file, pg.packageMapping)
 
 	// Track external packages from main
 	if mainPath != "" {

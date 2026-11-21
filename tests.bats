@@ -3303,6 +3303,10 @@ run_xfail_test() {
     run_test "tests/stdlib_package_pointer_var_method"
 }
 
+@test "stdlib_package_test_unicode_utf8_constants" {
+    run_test "tests/stdlib_package_test_unicode_utf8_constants"
+}
+
 @test "stdlib_package_var_comparison" {
     run_test "tests/stdlib_package_var_comparison"
 }
