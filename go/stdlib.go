@@ -5746,6 +5746,13 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if typeInfo != nil && typeInfo.IsString(call.Args[0]) {
+			out.WriteString("{ let __s = ")
+			writeStringSequenceValue(out, call.Args[0])
+			out.WriteString("; __go_string_len(&__s) }")
+			return
+		}
+
 		if writeNamedSliceLen(out, call.Args[0]) {
 			return
 		}

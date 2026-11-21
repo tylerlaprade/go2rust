@@ -1351,15 +1351,19 @@ func writeStringSliceValue(out *strings.Builder, expr ast.Expr, low ast.Expr, hi
 		writeExpressionAsUsize(out, high)
 		out.WriteString("; ")
 	}
-	out.WriteString("__s[")
+	out.WriteString("__go_string_slice(__s, ")
 	if low != nil {
 		out.WriteString("__low")
+	} else {
+		out.WriteString("0")
 	}
-	out.WriteString("..")
+	out.WriteString(", ")
 	if high != nil {
 		out.WriteString("__high")
+	} else {
+		out.WriteString("__go_string_len(__s)")
 	}
-	out.WriteString("].to_string() }")
+	out.WriteString(") }")
 }
 
 func sliceBoundNeedsLocalTemp(expr ast.Expr) bool {
@@ -14860,7 +14864,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				} else {
 					out.WriteString("{ let __s = &(")
 					writeStringSequenceValue(out, e.X)
-					out.WriteString("); __s.as_bytes()[")
+					out.WriteString("); __go_string_bytes(__s)[")
 					writeExpressionAsUsize(out, e.Index)
 					out.WriteString("] }")
 				}
@@ -17559,8 +17563,15 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			case "byte", "uint8":
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
+				if goSliceModeEnabled() {
+					out.WriteString("Vec::from(")
+				}
+				out.WriteString("__go_string_bytes(&")
 				writeStringConversionSource(out, call.Args[0])
-				out.WriteString(".as_bytes()" + sliceToVecMethod())
+				out.WriteString(")")
+				if goSliceModeEnabled() {
+					out.WriteString(")")
+				}
 				WriteWrapperSuffix(out)
 				return
 			case "rune", "int32":

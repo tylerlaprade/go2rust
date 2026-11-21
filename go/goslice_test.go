@@ -52,6 +52,7 @@ func main() {
 	s := []int{1, 2, 3}
 	fmt.Println(s[1:])
 }
+
 `)
 	if strings.Contains(rust, "GoSlice") {
 		t.Fatalf("GO2RUST_GOSLICE=0 must turn GoSlice off:\n%s", rust)
@@ -182,6 +183,38 @@ func TestGoSliceStringerFormatterKeepsViewGuardAlive(t *testing.T) {
 	want := "{ let __view = s.go_slice_view(); format_slice_wrapped_stringer_values(__view.as_ref()) }"
 	if got != want {
 		t.Fatalf("GoSlice stringer formatter = %q, want %q", got, want)
+	}
+}
+
+func TestInvalidUTF8StringConversionsUseLosslessByteHelpers(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "")
+	rust := transpileTypedRegression(t, `package main
+
+func roundTrip(b []byte) []byte {
+	s := string(b)
+	_ = len(s)
+	_ = s[0]
+	_ = s[1:]
+	return []byte(s)
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_from_bytes(std::vec::Vec::from(",
+		"__go_string_len(&__s)",
+		"__go_string_bytes(__s)[",
+		"__go_string_slice(__s, __low, __go_string_len(__s))",
+		"Vec::from(__go_string_bytes(&",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("invalid UTF-8 string lowering is missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "String::from_utf8(") {
+		t.Fatalf("[]byte to string must not reject invalid Go string bytes:\n%s", rust)
+	}
+	if !strings.Contains(goSliceRuntime, "const __GO_STRING_BYTES_PREFIX") {
+		t.Fatal("GoSlice runtime is missing the reversible arbitrary-byte string encoding")
 	}
 }
 

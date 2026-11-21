@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "source_stdlib_utf8_invalid_string"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_utf8_invalid_string"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

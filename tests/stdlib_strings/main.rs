@@ -15,6 +15,47 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1358,13 +1399,13 @@ fn main() {
 
     let mut str = Rc::new(RefCell::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Length: {}\n", (*str.borrow().as_ref().unwrap()).len());
+    print!("Length: {}\n", { let __s = (*str.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) });
 
         // String indexing and slicing
-    print!("First character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(((*str.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as usize] }) as u8 as char);
-    print!("Substring [0:5]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()));
-    print!("Substring [7:]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).borrow().as_ref().unwrap()));
+    print!("First character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __go_string_bytes(__s)[(0) as usize] }) as u8 as char);
+    print!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __go_string_bytes(__s)[(({ let __s = (*str.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) } as i64) - (1 as i64)) as usize] }) as u8 as char);
+    print!("Substring [0:5]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __go_string_slice(__s, __low, __high) }))).borrow().as_ref().unwrap()));
+    print!("Substring [7:]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (7) as usize; __go_string_slice(__s, __low, __go_string_len(__s)) }))).borrow().as_ref().unwrap()));
 
         // String concatenation
     println!("{}", format!("{}", "\n=== String concatenation ===".to_string()));
@@ -1491,7 +1532,7 @@ fn main() {
     println!("{}", format!("{}", "\n=== Unicode and runes ===".to_string()));
     let mut unicode = Rc::new(RefCell::new(Some("Hello, \u{4e16}\u{754c}! \u{1f30d}".to_string())));
     print!("Unicode string: {}\n", { let __v = (*unicode.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Byte length: {}\n", (*unicode.borrow().as_ref().unwrap()).len());
+    print!("Byte length: {}\n", { let __s = (*unicode.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) });
 
     let mut runeCount = Rc::new(RefCell::new(Some(0i64)));
     for (_, r) in (*unicode.borrow().as_ref().unwrap()).char_indices() {

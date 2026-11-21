@@ -1599,6 +1599,10 @@ run_xfail_test() {
     run_test "tests/interfaces_simple"
 }
 
+@test "invalid_utf8_string_bytes" {
+    run_test "tests/invalid_utf8_string_bytes"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }
@@ -3209,6 +3213,10 @@ run_xfail_test() {
 
 @test "source_stdlib_sync_map_load" {
     run_test "tests/source_stdlib_sync_map_load"
+}
+
+@test "source_stdlib_utf8_invalid_string" {
+    run_test "tests/source_stdlib_utf8_invalid_string"
 }
 
 @test "star_pointer_incdec" {

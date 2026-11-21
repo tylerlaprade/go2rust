@@ -4350,7 +4350,7 @@ func (i Accuracy) String() string {
 		t.Fatalf("string slice should not borrow complex bounds inside the slice range:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __low =") || !strings.Contains(rust, "let __high =") ||
-		!strings.Contains(rust, "__s[__low..__high].to_string()") {
+		!strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string slice should bind complex bounds before slicing:\n%s", rust)
 	}
 }
@@ -4530,7 +4530,7 @@ func add(path string, start int, end int) string {
 	if strings.Contains(rust, "push_str(&Rc::new") || strings.Contains(rust, "push_str(&Arc::new") {
 		t.Fatalf("string += string slice should pass a bare String to push_str:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__s[__low..__high].to_string()") {
+	if !strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string += string slice should use the raw string-slice helper:\n%s", rust)
 	}
 }
@@ -8011,7 +8011,7 @@ func lookup(i uint8) int {
 	if strings.Contains(rust, "TABLE.borrow()") || strings.Contains(rust, "TABLE.lock()") {
 		t.Fatalf("string constant index should not borrow or lock the constant as a wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".as_bytes()[") {
+	if !strings.Contains(rust, "__go_string_bytes(__s)[") {
 		t.Fatalf("string constant index should read from bare string bytes:\n%s", rust)
 	}
 }
