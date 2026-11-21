@@ -1,2 +1,2 @@
-source_stdlib_packages = "unicode/utf8"
+source_stdlib_packages = "bytes,internal/bytealg,internal/cpu,unicode/utf8"
 test_timeout = "120s"

@@ -2,7 +2,10 @@
 [workspace]
 members = [
     ".",
+    "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/internal_cpu",
     "vendor/oracle_testing",
     "vendor/unicode_utf8",
 ]
@@ -20,6 +23,9 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
+bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_cpu = { path = "vendor/internal_cpu" }
 oracle_testing = { path = "vendor/oracle_testing" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

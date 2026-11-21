@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"oracle/testing"
 	"unicode"
 	. "unicode/utf8"
@@ -66,6 +67,17 @@ func TestAppendRune(t *testing.T) {
 		if buf := AppendRune([]byte("init"), m.r); string(buf) != "init"+m.str {
 			t.Errorf("AppendRune(init, %#04x) = %s, want %s", m.r, buf, "init"+m.str)
 		}
+	}
+}
+
+// Check that negative runes encode as U+FFFD.
+func TestNegativeRune(t *testing.T) {
+	errorbuf := make([]byte, UTFMax)
+	errorbuf = errorbuf[0:EncodeRune(errorbuf, RuneError)]
+	buf := make([]byte, UTFMax)
+	buf = buf[0:EncodeRune(buf, -1)]
+	if !bytes.Equal(buf, errorbuf) {
+		t.Errorf("incorrect encoding [% x] for -1; expected [% x]", buf, errorbuf)
 	}
 }
 
@@ -144,6 +156,7 @@ func main() {
 	}{
 		{"TestConstants", TestConstants},
 		{"TestAppendRune", TestAppendRune},
+		{"TestNegativeRune", TestNegativeRune},
 		{"TestRuneLen", TestRuneLen},
 		{"TestValidRune", TestValidRune},
 	} {

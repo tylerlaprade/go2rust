@@ -1,5 +1,6 @@
 PASS TestConstants
 PASS TestAppendRune
+PASS TestNegativeRune
 PASS TestRuneLen
 PASS TestValidRune
-summary 4 passed, 0 failed
+summary 5 passed, 0 failed
