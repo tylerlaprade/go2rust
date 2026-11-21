@@ -95,13 +95,15 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"__go_nil_recv_safe_error(self.0.clone())",
-		"std::panic::catch_unwind",
+		"go_silent_catch_unwind(|| __go_nil_recv_safe_error(Rc::new(RefCell::new(None))))",
 		"Err(_) => write!(f, \"<nil>\")",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("typed-nil pointer error formatting missing %q:\n%s", want, rust)
 		}
+	}
+	if strings.Contains(rust, "let __go_previous_panic_hook") {
+		t.Fatalf("typed-nil formatting should not swap the process-wide panic hook per call:\n%s", rust)
 	}
 }
 

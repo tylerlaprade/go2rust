@@ -867,6 +867,16 @@ func NeedAnyClone() {
 	}
 }
 
+// NeedSilentPanicCatch marks that typed-nil formatting needs a catch_unwind
+// whose diagnostics are suppressed only on the calling thread. The generated
+// helper installs one stable hook and uses thread-local nesting state instead
+// of swapping the process-wide hook around every formatting call.
+func NeedSilentPanicCatch() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsSilentPanicCatch = true
+	}
+}
+
 // NeedPanicRecover marks that panic/defer/recover runtime helpers are needed.
 func NeedPanicRecover() {
 	if helpers := activeHelperTracker(); helpers != nil {

@@ -10,6 +10,7 @@ use crate::{
     go_errors_is,
     go_errors_join,
     go_errors_unwrap,
+    go_silent_catch_unwind,
 };
 
 use std::cell::{RefCell};

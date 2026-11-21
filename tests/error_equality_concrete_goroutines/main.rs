@@ -445,10 +445,7 @@ impl std::fmt::Display for __go_error_ptr_nilSafeError {
             let __guard = self.0.lock().unwrap();
             std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
         } else {
-            let __go_previous_panic_hook = std::panic::take_hook();
-            std::panic::set_hook(Box::new(|_| {}));
-            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_nil_safe_error_error(self.0.clone())));
-            std::panic::set_hook(__go_previous_panic_hook);
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_nil_safe_error_error(Arc::new(Mutex::new(None))));
             match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
         }
     }
@@ -479,10 +476,7 @@ impl std::fmt::Display for __go_error_ptr_cycleError {
             let __guard = self.0.lock().unwrap();
             std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
         } else {
-            let __go_previous_panic_hook = std::panic::take_hook();
-            std::panic::set_hook(Box::new(|_| {}));
-            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_cycle_error_error(self.0.clone())));
-            std::panic::set_hook(__go_previous_panic_hook);
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_cycle_error_error(Arc::new(Mutex::new(None))));
             match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
         }
     }
@@ -630,10 +624,7 @@ impl std::fmt::Display for __go_error_ptr_pointerError {
             let __guard = self.0.lock().unwrap();
             std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
         } else {
-            let __go_previous_panic_hook = std::panic::take_hook();
-            std::panic::set_hook(Box::new(|_| {}));
-            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_pointer_error_error(self.0.clone())));
-            std::panic::set_hook(__go_previous_panic_hook);
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_pointer_error_error(Arc::new(Mutex::new(None))));
             match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
         }
     }

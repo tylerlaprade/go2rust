@@ -3663,6 +3663,10 @@ run_xfail_test() {
     run_test "tests/typeblock_ptr_to_any_struct"
 }
 
+@test "typed_nil_error_panic_recovery_goroutines" {
+    run_test "tests/typed_nil_error_panic_recovery_goroutines"
+}
+
 @test "types_config_check_bridge" {
     run_test "tests/types_config_check_bridge"
 }

@@ -1,5723 +1,1 @@
-package main
-
-import (
-	"fmt"
-	"slices"
-	"strconv"
-	"strings"
-)
-
-const goTypeNameHelperRustName = "__go_type_name"
-
-// ImportTracker tracks which imports are needed during transpilation
-type ImportTracker struct {
-	needs         map[string]bool
-	reservedNames map[string]bool
-}
-
-// NewImportTracker creates a new import tracker
-func NewImportTracker() *ImportTracker {
-	return &ImportTracker{
-		needs:         make(map[string]bool),
-		reservedNames: make(map[string]bool),
-	}
-}
-
-// Add marks an import as needed with a reason
-func (it *ImportTracker) Add(importName string) {
-	it.needs[importName] = true
-}
-
-// ReserveName marks a Rust name emitted in this file so imports can avoid it.
-func (it *ImportTracker) ReserveName(name string) {
-	if name == "" {
-		return
-	}
-	if it.reservedNames == nil {
-		it.reservedNames = make(map[string]bool)
-	}
-	it.reservedNames[name] = true
-}
-
-func (it *ImportTracker) IsReservedName(name string) bool {
-	return it != nil && it.reservedNames[name]
-}
-
-// GenerateImports returns the import statements for the file
-func (it *ImportTracker) GenerateImports() string {
-	if len(it.needs) == 0 {
-		return ""
-	}
-
-	var imports []string
-
-	// Check for std::sync imports
-	var syncImports []string
-	if it.needs["Arc"] {
-		syncImports = append(syncImports, "Arc")
-	}
-	if it.needs["Mutex"] {
-		if it.IsReservedName("Mutex") {
-			syncImports = append(syncImports, "Mutex as StdMutex")
-		} else {
-			syncImports = append(syncImports, "Mutex")
-		}
-	}
-	if len(syncImports) > 0 {
-		imports = append(imports, fmt.Sprintf("use std::sync::{%s};", strings.Join(syncImports, ", ")))
-	}
-
-	// Check for std::rc and std::cell imports
-	var rcImports []string
-	if it.needs["Rc"] {
-		rcImports = append(rcImports, "Rc")
-	}
-	if len(rcImports) > 0 {
-		imports = append(imports, fmt.Sprintf("use std::rc::{%s};", strings.Join(rcImports, ", ")))
-	}
-
-	var cellImports []string
-	if it.needs["RefCell"] {
-		cellImports = append(cellImports, "RefCell")
-	}
-	if len(cellImports) > 0 {
-		imports = append(imports, fmt.Sprintf("use std::cell::{%s};", strings.Join(cellImports, ", ")))
-	}
-
-	// BTreeMap (deterministic iteration order, matching Go test expectations)
-	if it.needs["BTreeMap"] {
-		imports = append(imports, "use std::collections::BTreeMap;")
-	}
-
-	// fmt imports
-	var fmtImports []string
-	if it.needs["fmt::self"] {
-		fmtImports = append(fmtImports, "self")
-	}
-	if it.needs["Display"] {
-		fmtImports = append(fmtImports, "Display")
-	}
-	if it.needs["Debug"] {
-		fmtImports = append(fmtImports, "Debug")
-	}
-	if it.needs["Formatter"] {
-		fmtImports = append(fmtImports, "Formatter")
-	}
-	if len(fmtImports) > 0 {
-		imports = append(imports, fmt.Sprintf("use std::fmt::{%s};", strings.Join(fmtImports, ", ")))
-	}
-
-	// Thread and time imports
-	if it.needs["thread"] {
-		imports = append(imports, "use std::thread;")
-	}
-	if it.needs["time::Duration"] {
-		imports = append(imports, "use std::time::Duration;")
-	}
-
-	// Other imports
-	if it.needs["Error"] {
-		imports = append(imports, "use std::error::Error as StdError;")
-	}
-	if it.needs["Any"] {
-		imports = append(imports, "use std::any::Any;")
-	}
-	if it.needs["Ord"] {
-		imports = append(imports, "use std::cmp::Ord;")
-	}
-
-	// External crate imports
-	if it.needs["num::Complex"] {
-		imports = append(imports, "use num::Complex;")
-	}
-
-	// Sort for consistent output
-	slices.Sort(imports)
-
-	return strings.Join(imports, "\n") + "\n"
-}
-
-// HelperTracker tracks which helper functions are needed
-type HelperTracker struct {
-	needsFormatMap                       bool
-	needsFormatSlice                     bool
-	needsFormatSliceWrappedValues        bool
-	needsFormatSliceWrappedStringer      bool
-	needsFormatNestedSlice               bool
-	needsFormatNestedSliceWrapped        bool
-	needsFormatNestedPointerSlice        bool
-	needsFormatNestedPointerSliceWrapped bool
-	needsFormatAny                       bool
-	needsFormatAnySlice                  bool
-	needsFormatAnyNested                 bool
-	needsAnyEq                           bool
-	needsAnyClone                        bool
-	needsPanicRecover                    bool
-	needsGoValueClone                    bool
-	needsGoTypeParamFieldClone           bool
-	needsGoComparable                    bool
-	needsGoConstStrEq                    bool
-	needsGoAnyTypeMetadata               bool
-	needsEmbeddedOwnerRegistry           bool
-	needsGoByteSequence                  bool
-	needsGoInteger                       bool
-	needsGoChannel                       bool
-	needsWaitGroup                       bool
-	needsGoMutex                         bool
-	needsGoRWMutex                       bool
-	needsGoOnce                          bool
-	needsGoAtomicPointer                 bool
-	needsGoTypeName                      bool
-	needsGoErrorChain                    bool
-	needsGoSprintf                       bool
-	needsGoSprintfSpread                 bool
-	needsBase64                          bool
-	needsSha256                          bool
-	needsHexFormat                       bool
-	needsStrconvFormat                   bool
-	needsUrl                             bool
-	needsRegexp                          bool
-	needsJsonEscape                      bool
-	needsOsFile                          bool
-	needsOsArgs                          bool
-	needsSliceElemPtr                    bool
-	needsGoTime                          bool
-	needsGoTimer                         bool
-	needsGoAfter                         bool
-	needsGoTicker                        bool
-	needsGoTick                          bool
-	needsGoContext                       bool
-	needsGoRand                          bool
-	needsReflect                         bool
-	needsGoHttpResponse                  bool
-	needsGoPtrKey                        bool
-	needsGoAnyPtrKey                     bool
-	// omitGoSlice is set on the copy that leaves out the helpers a shared
-	// stub crate provides; GoSlice is one of them.
-	omitGoSlice   bool
-	anyCloneTypes map[string]bool
-	// anyTypeNames maps the Rust payload type of a value boxed into an empty
-	// interface to the name Go's %T prints for it.
-	anyTypeNames map[string]string
-	// anyFormatArms maps the same payload types to how format_any prints
-	// them.
-	anyFormatArms map[string]anyFormatArm
-}
-
-// anyFormatArm is one case of format_any: how to print a value of one type
-// that the program boxes into an empty interface.
-type anyFormatArm struct {
-	// expr is a Rust expression of type String. It formats v, a reference to
-	// the boxed payload, with the helper the typed print path uses for a
-	// value of the same Go type.
-	expr             string
-	needsFormatMap   bool
-	needsFormatSlice bool
-	// needsFormatPointer says expr calls go_format_any_pointer.
-	needsFormatPointer bool
-	// text says the value has a String or an Error method. fmt prints such a
-	// value as the one text the method returns, so a width, a precision, %q
-	// and %x apply to that text and not to the fields of the value.
-	text bool
-	// namedBasic says the value is a newtype around one basic value, "type
-	// Level int". A format known only at run time formats that value for any
-	// verb the type's own text does not take.
-	namedBasic bool
-}
-
-var generatingPublicHelpers bool
-
-func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
-	if ht == nil {
-		return nil
-	}
-	helperCopy := *ht
-	helperCopy.needsGoChannel = false
-	helperCopy.needsGoContext = false
-	helperCopy.needsGoTime = false
-	if helperCopy.needsGoValueClone && len(helperCopy.anyCloneTypes) == 0 {
-		helperCopy.needsAnyClone = false
-	}
-	helperCopy.needsGoValueClone = false
-	helperCopy.needsGoTypeParamFieldClone = false
-	helperCopy.needsGoComparable = false
-	helperCopy.needsGoAnyTypeMetadata = false
-	helperCopy.needsEmbeddedOwnerRegistry = false
-	helperCopy.needsGoAnyPtrKey = false
-	helperCopy.omitGoSlice = true
-	return &helperCopy
-}
-
-func (ht *HelperTracker) withoutGoSlice() *HelperTracker {
-	if ht == nil {
-		return &HelperTracker{omitGoSlice: true}
-	}
-	helperCopy := *ht
-	helperCopy.omitGoSlice = true
-	return &helperCopy
-}
-
-// goSlice reports whether this tracker's helpers define GoSlice.
-func (ht *HelperTracker) goSlice() bool {
-	return ht != nil && !ht.omitGoSlice && goSliceModeEnabled()
-}
-
-func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
-	if ht == nil {
-		return nil
-	}
-	helperCopy := &HelperTracker{}
-	if ht.needsGoChannel || ht.needsGoContext {
-		helperCopy.needsGoChannel = true
-	}
-	if ht.needsGoContext {
-		helperCopy.needsGoContext = true
-	}
-	if ht.needsGoTime {
-		helperCopy.needsGoTime = true
-	}
-	if ht.needsGoValueClone {
-		helperCopy.needsAnyClone = true
-		helperCopy.needsGoValueClone = true
-	}
-	if ht.needsGoTypeParamFieldClone {
-		helperCopy.needsGoTypeParamFieldClone = true
-	}
-	if ht.needsGoComparable {
-		helperCopy.needsGoComparable = true
-	}
-	if ht.needsGoAnyTypeMetadata {
-		helperCopy.needsGoAnyTypeMetadata = true
-	}
-	if ht.needsEmbeddedOwnerRegistry {
-		helperCopy.needsEmbeddedOwnerRegistry = true
-	}
-	if ht.needsGoRWMutex {
-		helperCopy.needsGoRWMutex = true
-	}
-	if ht.needsGoAnyPtrKey {
-		helperCopy.needsGoAnyPtrKey = true
-	}
-	return helperCopy
-}
-
-// GenerateHelpers returns the helper function definitions
-func (ht *HelperTracker) GenerateHelpers() string {
-	var result strings.Builder
-
-	if ht.goSlice() {
-		generateGoSliceHelper(&result)
-	}
-
-	// In a program of several packages, each helper also carries the cases
-	// the other packages need it to have.
-	anyCloneTypes, anyFormatArms, anyTypeNames := ht.anyCloneTypes, ht.anyFormatArms, ht.anyTypeNames
-	if shared := currentProgramAnyCases; shared != nil {
-		anyCloneTypes, anyFormatArms, anyTypeNames = shared.casesFor(ht)
-	}
-
-	// format_any prints boxed slices and maps through the typed formatters,
-	// so it needs them even when no typed print site asked for them.
-	needsFormatAnyPointer := false
-	if ht.needsFormatAny {
-		for _, arm := range anyFormatArms {
-			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
-			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
-			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
-		}
-	}
-	if needsFormatAnyPointer {
-		generateAnyPointerFormatter(&result)
-	}
-
-	if ht.needsFormatMap {
-		generateMapFormatter(&result)
-	}
-
-	if ht.needsFormatSlice {
-		generateSliceFormatter(&result, ht.needsFormatSliceWrappedValues, ht.needsFormatSliceWrappedStringer)
-	}
-
-	if ht.needsFormatNestedSlice {
-		generateNestedSliceFormatter(&result)
-	}
-
-	if ht.needsFormatNestedSliceWrapped {
-		generateNestedSliceWrappedFormatter(&result)
-	}
-
-	if ht.needsFormatNestedPointerSlice {
-		generateNestedPointerSliceFormatter(&result)
-	}
-
-	if ht.needsFormatNestedPointerSliceWrapped {
-		generateNestedPointerSliceWrappedFormatter(&result)
-	}
-
-	if ht.needsFormatAny {
-		// format_any_slice prints its elements as nested values, and only a
-		// pointer case makes that differ from format_any.
-		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && ht.needsFormatAnySlice)
-		generateAnyFormatter(&result, anyFormatArms, needsFormatAnyPointer, needsNestedEntry)
-	}
-
-	if ht.needsFormatAnySlice {
-		generateAnySliceFormatter(&result, needsFormatAnyPointer)
-	}
-
-	if ht.needsAnyEq {
-		generateAnyEquality(&result)
-	}
-
-	if ht.needsAnyClone {
-		generateAnyClone(&result, anyCloneTypes)
-	}
-
-	if ht.needsPanicRecover {
-		generatePanicRecoverHelper(&result)
-	}
-
-	if ht.needsGoValueClone {
-		generateGoValueClone(&result)
-	}
-
-	if ht.needsGoTypeParamFieldClone {
-		generateGoTypeParamFieldClone(&result)
-	}
-
-	if ht.needsGoComparable {
-		generateGoComparable(&result)
-	}
-
-	if ht.needsGoConstStrEq {
-		generateGoConstStrEq(&result)
-	}
-
-	if ht.needsGoAnyTypeMetadata {
-		generateGoAnyTypeMetadata(&result)
-	}
-
-	if ht.needsEmbeddedOwnerRegistry {
-		generateEmbeddedOwnerRegistry(&result)
-	}
-
-	if ht.needsGoByteSequence {
-		generateGoByteSequence(&result)
-	}
-
-	if ht.needsGoInteger {
-		generateGoInteger(&result)
-	}
-
-	if ht.needsGoChannel {
-		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone)
-	}
-
-	if ht.needsWaitGroup {
-		generateWaitGroupHelper(&result)
-	}
-
-	if ht.needsGoMutex {
-		generateGoMutexHelper(&result)
-	}
-
-	if ht.needsGoRWMutex {
-		generateGoRWMutexHelper(&result)
-	}
-
-	if ht.needsGoOnce {
-		generateGoOnceHelper(&result)
-	}
-
-	if ht.needsGoAtomicPointer {
-		generateGoAtomicPointerHelper(&result)
-	}
-
-	if ht.needsGoTypeName {
-		generateGoTypeNameHelper(&result, anyTypeNames)
-	}
-
-	if ht.needsGoErrorChain {
-		generateGoErrorChainHelper(&result)
-	}
-
-	if ht.needsGoSprintf {
-		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
-	}
-
-	if ht.needsBase64 {
-		generateBase64Helper(&result)
-	}
-
-	if ht.needsSha256 {
-		generateSha256Helper(&result)
-	}
-
-	if ht.needsHexFormat {
-		generateHexFormatHelper(&result)
-	}
-
-	if ht.needsStrconvFormat {
-		generateStrconvFormatHelper(&result)
-	}
-
-	if ht.needsUrl {
-		generateUrlHelper(&result)
-	}
-
-	if ht.needsRegexp {
-		generateRegexpHelper(&result)
-	}
-
-	if ht.needsJsonEscape {
-		generateJsonEscapeHelper(&result)
-	}
-
-	if ht.needsOsFile {
-		generateOsFileHelper(&result)
-	}
-
-	if ht.needsOsArgs {
-		generateOsArgsHelper(&result)
-	}
-
-	if ht.needsSliceElemPtr {
-		generateSliceElemPtrHelper(&result)
-	}
-
-	if ht.needsGoTime {
-		generateGoTimeHelper(&result)
-	}
-
-	if ht.needsGoTimer {
-		generateGoTimerHelper(&result)
-	}
-
-	if ht.needsGoAfter {
-		generateGoAfterHelper(&result)
-	}
-
-	if ht.needsGoTick {
-		generateGoTickHelper(&result)
-	}
-
-	if ht.needsGoTicker {
-		generateGoTickerHelper(&result)
-	}
-
-	if ht.needsGoContext {
-		generateGoContextHelper(&result)
-	}
-
-	if ht.needsGoRand {
-		generateGoRandHelper(&result)
-	}
-
-	if ht.needsReflect {
-		generateReflectHelper(&result)
-	}
-
-	if ht.needsGoPtrKey {
-		generateGoPtrKeyHelper(&result, "GoLocalPtrKey", ht.needsSliceElemPtr)
-	}
-	if ht.needsGoAnyPtrKey {
-		generateGoAnyPtrKeyHelper(&result)
-	}
-
-	return goSliceHelperText(result.String())
-}
-
-func (ht *HelperTracker) HasAnyOmittingSharedStdlibHelpers() bool {
-	filtered := ht.withoutSharedStdlibHelpers()
-	return filtered != nil && filtered.HasAny()
-}
-
-func (ht *HelperTracker) HasAny() bool {
-	return ht != nil && (ht.goSlice() ||
-		ht.needsFormatMap ||
-		ht.needsFormatSlice ||
-		ht.needsFormatAny ||
-		ht.needsFormatAnySlice ||
-		ht.needsAnyEq ||
-		ht.needsAnyClone ||
-		ht.needsPanicRecover ||
-		ht.needsGoValueClone ||
-		ht.needsGoTypeParamFieldClone ||
-		ht.needsGoComparable ||
-		ht.needsGoConstStrEq ||
-		ht.needsGoAnyTypeMetadata ||
-		ht.needsEmbeddedOwnerRegistry ||
-		ht.needsGoByteSequence ||
-		ht.needsGoInteger ||
-		ht.needsGoChannel ||
-		ht.needsWaitGroup ||
-		ht.needsGoMutex ||
-		ht.needsGoRWMutex ||
-		ht.needsGoOnce ||
-		ht.needsGoAtomicPointer ||
-		ht.needsGoTypeName ||
-		ht.needsGoErrorChain ||
-		ht.needsBase64 ||
-		ht.needsSha256 ||
-		ht.needsHexFormat ||
-		ht.needsStrconvFormat ||
-		ht.needsUrl ||
-		ht.needsRegexp ||
-		ht.needsJsonEscape ||
-		ht.needsOsFile ||
-		ht.needsSliceElemPtr ||
-		ht.needsGoTime ||
-		ht.needsGoTimer ||
-		ht.needsGoAfter ||
-		ht.needsGoTicker ||
-		ht.needsGoTick ||
-		ht.needsGoContext ||
-		ht.needsGoRand ||
-		ht.needsReflect ||
-		ht.needsGoHttpResponse ||
-		ht.needsGoPtrKey ||
-		ht.needsGoAnyPtrKey)
-}
-
-func (ht *HelperTracker) GenerateHelperModule() string {
-	return ht.generateHelperModule(false)
-}
-
-func (ht *HelperTracker) GenerateHelperModuleOmittingSharedStdlibHelpers() string {
-	return ht.withoutSharedStdlibHelpers().generateHelperModule(false)
-}
-
-func (ht *HelperTracker) GenerateSharedStdlibHelperModule() string {
-	return ht.sharedStdlibHelpersOnly().generateHelperModule(true)
-}
-
-func (ht *HelperTracker) generateHelperModule(publicHelpers bool) string {
-	if ht == nil {
-		return ""
-	}
-	if !ht.HasAny() {
-		return ""
-	}
-
-	imports := NewImportTracker()
-	helperCopy := *ht
-	fileState := NewFileState(imports, &helperCopy, nil)
-	parentCtx := GetTranspileContext()
-	prevPublicHelpers := generatingPublicHelpers
-	generatingPublicHelpers = publicHelpers
-	defer func() {
-		generatingPublicHelpers = prevPublicHelpers
-	}()
-	SetTranspileContext(&TranspileContext{
-		File:    fileState,
-		Imports: imports,
-		Helpers: &helperCopy,
-	})
-	helpersStr := helperCopy.GenerateHelpers()
-	SetTranspileContext(parentCtx)
-
-	var output strings.Builder
-	importsStr := imports.GenerateImports()
-	output.WriteString(importsStr)
-	if importsStr != "" && helpersStr != "" {
-		output.WriteString("\n")
-	}
-	output.WriteString(helpersStr)
-	return output.String()
-}
-
-func (ht *HelperTracker) ImportNamesOmittingSharedStdlibHelpers() []string {
-	return ht.withoutSharedStdlibHelpers().ImportNames()
-}
-
-func (ht *HelperTracker) ImportNames() []string {
-	if ht == nil {
-		return nil
-	}
-	seen := make(map[string]bool)
-	add := func(names ...string) {
-		for _, name := range names {
-			if name != "" {
-				seen[name] = true
-			}
-		}
-	}
-
-	if ht.goSlice() {
-		add(goSliceImportNames...)
-	}
-	if ht.needsFormatMap {
-		add("format_map")
-	}
-	if ht.needsFormatSlice {
-		add("format_slice", "format_slice_values", "format_slice_wrapped")
-		if ht.needsFormatSliceWrappedValues {
-			add("format_slice_wrapped_values")
-		}
-		if ht.needsFormatSliceWrappedStringer {
-			add("format_slice_wrapped_stringer", "format_slice_wrapped_stringer_values")
-		}
-	}
-	if ht.needsFormatNestedSlice {
-		add("format_nested_slice")
-	}
-	if ht.needsFormatNestedSliceWrapped {
-		add("format_nested_slice_wrapped", "format_slice_wrapped_values")
-	}
-	if ht.needsFormatNestedPointerSlice {
-		add("format_nested_pointer_slice", "format_slice_values")
-	}
-	if ht.needsFormatNestedPointerSliceWrapped {
-		add("format_nested_pointer_slice_wrapped", "format_slice_wrapped_values")
-	}
-	if ht.needsFormatAny {
-		add("format_any")
-	}
-	if ht.needsFormatAnySlice {
-		add("format_any_slice", "format_any_variadic")
-	}
-	if ht.needsFormatAnyNested {
-		add("format_any_nested")
-	}
-	if ht.needsAnyEq {
-		add("go_any_eq")
-	}
-	if ht.needsAnyClone {
-		add("go_any_clone")
-	}
-	if ht.needsPanicRecover {
-		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
-	}
-	if ht.needsGoValueClone {
-		add("GoValueClone")
-	}
-	if ht.needsGoTypeParamFieldClone {
-		add("GoTypeParamFieldClone")
-	}
-	if ht.needsGoComparable {
-		add("GoComparable")
-	}
-	if ht.needsGoConstStrEq {
-		add("go_const_str_eq")
-	}
-	if ht.needsGoAnyTypeMetadata {
-		add("GoAnyTypeMetadata", "go_any_type_metadata", "go_box_any_with_metadata", "go_register_any_type", "go_register_any_type_with_elem", "go_register_any_value_metadata")
-	}
-	if ht.needsEmbeddedOwnerRegistry {
-		add("go_lookup_embedded_owner", "go_register_embedded_owner")
-	}
-	if ht.needsGoByteSequence {
-		add("GoByteSequence")
-	}
-	if ht.needsGoInteger {
-		add("GoInteger", "go_integer_from_i128", "go_integer_cast", "go_integer_add_one", "go_integer_sub_one")
-	}
-	if ht.needsGoChannel {
-		add("GoChannel")
-	}
-	if ht.needsWaitGroup {
-		add("WaitGroup")
-	}
-	if ht.needsGoMutex {
-		add("GoMutex")
-	}
-	if ht.needsGoRWMutex {
-		add("GoRWMutex")
-	}
-	if ht.needsGoOnce {
-		add("GoOnce")
-	}
-	if ht.needsGoAtomicPointer {
-		add("GoAtomicPointer")
-	}
-	if ht.needsGoTypeName {
-		add(goTypeNameHelperRustName)
-	}
-	if ht.needsGoErrorChain {
-		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain_visit", "go_errors_unwrap", "go_errors_is")
-	}
-	if ht.needsGoSprintf {
-		add("go_sprintf")
-	}
-	if ht.needsGoSprintfSpread {
-		add("go_sprintf_spread")
-	}
-	if ht.needsBase64 {
-		add("go_base64_encode", "go_base64_decode", "go_base64_value")
-	}
-	if ht.needsSha256 {
-		add("go_sha256_sum256")
-	}
-	if ht.needsHexFormat {
-		add("go_format_hex_bytes")
-	}
-	if ht.needsStrconvFormat {
-		add("go_strconv_format_int", "go_strconv_format_float")
-	}
-	if ht.needsUrl {
-		add("GoUrl", "go_url_parse")
-	}
-	if ht.needsRegexp {
-		add("GoRegexp", "go_regexp_find_all_string")
-	}
-	if ht.needsJsonEscape {
-		add("go_json_escape")
-	}
-	if ht.needsOsFile {
-		add("GoFile")
-	}
-	if ht.needsSliceElemPtr {
-		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef", "GoArrayElemPtr", "GoArrayElemRef", "GoArrayElemMutRef")
-	}
-	if ht.needsGoTime {
-		add("GoTime", "go_time_civil_from_days")
-	}
-	if ht.needsGoTimer {
-		add("GoTimer", "go_new_timer", "go_after_func")
-	}
-	if ht.needsGoAfter {
-		add("go_channel_after")
-	}
-	if ht.needsGoTicker {
-		add("GoTicker", "go_new_ticker")
-	}
-	if ht.needsGoTick {
-		add("go_tick")
-	}
-	if ht.needsGoContext {
-		add("GoContext", "GoCancelFunc", "GoCancelCauseFunc")
-	}
-	if ht.needsGoRand {
-		add("go_rand_seed", "go_rand_intn", "go_rand_float64", "go_rand_state", "go_rand_next_u64")
-	}
-	if ht.needsReflect {
-		add("GoReflectStructTag", "GoReflectField", "GoReflectType", "GoReflectValue", "GoReflectBoolGetter", "GoReflectBoolSetter", "go_reflect_tag_get")
-	}
-	if ht.needsGoPtrKey {
-		add("GoLocalPtrKey")
-	}
-	if ht.needsGoAnyPtrKey {
-		add("GoAnyPtrKey")
-	}
-
-	names := make([]string, 0, len(seen))
-	for name := range seen {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	return names
-}
-
-func generateGoPtrKeyHelper(out *strings.Builder, name string, includeSliceElemPtr bool) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		if includeSliceElemPtr {
-			out.WriteString(`
-enum ` + name + `Repr<T> {
-    Nil,
-    Local(Arc<Mutex<Option<T>>>),
-    SliceElem(Arc<Mutex<Option<Vec<T>>>>, usize),
-}
-
-pub struct ` + name + `<T>(` + name + `Repr<T>);
-
-impl<T> Clone for ` + name + `<T> {
-    fn clone(&self) -> Self {
-        match &self.0 {
-            ` + name + `Repr::Nil => ` + name + `(` + name + `Repr::Nil),
-            ` + name + `Repr::Local(value) => ` + name + `(` + name + `Repr::Local(value.clone())),
-            ` + name + `Repr::SliceElem(slice, index) => ` + name + `(` + name + `Repr::SliceElem(slice.clone(), *index)),
-        }
-    }
-}
-
-impl<T> ` + name + `<T> {
-    pub fn new(value: Arc<Mutex<Option<T>>>) -> Self {
-        if value.lock().unwrap().is_none() {
-            ` + name + `(` + name + `Repr::Nil)
-        } else {
-            ` + name + `(` + name + `Repr::Local(value))
-        }
-    }
-
-    pub fn value(&self) -> Arc<Mutex<Option<T>>> {
-        match &self.0 {
-            ` + name + `Repr::Nil => Arc::new(Mutex::new(None)),
-            ` + name + `Repr::Local(value) => value.clone(),
-            ` + name + `Repr::SliceElem(_, _) => panic!("pointer map key from slice element cannot be converted to a local pointer handle"),
-        }
-    }
-
-    fn identity(&self) -> (u8, usize, usize) {
-        match &self.0 {
-            ` + name + `Repr::Nil => (0, 0, 0),
-            ` + name + `Repr::Local(value) => (1, Arc::as_ptr(value) as usize, 0),
-            ` + name + `Repr::SliceElem(slice, index) => (2, Arc::as_ptr(slice) as usize, *index),
-        }
-    }
-
-    fn addr(&self) -> usize { let (_, addr, index) = self.identity(); addr ^ index }
-}
-
-impl<T: Clone> ` + name + `<T> {
-    pub fn from_slice_elem(value: Option<GoSliceElemPtr<T>>) -> Self {
-        match value {
-            Some(ptr) => ` + name + `(` + name + `Repr::SliceElem(ptr.slice.clone(), ptr.index)),
-            None => ` + name + `(` + name + `Repr::Nil),
-        }
-    }
-}
-
-impl<T> PartialEq for ` + name + `<T> {
-    fn eq(&self, other: &Self) -> bool { self.identity() == other.identity() }
-}
-impl<T> Eq for ` + name + `<T> {}
-impl<T> PartialOrd for ` + name + `<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
-}
-impl<T> Ord for ` + name + `<T> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.identity().cmp(&other.identity()) }
-}
-impl<T> std::fmt::Debug for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-impl<T> std::fmt::Display for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-`)
-			return
-		}
-		out.WriteString(`
-pub struct ` + name + `<T>(pub Arc<Mutex<Option<T>>>);
-
-impl<T> Clone for ` + name + `<T> {
-    fn clone(&self) -> Self { ` + name + `(self.0.clone()) }
-}
-
-impl<T> ` + name + `<T> {
-    pub fn new(value: Arc<Mutex<Option<T>>>) -> Self { ` + name + `(value) }
-    pub fn value(&self) -> Arc<Mutex<Option<T>>> { self.0.clone() }
-    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }
-}
-
-impl<T> PartialEq for ` + name + `<T> {
-    fn eq(&self, other: &Self) -> bool { self.addr() == other.addr() }
-}
-impl<T> Eq for ` + name + `<T> {}
-impl<T> PartialOrd for ` + name + `<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
-}
-impl<T> Ord for ` + name + `<T> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.addr().cmp(&other.addr()) }
-}
-impl<T> std::fmt::Debug for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-impl<T> std::fmt::Display for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-`)
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-		if includeSliceElemPtr {
-			out.WriteString(`
-enum ` + name + `Repr<T> {
-    Nil,
-    Local(Rc<RefCell<Option<T>>>),
-    SliceElem(Rc<RefCell<Option<Vec<T>>>>, usize),
-}
-
-pub struct ` + name + `<T>(` + name + `Repr<T>);
-
-impl<T> Clone for ` + name + `<T> {
-    fn clone(&self) -> Self {
-        match &self.0 {
-            ` + name + `Repr::Nil => ` + name + `(` + name + `Repr::Nil),
-            ` + name + `Repr::Local(value) => ` + name + `(` + name + `Repr::Local(value.clone())),
-            ` + name + `Repr::SliceElem(slice, index) => ` + name + `(` + name + `Repr::SliceElem(slice.clone(), *index)),
-        }
-    }
-}
-
-impl<T> ` + name + `<T> {
-    pub fn new(value: Rc<RefCell<Option<T>>>) -> Self {
-        if value.borrow().is_none() {
-            ` + name + `(` + name + `Repr::Nil)
-        } else {
-            ` + name + `(` + name + `Repr::Local(value))
-        }
-    }
-
-    pub fn value(&self) -> Rc<RefCell<Option<T>>> {
-        match &self.0 {
-            ` + name + `Repr::Nil => Rc::new(RefCell::new(None)),
-            ` + name + `Repr::Local(value) => value.clone(),
-            ` + name + `Repr::SliceElem(_, _) => panic!("pointer map key from slice element cannot be converted to a local pointer handle"),
-        }
-    }
-
-    fn identity(&self) -> (u8, usize, usize) {
-        match &self.0 {
-            ` + name + `Repr::Nil => (0, 0, 0),
-            ` + name + `Repr::Local(value) => (1, Rc::as_ptr(value) as usize, 0),
-            ` + name + `Repr::SliceElem(slice, index) => (2, Rc::as_ptr(slice) as usize, *index),
-        }
-    }
-
-    fn addr(&self) -> usize { let (_, addr, index) = self.identity(); addr ^ index }
-}
-
-impl<T: Clone> ` + name + `<T> {
-    pub fn from_slice_elem(value: Option<GoSliceElemPtr<T>>) -> Self {
-        match value {
-            Some(ptr) => ` + name + `(` + name + `Repr::SliceElem(ptr.slice.clone(), ptr.index)),
-            None => ` + name + `(` + name + `Repr::Nil),
-        }
-    }
-}
-
-impl<T> PartialEq for ` + name + `<T> {
-    fn eq(&self, other: &Self) -> bool { self.identity() == other.identity() }
-}
-impl<T> Eq for ` + name + `<T> {}
-impl<T> PartialOrd for ` + name + `<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
-}
-impl<T> Ord for ` + name + `<T> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.identity().cmp(&other.identity()) }
-}
-impl<T> std::fmt::Debug for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-impl<T> std::fmt::Display for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-`)
-			return
-		}
-		out.WriteString(`
-pub struct ` + name + `<T>(pub Rc<RefCell<Option<T>>>);
-
-impl<T> Clone for ` + name + `<T> {
-    fn clone(&self) -> Self { ` + name + `(self.0.clone()) }
-}
-
-impl<T> ` + name + `<T> {
-    pub fn new(value: Rc<RefCell<Option<T>>>) -> Self { ` + name + `(value) }
-    pub fn value(&self) -> Rc<RefCell<Option<T>>> { self.0.clone() }
-    fn addr(&self) -> usize { Rc::as_ptr(&self.0) as usize }
-}
-
-impl<T> PartialEq for ` + name + `<T> {
-    fn eq(&self, other: &Self) -> bool { self.addr() == other.addr() }
-}
-impl<T> Eq for ` + name + `<T> {}
-impl<T> PartialOrd for ` + name + `<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
-}
-impl<T> Ord for ` + name + `<T> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.addr().cmp(&other.addr()) }
-}
-impl<T> std::fmt::Debug for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-impl<T> std::fmt::Display for ` + name + `<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-`)
-	}
-}
-
-func generateGoAnyPtrKeyHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GoAnyPtrKey(usize);
-
-impl GoAnyPtrKey {
-    pub fn new<T>(value: Arc<Mutex<Option<T>>>) -> Self {
-        if value.lock().unwrap().is_none() {
-            GoAnyPtrKey(0)
-        } else {
-            GoAnyPtrKey(Arc::as_ptr(&value) as usize)
-        }
-    }
-
-    fn addr(&self) -> usize { self.0 }
-}
-
-impl std::fmt::Debug for GoAnyPtrKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-impl std::fmt::Display for GoAnyPtrKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-`)
-		return
-	}
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(`
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GoAnyPtrKey(usize);
-
-impl GoAnyPtrKey {
-    pub fn new<T>(value: Rc<RefCell<Option<T>>>) -> Self {
-        if value.borrow().is_none() {
-            GoAnyPtrKey(0)
-        } else {
-            GoAnyPtrKey(Rc::as_ptr(&value) as usize)
-        }
-    }
-
-    fn addr(&self) -> usize { self.0 }
-}
-
-impl std::fmt::Debug for GoAnyPtrKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-impl std::fmt::Display for GoAnyPtrKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-`)
-}
-
-// generateAnyPointerFormatter emits go_format_any_pointer, which format_any
-// uses to print a pointer to a struct held in an interface.
-func generateAnyPointerFormatter(out *strings.Builder) {
-	out.WriteString(`
-// Go expands a pointer to a struct only when the pointer is the value being
-// printed. Inside a struct or a slice it prints the address. That is also
-// what keeps a value that points back to itself from printing forever.
-fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce() -> bool, expand: impl FnOnce() -> String) -> String {
-    if !nested {
-        return expand();
-    }
-    if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
-}
-`)
-}
-
-// generateAnyFormatter emits format_any, which prints the value an interface
-// holds, and format_any_nested when nestedEntry asks for it. format_any is
-// for a value that is itself an argument of a print call. format_any_nested
-// is for a value held inside the one being printed: a struct's interface
-// field, an element of a []interface{}.
-//
-// The two differ only for a pointer to a struct, so the distinction is
-// generated only when pointerArms says the program boxes one. Each place
-// that prints says which of the two it is, and nothing is remembered between
-// calls: a String or Error method that prints starts at the top level again,
-// as it does in Go.
-func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm, pointerArms bool, nestedEntry bool) {
-	TrackImport("Any")
-	valueType := "&dyn Any"
-	if NeedsConcurrentWrapper() {
-		valueType = "&(dyn Any + Send + Sync)"
-	}
-	if pointerArms {
-		out.WriteString("\nfn format_any(value: " + valueType + ") -> String {\n")
-		out.WriteString("    format_any_at(value, false)\n")
-		out.WriteString("}\n")
-		if nestedEntry {
-			out.WriteString("\n// Prints a value held inside the one being printed: a struct's interface\n")
-			out.WriteString("// field, an element of a []interface{}.\n")
-			out.WriteString("fn format_any_nested(value: " + valueType + ") -> String {\n")
-			out.WriteString("    format_any_at(value, true)\n")
-			out.WriteString("}\n")
-		}
-		out.WriteString("\nfn format_any_at(value: " + valueType + ", nested: bool) -> String {\n")
-	} else {
-		out.WriteString("\nfn format_any(value: " + valueType + ") -> String {\n")
-	}
-	out.WriteString("    if let Some(v) = value.downcast_ref::<i32>() {\n")
-	out.WriteString("        v.to_string()\n")
-	out.WriteString("    } else if let Some(v) = value.downcast_ref::<i64>() {\n")
-	out.WriteString("        v.to_string()\n")
-	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f64>() {\n")
-	out.WriteString("        v.to_string()\n")
-	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f32>() {\n")
-	out.WriteString("        v.to_string()\n")
-	out.WriteString("    } else if let Some(v) = value.downcast_ref::<String>() {\n")
-	out.WriteString("        v.clone()\n")
-	out.WriteString("    } else if let Some(v) = value.downcast_ref::<&str>() {\n")
-	out.WriteString("        v.to_string()\n")
-	out.WriteString("    } else if let Some(v) = value.downcast_ref::<bool>() {\n")
-	out.WriteString("        v.to_string()\n")
-	// The other integer types print as plain numbers too.
-	for _, intType := range []string{"i8", "i16", "isize", "u8", "u16", "u32", "u64", "usize"} {
-		out.WriteString("    } else if let Some(v) = value.downcast_ref::<" + intType + ">() {\n")
-		out.WriteString("        v.to_string()\n")
-	}
-	rustTypes := make([]string, 0, len(anyFormatArms))
-	for rustType := range anyFormatArms {
-		rustTypes = append(rustTypes, rustType)
-	}
-	slices.Sort(rustTypes)
-	for _, rustType := range rustTypes {
-		trackImportsForAnyPayloadType(rustType)
-		out.WriteString("    } else if let Some(v) = value.downcast_ref::<")
-		out.WriteString(rustType)
-		out.WriteString(">() {\n")
-		out.WriteString("        ")
-		out.WriteString(anyFormatArms[rustType].expr)
-		out.WriteString("\n")
-	}
-	// A value of a type with no case above cannot be printed yet. Stop
-	// with a message that says so: printing a placeholder would be a wrong
-	// answer that looks like a right one.
-	out.WriteString("    } else {\n")
-	out.WriteString("        panic!(\"go2rust: cannot print this value held in an interface: its type has no formatting case yet\")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-	if !pointerArms && nestedEntry {
-		out.WriteString("\n// Prints a value held inside the one being printed. Nothing this program\n")
-		out.WriteString("// puts in an interface prints differently there.\n")
-		out.WriteString("fn format_any_nested(value: " + valueType + ") -> String {\n")
-		out.WriteString("    format_any(value)\n")
-		out.WriteString("}\n")
-	}
-}
-
-func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
-	names := make([]string, 0, len(anyCloneTypes))
-	for name := range anyCloneTypes {
-		if name != "" {
-			names = append(names, name)
-		}
-	}
-	slices.Sort(names)
-	return names
-}
-
-func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
-	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
-		trackImportsForAnyPayloadType(rustType)
-		out.WriteString("    if let Some(v) = value.downcast_ref::<")
-		out.WriteString(rustType)
-		out.WriteString(">() { return Box::new(v.clone()) as ")
-		out.WriteString(traitObject)
-		out.WriteString("; }\n")
-	}
-}
-
-func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
-	TrackImport("Any")
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	if NeedsConcurrentWrapper() {
-		out.WriteString("\n")
-		out.WriteString(visibility)
-		out.WriteString(`fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-`)
-		writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any + Send + Sync>")
-		out.WriteString(`
-    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
-}
-`)
-		return
-	}
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
-`)
-	writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any>")
-	out.WriteString(`
-    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
-}
-`)
-}
-
-func generatePanicRecoverHelper(out *strings.Builder) {
-	if !NeedsConcurrentWrapper() {
-		generateSingleThreadPanicRecoverHelper(out)
-		return
-	}
-	TrackImport("Any")
-	TrackImport("Arc")
-	TrackImport("Mutex")
-	TrackImport("RefCell")
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	out.WriteString("\n")
-	out.WriteString(`thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
-}
-`)
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
-}
-`)
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
-    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
-        Ok(boxed) => {
-            let mut payload = *boxed;
-            loop {
-                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
-                    Ok(boxed) => {
-                        payload = *boxed;
-                    }
-                    Err(payload) => {
-                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
-                        return;
-                    }
-                }
-            }
-        }
-        Err(payload) => payload,
-    };
-    let payload = match payload.downcast::<String>() {
-        Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
-            return;
-        }
-        Err(payload) => payload,
-    };
-    let payload = match payload.downcast::<&'static str>() {
-        Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
-            return;
-        }
-        Err(payload) => payload,
-    };
-    let payload = match payload.downcast::<i32>() {
-        Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
-            return;
-        }
-        Err(payload) => payload,
-    };
-    let payload = match payload.downcast::<i64>() {
-        Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
-            return;
-        }
-        Err(payload) => payload,
-    };
-    let _payload = match payload.downcast::<bool>() {
-        Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
-            return;
-        }
-        Err(_payload) => _payload,
-    };
-    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
-}
-`)
-	writeGoRuntimeErrorText(out, visibility)
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_resume_unrecovered_panic() {
-    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
-        std::panic::panic_any(payload);
-    }
-}
-`)
-}
-
-// generateSingleThreadPanicRecoverHelper is the panic/recover runtime for a
-// program without goroutines, where an interface value is a
-// Rc<RefCell<Option<Box<dyn Any>>>>. A function with a defer runs its body
-// under catch_unwind; a panic's payload is kept here until a deferred
-// function calls recover(), which takes it. If none does, the panic goes on.
-//
-// The payload of panic("x") is the string. A panic the Rust code raises
-// itself, such as a division by zero or an index out of range, is given the
-// text Go's runtime error has.
-func generateSingleThreadPanicRecoverHelper(out *strings.Builder) {
-	TrackImport("Any")
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	out.WriteString(`
-thread_local! {
-    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
-}
-`)
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
-    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
-}
-`)
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
-    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
-        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
-        Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
-            Err(__payload) => __payload,
-        },
-    };
-    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
-}
-`)
-	writeGoRuntimeErrorText(out, visibility)
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_resume_unrecovered_panic() {
-    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
-        match __payload.downcast::<String>() {
-            Ok(__text) => std::panic::panic_any(*__text),
-            Err(__payload) => std::panic::resume_unwind(__payload),
-        }
-    }
-}
-`)
-}
-
-// writeGoRuntimeErrorText writes go_runtime_error_text, which gives a panic
-// the Rust code raises itself the text of Go's runtime error.
-func writeGoRuntimeErrorText(out *strings.Builder, visibility string) {
-	out.WriteString("\n")
-	out.WriteString(visibility)
-	out.WriteString(`fn go_runtime_error_text(__text: String) -> String {
-    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
-        return "runtime error: integer divide by zero".to_string();
-    }
-    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
-        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
-            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
-        }
-    }
-    __text
-}
-`)
-}
-
-func generateGoValueClone(out *strings.Builder) {
-	TrackImport("Any")
-	if NeedsConcurrentWrapper() {
-		out.WriteString(`
-pub trait GoValueClone {
-    fn go_value_clone(&self) -> Self;
-}
-
-macro_rules! impl_go_value_clone_copy {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoValueClone for $t {
-            fn go_value_clone(&self) -> Self { *self }
-        })*
-    };
-}
-
-impl_go_value_clone_copy!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str);
-
-impl GoValueClone for String {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
-
-impl GoValueClone for Box<dyn Any + Send + Sync> {
-    fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
-}
-`)
-		return
-	}
-	out.WriteString(`
-pub trait GoValueClone {
-    fn go_value_clone(&self) -> Self;
-}
-
-macro_rules! impl_go_value_clone_copy {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoValueClone for $t {
-            fn go_value_clone(&self) -> Self { *self }
-        })*
-    };
-}
-
-impl_go_value_clone_copy!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str);
-
-impl GoValueClone for String {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
-
-impl GoValueClone for Box<dyn Any> {
-    fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
-}
-	`)
-}
-
-func generateGoTypeParamFieldClone(out *strings.Builder) {
-	// The legacy GoValueClone helper ends with an indentation tab. Preserve
-	// existing generated snapshots when this helper is not needed, but do not
-	// leave a whitespace-only line before the extension trait.
-	if current := out.String(); strings.HasSuffix(current, "\n\t") {
-		out.Reset()
-		out.WriteString(strings.TrimSuffix(current, "\t"))
-	}
-	NeedGoValueClone()
-	if NeedsConcurrentWrapper() {
-		out.WriteString(goTypeParamFieldCloneConcurrent)
-		return
-	}
-	out.WriteString(goTypeParamFieldCloneLocal)
-}
-
-const goTypeParamFieldCloneConcurrent = `
-pub trait GoTypeParamFieldClone: Sized {
-    const GO_COPY_KEEPS_HANDLE: bool;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>>;
-}
-
-struct GoFnFieldTargetEntry {
-    proxy_data: usize,
-    field: std::sync::Weak<dyn Any + Send + Sync>,
-    target: std::sync::Weak<dyn Any + Send + Sync>,
-}
-
-static GO_FN_FIELD_TARGETS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoFnFieldTargetEntry>>> = std::sync::OnceLock::new();
-
-fn go_fn_field_target<T: Any + Send + Sync>(field_key: usize, proxy_data: usize) -> Option<std::sync::Arc<T>> {
-    let mut registry = GO_FN_FIELD_TARGETS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new())).lock().unwrap();
-    registry.retain(|_, entry| entry.field.strong_count() > 0 && entry.target.strong_count() > 0);
-    let matches = registry.get(&field_key).map(|entry| entry.proxy_data == proxy_data).unwrap_or(false);
-    if !matches {
-        registry.remove(&field_key);
-        return None;
-    }
-    let target = registry.get(&field_key)?.target.upgrade()?;
-    std::sync::Arc::downcast::<T>(target).ok()
-}
-
-fn go_register_fn_field_target<F: Any + Send + Sync, T: Any + Send + Sync>(
-    field_key: usize,
-    proxy_data: usize,
-    field: &std::sync::Arc<F>,
-    target: &std::sync::Arc<T>,
-) {
-    let erased_field: std::sync::Arc<dyn Any + Send + Sync> = field.clone();
-    let erased_target: std::sync::Arc<dyn Any + Send + Sync> = target.clone();
-    GO_FN_FIELD_TARGETS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new())).lock().unwrap().insert(field_key, GoFnFieldTargetEntry {
-        proxy_data,
-        field: std::sync::Arc::downgrade(&erased_field),
-        target: std::sync::Arc::downgrade(&erased_target),
-    });
-}
-
-macro_rules! impl_go_type_param_field_clone_value {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoTypeParamFieldClone for $t {
-            const GO_COPY_KEEPS_HANDLE: bool = false;
-            fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-                let guard = field.lock().unwrap();
-                std::sync::Arc::new(std::sync::Mutex::new(guard.as_ref().map(|value| value.go_value_clone())))
-            }
-        })*
-    };
-}
-
-impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any + Send + Sync>);
-
-impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoValueClone for [T; N] {
-    fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
-}
-impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoTypeParamFieldClone for [T; N] {
-    const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-        if Self::GO_COPY_KEEPS_HANDLE { field.clone() } else {
-            let guard = field.lock().unwrap();
-            std::sync::Arc::new(std::sync::Mutex::new(guard.as_ref().map(|value| value.go_value_clone())))
-        }
-    }
-}
-
-impl<T: Clone> GoValueClone for std::vec::Vec<T> { fn go_value_clone(&self) -> Self { self.clone() } }
-impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
-}
-
-impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> { fn go_value_clone(&self) -> Self { self.clone() } }
-impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
-}
-
-impl<T> GoValueClone for std::sync::Arc<std::sync::Mutex<Option<T>>> { fn go_value_clone(&self) -> Self { self.clone() } }
-impl<T> GoTypeParamFieldClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
-}
-
-impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R + Send + Sync> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-        let field_key = std::sync::Arc::as_ptr(field) as usize;
-        let current_proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize);
-        let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::sync::Mutex<Option<Self>>>(field_key, proxy_data));
-        if target.is_none() {
-            let original = field.lock().unwrap().take();
-            let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
-            let shared = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
-            let source_target = shared.clone();
-            *field.lock().unwrap() = Some(Box::new(move || {
-                let callable_ptr = { let mut callable = source_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
-                unsafe { (&mut *callable_ptr)() }
-            }));
-            let proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
-            go_register_fn_field_target(field_key, proxy_data, field, &shared);
-            target = Some(shared);
-        }
-        let target = target.unwrap();
-        let copy_target = target.clone();
-        let copy = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
-            let callable_ptr = { let mut callable = copy_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
-            unsafe { (&mut *callable_ptr)() }
-        }) as Box<dyn FnMut() -> R + Send + Sync>)));
-        let copy_key = std::sync::Arc::as_ptr(&copy) as usize;
-        let proxy_data = copy.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
-        go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
-        copy
-    }
-}
-macro_rules! impl_go_type_param_field_clone_fn {
-    ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R + Send + Sync> {
-        const GO_COPY_KEEPS_HANDLE: bool = true;
-        fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-            let field_key = std::sync::Arc::as_ptr(field) as usize;
-            let current_proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize);
-            let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::sync::Mutex<Option<Self>>>(field_key, proxy_data));
-            if target.is_none() {
-                let original = field.lock().unwrap().take();
-                let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
-                let shared = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
-                let source_target = shared.clone();
-                *field.lock().unwrap() = Some(Box::new(move |$($arg),+| {
-                    let callable_ptr = { let mut callable = source_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
-                    unsafe { (&mut *callable_ptr)($($arg),+) }
-                }));
-                let proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
-                go_register_fn_field_target(field_key, proxy_data, field, &shared);
-                target = Some(shared);
-            }
-            let target = target.unwrap();
-            let copy_target = target.clone();
-            let copy = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = copy_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
-                unsafe { (&mut *callable_ptr)($($arg),+) }
-            }) as Box<dyn FnMut($($arg),+) -> R + Send + Sync>)));
-            let copy_key = std::sync::Arc::as_ptr(&copy) as usize;
-            let proxy_data = copy.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
-            go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
-            copy
-        }
-    })* };
-}
-impl_go_type_param_field_clone_fn!((A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7));
-`
-
-const goTypeParamFieldCloneLocal = `
-pub trait GoTypeParamFieldClone: Sized {
-    const GO_COPY_KEEPS_HANDLE: bool;
-    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>>;
-}
-
-struct GoFnFieldTargetEntry {
-    proxy_data: usize,
-    field: std::rc::Weak<dyn Any>,
-    target: std::rc::Weak<dyn Any>,
-}
-
-std::thread_local! {
-    static GO_FN_FIELD_TARGETS: std::cell::RefCell<std::collections::HashMap<usize, GoFnFieldTargetEntry>> = std::cell::RefCell::new(std::collections::HashMap::new());
-}
-
-fn go_fn_field_target<T: Any>(field_key: usize, proxy_data: usize) -> Option<std::rc::Rc<T>> {
-    GO_FN_FIELD_TARGETS.with(|registry| {
-        let mut registry = registry.borrow_mut();
-        registry.retain(|_, entry| entry.field.strong_count() > 0 && entry.target.strong_count() > 0);
-        let matches = registry.get(&field_key).map(|entry| entry.proxy_data == proxy_data).unwrap_or(false);
-        if !matches {
-            registry.remove(&field_key);
-            return None;
-        }
-        let target = registry.get(&field_key)?.target.upgrade()?;
-        std::rc::Rc::downcast::<T>(target).ok()
-    })
-}
-
-fn go_register_fn_field_target<F: Any, T: Any>(
-    field_key: usize,
-    proxy_data: usize,
-    field: &std::rc::Rc<F>,
-    target: &std::rc::Rc<T>,
-) {
-    let erased_field: std::rc::Rc<dyn Any> = field.clone();
-    let erased_target: std::rc::Rc<dyn Any> = target.clone();
-    GO_FN_FIELD_TARGETS.with(|registry| registry.borrow_mut().insert(field_key, GoFnFieldTargetEntry {
-        proxy_data,
-        field: std::rc::Rc::downgrade(&erased_field),
-        target: std::rc::Rc::downgrade(&erased_target),
-    }));
-}
-
-macro_rules! impl_go_type_param_field_clone_value {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoTypeParamFieldClone for $t {
-            const GO_COPY_KEEPS_HANDLE: bool = false;
-            fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
-                let guard = field.borrow();
-                std::rc::Rc::new(std::cell::RefCell::new(guard.as_ref().map(|value| value.go_value_clone())))
-            }
-        })*
-    };
-}
-
-impl_go_type_param_field_clone_value!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str, String, Box<dyn Any>);
-
-impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoValueClone for [T; N] {
-    fn go_value_clone(&self) -> Self { self.each_ref().map(|value| value.go_value_clone()) }
-}
-impl<T: GoTypeParamFieldClone + GoValueClone, const N: usize> GoTypeParamFieldClone for [T; N] {
-    const GO_COPY_KEEPS_HANDLE: bool = T::GO_COPY_KEEPS_HANDLE;
-    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
-        if Self::GO_COPY_KEEPS_HANDLE { field.clone() } else {
-            let guard = field.borrow();
-            std::rc::Rc::new(std::cell::RefCell::new(guard.as_ref().map(|value| value.go_value_clone())))
-        }
-    }
-}
-
-impl<T: Clone> GoValueClone for std::vec::Vec<T> { fn go_value_clone(&self) -> Self { self.clone() } }
-impl<T: Clone> GoTypeParamFieldClone for std::vec::Vec<T> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> { field.clone() }
-}
-
-impl<K: Clone + Ord, V: Clone> GoValueClone for std::collections::BTreeMap<K, V> { fn go_value_clone(&self) -> Self { self.clone() } }
-impl<K: Clone + Ord, V: Clone> GoTypeParamFieldClone for std::collections::BTreeMap<K, V> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> { field.clone() }
-}
-
-impl<T> GoValueClone for std::rc::Rc<std::cell::RefCell<Option<T>>> { fn go_value_clone(&self) -> Self { self.clone() } }
-impl<T> GoTypeParamFieldClone for std::rc::Rc<std::cell::RefCell<Option<T>>> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> { field.clone() }
-}
-
-impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
-        let field_key = std::rc::Rc::as_ptr(field) as usize;
-        let current_proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize);
-        let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::cell::RefCell<Option<Self>>>(field_key, proxy_data));
-        if target.is_none() {
-            let original = field.borrow_mut().take();
-            let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
-            let shared = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
-            let source_target = shared.clone();
-            *field.borrow_mut() = Some(Box::new(move || {
-                let callable_ptr = { let mut callable = source_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
-                unsafe { (&mut *callable_ptr)() }
-            }));
-            let proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
-            go_register_fn_field_target(field_key, proxy_data, field, &shared);
-            target = Some(shared);
-        }
-        let target = target.unwrap();
-        let copy_target = target.clone();
-        let copy = std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move || {
-            let callable_ptr = { let mut callable = copy_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R> };
-            unsafe { (&mut *callable_ptr)() }
-        }) as Box<dyn FnMut() -> R>)));
-        let copy_key = std::rc::Rc::as_ptr(&copy) as usize;
-        let proxy_data = copy.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
-        go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
-        copy
-    }
-}
-macro_rules! impl_go_type_param_field_clone_fn {
-    ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R> {
-        const GO_COPY_KEEPS_HANDLE: bool = true;
-        fn go_type_param_field_clone(field: &std::rc::Rc<std::cell::RefCell<Option<Self>>>) -> std::rc::Rc<std::cell::RefCell<Option<Self>>> {
-            let field_key = std::rc::Rc::as_ptr(field) as usize;
-            let current_proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize);
-            let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::cell::RefCell<Option<Self>>>(field_key, proxy_data));
-            if target.is_none() {
-                let original = field.borrow_mut().take();
-                let Some(original) = original else { return std::rc::Rc::new(std::cell::RefCell::new(None)); };
-                let shared = std::rc::Rc::new(std::cell::RefCell::new(Some(original)));
-                let source_target = shared.clone();
-                *field.borrow_mut() = Some(Box::new(move |$($arg),+| {
-                    let callable_ptr = { let mut callable = source_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
-                    unsafe { (&mut *callable_ptr)($($arg),+) }
-                }));
-                let proxy_data = field.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
-                go_register_fn_field_target(field_key, proxy_data, field, &shared);
-                target = Some(shared);
-            }
-            let target = target.unwrap();
-            let copy_target = target.clone();
-            let copy = std::rc::Rc::new(std::cell::RefCell::new(Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = copy_target.borrow_mut(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R> };
-                unsafe { (&mut *callable_ptr)($($arg),+) }
-            }) as Box<dyn FnMut($($arg),+) -> R>)));
-            let copy_key = std::rc::Rc::as_ptr(&copy) as usize;
-            let proxy_data = copy.borrow().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
-            go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
-            copy
-        }
-    })* };
-}
-impl_go_type_param_field_clone_fn!((A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7));
-`
-
-func generateGoConstStrEq(out *strings.Builder) {
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	fmt.Fprintf(out, `
-%[1]sconst fn go_const_str_eq(left: &str, right: &str) -> bool {
-    let left = left.as_bytes();
-    let right = right.as_bytes();
-    if left.len() != right.len() {
-        return false;
-    }
-    let mut i = 0;
-    while i < left.len() {
-        if left[i] != right[i] {
-            return false;
-        }
-        i += 1;
-    }
-    true
-}
-`, visibility)
-}
-
-func generateGoAnyTypeMetadata(out *strings.Builder) {
-	TrackImport("Any")
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	if NeedsConcurrentWrapper() {
-		fmt.Fprintf(out, `
-#[derive(Clone, Copy)]
-%[1]sstruct GoAnyTypeMetadata {
-    pub kind: &'static str,
-    pub comparable: bool,
-    pub elem_kind: Option<&'static str>,
-    pub elem_comparable: bool,
-}
-
-fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_any_value_metadata_key(value: &(dyn Any + Send + Sync)) -> usize {
-    value as *const (dyn Any + Send + Sync) as *const () as usize
-}
-
-%[1]sfn go_register_any_type<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool) {
-    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
-}
-
-%[1]sfn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
-    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
-}
-
-// Boxes value as itself and records what kind of Go type it is. Every reader
-// of an interface value looks for the value's own type in the box, so the
-// box must hold nothing else: a wrapper around the value would be a type no
-// reader knows.
-%[1]sfn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
-    go_register_any_type::<T>(kind, comparable);
-    Box::new(value) as Box<dyn Any + Send + Sync>
-}
-
-%[1]sfn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
-    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
-}
-
-%[1]sfn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
-    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
-        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
-}
-`, visibility)
-		return
-	}
-	fmt.Fprintf(out, `
-#[derive(Clone, Copy)]
-%[1]sstruct GoAnyTypeMetadata {
-    pub kind: &'static str,
-    pub comparable: bool,
-    pub elem_kind: Option<&'static str>,
-    pub elem_comparable: bool,
-}
-
-fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_any_value_metadata_key(value: &dyn Any) -> usize {
-    value as *const dyn Any as *const () as usize
-}
-
-%[1]sfn go_register_any_type<T: Any + 'static>(kind: &'static str, comparable: bool) {
-    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
-}
-
-%[1]sfn go_register_any_type_with_elem<T: Any + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
-    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
-}
-
-// Boxes value as itself and records what kind of Go type it is. Every reader
-// of an interface value looks for the value's own type in the box, so the
-// box must hold nothing else: a wrapper around the value would be a type no
-// reader knows.
-%[1]sfn go_box_any_with_metadata<T: Any + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any> {
-    go_register_any_type::<T>(kind, comparable);
-    Box::new(value) as Box<dyn Any>
-}
-
-%[1]sfn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, comparable: bool) {
-    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
-}
-
-%[1]sfn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
-    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
-        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
-}
-`, visibility)
-}
-
-func generateAnyEquality(out *strings.Builder) {
-	TrackImport("Any")
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
-    let left_guard = left.lock().unwrap();
-    let right_guard = right.lock().unwrap();
-    match (left_guard.as_ref(), right_guard.as_ref()) {
-        (None, None) => true,
-        (None, Some(_)) | (Some(_), None) => false,
-        (Some(left), Some(right)) => go_any_values_eq(left.as_ref(), right.as_ref()),
-    }
-}
-
-fn go_any_values_eq(left: &(dyn Any + Send + Sync), right: &(dyn Any + Send + Sync)) -> bool {
-    if left.type_id() != right.type_id() {
-        return false;
-    }
-    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
-    panic!("interface comparison with uncomparable dynamic type")
-}
-`)
-		return
-	}
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(`
-fn go_any_eq(left: &Rc<RefCell<Option<Box<dyn Any>>>>, right: &Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
-    let left_guard = left.borrow();
-    let right_guard = right.borrow();
-    match (left_guard.as_ref(), right_guard.as_ref()) {
-        (None, None) => true,
-        (None, Some(_)) | (Some(_), None) => false,
-        (Some(left), Some(right)) => go_any_values_eq(left.as_ref(), right.as_ref()),
-    }
-}
-
-fn go_any_values_eq(left: &dyn Any, right: &dyn Any) -> bool {
-    if left.type_id() != right.type_id() {
-        return false;
-    }
-    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
-    panic!("interface comparison with uncomparable dynamic type")
-}
-`)
-}
-
-func generateGoComparable(out *strings.Builder) {
-	TrackImport("Any")
-	anyType := "dyn Any"
-	if NeedsConcurrentWrapper() {
-		anyType = "dyn Any + Send + Sync"
-	}
-	boxType := "Box<" + anyType + ">"
-	out.WriteString(`
-pub trait GoComparable {
-    fn go_eq(&self, other: &Self) -> bool;
-    fn go_hash(&self, seed: usize) -> usize;
-}
-
-fn go_hash_value<T: std::hash::Hash>(value: &T, seed: usize) -> usize {
-    let mut __hasher = std::collections::hash_map::DefaultHasher::new();
-    std::hash::Hash::hash(&seed, &mut __hasher);
-    std::hash::Hash::hash(value, &mut __hasher);
-    std::hash::Hasher::finish(&__hasher) as usize
-}
-
-macro_rules! impl_go_comparable_hash {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoComparable for $t {
-            fn go_eq(&self, other: &Self) -> bool { self == other }
-            fn go_hash(&self, seed: usize) -> usize { go_hash_value(self, seed) }
-        })*
-    };
-}
-
-impl_go_comparable_hash!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, String, &'static str);
-
-impl GoComparable for f32 {
-    fn go_eq(&self, other: &Self) -> bool { self == other }
-    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
-}
-
-impl GoComparable for f64 {
-    fn go_eq(&self, other: &Self) -> bool { self == other }
-    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
-}
-
-fn go_any_comparable_eq(left: &(` + anyType + `), right: &(` + anyType + `)) -> bool {
-    if left.type_id() != right.type_id() {
-        return false;
-    }
-    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
-    panic!("interface comparison with uncomparable dynamic type")
-}
-
-fn go_any_comparable_hash(value: &(` + anyType + `), seed: usize) -> usize {
-    if let Some(v) = value.downcast_ref::<i32>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i64>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i8>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i16>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u32>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u64>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u8>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u16>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<usize>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<isize>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<f64>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
-    if let Some(v) = value.downcast_ref::<f32>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
-    if let Some(v) = value.downcast_ref::<String>() { return go_hash_value(&(value.type_id(), v), seed); }
-    if let Some(v) = value.downcast_ref::<&str>() { return go_hash_value(&(value.type_id(), v), seed); }
-    if let Some(v) = value.downcast_ref::<bool>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<char>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    panic!("interface hash with uncomparable dynamic type")
-}
-
-impl GoComparable for ` + boxType + ` {
-    fn go_eq(&self, other: &Self) -> bool { go_any_comparable_eq(self.as_ref(), other.as_ref()) }
-    fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
-}
-`)
-}
-
-func generateEmbeddedOwnerRegistry(out *strings.Builder) {
-	TrackImport("Any")
-	visibility := ""
-	if generatingPublicHelpers {
-		visibility = "pub "
-	}
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		fmt.Fprintf(out, `
-fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-%[1]sfn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
-    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
-}
-
-%[1]sfn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
-    let registry = go_embedded_owner_registry().lock().unwrap();
-    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
-    owner
-        .downcast_ref::<Arc<Mutex<Option<T>>>>()
-        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
-        .clone()
-}
-`, visibility)
-		return
-	}
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	fmt.Fprintf(out, `
-thread_local! {
-    static GO_EMBEDDED_OWNER_REGISTRY: RefCell<std::collections::HashMap<usize, Box<dyn Any>>> = RefCell::new(std::collections::HashMap::new());
-}
-
-%[1]sfn go_register_embedded_owner<T: 'static>(embedded_key: usize, owner: Rc<RefCell<Option<T>>>) {
-    GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
-        registry.borrow_mut().insert(embedded_key, Box::new(owner));
-    });
-}
-
-%[1]sfn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc<RefCell<Option<T>>> {
-    GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
-        let registry = registry.borrow();
-        let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
-        owner
-            .downcast_ref::<Rc<RefCell<Option<T>>>>()
-            .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
-            .clone()
-    })
-}
-`, visibility)
-}
-
-func generateGoByteSequence(out *strings.Builder) {
-	out.WriteString(`
-pub trait GoByteSequence: Clone {
-    fn go_len(&self) -> usize;
-    fn go_byte(&self, index: usize) -> u8;
-    fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String;
-
-    fn go_to_string(&self) -> String {
-        self.go_slice_to_string(0, None)
-    }
-}
-
-impl GoByteSequence for String {
-    fn go_len(&self) -> usize {
-        self.len()
-    }
-
-    fn go_byte(&self, index: usize) -> u8 {
-        self.as_bytes()[index]
-    }
-
-    fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String {
-        let end = end.unwrap_or_else(|| self.len());
-        self[start..end].to_string()
-    }
-
-    fn go_to_string(&self) -> String {
-        self.clone()
-    }
-}
-
-impl GoByteSequence for Vec<u8> {
-    fn go_len(&self) -> usize {
-        self.len()
-    }
-
-    fn go_byte(&self, index: usize) -> u8 {
-        self[index]
-    }
-
-    fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String {
-        let end = end.unwrap_or_else(|| self.len());
-        String::from_utf8(self[start..end].to_vec()).unwrap()
-    }
-
-    fn go_to_string(&self) -> String {
-        String::from_utf8(self.clone()).unwrap()
-    }
-}
-`)
-}
-
-func generateGoInteger(out *strings.Builder) {
-	out.WriteString(`
-pub trait GoInteger: Copy + Clone + PartialOrd + 'static {
-    fn go_from_i128(value: i128) -> Self;
-    fn go_to_i128(self) -> i128;
-}
-
-macro_rules! impl_go_integer {
-    ($($t:ty),* $(,)?) => {
-        $(
-            impl GoInteger for $t {
-                fn go_from_i128(value: i128) -> Self {
-                    value as $t
-                }
-
-                fn go_to_i128(self) -> i128 {
-                    self as i128
-                }
-            }
-        )*
-    };
-}
-
-impl_go_integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
-
-fn go_integer_from_i128<T: GoInteger>(value: i128) -> T {
-    T::go_from_i128(value)
-}
-
-fn go_integer_cast<T: GoInteger, U: GoInteger>(value: U) -> T {
-    T::go_from_i128(value.go_to_i128())
-}
-
-fn go_integer_add_one<T: GoInteger>(value: T) -> T {
-    T::go_from_i128(value.go_to_i128() + 1)
-}
-
-fn go_integer_sub_one<T: GoInteger>(value: T) -> T {
-    T::go_from_i128(value.go_to_i128() - 1)
-}
-`)
-}
-
-// generateAnySliceFormatter emits the printers for a []interface{}:
-// format_any_slice for the slice as a value, and format_any_variadic for a
-// slice spread into the arguments of a print call. The elements of the first
-// are inside the slice and the elements of the second are arguments, which
-// matters only when nestedElements says format_any tells the two apart.
-func generateAnySliceFormatter(out *strings.Builder, nestedElements bool) {
-	TrackImport("Any")
-	sliceType := "&Rc<RefCell<Option<Vec<Box<dyn Any>>>>>"
-	valueType := "&dyn Any"
-	guard := "slice.borrow()"
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		sliceType = "&Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>"
-		valueType = "&(dyn Any + Send + Sync)"
-		guard = "slice.lock().unwrap()"
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-	}
-	valuesParams, formatValue, nestedArg, topLevelArg := "", "format_any", "", ""
-	if nestedElements {
-		valuesParams = ", format_value: fn(" + valueType + ") -> String"
-		formatValue = "format_value"
-		nestedArg = ", format_any_nested"
-		topLevelArg = ", format_any"
-	}
-	out.WriteString(`
-fn format_any_slice_values(slice: ` + sliceType + valuesParams + `) -> String {
-    let guard = ` + guard + `;
-    if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| ` + formatValue + `(v.as_ref())).collect();
-        formatted.join(" ")
-    } else {
-        String::new()
-    }
-}
-
-fn format_any_slice(slice: ` + sliceType + `) -> String {
-    format!("[{}]", format_any_slice_values(slice` + nestedArg + `))
-}
-
-fn format_any_variadic(slice: ` + sliceType + `) -> String {
-    format_any_slice_values(slice` + topLevelArg + `)
-}
-`)
-}
-
-func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool) {
-	code := `
-struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
-    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
-    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    capacity: usize,
-}
-
-impl<T> GoChannel<T> {
-    fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
-
-    fn new_buffered(cap: usize) -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: cap,
-        }
-    }
-
-    fn send(&self, val: T) {
-        if self.is_nil() {
-            return;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.send(val).is_ok() && self.capacity > 0 {
-                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            }
-        }
-    }
-
-    fn try_send(&self, val: T) -> bool {
-        if self.is_nil() {
-            return false;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.try_send(val).is_ok() {
-                if self.capacity > 0 {
-                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                }
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    fn recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    fn try_recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().try_recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    // A select case's receive: Some(Some(v)) for a value, Some(None) when
-    // the channel is closed and drained, None when nothing is ready yet.
-    fn try_recv_select(&self) -> Option<Option<T>> {
-        if self.is_nil() {
-            return None;
-        }
-        match self.rx.lock().unwrap().try_recv() {
-            Ok(value) => {
-                if self.capacity > 0 {
-                    let _ = self.len.fetch_update(
-                        std::sync::atomic::Ordering::SeqCst,
-                        std::sync::atomic::Ordering::SeqCst,
-                        |__go_current| __go_current.checked_sub(1),
-                    );
-                }
-                Some(Some(value))
-            }
-            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
-            Err(std::sync::mpsc::TryRecvError::Empty) => None,
-        }
-    }
-
-    fn close(&self) {
-        *self.tx.lock().unwrap() = None;
-    }
-
-    fn is_nil(&self) -> bool {
-        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn len(&self) -> usize {
-        self.len.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn capacity(&self) -> usize {
-        self.capacity
-    }
-}
-
-impl<T> Clone for GoChannel<T> {
-    fn clone(&self) -> Self {
-        GoChannel {
-            tx: self.tx.clone(),
-            rx: self.rx.clone(),
-            is_nil: self.is_nil.clone(),
-            len: self.len.clone(),
-            capacity: self.capacity,
-        }
-    }
-}
-
-impl<T> Default for GoChannel<T> {
-    fn default() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
-}
-
-impl<T> std::fmt::Debug for GoChannel<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoChannel")
-    }
-}
-
-impl<T> Iterator for GoChannel<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        self.recv()
-    }
-}
-`
-	if generatingPublicHelpers {
-		code = strings.ReplaceAll(code, "struct GoChannel<T>", "pub struct GoChannel<T>")
-		code = strings.ReplaceAll(code, "    fn new(", "    pub fn new(")
-		code = strings.ReplaceAll(code, "    fn new_buffered(", "    pub fn new_buffered(")
-		code = strings.ReplaceAll(code, "    fn send(", "    pub fn send(")
-		code = strings.ReplaceAll(code, "    fn try_send(", "    pub fn try_send(")
-		code = strings.ReplaceAll(code, "    fn recv(", "    pub fn recv(")
-		code = strings.ReplaceAll(code, "    fn try_recv(", "    pub fn try_recv(")
-		code = strings.ReplaceAll(code, "    fn close(", "    pub fn close(")
-		code = strings.ReplaceAll(code, "    fn is_nil(", "    pub fn is_nil(")
-		code = strings.ReplaceAll(code, "    fn len(", "    pub fn len(")
-		code = strings.ReplaceAll(code, "    fn capacity(", "    pub fn capacity(")
-	}
-	out.WriteString(code)
-	if needsGoTypeParamFieldClone {
-		out.WriteString(`
-
-impl<T> GoValueClone for GoChannel<T> {
-    fn go_value_clone(&self) -> Self { self.clone() }
-}
-
-impl<T> GoTypeParamFieldClone for GoChannel<T> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
-}
-`)
-	}
-}
-
-func generateWaitGroupHelper(out *strings.Builder) {
-	out.WriteString(`
-struct WaitGroup {
-    count: std::sync::Arc<(std::sync::Mutex<i64>, std::sync::Condvar)>,
-}
-
-impl WaitGroup {
-    fn new() -> Self {
-        WaitGroup {
-            count: std::sync::Arc::new((std::sync::Mutex::new(0), std::sync::Condvar::new())),
-        }
-    }
-
-    fn add(&self, n: i64) {
-        let (lock, _) = &*self.count;
-        let mut count = lock.lock().unwrap();
-        *count += n;
-    }
-
-    fn done(&self) {
-        let (lock, cvar) = &*self.count;
-        let mut count = lock.lock().unwrap();
-        *count -= 1;
-        if *count <= 0 {
-            cvar.notify_all();
-        }
-    }
-
-    fn wait(&self) {
-        let (lock, cvar) = &*self.count;
-        let mut count = lock.lock().unwrap();
-        while *count > 0 {
-            count = cvar.wait(count).unwrap();
-        }
-    }
-}
-
-impl Clone for WaitGroup {
-    fn clone(&self) -> Self {
-        WaitGroup {
-            count: self.count.clone(),
-        }
-    }
-}
-
-impl Default for WaitGroup {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl std::fmt::Debug for WaitGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "WaitGroup")
-    }
-}
-`)
-}
-
-func generateGoMutexHelper(out *strings.Builder) {
-	out.WriteString(`
-struct GoMutex {
-    inner: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
-}
-
-struct GoMutexGuard {
-    mutex: GoMutex,
-    active: bool,
-}
-
-impl GoMutex {
-    fn new() -> Self {
-        GoMutex {
-            inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
-        }
-    }
-
-    fn lock(&self) {
-        let (state, ready) = &*self.inner;
-        let mut locked = state.lock().unwrap();
-        while *locked {
-            locked = ready.wait(locked).unwrap();
-        }
-        *locked = true;
-    }
-
-    fn unlock(&self) {
-        let (state, ready) = &*self.inner;
-        let mut locked = state.lock().unwrap();
-        if !*locked {
-            panic!("sync.Mutex: unlock of unlocked mutex");
-        }
-        *locked = false;
-        ready.notify_one();
-    }
-
-    fn guard(&self) -> GoMutexGuard {
-        self.lock();
-        GoMutexGuard {
-            mutex: self.clone(),
-            active: true,
-        }
-    }
-}
-
-impl Drop for GoMutexGuard {
-    fn drop(&mut self) {
-        if self.active {
-            self.mutex.unlock();
-            self.active = false;
-        }
-    }
-}
-
-impl Default for GoMutex {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Clone for GoMutex {
-    fn clone(&self) -> Self {
-        GoMutex {
-            inner: self.inner.clone(),
-        }
-    }
-}
-
-impl std::fmt::Debug for GoMutex {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Mutex")
-    }
-}
-`)
-}
-
-func generateGoRWMutexHelper(out *strings.Builder) {
-	code := `
-// A readers-writer lock: any number of readers, or one writer. A clone is
-// the same lock, as a *sync.RWMutex is.
-#[derive(Clone, Debug, Default)]
-pub struct GoRWMutex {
-    // (a writer holds it, how many readers hold it), and the waiters.
-    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize)>, std::sync::Condvar)>,
-}
-
-impl GoRWMutex {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn lock(&self) {
-        let (state, ready) = &*self.inner;
-        let mut held = state.lock().unwrap();
-        while held.0 || held.1 > 0 {
-            held = ready.wait(held).unwrap();
-        }
-        held.0 = true;
-    }
-
-    pub fn unlock(&self) {
-        let (state, ready) = &*self.inner;
-        let mut held = state.lock().unwrap();
-        if !held.0 {
-            panic!("sync: Unlock of unlocked RWMutex");
-        }
-        held.0 = false;
-        ready.notify_all();
-    }
-
-    pub fn r_lock(&self) {
-        let (state, ready) = &*self.inner;
-        let mut held = state.lock().unwrap();
-        while held.0 {
-            held = ready.wait(held).unwrap();
-        }
-        held.1 += 1;
-    }
-
-    pub fn r_unlock(&self) {
-        let (state, ready) = &*self.inner;
-        let mut held = state.lock().unwrap();
-        if held.1 == 0 {
-            panic!("sync: RUnlock of unlocked RWMutex");
-        }
-        held.1 -= 1;
-        if held.1 == 0 {
-            ready.notify_all();
-        }
-    }
-}
-
-impl std::fmt::Display for GoRWMutex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "RWMutex")
-    }
-}
-`
-	out.WriteString(code)
-}
-
-func generateGoOnceHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		out.WriteString(`
-#[derive(Clone, Debug)]
-struct GoOnce {
-    done: std::sync::Arc<std::sync::Mutex<bool>>,
-}
-
-impl GoOnce {
-    fn new() -> Self {
-        GoOnce {
-            done: std::sync::Arc::new(std::sync::Mutex::new(false)),
-        }
-    }
-
-    fn r#do<F>(&self, mut f: F)
-    where
-        F: FnMut(),
-    {
-        let mut done = self.done.lock().unwrap();
-        if !*done {
-            *done = true;
-            drop(done);
-            f();
-        }
-    }
-}
-
-impl Default for GoOnce {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-`)
-		return
-	}
-	out.WriteString(`
-#[derive(Clone, Debug)]
-struct GoOnce {
-    done: std::rc::Rc<std::cell::RefCell<bool>>,
-}
-
-impl GoOnce {
-    fn new() -> Self {
-        GoOnce {
-            done: std::rc::Rc::new(std::cell::RefCell::new(false)),
-        }
-    }
-
-    fn r#do<F>(&self, mut f: F)
-    where
-        F: FnMut(),
-    {
-        let mut done = self.done.borrow_mut();
-        if !*done {
-            *done = true;
-            drop(done);
-            f();
-        }
-    }
-}
-
-impl Default for GoOnce {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-	`)
-}
-
-func generateGoAtomicPointerHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-struct GoAtomicPointer<T: Send + Sync + 'static> {
-    value: Arc<Mutex<Option<GoPtr<T>>>>,
-}
-
-impl<T: Send + Sync + 'static> GoAtomicPointer<T> {
-    fn load(&self) -> GoPtr<T> {
-        self.value.lock().unwrap().as_ref().cloned().unwrap_or_else(|| GoPtr::nil())
-    }
-
-    fn store(&self, value: GoPtr<T>) {
-        *self.value.lock().unwrap() = if value.is_nil() { None } else { Some(value) };
-    }
-
-    fn swap(&self, value: GoPtr<T>) -> GoPtr<T> {
-        let mut current = self.value.lock().unwrap();
-        let old = current.as_ref().cloned().unwrap_or_else(|| GoPtr::nil());
-        *current = if value.is_nil() { None } else { Some(value) };
-        old
-    }
-
-    fn compare_and_swap(&self, old: GoPtr<T>, new: GoPtr<T>) -> bool {
-        let mut current = self.value.lock().unwrap();
-        let matched = match current.as_ref() {
-            Some(value) if old.is_nil() => value.is_nil(),
-            Some(value) => GoPtr::ptr_eq(value, &old),
-            None => old.is_nil(),
-        };
-        if matched {
-            *current = if new.is_nil() { None } else { Some(new) };
-        }
-        matched
-    }
-}
-
-impl<T: Send + Sync + 'static> Clone for GoAtomicPointer<T> {
-    fn clone(&self) -> Self {
-        Self { value: self.value.clone() }
-    }
-}
-
-impl<T: Send + Sync + 'static> Default for GoAtomicPointer<T> {
-    fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(None)) }
-    }
-}
-
-impl<T: Send + Sync + 'static> std::fmt::Debug for GoAtomicPointer<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoAtomicPointer")
-    }
-}
-
-impl<T: Send + Sync + 'static> std::fmt::Display for GoAtomicPointer<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoAtomicPointer")
-    }
-}
-`)
-		return
-	}
-
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(`
-struct GoAtomicPointer<T: 'static> {
-    value: Rc<RefCell<Option<GoPtr<T>>>>,
-}
-
-impl<T: 'static> GoAtomicPointer<T> {
-    fn load(&self) -> GoPtr<T> {
-        self.value.borrow().as_ref().cloned().unwrap_or_else(|| GoPtr::nil())
-    }
-
-    fn store(&self, value: GoPtr<T>) {
-        *self.value.borrow_mut() = if value.is_nil() { None } else { Some(value) };
-    }
-
-    fn swap(&self, value: GoPtr<T>) -> GoPtr<T> {
-        let mut current = self.value.borrow_mut();
-        let old = current.as_ref().cloned().unwrap_or_else(|| GoPtr::nil());
-        *current = if value.is_nil() { None } else { Some(value) };
-        old
-    }
-
-    fn compare_and_swap(&self, old: GoPtr<T>, new: GoPtr<T>) -> bool {
-        let mut current = self.value.borrow_mut();
-        let matched = match current.as_ref() {
-            Some(value) if old.is_nil() => value.is_nil(),
-            Some(value) => GoPtr::ptr_eq(value, &old),
-            None => old.is_nil(),
-        };
-        if matched {
-            *current = if new.is_nil() { None } else { Some(new) };
-        }
-        matched
-    }
-}
-
-impl<T: 'static> Clone for GoAtomicPointer<T> {
-    fn clone(&self) -> Self {
-        Self { value: self.value.clone() }
-    }
-}
-
-impl<T: 'static> Default for GoAtomicPointer<T> {
-    fn default() -> Self {
-        Self { value: Rc::new(RefCell::new(None)) }
-    }
-}
-
-impl<T: 'static> std::fmt::Debug for GoAtomicPointer<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoAtomicPointer")
-    }
-}
-
-impl<T: 'static> std::fmt::Display for GoAtomicPointer<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoAtomicPointer")
-    }
-}
-`)
-}
-
-// trackImportsForAnyPayloadType makes sure a helper that names rustType, the
-// payload of a boxed interface value, also imports every std type that
-// spelling uses. The file that boxed the value imported them for itself, but
-// the helper may be emitted into a different file, which sees none of that
-// file's imports.
-func trackImportsForAnyPayloadType(rustType string) {
-	for i := 0; i < len(rustType); {
-		if !isRustIdentStart(rustType[i]) {
-			i++
-			continue
-		}
-		start := i
-		for i < len(rustType) && isRustIdentPart(rustType[i]) {
-			i++
-		}
-		// A path segment (std::sync::Mutex) is already fully spelled.
-		if start >= 2 && rustType[start-2:start] == "::" {
-			continue
-		}
-		switch name := rustType[start:i]; name {
-		case "Rc", "RefCell", "Arc", "Mutex", "BTreeMap", "Any":
-			TrackImport(name)
-		case "StdError":
-			TrackImport("Error")
-		}
-	}
-}
-
-func isRustIdentStart(c byte) bool {
-	return c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-}
-
-func isRustIdentPart(c byte) bool {
-	return isRustIdentStart(c) || (c >= '0' && c <= '9')
-}
-
-func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string) {
-	TrackImport("Any")
-	out.WriteString(`
-fn `)
-	out.WriteString(goTypeNameHelperRustName)
-	out.WriteString(`(val: &dyn Any) -> &'static str {
-    if val.is::<i64>() { return "int" }
-    if val.is::<i32>() { return "int32" }
-    if val.is::<i8>() { return "int8" }
-    if val.is::<i16>() { return "int16" }
-    if val.is::<u64>() { return "uint" }
-    if val.is::<u32>() { return "uint32" }
-    if val.is::<u8>() { return "uint8" }
-    if val.is::<u16>() { return "uint16" }
-    if val.is::<f64>() { return "float64" }
-    if val.is::<f32>() { return "float32" }
-    if val.is::<bool>() { return "bool" }
-    if val.is::<String>() { return "string" }
-    if val.is::<Vec<i64>>() { return "[]int" }
-    if val.is::<Vec<i32>>() { return "[]int32" }
-    if val.is::<Vec<f64>>() { return "[]float64" }
-    if val.is::<Vec<String>>() { return "[]string" }
-    if val.is::<Vec<bool>>() { return "[]bool" }
-`)
-	rustTypes := make([]string, 0, len(anyTypeNames))
-	for rustType := range anyTypeNames {
-		rustTypes = append(rustTypes, rustType)
-	}
-	slices.Sort(rustTypes)
-	for _, rustType := range rustTypes {
-		trackImportsForAnyPayloadType(rustType)
-		out.WriteString("    if val.is::<")
-		out.WriteString(rustType)
-		out.WriteString(">() { return ")
-		out.WriteString(strconv.Quote(anyTypeNames[rustType]))
-		out.WriteString(" }\n")
-	}
-	out.WriteString(`    std::any::type_name_of_val(val)
-}
-`)
-}
-
-func generateBase64Helper(out *strings.Builder) {
-	out.WriteString(`
-fn go_base64_encode(data: &[u8]) -> String {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::new();
-    let mut i = 0;
-    while i < data.len() {
-        let b0 = data[i];
-        let b1 = if i + 1 < data.len() { data[i + 1] } else { 0 };
-        let b2 = if i + 2 < data.len() { data[i + 2] } else { 0 };
-
-        out.push(TABLE[(b0 >> 2) as usize] as char);
-        out.push(TABLE[(((b0 & 0x03) << 4) | (b1 >> 4)) as usize] as char);
-        if i + 1 < data.len() {
-            out.push(TABLE[(((b1 & 0x0f) << 2) | (b2 >> 6)) as usize] as char);
-        } else {
-            out.push('=');
-        }
-        if i + 2 < data.len() {
-            out.push(TABLE[(b2 & 0x3f) as usize] as char);
-        } else {
-            out.push('=');
-        }
-
-        i += 3;
-    }
-    out
-}
-
-fn go_base64_value(byte: u8) -> Option<u8> {
-    match byte {
-        b'A'..=b'Z' => Some(byte - b'A'),
-        b'a'..=b'z' => Some(byte - b'a' + 26),
-        b'0'..=b'9' => Some(byte - b'0' + 52),
-        b'+' => Some(62),
-        b'/' => Some(63),
-        _ => None,
-    }
-}
-
-fn go_base64_decode(input: &str) -> Result<Vec<u8>, String> {
-    let bytes = input.as_bytes();
-    if bytes.len() % 4 != 0 {
-        return Err(format!("illegal base64 data at input byte {}", bytes.len()));
-    }
-
-    let mut out = Vec::new();
-    let mut i = 0;
-    while i < bytes.len() {
-        let c0 = go_base64_value(bytes[i])
-            .ok_or_else(|| format!("illegal base64 data at input byte {}", i))?;
-        let c1 = go_base64_value(bytes[i + 1])
-            .ok_or_else(|| format!("illegal base64 data at input byte {}", i + 1))?;
-        let pad2 = bytes[i + 2] == b'=';
-        let pad3 = bytes[i + 3] == b'=';
-        let c2 = if pad2 {
-            0
-        } else {
-            go_base64_value(bytes[i + 2])
-                .ok_or_else(|| format!("illegal base64 data at input byte {}", i + 2))?
-        };
-        let c3 = if pad3 {
-            0
-        } else {
-            go_base64_value(bytes[i + 3])
-                .ok_or_else(|| format!("illegal base64 data at input byte {}", i + 3))?
-        };
-
-        out.push((c0 << 2) | (c1 >> 4));
-        if !pad2 {
-            out.push((c1 << 4) | (c2 >> 2));
-        }
-        if !pad3 {
-            out.push((c2 << 6) | c3);
-        }
-
-        i += 4;
-    }
-    Ok(out)
-}
-`)
-}
-
-func generateSha256Helper(out *strings.Builder) {
-	out.WriteString(`
-fn go_sha256_sum256(data: &[u8]) -> Vec<u8> {
-    const H0: [u32; 8] = [
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
-    ];
-    const K: [u32; 64] = [
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-        0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-        0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-    ];
-
-    let mut h = H0;
-    let mut msg = data.to_vec();
-    let bit_len = (msg.len() as u64) * 8;
-    msg.push(0x80);
-    while msg.len() % 64 != 56 {
-        msg.push(0);
-    }
-    msg.extend_from_slice(&bit_len.to_be_bytes());
-
-    for chunk in msg.chunks(64) {
-        let mut w = [0u32; 64];
-        for i in 0..16 {
-            let j = i * 4;
-            w[i] = u32::from_be_bytes([chunk[j], chunk[j + 1], chunk[j + 2], chunk[j + 3]]);
-        }
-        for i in 16..64 {
-            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
-            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
-            w[i] = w[i - 16]
-                .wrapping_add(s0)
-                .wrapping_add(w[i - 7])
-                .wrapping_add(s1);
-        }
-
-        let mut a = h[0];
-        let mut b = h[1];
-        let mut c = h[2];
-        let mut d = h[3];
-        let mut e = h[4];
-        let mut f = h[5];
-        let mut g = h[6];
-        let mut hh = h[7];
-
-        for i in 0..64 {
-            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
-            let ch = (e & f) ^ ((!e) & g);
-            let temp1 = hh
-                .wrapping_add(s1)
-                .wrapping_add(ch)
-                .wrapping_add(K[i])
-                .wrapping_add(w[i]);
-            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
-            let maj = (a & b) ^ (a & c) ^ (b & c);
-            let temp2 = s0.wrapping_add(maj);
-
-            hh = g;
-            g = f;
-            f = e;
-            e = d.wrapping_add(temp1);
-            d = c;
-            c = b;
-            b = a;
-            a = temp1.wrapping_add(temp2);
-        }
-
-        h[0] = h[0].wrapping_add(a);
-        h[1] = h[1].wrapping_add(b);
-        h[2] = h[2].wrapping_add(c);
-        h[3] = h[3].wrapping_add(d);
-        h[4] = h[4].wrapping_add(e);
-        h[5] = h[5].wrapping_add(f);
-        h[6] = h[6].wrapping_add(g);
-        h[7] = h[7].wrapping_add(hh);
-    }
-
-    let mut out = Vec::with_capacity(32);
-    for word in h {
-        out.extend_from_slice(&word.to_be_bytes());
-    }
-    out
-}
-`)
-}
-
-func generateHexFormatHelper(out *strings.Builder) {
-	out.WriteString(`
-fn go_format_hex_bytes(data: &[u8], upper: bool) -> String {
-    let table = if upper {
-        b"0123456789ABCDEF"
-    } else {
-        b"0123456789abcdef"
-    };
-    let mut out = String::with_capacity(data.len() * 2);
-    for b in data {
-        out.push(table[(b >> 4) as usize] as char);
-        out.push(table[(b & 0x0f) as usize] as char);
-    }
-    out
-}
-`)
-}
-
-func generateUrlHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Debug, Clone, Default)]
-struct GoUrl {
-    scheme: Arc<Mutex<Option<String>>>,
-    host: Arc<Mutex<Option<String>>>,
-    path: Arc<Mutex<Option<String>>>,
-    raw_query: Arc<Mutex<Option<String>>>,
-}
-
-fn go_url_parse(input: &str) -> GoUrl {
-    let (scheme, rest) = input.split_once("://").unwrap_or(("", input));
-    let (before_query, raw_query) = rest.split_once('?').unwrap_or((rest, ""));
-    let slash = before_query.find('/').unwrap_or(before_query.len());
-    let host = &before_query[..slash];
-    let path = if slash < before_query.len() { &before_query[slash..] } else { "" };
-    GoUrl {
-        scheme: Arc::new(Mutex::new(Some(scheme.to_string()))),
-        host: Arc::new(Mutex::new(Some(host.to_string()))),
-        path: Arc::new(Mutex::new(Some(path.to_string()))),
-        raw_query: Arc::new(Mutex::new(Some(raw_query.to_string()))),
-    }
-}
-`)
-		return
-	}
-
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(`
-#[derive(Debug, Clone, Default)]
-struct GoUrl {
-    scheme: Rc<RefCell<Option<String>>>,
-    host: Rc<RefCell<Option<String>>>,
-    path: Rc<RefCell<Option<String>>>,
-    raw_query: Rc<RefCell<Option<String>>>,
-}
-
-fn go_url_parse(input: &str) -> GoUrl {
-    let (scheme, rest) = input.split_once("://").unwrap_or(("", input));
-    let (before_query, raw_query) = rest.split_once('?').unwrap_or((rest, ""));
-    let slash = before_query.find('/').unwrap_or(before_query.len());
-    let host = &before_query[..slash];
-    let path = if slash < before_query.len() { &before_query[slash..] } else { "" };
-    GoUrl {
-        scheme: Rc::new(RefCell::new(Some(scheme.to_string()))),
-        host: Rc::new(RefCell::new(Some(host.to_string()))),
-        path: Rc::new(RefCell::new(Some(path.to_string()))),
-        raw_query: Rc::new(RefCell::new(Some(raw_query.to_string()))),
-    }
-}
-`)
-}
-
-func generateRegexpHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Debug, Clone, Default)]
-struct GoRegexp {
-    pattern: Arc<Mutex<Option<String>>>,
-}
-
-impl GoRegexp {
-    fn find_all_string(&self, text: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
-        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
-        let limit = *n.lock().unwrap().as_ref().unwrap();
-        Arc::new(Mutex::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
-    }
-
-    fn match_string(&self, text: Arc<Mutex<Option<String>>>) -> bool {
-        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
-        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
-        go_regexp_match_string(&pattern, &text)
-    }
-
-    fn find_string_submatch(&self, text: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
-        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
-        Arc::new(Mutex::new(Some(go_regexp_find_string_submatch(&pattern, &text))))
-    }
-
-    fn replace_all_string(&self, src: Arc<Mutex<Option<String>>>, repl: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-        let pattern = (*self.pattern.lock().unwrap().as_ref().unwrap()).clone();
-        let src = (*src.lock().unwrap().as_ref().unwrap()).clone();
-        let repl = (*repl.lock().unwrap().as_ref().unwrap()).clone();
-        Arc::new(Mutex::new(Some(go_regexp_replace_all_string(&pattern, &src, &repl))))
-    }
-}
-
-fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i64) -> Vec<String> {
-    if limit == 0 {
-        return Vec::new();
-    }
-
-    if pattern == r"\d+" {
-        let mut matches = Vec::new();
-        let mut current = String::new();
-        for ch in text.chars() {
-            if ch.is_ascii_digit() {
-                current.push(ch);
-            } else if !current.is_empty() {
-                matches.push(std::mem::take(&mut current));
-                if limit > 0 && matches.len() >= limit as usize {
-                    return matches;
-                }
-            }
-        }
-        if !current.is_empty() {
-            matches.push(current);
-        }
-        if limit > 0 {
-            matches.truncate(limit as usize);
-        }
-        return matches;
-    }
-
-    if pattern.is_empty() {
-        return Vec::new();
-    }
-
-    let mut matches = Vec::new();
-    let mut rest = text;
-    while let Some(index) = rest.find(pattern) {
-        matches.push(pattern.to_string());
-        if limit > 0 && matches.len() >= limit as usize {
-            break;
-        }
-        rest = &rest[index + pattern.len()..];
-    }
-    matches
-}
-
-fn go_regexp_match_string(pattern: &str, text: &str) -> bool {
-    !go_regexp_find_string_submatch(pattern, text).is_empty()
-}
-
-fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
-    if pattern == r"-mod[ =](\w+)" {
-        for marker in ["-mod=", "-mod "] {
-            if let Some(start) = text.find(marker) {
-                let value_start = start + marker.len();
-                let value: String = text[value_start..].chars().take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_').collect();
-                if !value.is_empty() {
-                    return vec![format!("{}{}", marker, value), value];
-                }
-            }
-        }
-        return Vec::new();
-    }
-
-    if pattern == r"^go version (go\S+|devel \S+)" {
-        let prefix = "go version ";
-        if let Some(rest) = text.strip_prefix(prefix) {
-            if let Some(first) = rest.split_whitespace().next() {
-                if first.starts_with("go") {
-                    return vec![format!("{}{}", prefix, first), first.to_string()];
-                }
-                if first == "devel" {
-                    if let Some(second) = rest.split_whitespace().nth(1) {
-                        let capture = format!("devel {}", second);
-                        return vec![format!("{}{}", prefix, capture), capture];
-                    }
-                }
-            }
-        }
-        return Vec::new();
-    }
-
-    if pattern == r"go:.*go.mod.*contents have changed" {
-        if let Some(go_index) = text.find("go:") {
-            if let Some(mod_index) = text[go_index..].find("go.mod") {
-                let after_mod = go_index + mod_index;
-                if text[after_mod..].contains("contents have changed") {
-                    return vec![text.to_string()];
-                }
-            }
-        }
-        return Vec::new();
-    }
-
-    let matches = go_regexp_find_all_string(pattern, text, 1);
-    if matches.is_empty() {
-        Vec::new()
-    } else {
-        vec![matches[0].clone()]
-    }
-}
-
-fn go_regexp_replace_all_string(pattern: &str, text: &str, repl: &str) -> String {
-    if pattern == r"[$,]" {
-        let mut out = String::new();
-        for ch in text.chars() {
-            if ch == '$' || ch == ',' {
-                out.push_str(repl);
-            } else {
-                out.push(ch);
-            }
-        }
-        return out;
-    }
-    if pattern == r"[_]" {
-        return text.replace('_', repl);
-    }
-    if pattern == r"[USD\s]" {
-        let mut out = String::new();
-        for ch in text.chars() {
-            if ch == 'U' || ch == 'S' || ch == 'D' || ch.is_whitespace() {
-                out.push_str(repl);
-            } else {
-                out.push(ch);
-            }
-        }
-        return out;
-    }
-    text.replace(pattern, repl)
-}
-`)
-		return
-	}
-
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(`
-#[derive(Debug, Clone, Default)]
-struct GoRegexp {
-    pattern: Rc<RefCell<Option<String>>>,
-}
-
-impl GoRegexp {
-    fn find_all_string(&self, text: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<String>>>> {
-        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        let limit = *n.borrow().as_ref().unwrap();
-        Rc::new(RefCell::new(Some(go_regexp_find_all_string(&pattern, &text, limit))))
-    }
-
-    fn match_string(&self, text: Rc<RefCell<Option<String>>>) -> bool {
-        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        go_regexp_match_string(&pattern, &text)
-    }
-
-    fn find_string_submatch(&self, text: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<String>>>> {
-        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        Rc::new(RefCell::new(Some(go_regexp_find_string_submatch(&pattern, &text))))
-    }
-
-    fn replace_all_string(&self, src: Rc<RefCell<Option<String>>>, repl: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-        let pattern = (*self.pattern.borrow().as_ref().unwrap()).clone();
-        let src = (*src.borrow().as_ref().unwrap()).clone();
-        let repl = (*repl.borrow().as_ref().unwrap()).clone();
-        Rc::new(RefCell::new(Some(go_regexp_replace_all_string(&pattern, &src, &repl))))
-    }
-}
-
-fn go_regexp_find_all_string(pattern: &str, text: &str, limit: i64) -> Vec<String> {
-    if limit == 0 {
-        return Vec::new();
-    }
-
-    if pattern == r"\d+" {
-        let mut matches = Vec::new();
-        let mut current = String::new();
-        for ch in text.chars() {
-            if ch.is_ascii_digit() {
-                current.push(ch);
-            } else if !current.is_empty() {
-                matches.push(std::mem::take(&mut current));
-                if limit > 0 && matches.len() >= limit as usize {
-                    return matches;
-                }
-            }
-        }
-        if !current.is_empty() {
-            matches.push(current);
-        }
-        if limit > 0 {
-            matches.truncate(limit as usize);
-        }
-        return matches;
-    }
-
-    if pattern.is_empty() {
-        return Vec::new();
-    }
-
-    let mut matches = Vec::new();
-    let mut rest = text;
-    while let Some(index) = rest.find(pattern) {
-        matches.push(pattern.to_string());
-        if limit > 0 && matches.len() >= limit as usize {
-            break;
-        }
-        rest = &rest[index + pattern.len()..];
-    }
-    matches
-}
-
-fn go_regexp_match_string(pattern: &str, text: &str) -> bool {
-    !go_regexp_find_string_submatch(pattern, text).is_empty()
-}
-
-fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
-    if pattern == r"-mod[ =](\w+)" {
-        for marker in ["-mod=", "-mod "] {
-            if let Some(start) = text.find(marker) {
-                let value_start = start + marker.len();
-                let value: String = text[value_start..].chars().take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_').collect();
-                if !value.is_empty() {
-                    return vec![format!("{}{}", marker, value), value];
-                }
-            }
-        }
-        return Vec::new();
-    }
-
-    if pattern == r"^go version (go\S+|devel \S+)" {
-        let prefix = "go version ";
-        if let Some(rest) = text.strip_prefix(prefix) {
-            if let Some(first) = rest.split_whitespace().next() {
-                if first.starts_with("go") {
-                    return vec![format!("{}{}", prefix, first), first.to_string()];
-                }
-                if first == "devel" {
-                    if let Some(second) = rest.split_whitespace().nth(1) {
-                        let capture = format!("devel {}", second);
-                        return vec![format!("{}{}", prefix, capture), capture];
-                    }
-                }
-            }
-        }
-        return Vec::new();
-    }
-
-    if pattern == r"go:.*go.mod.*contents have changed" {
-        if let Some(go_index) = text.find("go:") {
-            if let Some(mod_index) = text[go_index..].find("go.mod") {
-                let after_mod = go_index + mod_index;
-                if text[after_mod..].contains("contents have changed") {
-                    return vec![text.to_string()];
-                }
-            }
-        }
-        return Vec::new();
-    }
-
-    let matches = go_regexp_find_all_string(pattern, text, 1);
-    if matches.is_empty() {
-        Vec::new()
-    } else {
-        vec![matches[0].clone()]
-    }
-}
-
-fn go_regexp_replace_all_string(pattern: &str, text: &str, repl: &str) -> String {
-    if pattern == r"[$,]" {
-        let mut out = String::new();
-        for ch in text.chars() {
-            if ch == '$' || ch == ',' {
-                out.push_str(repl);
-            } else {
-                out.push(ch);
-            }
-        }
-        return out;
-    }
-    if pattern == r"[_]" {
-        return text.replace('_', repl);
-    }
-    if pattern == r"[USD\s]" {
-        let mut out = String::new();
-        for ch in text.chars() {
-            if ch == 'U' || ch == 'S' || ch == 'D' || ch.is_whitespace() {
-                out.push_str(repl);
-            } else {
-                out.push(ch);
-            }
-        }
-        return out;
-    }
-    text.replace(pattern, repl)
-}
-`)
-}
-
-func generateJsonEscapeHelper(out *strings.Builder) {
-	out.WriteString(`
-fn go_json_escape(input: &str) -> String {
-    let mut escaped = String::new();
-    for ch in input.chars() {
-        match ch {
-            '"' => escaped.push_str("\\\""),
-            '\\' => escaped.push_str("\\\\"),
-            '\n' => escaped.push_str("\\n"),
-            '\r' => escaped.push_str("\\r"),
-            '\t' => escaped.push_str("\\t"),
-            c if c < ' ' => escaped.push_str(&format!("\\u{:04x}", c as u32)),
-            c => escaped.push(c),
-        }
-    }
-    escaped
-}
-`)
-}
-
-func generateStrconvFormatHelper(out *strings.Builder) {
-	out.WriteString(`
-fn go_strconv_format_int(value: i64, base: i32) -> String {
-    if base == 10 {
-        return value.to_string();
-    }
-    if !(2..=36).contains(&base) {
-        return value.to_string();
-    }
-
-    let negative = value < 0;
-    let mut n = if negative {
-        value.wrapping_neg() as u64
-    } else {
-        value as u64
-    };
-    let base = base as u64;
-    let digits = b"0123456789abcdefghijklmnopqrstuvwxyz";
-    let mut out = Vec::new();
-    if n == 0 {
-        out.push(b'0');
-    }
-    while n > 0 {
-        out.push(digits[(n % base) as usize]);
-        n /= base;
-    }
-    if negative {
-        out.push(b'-');
-    }
-    out.reverse();
-    String::from_utf8(out).unwrap()
-}
-
-fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
-    let precision = if precision < 0 { 6 } else { precision as usize };
-    match fmt {
-        'e' => format!("{:.*e}", precision, value),
-        'E' => format!("{:.*E}", precision, value),
-        'f' => format!("{:.*}", precision, value),
-        'g' | 'G' => {
-            if precision == 0 {
-                format!("{:.0}", value)
-            } else {
-                format!("{:.*}", precision, value)
-            }
-        }
-        _ => value.to_string(),
-    }
-}
-`)
-}
-
-func generateSliceElemPtrHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Clone)]
-pub struct GoSliceElemPtr<T> {
-    slice: Arc<Mutex<Option<Vec<T>>>>,
-    index: usize,
-}
-
-pub struct GoSliceElemRef<T: Clone> {
-    value: Option<T>,
-}
-
-pub struct GoSliceElemMutRef<T: Clone> {
-    slice: Arc<Mutex<Option<Vec<T>>>>,
-    index: usize,
-    value: Option<T>,
-}
-
-pub trait GoArrayElemBacking<T: Clone + Send + Sync + 'static, const N: usize>: Send + Sync {
-    fn borrow_at(&self, index: usize) -> Option<T>;
-    fn assign_at(&self, index: usize, value: Option<T>);
-    fn identity_at(&self, index: usize) -> (*const (), usize);
-}
-
-#[derive(Clone)]
-pub struct GoDirectArrayElemBacking<T: Clone + Send + Sync + 'static, const N: usize> {
-    array: Arc<Mutex<Option<[T; N]>>>,
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemBacking<T, N> for GoDirectArrayElemBacking<T, N> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let guard = self.array.lock().unwrap();
-        guard.as_ref().and_then(|values| values.get(index).cloned())
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            if let Some(values) = self.array.lock().unwrap().as_mut() {
-                values[index] = value;
-            }
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        (Arc::as_ptr(&self.array) as *const (), index)
-    }
-}
-
-#[derive(Clone)]
-pub struct GoNestedArrayElemBacking<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> {
-    outer: Arc<Mutex<Option<[[T; N]; OUT]>>>,
-    outer_index: usize,
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoNestedArrayElemBacking<T, N, OUT> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let guard = self.outer.lock().unwrap();
-        guard.as_ref().and_then(|values| values.get(self.outer_index)).and_then(|inner| inner.get(index)).cloned()
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            if let Some(values) = self.outer.lock().unwrap().as_mut() {
-                values[self.outer_index][index] = value;
-            }
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        (Arc::as_ptr(&self.outer) as *const (), self.outer_index.wrapping_mul(N).wrapping_add(index))
-    }
-}
-
-#[derive(Clone)]
-pub struct GoArrayElemFromElemBacking<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> {
-    parent: GoArrayElemPtr<[T; N], OUT>,
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoArrayElemFromElemBacking<T, N, OUT> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let inner = self.parent.borrow();
-        inner.as_ref().and_then(|values| values.get(index).cloned())
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            let mut inner = self.parent.borrow_mut();
-            if let Some(values) = inner.as_mut() {
-                values[index] = value;
-            }
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        let (base, outer_index) = self.parent.identity();
-        (base, outer_index.wrapping_mul(N).wrapping_add(index))
-    }
-}
-
-#[derive(Clone)]
-pub struct GoArrayElemFromGoPtrBacking<T: Clone + Send + Sync + 'static, const N: usize> {
-    parent: GoPtr<[T; N]>,
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemBacking<T, N> for GoArrayElemFromGoPtrBacking<T, N> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let inner = self.parent.borrow();
-        inner.as_ref().and_then(|values| values.get(index).cloned())
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            self.parent.with_mut(|values| {
-                values[index] = value;
-            });
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        (self.parent.addr() as *const (), index)
-    }
-}
-
-#[derive(Clone)]
-pub struct GoArrayElemPtr<T: Clone + Send + Sync + 'static, const N: usize> {
-    backing: Arc<dyn GoArrayElemBacking<T, N> + Send + Sync>,
-    index: usize,
-}
-
-pub struct GoArrayElemRef<T: Clone> {
-    value: Option<T>,
-}
-
-pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
-    backing: Arc<dyn GoArrayElemBacking<T, N> + Send + Sync>,
-    index: usize,
-    value: Option<T>,
-}
-
-impl<T> GoSliceElemPtr<T> {
-    pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
-        GoSliceElemPtr { slice, index }
-    }
-
-    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
-        self.slice.clone()
-    }
-
-    pub fn index(&self) -> usize {
-        self.index
-    }
-}
-
-impl<T: Clone> GoSliceElemPtr<T> {
-    pub fn borrow(&self) -> GoSliceElemRef<T> {
-        let guard = self.slice.lock().unwrap();
-        GoSliceElemRef {
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
-        }
-    }
-
-    pub fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
-        let guard = self.slice.lock().unwrap();
-        GoSliceElemMutRef {
-            slice: self.slice.clone(),
-            index: self.index,
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
-        }
-    }
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
-    pub fn new(array: Arc<Mutex<Option<[T; N]>>>, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Arc::new(GoDirectArrayElemBacking { array }),
-            index,
-        }
-    }
-
-    pub fn nested<const OUT: usize>(outer: Arc<Mutex<Option<[[T; N]; OUT]>>>, outer_index: usize, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Arc::new(GoNestedArrayElemBacking { outer, outer_index }),
-            index,
-        }
-    }
-
-    pub fn from_array_elem<const OUT: usize>(parent: GoArrayElemPtr<[T; N], OUT>, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Arc::new(GoArrayElemFromElemBacking { parent }),
-            index,
-        }
-    }
-
-    pub fn from_go_ptr(parent: GoPtr<[T; N]>, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Arc::new(GoArrayElemFromGoPtrBacking { parent }),
-            index,
-        }
-    }
-
-    pub fn borrow(&self) -> GoArrayElemRef<T> {
-        GoArrayElemRef {
-            value: self.backing.borrow_at(self.index),
-        }
-    }
-
-    pub fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
-        GoArrayElemMutRef {
-            backing: self.backing.clone(),
-            index: self.index,
-            value: self.backing.borrow_at(self.index),
-        }
-    }
-
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
-        let result = f(&mut value);
-        self.backing.assign_at(self.index, Some(value));
-        result
-    }
-
-    pub fn identity(&self) -> (*const (), usize) {
-        self.backing.identity_at(self.index)
-    }
-}
-
-impl<T: Clone> std::ops::Deref for GoSliceElemRef<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone> std::ops::Deref for GoSliceElemMutRef<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone> std::ops::DerefMut for GoSliceElemMutRef<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<T: Clone> Drop for GoSliceElemMutRef<T> {
-    fn drop(&mut self) {
-        if let Some(value) = self.value.clone() {
-            if let Some(values) = self.slice.lock().unwrap().as_mut() {
-                values[self.index] = value;
-            }
-        }
-    }
-}
-
-impl<T: Clone> std::ops::Deref for GoArrayElemRef<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> Drop for GoArrayElemMutRef<T, N> {
-    fn drop(&mut self) {
-        self.backing.assign_at(self.index, self.value.clone());
-    }
-}
-
-pub trait GoArrayElemPtrDyn<T: Send + Sync + 'static>: Send + Sync {
-    fn borrow_dyn(&self) -> Option<T>;
-    fn assign_dyn(&self, value: Option<T>);
-    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T));
-    fn identity_dyn(&self) -> (*const (), usize);
-}
-
-pub struct GoForeignArrayElemPtrDyn<T: Send + Sync + 'static> {
-    borrow: Arc<dyn Fn() -> Option<T> + Send + Sync>,
-    assign: Arc<dyn Fn(Option<T>) + Send + Sync>,
-    with_mut: Arc<dyn Fn(&mut dyn FnMut(&mut T)) + Send + Sync>,
-    identity: Arc<dyn Fn() -> (*const (), usize) + Send + Sync>,
-}
-
-impl<T: Send + Sync + 'static> GoArrayElemPtrDyn<T> for GoForeignArrayElemPtrDyn<T> {
-    fn borrow_dyn(&self) -> Option<T> {
-        (self.borrow)()
-    }
-
-    fn assign_dyn(&self, value: Option<T>) {
-        (self.assign)(value)
-    }
-
-    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
-        (self.with_mut)(f)
-    }
-
-    fn identity_dyn(&self) -> (*const (), usize) {
-        (self.identity)()
-    }
-}
-
-impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtrDyn<T> for GoArrayElemPtr<T, N> {
-    fn borrow_dyn(&self) -> Option<T> {
-        (*self.borrow()).clone()
-    }
-
-    fn assign_dyn(&self, value: Option<T>) {
-        *self.borrow_mut() = value;
-    }
-
-    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
-        self.with_mut(|value| f(value));
-    }
-
-    fn identity_dyn(&self) -> (*const (), usize) {
-        self.identity()
-    }
-}
-
-pub enum GoPtr<T: Send + Sync + 'static> {
-    Nil,
-    Raw(usize),
-    Local(Arc<Mutex<Option<T>>>),
-    SliceElem(GoSliceElemPtr<T>),
-    ArrayElem(Arc<dyn GoArrayElemPtrDyn<T> + Send + Sync>),
-}
-
-impl<T: Send + Sync + 'static> Clone for GoPtr<T> {
-    fn clone(&self) -> Self {
-        match self {
-            GoPtr::Nil => GoPtr::Nil,
-            GoPtr::Raw(addr) => GoPtr::Raw(*addr),
-            GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
-            GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
-        }
-    }
-}
-
-impl<T: Send + Sync + 'static> GoPtr<T> {
-    pub fn nil() -> Self {
-        GoPtr::Nil
-    }
-
-    pub fn raw(addr: usize) -> Self {
-        if addr == 0 {
-            GoPtr::Nil
-        } else {
-            GoPtr::Raw(addr)
-        }
-    }
-
-    pub fn local(value: Arc<Mutex<Option<T>>>) -> Self {
-        if value.lock().unwrap().is_none() {
-            GoPtr::Nil
-        } else {
-            GoPtr::Local(value)
-        }
-    }
-
-    pub fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
-        GoPtr::SliceElem(value)
-    }
-
-    pub fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
-        match value {
-            Some(value) => GoPtr::SliceElem(value),
-            None => GoPtr::Nil,
-        }
-    }
-
-    pub fn array_elem<const N: usize>(value: GoArrayElemPtr<T, N>) -> Self
-    where
-        T: Clone,
-    {
-        GoPtr::ArrayElem(Arc::new(value))
-    }
-
-    pub fn array_elem_opt<const N: usize>(value: Option<GoArrayElemPtr<T, N>>) -> Self
-    where
-        T: Clone,
-    {
-        match value {
-            Some(value) => GoPtr::ArrayElem(Arc::new(value)),
-            None => GoPtr::Nil,
-        }
-    }
-
-    pub fn array_elem_foreign(
-        borrow: Arc<dyn Fn() -> Option<T> + Send + Sync>,
-        assign: Arc<dyn Fn(Option<T>) + Send + Sync>,
-        with_mut: Arc<dyn Fn(&mut dyn FnMut(&mut T)) + Send + Sync>,
-        identity: Arc<dyn Fn() -> (*const (), usize) + Send + Sync>,
-    ) -> Self {
-        GoPtr::ArrayElem(Arc::new(GoForeignArrayElemPtrDyn {
-            borrow,
-            assign,
-            with_mut,
-            identity,
-        }))
-    }
-
-    pub fn is_nil(&self) -> bool {
-        match self {
-            GoPtr::Nil => true,
-            GoPtr::Raw(addr) => *addr == 0,
-            GoPtr::Local(value) => value.lock().unwrap().is_none(),
-            GoPtr::SliceElem(value) => {
-                let guard = value.slice.lock().unwrap();
-                guard.as_ref().and_then(|values| values.get(value.index)).is_none()
-            }
-            GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
-        }
-    }
-
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        match self {
-            GoPtr::Nil => panic!("nil pointer dereference"),
-            GoPtr::Raw(_) => panic!("raw unsafe pointer mutable borrow requires unsafe pointee support"),
-            GoPtr::Local(slot) => {
-                let mut guard = slot.lock().unwrap();
-                f(guard.as_mut().unwrap())
-            }
-            GoPtr::SliceElem(slot) => {
-                let mut guard = slot.slice.lock().unwrap();
-                let values = guard.as_mut().expect("nil pointer dereference");
-                f(values.get_mut(slot.index).expect("nil pointer dereference"))
-            }
-            GoPtr::ArrayElem(slot) => {
-                let mut result = None;
-                let mut callback = Some(f);
-                slot.with_mut_dyn(&mut |value| {
-                    let f = callback.take().expect("array element pointer mutable borrow called twice");
-                    result = Some(f(value));
-                });
-                result.expect("nil pointer dereference")
-            }
-        }
-    }
-
-    pub fn ptr_eq(left: &Self, right: &Self) -> bool {
-        match (left, right) {
-            (GoPtr::Nil, GoPtr::Nil) => true,
-            (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
-            (GoPtr::Local(left), GoPtr::Local(right)) => Arc::ptr_eq(left, right),
-            (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Arc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
-            }
-            (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
-            _ => false,
-        }
-    }
-
-    pub fn addr(&self) -> usize {
-        match self {
-            GoPtr::Nil => 0,
-            GoPtr::Raw(addr) => *addr,
-            GoPtr::Local(value) => Arc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Arc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
-            GoPtr::ArrayElem(value) => {
-                let (base, index) = value.identity_dyn();
-                (base as usize).wrapping_add(index)
-            }
-        }
-    }
-}
-
-impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
-    pub fn borrow(&self) -> Option<T> {
-        match self {
-            GoPtr::Nil => None,
-            GoPtr::Raw(_) => panic!("raw unsafe pointer dereference requires unsafe pointee support"),
-            GoPtr::Local(value) => (*value.lock().unwrap()).clone(),
-            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
-            GoPtr::ArrayElem(value) => value.borrow_dyn(),
-        }
-    }
-
-    pub fn assign(&self, value: Option<T>) {
-        match self {
-            GoPtr::Nil => panic!("nil pointer dereference"),
-            GoPtr::Raw(_) => panic!("raw unsafe pointer assignment requires unsafe pointee support"),
-            GoPtr::Local(slot) => *slot.lock().unwrap() = value,
-            GoPtr::SliceElem(slot) => *slot.borrow_mut() = value,
-            GoPtr::ArrayElem(slot) => slot.assign_dyn(value),
-        }
-    }
-}
-
-impl<T: Send + Sync + 'static> Default for GoPtr<T> {
-    fn default() -> Self {
-        GoPtr::Nil
-    }
-}
-
-impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_nil() {
-            write!(f, "<nil>")
-        } else {
-            write!(f, "<ptr>")
-        }
-    }
-}
-`)
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-		out.WriteString(`
-#[derive(Clone)]
-pub struct GoSliceElemPtr<T> {
-    slice: Rc<RefCell<Option<Vec<T>>>>,
-    index: usize,
-}
-
-pub struct GoSliceElemRef<T: Clone> {
-    value: Option<T>,
-}
-
-pub struct GoSliceElemMutRef<T: Clone> {
-    slice: Rc<RefCell<Option<Vec<T>>>>,
-    index: usize,
-    value: Option<T>,
-}
-
-pub trait GoArrayElemBacking<T: Clone + 'static, const N: usize> {
-    fn borrow_at(&self, index: usize) -> Option<T>;
-    fn assign_at(&self, index: usize, value: Option<T>);
-    fn identity_at(&self, index: usize) -> (*const (), usize);
-}
-
-#[derive(Clone)]
-pub struct GoDirectArrayElemBacking<T: Clone + 'static, const N: usize> {
-    array: Rc<RefCell<Option<[T; N]>>>,
-}
-
-impl<T: Clone + 'static, const N: usize> GoArrayElemBacking<T, N> for GoDirectArrayElemBacking<T, N> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let guard = self.array.borrow();
-        guard.as_ref().and_then(|values| values.get(index).cloned())
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            if let Some(values) = self.array.borrow_mut().as_mut() {
-                values[index] = value;
-            }
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        (Rc::as_ptr(&self.array) as *const (), index)
-    }
-}
-
-#[derive(Clone)]
-pub struct GoNestedArrayElemBacking<T: Clone + 'static, const N: usize, const OUT: usize> {
-    outer: Rc<RefCell<Option<[[T; N]; OUT]>>>,
-    outer_index: usize,
-}
-
-impl<T: Clone + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoNestedArrayElemBacking<T, N, OUT> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let guard = self.outer.borrow();
-        guard.as_ref().and_then(|values| values.get(self.outer_index)).and_then(|inner| inner.get(index)).cloned()
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            if let Some(values) = self.outer.borrow_mut().as_mut() {
-                values[self.outer_index][index] = value;
-            }
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        (Rc::as_ptr(&self.outer) as *const (), self.outer_index.wrapping_mul(N).wrapping_add(index))
-    }
-}
-
-#[derive(Clone)]
-pub struct GoArrayElemFromElemBacking<T: Clone + 'static, const N: usize, const OUT: usize> {
-    parent: GoArrayElemPtr<[T; N], OUT>,
-}
-
-impl<T: Clone + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoArrayElemFromElemBacking<T, N, OUT> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let inner = self.parent.borrow();
-        inner.as_ref().and_then(|values| values.get(index).cloned())
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            let mut inner = self.parent.borrow_mut();
-            if let Some(values) = inner.as_mut() {
-                values[index] = value;
-            }
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        let (base, outer_index) = self.parent.identity();
-        (base, outer_index.wrapping_mul(N).wrapping_add(index))
-    }
-}
-
-#[derive(Clone)]
-pub struct GoArrayElemFromGoPtrBacking<T: Clone + 'static, const N: usize> {
-    parent: GoPtr<[T; N]>,
-}
-
-impl<T: Clone + 'static, const N: usize> GoArrayElemBacking<T, N> for GoArrayElemFromGoPtrBacking<T, N> {
-    fn borrow_at(&self, index: usize) -> Option<T> {
-        let inner = self.parent.borrow();
-        inner.as_ref().and_then(|values| values.get(index).cloned())
-    }
-
-    fn assign_at(&self, index: usize, value: Option<T>) {
-        if let Some(value) = value {
-            self.parent.with_mut(|values| {
-                values[index] = value;
-            });
-        }
-    }
-
-    fn identity_at(&self, index: usize) -> (*const (), usize) {
-        (self.parent.addr() as *const (), index)
-    }
-}
-
-#[derive(Clone)]
-pub struct GoArrayElemPtr<T: Clone + 'static, const N: usize> {
-    backing: Rc<dyn GoArrayElemBacking<T, N>>,
-    index: usize,
-}
-
-pub struct GoArrayElemRef<T: Clone> {
-    value: Option<T>,
-}
-
-pub struct GoArrayElemMutRef<T: Clone + 'static, const N: usize> {
-    backing: Rc<dyn GoArrayElemBacking<T, N>>,
-    index: usize,
-    value: Option<T>,
-}
-
-impl<T> GoSliceElemPtr<T> {
-    pub fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
-        GoSliceElemPtr { slice, index }
-    }
-
-    pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
-        self.slice.clone()
-    }
-
-    pub fn index(&self) -> usize {
-        self.index
-    }
-}
-
-impl<T: Clone> GoSliceElemPtr<T> {
-    pub fn borrow(&self) -> GoSliceElemRef<T> {
-        let guard = self.slice.borrow();
-        GoSliceElemRef {
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
-        }
-    }
-
-    pub fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
-        let guard = self.slice.borrow();
-        GoSliceElemMutRef {
-            slice: self.slice.clone(),
-            index: self.index,
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
-        }
-    }
-}
-
-impl<T: Clone + 'static, const N: usize> GoArrayElemPtr<T, N> {
-    pub fn new(array: Rc<RefCell<Option<[T; N]>>>, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Rc::new(GoDirectArrayElemBacking { array }),
-            index,
-        }
-    }
-
-    pub fn nested<const OUT: usize>(outer: Rc<RefCell<Option<[[T; N]; OUT]>>>, outer_index: usize, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Rc::new(GoNestedArrayElemBacking { outer, outer_index }),
-            index,
-        }
-    }
-
-    pub fn from_array_elem<const OUT: usize>(parent: GoArrayElemPtr<[T; N], OUT>, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Rc::new(GoArrayElemFromElemBacking { parent }),
-            index,
-        }
-    }
-
-    pub fn from_go_ptr(parent: GoPtr<[T; N]>, index: usize) -> Self {
-        GoArrayElemPtr {
-            backing: Rc::new(GoArrayElemFromGoPtrBacking { parent }),
-            index,
-        }
-    }
-
-    pub fn borrow(&self) -> GoArrayElemRef<T> {
-        GoArrayElemRef {
-            value: self.backing.borrow_at(self.index),
-        }
-    }
-
-    pub fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
-        GoArrayElemMutRef {
-            backing: self.backing.clone(),
-            index: self.index,
-            value: self.backing.borrow_at(self.index),
-        }
-    }
-
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
-        let result = f(&mut value);
-        self.backing.assign_at(self.index, Some(value));
-        result
-    }
-
-    pub fn identity(&self) -> (*const (), usize) {
-        self.backing.identity_at(self.index)
-    }
-}
-
-impl<T: Clone> std::ops::Deref for GoSliceElemRef<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone> std::ops::Deref for GoSliceElemMutRef<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone> std::ops::DerefMut for GoSliceElemMutRef<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<T: Clone> Drop for GoSliceElemMutRef<T> {
-    fn drop(&mut self) {
-        if let Some(value) = self.value.clone() {
-            if let Some(values) = self.slice.borrow_mut().as_mut() {
-                values[self.index] = value;
-            }
-        }
-    }
-}
-
-impl<T: Clone> std::ops::Deref for GoArrayElemRef<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone + 'static, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T: Clone + 'static, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<T: Clone + 'static, const N: usize> Drop for GoArrayElemMutRef<T, N> {
-    fn drop(&mut self) {
-        self.backing.assign_at(self.index, self.value.clone());
-    }
-}
-
-pub trait GoArrayElemPtrDyn<T: 'static> {
-    fn borrow_dyn(&self) -> Option<T>;
-    fn assign_dyn(&self, value: Option<T>);
-    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T));
-    fn identity_dyn(&self) -> (*const (), usize);
-}
-
-pub struct GoForeignArrayElemPtrDyn<T: 'static> {
-    borrow: Rc<dyn Fn() -> Option<T>>,
-    assign: Rc<dyn Fn(Option<T>)>,
-    with_mut: Rc<dyn Fn(&mut dyn FnMut(&mut T))>,
-    identity: Rc<dyn Fn() -> (*const (), usize)>,
-}
-
-impl<T: 'static> GoArrayElemPtrDyn<T> for GoForeignArrayElemPtrDyn<T> {
-    fn borrow_dyn(&self) -> Option<T> {
-        (self.borrow)()
-    }
-
-    fn assign_dyn(&self, value: Option<T>) {
-        (self.assign)(value)
-    }
-
-    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
-        (self.with_mut)(f)
-    }
-
-    fn identity_dyn(&self) -> (*const (), usize) {
-        (self.identity)()
-    }
-}
-
-impl<T: Clone + 'static, const N: usize> GoArrayElemPtrDyn<T> for GoArrayElemPtr<T, N> {
-    fn borrow_dyn(&self) -> Option<T> {
-        (*self.borrow()).clone()
-    }
-
-    fn assign_dyn(&self, value: Option<T>) {
-        *self.borrow_mut() = value;
-    }
-
-    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
-        self.with_mut(|value| f(value));
-    }
-
-    fn identity_dyn(&self) -> (*const (), usize) {
-        self.identity()
-    }
-}
-
-pub enum GoPtr<T: 'static> {
-    Nil,
-    Raw(usize),
-    Local(Rc<RefCell<Option<T>>>),
-    SliceElem(GoSliceElemPtr<T>),
-    ArrayElem(Rc<dyn GoArrayElemPtrDyn<T>>),
-}
-
-impl<T: 'static> Clone for GoPtr<T> {
-    fn clone(&self) -> Self {
-        match self {
-            GoPtr::Nil => GoPtr::Nil,
-            GoPtr::Raw(addr) => GoPtr::Raw(*addr),
-            GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
-            GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
-        }
-    }
-}
-
-impl<T: 'static> GoPtr<T> {
-    pub fn nil() -> Self {
-        GoPtr::Nil
-    }
-
-    pub fn raw(addr: usize) -> Self {
-        if addr == 0 {
-            GoPtr::Nil
-        } else {
-            GoPtr::Raw(addr)
-        }
-    }
-
-    pub fn local(value: Rc<RefCell<Option<T>>>) -> Self {
-        if value.borrow().is_none() {
-            GoPtr::Nil
-        } else {
-            GoPtr::Local(value)
-        }
-    }
-
-    pub fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
-        GoPtr::SliceElem(value)
-    }
-
-    pub fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
-        match value {
-            Some(value) => GoPtr::SliceElem(value),
-            None => GoPtr::Nil,
-        }
-    }
-
-    pub fn array_elem<const N: usize>(value: GoArrayElemPtr<T, N>) -> Self
-    where
-        T: Clone,
-    {
-        GoPtr::ArrayElem(Rc::new(value))
-    }
-
-    pub fn array_elem_opt<const N: usize>(value: Option<GoArrayElemPtr<T, N>>) -> Self
-    where
-        T: Clone,
-    {
-        match value {
-            Some(value) => GoPtr::ArrayElem(Rc::new(value)),
-            None => GoPtr::Nil,
-        }
-    }
-
-    pub fn array_elem_foreign(
-        borrow: Rc<dyn Fn() -> Option<T>>,
-        assign: Rc<dyn Fn(Option<T>)>,
-        with_mut: Rc<dyn Fn(&mut dyn FnMut(&mut T))>,
-        identity: Rc<dyn Fn() -> (*const (), usize)>,
-    ) -> Self {
-        GoPtr::ArrayElem(Rc::new(GoForeignArrayElemPtrDyn {
-            borrow,
-            assign,
-            with_mut,
-            identity,
-        }))
-    }
-
-    pub fn is_nil(&self) -> bool {
-        match self {
-            GoPtr::Nil => true,
-            GoPtr::Raw(addr) => *addr == 0,
-            GoPtr::Local(value) => value.borrow().is_none(),
-            GoPtr::SliceElem(value) => {
-                let guard = value.slice.borrow();
-                guard.as_ref().and_then(|values| values.get(value.index)).is_none()
-            }
-            GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
-        }
-    }
-
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        match self {
-            GoPtr::Nil => panic!("nil pointer dereference"),
-            GoPtr::Raw(_) => panic!("raw unsafe pointer mutable borrow requires unsafe pointee support"),
-            GoPtr::Local(slot) => {
-                let mut guard = slot.borrow_mut();
-                f(guard.as_mut().unwrap())
-            }
-            GoPtr::SliceElem(slot) => {
-                let mut guard = slot.slice.borrow_mut();
-                let values = guard.as_mut().expect("nil pointer dereference");
-                f(values.get_mut(slot.index).expect("nil pointer dereference"))
-            }
-            GoPtr::ArrayElem(slot) => {
-                let mut result = None;
-                let mut callback = Some(f);
-                slot.with_mut_dyn(&mut |value| {
-                    let f = callback.take().expect("array element pointer mutable borrow called twice");
-                    result = Some(f(value));
-                });
-                result.expect("nil pointer dereference")
-            }
-        }
-    }
-
-    pub fn ptr_eq(left: &Self, right: &Self) -> bool {
-        match (left, right) {
-            (GoPtr::Nil, GoPtr::Nil) => true,
-            (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
-            (GoPtr::Local(left), GoPtr::Local(right)) => Rc::ptr_eq(left, right),
-            (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Rc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
-            }
-            (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
-            _ => false,
-        }
-    }
-
-    pub fn addr(&self) -> usize {
-        match self {
-            GoPtr::Nil => 0,
-            GoPtr::Raw(addr) => *addr,
-            GoPtr::Local(value) => Rc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Rc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
-            GoPtr::ArrayElem(value) => {
-                let (base, index) = value.identity_dyn();
-                (base as usize).wrapping_add(index)
-            }
-        }
-    }
-}
-
-impl<T: Clone + 'static> GoPtr<T> {
-    pub fn borrow(&self) -> Option<T> {
-        match self {
-            GoPtr::Nil => None,
-            GoPtr::Raw(_) => panic!("raw unsafe pointer dereference requires unsafe pointee support"),
-            GoPtr::Local(value) => (*value.borrow()).clone(),
-            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
-            GoPtr::ArrayElem(value) => value.borrow_dyn(),
-        }
-    }
-
-    pub fn assign(&self, value: Option<T>) {
-        match self {
-            GoPtr::Nil => panic!("nil pointer dereference"),
-            GoPtr::Raw(_) => panic!("raw unsafe pointer assignment requires unsafe pointee support"),
-            GoPtr::Local(slot) => *slot.borrow_mut() = value,
-            GoPtr::SliceElem(slot) => *slot.borrow_mut() = value,
-            GoPtr::ArrayElem(slot) => slot.assign_dyn(value),
-        }
-    }
-}
-
-impl<T: 'static> Default for GoPtr<T> {
-    fn default() -> Self {
-        GoPtr::Nil
-    }
-}
-
-impl<T: 'static> std::fmt::Debug for GoPtr<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_nil() {
-            write!(f, "<nil>")
-        } else {
-            write!(f, "<ptr>")
-        }
-    }
-}
-`)
-	}
-}
-
-func generateGoTimeHelper(out *strings.Builder) {
-	var code strings.Builder
-	code.WriteString(`
-#[derive(Clone, Debug, Default)]
-struct GoTime {
-    seconds: i64,
-    nanos: i32,
-}
-
-fn go_time_civil_from_days(days: i64) -> (i64, u32, u32) {
-    let z = days + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = mp + if mp < 10 { 3 } else { -9 };
-    let year = y + if m <= 2 { 1 } else { 0 };
-    (year, m as u32, d as u32)
-}
-
-impl GoTime {
-    fn now() -> Self {
-        let duration = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap();
-        GoTime {
-            seconds: duration.as_secs() as i64,
-            nanos: duration.subsec_nanos() as i32,
-        }
-    }
-
-    fn from_unix(seconds: i64, nanos: i64) -> Self {
-        let seconds = seconds + nanos.div_euclid(1_000_000_000);
-        let nanos = nanos.rem_euclid(1_000_000_000);
-        GoTime {
-            seconds,
-            nanos: nanos as i32,
-        }
-    }
-`)
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		code.WriteString(`
-    fn add(&self, duration: Arc<Mutex<Option<std::time::Duration>>>) -> Arc<Mutex<Option<GoTime>>> {
-        let duration = *duration.lock().unwrap().as_ref().unwrap();
-        Arc::new(Mutex::new(Some(GoTime::from_unix(
-            self.seconds + duration.as_secs() as i64,
-            self.nanos as i64 + duration.subsec_nanos() as i64,
-        ))))
-    }
-
-    fn u_t_c(&self) -> Arc<Mutex<Option<GoTime>>> {
-        Arc::new(Mutex::new(Some(self.clone())))
-    }
-
-    fn unix(&self) -> i64 {
-        self.seconds
-    }
-
-    fn unix_nano(&self) -> i64 {
-        self.seconds * 1_000_000_000 + self.nanos as i64
-    }
-
-    fn is_zero(&self) -> bool {
-        self.seconds == 0 && self.nanos == 0
-    }
-
-    fn format(&self, _layout: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(self.to_string())))
-    }
-}
-`)
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-		code.WriteString(`
-    fn add(&self, duration: Rc<RefCell<Option<std::time::Duration>>>) -> Rc<RefCell<Option<GoTime>>> {
-        let duration = *duration.borrow().as_ref().unwrap();
-        Rc::new(RefCell::new(Some(GoTime::from_unix(
-            self.seconds + duration.as_secs() as i64,
-            self.nanos as i64 + duration.subsec_nanos() as i64,
-        ))))
-    }
-
-    fn u_t_c(&self) -> Rc<RefCell<Option<GoTime>>> {
-        Rc::new(RefCell::new(Some(self.clone())))
-    }
-
-    fn unix(&self) -> i64 {
-        self.seconds
-    }
-
-    fn unix_nano(&self) -> i64 {
-        self.seconds * 1_000_000_000 + self.nanos as i64
-    }
-
-    fn is_zero(&self) -> bool {
-        self.seconds == 0 && self.nanos == 0
-    }
-
-    fn format(&self, _layout: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(self.to_string())))
-    }
-}
-`)
-	}
-	code.WriteString(`
-impl std::fmt::Display for GoTime {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let days = self.seconds.div_euclid(86_400);
-        let secs_of_day = self.seconds.rem_euclid(86_400);
-        let (year, month, day) = go_time_civil_from_days(days);
-        let hour = secs_of_day / 3_600;
-        let minute = (secs_of_day % 3_600) / 60;
-        let second = secs_of_day % 60;
-        if self.nanos == 0 {
-            write!(
-                f,
-                "{:04}-{:02}-{:02} {:02}:{:02}:{:02} +0000 UTC",
-                year, month, day, hour, minute, second
-            )
-        } else {
-            let mut fraction = format!("{:09}", self.nanos);
-            while fraction.ends_with('0') {
-                fraction.pop();
-            }
-            write!(
-                f,
-                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{} +0000 UTC",
-                year, month, day, hour, minute, second, fraction
-            )
-        }
-    }
-}
-`)
-	helper := code.String()
-	if generatingPublicHelpers {
-		helper = strings.ReplaceAll(helper, "struct GoTime", "pub struct GoTime")
-		helper = strings.ReplaceAll(helper, "fn go_time_civil_from_days(", "pub fn go_time_civil_from_days(")
-		helper = strings.ReplaceAll(helper, "    fn now(", "    pub fn now(")
-		helper = strings.ReplaceAll(helper, "    fn from_unix(", "    pub fn from_unix(")
-		helper = strings.ReplaceAll(helper, "    fn add(", "    pub fn add(")
-		helper = strings.ReplaceAll(helper, "    fn u_t_c(", "    pub fn u_t_c(")
-		helper = strings.ReplaceAll(helper, "    fn unix(", "    pub fn unix(")
-		helper = strings.ReplaceAll(helper, "    fn unix_nano(", "    pub fn unix_nano(")
-		helper = strings.ReplaceAll(helper, "    fn is_zero(", "    pub fn is_zero(")
-		helper = strings.ReplaceAll(helper, "    fn format(", "    pub fn format(")
-	}
-	out.WriteString(helper)
-}
-
-func generateGoTimerHelper(out *strings.Builder) {
-	NeedGoChannel()
-	NeedGoTime()
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Clone)]
-struct GoTimer {
-    c: GoChannel<GoTime>,
-    stopped: Arc<std::sync::atomic::AtomicBool>,
-}
-
-fn go_new_timer(duration: std::time::Duration) -> GoTimer {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let thread_stopped = stopped.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(duration);
-        if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            thread_channel.send(GoTime::now());
-        }
-        thread_channel.close();
-    });
-
-    GoTimer {
-        c: channel,
-        stopped,
-    }
-}
-
-fn go_after_func<F>(duration: std::time::Duration, callback: F) -> GoTimer
-where
-    F: FnOnce() + Send + 'static,
-{
-    let timer = go_new_timer(duration);
-    let stopped = timer.stopped.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(duration);
-        if !stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            callback();
-        }
-    });
-    timer
-}
-
-impl GoTimer {
-    fn stop(&self) -> bool {
-        let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
-        !was_stopped
-    }
-}
-`)
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Clone)]
-struct GoTimer {
-    c: GoChannel<GoTime>,
-    stopped: Arc<std::sync::atomic::AtomicBool>,
-}
-
-fn go_new_timer(duration: std::time::Duration) -> GoTimer {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let thread_stopped = stopped.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(duration);
-        if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            thread_channel.send(GoTime::now());
-        }
-        thread_channel.close();
-    });
-
-    GoTimer {
-        c: channel,
-        stopped,
-    }
-}
-
-fn go_after_func<F>(duration: std::time::Duration, callback: F) -> GoTimer
-where
-    F: FnOnce() + Send + 'static,
-{
-    let timer = go_new_timer(duration);
-    let stopped = timer.stopped.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(duration);
-        if !stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            callback();
-        }
-    });
-    timer
-}
-
-impl GoTimer {
-    fn stop(&self) -> bool {
-        let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
-        !was_stopped
-    }
-}
-`)
-	}
-}
-
-func generateGoAfterHelper(out *strings.Builder) {
-	NeedGoChannel()
-	NeedGoTime()
-	out.WriteString(`
-fn go_channel_after(duration: std::time::Duration) -> GoChannel<GoTime> {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(duration);
-        thread_channel.send(GoTime::now());
-        thread_channel.close();
-    });
-    channel
-}
-`)
-}
-
-func generateGoTickHelper(out *strings.Builder) {
-	NeedGoChannel()
-	NeedGoTime()
-	out.WriteString(`
-fn go_tick(duration: std::time::Duration) -> GoChannel<GoTime> {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    std::thread::spawn(move || {
-        loop {
-            std::thread::sleep(duration);
-            let _ = thread_channel.try_send(GoTime::now());
-        }
-    });
-    channel
-}
-`)
-}
-
-func generateGoTickerHelper(out *strings.Builder) {
-	NeedGoChannel()
-	NeedGoTime()
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Clone)]
-struct GoTicker {
-    c: GoChannel<GoTime>,
-    stopped: Arc<std::sync::atomic::AtomicBool>,
-}
-
-fn go_new_ticker(duration: std::time::Duration) -> GoTicker {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let thread_stopped = stopped.clone();
-    std::thread::spawn(move || {
-        while !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(duration);
-            if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
-                let _ = thread_channel.try_send(GoTime::now());
-            }
-        }
-        thread_channel.close();
-    });
-
-    GoTicker {
-        c: channel,
-        stopped,
-    }
-}
-
-impl GoTicker {
-    fn stop(&self) {
-        self.stopped.store(true, std::sync::atomic::Ordering::SeqCst);
-    }
-}
-`)
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Clone)]
-struct GoTicker {
-    c: GoChannel<GoTime>,
-    stopped: Arc<std::sync::atomic::AtomicBool>,
-}
-
-fn go_new_ticker(duration: std::time::Duration) -> GoTicker {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let thread_stopped = stopped.clone();
-    std::thread::spawn(move || {
-        while !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(duration);
-            if !thread_stopped.load(std::sync::atomic::Ordering::SeqCst) {
-                let _ = thread_channel.try_send(GoTime::now());
-            }
-        }
-        thread_channel.close();
-    });
-
-    GoTicker {
-        c: channel,
-        stopped,
-    }
-}
-
-impl GoTicker {
-    fn stop(&self) {
-        self.stopped.store(true, std::sync::atomic::Ordering::SeqCst);
-    }
-}
-`)
-	}
-}
-
-func generateGoContextHelper(out *strings.Builder) {
-	NeedGoChannel()
-	TrackImport("Arc")
-	TrackImport("Mutex")
-	code := `
-#[derive(Clone)]
-struct GoContext {
-    done: GoChannel<bool>,
-    err: std::sync::Arc<std::sync::Mutex<Option<GO_ERROR_PAYLOAD>>>,
-    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    label: String,
-}
-
-type GoCancelFunc = std::sync::Arc<dyn Fn() + Send + Sync>;
-type GoCancelCauseFunc = Box<dyn FnMut(Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) -> () + Send + Sync>;
-
-impl GoContext {
-    fn background() -> GoContext {
-        GoContext {
-            done: GoChannel::<bool>::new(),
-            err: std::sync::Arc::new(std::sync::Mutex::new(None)),
-            cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            label: "context.Background".to_string(),
-        }
-    }
-
-    fn parent_label(parent: &Arc<Mutex<Option<GoContext>>>) -> String {
-        parent
-            .lock()
-            .unwrap()
-            .as_ref()
-            .map(|ctx| ctx.label.clone())
-            .unwrap_or_else(|| "context.Context".to_string())
-    }
-
-    fn with_timeout(parent: Arc<Mutex<Option<GoContext>>>, duration: std::time::Duration) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
-        let label = format!("{}.WithDeadline", GoContext::parent_label(&parent));
-        let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
-        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-
-        let context = GoContext {
-            done: done.clone(),
-            err: err.clone(),
-            cancelled: cancelled.clone(),
-            label,
-        };
-
-        let timeout_done = done.clone();
-        let timeout_err = err.clone();
-        let timeout_cancelled = cancelled.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(duration);
-            if !timeout_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *timeout_err.lock().unwrap() = Some(GO_ERROR_FROM("context deadline exceeded".to_string()));
-                timeout_done.send(true);
-                timeout_done.close();
-            }
-        });
-
-        let cancel_done = done.clone();
-        let cancel_err = err.clone();
-        let cancel_cancelled = cancelled.clone();
-        let cancel: GoCancelFunc = std::sync::Arc::new(move || {
-            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
-                cancel_done.send(true);
-                cancel_done.close();
-            }
-        });
-
-        (
-            Arc::new(Mutex::new(Some(context))),
-            Arc::new(Mutex::new(Some(cancel))),
-        )
-    }
-
-    fn with_cancel(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelFunc>>>) {
-        let label = format!("{}.WithCancel", GoContext::parent_label(&parent));
-        let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
-        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-
-        let context = GoContext {
-            done: done.clone(),
-            err: err.clone(),
-            cancelled: cancelled.clone(),
-            label,
-        };
-
-        let cancel_done = done.clone();
-        let cancel_err = err.clone();
-        let cancel_cancelled = cancelled.clone();
-        let cancel: GoCancelFunc = std::sync::Arc::new(move || {
-            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
-                cancel_done.send(true);
-                cancel_done.close();
-            }
-        });
-
-        (
-            Arc::new(Mutex::new(Some(context))),
-            Arc::new(Mutex::new(Some(cancel))),
-        )
-    }
-
-    fn with_cancel_cause(parent: Arc<Mutex<Option<GoContext>>>) -> (Arc<Mutex<Option<GoContext>>>, Arc<Mutex<Option<GoCancelCauseFunc>>>) {
-        let label = format!("{}.WithCancelCause", GoContext::parent_label(&parent));
-        let done = GoChannel::<bool>::new_buffered(1);
-        let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
-        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-
-        let context = GoContext {
-            done: done.clone(),
-            err: err.clone(),
-            cancelled: cancelled.clone(),
-            label,
-        };
-
-        let cancel_done = done.clone();
-        let cancel_err = err.clone();
-        let cancel_cancelled = cancelled.clone();
-        let cancel: GoCancelCauseFunc = Box::new(move |_cause| {
-            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
-                cancel_done.send(true);
-                cancel_done.close();
-            }
-        });
-
-        (
-            Arc::new(Mutex::new(Some(context))),
-            Arc::new(Mutex::new(Some(cancel))),
-        )
-    }
-
-    fn done(&self) -> GoChannel<bool> {
-        self.done.clone()
-    }
-
-    fn err(&self) -> Arc<Mutex<Option<GO_ERROR_PAYLOAD>>> {
-        self.err.clone()
-    }
-}
-
-impl std::fmt::Display for GoContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.label)
-    }
-}
-
-impl std::fmt::Debug for GoContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.label)
-    }
-}
-`
-	if generatingPublicHelpers {
-		code = strings.ReplaceAll(code, "struct GoContext", "pub struct GoContext")
-		code = strings.ReplaceAll(code, "type GoCancelFunc", "pub type GoCancelFunc")
-		code = strings.ReplaceAll(code, "type GoCancelCauseFunc", "pub type GoCancelCauseFunc")
-		code = strings.ReplaceAll(code, "    fn background(", "    pub fn background(")
-		code = strings.ReplaceAll(code, "    fn with_timeout(", "    pub fn with_timeout(")
-		code = strings.ReplaceAll(code, "    fn with_cancel(", "    pub fn with_cancel(")
-		code = strings.ReplaceAll(code, "    fn with_cancel_cause(", "    pub fn with_cancel_cause(")
-		code = strings.ReplaceAll(code, "    fn done(", "    pub fn done(")
-		code = strings.ReplaceAll(code, "    fn err(", "    pub fn err(")
-	}
-	out.WriteString(expandErrorRepr(code, true))
-}
-
-func generateGoRandHelper(out *strings.Builder) {
-	out.WriteString(`
-fn go_rand_state() -> &'static std::sync::Mutex<u64> {
-    static STATE: std::sync::OnceLock<std::sync::Mutex<u64>> = std::sync::OnceLock::new();
-    STATE.get_or_init(|| std::sync::Mutex::new(1))
-}
-
-fn go_rand_seed(seed: i64) {
-    *go_rand_state().lock().unwrap() = seed as u64;
-}
-
-fn go_rand_next_u64() -> u64 {
-    let mut state = go_rand_state().lock().unwrap();
-    *state = state
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    *state
-}
-
-fn go_rand_intn(n: i64) -> i64 {
-    if n <= 0 {
-        panic!("invalid argument to Intn");
-    }
-    (go_rand_next_u64() % n as u64) as i64
-}
-
-fn go_rand_float64() -> f64 {
-    ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
-}
-`)
-}
-
-func generateOsArgsHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		out.WriteString(`
-static __GO_OS_ARGS: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> =
-    std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(Some(std::env::args().collect::<Vec<String>>()))));
-
-fn go_os_args() -> std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> {
-    __GO_OS_ARGS.clone()
-}
-`)
-		return
-	}
-
-	out.WriteString(`
-thread_local! {
-    static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
-        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
-}
-
-fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
-    __GO_OS_ARGS.with(|args| args.clone())
-}
-`)
-}
-
-func generateOsFileHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(expandErrorRepr(`
-struct GoFile {
-    file: Option<std::fs::File>,
-}
-
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
-
-    fn empty() -> Self {
-        GoFile { file: None }
-    }
-
-    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) {
-        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i64))), Arc::new(Mutex::new(None))),
-                Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(GO_ERROR_FROM(e))))),
-            },
-            None => (
-                Arc::new(Mutex::new(Some(0))),
-                Arc::new(Mutex::new(Some(GO_ERROR_FROM(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
-            ),
-        }
-    }
-
-    fn close(&mut self) -> Arc<Mutex<Option<GO_ERROR_PAYLOAD>>> {
-        self.file = None;
-        Arc::new(Mutex::new(None))
-    }
-}
-`, true))
-		return
-	}
-
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(expandErrorRepr(`
-struct GoFile {
-    file: Option<std::fs::File>,
-}
-
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
-
-    fn empty() -> Self {
-        GoFile { file: None }
-    }
-
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<GO_ERROR_PAYLOAD>>>) {
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(GO_ERROR_FROM(e))))),
-            },
-            None => (
-                Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(GO_ERROR_FROM(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
-            ),
-        }
-    }
-
-    fn close(&mut self) -> Rc<RefCell<Option<GO_ERROR_PAYLOAD>>> {
-        self.file = None;
-        Rc::new(RefCell::new(None))
-    }
-}
-`, false))
-}
-
-func generateReflectHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(`
-#[derive(Debug, Clone, Default)]
-struct GoReflectStructTag {
-    raw: Arc<Mutex<Option<String>>>,
-}
-
-impl GoReflectStructTag {
-    fn get(&self, key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-        let raw = (*self.raw.lock().unwrap().as_ref().unwrap()).clone();
-        let key = (*key.lock().unwrap().as_ref().unwrap()).clone();
-        Arc::new(Mutex::new(Some(go_reflect_tag_get(&raw, &key))))
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-struct GoReflectField {
-    name: Arc<Mutex<Option<String>>>,
-    tag: Arc<Mutex<Option<GoReflectStructTag>>>,
-}
-
-#[derive(Debug, Clone, Default)]
-struct GoReflectType {
-    name: Arc<Mutex<Option<String>>>,
-    kind: Arc<Mutex<Option<reflect_Kind>>>,
-    elem: Arc<Mutex<Option<Box<GoReflectType>>>>,
-    fields: Arc<Mutex<Option<Vec<GoReflectField>>>>,
-}
-
-impl std::fmt::Display for GoReflectType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name.lock().unwrap().as_ref().unwrap())
-    }
-}
-
-impl PartialEq for GoReflectType {
-    fn eq(&self, other: &Self) -> bool {
-        *self.name.lock().unwrap() == *other.name.lock().unwrap() &&
-            *self.kind.lock().unwrap() == *other.kind.lock().unwrap()
-    }
-}
-
-impl Eq for GoReflectType {}
-
-impl GoReflectType {
-    fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some((*self.name.lock().unwrap().as_ref().unwrap()).clone())))
-    }
-
-    fn kind(&self) -> Arc<Mutex<Option<reflect_Kind>>> {
-        self.kind.clone()
-    }
-
-    fn elem(&self) -> Arc<Mutex<Option<GoReflectType>>> {
-        let elem_guard = self.elem.lock().unwrap();
-        let elem = elem_guard.as_ref().expect("reflect.Type.Elem requires an element type").as_ref().clone();
-        Arc::new(Mutex::new(Some(elem)))
-    }
-
-    fn num_field(&self) -> i64 {
-        self.fields.lock().unwrap().as_ref().unwrap().len() as i64
-    }
-
-    fn field(&self, index: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<GoReflectField>>> {
-        let index = *index.lock().unwrap().as_ref().unwrap() as usize;
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
-    }
-}
-
-type GoReflectBoolGetter = Box<dyn Fn() -> bool + Send + Sync>;
-type GoReflectBoolSetter = Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> () + Send + Sync>;
-
-#[derive(Clone)]
-struct GoReflectValue {
-    typ: Arc<Mutex<Option<GoReflectType>>>,
-    fields: Arc<Mutex<Option<Vec<GoReflectValue>>>>,
-    bool_getter: Arc<Mutex<Option<GoReflectBoolGetter>>>,
-    bool_setter: Arc<Mutex<Option<GoReflectBoolSetter>>>,
-    unsupported: Option<&'static str>,
-}
-
-impl GoReflectValue {
-    fn panic_if_unsupported(&self, op: &str) {
-        if let Some(message) = self.unsupported {
-            panic!("{}: {}", op, message);
-        }
-    }
-
-    fn elem(&self) -> Arc<Mutex<Option<GoReflectValue>>> {
-        self.panic_if_unsupported("reflect.Value.Elem");
-        Arc::new(Mutex::new(Some(self.clone())))
-    }
-
-    fn r#type(&self) -> Arc<Mutex<Option<GoReflectType>>> {
-        self.panic_if_unsupported("reflect.Value.Type");
-        self.typ.clone()
-    }
-
-    fn kind(&self) -> Arc<Mutex<Option<reflect_Kind>>> {
-        self.panic_if_unsupported("reflect.Value.Kind");
-        self.typ.lock().unwrap().as_ref().unwrap().kind()
-    }
-
-    fn field(&self, index: i64) -> Arc<Mutex<Option<GoReflectValue>>> {
-        self.panic_if_unsupported("reflect.Value.Field");
-        let index = index as usize;
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
-    }
-
-    fn set<T>(&self, _value: T) {
-        self.panic_if_unsupported("reflect.Value.Set");
-        panic!("reflect.Value.Set requires typed lowering")
-    }
-
-    fn set_bool(&mut self, value: Arc<Mutex<Option<bool>>>) {
-        self.panic_if_unsupported("reflect.Value.SetBool");
-        let mut setter_guard = self.bool_setter.lock().unwrap();
-        let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
-        setter(value);
-    }
-
-    fn bool(&self) -> bool {
-        self.panic_if_unsupported("reflect.Value.Bool");
-        let getter_guard = self.bool_getter.lock().unwrap();
-        let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
-        getter()
-    }
-}
-
-fn go_reflect_tag_get(raw: &str, key: &str) -> String {
-    let prefix = format!("{}:\"", key);
-    let Some(start) = raw.find(&prefix) else {
-        return String::new();
-    };
-    let rest = &raw[start + prefix.len()..];
-    let mut value = String::new();
-    let mut escaped = false;
-    for ch in rest.chars() {
-        if escaped {
-            value.push(ch);
-            escaped = false;
-        } else if ch == '\\' {
-            escaped = true;
-        } else if ch == '"' {
-            break;
-        } else {
-            value.push(ch);
-        }
-    }
-    value
-}
-`)
-		return
-	}
-
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(`
-#[derive(Debug, Clone, Default)]
-struct GoReflectStructTag {
-    raw: Rc<RefCell<Option<String>>>,
-}
-
-impl GoReflectStructTag {
-    fn get(&self, key: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-        let raw = (*self.raw.borrow().as_ref().unwrap()).clone();
-        let key = (*key.borrow().as_ref().unwrap()).clone();
-        Rc::new(RefCell::new(Some(go_reflect_tag_get(&raw, &key))))
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-struct GoReflectField {
-    name: Rc<RefCell<Option<String>>>,
-    tag: Rc<RefCell<Option<GoReflectStructTag>>>,
-}
-
-#[derive(Debug, Clone, Default)]
-struct GoReflectType {
-    name: Rc<RefCell<Option<String>>>,
-    kind: Rc<RefCell<Option<reflect_Kind>>>,
-    elem: Rc<RefCell<Option<Box<GoReflectType>>>>,
-    fields: Rc<RefCell<Option<Vec<GoReflectField>>>>,
-}
-
-impl std::fmt::Display for GoReflectType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name.borrow().as_ref().unwrap())
-    }
-}
-
-impl PartialEq for GoReflectType {
-    fn eq(&self, other: &Self) -> bool {
-        *self.name.borrow() == *other.name.borrow() &&
-            *self.kind.borrow() == *other.kind.borrow()
-    }
-}
-
-impl Eq for GoReflectType {}
-
-impl GoReflectType {
-    fn string(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some((*self.name.borrow().as_ref().unwrap()).clone())))
-    }
-
-    fn kind(&self) -> Rc<RefCell<Option<reflect_Kind>>> {
-        self.kind.clone()
-    }
-
-    fn elem(&self) -> Rc<RefCell<Option<GoReflectType>>> {
-        let elem_guard = self.elem.borrow();
-        let elem = elem_guard.as_ref().expect("reflect.Type.Elem requires an element type").as_ref().clone();
-        Rc::new(RefCell::new(Some(elem)))
-    }
-
-    fn num_field(&self) -> i64 {
-        self.fields.borrow().as_ref().unwrap().len() as i64
-    }
-
-    fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
-        let index = *index.borrow().as_ref().unwrap() as usize;
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
-    }
-}
-
-type GoReflectBoolGetter = Box<dyn Fn() -> bool>;
-type GoReflectBoolSetter = Box<dyn FnMut(Rc<RefCell<Option<bool>>>) -> ()>;
-
-#[derive(Clone)]
-struct GoReflectValue {
-    typ: Rc<RefCell<Option<GoReflectType>>>,
-    fields: Rc<RefCell<Option<Vec<GoReflectValue>>>>,
-    bool_getter: Rc<RefCell<Option<GoReflectBoolGetter>>>,
-    bool_setter: Rc<RefCell<Option<GoReflectBoolSetter>>>,
-    unsupported: Option<&'static str>,
-}
-
-impl GoReflectValue {
-    fn panic_if_unsupported(&self, op: &str) {
-        if let Some(message) = self.unsupported {
-            panic!("{}: {}", op, message);
-        }
-    }
-
-    fn elem(&self) -> Rc<RefCell<Option<GoReflectValue>>> {
-        self.panic_if_unsupported("reflect.Value.Elem");
-        Rc::new(RefCell::new(Some(self.clone())))
-    }
-
-    fn r#type(&self) -> Rc<RefCell<Option<GoReflectType>>> {
-        self.panic_if_unsupported("reflect.Value.Type");
-        self.typ.clone()
-    }
-
-    fn kind(&self) -> Rc<RefCell<Option<reflect_Kind>>> {
-        self.panic_if_unsupported("reflect.Value.Kind");
-        self.typ.borrow().as_ref().unwrap().kind()
-    }
-
-    fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
-        self.panic_if_unsupported("reflect.Value.Field");
-        let index = index as usize;
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
-    }
-
-    fn set<T>(&self, _value: T) {
-        self.panic_if_unsupported("reflect.Value.Set");
-        panic!("reflect.Value.Set requires typed lowering")
-    }
-
-    fn set_bool(&mut self, value: Rc<RefCell<Option<bool>>>) {
-        self.panic_if_unsupported("reflect.Value.SetBool");
-        let mut setter_guard = self.bool_setter.borrow_mut();
-        let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
-        setter(value);
-    }
-
-    fn bool(&self) -> bool {
-        self.panic_if_unsupported("reflect.Value.Bool");
-        let getter_guard = self.bool_getter.borrow();
-        let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
-        getter()
-    }
-}
-
-fn go_reflect_tag_get(raw: &str, key: &str) -> String {
-    let prefix = format!("{}:\"", key);
-    let Some(start) = raw.find(&prefix) else {
-        return String::new();
-    };
-    let rest = &raw[start + prefix.len()..];
-    let mut value = String::new();
-    let mut escaped = false;
-    for ch in rest.chars() {
-        if escaped {
-            value.push(ch);
-            escaped = false;
-        } else if ch == '\\' {
-            escaped = true;
-        } else if ch == '"' {
-            break;
-        } else {
-            value.push(ch);
-        }
-    }
-    value
-}
-`)
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíë|İ:-jZ.¶›­–)Ş³W6¶vRÖ–à ¦–×÷'B€ ’&f×B  ’'6Æ–6W2  ’'7G&6öçb  ’'7G&–æw2 ¢ ¦6öç7BvõG—TæÖT†VÇW%'W7DæÖRÒ%õövõ÷G—UöæÖR  ¢òò–×÷'EG&6¶W"G&6·2v†–6‚–×÷'G2&RæVVFVBGW&–ærG&ç7–ÆF–öà§G—R–×÷'EG&6¶W"7G'V7B° –æVVG2Ö·7G&–æuÖ&ööÀ —&W6W'fVDæÖW2Ö·7G&–æuÖ&ööÀ§Ğ ¢òòæWt–×÷'EG&6¶W"7&VFW2æWr–×÷'BG&6¶W ¦gVæ2æWt–×÷'EG&6¶W"‚’¤–×÷'EG&6¶W"° —&WGW&âd–×÷'EG&6¶W'° –æVVG3¢Ö¶R†Ö·7G&–æuÖ&ööÂ’À —&W6W'fVDæÖW3¢Ö¶R†Ö·7G&–æuÖ&ööÂ’À —Ğ§Ğ ¢òòFBÖ&·2â–×÷'B2æVVFVBv—F‚&V6öà¦gVæ2†—B¤–×÷'EG&6¶W"’FB†–×÷'DæÖR7G&–ær’° –—BææVVG5¶–×÷'DæÖUÒÒG'VP§Ğ ¢òò&W6W'fTæÖRÖ&·2'W7BæÖRVÖ—GFVB–âF†—2f–ÆR6ò–×÷'G26âfö–B—Bà¦gVæ2†—B¤–×÷'EG&6¶W"’&W6W'fTæÖR†æÖR7G&–ær’° ––bæÖRÓÒ""° —&WGW&à —Ğ ––b—Bç&W6W'fVDæÖW2ÓÒæ–Â° –—Bç&W6W'fVDæÖW2ÒÖ¶R†Ö·7G&–æuÖ&ööÂ —Ğ –—Bç&W6W'fVDæÖW5¶æÖUÒÒG'VP§Ğ ¦gVæ2†—B¤–×÷'EG&6¶W"’—5&W6W'fVDæÖR†æÖR7G&–ær’&ööÂ° —&WGW&â—BÒæ–Âbb—Bç&W6W'fVDæÖW5¶æÖUĞ§Ğ ¢òòvVæW&FT–×÷'G2&WGW&ç2F†R–×÷'B7FFVÖVçG2f÷"F†Rf–ÆP¦gVæ2†—B¤–×÷'EG&6¶W"’vVæW&FT–×÷'G2‚’7G&–ær° ––bÆVâ†—BææVVG2’ÓÒ° —&WGW&â"  —Ğ  —f"–×÷'G2µ×7G&–æp  ’òò6†V6²f÷"7FC£§7–æ2–×÷'G0 —f"7–æ4–×÷'G2µ×7G&–æp ––b—BææVVG5²$&2%Ò° —7–æ4–×÷'G2ÒVæB‡7–æ4–×÷'G2Â$&2" —Ğ ––b—BææVVG5²$×WFW‚%Ò° ––b—Bä—5&W6W'fVDæÖR‚$×WFW‚"’° —7–æ4–×÷'G2ÒVæB‡7–æ4–×÷'G2Â$×WFW‚27FD×WFW‚" —ÒVÇ6R° —7–æ4–×÷'G2ÒVæB‡7–æ4–×÷'G2Â$×WFW‚" —Ğ —Ğ ––bÆVâ‡7–æ4–×÷'G2’â° ––×÷'G2ÒVæB†–×÷'G2Âf×Bå7&–çFb‚'W6R7FC£§7–æ3£§²W7Ó²"Â7G&–æw2ä¦ö–â‡7–æ4–×÷'G2Â"Â"’’ —Ğ  ’òò6†V6²f÷"7FC£§&2æB7FC£¦6VÆÂ–×÷'G0 —f"&4–×÷'G2µ×7G&–æp ––b—BææVVG5²%&2%Ò° —&4–×÷'G2ÒVæB‡&4–×÷'G2Â%&2" —Ğ ––bÆVâ‡&4–×÷'G2’â° ––×÷'G2ÒVæB†–×÷'G2Âf×Bå7&–çFb‚'W6R7FC£§&3£§²W7Ó²"Â7G&–æw2ä¦ö–â‡&4–×÷'G2Â"Â"’’ —Ğ  —f"6VÆÄ–×÷'G2µ×7G&–æp ––b—BææVVG5²%&Vd6VÆÂ%Ò° –6VÆÄ–×÷'G2ÒVæB†6VÆÄ–×÷'G2Â%&Vd6VÆÂ" —Ğ ––bÆVâ†6VÆÄ–×÷'G2’â° ––×÷'G2ÒVæB†–×÷'G2Âf×Bå7&–çFb‚'W6R7FC£¦6VÆÃ£§²W7Ó²"Â7G&–æw2ä¦ö–â†6VÆÄ–×÷'G2Â"Â"’’ —Ğ  ’òò%G&VTÖ†FWFW&Ö–æ—7F–2—FW&F–öâ÷&FW"ÂÖF6†–ærvòFW7BW‡V7FF–öç2 ––b—BææVVG5²$%G&VTÖ%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6R7FC£¦6öÆÆV7F–öç3£¤%G&VTÖ²" —Ğ  ’òòf×B–×÷'G0 —f"f×D–×÷'G2µ×7G&–æp ––b—BææVVG5²&f×C£§6VÆb%Ò° –f×D–×÷'G2ÒVæB†f×D–×÷'G2Â'6VÆb" —Ğ ––b—BææVVG5²$F—7Æ’%Ò° –f×D–×÷'G2ÒVæB†f×D–×÷'G2Â$F—7Æ’" —Ğ ––b—BææVVG5²$FV'Vr%Ò° –f×D–×÷'G2ÒVæB†f×D–×÷'G2Â$FV'Vr" —Ğ ––b—BææVVG5²$f÷&ÖGFW"%Ò° –f×D–×÷'G2ÒVæB†f×D–×÷'G2Â$f÷&ÖGFW"" —Ğ ––bÆVâ†f×D–×÷'G2’â° ––×÷'G2ÒVæB†–×÷'G2Âf×Bå7&–çFb‚'W6R7FC£¦f×C£§²W7Ó²"Â7G&–æw2ä¦ö–â†f×D–×÷'G2Â"Â"’’ —Ğ  ’òòF‡&VBæBF–ÖR–×÷'G0 ––b—BææVVG5²'F‡&VB%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6R7FC£§F‡&VC²" —Ğ ––b—BææVVG5²'F–ÖS£¤GW&F–öâ%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6R7FC£§F–ÖS£¤GW&F–öã²" —Ğ  ’òò÷F†W"–×÷'G0 ––b—BææVVG5²$W'&÷"%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6R7FC£¦W'&÷#£¤W'&÷"27FDW'&÷#²" —Ğ ––b—BææVVG5²$ç’%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6R7FC£¦ç“£¤ç“²" —Ğ ––b—BææVVG5²$÷&B%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6R7FC£¦6×£¤÷&C²" —Ğ  ’òòW‡FW&æÂ7&FR–×÷'G0 ––b—BææVVG5²&çVÓ£¤6ö×ÆW‚%Ò° ––×÷'G2ÒVæB†–×÷'G2Â'W6RçVÓ£¤6ö×ÆWƒ²" —Ğ  ’òò6÷'Bf÷"6öç6—7FVçB÷WGW@ —6Æ–6W2å6÷'B†–×÷'G2  —&WGW&â7G&–æw2ä¦ö–â†–×÷'G2Â%Æâ"’²%Æâ §Ğ ¢òò†VÇW%G&6¶W"G&6·2v†–6‚†VÇW"gVæ7F–öç2&RæVVFV@§G—R†VÇW%G&6¶W"7G'V7B° –æVVG4f÷&ÖDÖ&ööÀ –æVVG4f÷&ÖE6Æ–6R&ööÀ –æVVG4f÷&ÖE6Æ–6Uw&VEfÇVW2&ööÀ –æVVG4f÷&ÖE6Æ–6Uw&VE7G&–ævW"&ööÀ –æVVG4f÷&ÖDæW7FVE6Æ–6R&ööÀ –æVVG4f÷&ÖDæW7FVE6Æ–6Uw&VB&ööÀ –æVVG4f÷&ÖDæW7FVEö–çFW%6Æ–6R&ööÀ –æVVG4f÷&ÖDæW7FVEö–çFW%6Æ–6Uw&VB&ööÀ –æVVG4f÷&ÖDç’&ööÀ –æVVG4f÷&ÖDç•6Æ–6R&ööÀ –æVVG4f÷&ÖDç”æW7FVB&ööÀ –æVVG4ç”W&ööÀ –æVVG4ç”6ÆöæR&ööÀ –æVVG56–ÆVçEæ–46F6‚&ööÀ –æVVG5æ–5&V6÷fW"&ööÀ –æVVG4võfÇVT6ÆöæR&ööÀ –æVVG4võG—U&Ôf–VÆD6ÆöæR&ööÀ –æVVG4vô6ö×&&ÆR&ööÀ –æVVG4vô6öç7E7G$W&ööÀ –æVVG4vôç•G—TÖWFFF&ööÀ –æVVG4VÖ&VFFVD÷væW%&Vv—7G'’&ööÀ –æVVG4vô'—FU6WVVæ6R&ööÀ –æVVG4vô–çFVvW"&ööÀ –æVVG4vô6†ææVÂ&ööÀ –æVVG5v—Dw&÷W&ööÀ –æVVG4vô×WFW‚&ööÀ –æVVG4võ%t×WFW‚&ööÀ –æVVG4vôöæ6R&ööÀ –æVVG4vôFöÖ–5ö–çFW"&ööÀ –æVVG4võG—TæÖR&ööÀ –æVVG4vôW'&÷$6†–â&ööÀ –æVVG4võ7&–çFb&ööÀ –æVVG4võ7&–çFe7&VB&ööÀ –æVVG4&6ScB&ööÀ –æVVG56†#Sb&ööÀ –æVVG4†W„f÷&ÖB&ööÀ –æVVG57G&6öçdf÷&ÖB&ööÀ –æVVG5W&Â&ööÀ –æVVG5&VvW‡&ööÀ –æVVG4§6öäW66R&ööÀ –æVVG4÷4f–ÆR&ööÀ –æVVG4÷4&w2&ööÀ –æVVG56Æ–6TVÆVÕG"&ööÀ –æVVG4võF–ÖR&ööÀ –æVVG4võF–ÖW"&ööÀ –æVVG4vôgFW"&ööÀ –æVVG4võF–6¶W"&ööÀ –æVVG4võF–6²&ööÀ –æVVG4vô6öçFW‡B&ööÀ –æVVG4võ&æB&ööÀ –æVVG5&VfÆV7B&ööÀ –æVVG4vô‡GG&W7öç6R&ööÀ –æVVG4võG$¶W’&ööÀ –æVVG4vôç•G$¶W’&ööÀ ’òòöÖ—Dvõ6Æ–6R—26WBöâF†R6÷’F†BÆVfW2÷WBF†R†VÇW'26†&V@ ’òò7GV"7&FR&÷f–FW3²võ6Æ–6R—2öæRöbF†VÒà –öÖ—Dvõ6Æ–6R&ööÀ –ç”6ÆöæUG—W2Ö·7G&–æuÖ&ööÀ ’òòç•G—TæÖW2Ö2F†R'W7B–ÆöBG—RöbfÇVR&÷†VB–çFòâV×G ’òò–çFW&f6RFòF†RæÖRvòw2UB&–çG2f÷"—Bà –ç•G—TæÖW2Ö·7G&–æu×7G&–æp ’òòç”f÷&ÖD&×2Ö2F†R6ÖR–ÆöBG—W2Fò†÷rf÷&ÖEöç’&–çG0 ’òòF†VÒà –ç”f÷&ÖD&×2Ö·7G&–æuÖç”f÷&ÖD&Ğ§Ğ ¢òòç”f÷&ÖD&Ò—2öæR66Röbf÷&ÖEöç“¢†÷rFò&–çBfÇVRöböæRG—P¢òòF†BF†R&öw&Ò&÷†W2–çFòâV×G’–çFW&f6Rà§G—Rç”f÷&ÖD&Ò7G'V7B° ’òòW‡"—2'W7BW‡&W76–öâöbG—R7G&–ærâ—Bf÷&ÖG2bÂ&VfW&Væ6RFğ ’òòF†R&÷†VB–ÆöBÂv—F‚F†R†VÇW"F†RG—VB&–çBF‚W6W2f÷" ’òòfÇVRöbF†R6ÖRvòG—Rà –W‡"7G&–æp –æVVG4f÷&ÖDÖ&ööÀ –æVVG4f÷&ÖE6Æ–6R&ööÀ ’òòæVVG4f÷&ÖEö–çFW"6—2W‡"6ÆÇ2võöf÷&ÖEöç•÷ö–çFW"à –æVVG4f÷&ÖEö–çFW"&ööÀ ’òòFW‡B6—2F†RfÇVR†27G&–ær÷"âW'&÷"ÖWF†öBâf×B&–çG27V6‚ ’òòfÇVR2F†RöæRFW‡BF†RÖWF†öB&WGW&ç2Â6òv–GF‚Â&V6—6–öâÂW ’òòæBW‚Ç’FòF†BFW‡BæBæ÷BFòF†Rf–VÆG2öbF†RfÇVRà —FW‡B&ööÀ ’òòæÖVD&6–26—2F†RfÇVR—2æWwG—R&÷VæBöæR&6–2fÇVRÂ'G—P ’òòÆWfVÂ–çB"âf÷&ÖB¶æ÷vâöæÇ’B'VâF–ÖRf÷&ÖG2F†BfÇVRf÷"ç ’òòfW&"F†RG—Rw2÷vâFW‡BFöW2æ÷BF¶Rà –æÖVD&6–2&ööÀ§Ğ §f"vVæW&F–æuV&Æ–4†VÇW'2&ööÀ ¦gVæ2†‡B¤†VÇW%G&6¶W"’v—F†÷WE6†&VE7FFÆ–$†VÇW'2‚’¤†VÇW%G&6¶W"° ––b‡BÓÒæ–Â° —&WGW&âæ–À —Ğ –†VÇW$6÷’£Ò¦‡@ –†VÇW$6÷’ææVVG4vô6†ææVÂÒfÇ6P –†VÇW$6÷’ææVVG4vô6öçFW‡BÒfÇ6P –†VÇW$6÷’ææVVG4võF–ÖRÒfÇ6P ––b†VÇW$6÷’ææVVG4võfÇVT6ÆöæRbbÆVâ††VÇW$6÷’æç”6ÆöæUG—W2’ÓÒ° –†VÇW$6÷’ææVVG4ç”6ÆöæRÒfÇ6P —Ğ –†VÇW$6÷’ææVVG4võfÇVT6ÆöæRÒfÇ6P –†VÇW$6÷’ææVVG4võG—U&Ôf–VÆD6ÆöæRÒfÇ6P –†VÇW$6÷’ææVVG4vô6ö×&&ÆRÒfÇ6P –†VÇW$6÷’ææVVG4vôç•G—TÖWFFFÒfÇ6P –†VÇW$6÷’ææVVG4VÖ&VFFVD÷væW%&Vv—7G'’ÒfÇ6P –†VÇW$6÷’ææVVG4vôç•G$¶W’ÒfÇ6P –†VÇW$6÷’æöÖ—Dvõ6Æ–6RÒG'VP —&WGW&âf†VÇW$6÷§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’v—F†÷WDvõ6Æ–6R‚’¤†VÇW%G&6¶W"° ––b‡BÓÒæ–Â° —&WGW&âd†VÇW%G&6¶W'¶öÖ—Dvõ6Æ–6S¢G'VWĞ —Ğ –†VÇW$6÷’£Ò¦‡@ –†VÇW$6÷’æöÖ—Dvõ6Æ–6RÒG'VP —&WGW&âf†VÇW$6÷§Ğ ¢òòvõ6Æ–6R&W÷'G2v†WF†W"F†—2G&6¶W"w2†VÇW'2FVf–æRvõ6Æ–6Rà¦gVæ2†‡B¤†VÇW%G&6¶W"’võ6Æ–6R‚’&ööÂ° —&WGW&â‡BÒæ–Âbb‡BæöÖ—Dvõ6Æ–6Rbbvõ6Æ–6TÖöFTVæ&ÆVB‚§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’6†&VE7FFÆ–$†VÇW'4öæÇ’‚’¤†VÇW%G&6¶W"° ––b‡BÓÒæ–Â° —&WGW&âæ–À —Ğ –†VÇW$6÷’£Òd†VÇW%G&6¶W'·Ğ ––b‡BææVVG4vô6†ææVÂÇÂ‡BææVVG4vô6öçFW‡B° –†VÇW$6÷’ææVVG4vô6†ææVÂÒG'VP —Ğ ––b‡BææVVG4vô6öçFW‡B° –†VÇW$6÷’ææVVG4vô6öçFW‡BÒG'VP —Ğ ––b‡BææVVG4võF–ÖR° –†VÇW$6÷’ææVVG4võF–ÖRÒG'VP —Ğ ––b‡BææVVG4võfÇVT6ÆöæR° –†VÇW$6÷’ææVVG4ç”6ÆöæRÒG'VP –†VÇW$6÷’ææVVG4võfÇVT6ÆöæRÒG'VP —Ğ ––b‡BææVVG4võG—U&Ôf–VÆD6ÆöæR° –†VÇW$6÷’ææVVG4võG—U&Ôf–VÆD6ÆöæRÒG'VP —Ğ ––b‡BææVVG4vô6ö×&&ÆR° –†VÇW$6÷’ææVVG4vô6ö×&&ÆRÒG'VP —Ğ ––b‡BææVVG4vôç•G—TÖWFFF° –†VÇW$6÷’ææVVG4vôç•G—TÖWFFFÒG'VP —Ğ ––b‡BææVVG4VÖ&VFFVD÷væW%&Vv—7G'’° –†VÇW$6÷’ææVVG4VÖ&VFFVD÷væW%&Vv—7G'’ÒG'VP —Ğ ––b‡BææVVG4võ%t×WFW‚° –†VÇW$6÷’ææVVG4võ%t×WFW‚ÒG'VP —Ğ ––b‡BææVVG4vôç•G$¶W’° –†VÇW$6÷’ææVVG4vôç•G$¶W’ÒG'VP —Ğ —&WGW&â†VÇW$6÷§Ğ ¢òòvVæW&FT†VÇW'2&WGW&ç2F†R†VÇW"gVæ7F–öâFVf–æ—F–öç0¦gVæ2†‡B¤†VÇW%G&6¶W"’vVæW&FT†VÇW'2‚’7G&–ær° —f"&W7VÇB7G&–æw2ä'V–ÆFW   ––b‡Bævõ6Æ–6R‚’° –vVæW&FTvõ6Æ–6T†VÇW"‚g&W7VÇB —Ğ  ’òò–â&öw&Òöb6WfW&Â6¶vW2ÂV6‚†VÇW"Ç6ò6'&–W2F†R66W0 ’òòF†R÷F†W"6¶vW2æVVB—BFò†fRà –ç”6ÆöæUG—W2Âç”f÷&ÖD&×2Âç•G—TæÖW2£Ò‡Bæç”6ÆöæUG—W2Â‡Bæç”f÷&ÖD&×2Â‡Bæç•G—TæÖW0 ––b6†&VB£Ò7W'&VçE&öw&Ôç”66W3²6†&VBÒæ–Â° –ç”6ÆöæUG—W2Âç”f÷&ÖD&×2Âç•G—TæÖW2Ò6†&VBæ66W4f÷"†‡B —Ğ  ’òòf÷&ÖEöç’&–çG2&÷†VB6Æ–6W2æBÖ2F‡&÷Vv‚F†RG—VBf÷&ÖGFW'2À ’òò6ò—BæVVG2F†VÒWfVâv†VâæòG—VB&–çB6—FR6¶VBf÷"F†VÒà –æVVG4f÷&ÖDç•ö–çFW"£ÒfÇ6P ––b‡BææVVG4f÷&ÖDç’° –f÷"òÂ&Ò£Ò&ævRç”f÷&ÖD&×2° –‡BææVVG4f÷&ÖDÖÒ‡BææVVG4f÷&ÖDÖÇÂ&ÒææVVG4f÷&ÖDÖ  –‡BææVVG4f÷&ÖE6Æ–6RÒ‡BææVVG4f÷&ÖE6Æ–6RÇÂ&ÒææVVG4f÷&ÖE6Æ–6P –æVVG4f÷&ÖDç•ö–çFW"ÒæVVG4f÷&ÖDç•ö–çFW"ÇÂ&ÒææVVG4f÷&ÖEö–çFW  —Ğ —Ğ ––bæVVG4f÷&ÖDç•ö–çFW"° –vVæW&FTç•ö–çFW$f÷&ÖGFW"‚g&W7VÇB —Ğ  ––b‡BææVVG4f÷&ÖDÖ° –vVæW&FTÖf÷&ÖGFW"‚g&W7VÇB —Ğ  ––b‡BææVVG4f÷&ÖE6Æ–6R° –vVæW&FU6Æ–6Tf÷&ÖGFW"‚g&W7VÇBÂ‡BææVVG4f÷&ÖE6Æ–6Uw&VEfÇVW2Â‡BææVVG4f÷&ÖE6Æ–6Uw&VE7G&–ævW" —Ğ  ––b‡BææVVG4f÷&ÖDæW7FVE6Æ–6R° –vVæW&FTæW7FVE6Æ–6Tf÷&ÖGFW"‚g&W7VÇB —Ğ  ––b‡BææVVG4f÷&ÖDæW7FVE6Æ–6Uw&VB° –vVæW&FTæW7FVE6Æ–6Uw&VDf÷&ÖGFW"‚g&W7VÇB —Ğ  ––b‡BææVVG4f÷&ÖDæW7FVEö–çFW%6Æ–6R° –vVæW&FTæW7FVEö–çFW%6Æ–6Tf÷&ÖGFW"‚g&W7VÇB —Ğ  ––b‡BææVVG4f÷&ÖDæW7FVEö–çFW%6Æ–6Uw&VB° –vVæW&FTæW7FVEö–çFW%6Æ–6Uw&VDf÷&ÖGFW"‚g&W7VÇB —Ğ  ––b‡BææVVG4f÷&ÖDç’° ’òòf÷&ÖEöç•÷6Æ–6R&–çG2—G2VÆVÖVçG22æW7FVBfÇVW2ÂæBöæÇ’ ’òòö–çFW"66RÖ¶W2F†BF–ffW"g&öÒf÷&ÖEöç’à –æVVG4æW7FVDVçG'’£Ò‡BææVVG4f÷&ÖDç”æW7FVBÇÂ†æVVG4f÷&ÖDç•ö–çFW"bb‡BææVVG4f÷&ÖDç•6Æ–6R –vVæW&FTç”f÷&ÖGFW"‚g&W7VÇBÂç”f÷&ÖD&×2ÂæVVG4f÷&ÖDç•ö–çFW"ÂæVVG4æW7FVDVçG'’ —Ğ  ––b‡BææVVG4f÷&ÖDç•6Æ–6R° –vVæW&FTç•6Æ–6Tf÷&ÖGFW"‚g&W7VÇBÂæVVG4f÷&ÖDç•ö–çFW" —Ğ  ––b‡BææVVG4ç”W° –vVæW&FTç”WVÆ—G’‚g&W7VÇB —Ğ  ––b‡BææVVG4ç”6ÆöæR° –vVæW&FTç”6ÆöæR‚g&W7VÇBÂç”6ÆöæUG—W2 —Ğ  ––b‡BææVVG56–ÆVçEæ–46F6‚° –vVæW&FU6–ÆVçEæ–46F6‚‚g&W7VÇB —Ğ  ––b‡BææVVG5æ–5&V6÷fW"° –vVæW&FUæ–5&V6÷fW$†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võfÇVT6ÆöæR° –vVæW&FTvõfÇVT6ÆöæR‚g&W7VÇB —Ğ  ––b‡BææVVG4võG—U&Ôf–VÆD6ÆöæR° –vVæW&FTvõG—U&Ôf–VÆD6ÆöæR‚g&W7VÇB —Ğ  ––b‡BææVVG4vô6ö×&&ÆR° –vVæW&FTvô6ö×&&ÆR‚g&W7VÇB —Ğ  ––b‡BææVVG4vô6öç7E7G$W° –vVæW&FTvô6öç7E7G$W‚g&W7VÇB —Ğ  ––b‡BææVVG4vôç•G—TÖWFFF° –vVæW&FTvôç•G—TÖWFFF‚g&W7VÇB —Ğ  ––b‡BææVVG4VÖ&VFFVD÷væW%&Vv—7G'’° –vVæW&FTVÖ&VFFVD÷væW%&Vv—7G'’‚g&W7VÇB —Ğ  ––b‡BææVVG4vô'—FU6WVVæ6R° –vVæW&FTvô'—FU6WVVæ6R‚g&W7VÇB —Ğ  ––b‡BææVVG4vô–çFVvW"° –vVæW&FTvô–çFVvW"‚g&W7VÇB —Ğ  ––b‡BææVVG4vô6†ææVÂ° –vVæW&FTvô6†ææVÄ†VÇW"‚g&W7VÇBÂ‡BææVVG4võG—U&Ôf–VÆD6ÆöæR —Ğ  ––b‡BææVVG5v—Dw&÷W° –vVæW&FUv—Dw&÷W†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4vô×WFW‚° –vVæW&FTvô×WFW„†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võ%t×WFW‚° –vVæW&FTvõ%t×WFW„†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4vôöæ6R° –vVæW&FTvôöæ6T†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4vôFöÖ–5ö–çFW"° –vVæW&FTvôFöÖ–5ö–çFW$†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võG—TæÖR° –vVæW&FTvõG—TæÖT†VÇW"‚g&W7VÇBÂç•G—TæÖW2 —Ğ  ––b‡BææVVG4vôW'&÷$6†–â° –vVæW&FTvôW'&÷$6†–ä†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võ7&–çFb° –vVæW&FTvõ7&–çFb‚g&W7VÇBÂ‡BææVVG4võ7&–çFe7&VBÂç”f÷&ÖD&×2 —Ğ  ––b‡BææVVG4&6ScB° –vVæW&FT&6ScD†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG56†#Sb° –vVæW&FU6†#Sd†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4†W„f÷&ÖB° –vVæW&FT†W„f÷&ÖD†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG57G&6öçdf÷&ÖB° –vVæW&FU7G&6öçdf÷&ÖD†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG5W&Â° –vVæW&FUW&Ä†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG5&VvW‡° –vVæW&FU&VvW‡†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4§6öäW66R° –vVæW&FT§6öäW66T†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4÷4f–ÆR° –vVæW&FT÷4f–ÆT†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4÷4&w2° –vVæW&FT÷4&w4†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG56Æ–6TVÆVÕG"° –vVæW&FU6Æ–6TVÆVÕG$†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võF–ÖR° –vVæW&FTvõF–ÖT†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võF–ÖW"° –vVæW&FTvõF–ÖW$†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4vôgFW"° –vVæW&FTvôgFW$†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võF–6²° –vVæW&FTvõF–6´†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võF–6¶W"° –vVæW&FTvõF–6¶W$†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4vô6öçFW‡B° –vVæW&FTvô6öçFW‡D†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võ&æB° –vVæW&FTvõ&æD†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG5&VfÆV7B° –vVæW&FU&VfÆV7D†VÇW"‚g&W7VÇB —Ğ  ––b‡BææVVG4võG$¶W’° –vVæW&FTvõG$¶W”†VÇW"‚g&W7VÇBÂ$vôÆö6ÅG$¶W’"Â‡BææVVG56Æ–6TVÆVÕG" —Ğ ––b‡BææVVG4vôç•G$¶W’° –vVæW&FTvôç•G$¶W”†VÇW"‚g&W7VÇB —Ğ  —&WGW&âvõ6Æ–6T†VÇW%FW‡B‡&W7VÇBå7G&–ær‚’§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’†4ç”öÖ—GF–æu6†&VE7FFÆ–$†VÇW'2‚’&ööÂ° –f–ÇFW&VB£Ò‡Bçv—F†÷WE6†&VE7FFÆ–$†VÇW'2‚ —&WGW&âf–ÇFW&VBÒæ–Âbbf–ÇFW&VBä†4ç’‚§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’†4ç’‚’&ööÂ° —&WGW&â‡BÒæ–Âbb†‡Bævõ6Æ–6R‚’ÇÀ –‡BææVVG4f÷&ÖDÖÇÀ –‡BææVVG4f÷&ÖE6Æ–6RÇÀ –‡BææVVG4f÷&ÖDç’ÇÀ –‡BææVVG4f÷&ÖDç•6Æ–6RÇÀ –‡BææVVG4ç”WÇÀ –‡BææVVG4ç”6ÆöæRÇÀ –‡BææVVG56–ÆVçEæ–46F6‚ÇÀ –‡BææVVG5æ–5&V6÷fW"ÇÀ –‡BææVVG4võfÇVT6ÆöæRÇÀ –‡BææVVG4võG—U&Ôf–VÆD6ÆöæRÇÀ –‡BææVVG4vô6ö×&&ÆRÇÀ –‡BææVVG4vô6öç7E7G$WÇÀ –‡BææVVG4vôç•G—TÖWFFFÇÀ –‡BææVVG4VÖ&VFFVD÷væW%&Vv—7G'’ÇÀ –‡BææVVG4vô'—FU6WVVæ6RÇÀ –‡BææVVG4vô–çFVvW"ÇÀ –‡BææVVG4vô6†ææVÂÇÀ –‡BææVVG5v—Dw&÷WÇÀ –‡BææVVG4vô×WFW‚ÇÀ –‡BææVVG4võ%t×WFW‚ÇÀ –‡BææVVG4vôöæ6RÇÀ –‡BææVVG4vôFöÖ–5ö–çFW"ÇÀ –‡BææVVG4võG—TæÖRÇÀ –‡BææVVG4vôW'&÷$6†–âÇÀ –‡BææVVG4&6ScBÇÀ –‡BææVVG56†#SbÇÀ –‡BææVVG4†W„f÷&ÖBÇÀ –‡BææVVG57G&6öçdf÷&ÖBÇÀ –‡BææVVG5W&ÂÇÀ –‡BææVVG5&VvW‡ÇÀ –‡BææVVG4§6öäW66RÇÀ –‡BææVVG4÷4f–ÆRÇÀ –‡BææVVG56Æ–6TVÆVÕG"ÇÀ –‡BææVVG4võF–ÖRÇÀ –‡BææVVG4võF–ÖW"ÇÀ –‡BææVVG4vôgFW"ÇÀ –‡BææVVG4võF–6¶W"ÇÀ –‡BææVVG4võF–6²ÇÀ –‡BææVVG4vô6öçFW‡BÇÀ –‡BææVVG4võ&æBÇÀ –‡BææVVG5&VfÆV7BÇÀ –‡BææVVG4vô‡GG&W7öç6RÇÀ –‡BææVVG4võG$¶W’ÇÀ –‡BææVVG4vôç•G$¶W’§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’vVæW&FT†VÇW$ÖöGVÆR‚’7G&–ær° —&WGW&â‡BævVæW&FT†VÇW$ÖöGVÆR†fÇ6R§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’vVæW&FT†VÇW$ÖöGVÆTöÖ—GF–æu6†&VE7FFÆ–$†VÇW'2‚’7G&–ær° —&WGW&â‡Bçv—F†÷WE6†&VE7FFÆ–$†VÇW'2‚’ævVæW&FT†VÇW$ÖöGVÆR†fÇ6R§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’vVæW&FU6†&VE7FFÆ–$†VÇW$ÖöGVÆR‚’7G&–ær° —&WGW&â‡Bç6†&VE7FFÆ–$†VÇW'4öæÇ’‚’ævVæW&FT†VÇW$ÖöGVÆR‡G'VR§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’vVæW&FT†VÇW$ÖöGVÆR‡V&Æ–4†VÇW'2&ööÂ’7G&–ær° ––b‡BÓÒæ–Â° —&WGW&â"  —Ğ ––b‡Bä†4ç’‚’° —&WGW&â"  —Ğ  ––×÷'G2£ÒæWt–×÷'EG&6¶W"‚ –†VÇW$6÷’£Ò¦‡@ –f–ÆU7FFR£ÒæWtf–ÆU7FFR†–×÷'G2Âf†VÇW$6÷’Âæ–Â —&VçD7G‚£ÒvWEG&ç7–ÆT6öçFW‡B‚ —&WeV&Æ–4†VÇW'2£ÒvVæW&F–æuV&Æ–4†VÇW'0 –vVæW&F–æuV&Æ–4†VÇW'2ÒV&Æ–4†VÇW'0 –FVfW"gVæ2‚’° –vVæW&F–æuV&Æ–4†VÇW'2Ò&WeV&Æ–4†VÇW'0 —Ò‚ •6WEG&ç7–ÆT6öçFW‡B‚eG&ç7–ÆT6öçFW‡G° ”f–ÆS¢f–ÆU7FFRÀ ”–×÷'G3¢–×÷'G2À ”†VÇW'3¢f†VÇW$6÷’À —Ò –†VÇW'57G"£Ò†VÇW$6÷’ävVæW&FT†VÇW'2‚ •6WEG&ç7–ÆT6öçFW‡B‡&VçD7G‚  —f"÷WGWB7G&–æw2ä'V–ÆFW  ––×÷'G57G"£Ò–×÷'G2ävVæW&FT–×÷'G2‚ –÷WGWBåw&—FU7G&–ær†–×÷'G57G" ––b–×÷'G57G"Ò""bb†VÇW'57G"Ò""° –÷WGWBåw&—FU7G&–ær‚%Æâ" —Ğ –÷WGWBåw&—FU7G&–ær††VÇW'57G" —&WGW&â÷WGWBå7G&–ær‚§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’–×÷'DæÖW4öÖ—GF–æu6†&VE7FFÆ–$†VÇW'2‚’µ×7G&–ær° —&WGW&â‡Bçv—F†÷WE6†&VE7FFÆ–$†VÇW'2‚’ä–×÷'DæÖW2‚§Ğ ¦gVæ2†‡B¤†VÇW%G&6¶W"’–×÷'DæÖW2‚’µ×7G&–ær° ––b‡BÓÒæ–Â° —&WGW&âæ–À —Ğ —6VVâ£ÒÖ¶R†Ö·7G&–æuÖ&ööÂ –FB£ÒgVæ2†æÖW2ââç7G&–ær’° –f÷"òÂæÖR£Ò&ævRæÖW2° ––bæÖRÒ""° —6VVå¶æÖUÒÒG'VP —Ğ —Ğ —Ğ  ––b‡Bævõ6Æ–6R‚’° –FB†võ6Æ–6T–×÷'DæÖW2âââ —Ğ ––b‡BææVVG4f÷&ÖDÖ° –FB‚&f÷&ÖEöÖ" —Ğ ––b‡BææVVG4f÷&ÖE6Æ–6R° –FB‚&f÷&ÖE÷6Æ–6R"Â&f÷&ÖE÷6Æ–6U÷fÇVW2"Â&f÷&ÖE÷6Æ–6U÷w&VB" ––b‡BææVVG4f÷&ÖE6Æ–6Uw&VEfÇVW2° –FB‚&f÷&ÖE÷6Æ–6U÷w&VE÷fÇVW2" —Ğ ––b‡BææVVG4f÷&ÖE6Æ–6Uw&VE7G&–ævW"° –FB‚&f÷&ÖE÷6Æ–6U÷w&VE÷7G&–ævW""Â&f÷&ÖE÷6Æ–6U÷w&VE÷7G&–ævW%÷fÇVW2" —Ğ —Ğ ––b‡BææVVG4f÷&ÖDæW7FVE6Æ–6R° –FB‚&f÷&ÖEöæW7FVE÷6Æ–6R" —Ğ ––b‡BææVVG4f÷&ÖDæW7FVE6Æ–6Uw&VB° –FB‚&f÷&ÖEöæW7FVE÷6Æ–6U÷w&VB"Â&f÷&ÖE÷6Æ–6U÷w&VE÷fÇVW2" —Ğ ––b‡BææVVG4f÷&ÖDæW7FVEö–çFW%6Æ–6R° –FB‚&f÷&ÖEöæW7FVE÷ö–çFW%÷6Æ–6R"Â&f÷&ÖE÷6Æ–6U÷fÇVW2" —Ğ ––b‡BææVVG4f÷&ÖDæW7FVEö–çFW%6Æ–6Uw&VB° –FB‚&f÷&ÖEöæW7FVE÷ö–çFW%÷6Æ–6U÷w&VB"Â&f÷&ÖE÷6Æ–6U÷w&VE÷fÇVW2" —Ğ ––b‡BææVVG4f÷&ÖDç’° –FB‚&f÷&ÖEöç’" —Ğ ––b‡BææVVG4f÷&ÖDç•6Æ–6R° –FB‚&f÷&ÖEöç•÷6Æ–6R"Â&f÷&ÖEöç•÷f&–F–2" —Ğ ––b‡BææVVG4f÷&ÖDç”æW7FVB° –FB‚&f÷&ÖEöç•öæW7FVB" —Ğ ––b‡BææVVG4ç”W° –FB‚&võöç•öW" —Ğ ––b‡BææVVG4ç”6ÆöæR° –FB‚&võöç•ö6ÆöæR" —Ğ ––b‡BææVVG56–ÆVçEæ–46F6‚° –FB‚&võ÷6–ÆVçEö6F6…÷Vçv–æB" —Ğ ––b‡BææVVG5æ–5&V6÷fW"° –FB‚&võ÷&V6÷fW""Â&võ÷&W7VÖU÷Vç&V6÷fW&VE÷æ–2"Â&võ÷7F÷&U÷æ–5÷–ÆöB"Â&võ÷'VçF–ÖUöW'&÷%÷FW‡B" —Ğ ––b‡BææVVG4võfÇVT6ÆöæR° –FB‚$võfÇVT6ÆöæR" —Ğ ––b‡BææVVG4võG—U&Ôf–VÆD6ÆöæR° –FB‚$võG—U&Ôf–VÆD6ÆöæR" —Ğ ––b‡BææVVG4vô6ö×&&ÆR° –FB‚$vô6ö×&&ÆR" —Ğ ––b‡BææVVG4vô6öç7E7G$W° –FB‚&võö6öç7E÷7G%öW" —Ğ ––b‡BææVVG4vôç•G—TÖWFFF° –FB‚$vôç•G—TÖWFFF"Â&võöç•÷G—UöÖWFFF"Â&võö&÷…öç•÷v—F…öÖWFFF"Â&võ÷&Vv—7FW%öç•÷G—R"Â&võ÷&Vv—7FW%öç•÷G—U÷v—F…öVÆVÒ"Â&võ÷&Vv—7FW%öç•÷fÇVUöÖWFFF" —Ğ ––b‡BææVVG4VÖ&VFFVD÷væW%&Vv—7G'’° –FB‚&võöÆöö·WöVÖ&VFFVEö÷væW""Â&võ÷&Vv—7FW%öVÖ&VFFVEö÷væW"" —Ğ ––b‡BææVVG4vô'—FU6WVVæ6R° –FB‚$vô'—FU6WVVæ6R" —Ğ ––b‡BææVVG4vô–çFVvW"° –FB‚$vô–çFVvW""Â&võö–çFVvW%ög&öÕö“#‚"Â&võö–çFVvW%ö67B"Â&võö–çFVvW%öFEööæR"Â&võö–çFVvW%÷7V%ööæR" —Ğ ––b‡BææVVG4vô6†ææVÂ° –FB‚$vô6†ææVÂ" —Ğ ––b‡BææVVG5v—Dw&÷W° –FB‚%v—Dw&÷W" —Ğ ––b‡BææVVG4vô×WFW‚° –FB‚$vô×WFW‚" —Ğ ––b‡BææVVG4võ%t×WFW‚° –FB‚$võ%t×WFW‚" —Ğ ––b‡BææVVG4vôöæ6R° –FB‚$vôöæ6R" —Ğ ––b‡BææVVG4vôFöÖ–5ö–çFW"° –FB‚$vôFöÖ–5ö–çFW"" —Ğ ––b‡BææVVG4võG—TæÖR° –FB†võG—TæÖT†VÇW%'W7DæÖR —Ğ ––b‡BææVVG4vôW'&÷$6†–â° –FB‚$võw&W'&÷""Â&võöW'&÷%÷w&"Â&võöW'&÷'5ö¦ö–â"Â&võöW'&÷%ö6†–å÷f—6—B"Â&võöW'&÷'5÷Vçw&"Â&võöW'&÷'5ö—2" —Ğ ––b‡BææVVG4võ7&–çFb° –FB‚&võ÷7&–çFb" —Ğ ––b‡BææVVG4võ7&–çFe7&VB° –FB‚&võ÷7&–çFe÷7&VB" —Ğ ––b‡BææVVG4&6ScB° –FB‚&võö&6ScEöVæ6öFR"Â&võö&6ScEöFV6öFR"Â&võö&6ScE÷fÇVR" —Ğ ––b‡BææVVG56†#Sb° –FB‚&võ÷6†#Se÷7VÓ#Sb" —Ğ ––b‡BææVVG4†W„f÷&ÖB° –FB‚&võöf÷&ÖEö†W…ö'—FW2" —Ğ ––b‡BææVVG57G&6öçdf÷&ÖB° –FB‚&võ÷7G&6öçeöf÷&ÖEö–çB"Â&võ÷7G&6öçeöf÷&ÖEöfÆöB" —Ğ ––b‡BææVVG5W&Â° –FB‚$võW&Â"Â&võ÷W&Å÷'6R" —Ğ ––b‡BææVVG5&VvW‡° –FB‚$võ&VvW‡"Â&võ÷&VvW‡öf–æEöÆÅ÷7G&–ær" —Ğ ––b‡BææVVG4§6öäW66R° –FB‚&võö§6öåöW66R" —Ğ ––b‡BææVVG4÷4f–ÆR° –FB‚$vôf–ÆR" —Ğ ––b‡BææVVG56Æ–6TVÆVÕG"° –FB‚$võG""Â$võ6Æ–6TVÆVÕG""Â$võ6Æ–6TVÆVÕ&Vb"Â$võ6Æ–6TVÆVÔ×WE&Vb"Â$vô'&”VÆVÕG""Â$vô'&”VÆVÕ&Vb"Â$vô'&”VÆVÔ×WE&Vb" —Ğ ––b‡BææVVG4võF–ÖR° –FB‚$võF–ÖR"Â&võ÷F–ÖUö6—f–Åög&öÕöF—2" —Ğ ––b‡BææVVG4võF–ÖW"° –FB‚$võF–ÖW""Â&võöæWu÷F–ÖW""Â&võögFW%ögVæ2" —Ğ ––b‡BææVVG4vôgFW"° –FB‚&võö6†ææVÅögFW"" —Ğ ––b‡BææVVG4võF–6¶W"° –FB‚$võF–6¶W""Â&võöæWu÷F–6¶W"" —Ğ ––b‡BææVVG4võF–6²° –FB‚&võ÷F–6²" —Ğ ––b‡BææVVG4vô6öçFW‡B° –FB‚$vô6öçFW‡B"Â$vô6æ6VÄgVæ2"Â$vô6æ6VÄ6W6TgVæ2" —Ğ ––b‡BææVVG4võ&æB° –FB‚&võ÷&æE÷6VVB"Â&võ÷&æEö–çFâ"Â&võ÷&æEöfÆöCcB"Â&võ÷&æE÷7FFR"Â&võ÷&æEöæW‡E÷ScB" —Ğ ––b‡BææVVG5&VfÆV7B° –FB‚$võ&VfÆV7E7G'V7EFr"Â$võ&VfÆV7Df–VÆB"Â$võ&VfÆV7EG—R"Â$võ&VfÆV7EfÇVR"Â$võ&VfÆV7D&ööÄvWGFW""Â$võ&VfÆV7D&ööÅ6WGFW""Â&võ÷&VfÆV7E÷FuövWB" —Ğ ––b‡BææVVG4võG$¶W’° –FB‚$vôÆö6ÅG$¶W’" —Ğ ––b‡BææVVG4vôç•G$¶W’° –FB‚$vôç•G$¶W’" —Ğ  –æÖW2£ÒÖ¶R…µ×7G&–ærÂÂÆVâ‡6VVâ’ –f÷"æÖR£Ò&ævR6VVâ° –æÖW2ÒVæB†æÖW2ÂæÖR —Ğ —6Æ–6W2å6÷'B†æÖW2 —&WGW&âæÖW0§Ğ ¦gVæ2vVæW&FTvõG$¶W”†VÇW"†÷WB§7G&–æw2ä'V–ÆFW"ÂæÖR7G&–ærÂ–æ6ÇVFU6Æ–6TVÆVÕG"&ööÂ’° ––bæVVG46öæ7W'&VçEw&W"‚’° •G&6´–×÷'B‚$&2" •G&6´–×÷'B‚$×WFW‚" ––b–æ6ÇVFU6Æ–6TVÆVÕG"° –÷WBåw&—FU7G&–ær† ¦VçVÒ²æÖR²&W#ÅCâ°¢æ–ÂÀ¢Æö6Â„&3Ä×WFWƒÄ÷F–öãÅCããâ’À¢6Æ–6TVÆVÒ„&3Ä×WFWƒÄ÷F–öãÅfV3ÅCãããâÂW6—¦R’À§Ğ §V"7G'V7B²æÖR²ÅCâ†²æÖR²&W#ÅCâ“° ¦–×ÃÅCâ6ÆöæRf÷"²æÖR²ÅCâ°¢fâ6ÆöæR‚g6VÆb’Óâ6VÆb°¢ÖF6‚g6VÆbã°¢²æÖR²&W#£¤æ–ÂÓâ²æÖR²†²æÖR²&W#£¤æ–Â’À¢²æÖR²&W#£¤Æö6Â‡fÇVR’Óâ²æÖR²†²æÖR²&W#£¤Æö6Â‡fÇVRæ6ÆöæR‚’’’À¢²æÖR²&W#£¥6Æ–6TVÆVÒ‡6Æ–6RÂ–æFW‚’Óâ²æÖR²†²æÖR²&W#£¥6Æ–6TVÆVÒ‡6Æ–6Ræ6ÆöæR‚’Â¦–æFW‚’’À¢Ğ¢Ğ§Ğ ¦–×ÃÅCâ²æÖR²ÅCâ°¢V"fâæWr‡fÇVS¢&3Ä×WFWƒÄ÷F–öãÅCããâ’Óâ6VÆb°¢–bfÇVRæÆö6²‚’çVçw&‚’æ—5öæöæR‚’°¢²æÖR²†²æÖR²&W#£¤æ–Â¢ÒVÇ6R°¢²æÖR²†²æÖR²&W#£¤Æö6Â‡fÇVR’¢Ğ¢Ğ ¢V"fâfÇVR‚g6VÆb’Óâ&3Ä×WFWƒÄ÷F–öãÅCããâ°¢ÖF6‚g6VÆbã°¢²æÖR²&W#£¤æ–ÂÓâ&3£¦æWr„×WFWƒ£¦æWr„æöæR’’À¢²æÖR²&W#£¤Æö6Â‡fÇVR’ÓâfÇVRæ6ÆöæR‚’À¢²æÖR²&W#£¥6Æ–6TVÆVÒ…òÂò’Óâæ–2‚'ö–çFW"Ö¶W’g&öÒ6Æ–6RVÆVÖVçB6ææ÷B&R6öçfW'FVBFòÆö6Âö–çFW"†æFÆR"’À¢Ğ¢Ğ ¢fâ–FVçF—G’‚g6VÆb’Óâ‡S‚ÂW6—¦RÂW6—¦R’°¢ÖF6‚g6VÆbã°¢²æÖR²&W#£¤æ–ÂÓâƒÂÂ’À¢²æÖR²&W#£¤Æö6Â‡fÇVR’ÓâƒÂ&3£¦5÷G"‡fÇVR’2W6—¦RÂ’À¢²æÖR²&W#£¥6Æ–6TVÆVÒ‡6Æ–6RÂ–æFW‚’Óâƒ"Â&3£¦5÷G"‡6Æ–6R’2W6—¦RÂ¦–æFW‚’À¢Ğ¢Ğ ¢fâFG"‚g6VÆb’ÓâW6—¦R²ÆWB…òÂFG"Â–æFW‚’Ò6VÆbæ–FVçF—G’‚“²FG"â–æFW‚Ğ§Ğ ¦–×ÃÅC¢6ÆöæSâ²æÖR²ÅCâ°¢V"fâg&öÕ÷6Æ–6UöVÆVÒ‡fÇVS¢÷F–öãÄvõ6Æ–6TVÆVÕG#ÅCãâ’Óâ6VÆb°¢ÖF6‚fÇVR°¢6öÖR‡G"’Óâ²æÖR²†²æÖR²&W#£¥6Æ–6TVÆVÒ‡G"ç6Æ–6Ræ6ÆöæR‚’ÂG"æ–æFW‚’’À¢æöæRÓâ²æÖR²†²æÖR²&W#£¤æ–Â’À¢Ğ¢Ğ§Ğ ¦–×ÃÅCâ'F–ÄWf÷"²æÖR²ÅCâ°¢fâW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbæ–FVçF—G’‚’ÓÒ÷F†W"æ–FVçF—G’‚’Ğ§Ğ¦–×ÃÅCâWf÷"²æÖR²ÅCâ·Ğ¦–×ÃÅCâ'F–Ä÷&Bf÷"²æÖR²ÅCâ°¢fâ'F–Åö6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ÷F–öãÇ7FC£¦6×£¤÷&FW&–æsâ²6öÖR‡6VÆbæ6×†÷F†W"’’Ğ§Ğ¦–×ÃÅCâ÷&Bf÷"²æÖR²ÅCâ°¢fâ6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ7FC£¦6×£¤÷&FW&–ær²6VÆbæ–FVçF—G’‚’æ6×‚f÷F†W"æ–FVçF—G’‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤FV'Vrf÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤F—7Æ’f÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦ —&WGW&à —Ğ –÷WBåw&—FU7G&–ær† §V"7G'V7B²æÖR²ÅCâ‡V"&3Ä×WFWƒÄ÷F–öãÅCããâ“° ¦–×ÃÅCâ6ÆöæRf÷"²æÖR²ÅCâ°¢fâ6ÆöæR‚g6VÆb’Óâ6VÆb²²æÖR²‡6VÆbãæ6ÆöæR‚’’Ğ§Ğ ¦–×ÃÅCâ²æÖR²ÅCâ°¢V"fâæWr‡fÇVS¢&3Ä×WFWƒÄ÷F–öãÅCããâ’Óâ6VÆb²²æÖR²‡fÇVR’Ğ¢V"fâfÇVR‚g6VÆb’Óâ&3Ä×WFWƒÄ÷F–öãÅCããâ²6VÆbãæ6ÆöæR‚’Ğ¢fâFG"‚g6VÆb’ÓâW6—¦R²&3£¦5÷G"‚g6VÆbã’2W6—¦RĞ§Ğ ¦–×ÃÅCâ'F–ÄWf÷"²æÖR²ÅCâ°¢fâW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbæFG"‚’ÓÒ÷F†W"æFG"‚’Ğ§Ğ¦–×ÃÅCâWf÷"²æÖR²ÅCâ·Ğ¦–×ÃÅCâ'F–Ä÷&Bf÷"²æÖR²ÅCâ°¢fâ'F–Åö6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ÷F–öãÇ7FC£¦6×£¤÷&FW&–æsâ²6öÖR‡6VÆbæ6×†÷F†W"’’Ğ§Ğ¦–×ÃÅCâ÷&Bf÷"²æÖR²ÅCâ°¢fâ6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ7FC£¦6×£¤÷&FW&–ær²6VÆbæFG"‚’æ6×‚f÷F†W"æFG"‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤FV'Vrf÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤F—7Æ’f÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦ —ÒVÇ6R° •G&6´–×÷'B‚%&2" •G&6´–×÷'B‚%&Vd6VÆÂ" ––b–æ6ÇVFU6Æ–6TVÆVÕG"° –÷WBåw&—FU7G&–ær† ¦VçVÒ²æÖR²&W#ÅCâ°¢æ–ÂÀ¢Æö6Â…&3Å&Vd6VÆÃÄ÷F–öãÅCããâ’À¢6Æ–6TVÆVÒ…&3Å&Vd6VÆÃÄ÷F–öãÅfV3ÅCãããâÂW6—¦R’À§Ğ §V"7G'V7B²æÖR²ÅCâ†²æÖR²&W#ÅCâ“° ¦–×ÃÅCâ6ÆöæRf÷"²æÖR²ÅCâ°¢fâ6ÆöæR‚g6VÆb’Óâ6VÆb°¢ÖF6‚g6VÆbã°¢²æÖR²&W#£¤æ–ÂÓâ²æÖR²†²æÖR²&W#£¤æ–Â’À¢²æÖR²&W#£¤Æö6Â‡fÇVR’Óâ²æÖR²†²æÖR²&W#£¤Æö6Â‡fÇVRæ6ÆöæR‚’’’À¢²æÖR²&W#£¥6Æ–6TVÆVÒ‡6Æ–6RÂ–æFW‚’Óâ²æÖR²†²æÖR²&W#£¥6Æ–6TVÆVÒ‡6Æ–6Ræ6ÆöæR‚’Â¦–æFW‚’’À¢Ğ¢Ğ§Ğ ¦–×ÃÅCâ²æÖR²ÅCâ°¢V"fâæWr‡fÇVS¢&3Å&Vd6VÆÃÄ÷F–öãÅCããâ’Óâ6VÆb°¢–bfÇVRæ&÷'&÷r‚’æ—5öæöæR‚’°¢²æÖR²†²æÖR²&W#£¤æ–Â¢ÒVÇ6R°¢²æÖR²†²æÖR²&W#£¤Æö6Â‡fÇVR’¢Ğ¢Ğ ¢V"fâfÇVR‚g6VÆb’Óâ&3Å&Vd6VÆÃÄ÷F–öãÅCããâ°¢ÖF6‚g6VÆbã°¢²æÖR²&W#£¤æ–ÂÓâ&3£¦æWr…&Vd6VÆÃ£¦æWr„æöæR’’À¢²æÖR²&W#£¤Æö6Â‡fÇVR’ÓâfÇVRæ6ÆöæR‚’À¢²æÖR²&W#£¥6Æ–6TVÆVÒ…òÂò’Óâæ–2‚'ö–çFW"Ö¶W’g&öÒ6Æ–6RVÆVÖVçB6ææ÷B&R6öçfW'FVBFòÆö6Âö–çFW"†æFÆR"’À¢Ğ¢Ğ ¢fâ–FVçF—G’‚g6VÆb’Óâ‡S‚ÂW6—¦RÂW6—¦R’°¢ÖF6‚g6VÆbã°¢²æÖR²&W#£¤æ–ÂÓâƒÂÂ’À¢²æÖR²&W#£¤Æö6Â‡fÇVR’ÓâƒÂ&3£¦5÷G"‡fÇVR’2W6—¦RÂ’À¢²æÖR²&W#£¥6Æ–6TVÆVÒ‡6Æ–6RÂ–æFW‚’Óâƒ"Â&3£¦5÷G"‡6Æ–6R’2W6—¦RÂ¦–æFW‚’À¢Ğ¢Ğ ¢fâFG"‚g6VÆb’ÓâW6—¦R²ÆWB…òÂFG"Â–æFW‚’Ò6VÆbæ–FVçF—G’‚“²FG"â–æFW‚Ğ§Ğ ¦–×ÃÅC¢6ÆöæSâ²æÖR²ÅCâ°¢V"fâg&öÕ÷6Æ–6UöVÆVÒ‡fÇVS¢÷F–öãÄvõ6Æ–6TVÆVÕG#ÅCãâ’Óâ6VÆb°¢ÖF6‚fÇVR°¢6öÖR‡G"’Óâ²æÖR²†²æÖR²&W#£¥6Æ–6TVÆVÒ‡G"ç6Æ–6Ræ6ÆöæR‚’ÂG"æ–æFW‚’’À¢æöæRÓâ²æÖR²†²æÖR²&W#£¤æ–Â’À¢Ğ¢Ğ§Ğ ¦–×ÃÅCâ'F–ÄWf÷"²æÖR²ÅCâ°¢fâW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbæ–FVçF—G’‚’ÓÒ÷F†W"æ–FVçF—G’‚’Ğ§Ğ¦–×ÃÅCâWf÷"²æÖR²ÅCâ·Ğ¦–×ÃÅCâ'F–Ä÷&Bf÷"²æÖR²ÅCâ°¢fâ'F–Åö6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ÷F–öãÇ7FC£¦6×£¤÷&FW&–æsâ²6öÖR‡6VÆbæ6×†÷F†W"’’Ğ§Ğ¦–×ÃÅCâ÷&Bf÷"²æÖR²ÅCâ°¢fâ6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ7FC£¦6×£¤÷&FW&–ær²6VÆbæ–FVçF—G’‚’æ6×‚f÷F†W"æ–FVçF—G’‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤FV'Vrf÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤F—7Æ’f÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦ —&WGW&à —Ğ –÷WBåw&—FU7G&–ær† §V"7G'V7B²æÖR²ÅCâ‡V"&3Å&Vd6VÆÃÄ÷F–öãÅCããâ“° ¦–×ÃÅCâ6ÆöæRf÷"²æÖR²ÅCâ°¢fâ6ÆöæR‚g6VÆb’Óâ6VÆb²²æÖR²‡6VÆbãæ6ÆöæR‚’’Ğ§Ğ ¦–×ÃÅCâ²æÖR²ÅCâ°¢V"fâæWr‡fÇVS¢&3Å&Vd6VÆÃÄ÷F–öãÅCããâ’Óâ6VÆb²²æÖR²‡fÇVR’Ğ¢V"fâfÇVR‚g6VÆb’Óâ&3Å&Vd6VÆÃÄ÷F–öãÅCããâ²6VÆbãæ6ÆöæR‚’Ğ¢fâFG"‚g6VÆb’ÓâW6—¦R²&3£¦5÷G"‚g6VÆbã’2W6—¦RĞ§Ğ ¦–×ÃÅCâ'F–ÄWf÷"²æÖR²ÅCâ°¢fâW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbæFG"‚’ÓÒ÷F†W"æFG"‚’Ğ§Ğ¦–×ÃÅCâWf÷"²æÖR²ÅCâ·Ğ¦–×ÃÅCâ'F–Ä÷&Bf÷"²æÖR²ÅCâ°¢fâ'F–Åö6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ÷F–öãÇ7FC£¦6×£¤÷&FW&–æsâ²6öÖR‡6VÆbæ6×†÷F†W"’’Ğ§Ğ¦–×ÃÅCâ÷&Bf÷"²æÖR²ÅCâ°¢fâ6×‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ7FC£¦6×£¤÷&FW&–ær²6VÆbæFG"‚’æ6×‚f÷F†W"æFG"‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤FV'Vrf÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦–×ÃÅCâ7FC£¦f×C£¤F—7Æ’f÷"²æÖR²ÅCâ°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦ —Ğ§Ğ ¦gVæ2vVæW&FTvôç•G$¶W”†VÇW"†÷WB§7G&–æw2ä'V–ÆFW"’° ––bæVVG46öæ7W'&VçEw&W"‚’° •G&6´–×÷'B‚$&2" •G&6´–×÷'B‚$×WFW‚" –÷WBåw&—FU7G&–ær† ¢5¶FW&—fR„6ÆöæRÂ6÷’ÂFVfVÇBÂ'F–ÄWÂWÂ'F–Ä÷&BÂ÷&B•Ğ§V"7G'V7Bvôç•G$¶W’‡W6—¦R“° ¦–×Âvôç•G$¶W’°¢V"fâæWsÅCâ‡fÇVS¢&3Ä×WFWƒÄ÷F–öãÅCããâ’Óâ6VÆb°¢–bfÇVRæÆö6²‚’çVçw&‚’æ—5öæöæR‚’°¢vôç•G$¶W’ƒ¢ÒVÇ6R°¢vôç•G$¶W’„&3£¦5÷G"‚gfÇVR’2W6—¦R¢Ğ¢Ğ ¢fâFG"‚g6VÆb’ÓâW6—¦R²6VÆbãĞ§Ğ ¦–×Â7FC£¦f×C£¤FV'Vrf÷"vôç•G$¶W’°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦–×Â7FC£¦f×C£¤F—7Æ’f÷"vôç•G$¶W’°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦ —&WGW&à —Ğ •G&6´–×÷'B‚%&2" •G&6´–×÷'B‚%&Vd6VÆÂ" –÷WBåw&—FU7G&–ær† ¢5¶FW&—fR„6ÆöæRÂ6÷’ÂFVfVÇBÂ'F–ÄWÂWÂ'F–Ä÷&BÂ÷&B•Ğ§V"7G'V7Bvôç•G$¶W’‡W6—¦R“° ¦–×Âvôç•G$¶W’°¢V"fâæWsÅCâ‡fÇVS¢&3Å&Vd6VÆÃÄ÷F–öãÅCããâ’Óâ6VÆb°¢–bfÇVRæ&÷'&÷r‚’æ—5öæöæR‚’°¢vôç•G$¶W’ƒ¢ÒVÇ6R°¢vôç•G$¶W’…&3£¦5÷G"‚gfÇVR’2W6—¦R¢Ğ¢Ğ ¢fâFG"‚g6VÆb’ÓâW6—¦R²6VÆbãĞ§Ğ ¦–×Â7FC£¦f×C£¤FV'Vrf÷"vôç•G$¶W’°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦–×Â7FC£¦f×C£¤F—7Æ’f÷"vôç•G$¶W’°¢fâf×B‚g6VÆbÂc¢f×WB7FC£¦f×C£¤f÷&ÖGFW#Âuóâ’Óâ7FC£¦f×C£¥&W7VÇB²w&—FR†bÂ#‡³§‡Ò"Â6VÆbæFG"‚’’Ğ§Ğ¦§Ğ ¢òòvVæW&FTç•ö–çFW$f÷&ÖGFW"VÖ—G2võöf÷&ÖEöç•÷ö–çFW"Âv†–6‚f÷&ÖEöç¢òòW6W2Fò&–çBö–çFW"Fò7G'V7B†VÆB–ââ–çFW&f6Rà¦gVæ2vVæW&FTç•ö–çFW$f÷&ÖGFW"†÷WB§7G&–æw2ä'V–ÆFW"’° –÷WBåw&—FU7G&–ær† ¢òòvòW‡æG2ö–çFW"Fò7G'V7BöæÇ’v†VâF†Rö–çFW"—2F†RfÇVR&V–æp¢òò&–çFVBâ–ç6–FR7G'V7B÷"6Æ–6R—B&–çG2F†RFG&W72âF†B—2Ç6ğ¢òòv†B¶VW2fÇVRF†Bö–çG2&6²Fò—G6VÆbg&öÒ&–çF–ærf÷&WfW"à¦fâvõöf÷&ÖEöç•÷ö–çFW"†æW7FVC¢&ööÂÂFG&W73¢¦6öç7B‚’Â—5öæ–Ã¢–×Âfäöæ6R‚’Óâ&ööÂÂW‡æC¢–×Âfäöæ6R‚’Óâ7G&–ær’Óâ7G&–ær°¢–bæW7FVB°¢&WGW&âW‡æB‚“°¢Ğ¢–b—5öæ–Â‚’²#Ææ–Ãâ"çFõ÷7G&–ær‚’ÒVÇ6R²f÷&ÖB‚'³§Ò"ÂFG&W72’Ğ§Ğ¦§Ğ ¢òòvVæW&FTç”f÷&ÖGFW"VÖ—G2f÷&ÖEöç’Âv†–6‚&–çG2F†RfÇVRâ–çFW&f6P¢òò†öÆG2ÂæBf÷&ÖEöç•öæW7FVBv†VâæW7FVDVçG'’6·2f÷"—Bâf÷&ÖEöç’—0¢òòf÷"fÇVRF†B—2—G6VÆbâ&wVÖVçBöb&–çB6ÆÂâf÷&ÖEöç•öæW7FV@¢òò—2f÷"fÇVR†VÆB–ç6–FRF†RöæR&V–ær&–çFVC¢7G'V7Bw2–çFW&f6P¢òòf–VÆBÂâVÆVÖVçBöbµÖ–çFW&f6W·Òà¢òğ¢òòF†RGvòF–ffW"öæÇ’f÷"ö–çFW"Fò7G'V7BÂ6òF†RF—7F–æ7F–öâ—0¢òòvVæW&FVBöæÇ’v†Vâö–çFW$&×26—2F†R&öw&Ò&÷†W2öæRâV6‚Æ6P¢òòF†B&–çG26—2v†–6‚öbF†RGvò—B—2ÂæBæ÷F†–ær—2&VÖVÖ&W&VB&WGvVVà¢òò6ÆÇ3¢7G&–ær÷"W'&÷"ÖWF†öBF†B&–çG27F'G2BF†RF÷ÆWfVÂv–âÀ¢òò2—BFöW2–âvòà¦gVæ2vVæW&FTç”f÷&ÖGFW"†÷WB§7G&–æw2ä'V–ÆFW"Âç”f÷&ÖD&×2Ö·7G&–æuÖç”f÷&ÖD&ÒÂö–çFW$&×2&ööÂÂæW7FVDVçG'’&ööÂ’° •G&6´–×÷'B‚$ç’" —fÇVUG—R£Ò"fG–âç’  ––bæVVG46öæ7W'&VçEw&W"‚’° —fÇVUG—RÒ"b†G–âç’²6VæB²7–æ2’  —Ğ ––bö–çFW$&×2° –÷WBåw&—FU7G&–ær‚%Ææfâf÷&ÖEöç’‡fÇVS¢"²fÇVUG—R²"’Óâ7G&–ærµÆâ" –÷WBåw&—FU7G&–ær‚"f÷&ÖEöç•öB‡fÇVRÂfÇ6R•Æâ" –÷WBåw&—FU7G&–ær‚'ÕÆâ" ––bæW7FVDVçG'’° –÷WBåw&—FU7G&–ær‚%Æâòò&–çG2fÇVR†VÆB–ç6–FRF†RöæR&V–ær&–çFVC¢7G'V7Bw2–çFW&f6UÆâ" –÷WBåw&—FU7G&–ær‚"òòf–VÆBÂâVÆVÖVçBöbµÖ–çFW&f6W·ÒåÆâ" –÷WBåw&—FU7G&–ær‚&fâf÷&ÖEöç•öæW7FVB‡fÇVS¢"²fÇVUG—R²"’Óâ7G&–ærµÆâ" –÷WBåw&—FU7G&–ær‚"f÷&ÖEöç•öB‡fÇVRÂG'VR•Æâ" –÷WBåw&—FU7G&–ær‚'ÕÆâ" —Ğ –÷WBåw&—FU7G&–ær‚%Ææfâf÷&ÖEöç•öB‡fÇVS¢"²fÇVUG—R²"ÂæW7FVC¢&ööÂ’Óâ7G&–ærµÆâ" —ÒVÇ6R° –÷WBåw&—FU7G&–ær‚%Ææfâf÷&ÖEöç’‡fÇVS¢"²fÇVUG—R²"’Óâ7G&–ærµÆâ" —Ğ –÷WBåw&—FU7G&–ær‚"–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“3#â‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“cCâ‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÆccCâ‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æc3#â‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Å7G&–æsâ‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bæ6ÆöæR‚•Æâ" –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Âg7G#â‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ&ööÃâ‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" ’òòF†R÷F†W"–çFVvW"G—W2&–çB2Æ–âçVÖ&W'2Föòà –f÷"òÂ–çEG—R£Ò&ævRµ×7G&–æw²&“‚"Â&“b"Â&—6—¦R"Â'S‚"Â'Sb"Â'S3""Â'ScB"Â'W6—¦R'Ò° –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Â"²–çEG—R²#â‚’µÆâ" –÷WBåw&—FU7G&–ær‚"bçFõ÷7G&–ær‚•Æâ" —Ğ —'W7EG—W2£ÒÖ¶R…µ×7G&–ærÂÂÆVâ†ç”f÷&ÖD&×2’ –f÷"'W7EG—R£Ò&ævRç”f÷&ÖD&×2° —'W7EG—W2ÒVæB‡'W7EG—W2Â'W7EG—R —Ğ —6Æ–6W2å6÷'B‡'W7EG—W2 –f÷"òÂ'W7EG—R£Ò&ævR'W7EG—W2° —G&6´–×÷'G4f÷$ç•–ÆöEG—R‡'W7EG—R –÷WBåw&—FU7G&–ær‚"ÒVÇ6R–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Â" –÷WBåw&—FU7G&–ær‡'W7EG—R –÷WBåw&—FU7G&–ær‚#â‚’µÆâ" –÷WBåw&—FU7G&–ær‚"" –÷WBåw&—FU7G&–ær†ç”f÷&ÖD&×5·'W7EG—UÒæW‡" –÷WBåw&—FU7G&–ær‚%Æâ" —Ğ ’òòfÇVRöbG—Rv—F‚æò66R&÷fR6ææ÷B&R&–çFVB–WBâ7F÷  ’òòv—F‚ÖW76vRF†B6—26ó¢&–çF–ærÆ6V†öÆFW"v÷VÆB&Rw&öæp ’òòç7vW"F†BÆöö·2Æ–¶R&–v‡BöæRà –÷WBåw&—FU7G&–ær‚"ÒVÇ6RµÆâ" –÷WBåw&—FU7G&–ær‚"æ–2…Â&vó''W7C¢6ææ÷B&–çBF†—2fÇVR†VÆB–ââ–çFW&f6S¢—G2G—R†2æòf÷&ÖGF–ær66R–WEÂ"•Æâ" –÷WBåw&—FU7G&–ær‚"ÕÆâ" –÷WBåw&—FU7G&–ær‚'ÕÆâ" ––bö–çFW$&×2bbæW7FVDVçG'’° –÷WBåw&—FU7G&–ær‚%Æâòò&–çG2fÇVR†VÆB–ç6–FRF†RöæR&V–ær&–çFVBâæ÷F†–ærF†—2&öw&ÕÆâ" –÷WBåw&—FU7G&–ær‚"òòWG2–ââ–çFW&f6R&–çG2F–ffW&VçFÇ’F†W&RåÆâ" –÷WBåw&—FU7G&–ær‚&fâf÷&ÖEöç•öæW7FVB‡fÇVS¢"²fÇVUG—R²"’Óâ7G&–ærµÆâ" –÷WBåw&—FU7G&–ær‚"f÷&ÖEöç’‡fÇVR•Æâ" –÷WBåw&—FU7G&–ær‚'ÕÆâ" —Ğ§Ğ ¦gVæ26÷'FVDç”6ÆöæUG—W2†ç”6ÆöæUG—W2Ö·7G&–æuÖ&ööÂ’µ×7G&–ær° –æÖW2£ÒÖ¶R…µ×7G&–ærÂÂÆVâ†ç”6ÆöæUG—W2’ –f÷"æÖR£Ò&ævRç”6ÆöæUG—W2° ––bæÖRÒ""° –æÖW2ÒVæB†æÖW2ÂæÖR —Ğ —Ğ —6Æ–6W2å6÷'B†æÖW2 —&WGW&âæÖW0§Ğ ¦gVæ2w&—FTç”6ÆöæUG—T&×2†÷WB§7G&–æw2ä'V–ÆFW"Âç”6ÆöæUG—W2Ö·7G&–æuÖ&ööÂÂG&—Dö&¦V7B7G&–ær’° –f÷"òÂ'W7EG—R£Ò&ævR6÷'FVDç”6ÆöæUG—W2†ç”6ÆöæUG—W2’° —G&6´–×÷'G4f÷$ç•–ÆöEG—R‡'W7EG—R –÷WBåw&—FU7G&–ær‚"–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Â" –÷WBåw&—FU7G&–ær‡'W7EG—R –÷WBåw&—FU7G&–ær‚#â‚’²&WGW&â&÷ƒ£¦æWr‡bæ6ÆöæR‚’’2" –÷WBåw&—FU7G&–ær‡G&—Dö&¦V7B –÷WBåw&—FU7G&–ær‚#²ÕÆâ" —Ğ§Ğ ¦gVæ2vVæW&FTç”6ÆöæR†÷WB§7G&–æw2ä'V–ÆFW"Âç”6ÆöæUG—W2Ö·7G&–æuÖ&ööÂ’° •G&6´–×÷'B‚$ç’" —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ ––bæVVG46öæ7W'&VçEw&W"‚’° –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõöç•ö6ÆöæR‡fÇVS¢b†G–âç’²6VæB²7–æ2’’Óâ&÷ƒÆG–âç’²6VæB²7–æ3â°¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“3#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“cCâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“ƒâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“câ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇS3#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇScCâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇSƒâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇScâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÆccCâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æc3#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Å7G&–æsâ‚’²&WGW&â&÷ƒ£¦æWr‡bæ6ÆöæR‚’’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Âbw7FF–27G#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ&ööÃâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ6†#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç’²6VæB²7–æ3ã²Ğ¦ —w&—FTç”6ÆöæUG—T&×2†÷WBÂç”6ÆöæUG—W2Â$&÷ƒÆG–âç’²6VæB²7–æ3â" –÷WBåw&—FU7G&–ær† ¢æ–2‚&võöç•ö6ÆöæS¢Vç7W÷'FVBG–æÖ–2G—S²FBG—VBÆ÷vW&–ær–ç7FVBöb6Æöæ–ær&÷ƒÆG–âç“â"§Ğ¦ —&WGW&à —Ğ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõöç•ö6ÆöæR‡fÇVS¢fG–âç’’Óâ&÷ƒÆG–âç“â°¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“3#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“cCâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“ƒâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“câ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇS3#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇScCâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇSƒâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇScâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÆccCâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æc3#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Å7G&–æsâ‚’²&WGW&â&÷ƒ£¦æWr‡bæ6ÆöæR‚’’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Âbw7FF–27G#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ&ööÃâ‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ6†#â‚’²&WGW&â&÷ƒ£¦æWr‚§b’2&÷ƒÆG–âç“ã²Ğ¦ —w&—FTç”6ÆöæUG—T&×2†÷WBÂç”6ÆöæUG—W2Â$&÷ƒÆG–âç“â" –÷WBåw&—FU7G&–ær† ¢æ–2‚&võöç•ö6ÆöæS¢Vç7W÷'FVBG–æÖ–2G—S²FBG—VBÆ÷vW&–ær–ç7FVBöb6Æöæ–ær&÷ƒÆG–âç“â"§Ğ¦§Ğ ¦gVæ2vVæW&FU6–ÆVçEæ–46F6‚†÷WB§7G&–æw2ä'V–ÆFW"’° —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær†7FC£§F‡&VEöÆö6Â°¢7FF–2õôtõõ4”ÄTåEõä”5ôDUDƒ¢7FC£¦6VÆÃ£¤6VÆÃÇS3#âÒ6öç7B²7FC£¦6VÆÃ£¤6VÆÃ£¦æWrƒ’Ó°§Ğ §7FF–2õôtõõ4”ÄTåEõä”5ô„ôôµô”ä•C¢7FC£§7–æ3£¤öæ6RÒ7FC£§7–æ3£¤öæ6S£¦æWr‚“° ¦ –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷6–ÆVçEö6F6…÷Vçv–æCÄbÂ#â†c¢b’Óâ&W7VÇCÅ"Â&÷ƒÆG–â7FC£¦ç“£¤ç’²6VæCãà§v†W&P¢c¢fäöæ6R‚’Óâ"À§°¢õôtõõ4”ÄTåEõä”5ô„ôôµô”ä•Bæ6ÆÅööæ6R‡ÇÂ°¢ÆWB&Wf–÷W2Ò7FC£§æ–3£§F¶Uö†öö²‚“°¢7FC£§æ–3£§6WEö†öö²„&÷ƒ£¦æWr†Ö÷fRÆ–æf÷Â°¢ÆWB7W&W76VBÒõôtõõ4”ÄTåEõä”5ôDUD‚çv—F‚‡ÆFWF‡ÂFWF‚ævWB‚’â“°¢–b7W&W76VB°¢&Wf–÷W2†–æfò“°¢Ğ¢Ò’“°¢Ò“° ¢7G'V7B6–ÆVçEæ–4wV&C°¢–×ÂG&÷f÷"6–ÆVçEæ–4wV&B°¢fâG&÷‚f×WB6VÆb’°¢õôtõõ4”ÄTåEõä”5ôDUD‚çv—F‚‡ÆFWF‡ÂFWF‚ç6WB†FWF‚ævWB‚’ç6GW&F–æu÷7V"ƒ’’“°¢Ğ¢Ğ ¢õôtõõ4”ÄTåEõä”5ôDUD‚çv—F‚‡ÆFWF‡ÂFWF‚ç6WB†FWF‚ævWB‚’ç6GW&F–æuöFBƒ’’“°¢ÆWBöwV&BÒ6–ÆVçEæ–4wV&C°¢7FC£§æ–3£¦6F6…÷Vçv–æB‡7FC£§æ–3£¤76W'EVçv–æE6fR†b’§Ğ¦§Ğ ¦gVæ2vVæW&FUæ–5&V6÷fW$†VÇW"†÷WB§7G&–æw2ä'V–ÆFW"’° ––bæVVG46öæ7W'&VçEw&W"‚’° –vVæW&FU6–ævÆUF‡&VEæ–5&V6÷fW$†VÇW"†÷WB —&WGW&à —Ğ •G&6´–×÷'B‚$ç’" •G&6´–×÷'B‚$&2" •G&6´–×÷'B‚$×WFW‚" •G&6´–×÷'B‚%&Vd6VÆÂ" —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær†F‡&VEöÆö6Â°¢7FF–2õôtõõ$T4õdU%õ”ÄôC¢&Vd6VÆÃÄ÷F–öãÄ&÷ƒÆG–âç’²6VæB²7–æ3ããâÒ&Vd6VÆÃ£¦æWr„æöæR“°§Ğ¦ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷&V6÷fW"‚’Óâ&3Ä×WFWƒÄ÷F–öãÄ&÷ƒÆG–âç’²6VæB²7–æ3ãããâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ&3£¦æWr„×WFWƒ£¦æWr‡6Æ÷Bæ&÷'&÷uö×WB‚’çF¶R‚’’’§Ğ¦ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷7F÷&U÷æ–5÷–ÆöB‡–ÆöC¢&÷ƒÆG–âç’²6VæCâ’°¢ÆWB–ÆöBÒÖF6‚–ÆöBæF÷væ67C££Ä&÷ƒÆG–âç’²6VæB²7–æ3ãâ‚’°¢ö²†&÷†VB’Óâ°¢ÆWB×WB–ÆöBÒ¦&÷†VC°¢Æö÷°¢ÖF6‚–ÆöBæF÷væ67C££Ä&÷ƒÆG–âç’²6VæB²7–æ3ãâ‚’°¢ö²†&÷†VB’Óâ°¢–ÆöBÒ¦&÷†VC°¢Ğ¢W'"‡–ÆöB’Óâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR‡–ÆöB’“°¢&WGW&ã°¢Ğ¢Ğ¢Ğ¢Ğ¢W'"‡–ÆöB’Óâ–ÆöBÀ¢Ó°¢ÆWB–ÆöBÒÖF6‚–ÆöBæF÷væ67C££Å7G&–æsâ‚’°¢ö²‡fÇVR’Óâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr†võ÷'VçF–ÖUöW'&÷%÷FW‡B‚§fÇVR’’2&÷ƒÆG–âç’²6VæB²7–æ3â’“°¢&WGW&ã°¢Ğ¢W'"‡–ÆöB’Óâ–ÆöBÀ¢Ó°¢ÆWB–ÆöBÒÖF6‚–ÆöBæF÷væ67C££Âbw7FF–27G#â‚’°¢ö²‡fÇVR’Óâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr†võ÷'VçF–ÖUöW'&÷%÷FW‡B‡fÇVRçFõ÷7G&–ær‚’’’2&÷ƒÆG–âç’²6VæB²7–æ3â’“°¢&WGW&ã°¢Ğ¢W'"‡–ÆöB’Óâ–ÆöBÀ¢Ó°¢ÆWB–ÆöBÒÖF6‚–ÆöBæF÷væ67C££Æ“3#â‚’°¢ö²‡fÇVR’Óâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr‚§fÇVR’2&÷ƒÆG–âç’²6VæB²7–æ3â’“°¢&WGW&ã°¢Ğ¢W'"‡–ÆöB’Óâ–ÆöBÀ¢Ó°¢ÆWB–ÆöBÒÖF6‚–ÆöBæF÷væ67C££Æ“cCâ‚’°¢ö²‡fÇVR’Óâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr‚§fÇVR’2&÷ƒÆG–âç’²6VæB²7–æ3â’“°¢&WGW&ã°¢Ğ¢W'"‡–ÆöB’Óâ–ÆöBÀ¢Ó°¢ÆWB÷–ÆöBÒÖF6‚–ÆöBæF÷væ67C££Æ&ööÃâ‚’°¢ö²‡fÇVR’Óâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr‚§fÇVR’2&÷ƒÆG–âç’²6VæB²7–æ3â’“°¢&WGW&ã°¢Ğ¢W'"…÷–ÆöB’Óâ÷–ÆöBÀ¢Ó°¢æ–2‚'&V6÷fW#¢Vç7W÷'FVB'W7Bæ–2–ÆöC²VÖ—Bæ–5öç’v—F‚vòç’–ÆöB–ç7FVB"§Ğ¦ —w&—FTvõ'VçF–ÖTW'&÷%FW‡B†÷WBÂf—6–&–Æ—G’ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷&W7VÖU÷Vç&V6÷fW&VE÷æ–2‚’°¢–bÆWB6öÖR‡–ÆöB’Òõôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ6Æ÷Bæ&÷'&÷uö×WB‚’çF¶R‚’’°¢7FC£§æ–3£§æ–5öç’‡–ÆöB“°¢Ğ§Ğ¦§Ğ ¢òòvVæW&FU6–ævÆUF‡&VEæ–5&V6÷fW$†VÇW"—2F†Ræ–2÷&V6÷fW"'VçF–ÖRf÷"¢òò&öw&Òv—F†÷WBv÷&÷WF–æW2Âv†W&Râ–çFW&f6RfÇVR—2¢òò&3Å&Vd6VÆÃÄ÷F–öãÄ&÷ƒÆG–âç“ãããââgVæ7F–öâv—F‚FVfW"'Vç2—G2&öG¢òòVæFW"6F6…÷Vçv–æC²æ–2w2–ÆöB—2¶WB†W&RVçF–ÂFVfW'&V@¢òògVæ7F–öâ6ÆÇ2&V6÷fW"‚’Âv†–6‚F¶W2—Bâ–bæöæRFöW2ÂF†Ræ–2vöW2öâà¢òğ¢òòF†R–ÆöBöbæ–2‚'‚"’—2F†R7G&–ærâæ–2F†R'W7B6öFR&—6W0¢òò—G6VÆbÂ7V6‚2F—f—6–öâ'’¦W&ò÷"â–æFW‚÷WBöb&ævRÂ—2v—fVâF†P¢òòFW‡Bvòw2'VçF–ÖRW'&÷"†2à¦gVæ2vVæW&FU6–ævÆUF‡&VEæ–5&V6÷fW$†VÇW"†÷WB§7G&–æw2ä'V–ÆFW"’° •G&6´–×÷'B‚$ç’" •G&6´–×÷'B‚%&2" •G&6´–×÷'B‚%&Vd6VÆÂ" —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ –÷WBåw&—FU7G&–ær† §F‡&VEöÆö6Â°¢7FF–2õôtõõ$T4õdU%õ”ÄôC¢&Vd6VÆÃÄ÷F–öãÄ&÷ƒÆG–âç’²6VæCããâÒ&Vd6VÆÃ£¦æWr„æöæR“°§Ğ¦ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷&V6÷fW"‚’Óâ&3Å&Vd6VÆÃÄ÷F–öãÄ&÷ƒÆG–âç“ãããâ°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ&3£¦æWr…&Vd6VÆÃ£¦æWr‡6Æ÷Bæ&÷'&÷uö×WB‚’çF¶R‚’æÖ‡Åõ÷–ÆöGÂõ÷–ÆöB2&÷ƒÆG–âç“â’’’§Ğ¦ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷7F÷&U÷æ–5÷–ÆöB…õ÷–ÆöC¢&÷ƒÆG–âç’²6VæCâ’°¢ÆWBõ÷–ÆöC¢&÷ƒÆG–âç’²6VæCâÒÖF6‚õ÷–ÆöBæF÷væ67C££Âbw7FF–27G#â‚’°¢ö²…õ÷FW‡B’Óâ&÷ƒ£¦æWr†võ÷'VçF–ÖUöW'&÷%÷FW‡B…õ÷FW‡BçFõ÷7G&–ær‚’’’À¢W'"…õ÷–ÆöB’ÓâÖF6‚õ÷–ÆöBæF÷væ67C££Å7G&–æsâ‚’°¢ö²…õ÷FW‡B’Óâ&÷ƒ£¦æWr†võ÷'VçF–ÖUöW'&÷%÷FW‡B‚¥õ÷FW‡B’’À¢W'"…õ÷–ÆöB’Óâõ÷–ÆöBÀ¢ÒÀ¢Ó°¢õôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ§6Æ÷Bæ&÷'&÷uö×WB‚’Ò6öÖR…õ÷–ÆöB’“°§Ğ¦ —w&—FTvõ'VçF–ÖTW'&÷%FW‡B†÷WBÂf—6–&–Æ—G’ –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷&W7VÖU÷Vç&V6÷fW&VE÷æ–2‚’°¢–bÆWB6öÖR…õ÷–ÆöB’Òõôtõõ$T4õdU%õ”ÄôBçv—F‚‡Ç6Æ÷GÂ6Æ÷Bæ&÷'&÷uö×WB‚’çF¶R‚’’°¢ÖF6‚õ÷–ÆöBæF÷væ67C££Å7G&–æsâ‚’°¢ö²…õ÷FW‡B’Óâ7FC£§æ–3£§æ–5öç’‚¥õ÷FW‡B’À¢W'"…õ÷–ÆöB’Óâ7FC£§æ–3£§&W7VÖU÷Vçv–æB…õ÷–ÆöB’À¢Ğ¢Ğ§Ğ¦§Ğ ¢òòw&—FTvõ'VçF–ÖTW'&÷%FW‡Bw&—FW2võ÷'VçF–ÖUöW'&÷%÷FW‡BÂv†–6‚v—fW2æ–0¢òòF†R'W7B6öFR&—6W2—G6VÆbF†RFW‡Böbvòw2'VçF–ÖRW'&÷"à¦gVæ2w&—FTvõ'VçF–ÖTW'&÷%FW‡B†÷WB§7G&–æw2ä'V–ÆFW"Âf—6–&–Æ—G’7G&–ær’° –÷WBåw&—FU7G&–ær‚%Æâ" –÷WBåw&—FU7G&–ær‡f—6–&–Æ—G’ –÷WBåw&—FU7G&–ær†fâvõ÷'VçF–ÖUöW'&÷%÷FW‡B…õ÷FW‡C¢7G&–ær’Óâ7G&–ær°¢–bõ÷FW‡BÓÒ&GFV×BFòF—f–FR'’¦W&ò"ÇÂõ÷FW‡BÓÒ&GFV×BFò6Æ7VÆFRF†R&VÖ–æFW"v—F‚F—f—6÷"öb¦W&ò"°¢&WGW&â''VçF–ÖRW'&÷#¢–çFVvW"F—f–FR'’¦W&ò"çFõ÷7G&–ær‚“°¢Ğ¢–bÆWB6öÖR…õ÷&W7B’Òõ÷FW‡Bç7G&—÷&Vf—‚‚&–æFW‚÷WBöb&÷VæG3¢F†RÆVâ—2"’°¢–bÆWB6öÖR‚…õöÆVâÂõö–æFW‚’’Òõ÷&W7Bç7Æ—Eööæ6R‚"'WBF†R–æFW‚—2"’°¢&WGW&âf÷&ÖB‚''VçF–ÖRW'&÷#¢–æFW‚÷WBöb&ævR··ÕÒv—F‚ÆVæwF‚·Ò"Âõö–æFW‚ÂõöÆVâ“°¢Ğ¢Ğ¢õ÷FW‡@§Ğ¦§Ğ ¦gVæ2vVæW&FTvõfÇVT6ÆöæR†÷WB§7G&–æw2ä'V–ÆFW"’° •G&6´–×÷'B‚$ç’" ––bæVVG46öæ7W'&VçEw&W"‚’° –÷WBåw&—FU7G&–ær† §V"G&—BvõfÇVT6ÆöæR°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆc°§Ğ ¦Ö7&õ÷'VÆW2–×Åövõ÷fÇVUö6ÆöæUö6÷’°¢‚B‚GC§G’’Â¢B‚Â“ò’Óâ°¢B†–×ÂvõfÇVT6ÆöæRf÷"GB°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²§6VÆbĞ¢Ò’ ¢Ó°§Ğ ¦–×Åövõ÷fÇVUö6ÆöæUö6÷’†&ööÂÂ6†"Â“‚Â“bÂ“3"Â“cBÂ—6—¦RÂS‚ÂSbÂS3"ÂScBÂW6—¦RÂc3"ÂccBÂbw7FF–27G"“° ¦–×ÂvõfÇVT6ÆöæRf÷"7G&–ær°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’Ğ§Ğ ¦–×ÂvõfÇVT6ÆöæRf÷"&÷ƒÆG–âç’²6VæB²7–æ3â°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²võöç•ö6ÆöæR‡6VÆbæ5÷&Vb‚’’Ğ§Ğ¦ —&WGW&à —Ğ –÷WBåw&—FU7G&–ær† §V"G&—BvõfÇVT6ÆöæR°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆc°§Ğ ¦Ö7&õ÷'VÆW2–×Åövõ÷fÇVUö6ÆöæUö6÷’°¢‚B‚GC§G’’Â¢B‚Â“ò’Óâ°¢B†–×ÂvõfÇVT6ÆöæRf÷"GB°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²§6VÆbĞ¢Ò’ ¢Ó°§Ğ ¦–×Åövõ÷fÇVUö6ÆöæUö6÷’†&ööÂÂ6†"Â“‚Â“bÂ“3"Â“cBÂ—6—¦RÂS‚ÂSbÂS3"ÂScBÂW6—¦RÂc3"ÂccBÂbw7FF–27G"“° ¦–×ÂvõfÇVT6ÆöæRf÷"7G&–ær°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’Ğ§Ğ ¦–×ÂvõfÇVT6ÆöæRf÷"&÷ƒÆG–âç“â°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²võöç•ö6ÆöæR‡6VÆbæ5÷&Vb‚’’Ğ§Ğ –§Ğ ¦gVæ2vVæW&FTvõG—U&Ôf–VÆD6ÆöæR†÷WB§7G&–æw2ä'V–ÆFW"’° ’òòF†RÆVv7’võfÇVT6ÆöæR†VÇW"VæG2v—F‚â–æFVçFF–öâF"â&W6W'fP ’òòW†—7F–ærvVæW&FVB6æ6†÷G2v†VâF†—2†VÇW"—2æ÷BæVVFVBÂ'WBFòæ÷@ ’òòÆVfRv†—FW76RÖöæÇ’Æ–æR&Vf÷&RF†RW‡FVç6–öâG&—Bà ––b7W'&VçB£Ò÷WBå7G&–ær‚“²7G&–æw2ä†57Vff—‚†7W'&VçBÂ%ÆåÇB"’° –÷WBå&W6WB‚ –÷WBåw&—FU7G&–ær‡7G&–æw2åG&–Õ7Vff—‚†7W'&VçBÂ%ÇB"’ —Ğ ”æVVDvõfÇVT6ÆöæR‚ ––bæVVG46öæ7W'&VçEw&W"‚’° –÷WBåw&—FU7G&–ær†võG—U&Ôf–VÆD6ÆöæT6öæ7W'&VçB —&WGW&à —Ğ –÷WBåw&—FU7G&–ær†võG—U&Ôf–VÆD6ÆöæTÆö6Â§Ğ ¦6öç7BvõG—U&Ôf–VÆD6ÆöæT6öæ7W'&VçBÒ §V"G&—BvõG—U&Ôf–VÆD6ÆöæS¢6—¦VB°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÃ°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããã°§Ğ §7G'V7Bvôfäf–VÆEF&vWDVçG'’°¢&÷‡•öFF¢W6—¦RÀ¢f–VÆC¢7FC£§7–æ3£¥vV³ÆG–âç’²6VæB²7–æ3âÀ¢F&vWC¢7FC£§7–æ3£¥vV³ÆG–âç’²6VæB²7–æ3âÀ§Ğ §7FF–2tõôdåôd”TÄEõD$tUE3¢7FC£§7–æ3£¤öæ6TÆö6³Ç7FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂvôfäf–VÆEF&vWDVçG'“ããâÒ7FC£§7–æ3£¤öæ6TÆö6³£¦æWr‚“° ¦fâvõöfåöf–VÆE÷F&vWCÅC¢ç’²6VæB²7–æ3â†f–VÆEö¶W“¢W6—¦RÂ&÷‡•öFF¢W6—¦R’Óâ÷F–öãÇ7FC£§7–æ3£¤&3ÅCãâ°¢ÆWB×WB&Vv—7G'’Òtõôdåôd”TÄEõD$tUE2ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’’æÆö6²‚’çVçw&‚“°¢&Vv—7G'’ç&WF–â‡ÅòÂVçG'—ÂVçG'’æf–VÆBç7G&öæuö6÷VçB‚’âbbVçG'’çF&vWBç7G&öæuö6÷VçB‚’â“°¢ÆWBÖF6†W2Ò&Vv—7G'’ævWB‚ff–VÆEö¶W’’æÖ‡ÆVçG'—ÂVçG'’ç&÷‡•öFFÓÒ&÷‡•öFF’çVçw&ö÷"†fÇ6R“°¢–bÖF6†W2°¢&Vv—7G'’ç&VÖ÷fR‚ff–VÆEö¶W’“°¢&WGW&âæöæS°¢Ğ¢ÆWBF&vWBÒ&Vv—7G'’ævWB‚ff–VÆEö¶W’“òçF&vWBçWw&FR‚“ó°¢7FC£§7–æ3£¤&3£¦F÷væ67C££ÅCâ‡F&vWB’æö²‚§Ğ ¦fâvõ÷&Vv—7FW%öfåöf–VÆE÷F&vWCÄc¢ç’²6VæB²7–æ2ÂC¢ç’²6VæB²7–æ3â€¢f–VÆEö¶W“¢W6—¦RÀ¢&÷‡•öFF¢W6—¦RÀ¢f–VÆC¢g7FC£§7–æ3£¤&3ÄcâÀ¢F&vWC¢g7FC£§7–æ3£¤&3ÅCâÀ¢’°¢ÆWBW&6VEöf–VÆC¢7FC£§7–æ3£¤&3ÆG–âç’²6VæB²7–æ3âÒf–VÆBæ6ÆöæR‚“°¢ÆWBW&6VE÷F&vWC¢7FC£§7–æ3£¤&3ÆG–âç’²6VæB²7–æ3âÒF&vWBæ6ÆöæR‚“°¢tõôdåôd”TÄEõD$tUE2ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’’æÆö6²‚’çVçw&‚’æ–ç6W'B†f–VÆEö¶W’Âvôfäf–VÆEF&vWDVçG'’°¢&÷‡•öFFÀ¢f–VÆC¢7FC£§7–æ3£¤&3£¦F÷væw&FR‚fW&6VEöf–VÆB’À¢F&vWC¢7FC£§7–æ3£¤&3£¦F÷væw&FR‚fW&6VE÷F&vWB’À¢Ò“°§Ğ ¦Ö7&õ÷'VÆW2–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæU÷fÇVR°¢‚B‚GC§G’’Â¢B‚Â“ò’Óâ°¢B†–×ÂvõG—U&Ôf–VÆD6ÆöæRf÷"GB°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒfÇ6S°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ°¢ÆWBwV&BÒf–VÆBæÆö6²‚’çVçw&‚“°¢7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr†wV&Bæ5÷&Vb‚’æÖ‡ÇfÇVWÂfÇVRævõ÷fÇVUö6ÆöæR‚’’’¢Ğ¢Ò’ ¢Ó°§Ğ ¦–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæU÷fÇVR†&ööÂÂ6†"Â“‚Â“bÂ“3"Â“cBÂ—6—¦RÂS‚ÂSbÂS3"ÂScBÂW6—¦RÂc3"ÂccBÂbw7FF–27G"Â7G&–ærÂ&÷ƒÆG–âç’²6VæB²7–æ3â“° ¦–×ÃÅC¢võG—U&Ôf–VÆD6ÆöæR²võfÇVT6ÆöæRÂ6öç7Bã¢W6—¦SâvõfÇVT6ÆöæRf÷"µC²åÒ°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæV6…÷&Vb‚’æÖ‡ÇfÇVWÂfÇVRævõ÷fÇVUö6ÆöæR‚’’Ğ§Ğ¦–×ÃÅC¢võG—U&Ôf–VÆD6ÆöæR²võfÇVT6ÆöæRÂ6öç7Bã¢W6—¦SâvõG—U&Ôf–VÆD6ÆöæRf÷"µC²åÒ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒC£¤tõô4õ•ô´TU5ô„äDÄS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ°¢–b6VÆc£¤tõô4õ•ô´TU5ô„äDÄR²f–VÆBæ6ÆöæR‚’ÒVÇ6R°¢ÆWBwV&BÒf–VÆBæÆö6²‚’çVçw&‚“°¢7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr†wV&Bæ5÷&Vb‚’æÖ‡ÇfÇVWÂfÇVRævõ÷fÇVUö6ÆöæR‚’’’¢Ğ¢Ğ§Ğ ¦–×ÃÅC¢6ÆöæSâvõfÇVT6ÆöæRf÷"7FC£§fV3£¥fV3ÅCâ²fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’ÒĞ¦–×ÃÅC¢6ÆöæSâvõG—U&Ôf–VÆD6ÆöæRf÷"7FC£§fV3£¥fV3ÅCâ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ²f–VÆBæ6ÆöæR‚’Ğ§Ğ ¦–×ÃÄ³¢6ÆöæR²÷&BÂc¢6ÆöæSâvõfÇVT6ÆöæRf÷"7FC£¦6öÆÆV7F–öç3£¤%G&VTÖÄ²Âcâ²fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’ÒĞ¦–×ÃÄ³¢6ÆöæR²÷&BÂc¢6ÆöæSâvõG—U&Ôf–VÆD6ÆöæRf÷"7FC£¦6öÆÆV7F–öç3£¤%G&VTÖÄ²Âcâ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ²f–VÆBæ6ÆöæR‚’Ğ§Ğ ¦–×ÃÅCâvõfÇVT6ÆöæRf÷"7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅCããâ²fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’ÒĞ¦–×ÃÅCâvõG—U&Ôf–VÆD6ÆöæRf÷"7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅCããâ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ²f–VÆBæ6ÆöæR‚’Ğ§Ğ ¦–×ÃÅ#¢w7FF–3âvõG—U&Ôf–VÆD6ÆöæRf÷"&÷ƒÆG–âfä×WB‚’Óâ"²6VæB²7–æ3â°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ°¢ÆWBf–VÆEö¶W’Ò7FC£§7–æ3£¤&3£¦5÷G"†f–VÆB’2W6—¦S°¢ÆWB7W'&VçE÷&÷‡•öFFÒf–VÆBæÆö6²‚’çVçw&‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚’Óâ"’2¦6öç7B‚’2W6—¦R“°¢ÆWB×WBF&vWBÒ7W'&VçE÷&÷‡•öFFææE÷F†Vâ‡Ç&÷‡•öFFÂvõöfåöf–VÆE÷F&vWC££Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ†f–VÆEö¶W’Â&÷‡•öFF’“°¢–bF&vWBæ—5öæöæR‚’°¢ÆWB÷&–v–æÂÒf–VÆBæÆö6²‚’çVçw&‚’çF¶R‚“°¢ÆWB6öÖR†÷&–v–æÂ’Ò÷&–v–æÂVÇ6R²&WGW&â7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr„æöæR’“²Ó°¢ÆWB6†&VBÒ7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr…6öÖR†÷&–v–æÂ’’“°¢ÆWB6÷W&6U÷F&vWBÒ6†&VBæ6ÆöæR‚“°¢¦f–VÆBæÆö6²‚’çVçw&‚’Ò6öÖR„&÷ƒ£¦æWr†Ö÷fRÇÂ°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷W&6U÷F&vWBæÆö6²‚’çVçw&‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚’Óâ"²6VæB²7–æ3âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚’Ğ¢Ò’“°¢ÆWB&÷‡•öFFÒf–VÆBæÆö6²‚’çVçw&‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†f–VÆEö¶W’Â&÷‡•öFFÂf–VÆBÂg6†&VB“°¢F&vWBÒ6öÖR‡6†&VB“°¢Ğ¢ÆWBF&vWBÒF&vWBçVçw&‚“°¢ÆWB6÷•÷F&vWBÒF&vWBæ6ÆöæR‚“°¢ÆWB6÷’Ò7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr…6öÖR„&÷ƒ£¦æWr†Ö÷fRÇÂ°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷•÷F&vWBæÆö6²‚’çVçw&‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚’Óâ"²6VæB²7–æ3âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚’Ğ¢Ò’2&÷ƒÆG–âfä×WB‚’Óâ"²6VæB²7–æ3â’’“°¢ÆWB6÷•ö¶W’Ò7FC£§7–æ3£¤&3£¦5÷G"‚f6÷’’2W6—¦S°¢ÆWB&÷‡•öFFÒ6÷’æÆö6²‚’çVçw&‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†6÷•ö¶W’Â&÷‡•öFFÂf6÷’ÂgF&vWB“°¢6÷¢Ğ§Ğ¦Ö7&õ÷'VÆW2–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæUöfâ°¢‚B‚‚B‚F&s¦–FVçB’Â²’’Â¢B‚Â“ò’Óâ²B†–×ÃÅ#¢w7FF–2ÂB‚F&s¢w7FF–2’Â³âvõG—U&Ôf–VÆD6ÆöæRf÷"&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ"²6VæB²7–æ3â°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§7–æ3£¤&3Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ°¢ÆWBf–VÆEö¶W’Ò7FC£§7–æ3£¤&3£¦5÷G"†f–VÆB’2W6—¦S°¢ÆWB7W'&VçE÷&÷‡•öFFÒf–VÆBæÆö6²‚’çVçw&‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚B‚F&r’Â²’Óâ"’2¦6öç7B‚’2W6—¦R“°¢ÆWB×WBF&vWBÒ7W'&VçE÷&÷‡•öFFææE÷F†Vâ‡Ç&÷‡•öFFÂvõöfåöf–VÆE÷F&vWC££Ç7FC£§7–æ3£¤×WFWƒÄ÷F–öãÅ6VÆcããâ†f–VÆEö¶W’Â&÷‡•öFF’“°¢–bF&vWBæ—5öæöæR‚’°¢ÆWB÷&–v–æÂÒf–VÆBæÆö6²‚’çVçw&‚’çF¶R‚“°¢ÆWB6öÖR†÷&–v–æÂ’Ò÷&–v–æÂVÇ6R²&WGW&â7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr„æöæR’“²Ó°¢ÆWB6†&VBÒ7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr…6öÖR†÷&–v–æÂ’’“°¢ÆWB6÷W&6U÷F&vWBÒ6†&VBæ6ÆöæR‚“°¢¦f–VÆBæÆö6²‚’çVçw&‚’Ò6öÖR„&÷ƒ£¦æWr†Ö÷fRÂB‚F&r’Â·Â°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷W&6U÷F&vWBæÆö6²‚’çVçw&‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ"²6VæB²7–æ3âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚B‚F&r’Â²’Ğ¢Ò’“°¢ÆWB&÷‡•öFFÒf–VÆBæÆö6²‚’çVçw&‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚B‚F&r’Â²’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†f–VÆEö¶W’Â&÷‡•öFFÂf–VÆBÂg6†&VB“°¢F&vWBÒ6öÖR‡6†&VB“°¢Ğ¢ÆWBF&vWBÒF&vWBçVçw&‚“°¢ÆWB6÷•÷F&vWBÒF&vWBæ6ÆöæR‚“°¢ÆWB6÷’Ò7FC£§7–æ3£¤&3£¦æWr‡7FC£§7–æ3£¤×WFWƒ£¦æWr…6öÖR„&÷ƒ£¦æWr†Ö÷fRÂB‚F&r’Â·Â°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷•÷F&vWBæÆö6²‚’çVçw&‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ"²6VæB²7–æ3âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚B‚F&r’Â²’Ğ¢Ò’2&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ"²6VæB²7–æ3â’’“°¢ÆWB6÷•ö¶W’Ò7FC£§7–æ3£¤&3£¦5÷G"‚f6÷’’2W6—¦S°¢ÆWB&÷‡•öFFÒ6÷’æÆö6²‚’çVçw&‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚B‚F&r’Â²’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†6÷•ö¶W’Â&÷‡•öFFÂf6÷’ÂgF&vWB“°¢6÷¢Ğ¢Ò’¢Ó°§Ğ¦–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæUöfâ‚„’Â„Â’Â„ÂÂ"’Â„ÂÂ"Â2’Â„ÂÂ"Â2ÂB’Â„ÂÂ"Â2ÂBÂR’Â„ÂÂ"Â2ÂBÂRÂb’Â„ÂÂ"Â2ÂBÂRÂbÂr’“°¦  ¦6öç7BvõG—U&Ôf–VÆD6ÆöæTÆö6ÂÒ §V"G&—BvõG—U&Ôf–VÆD6ÆöæS¢6—¦VB°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÃ°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããã°§Ğ §7G'V7Bvôfäf–VÆEF&vWDVçG'’°¢&÷‡•öFF¢W6—¦RÀ¢f–VÆC¢7FC£§&3£¥vV³ÆG–âç“âÀ¢F&vWC¢7FC£§&3£¥vV³ÆG–âç“âÀ§Ğ §7FC£§F‡&VEöÆö6Â°¢7FF–2tõôdåôd”TÄEõD$tUE3¢7FC£¦6VÆÃ£¥&Vd6VÆÃÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂvôfäf–VÆEF&vWDVçG'“ãâÒ7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’“°§Ğ ¦fâvõöfåöf–VÆE÷F&vWCÅC¢ç“â†f–VÆEö¶W“¢W6—¦RÂ&÷‡•öFF¢W6—¦R’Óâ÷F–öãÇ7FC£§&3£¥&3ÅCãâ°¢tõôdåôd”TÄEõD$tUE2çv—F‚‡Ç&Vv—7G'—Â°¢ÆWB×WB&Vv—7G'’Ò&Vv—7G'’æ&÷'&÷uö×WB‚“°¢&Vv—7G'’ç&WF–â‡ÅòÂVçG'—ÂVçG'’æf–VÆBç7G&öæuö6÷VçB‚’âbbVçG'’çF&vWBç7G&öæuö6÷VçB‚’â“°¢ÆWBÖF6†W2Ò&Vv—7G'’ævWB‚ff–VÆEö¶W’’æÖ‡ÆVçG'—ÂVçG'’ç&÷‡•öFFÓÒ&÷‡•öFF’çVçw&ö÷"†fÇ6R“°¢–bÖF6†W2°¢&Vv—7G'’ç&VÖ÷fR‚ff–VÆEö¶W’“°¢&WGW&âæöæS°¢Ğ¢ÆWBF&vWBÒ&Vv—7G'’ævWB‚ff–VÆEö¶W’“òçF&vWBçWw&FR‚“ó°¢7FC£§&3£¥&3£¦F÷væ67C££ÅCâ‡F&vWB’æö²‚¢Ò§Ğ ¦fâvõ÷&Vv—7FW%öfåöf–VÆE÷F&vWCÄc¢ç’ÂC¢ç“â€¢f–VÆEö¶W“¢W6—¦RÀ¢&÷‡•öFF¢W6—¦RÀ¢f–VÆC¢g7FC£§&3£¥&3ÄcâÀ¢F&vWC¢g7FC£§&3£¥&3ÅCâÀ¢’°¢ÆWBW&6VEöf–VÆC¢7FC£§&3£¥&3ÆG–âç“âÒf–VÆBæ6ÆöæR‚“°¢ÆWBW&6VE÷F&vWC¢7FC£§&3£¥&3ÆG–âç“âÒF&vWBæ6ÆöæR‚“°¢tõôdåôd”TÄEõD$tUE2çv—F‚‡Ç&Vv—7G'—Â&Vv—7G'’æ&÷'&÷uö×WB‚’æ–ç6W'B†f–VÆEö¶W’Âvôfäf–VÆEF&vWDVçG'’°¢&÷‡•öFFÀ¢f–VÆC¢7FC£§&3£¥&3£¦F÷væw&FR‚fW&6VEöf–VÆB’À¢F&vWC¢7FC£§&3£¥&3£¦F÷væw&FR‚fW&6VE÷F&vWB’À¢Ò’“°§Ğ ¦Ö7&õ÷'VÆW2–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæU÷fÇVR°¢‚B‚GC§G’’Â¢B‚Â“ò’Óâ°¢B†–×ÂvõG—U&Ôf–VÆD6ÆöæRf÷"GB°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒfÇ6S°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ°¢ÆWBwV&BÒf–VÆBæ&÷'&÷r‚“°¢7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr†wV&Bæ5÷&Vb‚’æÖ‡ÇfÇVWÂfÇVRævõ÷fÇVUö6ÆöæR‚’’’¢Ğ¢Ò’ ¢Ó°§Ğ ¦–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæU÷fÇVR†&ööÂÂ6†"Â“‚Â“bÂ“3"Â“cBÂ—6—¦RÂS‚ÂSbÂS3"ÂScBÂW6—¦RÂc3"ÂccBÂbw7FF–27G"Â7G&–ærÂ&÷ƒÆG–âç“â“° ¦–×ÃÅC¢võG—U&Ôf–VÆD6ÆöæR²võfÇVT6ÆöæRÂ6öç7Bã¢W6—¦SâvõfÇVT6ÆöæRf÷"µC²åÒ°¢fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæV6…÷&Vb‚’æÖ‡ÇfÇVWÂfÇVRævõ÷fÇVUö6ÆöæR‚’’Ğ§Ğ¦–×ÃÅC¢võG—U&Ôf–VÆD6ÆöæR²võfÇVT6ÆöæRÂ6öç7Bã¢W6—¦SâvõG—U&Ôf–VÆD6ÆöæRf÷"µC²åÒ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒC£¤tõô4õ•ô´TU5ô„äDÄS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ°¢–b6VÆc£¤tõô4õ•ô´TU5ô„äDÄR²f–VÆBæ6ÆöæR‚’ÒVÇ6R°¢ÆWBwV&BÒf–VÆBæ&÷'&÷r‚“°¢7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr†wV&Bæ5÷&Vb‚’æÖ‡ÇfÇVWÂfÇVRævõ÷fÇVUö6ÆöæR‚’’’¢Ğ¢Ğ§Ğ ¦–×ÃÅC¢6ÆöæSâvõfÇVT6ÆöæRf÷"7FC£§fV3£¥fV3ÅCâ²fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’ÒĞ¦–×ÃÅC¢6ÆöæSâvõG—U&Ôf–VÆD6ÆöæRf÷"7FC£§fV3£¥fV3ÅCâ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ²f–VÆBæ6ÆöæR‚’Ğ§Ğ ¦–×ÃÄ³¢6ÆöæR²÷&BÂc¢6ÆöæSâvõfÇVT6ÆöæRf÷"7FC£¦6öÆÆV7F–öç3£¤%G&VTÖÄ²Âcâ²fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’ÒĞ¦–×ÃÄ³¢6ÆöæR²÷&BÂc¢6ÆöæSâvõG—U&Ôf–VÆD6ÆöæRf÷"7FC£¦6öÆÆV7F–öç3£¤%G&VTÖÄ²Âcâ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ²f–VÆBæ6ÆöæR‚’Ğ§Ğ ¦–×ÃÅCâvõfÇVT6ÆöæRf÷"7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅCããâ²fâvõ÷fÇVUö6ÆöæR‚g6VÆb’Óâ6VÆb²6VÆbæ6ÆöæR‚’ÒĞ¦–×ÃÅCâvõG—U&Ôf–VÆD6ÆöæRf÷"7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅCããâ°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ²f–VÆBæ6ÆöæR‚’Ğ§Ğ ¦–×ÃÅ#¢w7FF–3âvõG—U&Ôf–VÆD6ÆöæRf÷"&÷ƒÆG–âfä×WB‚’Óâ#â°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ°¢ÆWBf–VÆEö¶W’Ò7FC£§&3£¥&3£¦5÷G"†f–VÆB’2W6—¦S°¢ÆWB7W'&VçE÷&÷‡•öFFÒf–VÆBæ&÷'&÷r‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚’Óâ"’2¦6öç7B‚’2W6—¦R“°¢ÆWB×WBF&vWBÒ7W'&VçE÷&÷‡•öFFææE÷F†Vâ‡Ç&÷‡•öFFÂvõöfåöf–VÆE÷F&vWC££Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ†f–VÆEö¶W’Â&÷‡•öFF’“°¢–bF&vWBæ—5öæöæR‚’°¢ÆWB÷&–v–æÂÒf–VÆBæ&÷'&÷uö×WB‚’çF¶R‚“°¢ÆWB6öÖR†÷&–v–æÂ’Ò÷&–v–æÂVÇ6R²&WGW&â7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr„æöæR’“²Ó°¢ÆWB6†&VBÒ7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr…6öÖR†÷&–v–æÂ’’“°¢ÆWB6÷W&6U÷F&vWBÒ6†&VBæ6ÆöæR‚“°¢¦f–VÆBæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr†Ö÷fRÇÂ°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷W&6U÷F&vWBæ&÷'&÷uö×WB‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚’Óâ#âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚’Ğ¢Ò’“°¢ÆWB&÷‡•öFFÒf–VÆBæ&÷'&÷r‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†f–VÆEö¶W’Â&÷‡•öFFÂf–VÆBÂg6†&VB“°¢F&vWBÒ6öÖR‡6†&VB“°¢Ğ¢ÆWBF&vWBÒF&vWBçVçw&‚“°¢ÆWB6÷•÷F&vWBÒF&vWBæ6ÆöæR‚“°¢ÆWB6÷’Ò7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr…6öÖR„&÷ƒ£¦æWr†Ö÷fRÇÂ°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷•÷F&vWBæ&÷'&÷uö×WB‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚’Óâ#âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚’Ğ¢Ò’2&÷ƒÆG–âfä×WB‚’Óâ#â’’“°¢ÆWB6÷•ö¶W’Ò7FC£§&3£¥&3£¦5÷G"‚f6÷’’2W6—¦S°¢ÆWB&÷‡•öFFÒ6÷’æ&÷'&÷r‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†6÷•ö¶W’Â&÷‡•öFFÂf6÷’ÂgF&vWB“°¢6÷¢Ğ§Ğ¦Ö7&õ÷'VÆW2–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæUöfâ°¢‚B‚‚B‚F&s¦–FVçB’Â²’’Â¢B‚Â“ò’Óâ²B†–×ÃÅ#¢w7FF–2ÂB‚F&s¢w7FF–2’Â³âvõG—U&Ôf–VÆD6ÆöæRf÷"&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ#â°¢6öç7Btõô4õ•ô´TU5ô„äDÄS¢&ööÂÒG'VS°¢fâvõ÷G—U÷&Õöf–VÆEö6ÆöæR†f–VÆC¢g7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ’Óâ7FC£§&3£¥&3Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ°¢ÆWBf–VÆEö¶W’Ò7FC£§&3£¥&3£¦5÷G"†f–VÆB’2W6—¦S°¢ÆWB7W'&VçE÷&÷‡•öFFÒf–VÆBæ&÷'&÷r‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚B‚F&r’Â²’Óâ"’2¦6öç7B‚’2W6—¦R“°¢ÆWB×WBF&vWBÒ7W'&VçE÷&÷‡•öFFææE÷F†Vâ‡Ç&÷‡•öFFÂvõöfåöf–VÆE÷F&vWC££Ç7FC£¦6VÆÃ£¥&Vd6VÆÃÄ÷F–öãÅ6VÆcããâ†f–VÆEö¶W’Â&÷‡•öFF’“°¢–bF&vWBæ—5öæöæR‚’°¢ÆWB÷&–v–æÂÒf–VÆBæ&÷'&÷uö×WB‚’çF¶R‚“°¢ÆWB6öÖR†÷&–v–æÂ’Ò÷&–v–æÂVÇ6R²&WGW&â7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr„æöæR’“²Ó°¢ÆWB6†&VBÒ7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr…6öÖR†÷&–v–æÂ’’“°¢ÆWB6÷W&6U÷F&vWBÒ6†&VBæ6ÆöæR‚“°¢¦f–VÆBæ&÷'&÷uö×WB‚’Ò6öÖR„&÷ƒ£¦æWr†Ö÷fRÂB‚F&r’Â·Â°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷W&6U÷F&vWBæ&÷'&÷uö×WB‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ#âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚B‚F&r’Â²’Ğ¢Ò’“°¢ÆWB&÷‡•öFFÒf–VÆBæ&÷'&÷r‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚B‚F&r’Â²’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†f–VÆEö¶W’Â&÷‡•öFFÂf–VÆBÂg6†&VB“°¢F&vWBÒ6öÖR‡6†&VB“°¢Ğ¢ÆWBF&vWBÒF&vWBçVçw&‚“°¢ÆWB6÷•÷F&vWBÒF&vWBæ6ÆöæR‚“°¢ÆWB6÷’Ò7FC£§&3£¥&3£¦æWr‡7FC£¦6VÆÃ£¥&Vd6VÆÃ£¦æWr…6öÖR„&÷ƒ£¦æWr†Ö÷fRÂB‚F&r’Â·Â°¢ÆWB6ÆÆ&ÆU÷G"Ò²ÆWB×WB6ÆÆ&ÆRÒ6÷•÷F&vWBæ&÷'&÷uö×WB‚“²6ÆÆ&ÆRæ5ö×WB‚’çVçw&‚’2¦×WB&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ#âÓ°¢Vç6fR²‚f×WB¦6ÆÆ&ÆU÷G"’‚B‚F&r’Â²’Ğ¢Ò’2&÷ƒÆG–âfä×WB‚B‚F&r’Â²’Óâ#â’’“°¢ÆWB6÷•ö¶W’Ò7FC£§&3£¥&3£¦5÷G"‚f6÷’’2W6—¦S°¢ÆWB&÷‡•öFFÒ6÷’æ&÷'&÷r‚’æ5÷&Vb‚’æÖ‡Æ6ÆÆ&ÆWÂ‚b¢¦6ÆÆ&ÆR2¦6öç7BG–âfä×WB‚B‚F&r’Â²’Óâ"’2¦6öç7B‚’2W6—¦R’çVçw&‚“°¢võ÷&Vv—7FW%öfåöf–VÆE÷F&vWB†6÷•ö¶W’Â&÷‡•öFFÂf6÷’ÂgF&vWB“°¢6÷¢Ğ¢Ò’¢Ó°§Ğ¦–×Åövõ÷G—U÷&Õöf–VÆEö6ÆöæUöfâ‚„’Â„Â’Â„ÂÂ"’Â„ÂÂ"Â2’Â„ÂÂ"Â2ÂB’Â„ÂÂ"Â2ÂBÂR’Â„ÂÂ"Â2ÂBÂRÂb’Â„ÂÂ"Â2ÂBÂRÂbÂr’“°¦  ¦gVæ2vVæW&FTvô6öç7E7G$W†÷WB§7G&–æw2ä'V–ÆFW"’° —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ –f×Bäg&–çFb†÷WBÂ ¢U³×66öç7Bfâvõö6öç7E÷7G%öW†ÆVgC¢g7G"Â&–v‡C¢g7G"’Óâ&ööÂ°¢ÆWBÆVgBÒÆVgBæ5ö'—FW2‚“°¢ÆWB&–v‡BÒ&–v‡Bæ5ö'—FW2‚“°¢–bÆVgBæÆVâ‚’Ò&–v‡BæÆVâ‚’°¢&WGW&âfÇ6S°¢Ğ¢ÆWB×WB’Ò°¢v†–ÆR’ÂÆVgBæÆVâ‚’°¢–bÆVgE¶•ÒÒ&–v‡E¶•Ò°¢&WGW&âfÇ6S°¢Ğ¢’³Ò°¢Ğ¢G'VP§Ğ¦Âf—6–&–Æ—G’§Ğ ¦gVæ2vVæW&FTvôç•G—TÖWFFF†÷WB§7G&–æw2ä'V–ÆFW"’° •G&6´–×÷'B‚$ç’" —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ ––bæVVG46öæ7W'&VçEw&W"‚’° –f×Bäg&–çFb†÷WBÂ ¢5¶FW&—fR„6ÆöæRÂ6÷’•Ğ¢U³×77G'V7Bvôç•G—TÖWFFF°¢V"¶–æC¢bw7FF–27G"À¢V"6ö×&&ÆS¢&ööÂÀ¢V"VÆVÕö¶–æC¢÷F–öãÂbw7FF–27G#âÀ¢V"VÆVÕö6ö×&&ÆS¢&ööÂÀ§Ğ ¦fâvõöç•÷G—UöÖWFFF÷&Vv—7G'’‚’Óâbw7FF–27FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇ7FC£¦ç“£¥G—T–BÂvôç•G—TÖWFFFãâ°¢7FF–2$Tt•5E%“¢7FC£§7–æ3£¤öæ6TÆö6³Ç7FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇ7FC£¦ç“£¥G—T–BÂvôç•G—TÖWFFFããâÒ7FC£§7–æ3£¤öæ6TÆö6³£¦æWr‚“°¢$Tt•5E%’ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’§Ğ ¦fâvõöç•÷fÇVUöÖWFFF÷&Vv—7G'’‚’Óâbw7FF–27FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂvôç•G—TÖWFFFãâ°¢7FF–2$Tt•5E%“¢7FC£§7–æ3£¤öæ6TÆö6³Ç7FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂvôç•G—TÖWFFFããâÒ7FC£§7–æ3£¤öæ6TÆö6³£¦æWr‚“°¢$Tt•5E%’ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’§Ğ ¦fâvõöç•÷fÇVUöÖWFFFö¶W’‡fÇVS¢b†G–âç’²6VæB²7–æ2’’ÓâW6—¦R°¢fÇVR2¦6öç7B†G–âç’²6VæB²7–æ2’2¦6öç7B‚’2W6—¦P§Ğ ¢U³×6fâvõ÷&Vv—7FW%öç•÷G—SÅC¢ç’²6VæB²7–æ2²w7FF–3â†¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂ’°¢võöç•÷G—UöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B‡7FC£¦ç“£¥G—T–C£¦öc££ÅCâ‚’Âvôç•G—TÖWFFF²¶–æBÂ6ö×&&ÆRÂVÆVÕö¶–æC¢æöæRÂVÆVÕö6ö×&&ÆS¢fÇ6RÒ“°§Ğ ¢U³×6fâvõ÷&Vv—7FW%öç•÷G—U÷v—F…öVÆVÓÅC¢ç’²6VæB²7–æ2²w7FF–3â†¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂÂVÆVÕö¶–æC¢bw7FF–27G"ÂVÆVÕö6ö×&&ÆS¢&ööÂ’°¢võöç•÷G—UöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B‡7FC£¦ç“£¥G—T–C£¦öc££ÅCâ‚’Âvôç•G—TÖWFFF²¶–æBÂ6ö×&&ÆRÂVÆVÕö¶–æC¢6öÖR†VÆVÕö¶–æB’ÂVÆVÕö6ö×&&ÆRÒ“°§Ğ ¢òò&÷†W2fÇVR2—G6VÆbæB&V6÷&G2v†B¶–æBöbvòG—R—B—2âWfW'’&VFW ¢òòöbâ–çFW&f6RfÇVRÆöö·2f÷"F†RfÇVRw2÷vâG—R–âF†R&÷‚Â6òF†P¢òò&÷‚×W7B†öÆBæ÷F†–ærVÇ6S¢w&W"&÷VæBF†RfÇVRv÷VÆB&RG—Ræğ¢òò&VFW"¶æ÷w2à¢U³×6fâvõö&÷…öç•÷v—F…öÖWFFFÅC¢ç’²6VæB²7–æ2²w7FF–3â‡fÇVS¢BÂ¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂ’Óâ&÷ƒÆG–âç’²6VæB²7–æ3â°¢võ÷&Vv—7FW%öç•÷G—S££ÅCâ†¶–æBÂ6ö×&&ÆR“°¢&÷ƒ£¦æWr‡fÇVR’2&÷ƒÆG–âç’²6VæB²7–æ3à§Ğ ¢U³×6fâvõ÷&Vv—7FW%öç•÷fÇVUöÖWFFF‡fÇVS¢b†G–âç’²6VæB²7–æ2’Â¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂ’°¢võöç•÷fÇVUöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B†võöç•÷fÇVUöÖWFFFö¶W’‡fÇVR’Âvôç•G—TÖWFFF²¶–æBÂ6ö×&&ÆRÂVÆVÕö¶–æC¢æöæRÂVÆVÕö6ö×&&ÆS¢fÇ6RÒ“°§Ğ ¢U³×6fâvõöç•÷G—UöÖWFFF‡fÇVS¢b†G–âç’²6VæB²7–æ2’’Óâ÷F–öãÄvôç•G—TÖWFFFâ°¢võöç•÷fÇVUöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’ævWB‚fvõöç•÷fÇVUöÖWFFFö¶W’‡fÇVR’’æ6÷–VB‚¢æ÷%öVÇ6R‡ÇÂvõöç•÷G—UöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’ævWB‚gfÇVRçG—Uö–B‚’’æ6÷–VB‚’§Ğ¦Âf—6–&–Æ—G’ —&WGW&à —Ğ –f×Bäg&–çFb†÷WBÂ ¢5¶FW&—fR„6ÆöæRÂ6÷’•Ğ¢U³×77G'V7Bvôç•G—TÖWFFF°¢V"¶–æC¢bw7FF–27G"À¢V"6ö×&&ÆS¢&ööÂÀ¢V"VÆVÕö¶–æC¢÷F–öãÂbw7FF–27G#âÀ¢V"VÆVÕö6ö×&&ÆS¢&ööÂÀ§Ğ ¦fâvõöç•÷G—UöÖWFFF÷&Vv—7G'’‚’Óâbw7FF–27FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇ7FC£¦ç“£¥G—T–BÂvôç•G—TÖWFFFãâ°¢7FF–2$Tt•5E%“¢7FC£§7–æ3£¤öæ6TÆö6³Ç7FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇ7FC£¦ç“£¥G—T–BÂvôç•G—TÖWFFFããâÒ7FC£§7–æ3£¤öæ6TÆö6³£¦æWr‚“°¢$Tt•5E%’ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’§Ğ ¦fâvõöç•÷fÇVUöÖWFFF÷&Vv—7G'’‚’Óâbw7FF–27FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂvôç•G—TÖWFFFãâ°¢7FF–2$Tt•5E%“¢7FC£§7–æ3£¤öæ6TÆö6³Ç7FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂvôç•G—TÖWFFFããâÒ7FC£§7–æ3£¤öæ6TÆö6³£¦æWr‚“°¢$Tt•5E%’ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’§Ğ ¦fâvõöç•÷fÇVUöÖWFFFö¶W’‡fÇVS¢fG–âç’’ÓâW6—¦R°¢fÇVR2¦6öç7BG–âç’2¦6öç7B‚’2W6—¦P§Ğ ¢U³×6fâvõ÷&Vv—7FW%öç•÷G—SÅC¢ç’²w7FF–3â†¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂ’°¢võöç•÷G—UöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B‡7FC£¦ç“£¥G—T–C£¦öc££ÅCâ‚’Âvôç•G—TÖWFFF²¶–æBÂ6ö×&&ÆRÂVÆVÕö¶–æC¢æöæRÂVÆVÕö6ö×&&ÆS¢fÇ6RÒ“°§Ğ ¢U³×6fâvõ÷&Vv—7FW%öç•÷G—U÷v—F…öVÆVÓÅC¢ç’²w7FF–3â†¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂÂVÆVÕö¶–æC¢bw7FF–27G"ÂVÆVÕö6ö×&&ÆS¢&ööÂ’°¢võöç•÷G—UöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B‡7FC£¦ç“£¥G—T–C£¦öc££ÅCâ‚’Âvôç•G—TÖWFFF²¶–æBÂ6ö×&&ÆRÂVÆVÕö¶–æC¢6öÖR†VÆVÕö¶–æB’ÂVÆVÕö6ö×&&ÆRÒ“°§Ğ ¢òò&÷†W2fÇVR2—G6VÆbæB&V6÷&G2v†B¶–æBöbvòG—R—B—2âWfW'’&VFW ¢òòöbâ–çFW&f6RfÇVRÆöö·2f÷"F†RfÇVRw2÷vâG—R–âF†R&÷‚Â6òF†P¢òò&÷‚×W7B†öÆBæ÷F†–ærVÇ6S¢w&W"&÷VæBF†RfÇVRv÷VÆB&RG—Ræğ¢òò&VFW"¶æ÷w2à¢U³×6fâvõö&÷…öç•÷v—F…öÖWFFFÅC¢ç’²w7FF–3â‡fÇVS¢BÂ¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂ’Óâ&÷ƒÆG–âç“â°¢võ÷&Vv—7FW%öç•÷G—S££ÅCâ†¶–æBÂ6ö×&&ÆR“°¢&÷ƒ£¦æWr‡fÇVR’2&÷ƒÆG–âç“à§Ğ ¢U³×6fâvõ÷&Vv—7FW%öç•÷fÇVUöÖWFFF‡fÇVS¢fG–âç’Â¶–æC¢bw7FF–27G"Â6ö×&&ÆS¢&ööÂ’°¢võöç•÷fÇVUöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B†võöç•÷fÇVUöÖWFFFö¶W’‡fÇVR’Âvôç•G—TÖWFFF²¶–æBÂ6ö×&&ÆRÂVÆVÕö¶–æC¢æöæRÂVÆVÕö6ö×&&ÆS¢fÇ6RÒ“°§Ğ ¢U³×6fâvõöç•÷G—UöÖWFFF‡fÇVS¢fG–âç’’Óâ÷F–öãÄvôç•G—TÖWFFFâ°¢võöç•÷fÇVUöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’ævWB‚fvõöç•÷fÇVUöÖWFFFö¶W’‡fÇVR’’æ6÷–VB‚¢æ÷%öVÇ6R‡ÇÂvõöç•÷G—UöÖWFFF÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’ævWB‚gfÇVRçG—Uö–B‚’’æ6÷–VB‚’§Ğ¦Âf—6–&–Æ—G’§Ğ ¦gVæ2vVæW&FTç”WVÆ—G’†÷WB§7G&–æw2ä'V–ÆFW"’° •G&6´–×÷'B‚$ç’" ––bæVVG46öæ7W'&VçEw&W"‚’° •G&6´–×÷'B‚$&2" •G&6´–×÷'B‚$×WFW‚" –÷WBåw&—FU7G&–ær† ¦fâvõöç•öW†ÆVgC¢d&3Ä×WFWƒÄ÷F–öãÄ&÷ƒÆG–âç’²6VæB²7–æ3ãããâÂ&–v‡C¢d&3Ä×WFWƒÄ÷F–öãÄ&÷ƒÆG–âç’²6VæB²7–æ3ãããâ’Óâ&ööÂ°¢ÆWBÆVgEöwV&BÒÆVgBæÆö6²‚’çVçw&‚“°¢ÆWB&–v‡EöwV&BÒ&–v‡BæÆö6²‚’çVçw&‚“°¢ÖF6‚†ÆVgEöwV&Bæ5÷&Vb‚’Â&–v‡EöwV&Bæ5÷&Vb‚’’°¢„æöæRÂæöæR’ÓâG'VRÀ¢„æöæRÂ6öÖR…ò’’Â…6öÖR…ò’ÂæöæR’ÓâfÇ6RÀ¢…6öÖR†ÆVgB’Â6öÖR‡&–v‡B’’Óâvõöç•÷fÇVW5öW†ÆVgBæ5÷&Vb‚’Â&–v‡Bæ5÷&Vb‚’’À¢Ğ§Ğ ¦fâvõöç•÷fÇVW5öW†ÆVgC¢b†G–âç’²6VæB²7–æ2’Â&–v‡C¢b†G–âç’²6VæB²7–æ2’’Óâ&ööÂ°¢–bÆVgBçG—Uö–B‚’Ò&–v‡BçG—Uö–B‚’°¢&WGW&âfÇ6S°¢Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“cCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“cCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“ƒâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“ƒâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“câ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“câ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇS3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇS3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇScCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇScCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇSƒâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇSƒâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇScâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇScâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÆccCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÆccCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æc3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æc3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Å7G&–æsâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Å7G&–æsâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Âg7G#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Âg7G#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ&ööÃâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ&ööÃâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ6†#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ6†#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢æ–2‚&–çFW&f6R6ö×&—6öâv—F‚Væ6ö×&&ÆRG–æÖ–2G—R"§Ğ¦ —&WGW&à —Ğ •G&6´–×÷'B‚%&2" •G&6´–×÷'B‚%&Vd6VÆÂ" –÷WBåw&—FU7G&–ær† ¦fâvõöç•öW†ÆVgC¢e&3Å&Vd6VÆÃÄ÷F–öãÄ&÷ƒÆG–âç“ãããâÂ&–v‡C¢e&3Å&Vd6VÆÃÄ÷F–öãÄ&÷ƒÆG–âç“ãããâ’Óâ&ööÂ°¢ÆWBÆVgEöwV&BÒÆVgBæ&÷'&÷r‚“°¢ÆWB&–v‡EöwV&BÒ&–v‡Bæ&÷'&÷r‚“°¢ÖF6‚†ÆVgEöwV&Bæ5÷&Vb‚’Â&–v‡EöwV&Bæ5÷&Vb‚’’°¢„æöæRÂæöæR’ÓâG'VRÀ¢„æöæRÂ6öÖR…ò’’Â…6öÖR…ò’ÂæöæR’ÓâfÇ6RÀ¢…6öÖR†ÆVgB’Â6öÖR‡&–v‡B’’Óâvõöç•÷fÇVW5öW†ÆVgBæ5÷&Vb‚’Â&–v‡Bæ5÷&Vb‚’’À¢Ğ§Ğ ¦fâvõöç•÷fÇVW5öW†ÆVgC¢fG–âç’Â&–v‡C¢fG–âç’’Óâ&ööÂ°¢–bÆVgBçG—Uö–B‚’Ò&–v‡BçG—Uö–B‚’°¢&WGW&âfÇ6S°¢Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“cCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“cCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“ƒâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“ƒâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“câ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“câ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇS3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇS3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇScCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇScCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇSƒâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇSƒâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇScâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇScâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÆccCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÆccCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æc3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æc3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Å7G&–æsâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Å7G&–æsâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Âg7G#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Âg7G#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ&ööÃâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ&ööÃâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ6†#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ6†#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢æ–2‚&–çFW&f6R6ö×&—6öâv—F‚Væ6ö×&&ÆRG–æÖ–2G—R"§Ğ¦§Ğ ¦gVæ2vVæW&FTvô6ö×&&ÆR†÷WB§7G&–æw2ä'V–ÆFW"’° •G&6´–×÷'B‚$ç’" –ç•G—R£Ò&G–âç’  ––bæVVG46öæ7W'&VçEw&W"‚’° –ç•G—RÒ&G–âç’²6VæB²7–æ2  —Ğ –&÷…G—R£Ò$&÷ƒÂ"²ç•G—R²#â  –÷WBåw&—FU7G&–ær† §V"G&—Bvô6ö×&&ÆR°¢fâvõöW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÃ°¢fâvõö†6‚‚g6VÆbÂ6VVC¢W6—¦R’ÓâW6—¦S°§Ğ ¦fâvõö†6…÷fÇVSÅC¢7FC£¦†6ƒ£¤†6ƒâ‡fÇVS¢eBÂ6VVC¢W6—¦R’ÓâW6—¦R°¢ÆWB×WBõö†6†W"Ò7FC£¦6öÆÆV7F–öç3£¦†6…öÖ£¤FVfVÇD†6†W#£¦æWr‚“°¢7FC£¦†6ƒ£¤†6ƒ£¦†6‚‚g6VVBÂf×WBõö†6†W"“°¢7FC£¦†6ƒ£¤†6ƒ£¦†6‚‡fÇVRÂf×WBõö†6†W"“°¢7FC£¦†6ƒ£¤†6†W#£¦f–æ—6‚‚eõö†6†W"’2W6—¦P§Ğ ¦Ö7&õ÷'VÆW2–×Åövõö6ö×&&ÆUö†6‚°¢‚B‚GC§G’’Â¢B‚Â“ò’Óâ°¢B†–×Âvô6ö×&&ÆRf÷"GB°¢fâvõöW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbÓÒ÷F†W"Ğ¢fâvõö†6‚‚g6VÆbÂ6VVC¢W6—¦R’ÓâW6—¦R²võö†6…÷fÇVR‡6VÆbÂ6VVB’Ğ¢Ò’ ¢Ó°§Ğ ¦–×Åövõö6ö×&&ÆUö†6‚†&ööÂÂ6†"Â“‚Â“bÂ“3"Â“cBÂ—6—¦RÂS‚ÂSbÂS3"ÂScBÂW6—¦RÂ7G&–ærÂbw7FF–27G"“° ¦–×Âvô6ö×&&ÆRf÷"c3"°¢fâvõöW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbÓÒ÷F†W"Ğ¢fâvõö†6‚‚g6VÆbÂ6VVC¢W6—¦R’ÓâW6—¦R²võö†6…÷fÇVR‚g6VÆbçFõö&—G2‚’Â6VVB’Ğ§Ğ ¦–×Âvô6ö×&&ÆRf÷"ccB°¢fâvõöW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²6VÆbÓÒ÷F†W"Ğ¢fâvõö†6‚‚g6VÆbÂ6VVC¢W6—¦R’ÓâW6—¦R²võö†6…÷fÇVR‚g6VÆbçFõö&—G2‚’Â6VVB’Ğ§Ğ ¦fâvõöç•ö6ö×&&ÆUöW†ÆVgC¢b†²ç•G—R²’Â&–v‡C¢b†²ç•G—R²’’Óâ&ööÂ°¢–bÆVgBçG—Uö–B‚’Ò&–v‡BçG—Uö–B‚’°¢&WGW&âfÇ6S°¢Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“cCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“cCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“ƒâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“ƒâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ“câ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ“câ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇS3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇS3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇScCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇScCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇSƒâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇSƒâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇScâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇScâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££ÆccCâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££ÆccCâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æc3#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æc3#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Å7G&–æsâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Å7G&–æsâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Âg7G#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Âg7G#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ&ööÃâ‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ&ööÃâ‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢–bÆWB6öÖR‡b’ÒÆVgBæF÷væ67E÷&Vc££Æ6†#â‚’²&WGW&â&–v‡BæF÷væ67E÷&Vc££Æ6†#â‚’æÖö÷"†fÇ6RÂÇ'ÂbÓÒ"“²Ğ¢æ–2‚&–çFW&f6R6ö×&—6öâv—F‚Væ6ö×&&ÆRG–æÖ–2G—R"§Ğ ¦fâvõöç•ö6ö×&&ÆUö†6‚‡fÇVS¢b†²ç•G—R²’Â6VVC¢W6—¦R’ÓâW6—¦R°¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“3#â‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“cCâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“ƒâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ“câ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇS3#â‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇScCâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇSƒâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇScâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÇW6—¦Sâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ—6—¦Sâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££ÆccCâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’ÂbçFõö&—G2‚’’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æc3#â‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’ÂbçFõö&—G2‚’’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Å7G&–æsâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Âb’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Âg7G#â‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Âb’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ&ööÃâ‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢–bÆWB6öÖR‡b’ÒfÇVRæF÷væ67E÷&Vc££Æ6†#â‚’²&WGW&âvõö†6…÷fÇVR‚b‡fÇVRçG—Uö–B‚’Â§b’Â6VVB“²Ğ¢æ–2‚&–çFW&f6R†6‚v—F‚Væ6ö×&&ÆRG–æÖ–2G—R"§Ğ ¦–×Âvô6ö×&&ÆRf÷"²&÷…G—R²°¢fâvõöW‚g6VÆbÂ÷F†W#¢e6VÆb’Óâ&ööÂ²võöç•ö6ö×&&ÆUöW‡6VÆbæ5÷&Vb‚’Â÷F†W"æ5÷&Vb‚’’Ğ¢fâvõö†6‚‚g6VÆbÂ6VVC¢W6—¦R’ÓâW6—¦R²võöç•ö6ö×&&ÆUö†6‚‡6VÆbæ5÷&Vb‚’Â6VVB’Ğ§Ğ¦§Ğ ¦gVæ2vVæW&FTVÖ&VFFVD÷væW%&Vv—7G'’†÷WB§7G&–æw2ä'V–ÆFW"’° •G&6´–×÷'B‚$ç’" —f—6–&–Æ—G’£Ò"  ––bvVæW&F–æuV&Æ–4†VÇW'2° —f—6–&–Æ—G’Ò'V"  —Ğ ––bæVVG46öæ7W'&VçEw&W"‚’° •G&6´–×÷'B‚$&2" •G&6´–×÷'B‚$×WFW‚" –f×Bäg&–çFb†÷WBÂ ¦fâvõöVÖ&VFFVEö÷væW%÷&Vv—7G'’‚’Óâbw7FF–27FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂ&÷ƒÆG–âç’²6VæB²7–æ3ããâ°¢7FF–2$Tt•5E%“¢7FC£§7–æ3£¤öæ6TÆö6³Ç7FC£§7–æ3£¤×WFWƒÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂ&÷ƒÆG–âç’²6VæB²7–æ3ãããâÒ7FC£§7–æ3£¤öæ6TÆö6³£¦æWr‚“°¢$Tt•5E%’ævWEö÷%ö–æ—B‡ÇÂ7FC£§7–æ3£¤×WFWƒ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’’§Ğ ¢U³×6fâvõ÷&Vv—7FW%öVÖ&VFFVEö÷væW#ÅC¢6VæB²7–æ2²w7FF–3â†VÖ&VFFVEö¶W“¢W6—¦RÂ÷væW#¢&3Ä×WFWƒÄ÷F–öãÅCããâ’°¢võöVÖ&VFFVEö÷væW%÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚’æ–ç6W'B†VÖ&VFFVEö¶W’Â&÷ƒ£¦æWr†÷væW"’“°§Ğ ¢U³×6fâvõöÆöö·WöVÖ&VFFVEö÷væW#ÅC¢6VæB²7–æ2²w7FF–3â†VÖ&VFFVEö¶W“¢W6—¦RÂF&vWC¢g7G"’Óâ&3Ä×WFWƒÄ÷F–öãÅCããâ°¢ÆWB&Vv—7G'’ÒvõöVÖ&VFFVEö÷væW%÷&Vv—7G'’‚’æÆö6²‚’çVçw&‚“°¢ÆWB÷væW"Ò&Vv—7G'’ævWB‚fVÖ&VFFVEö¶W’’çVçw&ö÷%öVÇ6R‡ÇÂæ–2‚&VÖ&VFFVB÷væW"&Vv—7G'’Ö—76–ær·Ò"ÂF&vWB’“°¢÷væW ¢æF÷væ67E÷&Vc££Ä&3Ä×WFWƒÄ÷F–öãÅCãããâ‚¢çVçw&ö÷%öVÇ6R‡ÇÂæ–2‚&VÖ&VFFVB÷væW"&Vv—7G'’G—RÖ—6ÖF6‚f÷"·Ò"ÂF&vWB’¢æ6ÆöæR‚§Ğ¦Âf—6–&–Æ—G’ —&WGW&à —Ğ •G&6´–×÷'B‚%&2" •G&6´–×÷'B‚%&Vd6VÆÂ" –f×Bäg&–çFb†÷WBÂ §F‡&VEöÆö6Â°¢7FF–2tõôTÔ$TDDTEôõtäU%õ$Tt•5E%“¢&Vd6VÆÃÇ7FC£¦6öÆÆV7F–öç3£¤†6„ÖÇW6—¦RÂ&÷ƒÆG–âç“ããâÒ&Vd6VÆÃ£¦æWr‡7FC£¦6öÆÆV7F–öç3£¤†6„Ö£¦æWr‚’“°§Ğ ¢U³×6fâvõ÷&Vv—7FW%öVÖ&VFFVEö÷væW#ÅC¢w7FF–3â†VÖ&VFFVEö¶W“¢W6—¦RÂ÷væW#¢&3Å&Vd6VÆÃÄ÷F–öãÅCããâ’°¢tõôTÔ$TDDTEôõtäU%õ$Tt•5E%’çv—F‚‡Ç&Vv—7G'—Â°¢&Vv—7G'’æ&÷'&÷uö×WB‚’æ–ç6W'B†VÖ&VFFVEö¶W’Â&÷ƒ£¦æWr†÷væW"’“°¢Ò“°§Ğ ¢U³×6fâvõöÆöö·WöVÖ&VFFVEö÷væW#ÅC¢w7FF–3â†VÖ&VFFVEö¶W“¢W6—¦RÂF&vWC¢g7G"’Óâ&3Å&Vd6VÆÃÄ÷F–öãÅCããâ°¢tõôTÔ$TDDTEôõtäU%õ$Tt•5E%’çv—F‚‡Ç&Vv—7G'—Â°¢ÆWB&Vv—7G'’Ò&Vv—7G'’æ&÷'&÷r‚“°¢ÆWB÷væW"Ò&Vv—7G'’ævWB‚fVÖ&VFFVEö¶W’’çVçw&ö÷%öVÇ6R‡ÇÂæ–2‚&VÖ&VFFVB÷væW"&Vv—7G'’Ö—76–ær·Ò"ÂF&vWB’“°¢÷væW ¢æF÷væ67E÷&Vc££Å&3Å&Vd6VÆÃÄ÷F–öãÅCãããâ‚¢çVçw&ö÷%öVÇ6R‡ÇÂæ–2‚&VÖ&VFFVB÷væW"&Vv—7G'’G—RÖ—6ÖF6‚f÷"·Ò"ÂF&vWB’¢æ6ÆöæR‚¢Ò§Ğ¦Âf—6–&–Æ—G’§Ğ ¦gVæ2vVæW&FTvô'—FU6WVVæ6R†÷WB§7G&–æw2ä'V–ÆFW"’° –÷WBåw&—FU7G&–ær† §V"G&—Bvô'—FU6WVVæ6S¢6ÆöæR°¢fâvõöÆVâ‚g6VÆb’ÓâW6—¦S°¢fâvõö'—FR‚g6VÆbÂ–æFWƒ¢W6—¦R’ÓâSƒ°¢fâvõ÷6Æ–6U÷Fõ÷7G&–ær‚g6VÆbÂ7F'C¢W6—¦RÂVæC¢÷F–öãÇW6—¦Sâ’Óâ7G&–æs° ¢fâvõ÷Fõ÷7G&–ær‚g6VÆb’Óâ7G&–ær°¢6VÆbævõ÷6Æ–6U÷Fõ÷7G&–ærƒÂæöæR¢Ğ§Ğ ¦–×Âvô'—FU6WVVæ6Rf÷"7G&–ær°¢fâvõöÆVâ‚g6VÆb’ÓâW6—¦R°¢6VÆbæÆVâ‚¢Ğ ¢fâvõö'—FR‚g6VÆbÂ–æFWƒ¢W6—¦R’ÓâS‚°¢6VÆbæ5ö'—FW2‚•¶–æFW…Ğ¢Ğ ¢fâvõ÷6Æ–6U÷Fõ÷7G&–ær‚g6VÆbÂ7F'C¢W6—¦RÂVæC¢÷F–öãÇW6—¦Sâ’Óâ7G&–ær°¢ÆWBVæBÒVæBçVçw&ö÷%öVÇ6R‡ÇÂ6VÆbæÆVâ‚’“°¢6VÆe·7F'BâæVæEÒçFõ÷7G&–ær‚¢Ğ ¢fâvõ÷Fõ÷7G&–ær‚g6VÆb’Óâ7G&–ær°¢6VÆbæ6ÆöæR‚¢Ğ§Ğ ¦–×Âvô'—FU6WVVæ6Rf÷"fV3ÇSƒâ°¢fâvõöÆVâ‚g6VÆb’ÓâW6—¦R°¢6VÆbæÆVâ‚¢Ğ ¢fâvõö'—FR‚g6VÆbÂ–æFWƒ¢W6—¦R’ÓâS‚°¢6VÆe¶–æFW…Ğ¢Ğ ¢fâvõ÷6Æ–6U÷Fõ÷7G&–ær‚g6VÆbÂ7F'C¢W6—¦RÂVæC¢÷F–öãÇW6—¦Sâ’Óâ7G&–ær°¢ÆWBVæBÒVæBçVçw&ö÷%öVÇ6R‡ÇÂ6VÆbæÆVâ‚’“°¢7G&–æs£¦g&öÕ÷WFc‚‡6VÆe·7F'BâæVæEÒçFõ÷fV2‚’’çVçw&‚¢Ğ ¢fâvõ÷Fõ÷7G&–ær‚g6VÆb’Óâ7G&–ær°¢7G&–æs£¦g&öÕ÷WFc‚‡6VÆbæ6ÆöæR‚’’çVçw&‚¢Ğ§Ğ¦§Ğ ¦gVæ2vVæW&FTvô–çFVvW"†÷WB§7G&–æw2ä'V–ÆFW"’° –÷WBåw&—FU7G&–ær† §V"G&—Bvô–çFVvW#¢6÷’²6ÆöæR²'F–Ä÷&B²w7FF–2°¢fâvõög&öÕö“#‚‡fÇVS¢“#‚’Óâ6VÆc°¢fâvõ÷Fõö“#‚‡6VÆb’Óâ“#ƒ°§Ğ ¦Ö7&õ÷'VÆW2–×Åövõö–çFVvW"°¢‚B‚GC§G’’Â¢B‚Â“ò’Óâ°¢B€¢–×Âvô–çFVvW"f÷"GB°¢fâvõög&öÕö“#‚‡fÇVS¢“#‚’Óâ6VÆb°¢fÇVR2G@¢Ğ ¢fâvõ÷Fõö“#‚‡6VÆb’Óâ“#‚°¢6VÆb2“#€¢Ğ¢Ğ¢’ ¢Ó°§Ğ ¦–×Åövõö–çFVvW"†“‚Â“bÂ“3"Â“cBÂ—6—¦RÂS‚ÂSbÂS3"ÂScBÂW6—¦R“° ¦fâvõö–çFVvW%ög&öÕö“#ƒÅC¢vô–çFVvW#â‡fÇVS¢“#‚’ÓâB°¢C£¦võög&öÕö“#‚‡fÇVR§Ğ ¦fâvõö–çFVvW%ö67CÅC¢vô–çFVvW"ÂS¢vô–çFVvW#â‡fÇVS¢R’ÓâB°¢C£¦võög&öÕö“#‚‡fÇVRævõ÷Fõö“#‚‚’§Ğ ¦fâvõö–çFVvW%öFEööæSÅC¢vô–çFVvW#â‡fÇVS¢B’ÓâB°¢C£¦võög&öÕö“#‚‡fÇVRævõ÷Fõö“#‚‚’²§Ğ ¦fâvõö–çFVvW%÷7V%ööæSÅC¢vô–çFVvW#â‡fÇVS¢B’ÓâB°¢C£¦võög&öÕö“#‚‡fÇVRævõ÷Fõö“#‚‚’Ò§Ğ¦§Ğ ¢òòvVæW&FTç•6Æ–6Tf÷&ÖGFW"VÖ—G2F†R&–çFW'2f÷"µÖ–çFW&f6W·Ó ¢òòf÷&ÖEöç•÷6Æ–6Rf÷"F†R6Æ–6R2fÇVRÂæBf÷&ÖEöç•÷f&–F–2f÷"¢òò6Æ–6R7&VB–çFòF†R&wVÖVçG2öb&–çB6ÆÂâF†RVÆVÖVçG2öbF†Rf—'7@¢òò&R–ç6–FRF†R6Æ–6RæBF†RVÆVÖVçG2öbF†R6V6öæB&R&wVÖVçG2Âv†–6€¢òòÖGFW'2öæÇ’v†VâæW7FVDVÆVÖVçG26—2f÷&ÖEöç’FVÆÇ2F†RGvò'Bà¦gVæ2vVæW&FTç•6Æ–6Tf÷&ÖGFW"†÷WB§7G&–æw2ä'V–ÆFW"ÂæW7FVDVÆVÖVçG2&ööÂ’° •G&6´–×÷'B‚$ç’" —6Æ–6UG—R£Ò"e&3Å&Vd6VÆÃÄ÷F–öãÅfV3Ä&÷ƒÆG–âç“ããããâ  —fÇVUG—R£Ò"fG–âç’  –wV&B£Ò'6Æ–6Ræ&÷'&÷r‚’  ––bæVVG46öæ7W'&VçEw&W"‚’° •G&6´–×÷'B‚$&2" •G&6´–×÷'B‚$×WFW‚" —6Æ–6UG—RÒ"d&3Ä×WFWƒÄ÷F–öãÅfV3Ä&÷ƒÆG–âç’²6VæB²7–æ3ããããâ  —fÇVUG—RÒ"b†G–âç’²6VæB²7–æ2’  –wV&BÒ'6Æ–6RæÆö6²‚’ç^=ó{h‘éì¶»§q«^t|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰½Ñ½µ¥A½¥¹Ñ•Èˆ¤(€€€ô)ô()¥µÁ°ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥ŒøÍÑèé™µĞèé¥ÍÁ±…ä™½È½Ñ½µ¥A½¥¹Ñ•ÈñPøì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰½Ñ½µ¥A½¥¹Ñ•Èˆ¤(€€€ô)ô)€¤($%É•ÑÕÉ¸(%ô((%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤(%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)ÍÑÉÕĞ½Ñ½µ¥A½¥¹Ñ•ÈñPè€ÍÑ…Ñ¥Œøì(€€€Ù…±Õ”èIŒñI•™•±°ñ=ÁÑ¥½¸ñ½AÑÈñPøøøø°)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø½Ñ½µ¥A½¥¹Ñ•ÈñPøì(€€€™¸±½… ™Í•±˜¤€´ø½AÑÈñPøì(€€€€€€€Í•±˜¹Ù…±Õ”¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹±½¹• ¤¹Õ¹İÉ…Á}½É}•±Í”¡ñğ½AÑÈèé¹¥° ¤¤(€€€ô((€€€™¸ÍÑ½É” ™Í•±˜°Ù…±Õ”è½AÑÈñPø¤ì(€€€€€€€€©Í•±˜¹Ù…±Õ”¹‰½ÉÉ½İ}µÕĞ ¤€ô¥˜Ù…±Õ”¹¥Í}¹¥° ¤ì9½¹”ô•±Í”ìM½µ”¡Ù…±Õ”¤ôì(€€€ô((€€€™¸Íİ…À ™Í•±˜°Ù…±Õ”è½AÑÈñPø¤€´ø½AÑÈñPøì(€€€€€€€±•ĞµÕĞÕÉÉ•¹Ğ€ôÍ•±˜¹Ù…±Õ”¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€±•Ğ½±€ôÕÉÉ•¹Ğ¹…Í}É•˜ ¤¹±½¹• ¤¹Õ¹İÉ…Á}½É}•±Í”¡ñğ½AÑÈèé¹¥° ¤¤ì(€€€€€€€€©ÕÉÉ•¹Ğ€ô¥˜Ù…±Õ”¹¥Í}¹¥° ¤ì9½¹”ô•±Í”ìM½µ”¡Ù…±Õ”¤ôì(€€€€€€€½±(€€€ô((€€€™¸½µÁ…É•}…¹‘}Íİ…À ™Í•±˜°½±è½AÑÈñPø°¹•Üè½AÑÈñPø¤€´ø‰½½°ì(€€€€€€€±•ĞµÕĞÕÉÉ•¹Ğ€ôÍ•±˜¹Ù…±Õ”¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€±•Ğµ…Ñ¡•€ôµ…Ñ ÕÉÉ•¹Ğ¹…Í}É•˜ ¤ì(€€€€€€€€€€€M½µ”¡Ù…±Õ”¤¥˜½±¹¥Í}¹¥° ¤€ôøÙ…±Õ”¹¥Í}¹¥° ¤°(€€€€€€€€€€€M½µ”¡Ù…±Õ”¤€ôø½AÑÈèéÁÑÉ}•Ä¡Ù…±Õ”°€™½±¤°(€€€€€€€€€€€9½¹”€ôø½±¹¥Í}¹¥° ¤°(€€€€€€€ôì(€€€€€€€¥˜µ…Ñ¡•ì(€€€€€€€€€€€€©ÕÉÉ•¹Ğ€ô¥˜¹•Ü¹¥Í}¹¥° ¤ì9½¹”ô•±Í”ìM½µ”¡¹•Ü¤ôì(€€€€€€€ô(€€€€€€€µ…Ñ¡•(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø±½¹”™½È½Ñ½µ¥A½¥¹Ñ•ÈñPøì(€€€™¸±½¹” ™Í•±˜¤€´øM•±˜ì(€€€€€€€M•±˜ìÙ…±Õ”èÍ•±˜¹Ù…±Õ”¹±½¹” ¤ô(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø•™…Õ±Ğ™½È½Ñ½µ¥A½¥¹Ñ•ÈñPøì(€€€™¸‘•™…Õ±Ğ ¤€´øM•±˜ì(€€€€€€€M•±˜ìÙ…±Õ”èIŒèé¹•Ü¡I•™•±°èé¹•Ü¡9½¹”¤¤ô(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥ŒøÍÑèé™µĞèé•‰Õœ™½È½Ñ½µ¥A½¥¹Ñ•ÈñPøì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰½Ñ½µ¥A½¥¹Ñ•Èˆ¤(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥ŒøÍÑèé™µĞèé¥ÍÁ±…ä™½È½Ñ½µ¥A½¥¹Ñ•ÈñPøì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰½Ñ½µ¥A½¥¹Ñ•Èˆ¤(€€€ô)ô)€¤)ô((¼¼ÑÉ…­%µÁ½ÉÑÍ½É¹åA…å±½…‘QåÁ”µ…­•ÌÍÕÉ”„¡•±Á•ÈÑ¡…Ğ¹…µ•ÌÉÕÍÑQåÁ”°Ñ¡”(¼¼Á…å±½…½˜„‰½á•¥¹Ñ•É™…”Ù…±Õ”°…±Í¼¥µÁ½ÉÑÌ•Ù•ÉäÍÑÑåÁ”Ñ¡…Ğ(¼¼ÍÁ•±±¥¹œÕÍ•Ì¸Q¡”™¥±”Ñ¡…Ğ‰½á•Ñ¡”Ù…±Õ”¥µÁ½ÉÑ•Ñ¡•´™½È¥ÑÍ•±˜°‰ÕĞ(¼¼Ñ¡”¡•±Á•Èµ…ä‰”•µ¥ÑÑ•¥¹Ñ¼„‘¥™™•É•¹Ğ™¥±”°İ¡¥ Í••Ì¹½¹”½˜Ñ¡…Ğ(¼¼™¥±”Ì¥µÁ½ÉÑÌ¸)™Õ¹ŒÑÉ…­%µÁ½ÉÑÍ½É¹åA…å±½…‘QåÁ”¡ÉÕÍÑQåÁ”ÍÑÉ¥¹œ¤ì(%™½È¤€èô€Àì¤€ğ±•¸¡ÉÕÍÑQåÁ”¤ìì($%¥˜€…¥ÍIÕÍÑ%‘•¹ÑMÑ…ÉĞ¡ÉÕÍÑQåÁ•m¥t¤ì($$%¤¬¬($$%½¹Ñ¥¹Õ”($%ô($%ÍÑ…ÉĞ€èô¤($%™½È¤€ğ±•¸¡ÉÕÍÑQåÁ”¤€˜˜¥ÍIÕÍÑ%‘•¹ÑA…ÉĞ¡ÉÕÍÑQåÁ•m¥t¤ì($$%¤¬¬($%ô($$¼¼Á…Ñ Í•µ•¹Ğ€¡ÍÑèéÍå¹Œèé5ÕÑ•à¤¥Ì…±É•…‘ä™Õ±±äÍÁ•±±•¸($%¥˜ÍÑ…ÉĞ€øô€È€˜˜ÉÕÍÑQåÁ•mÍÑ…ÉĞ´ÈéÍÑ…ÉÑt€ôô€ˆèèˆì($$%½¹Ñ¥¹Õ”($%ô($%Íİ¥Ñ ¹…µ”€èôÉÕÍÑQåÁ•mÍÑ…ÉĞé¥tì¹…µ”ì($%…Í”€‰IŒˆ°€‰I•™•±°ˆ°€‰ÉŒˆ°€‰5ÕÑ•àˆ°€‰	QÉ••5…Àˆ°€‰¹äˆè($$%QÉ…­%µÁ½ÉĞ¡¹…µ”¤($%…Í”€‰MÑ‘ÉÉ½Èˆè($$%QÉ…­%µÁ½ÉĞ ‰ÉÉ½Èˆ¤($%ô(%ô)ô()™Õ¹Œ¥ÍIÕÍÑ%‘•¹ÑMÑ…ÉĞ¡Œ‰åÑ”¤‰½½°ì(%É•ÑÕÉ¸Œ€ôô€|œñğ€¡Œ€øô€œ€˜˜Œ€ğô€hœ¤ñğ€¡Œ€øô€„œ€˜˜Œ€ğô€èœ¤)ô()™Õ¹Œ¥ÍIÕÍÑ%‘•¹ÑA…ÉĞ¡Œ‰åÑ”¤‰½½°ì(%É•ÑÕÉ¸¥ÍIÕÍÑ%‘•¹ÑMÑ…ÉĞ¡Œ¤ñğ€¡Œ€øô€œÀœ€˜˜Œ€ğô€œäœ¤)ô()™Õ¹Œ•¹•É…Ñ•½QåÁ•9…µ•!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È°…¹åQåÁ•9…µ•Ìµ…ÁmÍÑÉ¥¹uÍÑÉ¥¹œ¤ì(%QÉ…­%µÁ½ÉĞ ‰¹äˆ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸€¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡½QåÁ•9…µ•!•±Á•ÉIÕÍÑ9…µ”¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€¡Ù…°è€™‘å¸¹ä¤€´ø€˜ÍÑ…Ñ¥ŒÍÑÈì(€€€¥˜Ù…°¹¥Ìèèñ¤ØĞø ¤ìÉ•ÑÕÉ¸€‰¥¹Ğˆô(€€€¥˜Ù…°¹¥Ìèèñ¤ÌÈø ¤ìÉ•ÑÕÉ¸€‰¥¹ĞÌÈˆô(€€€¥˜Ù…°¹¥Ìèèñ¤àø ¤ìÉ•ÑÕÉ¸€‰¥¹Ğàˆô(€€€¥˜Ù…°¹¥Ìèèñ¤ÄØø ¤ìÉ•ÑÕÉ¸€‰¥¹ĞÄØˆô(€€€¥˜Ù…°¹¥ÌèèñÔØĞø ¤ìÉ•ÑÕÉ¸€‰Õ¥¹Ğˆô(€€€¥˜Ù…°¹¥ÌèèñÔÌÈø ¤ìÉ•ÑÕÉ¸€‰Õ¥¹ĞÌÈˆô(€€€¥˜Ù…°¹¥ÌèèñÔàø ¤ìÉ•ÑÕÉ¸€‰Õ¥¹Ğàˆô(€€€¥˜Ù…°¹¥ÌèèñÔÄØø ¤ìÉ•ÑÕÉ¸€‰Õ¥¹ĞÄØˆô(€€€¥˜Ù…°¹¥Ìèèñ˜ØĞø ¤ìÉ•ÑÕÉ¸€‰™±½…ĞØĞˆô(€€€¥˜Ù…°¹¥Ìèèñ˜ÌÈø ¤ìÉ•ÑÕÉ¸€‰™±½…ĞÌÈˆô(€€€¥˜Ù…°¹¥Ìèèñ‰½½°ø ¤ìÉ•ÑÕÉ¸€‰‰½½°ˆô(€€€¥˜Ù…°¹¥ÌèèñMÑÉ¥¹œø ¤ìÉ•ÑÕÉ¸€‰ÍÑÉ¥¹œˆô(€€€¥˜Ù…°¹¥ÌèèñY•Œñ¤ØĞøø ¤ìÉ•ÑÕÉ¸€‰mu¥¹Ğˆô(€€€¥˜Ù…°¹¥ÌèèñY•Œñ¤ÌÈøø ¤ìÉ•ÑÕÉ¸€‰mu¥¹ĞÌÈˆô(€€€¥˜Ù…°¹¥ÌèèñY•Œñ˜ØĞøø ¤ìÉ•ÑÕÉ¸€‰mu™±½…ĞØĞˆô(€€€¥˜Ù…°¹¥ÌèèñY•ŒñMÑÉ¥¹œøø ¤ìÉ•ÑÕÉ¸€‰muÍÑÉ¥¹œˆô(€€€¥˜Ù…°¹¥ÌèèñY•Œñ‰½½°øø ¤ìÉ•ÑÕÉ¸€‰mu‰½½°ˆô)€¤(%ÉÕÍÑQåÁ•Ì€èôµ…­”¡muÍÑÉ¥¹œ°€À°±•¸¡…¹åQåÁ•9…µ•Ì¤¤(%™½ÈÉÕÍÑQåÁ”€èôÉ…¹”…¹åQåÁ•9…µ•Ìì($%ÉÕÍÑQåÁ•Ì€ô…ÁÁ•¹¡ÉÕÍÑQåÁ•Ì°ÉÕÍÑQåÁ”¤(%ô(%Í±¥•Ì¹M½ÉĞ¡ÉÕÍÑQåÁ•Ì¤(%™½È|°ÉÕÍÑQåÁ”€èôÉ…¹”ÉÕÍÑQåÁ•Ìì($%ÑÉ…­%µÁ½ÉÑÍ½É¹åA…å±½…‘QåÁ”¡ÉÕÍÑQåÁ”¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ ˆ€€€¥˜Ù…°¹¥Ìèèğˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡ÉÕÍÑQåÁ”¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ ˆø ¤ìÉ•ÑÕÉ¸€ˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡ÍÑÉ½¹Ø¹EÕ½Ñ”¡…¹åQåÁ•9…µ•ÍmÉÕÍÑQåÁ•t¤¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ ˆõq¸ˆ¤(%ô(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€€€€ÍÑèé…¹äèéÑåÁ•}¹…µ•}½™}Ù…°¡Ù…°¤)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•	…Í”ØÑ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}‰…Í”ØÑ}•¹½‘”¡‘…Ñ„è€™mÔát¤€´øMÑÉ¥¹œì(€€€½¹ÍĞQ	1è€™mÔàì€ØÑt€ôˆ‰	!%)-159=AEIMQUY]aei…‰‘•™¡¥©­±µ¹½ÁÅÉÍÑÕÙİáåèÀÄÈÌĞÔØÜàä¬¼ˆì(€€€±•ĞµÕĞ½ÕĞ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€±•ĞµÕĞ¤€ô€Àì(€€€İ¡¥±”¤€ğ‘…Ñ„¹±•¸ ¤ì(€€€€€€€±•ĞˆÀ€ô‘…Ñ…m¥tì(€€€€€€€±•ĞˆÄ€ô¥˜¤€¬€Ä€ğ‘…Ñ„¹±•¸ ¤ì‘…Ñ…m¤€¬€Åtô•±Í”ì€Àôì(€€€€€€€±•ĞˆÈ€ô¥˜¤€¬€È€ğ‘…Ñ„¹±•¸ ¤ì‘…Ñ…m¤€¬€Étô•±Í”ì€Àôì((€€€€€€€½ÕĞ¹ÁÕÍ ¡Q	1l¡ˆÀ€øø€È¤…ÌÕÍ¥é•t…Ì¡…È¤ì(€€€€€€€½ÕĞ¹ÁÕÍ ¡Q	1l  ¡ˆÀ€˜€ÁàÀÌ¤€ğğ€Ğ¤ğ€¡ˆÄ€øø€Ğ¤¤…ÌÕÍ¥é•t…Ì¡…È¤ì(€€€€€€€¥˜¤€¬€Ä€ğ‘…Ñ„¹±•¸ ¤ì(€€€€€€€€€€€½ÕĞ¹ÁÕÍ ¡Q	1l  ¡ˆÄ€˜€ÁàÁ˜¤€ğğ€È¤ğ€¡ˆÈ€øø€Ø¤¤…ÌÕÍ¥é•t…Ì¡…È¤ì(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½ÕĞ¹ÁÕÍ  œôœ¤ì(€€€€€€€ô(€€€€€€€¥˜¤€¬€È€ğ‘…Ñ„¹±•¸ ¤ì(€€€€€€€€€€€½ÕĞ¹ÁÕÍ ¡Q	1l¡ˆÈ€˜€ÁàÍ˜¤…ÌÕÍ¥é•t…Ì¡…È¤ì(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½ÕĞ¹ÁÕÍ  œôœ¤ì(€€€€€€€ô((€€€€€€€¤€¬ô€Ìì(€€€ô(€€€½ÕĞ)ô()™¸½}‰…Í”ØÑ}Ù…±Õ”¡‰åÑ”èÔà¤€´ø=ÁÑ¥½¸ñÔàøì(€€€µ…Ñ ‰åÑ”ì(€€€€€€€ˆœ¸¸õˆhœ€ôøM½µ”¡‰åÑ”€´ˆœ¤°(€€€€€€€ˆ„œ¸¸õˆèœ€ôøM½µ”¡‰åÑ”€´ˆ„œ€¬€ÈØ¤°(€€€€€€€ˆœÀœ¸¸õˆœäœ€ôøM½µ”¡‰åÑ”€´ˆœÀœ€¬€ÔÈ¤°(€€€€€€€ˆœ¬œ€ôøM½µ” ØÈ¤°(€€€€€€€ˆœ¼œ€ôøM½µ” ØÌ¤°(€€€€€€€|€ôø9½¹”°(€€€ô)ô()™¸½}‰…Í”ØÑ}‘•½‘”¡¥¹ÁÕĞè€™ÍÑÈ¤€´øI•ÍÕ±ĞñY•ŒñÔàø°MÑÉ¥¹œøì(€€€±•Ğ‰åÑ•Ì€ô¥¹ÁÕĞ¹…Í}‰åÑ•Ì ¤ì(€€€¥˜‰åÑ•Ì¹±•¸ ¤€”€Ğ€„ô€Àì(€€€€€€€É•ÑÕÉ¸ÉÈ¡™½Éµ…Ğ„ ‰¥±±•…°‰…Í”ØĞ‘…Ñ„…Ğ¥¹ÁÕĞ‰åÑ”íôˆ°‰åÑ•Ì¹±•¸ ¤¤¤ì(€€€ô((€€€±•ĞµÕĞ½ÕĞ€ôY•Œèé¹•Ü ¤ì(€€€±•ĞµÕĞ¤€ô€Àì(€€€İ¡¥±”¤€ğ‰åÑ•Ì¹±•¸ ¤ì(€€€€€€€±•ĞŒÀ€ô½}‰…Í”ØÑ}Ù…±Õ”¡‰åÑ•Ím¥t¤(€€€€€€€€€€€€¹½­}½É}•±Í”¡ñğ™½Éµ…Ğ„ ‰¥±±•…°‰…Í”ØĞ‘…Ñ„…Ğ¥¹ÁÕĞ‰åÑ”íôˆ°¤¤¤üì(€€€€€€€±•ĞŒÄ€ô½}‰…Í”ØÑ}Ù…±Õ”¡‰åÑ•Ím¤€¬€Åt¤(€€€€€€€€€€€€¹½­}½É}•±Í”¡ñğ™½Éµ…Ğ„ ‰¥±±•…°‰…Í”ØĞ‘…Ñ„…Ğ¥¹ÁÕĞ‰åÑ”íôˆ°¤€¬€Ä¤¤üì(€€€€€€€±•ĞÁ…È€ô‰åÑ•Ím¤€¬€Ét€ôôˆœôœì(€€€€€€€±•ĞÁ…Ì€ô‰åÑ•Ím¤€¬€Ít€ôôˆœôœì(€€€€€€€±•ĞŒÈ€ô¥˜Á…Èì(€€€€€€€€€€€€À(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½}‰…Í”ØÑ}Ù…±Õ”¡‰åÑ•Ím¤€¬€Ét¤(€€€€€€€€€€€€€€€€¹½­}½É}•±Í”¡ñğ™½Éµ…Ğ„ ‰¥±±•…°‰…Í”ØĞ‘…Ñ„…Ğ¥¹ÁÕĞ‰åÑ”íôˆ°¤€¬€È¤¤ü(€€€€€€€ôì(€€€€€€€±•ĞŒÌ€ô¥˜Á…Ìì(€€€€€€€€€€€€À(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½}‰…Í”ØÑ}Ù…±Õ”¡‰åÑ•Ím¤€¬€Ít¤(€€€€€€€€€€€€€€€€¹½­}½É}•±Í”¡ñğ™½Éµ…Ğ„ ‰¥±±•…°‰…Í”ØĞ‘…Ñ„…Ğ¥¹ÁÕĞ‰åÑ”íôˆ°¤€¬€Ì¤¤ü(€€€€€€€ôì((€€€€€€€½ÕĞ¹ÁÕÍ  ¡ŒÀ€ğğ€È¤ğ€¡ŒÄ€øø€Ğ¤¤ì(€€€€€€€¥˜€…Á…Èì(€€€€€€€€€€€½ÕĞ¹ÁÕÍ  ¡ŒÄ€ğğ€Ğ¤ğ€¡ŒÈ€øø€È¤¤ì(€€€€€€€ô(€€€€€€€¥˜€…Á…Ìì(€€€€€€€€€€€½ÕĞ¹ÁÕÍ  ¡ŒÈ€ğğ€Ø¤ğŒÌ¤ì(€€€€€€€ô((€€€€€€€¤€¬ô€Ğì(€€€ô(€€€=¬¡½ÕĞ¤)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•M¡„ÈÔÙ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}Í¡„ÈÔÙ}ÍÕ´ÈÔØ¡‘…Ñ„è€™mÔát¤€´øY•ŒñÔàøì(€€€½¹ÍĞ ÀèmÔÌÈì€át€ôl(€€€€€€€€ÁàÙ„Àå”ØØÜ°€Áá‰ˆØİ…”àÔ°€ÁàÍŒÙ•˜ÌÜÈ°€Áá„ÔÑ™˜ÔÍ„°(€€€€€€€€ÁàÔÄÁ”ÔÈİ˜°€ÁàåˆÀÔØàáŒ°€ÁàÅ˜àÍå…ˆ°€ÁàÕ‰”ÁÄä°(€€€tì(€€€½¹ÍĞ,èmÔÌÈì€ØÑt€ôl(€€€€€€€€ÁàĞÈá„É˜äà°€ÁàÜÄÌÜĞĞäÄ°€ÁáˆÕŒÁ™‰˜°€Áá”åˆÕ‘‰„Ô°(€€€€€€€€ÁàÌäÔÙŒÈÕˆ°€ÁàÔå˜ÄÄÅ˜Ä°€ÁàäÈÍ˜àÉ„Ğ°€Áá…ˆÅŒÕ•Ô°(€€€€€€€€ÁáàÀİ…„äà°€ÁàÄÈàÌÕˆÀÄ°€ÁàÈĞÌÄàÕ‰”°€ÁàÔÔÁŒİ‘ŒÌ°(€€€€€€€€ÁàÜÉ‰”ÕÜĞ°€ÁààÁ‘•ˆÅ™”°€Áàå‰‘ŒÀÙ„Ü°€ÁáŒÄå‰˜ÄÜĞ°(€€€€€€€€Áá”ĞåˆØåŒÄ°€Áá•™‰”ĞÜàØ°€ÁàÁ™ŒÄå‘ŒØ°€ÁàÈĞÁ„ÅŒ°(€€€€€€€€ÁàÉ‘”äÉŒÙ˜°€ÁàÑ„ÜĞàÑ…„°€ÁàÕˆÁ„å‘Œ°€ÁàÜÙ˜äàá‘„°(€€€€€€€€ÁàäàÍ”ÔÄÔÈ°€Áá„àÌÅŒØÙ°€ÁáˆÀÀÌÈİŒà°€Áá‰˜Ôäİ™ŒÜ°(€€€€€€€€ÁáŒÙ”ÀÁ‰˜Ì°€ÁáÕ„ÜäÄĞÜ°€ÁàÀÙ„ØÌÔÄ°€ÁàÄĞÈäÈäØÜ°(€€€€€€€€ÁàÈİˆÜÁ„àÔ°€ÁàÉ”ÅˆÈÄÌà°€ÁàÑÉŒÙ‘™Œ°€ÁàÔÌÌàÁÄÌ°(€€€€€€€€ÁàØÔÁ„ÜÌÔĞ°€ÁàÜØÙ„Á…‰ˆ°€ÁààÅŒÉŒäÉ”°€ÁàäÈÜÈÉŒàÔ°(€€€€€€€€Áá„É‰™”á„Ä°€Áá„àÅ„ØØÑˆ°€ÁáŒÈÑˆáˆÜÀ°€ÁáŒÜÙŒÔÅ„Ì°(€€€€€€€€ÁáÄäÉ”àÄä°€ÁáØääÀØÈĞ°€Áá˜ĞÁ”ÌÔàÔ°€ÁàÄÀÙ…„ÀÜÀ°(€€€€€€€€ÁàÄå„ÑŒÄÄØ°€ÁàÅ”ÌÜÙŒÀà°€ÁàÈÜĞàÜÜÑŒ°€ÁàÌÑˆÁ‰ˆÔ°(€€€€€€€€ÁàÌäÅŒÁˆÌ°€ÁàÑ•á…„Ñ„°€ÁàÕˆå„Ñ˜°€ÁàØàÉ”Ù™˜Ì°(€€€€€€€€ÁàÜĞá˜àÉ•”°€ÁàÜá„ÔØÌÙ˜°€ÁààÑŒàÜàÄĞ°€ÁàáŒÜÀÈÀà°(€€€€€€€€ÁàäÁ‰•™™™„°€Áá„ĞÔÀÙ•ˆ°€Áá‰•˜å„Í˜Ü°€ÁáŒØÜÄÜá˜È°(€€€tì((€€€±•ĞµÕĞ €ô Àì(€€€±•ĞµÕĞµÍœ€ô‘…Ñ„¹Ñ½}Ù•Œ ¤ì(€€€±•Ğ‰¥Ñ}±•¸€ô€¡µÍœ¹±•¸ ¤…ÌÔØĞ¤€¨€àì(€€€µÍœ¹ÁÕÍ  ÁààÀ¤ì(€€€İ¡¥±”µÍœ¹±•¸ ¤€”€ØĞ€„ô€ÔØì(€€€€€€€µÍœ¹ÁÕÍ  À¤ì(€€€ô(€€€µÍœ¹•áÑ•¹‘}™É½µ}Í±¥” ™‰¥Ñ}±•¸¹Ñ½}‰•}‰åÑ•Ì ¤¤ì((€€€™½È¡Õ¹¬¥¸µÍœ¹¡Õ¹­Ì ØĞ¤ì(€€€€€€€±•ĞµÕĞÜ€ôlÁÔÌÈì€ØÑtì(€€€€€€€™½È¤¥¸€À¸¸ÄØì(€€€€€€€€€€€±•Ğ¨€ô¤€¨€Ğì(€€€€€€€€€€€İm¥t€ôÔÌÈèé™É½µ}‰•}‰åÑ•Ì¡m¡Õ¹­m©t°¡Õ¹­m¨€¬€Åt°¡Õ¹­m¨€¬€Ét°¡Õ¹­m¨€¬€Íut¤ì(€€€€€€€ô(€€€€€€€™½È¤¥¸€ÄØ¸¸ØĞì(€€€€€€€€€€€±•ĞÌÀ€ôİm¤€´€ÄÕt¹É½Ñ…Ñ•}É¥¡Ğ Ü¤xİm¤€´€ÄÕt¹É½Ñ…Ñ•}É¥¡Ğ Äà¤x€¡İm¤€´€ÄÕt€øø€Ì¤ì(€€€€€€€€€€€±•ĞÌÄ€ôİm¤€´€Ét¹É½Ñ…Ñ•}É¥¡Ğ ÄÜ¤xİm¤€´€Ét¹É½Ñ…Ñ•}É¥¡Ğ Ää¤x€¡İm¤€´€Ét€øø€ÄÀ¤ì(€€€€€€€€€€€İm¥t€ôİm¤€´€ÄÙt(€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡ÌÀ¤(€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡İm¤€´€İt¤(€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡ÌÄ¤ì(€€€€€€€ô((€€€€€€€±•ĞµÕĞ„€ô¡lÁtì(€€€€€€€±•ĞµÕĞˆ€ô¡lÅtì(€€€€€€€±•ĞµÕĞŒ€ô¡lÉtì(€€€€€€€±•ĞµÕĞ€ô¡lÍtì(€€€€€€€±•ĞµÕĞ”€ô¡lÑtì(€€€€€€€±•ĞµÕĞ˜€ô¡lÕtì(€€€€€€€±•ĞµÕĞœ€ô¡lÙtì(€€€€€€€±•ĞµÕĞ¡ €ô¡lİtì((€€€€€€€™½È¤¥¸€À¸¸ØĞì(€€€€€€€€€€€±•ĞÌÄ€ô”¹É½Ñ…Ñ•}É¥¡Ğ Ø¤x”¹É½Ñ…Ñ•}É¥¡Ğ ÄÄ¤x”¹É½Ñ…Ñ•}É¥¡Ğ ÈÔ¤ì(€€€€€€€€€€€±•Ğ €ô€¡”€˜˜¤x€  …”¤€˜œ¤ì(€€€€€€€€€€€±•ĞÑ•µÀÄ€ô¡ (€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡ÌÄ¤(€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡ ¤(€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡-m¥t¤(€€€€€€€€€€€€€€€€¹İÉ…ÁÁ¥¹}…‘¡İm¥t¤ì(€€€€€€€€€€€±•ĞÌÀ€ô„¹É½Ñ…Ñ•}É¥¡Ğ È¤x„¹É½Ñ…Ñ•}É¥¡Ğ ÄÌ¤x„¹É½Ñ…Ñ•}É¥¡Ğ ÈÈ¤ì(€€€€€€€€€€€±•Ğµ…¨€ô€¡„€˜ˆ¤x€¡„€˜Œ¤x€¡ˆ€˜Œ¤ì(€€€€€€€€€€€±•ĞÑ•µÀÈ€ôÌÀ¹İÉ…ÁÁ¥¹}…‘¡µ…¨¤ì((€€€€€€€€€€€¡ €ôœì(€€€€€€€€€€€œ€ô˜ì(€€€€€€€€€€€˜€ô”ì(€€€€€€€€€€€”€ô¹İÉ…ÁÁ¥¹}…‘¡Ñ•µÀÄ¤ì(€€€€€€€€€€€€ôŒì(€€€€€€€€€€€Œ€ôˆì(€€€€€€€€€€€ˆ€ô„ì(€€€€€€€€€€€„€ôÑ•µÀÄ¹İÉ…ÁÁ¥¹}…‘¡Ñ•µÀÈ¤ì(€€€€€€€ô((€€€€€€€¡lÁt€ô¡lÁt¹İÉ…ÁÁ¥¹}…‘¡„¤ì(€€€€€€€¡lÅt€ô¡lÅt¹İÉ…ÁÁ¥¹}…‘¡ˆ¤ì(€€€€€€€¡lÉt€ô¡lÉt¹İÉ…ÁÁ¥¹}…‘¡Œ¤ì(€€€€€€€¡lÍt€ô¡lÍt¹İÉ…ÁÁ¥¹}…‘¡¤ì(€€€€€€€¡lÑt€ô¡lÑt¹İÉ…ÁÁ¥¹}…‘¡”¤ì(€€€€€€€¡lÕt€ô¡lÕt¹İÉ…ÁÁ¥¹}…‘¡˜¤ì(€€€€€€€¡lÙt€ô¡lÙt¹İÉ…ÁÁ¥¹}…‘¡œ¤ì(€€€€€€€¡lİt€ô¡lİt¹İÉ…ÁÁ¥¹}…‘¡¡ ¤ì(€€€ô((€€€±•ĞµÕĞ½ÕĞ€ôY•Œèéİ¥Ñ¡}…Á…¥Ñä ÌÈ¤ì(€€€™½Èİ½É¥¸ ì(€€€€€€€½ÕĞ¹•áÑ•¹‘}™É½µ}Í±¥” ™İ½É¹Ñ½}‰•}‰åÑ•Ì ¤¤ì(€€€ô(€€€½ÕĞ)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•!•á½Éµ…Ñ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}™½Éµ…Ñ}¡•á}‰åÑ•Ì¡‘…Ñ„è€™mÔát°ÕÁÁ•Èè‰½½°¤€´øMÑÉ¥¹œì(€€€±•ĞÑ…‰±”€ô¥˜ÕÁÁ•Èì(€€€€€€€ˆˆÀÄÈÌĞÔØÜàå	ˆ(€€€ô•±Í”ì(€€€€€€€ˆˆÀÄÈÌĞÔØÜàå…‰‘•˜ˆ(€€€ôì(€€€±•ĞµÕĞ½ÕĞ€ôMÑÉ¥¹œèéİ¥Ñ¡}…Á…¥Ñä¡‘…Ñ„¹±•¸ ¤€¨€È¤ì(€€€™½Èˆ¥¸‘…Ñ„ì(€€€€€€€½ÕĞ¹ÁÕÍ ¡Ñ…‰±•l¡ˆ€øø€Ğ¤…ÌÕÍ¥é•t…Ì¡…È¤ì(€€€€€€€½ÕĞ¹ÁÕÍ ¡Ñ…‰±•l¡ˆ€˜€ÁàÁ˜¤…ÌÕÍ¥é•t…Ì¡…È¤ì(€€€ô(€€€½ÕĞ)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•UÉ±!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½UÉ°ì(€€€Í¡•µ”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€¡½ÍĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€Á…Ñ èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€É…İ}ÅÕ•ÉäèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°)ô()™¸½}ÕÉ±}Á…ÉÍ”¡¥¹ÁÕĞè€™ÍÑÈ¤€´ø½UÉ°ì(€€€±•Ğ€¡Í¡•µ”°É•ÍĞ¤€ô¥¹ÁÕĞ¹ÍÁ±¥Ñ}½¹” ˆè¼¼ˆ¤¹Õ¹İÉ…Á}½È  ˆˆ°¥¹ÁÕĞ¤¤ì(€€€±•Ğ€¡‰•™½É•}ÅÕ•Éä°É…İ}ÅÕ•Éä¤€ôÉ•ÍĞ¹ÍÁ±¥Ñ}½¹” œüœ¤¹Õ¹İÉ…Á}½È ¡É•ÍĞ°€ˆˆ¤¤ì(€€€±•ĞÍ±…Í €ô‰•™½É•}ÅÕ•Éä¹™¥¹ œ¼œ¤¹Õ¹İÉ…Á}½È¡‰•™½É•}ÅÕ•Éä¹±•¸ ¤¤ì(€€€±•Ğ¡½ÍĞ€ô€™‰•™½É•}ÅÕ•Éål¸¹Í±…Í¡tì(€€€±•ĞÁ…Ñ €ô¥˜Í±…Í €ğ‰•™½É•}ÅÕ•Éä¹±•¸ ¤ì€™‰•™½É•}ÅÕ•ÉåmÍ±…Í ¸¹tô•±Í”ì€ˆˆôì(€€€½UÉ°ì(€€€€€€€Í¡•µ”èÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Í¡•µ”¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€€€€€¡½ÍĞèÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡¡½ÍĞ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€€€€€Á…Ñ èÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Á…Ñ ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€€€€€É…İ}ÅÕ•ÉäèÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡É…İ}ÅÕ•Éä¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€ô)ô)€¤($%É•ÑÕÉ¸(%ô((%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤(%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½UÉ°ì(€€€Í¡•µ”èIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€¡½ÍĞèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€Á…Ñ èIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€É…İ}ÅÕ•ÉäèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°)ô()™¸½}ÕÉ±}Á…ÉÍ”¡¥¹ÁÕĞè€™ÍÑÈ¤€´ø½UÉ°ì(€€€±•Ğ€¡Í¡•µ”°É•ÍĞ¤€ô¥¹ÁÕĞ¹ÍÁ±¥Ñ}½¹” ˆè¼¼ˆ¤¹Õ¹İÉ…Á}½È  ˆˆ°¥¹ÁÕĞ¤¤ì(€€€±•Ğ€¡‰•™½É•}ÅÕ•Éä°É…İ}ÅÕ•Éä¤€ôÉ•ÍĞ¹ÍÁ±¥Ñ}½¹” œüœ¤¹Õ¹İÉ…Á}½È ¡É•ÍĞ°€ˆˆ¤¤ì(€€€±•ĞÍ±…Í €ô‰•™½É•}ÅÕ•Éä¹™¥¹ œ¼œ¤¹Õ¹İÉ…Á}½È¡‰•™½É•}ÅÕ•Éä¹±•¸ ¤¤ì(€€€±•Ğ¡½ÍĞ€ô€™‰•™½É•}ÅÕ•Éål¸¹Í±…Í¡tì(€€€±•ĞÁ…Ñ €ô¥˜Í±…Í €ğ‰•™½É•}ÅÕ•Éä¹±•¸ ¤ì€™‰•™½É•}ÅÕ•ÉåmÍ±…Í ¸¹tô•±Í”ì€ˆˆôì(€€€½UÉ°ì(€€€€€€€Í¡•µ”èIŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Í¡•µ”¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€€€€€¡½ÍĞèIŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡¡½ÍĞ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€€€€€Á…Ñ èIŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Á…Ñ ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€€€€€É…İ}ÅÕ•ÉäèIŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡É…İ}ÅÕ•Éä¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤°(€€€ô)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•I••áÁ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I••áÀì(€€€Á…ÑÑ•É¸èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°)ô()¥µÁ°½I••áÀì(€€€™¸™¥¹‘}…±±}ÍÑÉ¥¹œ ™Í•±˜°Ñ•áĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°¸èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ¤ØĞøøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•Ğ±¥µ¥Ğ€ô€©¸¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½}É••áÁ}™¥¹‘}…±±}ÍÑÉ¥¹œ ™Á…ÑÑ•É¸°€™Ñ•áĞ°±¥µ¥Ğ¤¤¤¤(€€€ô((€€€™¸µ…Ñ¡}ÍÑÉ¥¹œ ™Í•±˜°Ñ•áĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´ø‰½½°ì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€½}É••áÁ}µ…Ñ¡}ÍÑÉ¥¹œ ™Á…ÑÑ•É¸°€™Ñ•áĞ¤(€€€ô((€€€™¸™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ  ™Í•±˜°Ñ•áĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½}É••áÁ}™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ  ™Á…ÑÑ•É¸°€™Ñ•áĞ¤¤¤¤(€€€ô((€€€™¸É•Á±…•}…±±}ÍÑÉ¥¹œ ™Í•±˜°ÍÉŒèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°É•Á°èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÍÉŒ€ô€ ©ÍÉŒ¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÉ•Á°€ô€ ©É•Á°¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½}É••áÁ}É•Á±…•}…±±}ÍÑÉ¥¹œ ™Á…ÑÑ•É¸°€™ÍÉŒ°€™É•Á°¤¤¤¤(€€€ô)ô()™¸½}É••áÁ}™¥¹‘}…±±}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ°±¥µ¥Ğè¤ØĞ¤€´øY•ŒñMÑÉ¥¹œøì(€€€¥˜±¥µ¥Ğ€ôô€Àì(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€¥˜Á…ÑÑ•É¸€ôôÈ‰q¬ˆì(€€€€€€€±•ĞµÕĞµ…Ñ¡•Ì€ôY•Œèé¹•Ü ¤ì(€€€€€€€±•ĞµÕĞÕÉÉ•¹Ğ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€€€€€™½È ¥¸Ñ•áĞ¹¡…ÉÌ ¤ì(€€€€€€€€€€€¥˜ ¹¥Í}…Í¥¥}‘¥¥Ğ ¤ì(€€€€€€€€€€€€€€€ÕÉÉ•¹Ğ¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€ô•±Í”¥˜€…ÕÉÉ•¹Ğ¹¥Í}•µÁÑä ¤ì(€€€€€€€€€€€€€€€µ…Ñ¡•Ì¹ÁÕÍ ¡ÍÑèéµ•´èéÑ…­” ™µÕĞÕÉÉ•¹Ğ¤¤ì(€€€€€€€€€€€€€€€¥˜±¥µ¥Ğ€ø€À€˜˜µ…Ñ¡•Ì¹±•¸ ¤€øô±¥µ¥Ğ…ÌÕÍ¥é”ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸µ…Ñ¡•Ìì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€¥˜€…ÕÉÉ•¹Ğ¹¥Í}•µÁÑä ¤ì(€€€€€€€€€€€µ…Ñ¡•Ì¹ÁÕÍ ¡ÕÉÉ•¹Ğ¤ì(€€€€€€€ô(€€€€€€€¥˜±¥µ¥Ğ€ø€Àì(€€€€€€€€€€€µ…Ñ¡•Ì¹ÑÉÕ¹…Ñ”¡±¥µ¥Ğ…ÌÕÍ¥é”¤ì(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸µ…Ñ¡•Ìì(€€€ô((€€€¥˜Á…ÑÑ•É¸¹¥Í}•µÁÑä ¤ì(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€±•ĞµÕĞµ…Ñ¡•Ì€ôY•Œèé¹•Ü ¤ì(€€€±•ĞµÕĞÉ•ÍĞ€ôÑ•áĞì(€€€İ¡¥±”±•ĞM½µ”¡¥¹‘•à¤€ôÉ•ÍĞ¹™¥¹¡Á…ÑÑ•É¸¤ì(€€€€€€€µ…Ñ¡•Ì¹ÁÕÍ ¡Á…ÑÑ•É¸¹Ñ½}ÍÑÉ¥¹œ ¤¤ì(€€€€€€€¥˜±¥µ¥Ğ€ø€À€˜˜µ…Ñ¡•Ì¹±•¸ ¤€øô±¥µ¥Ğ…ÌÕÍ¥é”ì(€€€€€€€€€€€‰É•…¬ì(€€€€€€€ô(€€€€€€€É•ÍĞ€ô€™É•ÍÑm¥¹‘•à€¬Á…ÑÑ•É¸¹±•¸ ¤¸¹tì(€€€ô(€€€µ…Ñ¡•Ì)ô()™¸½}É••áÁ}µ…Ñ¡}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ¤€´ø‰½½°ì(€€€€…½}É••áÁ}™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ ¡Á…ÑÑ•É¸°Ñ•áĞ¤¹¥Í}•µÁÑä ¤)ô()™¸½}É••áÁ}™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ¤€´øY•ŒñMÑÉ¥¹œøì(€€€¥˜Á…ÑÑ•É¸€ôôÈˆµµ½‘l€õt¡qÜ¬¤ˆì(€€€€€€€™½Èµ…É­•È¥¸lˆµµ½ôˆ°€ˆµµ½€‰tì(€€€€€€€€€€€¥˜±•ĞM½µ”¡ÍÑ…ÉĞ¤€ôÑ•áĞ¹™¥¹¡µ…É­•È¤ì(€€€€€€€€€€€€€€€±•ĞÙ…±Õ•}ÍÑ…ÉĞ€ôÍÑ…ÉĞ€¬µ…É­•È¹±•¸ ¤ì(€€€€€€€€€€€€€€€±•ĞÙ…±Õ”èMÑÉ¥¹œ€ôÑ•áÑmÙ…±Õ•}ÍÑ…ÉĞ¸¹t¹¡…ÉÌ ¤¹Ñ…­•}İ¡¥±”¡ñ¡ğ ¹¥Í}…Í¥¥}…±Á¡…¹Õµ•É¥Œ ¤ñğ€© €ôô€|œ¤¹½±±•Ğ ¤ì(€€€€€€€€€€€€€€€¥˜€…Ù…±Õ”¹¥Í}•µÁÑä ¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…m™½Éµ…Ğ„ ‰íõíôˆ°µ…É­•È°Ù…±Õ”¤°Ù…±Õ•tì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€¥˜Á…ÑÑ•É¸€ôôÈ‰y¼Ù•ÉÍ¥½¸€¡½qL­ñ‘•Ù•°qL¬¤ˆì(€€€€€€€±•ĞÁÉ•™¥à€ô€‰¼Ù•ÉÍ¥½¸€ˆì(€€€€€€€¥˜±•ĞM½µ”¡É•ÍĞ¤€ôÑ•áĞ¹ÍÑÉ¥Á}ÁÉ•™¥à¡ÁÉ•™¥à¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡™¥ÉÍĞ¤€ôÉ•ÍĞ¹ÍÁ±¥Ñ}İ¡¥Ñ•ÍÁ…” ¤¹¹•áĞ ¤ì(€€€€€€€€€€€€€€€¥˜™¥ÉÍĞ¹ÍÑ…ÉÑÍ}İ¥Ñ  ‰¼ˆ¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…m™½Éµ…Ğ„ ‰íõíôˆ°ÁÉ•™¥à°™¥ÉÍĞ¤°™¥ÉÍĞ¹Ñ½}ÍÑÉ¥¹œ ¥tì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€¥˜™¥ÉÍĞ€ôô€‰‘•Ù•°ˆì(€€€€€€€€€€€€€€€€€€€¥˜±•ĞM½µ”¡Í•½¹¤€ôÉ•ÍĞ¹ÍÁ±¥Ñ}İ¡¥Ñ•ÍÁ…” ¤¹¹Ñ  Ä¤ì(€€€€€€€€€€€€€€€€€€€€€€€±•Ğ…ÁÑÕÉ”€ô™½Éµ…Ğ„ ‰‘•Ù•°íôˆ°Í•½¹¤ì(€€€€€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…m™½Éµ…Ğ„ ‰íõíôˆ°ÁÉ•™¥à°…ÁÑÕÉ”¤°…ÁÑÕÉ•tì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€¥˜Á…ÑÑ•É¸€ôôÈ‰¼è¸©¼¹µ½¸©½¹Ñ•¹ÑÌ¡…Ù”¡…¹•ˆì(€€€€€€€¥˜±•ĞM½µ”¡½}¥¹‘•à¤€ôÑ•áĞ¹™¥¹ ‰¼èˆ¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡µ½‘}¥¹‘•à¤€ôÑ•áÑm½}¥¹‘•à¸¹t¹™¥¹ ‰¼¹µ½ˆ¤ì(€€€€€€€€€€€€€€€±•Ğ…™Ñ•É}µ½€ô½}¥¹‘•à€¬µ½‘}¥¹‘•àì(€€€€€€€€€€€€€€€¥˜Ñ•áÑm…™Ñ•É}µ½¸¹t¹½¹Ñ…¥¹Ì ‰½¹Ñ•¹ÑÌ¡…Ù”¡…¹•ˆ¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…mÑ•áĞ¹Ñ½}ÍÑÉ¥¹œ ¥tì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€±•Ğµ…Ñ¡•Ì€ô½}É••áÁ}™¥¹‘}…±±}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸°Ñ•áĞ°€Ä¤ì(€€€¥˜µ…Ñ¡•Ì¹¥Í}•µÁÑä ¤ì(€€€€€€€Y•Œèé¹•Ü ¤(€€€ô•±Í”ì(€€€€€€€Ù•Œ…mµ…Ñ¡•ÍlÁt¹±½¹” ¥t(€€€ô)ô()™¸½}É••áÁ}É•Á±…•}…±±}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ°É•Á°è€™ÍÑÈ¤€´øMÑÉ¥¹œì(€€€¥˜Á…ÑÑ•É¸€ôôÈ‰l±tˆì(€€€€€€€±•ĞµÕĞ½ÕĞ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€€€€€™½È ¥¸Ñ•áĞ¹¡…ÉÌ ¤ì(€€€€€€€€€€€¥˜ €ôô€œœñğ €ôô€œ°œì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ¡}ÍÑÈ¡É•Á°¤ì(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸½ÕĞì(€€€ô(€€€¥˜Á…ÑÑ•É¸€ôôÈ‰m}tˆì(€€€€€€€É•ÑÕÉ¸Ñ•áĞ¹É•Á±…” |œ°É•Á°¤ì(€€€ô(€€€¥˜Á…ÑÑ•É¸€ôôÈ‰mUMqÍtˆì(€€€€€€€±•ĞµÕĞ½ÕĞ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€€€€€™½È ¥¸Ñ•áĞ¹¡…ÉÌ ¤ì(€€€€€€€€€€€¥˜ €ôô€Tœñğ €ôô€Lœñğ €ôô€œñğ ¹¥Í}İ¡¥Ñ•ÍÁ…” ¤ì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ¡}ÍÑÈ¡É•Á°¤ì(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸½ÕĞì(€€€ô(€€€Ñ•áĞ¹É•Á±…”¡Á…ÑÑ•É¸°É•Á°¤)ô)€¤($%É•ÑÕÉ¸(%ô((%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤(%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I••áÀì(€€€Á…ÑÑ•É¸èIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°)ô()¥µÁ°½I••áÀì(€€€™¸™¥¹‘}…±±}ÍÑÉ¥¹œ ™Í•±˜°Ñ•áĞèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°¸èIŒñI•™•±°ñ=ÁÑ¥½¸ñ¤ØĞøøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•Ğ±¥µ¥Ğ€ô€©¸¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡½}É••áÁ}™¥¹‘}…±±}ÍÑÉ¥¹œ ™Á…ÑÑ•É¸°€™Ñ•áĞ°±¥µ¥Ğ¤¤¤¤(€€€ô((€€€™¸µ…Ñ¡}ÍÑÉ¥¹œ ™Í•±˜°Ñ•áĞèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´ø‰½½°ì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€½}É••áÁ}µ…Ñ¡}ÍÑÉ¥¹œ ™Á…ÑÑ•É¸°€™Ñ•áĞ¤(€€€ô((€€€™¸™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ  ™Í•±˜°Ñ•áĞèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡½}É••áÁ}™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ  ™Á…ÑÑ•É¸°€™Ñ•áĞ¤¤¤¤(€€€ô((€€€™¸É•Á±…•}…±±}ÍÑÉ¥¹œ ™Í•±˜°ÍÉŒèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°É•Á°èIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€±•ĞÁ…ÑÑ•É¸€ô€ ©Í•±˜¹Á…ÑÑ•É¸¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÍÉŒ€ô€ ©ÍÉŒ¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•ĞÉ•Á°€ô€ ©É•Á°¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡½}É••áÁ}É•Á±…•}…±±}ÍÑÉ¥¹œ ™Á…ÑÑ•É¸°€™ÍÉŒ°€™É•Á°¤¤¤¤(€€€ô)ô()™¸½}É••áÁ}™¥¹‘}…±±}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ°±¥µ¥Ğè¤ØĞ¤€´øY•ŒñMÑÉ¥¹œøì(€€€¥˜±¥µ¥Ğ€ôô€Àì(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€¥˜Á…ÑÑ•É¸€ôôÈ‰q¬ˆì(€€€€€€€±•ĞµÕĞµ…Ñ¡•Ì€ôY•Œèé¹•Ü ¤ì(€€€€€€€±•ĞµÕĞÕÉÉ•¹Ğ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€€€€€™½È ¥¸Ñ•áĞ¹¡…ÉÌ ¤ì(€€€€€€€€€€€¥˜ ¹¥Í}…Í¥¥}‘¥¥Ğ ¤ì(€€€€€€€€€€€€€€€ÕÉÉ•¹Ğ¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€ô•±Í”¥˜€…ÕÉÉ•¹Ğ¹¥Í}•µÁÑä ¤ì(€€€€€€€€€€€€€€€µ…Ñ¡•Ì¹ÁÕÍ ¡ÍÑèéµ•´èéÑ…­” ™µÕĞÕÉÉ•¹Ğ¤¤ì(€€€€€€€€€€€€€€€¥˜±¥µ¥Ğ€ø€À€˜˜µ…Ñ¡•Ì¹±•¸ ¤€øô±¥µ¥Ğ…ÌÕÍ¥é”ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸µ…Ñ¡•Ìì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€¥˜€…ÕÉÉ•¹Ğ¹¥Í}•µÁÑä ¤ì(€€€€€€€€€€€µ…Ñ¡•Ì¹ÁÕÍ ¡ÕÉÉ•¹Ğ¤ì(€€€€€€€ô(€€€€€€€¥˜±¥µ¥Ğ€ø€Àì(€€€€€€€€€€€µ…Ñ¡•Ì¹ÑÉÕ¹…Ñ”¡±¥µ¥Ğ…ÌÕÍ¥é”¤ì(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸µ…Ñ¡•Ìì(€€€ô((€€€¥˜Á…ÑÑ•É¸¹¥Í}•µÁÑä ¤ì(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€±•ĞµÕĞµ…Ñ¡•Ì€ôY•Œèé¹•Ü ¤ì(€€€±•ĞµÕĞÉ•ÍĞ€ôÑ•áĞì(€€€İ¡¥±”±•ĞM½µ”¡¥¹‘•à¤€ôÉ•ÍĞ¹™¥¹¡Á…ÑÑ•É¸¤ì(€€€€€€€µ…Ñ¡•Ì¹ÁÕÍ ¡Á…ÑÑ•É¸¹Ñ½}ÍÑÉ¥¹œ ¤¤ì(€€€€€€€¥˜±¥µ¥Ğ€ø€À€˜˜µ…Ñ¡•Ì¹±•¸ ¤€øô±¥µ¥Ğ…ÌÕÍ¥é”ì(€€€€€€€€€€€‰É•…¬ì(€€€€€€€ô(€€€€€€€É•ÍĞ€ô€™É•ÍÑm¥¹‘•à€¬Á…ÑÑ•É¸¹±•¸ ¤¸¹tì(€€€ô(€€€µ…Ñ¡•Ì)ô()™¸½}É••áÁ}µ…Ñ¡}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ¤€´ø‰½½°ì(€€€€…½}É••áÁ}™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ ¡Á…ÑÑ•É¸°Ñ•áĞ¤¹¥Í}•µÁÑä ¤)ô()™¸½}É••áÁ}™¥¹‘}ÍÑÉ¥¹}ÍÕ‰µ…Ñ ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ¤€´øY•ŒñMÑÉ¥¹œøì(€€€¥˜Á…ÑÑ•É¸€ôôÈˆµµ½‘l€õt¡qÜ¬¤ˆì(€€€€€€€™½Èµ…É­•È¥¸lˆµµ½ôˆ°€ˆµµ½€‰tì(€€€€€€€€€€€¥˜±•ĞM½µ”¡ÍÑ…ÉĞ¤€ôÑ•áĞ¹™¥¹¡µ…É­•È¤ì(€€€€€€€€€€€€€€€±•ĞÙ…±Õ•}ÍÑ…ÉĞ€ôÍÑ…ÉĞ€¬µ…É­•È¹±•¸ ¤ì(€€€€€€€€€€€€€€€±•ĞÙ…±Õ”èMÑÉ¥¹œ€ôÑ•áÑmÙ…±Õ•}ÍÑ…ÉĞ¸¹t¹¡…ÉÌ ¤¹Ñ…­•}İ¡¥±”¡ñ¡ğ ¹¥Í}…Í¥¥}…±Á¡…¹Õµ•É¥Œ ¤ñğ€© €ôô€|œ¤¹½±±•Ğ ¤ì(€€€€€€€€€€€€€€€¥˜€…Ù…±Õ”¹¥Í}•µÁÑä ¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…m™½Éµ…Ğ„ ‰íõíôˆ°µ…É­•È°Ù…±Õ”¤°Ù…±Õ•tì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€¥˜Á…ÑÑ•É¸€ôôÈ‰y¼Ù•ÉÍ¥½¸€¡½qL­ñ‘•Ù•°qL¬¤ˆì(€€€€€€€±•ĞÁÉ•™¥à€ô€‰¼Ù•ÉÍ¥½¸€ˆì(€€€€€€€¥˜±•ĞM½µ”¡É•ÍĞ¤€ôÑ•áĞ¹ÍÑÉ¥Á}ÁÉ•™¥à¡ÁÉ•™¥à¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡™¥ÉÍĞ¤€ôÉ•ÍĞ¹ÍÁ±¥Ñ}İ¡¥Ñ•ÍÁ…” ¤¹¹•áĞ ¤ì(€€€€€€€€€€€€€€€¥˜™¥ÉÍĞ¹ÍÑ…ÉÑÍ}İ¥Ñ  ‰¼ˆ¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…m™½Éµ…Ğ„ ‰íõíôˆ°ÁÉ•™¥à°™¥ÉÍĞ¤°™¥ÉÍĞ¹Ñ½}ÍÑÉ¥¹œ ¥tì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€¥˜™¥ÉÍĞ€ôô€‰‘•Ù•°ˆì(€€€€€€€€€€€€€€€€€€€¥˜±•ĞM½µ”¡Í•½¹¤€ôÉ•ÍĞ¹ÍÁ±¥Ñ}İ¡¥Ñ•ÍÁ…” ¤¹¹Ñ  Ä¤ì(€€€€€€€€€€€€€€€€€€€€€€€±•Ğ…ÁÑÕÉ”€ô™½Éµ…Ğ„ ‰‘•Ù•°íôˆ°Í•½¹¤ì(€€€€€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…m™½Éµ…Ğ„ ‰íõíôˆ°ÁÉ•™¥à°…ÁÑÕÉ”¤°…ÁÑÕÉ•tì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€¥˜Á…ÑÑ•É¸€ôôÈ‰¼è¸©¼¹µ½¸©½¹Ñ•¹ÑÌ¡…Ù”¡…¹•ˆì(€€€€€€€¥˜±•ĞM½µ”¡½}¥¹‘•à¤€ôÑ•áĞ¹™¥¹ ‰¼èˆ¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡µ½‘}¥¹‘•à¤€ôÑ•áÑm½}¥¹‘•à¸¹t¹™¥¹ ‰¼¹µ½ˆ¤ì(€€€€€€€€€€€€€€€±•Ğ…™Ñ•É}µ½€ô½}¥¹‘•à€¬µ½‘}¥¹‘•àì(€€€€€€€€€€€€€€€¥˜Ñ•áÑm…™Ñ•É}µ½¸¹t¹½¹Ñ…¥¹Ì ‰½¹Ñ•¹ÑÌ¡…Ù”¡…¹•ˆ¤ì(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸Ù•Œ…mÑ•áĞ¹Ñ½}ÍÑÉ¥¹œ ¥tì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸Y•Œèé¹•Ü ¤ì(€€€ô((€€€±•Ğµ…Ñ¡•Ì€ô½}É••áÁ}™¥¹‘}…±±}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸°Ñ•áĞ°€Ä¤ì(€€€¥˜µ…Ñ¡•Ì¹¥Í}•µÁÑä ¤ì(€€€€€€€Y•Œèé¹•Ü ¤(€€€ô•±Í”ì(€€€€€€€Ù•Œ…mµ…Ñ¡•ÍlÁt¹±½¹” ¥t(€€€ô)ô()™¸½}É••áÁ}É•Á±…•}…±±}ÍÑÉ¥¹œ¡Á…ÑÑ•É¸è€™ÍÑÈ°Ñ•áĞè€™ÍÑÈ°É•Á°è€™ÍÑÈ¤€´øMÑÉ¥¹œì(€€€¥˜Á…ÑÑ•É¸€ôôÈ‰l±tˆì(€€€€€€€±•ĞµÕĞ½ÕĞ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€€€€€™½È ¥¸Ñ•áĞ¹¡…ÉÌ ¤ì(€€€€€€€€€€€¥˜ €ôô€œœñğ €ôô€œ°œì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ¡}ÍÑÈ¡É•Á°¤ì(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸½ÕĞì(€€€ô(€€€¥˜Á…ÑÑ•É¸€ôôÈ‰m}tˆì(€€€€€€€É•ÑÕÉ¸Ñ•áĞ¹É•Á±…” |œ°É•Á°¤ì(€€€ô(€€€¥˜Á…ÑÑ•É¸€ôôÈ‰mUMqÍtˆì(€€€€€€€±•ĞµÕĞ½ÕĞ€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€€€€€™½È ¥¸Ñ•áĞ¹¡…ÉÌ ¤ì(€€€€€€€€€€€¥˜ €ôô€Tœñğ €ôô€Lœñğ €ôô€œñğ ¹¥Í}İ¡¥Ñ•ÍÁ…” ¤ì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ¡}ÍÑÈ¡É•Á°¤ì(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€½ÕĞ¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸½ÕĞì(€€€ô(€€€Ñ•áĞ¹É•Á±…”¡Á…ÑÑ•É¸°É•Á°¤)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•)Í½¹Í…Á•!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}©Í½¹}•Í…Á”¡¥¹ÁÕĞè€™ÍÑÈ¤€´øMÑÉ¥¹œì(€€€±•ĞµÕĞ•Í…Á•€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€™½È ¥¸¥¹ÁÕĞ¹¡…ÉÌ ¤ì(€€€€€€€µ…Ñ  ì(€€€€€€€€€€€€œˆœ€ôø•Í…Á•¹ÁÕÍ¡}ÍÑÈ ‰qqpˆˆ¤°(€€€€€€€€€€€€qpœ€ôø•Í…Á•¹ÁÕÍ¡}ÍÑÈ ‰qqqpˆ¤°(€€€€€€€€€€€€q¸œ€ôø•Í…Á•¹ÁÕÍ¡}ÍÑÈ ‰qq¸ˆ¤°(€€€€€€€€€€€€qÈœ€ôø•Í…Á•¹ÁÕÍ¡}ÍÑÈ ‰qqÈˆ¤°(€€€€€€€€€€€€qĞœ€ôø•Í…Á•¹ÁÕÍ¡}ÍÑÈ ‰qqĞˆ¤°(€€€€€€€€€€€Œ¥˜Œ€ğ€œ€œ€ôø•Í…Á•¹ÁÕÍ¡}ÍÑÈ ™™½Éµ…Ğ„ ‰qqÕìèÀÑáôˆ°Œ…ÌÔÌÈ¤¤°(€€€€€€€€€€€Œ€ôø•Í…Á•¹ÁÕÍ ¡Œ¤°(€€€€€€€ô(€€€ô(€€€•Í…Á•)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•MÑÉ½¹Ù½Éµ…Ñ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}ÍÑÉ½¹Ù}™½Éµ…Ñ}¥¹Ğ¡Ù…±Õ”è¤ØĞ°‰…Í”è¤ÌÈ¤€´øMÑÉ¥¹œì(€€€¥˜‰…Í”€ôô€ÄÀì(€€€€€€€É•ÑÕÉ¸Ù…±Õ”¹Ñ½}ÍÑÉ¥¹œ ¤ì(€€€ô(€€€¥˜€„ È¸¸ôÌØ¤¹½¹Ñ…¥¹Ì ™‰…Í”¤ì(€€€€€€€É•ÑÕÉ¸Ù…±Õ”¹Ñ½}ÍÑÉ¥¹œ ¤ì(€€€ô((€€€±•Ğ¹•…Ñ¥Ù”€ôÙ…±Õ”€ğ€Àì(€€€±•ĞµÕĞ¸€ô¥˜¹•…Ñ¥Ù”ì(€€€€€€€Ù…±Õ”¹İÉ…ÁÁ¥¹}¹•œ ¤…ÌÔØĞ(€€€ô•±Í”ì(€€€€€€€Ù…±Õ”…ÌÔØĞ(€€€ôì(€€€±•Ğ‰…Í”€ô‰…Í”…ÌÔØĞì(€€€±•Ğ‘¥¥ÑÌ€ôˆˆÀÄÈÌĞÔØÜàå…‰‘•™¡¥©­±µ¹½ÁÅÉÍÑÕÙİáåèˆì(€€€±•ĞµÕĞ½ÕĞ€ôY•Œèé¹•Ü ¤ì(€€€¥˜¸€ôô€Àì(€€€€€€€½ÕĞ¹ÁÕÍ ¡ˆœÀœ¤ì(€€€ô(€€€İ¡¥±”¸€ø€Àì(€€€€€€€½ÕĞ¹ÁÕÍ ¡‘¥¥ÑÍl¡¸€”‰…Í”¤…ÌÕÍ¥é•t¤ì(€€€€€€€¸€¼ô‰…Í”ì(€€€ô(€€€¥˜¹•…Ñ¥Ù”ì(€€€€€€€½ÕĞ¹ÁÕÍ ¡ˆœ´œ¤ì(€€€ô(€€€½ÕĞ¹É•Ù•ÉÍ” ¤ì(€€€MÑÉ¥¹œèé™É½µ}ÕÑ˜à¡½ÕĞ¤¹Õ¹İÉ…À ¤)ô()™¸½}ÍÑÉ½¹Ù}™½Éµ…Ñ}™±½…Ğ¡Ù…±Õ”è˜ØĞ°™µĞè¡…È°ÁÉ•¥Í¥½¸è¤ÌÈ¤€´øMÑÉ¥¹œì(€€€±•ĞÁÉ•¥Í¥½¸€ô¥˜ÁÉ•¥Í¥½¸€ğ€Àì€Øô•±Í”ìÁÉ•¥Í¥½¸…ÌÕÍ¥é”ôì(€€€µ…Ñ ™µĞì(€€€€€€€€”œ€ôø™½Éµ…Ğ„ ‰ìè¸©•ôˆ°ÁÉ•¥Í¥½¸°Ù…±Õ”¤°(€€€€€€€€œ€ôø™½Éµ…Ğ„ ‰ìè¸©ôˆ°ÁÉ•¥Í¥½¸°Ù…±Õ”¤°(€€€€€€€€˜œ€ôø™½Éµ…Ğ„ ‰ìè¸©ôˆ°ÁÉ•¥Í¥½¸°Ù…±Õ”¤°(€€€€€€€€œœğ€œ€ôøì(€€€€€€€€€€€¥˜ÁÉ•¥Í¥½¸€ôô€Àì(€€€€€€€€€€€€€€€™½Éµ…Ğ„ ‰ìè¸Áôˆ°Ù…±Õ”¤(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€™½Éµ…Ğ„ ‰ìè¸©ôˆ°ÁÉ•¥Í¥½¸°Ù…±Õ”¤(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€|€ôøÙ…±Õ”¹Ñ½}ÍÑÉ¥¹œ ¤°(€€€ô)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•M±¥•±•µAÑÉ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½M±¥•±•µAÑÈñPøì(€€€Í±¥”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñPøøøø°(€€€¥¹‘•àèÕÍ¥é”°)ô()ÁÕˆÍÑÉÕĞ½M±¥•±•µI•˜ñPè±½¹”øì(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()ÁÕˆÍÑÉÕĞ½M±¥•±•µ5ÕÑI•˜ñPè±½¹”øì(€€€Í±¥”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñPøøøø°(€€€¥¹‘•àèÕÍ¥é”°(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()ÁÕˆÑÉ…¥Ğ½ÉÉ…å±•µ	…­¥¹œñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øèM•¹€¬Må¹Œì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½¥É•ÑÉÉ…å±•µ	…­¥¹œñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€…ÉÉ…äèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñmPì9tøøø°)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½¥É•ÑÉÉ…å±•µ	…­¥¹œñP°8øì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹…ÉÉ…ä¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€Õ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡¥¹‘•à¤¹±½¹• ¤¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ôÍ•±˜¹…ÉÉ…ä¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•Ím¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡ÉŒèé…Í}ÁÑÈ ™Í•±˜¹…ÉÉ…ä¤…Ì€©½¹ÍĞ€ ¤°¥¹‘•à¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½9•ÍÑ•‘ÉÉ…å±•µ	…­¥¹œñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”øì(€€€½ÕÑ•ÈèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñmmPì9tì=UQtøøø°(€€€½ÕÑ•É}¥¹‘•àèÕÍ¥é”°)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½9•ÍÑ•‘ÉÉ…å±•µ	…­¥¹œñP°8°=UPøì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹½ÕÑ•È¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€Õ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Í•±˜¹½ÕÑ•É}¥¹‘•à¤¤¹…¹‘}Ñ¡•¸¡ñ¥¹¹•Éğ¥¹¹•È¹•Ğ¡¥¹‘•à¤¤¹±½¹• ¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ôÍ•±˜¹½ÕÑ•È¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•ÍmÍ•±˜¹½ÕÑ•É}¥¹‘•áum¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡ÉŒèé…Í}ÁÑÈ ™Í•±˜¹½ÕÑ•È¤…Ì€©½¹ÍĞ€ ¤°Í•±˜¹½ÕÑ•É}¥¹‘•à¹İÉ…ÁÁ¥¹}µÕ°¡8¤¹İÉ…ÁÁ¥¹}…‘¡¥¹‘•à¤¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µÉ½µ±•µ	…­¥¹œñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”øì(€€€Á…É•¹Ğè½ÉÉ…å±•µAÑÈñmPì9t°=UPø°)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½ÉÉ…å±•µÉ½µ±•µ	…­¥¹œñP°8°=UPøì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•Ğ¥¹¹•È€ôÍ•±˜¹Á…É•¹Ğ¹‰½ÉÉ½Ü ¤ì(€€€€€€€¥¹¹•È¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡¥¹‘•à¤¹±½¹• ¤¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€±•ĞµÕĞ¥¹¹•È€ôÍ•±˜¹Á…É•¹Ğ¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ô¥¹¹•È¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•Ím¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€±•Ğ€¡‰…Í”°½ÕÑ•É}¥¹‘•à¤€ôÍ•±˜¹Á…É•¹Ğ¹¥‘•¹Ñ¥Ñä ¤ì(€€€€€€€€¡‰…Í”°½ÕÑ•É}¥¹‘•à¹İÉ…ÁÁ¥¹}µÕ°¡8¤¹İÉ…ÁÁ¥¹}…‘¡¥¹‘•à¤¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µÉ½µ½AÑÉ	…­¥¹œñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€Á…É•¹Ğè½AÑÈñmPì9tø°)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½ÉÉ…å±•µÉ½µ½AÑÉ	…­¥¹œñP°8øì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•Ğ¥¹¹•È€ôÍ•±˜¹Á…É•¹Ğ¹‰½ÉÉ½Ü ¤ì(€€€€€€€¥¹¹•È¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡¥¹‘•à¤¹±½¹• ¤¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€Í•±˜¹Á…É•¹Ğ¹İ¥Ñ¡}µÕĞ¡ñÙ…±Õ•Íğì(€€€€€€€€€€€€€€€Ù…±Õ•Ím¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô¤ì(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡Í•±˜¹Á…É•¹Ğ¹…‘‘È ¤…Ì€©½¹ÍĞ€ ¤°¥¹‘•à¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µAÑÈñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€‰…­¥¹œèÉŒñ‘å¸½ÉÉ…å±•µ	…­¥¹œñP°8ø€¬M•¹€¬Må¹Œø°(€€€¥¹‘•àèÕÍ¥é”°)ô()ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µI•˜ñPè±½¹”øì(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µ5ÕÑI•˜ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€‰…­¥¹œèÉŒñ‘å¸½ÉÉ…å±•µ	…­¥¹œñP°8ø€¬M•¹€¬Må¹Œø°(€€€¥¹‘•àèÕÍ¥é”°(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()¥µÁ°ñPø½M±¥•±•µAÑÈñPøì(€€€ÁÕˆ™¸¹•Ü¡Í±¥”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñPøøøø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½M±¥•±•µAÑÈìÍ±¥”°¥¹‘•àô(€€€ô((€€€ÁÕˆ™¸Í±¥•}¡…¹‘±” ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñPøøøøì(€€€€€€€Í•±˜¹Í±¥”¹±½¹” ¤(€€€ô((€€€ÁÕˆ™¸¥¹‘•à ™Í•±˜¤€´øÕÍ¥é”ì(€€€€€€€Í•±˜¹¥¹‘•à(€€€ô)ô()¥µÁ°ñPè±½¹”ø½M±¥•±•µAÑÈñPøì(€€€ÁÕˆ™¸‰½ÉÉ½Ü ™Í•±˜¤€´ø½M±¥•±•µI•˜ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹Í±¥”¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€½M±¥•±•µI•˜ì(€€€€€€€€€€€Ù…±Õ”èÕ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Í•±˜¹¥¹‘•à¤¹±½¹• ¤¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸‰½ÉÉ½İ}µÕĞ ™Í•±˜¤€´ø½M±¥•±•µ5ÕÑI•˜ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹Í±¥”¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€½M±¥•±•µ5ÕÑI•˜ì(€€€€€€€€€€€Í±¥”èÍ•±˜¹Í±¥”¹±½¹” ¤°(€€€€€€€€€€€¥¹‘•àèÍ•±˜¹¥¹‘•à°(€€€€€€€€€€€Ù…±Õ”èÕ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Í•±˜¹¥¹‘•à¤¹±½¹• ¤¤°(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µAÑÈñP°8øì(€€€ÁÕˆ™¸¹•Ü¡…ÉÉ…äèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñmPì9tøøø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèÉŒèé¹•Ü¡½¥É•ÑÉÉ…å±•µ	…­¥¹œì…ÉÉ…äô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸¹•ÍÑ•ñ½¹ÍĞ=UPèÕÍ¥é”ø¡½ÕÑ•ÈèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñmmPì9tì=UQtøøø°½ÕÑ•É}¥¹‘•àèÕÍ¥é”°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèÉŒèé¹•Ü¡½9•ÍÑ•‘ÉÉ…å±•µ	…­¥¹œì½ÕÑ•È°½ÕÑ•É}¥¹‘•àô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸™É½µ}…ÉÉ…å}•±•´ñ½¹ÍĞ=UPèÕÍ¥é”ø¡Á…É•¹Ğè½ÉÉ…å±•µAÑÈñmPì9t°=UPø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèÉŒèé¹•Ü¡½ÉÉ…å±•µÉ½µ±•µ	…­¥¹œìÁ…É•¹Ğô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸™É½µ}½}ÁÑÈ¡Á…É•¹Ğè½AÑÈñmPì9tø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèÉŒèé¹•Ü¡½ÉÉ…å±•µÉ½µ½AÑÉ	…­¥¹œìÁ…É•¹Ğô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸‰½ÉÉ½Ü ™Í•±˜¤€´ø½ÉÉ…å±•µI•˜ñPøì(€€€€€€€½ÉÉ…å±•µI•˜ì(€€€€€€€€€€€Ù…±Õ”èÍ•±˜¹‰…­¥¹œ¹‰½ÉÉ½İ}…Ğ¡Í•±˜¹¥¹‘•à¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸‰½ÉÉ½İ}µÕĞ ™Í•±˜¤€´ø½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€€€€€½ÉÉ…å±•µ5ÕÑI•˜ì(€€€€€€€€€€€‰…­¥¹œèÍ•±˜¹‰…­¥¹œ¹±½¹” ¤°(€€€€€€€€€€€¥¹‘•àèÍ•±˜¹¥¹‘•à°(€€€€€€€€€€€Ù…±Õ”èÍ•±˜¹‰…­¥¹œ¹‰½ÉÉ½İ}…Ğ¡Í•±˜¹¥¹‘•à¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸İ¥Ñ¡}µÕĞñHø ™Í•±˜°˜è¥µÁ°¹=¹” ™µÕĞP¤€´øH¤€´øHì(€€€€€€€±•ĞµÕĞÙ…±Õ”€ôÍ•±˜¹‰…­¥¹œ¹‰½ÉÉ½İ}…Ğ¡Í•±˜¹¥¹‘•à¤¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤ì(€€€€€€€±•ĞÉ•ÍÕ±Ğ€ô˜ ™µÕĞÙ…±Õ”¤ì(€€€€€€€Í•±˜¹‰…­¥¹œ¹…ÍÍ¥¹}…Ğ¡Í•±˜¹¥¹‘•à°M½µ”¡Ù…±Õ”¤¤ì(€€€€€€€É•ÍÕ±Ğ(€€€ô((€€€ÁÕˆ™¸¥‘•¹Ñ¥Ñä ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€Í•±˜¹‰…­¥¹œ¹¥‘•¹Ñ¥Ñå}…Ğ¡Í•±˜¹¥¹‘•à¤(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•˜™½È½M±¥•±•µI•˜ñPøì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•˜™½È½M±¥•±•µ5ÕÑI•˜ñPøì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•™5ÕĞ™½È½M±¥•±•µ5ÕÑI•˜ñPøì(€€€™¸‘•É•™}µÕĞ ™µÕĞÍ•±˜¤€´ø€™µÕĞM•±˜èéQ…É•Ğì(€€€€€€€€™µÕĞÍ•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”øÉ½À™½È½M±¥•±•µ5ÕÑI•˜ñPøì(€€€™¸‘É½À ™µÕĞÍ•±˜¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÍ•±˜¹Ù…±Õ”¹±½¹” ¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ôÍ•±˜¹Í±¥”¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•ÍmÍ•±˜¹¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•˜™½È½ÉÉ…å±•µI•˜ñPøì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øÍÑèé½ÁÌèé•É•˜™½È½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øÍÑèé½ÁÌèé•É•™5ÕĞ™½È½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€™¸‘•É•™}µÕĞ ™µÕĞÍ•±˜¤€´ø€™µÕĞM•±˜èéQ…É•Ğì(€€€€€€€€™µÕĞÍ•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øÉ½À™½È½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€™¸‘É½À ™µÕĞÍ•±˜¤ì(€€€€€€€Í•±˜¹‰…­¥¹œ¹…ÍÍ¥¹}…Ğ¡Í•±˜¹¥¹‘•à°Í•±˜¹Ù…±Õ”¹±½¹” ¤¤ì(€€€ô)ô()ÁÕˆÑÉ…¥Ğ½ÉÉ…å±•µAÑÉå¸ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥ŒøèM•¹€¬Må¹Œì(€€€™¸‰½ÉÉ½İ}‘å¸ ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€™¸…ÍÍ¥¹}‘å¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€™¸İ¥Ñ¡}µÕÑ}‘å¸ ™Í•±˜°˜è€™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ì(€€€™¸¥‘•¹Ñ¥Ñå}‘å¸ ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì)ô()ÁÕˆÍÑÉÕĞ½½É•¥¹ÉÉ…å±•µAÑÉå¸ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œøì(€€€‰½ÉÉ½ÜèÉŒñ‘å¸¸ ¤€´ø=ÁÑ¥½¸ñPø€¬M•¹€¬Må¹Œø°(€€€…ÍÍ¥¸èÉŒñ‘å¸¸¡=ÁÑ¥½¸ñPø¤€¬M•¹€¬Må¹Œø°(€€€İ¥Ñ¡}µÕĞèÉŒñ‘å¸¸ ™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤€¬M•¹€¬Må¹Œø°(€€€¥‘•¹Ñ¥ÑäèÉŒñ‘å¸¸ ¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤€¬M•¹€¬Må¹Œø°)ô()¥µÁ°ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œø½ÉÉ…å±•µAÑÉå¸ñPø™½È½½É•¥¹ÉÉ…å±•µAÑÉå¸ñPøì(€€€™¸‰½ÉÉ½İ}‘å¸ ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€€¡Í•±˜¹‰½ÉÉ½Ü¤ ¤(€€€ô((€€€™¸…ÍÍ¥¹}‘å¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€€¡Í•±˜¹…ÍÍ¥¸¤¡Ù…±Õ”¤(€€€ô((€€€™¸İ¥Ñ¡}µÕÑ}‘å¸ ™Í•±˜°˜è€™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ì(€€€€€€€€¡Í•±˜¹İ¥Ñ¡}µÕĞ¤¡˜¤(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}‘å¸ ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡Í•±˜¹¥‘•¹Ñ¥Ñä¤ ¤(€€€ô)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µAÑÉå¸ñPø™½È½ÉÉ…å±•µAÑÈñP°8øì(€€€™¸‰½ÉÉ½İ}‘å¸ ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€€ ©Í•±˜¹‰½ÉÉ½Ü ¤¤¹±½¹” ¤(€€€ô((€€€™¸…ÍÍ¥¹}‘å¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€€©Í•±˜¹‰½ÉÉ½İ}µÕĞ ¤€ôÙ…±Õ”ì(€€€ô((€€€™¸İ¥Ñ¡}µÕÑ}‘å¸ ™Í•±˜°˜è€™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ì(€€€€€€€Í•±˜¹İ¥Ñ¡}µÕĞ¡ñÙ…±Õ•ğ˜¡Ù…±Õ”¤¤ì(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}‘å¸ ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€Í•±˜¹¥‘•¹Ñ¥Ñä ¤(€€€ô)ô()ÁÕˆ•¹Õ´½AÑÈñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œøì(€€€9¥°°(€€€I…Ü¡ÕÍ¥é”¤°(€€€1½…°¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñPøøø¤°(€€€M±¥•±•´¡½M±¥•±•µAÑÈñPø¤°(€€€ÉÉ…å±•´¡ÉŒñ‘å¸½ÉÉ…å±•µAÑÉå¸ñPø€¬M•¹€¬Må¹Œø¤°)ô()¥µÁ°ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œø±½¹”™½È½AÑÈñPøì(€€€™¸±½¹” ™Í•±˜¤€´øM•±˜ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôø½AÑÈèé9¥°°(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤€ôø½AÑÈèéI…Ü ©…‘‘È¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôø½AÑÈèé1½…°¡Ù…±Õ”¹±½¹” ¤¤°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôø½AÑÈèéM±¥•±•´¡½M±¥•±•µAÑÈìÍ±¥”èÙ…±Õ”¹Í±¥”¹±½¹” ¤°¥¹‘•àèÙ…±Õ”¹¥¹‘•àô¤°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôø½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¹±½¹” ¤¤°(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œø½AÑÈñPøì(€€€ÁÕˆ™¸¹¥° ¤€´øM•±˜ì(€€€€€€€½AÑÈèé9¥°(€€€ô((€€€ÁÕˆ™¸É…Ü¡…‘‘ÈèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€¥˜…‘‘È€ôô€Àì(€€€€€€€€€€€½AÑÈèé9¥°(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸±½…°¡Ù…±Õ”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñPøøø¤€´øM•±˜ì(€€€€€€€¥˜Ù…±Õ”¹±½¬ ¤¹Õ¹İÉ…À ¤¹¥Í}¹½¹” ¤ì(€€€€€€€€€€€½AÑÈèé9¥°(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸Í±¥•}•±•´¡Ù…±Õ”è½M±¥•±•µAÑÈñPø¤€´øM•±˜ì(€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤(€€€ô((€€€ÁÕˆ™¸Í±¥•}•±•µ}½ÁĞ¡Ù…±Õ”è=ÁÑ¥½¸ñ½M±¥•±•µAÑÈñPøø¤€´øM•±˜ì(€€€€€€€µ…Ñ Ù…±Õ”ì(€€€€€€€€€€€M½µ”¡Ù…±Õ”¤€ôø½AÑÈèéM±¥•±•´¡Ù…±Õ”¤°(€€€€€€€€€€€9½¹”€ôø½AÑÈèé9¥°°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…ÉÉ…å}•±•´ñ½¹ÍĞ8èÕÍ¥é”ø¡Ù…±Õ”è½ÉÉ…å±•µAÑÈñP°8ø¤€´øM•±˜(€€€İ¡•É”(€€€€€€€Pè±½¹”°(€€€ì(€€€€€€€½AÑÈèéÉÉ…å±•´¡ÉŒèé¹•Ü¡Ù…±Õ”¤¤(€€€ô((€€€ÁÕˆ™¸…ÉÉ…å}•±•µ}½ÁĞñ½¹ÍĞ8èÕÍ¥é”ø¡Ù…±Õ”è=ÁÑ¥½¸ñ½ÉÉ…å±•µAÑÈñP°8øø¤€´øM•±˜(€€€İ¡•É”(€€€€€€€Pè±½¹”°(€€€ì(€€€€€€€µ…Ñ Ù…±Õ”ì(€€€€€€€€€€€M½µ”¡Ù…±Õ”¤€ôø½AÑÈèéÉÉ…å±•´¡ÉŒèé¹•Ü¡Ù…±Õ”¤¤°(€€€€€€€€€€€9½¹”€ôø½AÑÈèé9¥°°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…ÉÉ…å}•±•µ}™½É•¥¸ (€€€€€€€‰½ÉÉ½ÜèÉŒñ‘å¸¸ ¤€´ø=ÁÑ¥½¸ñPø€¬M•¹€¬Må¹Œø°(€€€€€€€…ÍÍ¥¸èÉŒñ‘å¸¸¡=ÁÑ¥½¸ñPø¤€¬M•¹€¬Må¹Œø°(€€€€€€€İ¥Ñ¡}µÕĞèÉŒñ‘å¸¸ ™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤€¬M•¹€¬Må¹Œø°(€€€€€€€¥‘•¹Ñ¥ÑäèÉŒñ‘å¸¸ ¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤€¬M•¹€¬Må¹Œø°(€€€€¤€´øM•±˜ì(€€€€€€€½AÑÈèéÉÉ…å±•´¡ÉŒèé¹•Ü¡½½É•¥¹ÉÉ…å±•µAÑÉå¸ì(€€€€€€€€€€€‰½ÉÉ½Ü°(€€€€€€€€€€€…ÍÍ¥¸°(€€€€€€€€€€€İ¥Ñ¡}µÕĞ°(€€€€€€€€€€€¥‘•¹Ñ¥Ñä°(€€€€€€€ô¤¤(€€€ô((€€€ÁÕˆ™¸¥Í}¹¥° ™Í•±˜¤€´ø‰½½°ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôøÑÉÕ”°(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤€ôø€©…‘‘È€ôô€À°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôøÙ…±Õ”¹±½¬ ¤¹Õ¹İÉ…À ¤¹¥Í}¹½¹” ¤°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôøì(€€€€€€€€€€€€€€€±•ĞÕ…É€ôÙ…±Õ”¹Í±¥”¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€€€€€€€€€Õ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Ù…±Õ”¹¥¹‘•à¤¤¹¥Í}¹½¹” ¤(€€€€€€€€€€€ô(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôøÙ…±Õ”¹¥‘•¹Ñ¥Ñå}‘å¸ ¤¸À¹¥Í}¹Õ±° ¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸İ¥Ñ¡}µÕĞñHø ™Í•±˜°˜è¥µÁ°¹=¹” ™µÕĞP¤€´øH¤€´øHì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôøÁ…¹¥Œ„ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤°(€€€€€€€€€€€½AÑÈèéI…Ü¡|¤€ôøÁ…¹¥Œ„ ‰É…ÜÕ¹Í…™”Á½¥¹Ñ•ÈµÕÑ…‰±”‰½ÉÉ½ÜÉ•ÅÕ¥É•ÌÕ¹Í…™”Á½¥¹Ñ•”ÍÕÁÁ½ÉĞˆ¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Í±½Ğ¤€ôøì(€€€€€€€€€€€€€€€±•ĞµÕĞÕ…É€ôÍ±½Ğ¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€€€€€€€€€˜¡Õ…É¹…Í}µÕĞ ¤¹Õ¹İÉ…À ¤¤(€€€€€€€€€€€ô(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Í±½Ğ¤€ôøì(€€€€€€€€€€€€€€€±•ĞµÕĞÕ…É€ôÍ±½Ğ¹Í±¥”¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€€€€€€€€€±•ĞÙ…±Õ•Ì€ôÕ…É¹…Í}µÕĞ ¤¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤ì(€€€€€€€€€€€€€€€˜¡Ù…±Õ•Ì¹•Ñ}µÕĞ¡Í±½Ğ¹¥¹‘•à¤¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤¤(€€€€€€€€€€€ô(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Í±½Ğ¤€ôøì(€€€€€€€€€€€€€€€±•ĞµÕĞÉ•ÍÕ±Ğ€ô9½¹”ì(€€€€€€€€€€€€€€€±•ĞµÕĞ…±±‰…¬€ôM½µ”¡˜¤ì(€€€€€€€€€€€€€€€Í±½Ğ¹İ¥Ñ¡}µÕÑ}‘å¸ ™µÕĞñÙ…±Õ•ğì(€€€€€€€€€€€€€€€€€€€±•Ğ˜€ô…±±‰…¬¹Ñ…­” ¤¹•áÁ•Ğ ‰…ÉÉ…ä•±•µ•¹ĞÁ½¥¹Ñ•ÈµÕÑ…‰±”‰½ÉÉ½Ü…±±•Ñİ¥”ˆ¤ì(€€€€€€€€€€€€€€€€€€€É•ÍÕ±Ğ€ôM½µ”¡˜¡Ù…±Õ”¤¤ì(€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€€€€€É•ÍÕ±Ğ¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸ÁÑÉ}•Ä¡±•™Ğè€™M•±˜°É¥¡Ğè€™M•±˜¤€´ø‰½½°ì(€€€€€€€µ…Ñ €¡±•™Ğ°É¥¡Ğ¤ì(€€€€€€€€€€€€¡½AÑÈèé9¥°°½AÑÈèé9¥°¤€ôøÑÉÕ”°(€€€€€€€€€€€€¡½AÑÈèéI…Ü¡|¤°|¤ğ€¡|°½AÑÈèéI…Ü¡|¤¤€ôø±•™Ğ¹…‘‘È ¤€ôôÉ¥¡Ğ¹…‘‘È ¤°(€€€€€€€€€€€€¡½AÑÈèé1½…°¡±•™Ğ¤°½AÑÈèé1½…°¡É¥¡Ğ¤¤€ôøÉŒèéÁÑÉ}•Ä¡±•™Ğ°É¥¡Ğ¤°(€€€€€€€€€€€€¡½AÑÈèéM±¥•±•´¡±•™Ğ¤°½AÑÈèéM±¥•±•´¡É¥¡Ğ¤¤€ôøì(€€€€€€€€€€€€€€€ÉŒèéÁÑÉ}•Ä ™±•™Ğ¹Í±¥•}¡…¹‘±” ¤°€™É¥¡Ğ¹Í±¥•}¡…¹‘±” ¤¤€˜˜±•™Ğ¹¥¹‘•à ¤€ôôÉ¥¡Ğ¹¥¹‘•à ¤(€€€€€€€€€€€ô(€€€€€€€€€€€€¡½AÑÈèéÉÉ…å±•´¡±•™Ğ¤°½AÑÈèéÉÉ…å±•´¡É¥¡Ğ¤¤€ôø±•™Ğ¹¥‘•¹Ñ¥Ñå}‘å¸ ¤€ôôÉ¥¡Ğ¹¥‘•¹Ñ¥Ñå}‘å¸ ¤°(€€€€€€€€€€€|€ôø™…±Í”°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…‘‘È ™Í•±˜¤€´øÕÍ¥é”ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôø€À°(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤€ôø€©…‘‘È°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôøÉŒèé…Í}ÁÑÈ¡Ù…±Õ”¤…ÌÕÍ¥é”°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôø€¡ÉŒèé…Í}ÁÑÈ ™Ù…±Õ”¹Í±¥•}¡…¹‘±” ¤¤…ÌÕÍ¥é”¤¹İÉ…ÁÁ¥¹}…‘¡Ù…±Õ”¹¥¹‘•à ¤¤°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôøì(€€€€€€€€€€€€€€€±•Ğ€¡‰…Í”°¥¹‘•à¤€ôÙ…±Õ”¹¥‘•¹Ñ¥Ñå}‘å¸ ¤ì(€€€€€€€€€€€€€€€€¡‰…Í”…ÌÕÍ¥é”¤¹İÉ…ÁÁ¥¹}…‘¡¥¹‘•à¤(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè±½¹”€¬M•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œø½AÑÈñPøì(€€€ÁÕˆ™¸‰½ÉÉ½Ü ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôø9½¹”°(€€€€€€€€€€€½AÑÈèéI…Ü¡|¤€ôøÁ…¹¥Œ„ ‰É…ÜÕ¹Í…™”Á½¥¹Ñ•È‘•É•™•É•¹”É•ÅÕ¥É•ÌÕ¹Í…™”Á½¥¹Ñ•”ÍÕÁÁ½ÉĞˆ¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôø€ ©Ù…±Õ”¹±½¬ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôø€ ©Ù…±Õ”¹‰½ÉÉ½Ü ¤¤¹±½¹” ¤°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôøÙ…±Õ”¹‰½ÉÉ½İ}‘å¸ ¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…ÍÍ¥¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôøÁ…¹¥Œ„ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤°(€€€€€€€€€€€½AÑÈèéI…Ü¡|¤€ôøÁ…¹¥Œ„ ‰É…ÜÕ¹Í…™”Á½¥¹Ñ•È…ÍÍ¥¹µ•¹ĞÉ•ÅÕ¥É•ÌÕ¹Í…™”Á½¥¹Ñ•”ÍÕÁÁ½ÉĞˆ¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Í±½Ğ¤€ôø€©Í±½Ğ¹±½¬ ¤¹Õ¹İÉ…À ¤€ôÙ…±Õ”°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Í±½Ğ¤€ôø€©Í±½Ğ¹‰½ÉÉ½İ}µÕĞ ¤€ôÙ…±Õ”°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Í±½Ğ¤€ôøÍ±½Ğ¹…ÍÍ¥¹}‘å¸¡Ù…±Õ”¤°(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥Œø•™…Õ±Ğ™½È½AÑÈñPøì(€€€™¸‘•™…Õ±Ğ ¤€´øM•±˜ì(€€€€€€€½AÑÈèé9¥°(€€€ô)ô()¥µÁ°ñPèM•¹€¬Må¹Œ€¬€ÍÑ…Ñ¥ŒøÍÑèé™µĞèé•‰Õœ™½È½AÑÈñPøì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€¥˜Í•±˜¹¥Í}¹¥° ¤ì(€€€€€€€€€€€İÉ¥Ñ”„¡˜°€ˆñ¹¥°øˆ¤(€€€€€€€ô•±Í”ì(€€€€€€€€€€€İÉ¥Ñ”„¡˜°€ˆñÁÑÈøˆ¤(€€€€€€€ô(€€€ô)ô)€¤(%ô•±Í”ì($%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½M±¥•±•µAÑÈñPøì(€€€Í±¥”èIŒñI•™•±°ñ=ÁÑ¥½¸ñY•ŒñPøøøø°(€€€¥¹‘•àèÕÍ¥é”°)ô()ÁÕˆÍÑÉÕĞ½M±¥•±•µI•˜ñPè±½¹”øì(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()ÁÕˆÍÑÉÕĞ½M±¥•±•µ5ÕÑI•˜ñPè±½¹”øì(€€€Í±¥”èIŒñI•™•±°ñ=ÁÑ¥½¸ñY•ŒñPøøøø°(€€€¥¹‘•àèÕÍ¥é”°(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()ÁÕˆÑÉ…¥Ğ½ÉÉ…å±•µ	…­¥¹œñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½¥É•ÑÉÉ…å±•µ	…­¥¹œñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€…ÉÉ…äèIŒñI•™•±°ñ=ÁÑ¥½¸ñmPì9tøøø°)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½¥É•ÑÉÉ…å±•µ	…­¥¹œñP°8øì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹…ÉÉ…ä¹‰½ÉÉ½Ü ¤ì(€€€€€€€Õ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡¥¹‘•à¤¹±½¹• ¤¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ôÍ•±˜¹…ÉÉ…ä¹‰½ÉÉ½İ}µÕĞ ¤¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•Ím¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡IŒèé…Í}ÁÑÈ ™Í•±˜¹…ÉÉ…ä¤…Ì€©½¹ÍĞ€ ¤°¥¹‘•à¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½9•ÍÑ•‘ÉÉ…å±•µ	…­¥¹œñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”øì(€€€½ÕÑ•ÈèIŒñI•™•±°ñ=ÁÑ¥½¸ñmmPì9tì=UQtøøø°(€€€½ÕÑ•É}¥¹‘•àèÕÍ¥é”°)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½9•ÍÑ•‘ÉÉ…å±•µ	…­¥¹œñP°8°=UPøì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹½ÕÑ•È¹‰½ÉÉ½Ü ¤ì(€€€€€€€Õ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Í•±˜¹½ÕÑ•É}¥¹‘•à¤¤¹…¹‘}Ñ¡•¸¡ñ¥¹¹•Éğ¥¹¹•È¹•Ğ¡¥¹‘•à¤¤¹±½¹• ¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ôÍ•±˜¹½ÕÑ•È¹‰½ÉÉ½İ}µÕĞ ¤¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•ÍmÍ•±˜¹½ÕÑ•É}¥¹‘•áum¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡IŒèé…Í}ÁÑÈ ™Í•±˜¹½ÕÑ•È¤…Ì€©½¹ÍĞ€ ¤°Í•±˜¹½ÕÑ•É}¥¹‘•à¹İÉ…ÁÁ¥¹}µÕ°¡8¤¹İÉ…ÁÁ¥¹}…‘¡¥¹‘•à¤¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µÉ½µ±•µ	…­¥¹œñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”øì(€€€Á…É•¹Ğè½ÉÉ…å±•µAÑÈñmPì9t°=UPø°)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”°½¹ÍĞ=UPèÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½ÉÉ…å±•µÉ½µ±•µ	…­¥¹œñP°8°=UPøì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•Ğ¥¹¹•È€ôÍ•±˜¹Á…É•¹Ğ¹‰½ÉÉ½Ü ¤ì(€€€€€€€¥¹¹•È¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡¥¹‘•à¤¹±½¹• ¤¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€±•ĞµÕĞ¥¹¹•È€ôÍ•±˜¹Á…É•¹Ğ¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ô¥¹¹•È¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•Ím¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€±•Ğ€¡‰…Í”°½ÕÑ•É}¥¹‘•à¤€ôÍ•±˜¹Á…É•¹Ğ¹¥‘•¹Ñ¥Ñä ¤ì(€€€€€€€€¡‰…Í”°½ÕÑ•É}¥¹‘•à¹İÉ…ÁÁ¥¹}µÕ°¡8¤¹İÉ…ÁÁ¥¹}…‘¡¥¹‘•à¤¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µÉ½µ½AÑÉ	…­¥¹œñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€Á…É•¹Ğè½AÑÈñmPì9tø°)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µ	…­¥¹œñP°8ø™½È½ÉÉ…å±•µÉ½µ½AÑÉ	…­¥¹œñP°8øì(€€€™¸‰½ÉÉ½İ}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€±•Ğ¥¹¹•È€ôÍ•±˜¹Á…É•¹Ğ¹‰½ÉÉ½Ü ¤ì(€€€€€€€¥¹¹•È¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡¥¹‘•à¤¹±½¹• ¤¤(€€€ô((€€€™¸…ÍÍ¥¹}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÙ…±Õ”ì(€€€€€€€€€€€Í•±˜¹Á…É•¹Ğ¹İ¥Ñ¡}µÕĞ¡ñÙ…±Õ•Íğì(€€€€€€€€€€€€€€€Ù…±Õ•Ím¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô¤ì(€€€€€€€ô(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}…Ğ ™Í•±˜°¥¹‘•àèÕÍ¥é”¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡Í•±˜¹Á…É•¹Ğ¹…‘‘È ¤…Ì€©½¹ÍĞ€ ¤°¥¹‘•à¤(€€€ô)ô((m‘•É¥Ù”¡±½¹”¥t)ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µAÑÈñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€‰…­¥¹œèIŒñ‘å¸½ÉÉ…å±•µ	…­¥¹œñP°8øø°(€€€¥¹‘•àèÕÍ¥é”°)ô()ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µI•˜ñPè±½¹”øì(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()ÁÕˆÍÑÉÕĞ½ÉÉ…å±•µ5ÕÑI•˜ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øì(€€€‰…­¥¹œèIŒñ‘å¸½ÉÉ…å±•µ	…­¥¹œñP°8øø°(€€€¥¹‘•àèÕÍ¥é”°(€€€Ù…±Õ”è=ÁÑ¥½¸ñPø°)ô()¥µÁ°ñPø½M±¥•±•µAÑÈñPøì(€€€ÁÕˆ™¸¹•Ü¡Í±¥”èIŒñI•™•±°ñ=ÁÑ¥½¸ñY•ŒñPøøøø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½M±¥•±•µAÑÈìÍ±¥”°¥¹‘•àô(€€€ô((€€€ÁÕˆ™¸Í±¥•}¡…¹‘±” ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñY•ŒñPøøøøì(€€€€€€€Í•±˜¹Í±¥”¹±½¹” ¤(€€€ô((€€€ÁÕˆ™¸¥¹‘•à ™Í•±˜¤€´øÕÍ¥é”ì(€€€€€€€Í•±˜¹¥¹‘•à(€€€ô)ô()¥µÁ°ñPè±½¹”ø½M±¥•±•µAÑÈñPøì(€€€ÁÕˆ™¸‰½ÉÉ½Ü ™Í•±˜¤€´ø½M±¥•±•µI•˜ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹Í±¥”¹‰½ÉÉ½Ü ¤ì(€€€€€€€½M±¥•±•µI•˜ì(€€€€€€€€€€€Ù…±Õ”èÕ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Í•±˜¹¥¹‘•à¤¹±½¹• ¤¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸‰½ÉÉ½İ}µÕĞ ™Í•±˜¤€´ø½M±¥•±•µ5ÕÑI•˜ñPøì(€€€€€€€±•ĞÕ…É€ôÍ•±˜¹Í±¥”¹‰½ÉÉ½Ü ¤ì(€€€€€€€½M±¥•±•µ5ÕÑI•˜ì(€€€€€€€€€€€Í±¥”èÍ•±˜¹Í±¥”¹±½¹” ¤°(€€€€€€€€€€€¥¹‘•àèÍ•±˜¹¥¹‘•à°(€€€€€€€€€€€Ù…±Õ”èÕ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Í•±˜¹¥¹‘•à¤¹±½¹• ¤¤°(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µAÑÈñP°8øì(€€€ÁÕˆ™¸¹•Ü¡…ÉÉ…äèIŒñI•™•±°ñ=ÁÑ¥½¸ñmPì9tøøø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèIŒèé¹•Ü¡½¥É•ÑÉÉ…å±•µ	…­¥¹œì…ÉÉ…äô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸¹•ÍÑ•ñ½¹ÍĞ=UPèÕÍ¥é”ø¡½ÕÑ•ÈèIŒñI•™•±°ñ=ÁÑ¥½¸ñmmPì9tì=UQtøøø°½ÕÑ•É}¥¹‘•àèÕÍ¥é”°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèIŒèé¹•Ü¡½9•ÍÑ•‘ÉÉ…å±•µ	…­¥¹œì½ÕÑ•È°½ÕÑ•É}¥¹‘•àô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸™É½µ}…ÉÉ…å}•±•´ñ½¹ÍĞ=UPèÕÍ¥é”ø¡Á…É•¹Ğè½ÉÉ…å±•µAÑÈñmPì9t°=UPø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèIŒèé¹•Ü¡½ÉÉ…å±•µÉ½µ±•µ	…­¥¹œìÁ…É•¹Ğô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸™É½µ}½}ÁÑÈ¡Á…É•¹Ğè½AÑÈñmPì9tø°¥¹‘•àèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€½ÉÉ…å±•µAÑÈì(€€€€€€€€€€€‰…­¥¹œèIŒèé¹•Ü¡½ÉÉ…å±•µÉ½µ½AÑÉ	…­¥¹œìÁ…É•¹Ğô¤°(€€€€€€€€€€€¥¹‘•à°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸‰½ÉÉ½Ü ™Í•±˜¤€´ø½ÉÉ…å±•µI•˜ñPøì(€€€€€€€½ÉÉ…å±•µI•˜ì(€€€€€€€€€€€Ù…±Õ”èÍ•±˜¹‰…­¥¹œ¹‰½ÉÉ½İ}…Ğ¡Í•±˜¹¥¹‘•à¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸‰½ÉÉ½İ}µÕĞ ™Í•±˜¤€´ø½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€€€€€½ÉÉ…å±•µ5ÕÑI•˜ì(€€€€€€€€€€€‰…­¥¹œèÍ•±˜¹‰…­¥¹œ¹±½¹” ¤°(€€€€€€€€€€€¥¹‘•àèÍ•±˜¹¥¹‘•à°(€€€€€€€€€€€Ù…±Õ”èÍ•±˜¹‰…­¥¹œ¹‰½ÉÉ½İ}…Ğ¡Í•±˜¹¥¹‘•à¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸İ¥Ñ¡}µÕĞñHø ™Í•±˜°˜è¥µÁ°¹=¹” ™µÕĞP¤€´øH¤€´øHì(€€€€€€€±•ĞµÕĞÙ…±Õ”€ôÍ•±˜¹‰…­¥¹œ¹‰½ÉÉ½İ}…Ğ¡Í•±˜¹¥¹‘•à¤¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤ì(€€€€€€€±•ĞÉ•ÍÕ±Ğ€ô˜ ™µÕĞÙ…±Õ”¤ì(€€€€€€€Í•±˜¹‰…­¥¹œ¹…ÍÍ¥¹}…Ğ¡Í•±˜¹¥¹‘•à°M½µ”¡Ù…±Õ”¤¤ì(€€€€€€€É•ÍÕ±Ğ(€€€ô((€€€ÁÕˆ™¸¥‘•¹Ñ¥Ñä ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€Í•±˜¹‰…­¥¹œ¹¥‘•¹Ñ¥Ñå}…Ğ¡Í•±˜¹¥¹‘•à¤(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•˜™½È½M±¥•±•µI•˜ñPøì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•˜™½È½M±¥•±•µ5ÕÑI•˜ñPøì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•™5ÕĞ™½È½M±¥•±•µ5ÕÑI•˜ñPøì(€€€™¸‘•É•™}µÕĞ ™µÕĞÍ•±˜¤€´ø€™µÕĞM•±˜èéQ…É•Ğì(€€€€€€€€™µÕĞÍ•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”øÉ½À™½È½M±¥•±•µ5ÕÑI•˜ñPøì(€€€™¸‘É½À ™µÕĞÍ•±˜¤ì(€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ”¤€ôÍ•±˜¹Ù…±Õ”¹±½¹” ¤ì(€€€€€€€€€€€¥˜±•ĞM½µ”¡Ù…±Õ•Ì¤€ôÍ•±˜¹Í±¥”¹‰½ÉÉ½İ}µÕĞ ¤¹…Í}µÕĞ ¤ì(€€€€€€€€€€€€€€€Ù…±Õ•ÍmÍ•±˜¹¥¹‘•át€ôÙ…±Õ”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè±½¹”øÍÑèé½ÁÌèé•É•˜™½È½ÉÉ…å±•µI•˜ñPøì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øÍÑèé½ÁÌèé•É•˜™½È½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€ÑåÁ”Q…É•Ğ€ô=ÁÑ¥½¸ñPøì((€€€™¸‘•É•˜ ™Í•±˜¤€´ø€™M•±˜èéQ…É•Ğì(€€€€€€€€™Í•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øÍÑèé½ÁÌèé•É•™5ÕĞ™½È½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€™¸‘•É•™}µÕĞ ™µÕĞÍ•±˜¤€´ø€™µÕĞM•±˜èéQ…É•Ğì(€€€€€€€€™µÕĞÍ•±˜¹Ù…±Õ”(€€€ô)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”øÉ½À™½È½ÉÉ…å±•µ5ÕÑI•˜ñP°8øì(€€€™¸‘É½À ™µÕĞÍ•±˜¤ì(€€€€€€€Í•±˜¹‰…­¥¹œ¹…ÍÍ¥¹}…Ğ¡Í•±˜¹¥¹‘•à°Í•±˜¹Ù…±Õ”¹±½¹” ¤¤ì(€€€ô)ô()ÁÕˆÑÉ…¥Ğ½ÉÉ…å±•µAÑÉå¸ñPè€ÍÑ…Ñ¥Œøì(€€€™¸‰½ÉÉ½İ}‘å¸ ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€™¸…ÍÍ¥¹}‘å¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€™¸İ¥Ñ¡}µÕÑ}‘å¸ ™Í•±˜°˜è€™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ì(€€€™¸¥‘•¹Ñ¥Ñå}‘å¸ ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì)ô()ÁÕˆÍÑÉÕĞ½½É•¥¹ÉÉ…å±•µAÑÉå¸ñPè€ÍÑ…Ñ¥Œøì(€€€‰½ÉÉ½ÜèIŒñ‘å¸¸ ¤€´ø=ÁÑ¥½¸ñPøø°(€€€…ÍÍ¥¸èIŒñ‘å¸¸¡=ÁÑ¥½¸ñPø¤ø°(€€€İ¥Ñ¡}µÕĞèIŒñ‘å¸¸ ™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ø°(€€€¥‘•¹Ñ¥ÑäèIŒñ‘å¸¸ ¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ø°)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø½ÉÉ…å±•µAÑÉå¸ñPø™½È½½É•¥¹ÉÉ…å±•µAÑÉå¸ñPøì(€€€™¸‰½ÉÉ½İ}‘å¸ ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€€¡Í•±˜¹‰½ÉÉ½Ü¤ ¤(€€€ô((€€€™¸…ÍÍ¥¹}‘å¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€€¡Í•±˜¹…ÍÍ¥¸¤¡Ù…±Õ”¤(€€€ô((€€€™¸İ¥Ñ¡}µÕÑ}‘å¸ ™Í•±˜°˜è€™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ì(€€€€€€€€¡Í•±˜¹İ¥Ñ¡}µÕĞ¤¡˜¤(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}‘å¸ ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€€¡Í•±˜¹¥‘•¹Ñ¥Ñä¤ ¤(€€€ô)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œ°½¹ÍĞ8èÕÍ¥é”ø½ÉÉ…å±•µAÑÉå¸ñPø™½È½ÉÉ…å±•µAÑÈñP°8øì(€€€™¸‰½ÉÉ½İ}‘å¸ ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€€ ©Í•±˜¹‰½ÉÉ½Ü ¤¤¹±½¹” ¤(€€€ô((€€€™¸…ÍÍ¥¹}‘å¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€€©Í•±˜¹‰½ÉÉ½İ}µÕĞ ¤€ôÙ…±Õ”ì(€€€ô((€€€™¸İ¥Ñ¡}µÕÑ}‘å¸ ™Í•±˜°˜è€™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ì(€€€€€€€Í•±˜¹İ¥Ñ¡}µÕĞ¡ñÙ…±Õ•ğ˜¡Ù…±Õ”¤¤ì(€€€ô((€€€™¸¥‘•¹Ñ¥Ñå}‘å¸ ™Í•±˜¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ì(€€€€€€€Í•±˜¹¥‘•¹Ñ¥Ñä ¤(€€€ô)ô()ÁÕˆ•¹Õ´½AÑÈñPè€ÍÑ…Ñ¥Œøì(€€€9¥°°(€€€I…Ü¡ÕÍ¥é”¤°(€€€1½…°¡IŒñI•™•±°ñ=ÁÑ¥½¸ñPøøø¤°(€€€M±¥•±•´¡½M±¥•±•µAÑÈñPø¤°(€€€ÉÉ…å±•´¡IŒñ‘å¸½ÉÉ…å±•µAÑÉå¸ñPøø¤°)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø±½¹”™½È½AÑÈñPøì(€€€™¸±½¹” ™Í•±˜¤€´øM•±˜ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôø½AÑÈèé9¥°°(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤€ôø½AÑÈèéI…Ü ©…‘‘È¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôø½AÑÈèé1½…°¡Ù…±Õ”¹±½¹” ¤¤°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôø½AÑÈèéM±¥•±•´¡½M±¥•±•µAÑÈìÍ±¥”èÙ…±Õ”¹Í±¥”¹±½¹” ¤°¥¹‘•àèÙ…±Õ”¹¥¹‘•àô¤°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôø½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¹±½¹” ¤¤°(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø½AÑÈñPøì(€€€ÁÕˆ™¸¹¥° ¤€´øM•±˜ì(€€€€€€€½AÑÈèé9¥°(€€€ô((€€€ÁÕˆ™¸É…Ü¡…‘‘ÈèÕÍ¥é”¤€´øM•±˜ì(€€€€€€€¥˜…‘‘È€ôô€Àì(€€€€€€€€€€€½AÑÈèé9¥°(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸±½…°¡Ù…±Õ”èIŒñI•™•±°ñ=ÁÑ¥½¸ñPøøø¤€´øM•±˜ì(€€€€€€€¥˜Ù…±Õ”¹‰½ÉÉ½Ü ¤¹¥Í}¹½¹” ¤ì(€€€€€€€€€€€½AÑÈèé9¥°(€€€€€€€ô•±Í”ì(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸Í±¥•}•±•´¡Ù…±Õ”è½M±¥•±•µAÑÈñPø¤€´øM•±˜ì(€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤(€€€ô((€€€ÁÕˆ™¸Í±¥•}•±•µ}½ÁĞ¡Ù…±Õ”è=ÁÑ¥½¸ñ½M±¥•±•µAÑÈñPøø¤€´øM•±˜ì(€€€€€€€µ…Ñ Ù…±Õ”ì(€€€€€€€€€€€M½µ”¡Ù…±Õ”¤€ôø½AÑÈèéM±¥•±•´¡Ù…±Õ”¤°(€€€€€€€€€€€9½¹”€ôø½AÑÈèé9¥°°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…ÉÉ…å}•±•´ñ½¹ÍĞ8èÕÍ¥é”ø¡Ù…±Õ”è½ÉÉ…å±•µAÑÈñP°8ø¤€´øM•±˜(€€€İ¡•É”(€€€€€€€Pè±½¹”°(€€€ì(€€€€€€€½AÑÈèéÉÉ…å±•´¡IŒèé¹•Ü¡Ù…±Õ”¤¤(€€€ô((€€€ÁÕˆ™¸…ÉÉ…å}•±•µ}½ÁĞñ½¹ÍĞ8èÕÍ¥é”ø¡Ù…±Õ”è=ÁÑ¥½¸ñ½ÉÉ…å±•µAÑÈñP°8øø¤€´øM•±˜(€€€İ¡•É”(€€€€€€€Pè±½¹”°(€€€ì(€€€€€€€µ…Ñ Ù…±Õ”ì(€€€€€€€€€€€M½µ”¡Ù…±Õ”¤€ôø½AÑÈèéÉÉ…å±•´¡IŒèé¹•Ü¡Ù…±Õ”¤¤°(€€€€€€€€€€€9½¹”€ôø½AÑÈèé9¥°°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…ÉÉ…å}•±•µ}™½É•¥¸ (€€€€€€€‰½ÉÉ½ÜèIŒñ‘å¸¸ ¤€´ø=ÁÑ¥½¸ñPøø°(€€€€€€€…ÍÍ¥¸èIŒñ‘å¸¸¡=ÁÑ¥½¸ñPø¤ø°(€€€€€€€İ¥Ñ¡}µÕĞèIŒñ‘å¸¸ ™µÕĞ‘å¸¹5ÕĞ ™µÕĞP¤¤ø°(€€€€€€€¥‘•¹Ñ¥ÑäèIŒñ‘å¸¸ ¤€´ø€ ©½¹ÍĞ€ ¤°ÕÍ¥é”¤ø°(€€€€¤€´øM•±˜ì(€€€€€€€½AÑÈèéÉÉ…å±•´¡IŒèé¹•Ü¡½½É•¥¹ÉÉ…å±•µAÑÉå¸ì(€€€€€€€€€€€‰½ÉÉ½Ü°(€€€€€€€€€€€…ÍÍ¥¸°(€€€€€€€€€€€İ¥Ñ¡}µÕĞ°(€€€€€€€€€€€¥‘•¹Ñ¥Ñä°(€€€€€€€ô¤¤(€€€ô((€€€ÁÕˆ™¸¥Í}¹¥° ™Í•±˜¤€´ø‰½½°ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôøÑÉÕ”°(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤€ôø€©…‘‘È€ôô€À°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôøÙ…±Õ”¹‰½ÉÉ½Ü ¤¹¥Í}¹½¹” ¤°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôøì(€€€€€€€€€€€€€€€±•ĞÕ…É€ôÙ…±Õ”¹Í±¥”¹‰½ÉÉ½Ü ¤ì(€€€€€€€€€€€€€€€Õ…É¹…Í}É•˜ ¤¹…¹‘}Ñ¡•¸¡ñÙ…±Õ•ÍğÙ…±Õ•Ì¹•Ğ¡Ù…±Õ”¹¥¹‘•à¤¤¹¥Í}¹½¹” ¤(€€€€€€€€€€€ô(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôøÙ…±Õ”¹¥‘•¹Ñ¥Ñå}‘å¸ ¤¸À¹¥Í}¹Õ±° ¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸İ¥Ñ¡}µÕĞñHø ™Í•±˜°˜è¥µÁ°¹=¹” ™µÕĞP¤€´øH¤€´øHì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôøÁ…¹¥Œ„ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤°(€€€€€€€€€€€½AÑÈèéI…Ü¡|¤€ôøÁ…¹¥Œ„ ‰É…ÜÕ¹Í…™”Á½¥¹Ñ•ÈµÕÑ…‰±”‰½ÉÉ½ÜÉ•ÅÕ¥É•ÌÕ¹Í…™”Á½¥¹Ñ•”ÍÕÁÁ½ÉĞˆ¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Í±½Ğ¤€ôøì(€€€€€€€€€€€€€€€±•ĞµÕĞÕ…É€ôÍ±½Ğ¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€€€€€€€€€˜¡Õ…É¹…Í}µÕĞ ¤¹Õ¹İÉ…À ¤¤(€€€€€€€€€€€ô(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Í±½Ğ¤€ôøì(€€€€€€€€€€€€€€€±•ĞµÕĞÕ…É€ôÍ±½Ğ¹Í±¥”¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€€€€€€€€€±•ĞÙ…±Õ•Ì€ôÕ…É¹…Í}µÕĞ ¤¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤ì(€€€€€€€€€€€€€€€˜¡Ù…±Õ•Ì¹•Ñ}µÕĞ¡Í±½Ğ¹¥¹‘•à¤¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤¤(€€€€€€€€€€€ô(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Í±½Ğ¤€ôøì(€€€€€€€€€€€€€€€±•ĞµÕĞÉ•ÍÕ±Ğ€ô9½¹”ì(€€€€€€€€€€€€€€€±•ĞµÕĞ…±±‰…¬€ôM½µ”¡˜¤ì(€€€€€€€€€€€€€€€Í±½Ğ¹İ¥Ñ¡}µÕÑ}‘å¸ ™µÕĞñÙ…±Õ•ğì(€€€€€€€€€€€€€€€€€€€±•Ğ˜€ô…±±‰…¬¹Ñ…­” ¤¹•áÁ•Ğ ‰…ÉÉ…ä•±•µ•¹ĞÁ½¥¹Ñ•ÈµÕÑ…‰±”‰½ÉÉ½Ü…±±•Ñİ¥”ˆ¤ì(€€€€€€€€€€€€€€€€€€€É•ÍÕ±Ğ€ôM½µ”¡˜¡Ù…±Õ”¤¤ì(€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€€€€€É•ÍÕ±Ğ¹•áÁ•Ğ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸ÁÑÉ}•Ä¡±•™Ğè€™M•±˜°É¥¡Ğè€™M•±˜¤€´ø‰½½°ì(€€€€€€€µ…Ñ €¡±•™Ğ°É¥¡Ğ¤ì(€€€€€€€€€€€€¡½AÑÈèé9¥°°½AÑÈèé9¥°¤€ôøÑÉÕ”°(€€€€€€€€€€€€¡½AÑÈèéI…Ü¡|¤°|¤ğ€¡|°½AÑÈèéI…Ü¡|¤¤€ôø±•™Ğ¹…‘‘È ¤€ôôÉ¥¡Ğ¹…‘‘È ¤°(€€€€€€€€€€€€¡½AÑÈèé1½…°¡±•™Ğ¤°½AÑÈèé1½…°¡É¥¡Ğ¤¤€ôøIŒèéÁÑÉ}•Ä¡±•™Ğ°É¥¡Ğ¤°(€€€€€€€€€€€€¡½AÑÈèéM±¥•±•´¡±•™Ğ¤°½AÑÈèéM±¥•±•´¡É¥¡Ğ¤¤€ôøì(€€€€€€€€€€€€€€€IŒèéÁÑÉ}•Ä ™±•™Ğ¹Í±¥•}¡…¹‘±” ¤°€™É¥¡Ğ¹Í±¥•}¡…¹‘±” ¤¤€˜˜±•™Ğ¹¥¹‘•à ¤€ôôÉ¥¡Ğ¹¥¹‘•à ¤(€€€€€€€€€€€ô(€€€€€€€€€€€€¡½AÑÈèéÉÉ…å±•´¡±•™Ğ¤°½AÑÈèéÉÉ…å±•´¡É¥¡Ğ¤¤€ôø±•™Ğ¹¥‘•¹Ñ¥Ñå}‘å¸ ¤€ôôÉ¥¡Ğ¹¥‘•¹Ñ¥Ñå}‘å¸ ¤°(€€€€€€€€€€€|€ôø™…±Í”°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…‘‘È ™Í•±˜¤€´øÕÍ¥é”ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôø€À°(€€€€€€€€€€€½AÑÈèéI…Ü¡…‘‘È¤€ôø€©…‘‘È°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôøIŒèé…Í}ÁÑÈ¡Ù…±Õ”¤…ÌÕÍ¥é”°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôø€¡IŒèé…Í}ÁÑÈ ™Ù…±Õ”¹Í±¥•}¡…¹‘±” ¤¤…ÌÕÍ¥é”¤¹İÉ…ÁÁ¥¹}…‘¡Ù…±Õ”¹¥¹‘•à ¤¤°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôøì(€€€€€€€€€€€€€€€±•Ğ€¡‰…Í”°¥¹‘•à¤€ôÙ…±Õ”¹¥‘•¹Ñ¥Ñå}‘å¸ ¤ì(€€€€€€€€€€€€€€€€¡‰…Í”…ÌÕÍ¥é”¤¹İÉ…ÁÁ¥¹}…‘¡¥¹‘•à¤(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè±½¹”€¬€ÍÑ…Ñ¥Œø½AÑÈñPøì(€€€ÁÕˆ™¸‰½ÉÉ½Ü ™Í•±˜¤€´ø=ÁÑ¥½¸ñPøì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôø9½¹”°(€€€€€€€€€€€½AÑÈèéI…Ü¡|¤€ôøÁ…¹¥Œ„ ‰É…ÜÕ¹Í…™”Á½¥¹Ñ•È‘•É•™•É•¹”É•ÅÕ¥É•ÌÕ¹Í…™”Á½¥¹Ñ•”ÍÕÁÁ½ÉĞˆ¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Ù…±Õ”¤€ôø€ ©Ù…±Õ”¹‰½ÉÉ½Ü ¤¤¹±½¹” ¤°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Ù…±Õ”¤€ôø€ ©Ù…±Õ”¹‰½ÉÉ½Ü ¤¤¹±½¹” ¤°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Ù…±Õ”¤€ôøÙ…±Õ”¹‰½ÉÉ½İ}‘å¸ ¤°(€€€€€€€ô(€€€ô((€€€ÁÕˆ™¸…ÍÍ¥¸ ™Í•±˜°Ù…±Õ”è=ÁÑ¥½¸ñPø¤ì(€€€€€€€µ…Ñ Í•±˜ì(€€€€€€€€€€€½AÑÈèé9¥°€ôøÁ…¹¥Œ„ ‰¹¥°Á½¥¹Ñ•È‘•É•™•É•¹”ˆ¤°(€€€€€€€€€€€½AÑÈèéI…Ü¡|¤€ôøÁ…¹¥Œ„ ‰É…ÜÕ¹Í…™”Á½¥¹Ñ•È…ÍÍ¥¹µ•¹ĞÉ•ÅÕ¥É•ÌÕ¹Í…™”Á½¥¹Ñ•”ÍÕÁÁ½ÉĞˆ¤°(€€€€€€€€€€€½AÑÈèé1½…°¡Í±½Ğ¤€ôø€©Í±½Ğ¹‰½ÉÉ½İ}µÕĞ ¤€ôÙ…±Õ”°(€€€€€€€€€€€½AÑÈèéM±¥•±•´¡Í±½Ğ¤€ôø€©Í±½Ğ¹‰½ÉÉ½İ}µÕĞ ¤€ôÙ…±Õ”°(€€€€€€€€€€€½AÑÈèéÉÉ…å±•´¡Í±½Ğ¤€ôøÍ±½Ğ¹…ÍÍ¥¹}‘å¸¡Ù…±Õ”¤°(€€€€€€€ô(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥Œø•™…Õ±Ğ™½È½AÑÈñPøì(€€€™¸‘•™…Õ±Ğ ¤€´øM•±˜ì(€€€€€€€½AÑÈèé9¥°(€€€ô)ô()¥µÁ°ñPè€ÍÑ…Ñ¥ŒøÍÑèé™µĞèé•‰Õœ™½È½AÑÈñPøì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€¥˜Í•±˜¹¥Í}¹¥° ¤ì(€€€€€€€€€€€İÉ¥Ñ”„¡˜°€ˆñ¹¥°øˆ¤(€€€€€€€ô•±Í”ì(€€€€€€€€€€€İÉ¥Ñ”„¡˜°€ˆñÁÑÈøˆ¤(€€€€€€€ô(€€€ô)ô)€¤(%ô)ô()™Õ¹Œ•¹•É…Ñ•½Q¥µ•!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%Ù…È½‘”ÍÑÉ¥¹Ì¹	Õ¥±‘•È(%½‘”¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”°•‰Õœ°•™…Õ±Ğ¥t)ÍÑÉÕĞ½Q¥µ”ì(€€€Í•½¹‘Ìè¤ØĞ°(€€€¹…¹½Ìè¤ÌÈ°)ô()™¸½}Ñ¥µ•}¥Ù¥±}™É½µ}‘…åÌ¡‘…åÌè¤ØĞ¤€´ø€¡¤ØĞ°ÔÌÈ°ÔÌÈ¤ì(€€€±•Ğè€ô‘…åÌ€¬€ÜÄå|ĞØàì(€€€±•Ğ•É„€ô¥˜è€øô€Àìèô•±Í”ìè€´€ÄĞÙ|ÀäØô€¼€ÄĞÙ|ÀäÜì(€€€±•Ğ‘½”€ôè€´•É„€¨€ÄĞÙ|ÀäÜì(€€€±•Ğå½”€ô€¡‘½”€´‘½”€¼€Å|ĞØÀ€¬‘½”€¼€ÌÙ|ÔÈĞ€´‘½”€¼€ÄĞÙ|ÀäØ¤€¼€ÌØÔì(€€€±•Ğä€ôå½”€¬•É„€¨€ĞÀÀì(€€€±•Ğ‘½ä€ô‘½”€´€ ÌØÔ€¨å½”€¬å½”€¼€Ğ€´å½”€¼€ÄÀÀ¤ì(€€€±•ĞµÀ€ô€ Ô€¨‘½ä€¬€È¤€¼€ÄÔÌì(€€€±•Ğ€ô‘½ä€´€ ÄÔÌ€¨µÀ€¬€È¤€¼€Ô€¬€Äì(€€€±•Ğ´€ôµÀ€¬¥˜µÀ€ğ€ÄÀì€Ìô•±Í”ì€´äôì(€€€±•Ğå•…È€ôä€¬¥˜´€ğô€Èì€Äô•±Í”ì€Àôì(€€€€¡å•…È°´…ÌÔÌÈ°…ÌÔÌÈ¤)ô()¥µÁ°½Q¥µ”ì(€€€™¸¹½Ü ¤€´øM•±˜ì(€€€€€€€±•Ğ‘ÕÉ…Ñ¥½¸€ôÍÑèéÑ¥µ”èéMåÍÑ•µQ¥µ”èé¹½Ü ¤(€€€€€€€€€€€€¹‘ÕÉ…Ñ¥½¹}Í¥¹”¡ÍÑèéÑ¥µ”èéU9%a}A= ¤(€€€€€€€€€€€€¹Õ¹İÉ…À ¤ì(€€€€€€€½Q¥µ”ì(€€€€€€€€€€€Í•½¹‘Ìè‘ÕÉ…Ñ¥½¸¹…Í}Í•Ì ¤…Ì¤ØĞ°(€€€€€€€€€€€¹…¹½Ìè‘ÕÉ…Ñ¥½¸¹ÍÕ‰Í•}¹…¹½Ì ¤…Ì¤ÌÈ°(€€€€€€€ô(€€€ô((€€€™¸™É½µ}Õ¹¥à¡Í•½¹‘Ìè¤ØĞ°¹…¹½Ìè¤ØĞ¤€´øM•±˜ì(€€€€€€€±•ĞÍ•½¹‘Ì€ôÍ•½¹‘Ì€¬¹…¹½Ì¹‘¥Ù}•Õ±¥ Å|ÀÀÁ|ÀÀÁ|ÀÀÀ¤ì(€€€€€€€±•Ğ¹…¹½Ì€ô¹…¹½Ì¹É•µ}•Õ±¥ Å|ÀÀÁ|ÀÀÁ|ÀÀÀ¤ì(€€€€€€€½Q¥µ”ì(€€€€€€€€€€€Í•½¹‘Ì°(€€€€€€€€€€€¹…¹½Ìè¹…¹½Ì…Ì¤ÌÈ°(€€€€€€€ô(€€€ô)€¤(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½‘”¹]É¥Ñ•MÑÉ¥¹œ¡€(€€€™¸…‘ ™Í•±˜°‘ÕÉ…Ñ¥½¸èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸øøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½Q¥µ”øøøì(€€€€€€€±•Ğ‘ÕÉ…Ñ¥½¸€ô€©‘ÕÉ…Ñ¥½¸¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½Q¥µ”èé™É½µ}Õ¹¥à (€€€€€€€€€€€Í•±˜¹Í•½¹‘Ì€¬‘ÕÉ…Ñ¥½¸¹…Í}Í•Ì ¤…Ì¤ØĞ°(€€€€€€€€€€€Í•±˜¹¹…¹½Ì…Ì¤ØĞ€¬‘ÕÉ…Ñ¥½¸¹ÍÕ‰Í•}¹…¹½Ì ¤…Ì¤ØĞ°(€€€€€€€€¤¤¤¤(€€€ô((€€€™¸Õ}Ñ}Œ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½Q¥µ”øøøì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Í•±˜¹±½¹” ¤¤¤¤(€€€ô((€€€™¸Õ¹¥à ™Í•±˜¤€´ø¤ØĞì(€€€€€€€Í•±˜¹Í•½¹‘Ì(€€€ô((€€€™¸Õ¹¥á}¹…¹¼ ™Í•±˜¤€´ø¤ØĞì(€€€€€€€Í•±˜¹Í•½¹‘Ì€¨€Å|ÀÀÁ|ÀÀÁ|ÀÀÀ€¬Í•±˜¹¹…¹½Ì…Ì¤ØĞ(€€€ô((€€€™¸¥Í}é•É¼ ™Í•±˜¤€´ø‰½½°ì(€€€€€€€Í•±˜¹Í•½¹‘Ì€ôô€À€˜˜Í•±˜¹¹…¹½Ì€ôô€À(€€€ô((€€€™¸™½Éµ…Ğ ™Í•±˜°}±…å½ÕĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Í•±˜¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤(€€€ô)ô)€¤(%ô•±Í”ì($%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤($%½‘”¹]É¥Ñ•MÑÉ¥¹œ¡€(€€€™¸…‘ ™Í•±˜°‘ÕÉ…Ñ¥½¸èIŒñI•™•±°ñ=ÁÑ¥½¸ñÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸øøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½Q¥µ”øøøì(€€€€€€€±•Ğ‘ÕÉ…Ñ¥½¸€ô€©‘ÕÉ…Ñ¥½¸¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡½Q¥µ”èé™É½µ}Õ¹¥à (€€€€€€€€€€€Í•±˜¹Í•½¹‘Ì€¬‘ÕÉ…Ñ¥½¸¹…Í}Í•Ì ¤…Ì¤ØĞ°(€€€€€€€€€€€Í•±˜¹¹…¹½Ì…Ì¤ØĞ€¬‘ÕÉ…Ñ¥½¸¹ÍÕ‰Í•}¹…¹½Ì ¤…Ì¤ØĞ°(€€€€€€€€¤¤¤¤(€€€ô((€€€™¸Õ}Ñ}Œ ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½Q¥µ”øøøì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Í•±˜¹±½¹” ¤¤¤¤(€€€ô((€€€™¸Õ¹¥à ™Í•±˜¤€´ø¤ØĞì(€€€€€€€Í•±˜¹Í•½¹‘Ì(€€€ô((€€€™¸Õ¹¥á}¹…¹¼ ™Í•±˜¤€´ø¤ØĞì(€€€€€€€Í•±˜¹Í•½¹‘Ì€¨€Å|ÀÀÁ|ÀÀÁ|ÀÀÀ€¬Í•±˜¹¹…¹½Ì…Ì¤ØĞ(€€€ô((€€€™¸¥Í}é•É¼ ™Í•±˜¤€´ø‰½½°ì(€€€€€€€Í•±˜¹Í•½¹‘Ì€ôô€À€˜˜Í•±˜¹¹…¹½Ì€ôô€À(€€€ô((€€€™¸™½Éµ…Ğ ™Í•±˜°}±…å½ÕĞèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Í•±˜¹Ñ½}ÍÑÉ¥¹œ ¤¤¤¤(€€€ô)ô)€¤(%ô(%½‘”¹]É¥Ñ•MÑÉ¥¹œ¡€)¥µÁ°ÍÑèé™µĞèé¥ÍÁ±…ä™½È½Q¥µ”ì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€±•Ğ‘…åÌ€ôÍ•±˜¹Í•½¹‘Ì¹‘¥Ù}•Õ±¥ àÙ|ĞÀÀ¤ì(€€€€€€€±•ĞÍ•Í}½™}‘…ä€ôÍ•±˜¹Í•½¹‘Ì¹É•µ}•Õ±¥ àÙ|ĞÀÀ¤ì(€€€€€€€±•Ğ€¡å•…È°µ½¹Ñ °‘…ä¤€ô½}Ñ¥µ•}¥Ù¥±}™É½µ}‘…åÌ¡‘…åÌ¤ì(€€€€€€€±•Ğ¡½ÕÈ€ôÍ•Í}½™}‘…ä€¼€Í|ØÀÀì(€€€€€€€±•Ğµ¥¹ÕÑ”€ô€¡Í•Í}½™}‘…ä€”€Í|ØÀÀ¤€¼€ØÀì(€€€€€€€±•ĞÍ•½¹€ôÍ•Í}½™}‘…ä€”€ØÀì(€€€€€€€¥˜Í•±˜¹¹…¹½Ì€ôô€Àì(€€€€€€€€€€€İÉ¥Ñ”„ (€€€€€€€€€€€€€€€˜°(€€€€€€€€€€€€€€€€‰ìèÀÑôµìèÀÉôµìèÀÉôìèÀÉôéìèÀÉôéìèÀÉô€¬ÀÀÀÀUQˆ°(€€€€€€€€€€€€€€€å•…È°µ½¹Ñ °‘…ä°¡½ÕÈ°µ¥¹ÕÑ”°Í•½¹(€€€€€€€€€€€€¤(€€€€€€€ô•±Í”ì(€€€€€€€€€€€±•ĞµÕĞ™É…Ñ¥½¸€ô™½Éµ…Ğ„ ‰ìèÀåôˆ°Í•±˜¹¹…¹½Ì¤ì(€€€€€€€€€€€İ¡¥±”™É…Ñ¥½¸¹•¹‘Í}İ¥Ñ  œÀœ¤ì(€€€€€€€€€€€€€€€™É…Ñ¥½¸¹Á½À ¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€İÉ¥Ñ”„ (€€€€€€€€€€€€€€€˜°(€€€€€€€€€€€€€€€€‰ìèÀÑôµìèÀÉôµìèÀÉôìèÀÉôéìèÀÉôéìèÀÉô¹íô€¬ÀÀÀÀUQˆ°(€€€€€€€€€€€€€€€å•…È°µ½¹Ñ °‘…ä°¡½ÕÈ°µ¥¹ÕÑ”°Í•½¹°™É…Ñ¥½¸(€€€€€€€€€€€€¤(€€€€€€€ô(€€€ô)ô)€¤(%¡•±Á•È€èô½‘”¹MÑÉ¥¹œ ¤(%¥˜•¹•É…Ñ¥¹AÕ‰±¥!•±Á•ÉÌì($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€‰ÍÑÉÕĞ½Q¥µ”ˆ°€‰ÁÕˆÍÑÉÕĞ½Q¥µ”ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€‰™¸½}Ñ¥µ•}¥Ù¥±}™É½µ}‘…åÌ ˆ°€‰ÁÕˆ™¸½}Ñ¥µ•}¥Ù¥±}™É½µ}‘…åÌ ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸¹½Ü ˆ°€ˆ€€€ÁÕˆ™¸¹½Ü ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸™É½µ}Õ¹¥à ˆ°€ˆ€€€ÁÕˆ™¸™É½µ}Õ¹¥à ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸…‘ ˆ°€ˆ€€€ÁÕˆ™¸…‘ ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸Õ}Ñ}Œ ˆ°€ˆ€€€ÁÕˆ™¸Õ}Ñ}Œ ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸Õ¹¥à ˆ°€ˆ€€€ÁÕˆ™¸Õ¹¥à ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸Õ¹¥á}¹…¹¼ ˆ°€ˆ€€€ÁÕˆ™¸Õ¹¥á}¹…¹¼ ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸¥Í}é•É¼ ˆ°€ˆ€€€ÁÕˆ™¸¥Í}é•É¼ ˆ¤($%¡•±Á•È€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡¡•±Á•È°€ˆ€€€™¸™½Éµ…Ğ ˆ°€ˆ€€€ÁÕˆ™¸™½Éµ…Ğ ˆ¤(%ô(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡¡•±Á•È¤)ô()™Õ¹Œ•¹•É…Ñ•½Q¥µ•É!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%9••‘½¡…¹¹•° ¤(%9••‘½Q¥µ” ¤(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½Q¥µ•Èì(€€€Œè½¡…¹¹•°ñ½Q¥µ”ø°(€€€ÍÑ½ÁÁ•èÉŒñÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°ø°)ô()™¸½}¹•İ}Ñ¥µ•È¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø½Q¥µ•Èì(€€€±•Ğ¡…¹¹•°€ô½¡…¹¹•°èèñ½Q¥µ”øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€±•ĞÑ¡É•…‘}¡…¹¹•°€ô¡…¹¹•°¹±½¹” ¤ì(€€€±•ĞÍÑ½ÁÁ•€ôÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì(€€€±•ĞÑ¡É•…‘}ÍÑ½ÁÁ•€ôÍÑ½ÁÁ•¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€¥˜€…Ñ¡É•…‘}ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹Í•¹¡½Q¥µ”èé¹½Ü ¤¤ì(€€€€€€€ô(€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹±½Í” ¤ì(€€€ô¤ì((€€€½Q¥µ•Èì(€€€€€€€Œè¡…¹¹•°°(€€€€€€€ÍÑ½ÁÁ•°(€€€ô)ô()™¸½}…™Ñ•É}™Õ¹Œñø¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸°…±±‰…¬è¤€´ø½Q¥µ•È)İ¡•É”(€€€è¹=¹” ¤€¬M•¹€¬€ÍÑ…Ñ¥Œ°)ì(€€€±•ĞÑ¥µ•È€ô½}¹•İ}Ñ¥µ•È¡‘ÕÉ…Ñ¥½¸¤ì(€€€±•ĞÍÑ½ÁÁ•€ôÑ¥µ•È¹ÍÑ½ÁÁ•¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€¥˜€…ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€…±±‰…¬ ¤ì(€€€€€€€ô(€€€ô¤ì(€€€Ñ¥µ•È)ô()¥µÁ°½Q¥µ•Èì(€€€™¸ÍÑ½À ™Í•±˜¤€´ø‰½½°ì(€€€€€€€±•Ğİ…Í}ÍÑ½ÁÁ•€ôÍ•±˜¹ÍÑ½ÁÁ•¹Íİ…À¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€…İ…Í}ÍÑ½ÁÁ•(€€€ô)ô)€¤(%ô•±Í”ì($%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½Q¥µ•Èì(€€€Œè½¡…¹¹•°ñ½Q¥µ”ø°(€€€ÍÑ½ÁÁ•èÉŒñÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°ø°)ô()™¸½}¹•İ}Ñ¥µ•È¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø½Q¥µ•Èì(€€€±•Ğ¡…¹¹•°€ô½¡…¹¹•°èèñ½Q¥µ”øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€±•ĞÑ¡É•…‘}¡…¹¹•°€ô¡…¹¹•°¹±½¹” ¤ì(€€€±•ĞÍÑ½ÁÁ•€ôÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì(€€€±•ĞÑ¡É•…‘}ÍÑ½ÁÁ•€ôÍÑ½ÁÁ•¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€¥˜€…Ñ¡É•…‘}ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹Í•¹¡½Q¥µ”èé¹½Ü ¤¤ì(€€€€€€€ô(€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹±½Í” ¤ì(€€€ô¤ì((€€€½Q¥µ•Èì(€€€€€€€Œè¡…¹¹•°°(€€€€€€€ÍÑ½ÁÁ•°(€€€ô)ô()™¸½}…™Ñ•É}™Õ¹Œñø¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸°…±±‰…¬è¤€´ø½Q¥µ•È)İ¡•É”(€€€è¹=¹” ¤€¬M•¹€¬€ÍÑ…Ñ¥Œ°)ì(€€€±•ĞÑ¥µ•È€ô½}¹•İ}Ñ¥µ•È¡‘ÕÉ…Ñ¥½¸¤ì(€€€±•ĞÍÑ½ÁÁ•€ôÑ¥µ•È¹ÍÑ½ÁÁ•¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€¥˜€…ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€…±±‰…¬ ¤ì(€€€€€€€ô(€€€ô¤ì(€€€Ñ¥µ•È)ô()¥µÁ°½Q¥µ•Èì(€€€™¸ÍÑ½À ™Í•±˜¤€´ø‰½½°ì(€€€€€€€±•Ğİ…Í}ÍÑ½ÁÁ•€ôÍ•±˜¹ÍÑ½ÁÁ•¹Íİ…À¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€…İ…Í}ÍÑ½ÁÁ•(€€€ô)ô)€¤(%ô)ô()™Õ¹Œ•¹•É…Ñ•½™Ñ•É!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%9••‘½¡…¹¹•° ¤(%9••‘½Q¥µ” ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}¡…¹¹•±}…™Ñ•È¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø½¡…¹¹•°ñ½Q¥µ”øì(€€€±•Ğ¡…¹¹•°€ô½¡…¹¹•°èèñ½Q¥µ”øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€±•ĞÑ¡É•…‘}¡…¹¹•°€ô¡…¹¹•°¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹Í•¹¡½Q¥µ”èé¹½Ü ¤¤ì(€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹±½Í” ¤ì(€€€ô¤ì(€€€¡…¹¹•°)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•½Q¥­!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%9••‘½¡…¹¹•° ¤(%9••‘½Q¥µ” ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}Ñ¥¬¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø½¡…¹¹•°ñ½Q¥µ”øì(€€€±•Ğ¡…¹¹•°€ô½¡…¹¹•°èèñ½Q¥µ”øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€±•ĞÑ¡É•…‘}¡…¹¹•°€ô¡…¹¹•°¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€±½½Àì(€€€€€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€€€€€±•Ğ|€ôÑ¡É•…‘}¡…¹¹•°¹ÑÉå}Í•¹¡½Q¥µ”èé¹½Ü ¤¤ì(€€€€€€€ô(€€€ô¤ì(€€€¡…¹¹•°)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•½Q¥­•É!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%9••‘½¡…¹¹•° ¤(%9••‘½Q¥µ” ¤(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½Q¥­•Èì(€€€Œè½¡…¹¹•°ñ½Q¥µ”ø°(€€€ÍÑ½ÁÁ•èÉŒñÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°ø°)ô()™¸½}¹•İ}Ñ¥­•È¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø½Q¥­•Èì(€€€±•Ğ¡…¹¹•°€ô½¡…¹¹•°èèñ½Q¥µ”øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€±•ĞÑ¡É•…‘}¡…¹¹•°€ô¡…¹¹•°¹±½¹” ¤ì(€€€±•ĞÍÑ½ÁÁ•€ôÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì(€€€±•ĞÑ¡É•…‘}ÍÑ½ÁÁ•€ôÍÑ½ÁÁ•¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€İ¡¥±”€…Ñ¡É•…‘}ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€€€€€¥˜€…Ñ¡É•…‘}ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€€€€€±•Ğ|€ôÑ¡É•…‘}¡…¹¹•°¹ÑÉå}Í•¹¡½Q¥µ”èé¹½Ü ¤¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹±½Í” ¤ì(€€€ô¤ì((€€€½Q¥­•Èì(€€€€€€€Œè¡…¹¹•°°(€€€€€€€ÍÑ½ÁÁ•°(€€€ô)ô()¥µÁ°½Q¥­•Èì(€€€™¸ÍÑ½À ™Í•±˜¤ì(€€€€€€€Í•±˜¹ÍÑ½ÁÁ•¹ÍÑ½É”¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€ô)ô)€¤(%ô•±Í”ì($%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½Q¥­•Èì(€€€Œè½¡…¹¹•°ñ½Q¥µ”ø°(€€€ÍÑ½ÁÁ•èÉŒñÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°ø°)ô()™¸½}¹•İ}Ñ¥­•È¡‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø½Q¥­•Èì(€€€±•Ğ¡…¹¹•°€ô½¡…¹¹•°èèñ½Q¥µ”øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€±•ĞÑ¡É•…‘}¡…¹¹•°€ô¡…¹¹•°¹±½¹” ¤ì(€€€±•ĞÍÑ½ÁÁ•€ôÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì(€€€±•ĞÑ¡É•…‘}ÍÑ½ÁÁ•€ôÍÑ½ÁÁ•¹±½¹” ¤ì(€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€İ¡¥±”€…Ñ¡É•…‘}ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€€€€€¥˜€…Ñ¡É•…‘}ÍÑ½ÁÁ•¹±½…¡ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€€€€€±•Ğ|€ôÑ¡É•…‘}¡…¹¹•°¹ÑÉå}Í•¹¡½Q¥µ”èé¹½Ü ¤¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€€€€€Ñ¡É•…‘}¡…¹¹•°¹±½Í” ¤ì(€€€ô¤ì((€€€½Q¥­•Èì(€€€€€€€Œè¡…¹¹•°°(€€€€€€€ÍÑ½ÁÁ•°(€€€ô)ô()¥µÁ°½Q¥­•Èì(€€€™¸ÍÑ½À ™Í•±˜¤ì(€€€€€€€Í•±˜¹ÍÑ½ÁÁ•¹ÍÑ½É”¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€ô)ô)€¤(%ô)ô()™Õ¹Œ•¹•É…Ñ•½½¹Ñ•áÑ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%9••‘½¡…¹¹•° ¤(%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤(%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤(%½‘”€èô€(m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½½¹Ñ•áĞì(€€€‘½¹”è½¡…¹¹•°ñ‰½½°ø°(€€€•ÉÈèÍÑèéÍå¹ŒèéÉŒñÍÑèéÍå¹Œèé5ÕÑ•àñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøø°(€€€…¹•±±•èÍÑèéÍå¹ŒèéÉŒñÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°ø°(€€€±…‰•°èMÑÉ¥¹œ°)ô()ÑåÁ”½…¹•±Õ¹Œ€ôÍÑèéÍå¹ŒèéÉŒñ‘å¸¸ ¤€¬M•¹€¬Må¹Œøì)ÑåÁ”½…¹•±…ÕÍ•Õ¹Œ€ô	½àñ‘å¸¹5ÕĞ¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøø¤€´ø€ ¤€¬M•¹€¬Må¹Œøì()¥µÁ°½½¹Ñ•áĞì(€€€™¸‰…­É½Õ¹ ¤€´ø½½¹Ñ•áĞì(€€€€€€€½½¹Ñ•áĞì(€€€€€€€€€€€‘½¹”è½¡…¹¹•°èèñ‰½½°øèé¹•Ü ¤°(€€€€€€€€€€€•ÉÈèÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé5ÕÑ•àèé¹•Ü¡9½¹”¤¤°(€€€€€€€€€€€…¹•±±•èÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤°(€€€€€€€€€€€±…‰•°è€‰½¹Ñ•áĞ¹	…­É½Õ¹ˆ¹Ñ½}ÍÑÉ¥¹œ ¤°(€€€€€€€ô(€€€ô((€€€™¸Á…É•¹Ñ}±…‰•°¡Á…É•¹Ğè€™ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø¤€´øMÑÉ¥¹œì(€€€€€€€Á…É•¹Ğ(€€€€€€€€€€€€¹±½¬ ¤(€€€€€€€€€€€€¹Õ¹İÉ…À ¤(€€€€€€€€€€€€¹…Í}É•˜ ¤(€€€€€€€€€€€€¹µ…À¡ñÑáğÑà¹±…‰•°¹±½¹” ¤¤(€€€€€€€€€€€€¹Õ¹İÉ…Á}½É}•±Í”¡ñğ€‰½¹Ñ•áĞ¹½¹Ñ•áĞˆ¹Ñ½}ÍÑÉ¥¹œ ¤¤(€€€ô((€€€™¸İ¥Ñ¡}Ñ¥µ•½ÕĞ¡Á…É•¹ĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø°‘ÕÉ…Ñ¥½¸èÍÑèéÑ¥µ”èéÕÉ…Ñ¥½¸¤€´ø€¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø°ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½…¹•±Õ¹Œøøø¤ì(€€€€€€€±•Ğ±…‰•°€ô™½Éµ…Ğ„ ‰íô¹]¥Ñ¡•…‘±¥¹”ˆ°½½¹Ñ•áĞèéÁ…É•¹Ñ}±…‰•° ™Á…É•¹Ğ¤¤ì(€€€€€€€±•Ğ‘½¹”€ô½¡…¹¹•°èèñ‰½½°øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€€€€€±•Ğ•ÉÈ€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé5ÕÑ•àèé¹•Ü¡9½¹”èèñ=}II=I}Ae1=ø¤¤ì(€€€€€€€±•Ğ…¹•±±•€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì((€€€€€€€±•Ğ½¹Ñ•áĞ€ô½½¹Ñ•áĞì(€€€€€€€€€€€‘½¹”è‘½¹”¹±½¹” ¤°(€€€€€€€€€€€•ÉÈè•ÉÈ¹±½¹” ¤°(€€€€€€€€€€€…¹•±±•è…¹•±±•¹±½¹” ¤°(€€€€€€€€€€€±…‰•°°(€€€€€€€ôì((€€€€€€€±•ĞÑ¥µ•½ÕÑ}‘½¹”€ô‘½¹”¹±½¹” ¤ì(€€€€€€€±•ĞÑ¥µ•½ÕÑ}•ÉÈ€ô•ÉÈ¹±½¹” ¤ì(€€€€€€€±•ĞÑ¥µ•½ÕÑ}…¹•±±•€ô…¹•±±•¹±½¹” ¤ì(€€€€€€€ÍÑèéÑ¡É•…èéÍÁ…İ¸¡µ½Ù”ñğì(€€€€€€€€€€€ÍÑèéÑ¡É•…èéÍ±••À¡‘ÕÉ…Ñ¥½¸¤ì(€€€€€€€€€€€¥˜€…Ñ¥µ•½ÕÑ}…¹•±±•¹Íİ…À¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€€€€€€©Ñ¥µ•½ÕÑ}•ÉÈ¹±½¬ ¤¹Õ¹İÉ…À ¤€ôM½µ”¡=}II=I}I=4 ‰½¹Ñ•áĞ‘•…‘±¥¹”•á••‘•ˆ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤ì(€€€€€€€€€€€€€€€Ñ¥µ•½ÕÑ}‘½¹”¹Í•¹¡ÑÉÕ”¤ì(€€€€€€€€€€€€€€€Ñ¥µ•½ÕÑ}‘½¹”¹±½Í” ¤ì(€€€€€€€€€€€ô(€€€€€€€ô¤ì((€€€€€€€±•Ğ…¹•±}‘½¹”€ô‘½¹”¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•±}•ÉÈ€ô•ÉÈ¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•±}…¹•±±•€ô…¹•±±•¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•°è½…¹•±Õ¹Œ€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡µ½Ù”ñğì(€€€€€€€€€€€¥˜€……¹•±}…¹•±±•¹Íİ…À¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€€€€€€©…¹•±}•ÉÈ¹±½¬ ¤¹Õ¹İÉ…À ¤€ôM½µ”¡=}II=I}I=4 ‰½¹Ñ•áĞ…¹•±•ˆ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤ì(€€€€€€€€€€€€€€€…¹•±}‘½¹”¹Í•¹¡ÑÉÕ”¤ì(€€€€€€€€€€€€€€€…¹•±}‘½¹”¹±½Í” ¤ì(€€€€€€€€€€€ô(€€€€€€€ô¤ì((€€€€€€€€ (€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½¹Ñ•áĞ¤¤¤°(€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡…¹•°¤¤¤°(€€€€€€€€¤(€€€ô((€€€™¸İ¥Ñ¡}…¹•°¡Á…É•¹ĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø¤€´ø€¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø°ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½…¹•±Õ¹Œøøø¤ì(€€€€€€€±•Ğ±…‰•°€ô™½Éµ…Ğ„ ‰íô¹]¥Ñ¡…¹•°ˆ°½½¹Ñ•áĞèéÁ…É•¹Ñ}±…‰•° ™Á…É•¹Ğ¤¤ì(€€€€€€€±•Ğ‘½¹”€ô½¡…¹¹•°èèñ‰½½°øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€€€€€±•Ğ•ÉÈ€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé5ÕÑ•àèé¹•Ü¡9½¹”èèñ=}II=I}Ae1=ø¤¤ì(€€€€€€€±•Ğ…¹•±±•€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì((€€€€€€€±•Ğ½¹Ñ•áĞ€ô½½¹Ñ•áĞì(€€€€€€€€€€€‘½¹”è‘½¹”¹±½¹” ¤°(€€€€€€€€€€€•ÉÈè•ÉÈ¹±½¹” ¤°(€€€€€€€€€€€…¹•±±•è…¹•±±•¹±½¹” ¤°(€€€€€€€€€€€±…‰•°°(€€€€€€€ôì((€€€€€€€±•Ğ…¹•±}‘½¹”€ô‘½¹”¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•±}•ÉÈ€ô•ÉÈ¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•±}…¹•±±•€ô…¹•±±•¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•°è½…¹•±Õ¹Œ€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡µ½Ù”ñğì(€€€€€€€€€€€¥˜€……¹•±}…¹•±±•¹Íİ…À¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€€€€€€©…¹•±}•ÉÈ¹±½¬ ¤¹Õ¹İÉ…À ¤€ôM½µ”¡=}II=I}I=4 ‰½¹Ñ•áĞ…¹•±•ˆ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤ì(€€€€€€€€€€€€€€€…¹•±}‘½¹”¹Í•¹¡ÑÉÕ”¤ì(€€€€€€€€€€€€€€€…¹•±}‘½¹”¹±½Í” ¤ì(€€€€€€€€€€€ô(€€€€€€€ô¤ì((€€€€€€€€ (€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½¹Ñ•áĞ¤¤¤°(€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡…¹•°¤¤¤°(€€€€€€€€¤(€€€ô((€€€™¸İ¥Ñ¡}…¹•±}…ÕÍ”¡Á…É•¹ĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø¤€´ø€¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½½¹Ñ•áĞøøø°ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½…¹•±…ÕÍ•Õ¹Œøøø¤ì(€€€€€€€±•Ğ±…‰•°€ô™½Éµ…Ğ„ ‰íô¹]¥Ñ¡…¹•±…ÕÍ”ˆ°½½¹Ñ•áĞèéÁ…É•¹Ñ}±…‰•° ™Á…É•¹Ğ¤¤ì(€€€€€€€±•Ğ‘½¹”€ô½¡…¹¹•°èèñ‰½½°øèé¹•İ}‰Õ™™•É• Ä¤ì(€€€€€€€±•Ğ•ÉÈ€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé5ÕÑ•àèé¹•Ü¡9½¹”èèñ=}II=I}Ae1=ø¤¤ì(€€€€€€€±•Ğ…¹•±±•€ôÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé…Ñ½µ¥ŒèéÑ½µ¥	½½°èé¹•Ü¡™…±Í”¤¤ì((€€€€€€€±•Ğ½¹Ñ•áĞ€ô½½¹Ñ•áĞì(€€€€€€€€€€€‘½¹”è‘½¹”¹±½¹” ¤°(€€€€€€€€€€€•ÉÈè•ÉÈ¹±½¹” ¤°(€€€€€€€€€€€…¹•±±•è…¹•±±•¹±½¹” ¤°(€€€€€€€€€€€±…‰•°°(€€€€€€€ôì((€€€€€€€±•Ğ…¹•±}‘½¹”€ô‘½¹”¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•±}•ÉÈ€ô•ÉÈ¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•±}…¹•±±•€ô…¹•±±•¹±½¹” ¤ì(€€€€€€€±•Ğ…¹•°è½…¹•±…ÕÍ•Õ¹Œ€ô	½àèé¹•Ü¡µ½Ù”ñ}…ÕÍ•ğì(€€€€€€€€€€€¥˜€……¹•±}…¹•±±•¹Íİ…À¡ÑÉÕ”°ÍÑèéÍå¹Œèé…Ñ½µ¥Œèé=É‘•É¥¹œèéM•ÅÍĞ¤ì(€€€€€€€€€€€€€€€€©…¹•±}•ÉÈ¹±½¬ ¤¹Õ¹İÉ…À ¤€ôM½µ”¡=}II=I}I=4 ‰½¹Ñ•áĞ…¹•±•ˆ¹Ñ½}ÍÑÉ¥¹œ ¤¤¤ì(€€€€€€€€€€€€€€€…¹•±}‘½¹”¹Í•¹¡ÑÉÕ”¤ì(€€€€€€€€€€€€€€€…¹•±}‘½¹”¹±½Í” ¤ì(€€€€€€€€€€€ô(€€€€€€€ô¤ì((€€€€€€€€ (€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½¹Ñ•áĞ¤¤¤°(€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡…¹•°¤¤¤°(€€€€€€€€¤(€€€ô((€€€™¸‘½¹” ™Í•±˜¤€´ø½¡…¹¹•°ñ‰½½°øì(€€€€€€€Í•±˜¹‘½¹”¹±½¹” ¤(€€€ô((€€€™¸•ÉÈ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøøì(€€€€€€€Í•±˜¹•ÉÈ¹±½¹” ¤(€€€ô)ô()¥µÁ°ÍÑèé™µĞèé¥ÍÁ±…ä™½È½½¹Ñ•áĞì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰íôˆ°Í•±˜¹±…‰•°¤(€€€ô)ô()¥µÁ°ÍÑèé™µĞèé•‰Õœ™½È½½¹Ñ•áĞì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰íôˆ°Í•±˜¹±…‰•°¤(€€€ô)ô)€(%¥˜•¹•É…Ñ¥¹AÕ‰±¥!•±Á•ÉÌì($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€‰ÍÑÉÕĞ½½¹Ñ•áĞˆ°€‰ÁÕˆÍÑÉÕĞ½½¹Ñ•áĞˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€‰ÑåÁ”½…¹•±Õ¹Œˆ°€‰ÁÕˆÑåÁ”½…¹•±Õ¹Œˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€‰ÑåÁ”½…¹•±…ÕÍ•Õ¹Œˆ°€‰ÁÕˆÑåÁ”½…¹•±…ÕÍ•Õ¹Œˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€ˆ€€€™¸‰…­É½Õ¹ ˆ°€ˆ€€€ÁÕˆ™¸‰…­É½Õ¹ ˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€ˆ€€€™¸İ¥Ñ¡}Ñ¥µ•½ÕĞ ˆ°€ˆ€€€ÁÕˆ™¸İ¥Ñ¡}Ñ¥µ•½ÕĞ ˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€ˆ€€€™¸İ¥Ñ¡}…¹•° ˆ°€ˆ€€€ÁÕˆ™¸İ¥Ñ¡}…¹•° ˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€ˆ€€€™¸İ¥Ñ¡}…¹•±}…ÕÍ” ˆ°€ˆ€€€ÁÕˆ™¸İ¥Ñ¡}…¹•±}…ÕÍ” ˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€ˆ€€€™¸‘½¹” ˆ°€ˆ€€€ÁÕˆ™¸‘½¹” ˆ¤($%½‘”€ôÍÑÉ¥¹Ì¹I•Á±…•±°¡½‘”°€ˆ€€€™¸•ÉÈ ˆ°€ˆ€€€ÁÕˆ™¸•ÉÈ ˆ¤(%ô(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡•áÁ…¹‘ÉÉ½ÉI•ÁÈ¡½‘”°ÑÉÕ”¤¤)ô()™Õ¹Œ•¹•É…Ñ•½I…¹‘!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)™¸½}É…¹‘}ÍÑ…Ñ” ¤€´ø€˜ÍÑ…Ñ¥ŒÍÑèéÍå¹Œèé5ÕÑ•àñÔØĞøì(€€€ÍÑ…Ñ¥ŒMQQèÍÑèéÍå¹Œèé=¹•1½¬ñÍÑèéÍå¹Œèé5ÕÑ•àñÔØĞøø€ôÍÑèéÍå¹Œèé=¹•1½¬èé¹•Ü ¤ì(€€€MQQ¹•Ñ}½É}¥¹¥Ğ¡ñğÍÑèéÍå¹Œèé5ÕÑ•àèé¹•Ü Ä¤¤)ô()™¸½}É…¹‘}Í••¡Í••è¤ØĞ¤ì(€€€€©½}É…¹‘}ÍÑ…Ñ” ¤¹±½¬ ¤¹Õ¹İÉ…À ¤€ôÍ••…ÌÔØĞì)ô()™¸½}É…¹‘}¹•áÑ}ÔØĞ ¤€´øÔØĞì(€€€±•ĞµÕĞÍÑ…Ñ”€ô½}É…¹‘}ÍÑ…Ñ” ¤¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€©ÍÑ…Ñ”€ôÍÑ…Ñ”(€€€€€€€€¹İÉ…ÁÁ¥¹}µÕ° ØÌØĞÄÌØÈÈÌàĞØÜäÌÀÀÔ¤(€€€€€€€€¹İÉ…ÁÁ¥¹}…‘ ÄĞĞÈØäÔÀĞÀàààäØÌĞÀÜ¤ì(€€€€©ÍÑ…Ñ”)ô()™¸½}É…¹‘}¥¹Ñ¸¡¸è¤ØĞ¤€´ø¤ØĞì(€€€¥˜¸€ğô€Àì(€€€€€€€Á…¹¥Œ„ ‰¥¹Ù…±¥…ÉÕµ•¹ĞÑ¼%¹Ñ¸ˆ¤ì(€€€ô(€€€€¡½}É…¹‘}¹•áÑ}ÔØĞ ¤€”¸…ÌÔØĞ¤…Ì¤ØĞ)ô()™¸½}É…¹‘}™±½…ĞØĞ ¤€´ø˜ØĞì(€€€€ ¡½}É…¹‘}¹•áÑ}ÔØĞ ¤€øø€ÄÄ¤…Ì˜ØĞ¤€¼€  ÅÔØĞ€ğğ€ÔÌ¤…Ì˜ØĞ¤)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•=ÍÉÍ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)ÍÑ…Ñ¥Œ}}=}=M}ILèÍÑèéÍå¹Œèé1…éå1½¬ñÍÑèéÍå¹ŒèéÉŒñÍÑèéÍå¹Œèé5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøø€ô(€€€ÍÑèéÍå¹Œèé1…éå1½¬èé¹•Ü¡ñğÍÑèéÍå¹ŒèéÉŒèé¹•Ü¡ÍÑèéÍå¹Œèé5ÕÑ•àèé¹•Ü¡M½µ”¡ÍÑèé•¹Øèé…ÉÌ ¤¹½±±•ĞèèñY•ŒñMÑÉ¥¹œøø ¤¤¤¤¤ì()™¸½}½Í}…ÉÌ ¤€´øÍÑèéÍå¹ŒèéÉŒñÍÑèéÍå¹Œèé5ÕÑ•àñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøì(€€€}}=}=M}IL¹±½¹” ¤)ô)€¤($%É•ÑÕÉ¸(%ô((%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€)Ñ¡É•…‘}±½…°„ì(€€€ÍÑ…Ñ¥Œ}}=}=M}ILèÍÑèéÉŒèéIŒñÍÑèé•±°èéI•™•±°ñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøø€ô(€€€€€€€ÍÑèéÉŒèéIŒèé¹•Ü¡ÍÑèé•±°èéI•™•±°èé¹•Ü¡M½µ”¡ÍÑèé•¹Øèé…ÉÌ ¤¹½±±•ĞèèñY•ŒñMÑÉ¥¹œøø ¤¤¤¤ì)ô()™¸½}½Í}…ÉÌ ¤€´øÍÑèéÉŒèéIŒñÍÑèé•±°èéI•™•±°ñ=ÁÑ¥½¸ñY•ŒñMÑÉ¥¹œøøøøì(€€€}}=}=M}IL¹İ¥Ñ ¡ñ…ÉÍğ…ÉÌ¹±½¹” ¤¤)ô)€¤)ô()™Õ¹Œ•¹•É…Ñ•=Í¥±•!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡•áÁ…¹‘ÉÉ½ÉI•ÁÈ¡€)ÍÑÉÕĞ½¥±”ì(€€€™¥±”è=ÁÑ¥½¸ñÍÑèé™Ìèé¥±”ø°)ô()¥µÁ°½¥±”ì(€€€™¸É•…Ñ”¡Á…Ñ è€™ÍÑÈ¤€´øI•ÍÕ±ĞñM•±˜°ÍÑèé¥¼èéÉÉ½Èøì(€€€€€€€ÍÑèé™Ìèé=Á•¹=ÁÑ¥½¹Ìèé¹•Ü ¤(€€€€€€€€€€€€¹É•…Ñ”¡ÑÉÕ”¤(€€€€€€€€€€€€¹ÑÉÕ¹…Ñ”¡ÑÉÕ”¤(€€€€€€€€€€€€¹İÉ¥Ñ”¡ÑÉÕ”¤(€€€€€€€€€€€€¹½Á•¸¡Á…Ñ ¤(€€€€€€€€€€€€¹µ…À¡ñ™¥±•ğ½¥±”ì™¥±”èM½µ”¡™¥±”¤ô¤(€€€ô((€€€™¸•µÁÑä ¤€´øM•±˜ì(€€€€€€€½¥±”ì™¥±”è9½¹”ô(€€€ô((€€€™¸İÉ¥Ñ•}ÍÑÉ¥¹œ ™µÕĞÍ•±˜°Ñ•áĞèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´ø€¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ¤ØĞøøø°ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøø¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€µ…Ñ Í•±˜¹™¥±”¹…Í}µÕĞ ¤ì(€€€€€€€€€€€M½µ”¡™¥±”¤€ôøµ…Ñ ÍÑèé¥¼èé]É¥Ñ”èéİÉ¥Ñ•}…±°¡™¥±”°Ñ•áĞ¹…Í}‰åÑ•Ì ¤¤ì(€€€€€€€€€€€€€€€=¬  ¤¤€ôø€¡ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Ñ•áĞ¹±•¸ ¤…Ì¤ØĞ¤¤¤°ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡9½¹”¤¤¤°(€€€€€€€€€€€€€€€ÉÈ¡”¤€ôø€¡ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ” À¤¤¤°ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡=}II=I}I=4¡”¤¤¤¤¤°(€€€€€€€€€€€ô°(€€€€€€€€€€€9½¹”€ôø€ (€€€€€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ” À¤¤¤°(€€€€€€€€€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡=}II=I}I=4¡ÍÑèé¥¼èéÉÉ½Èèé¹•Ü¡ÍÑèé¥¼èéÉÉ½É-¥¹èé=Ñ¡•È°€‰¥¹Ù…±¥™¥±”ˆ¤¤¤¤¤°(€€€€€€€€€€€€¤°(€€€€€€€ô(€€€ô((€€€™¸±½Í” ™µÕĞÍ•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøøì(€€€€€€€Í•±˜¹™¥±”€ô9½¹”ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡9½¹”¤¤(€€€ô)ô)€°ÑÉÕ”¤¤($%É•ÑÕÉ¸(%ô((%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤(%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡•áÁ…¹‘ÉÉ½ÉI•ÁÈ¡€)ÍÑÉÕĞ½¥±”ì(€€€™¥±”è=ÁÑ¥½¸ñÍÑèé™Ìèé¥±”ø°)ô()¥µÁ°½¥±”ì(€€€™¸É•…Ñ”¡Á…Ñ è€™ÍÑÈ¤€´øI•ÍÕ±ĞñM•±˜°ÍÑèé¥¼èéÉÉ½Èøì(€€€€€€€ÍÑèé™Ìèé=Á•¹=ÁÑ¥½¹Ìèé¹•Ü ¤(€€€€€€€€€€€€¹É•…Ñ”¡ÑÉÕ”¤(€€€€€€€€€€€€¹ÑÉÕ¹…Ñ”¡ÑÉÕ”¤(€€€€€€€€€€€€¹İÉ¥Ñ”¡ÑÉÕ”¤(€€€€€€€€€€€€¹½Á•¸¡Á…Ñ ¤(€€€€€€€€€€€€¹µ…À¡ñ™¥±•ğ½¥±”ì™¥±”èM½µ”¡™¥±”¤ô¤(€€€ô((€€€™¸•µÁÑä ¤€´øM•±˜ì(€€€€€€€½¥±”ì™¥±”è9½¹”ô(€€€ô((€€€™¸İÉ¥Ñ•}ÍÑÉ¥¹œ ™µÕĞÍ•±˜°Ñ•áĞèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´ø€¡IŒñI•™•±°ñ=ÁÑ¥½¸ñ¤ØĞøøø°IŒñI•™•±°ñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøø¤ì(€€€€€€€±•ĞÑ•áĞ€ô€ ©Ñ•áĞ¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€µ…Ñ Í•±˜¹™¥±”¹…Í}µÕĞ ¤ì(€€€€€€€€€€€M½µ”¡™¥±”¤€ôøµ…Ñ ÍÑèé¥¼èé]É¥Ñ”èéİÉ¥Ñ•}…±°¡™¥±”°Ñ•áĞ¹…Í}‰åÑ•Ì ¤¤ì(€€€€€€€€€€€€€€€=¬  ¤¤€ôø€¡IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Ñ•áĞ¹±•¸ ¤…Ì¤ØĞ¤¤¤°IŒèé¹•Ü¡I•™•±°èé¹•Ü¡9½¹”¤¤¤°(€€€€€€€€€€€€€€€ÉÈ¡”¤€ôø€¡IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ” À¤¤¤°IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡=}II=I}I=4¡”¤¤¤¤¤°(€€€€€€€€€€€ô°(€€€€€€€€€€€9½¹”€ôø€ (€€€€€€€€€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ” À¤¤¤°(€€€€€€€€€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡=}II=I}I=4¡ÍÑèé¥¼èéÉÉ½Èèé¹•Ü¡ÍÑèé¥¼èéÉÉ½É-¥¹èé=Ñ¡•È°€‰¥¹Ù…±¥™¥±”ˆ¤¤¤¤¤°(€€€€€€€€€€€€¤°(€€€€€€€ô(€€€ô((€€€™¸±½Í” ™µÕĞÍ•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ=}II=I}Ae1=øøøì(€€€€€€€Í•±˜¹™¥±”€ô9½¹”ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡9½¹”¤¤(€€€ô)ô)€°™…±Í”¤¤)ô()™Õ¹Œ•¹•É…Ñ•I•™±•Ñ!•±Á•È¡½ÕĞ€©ÍÑÉ¥¹Ì¹	Õ¥±‘•È¤ì(%¥˜9••‘Í½¹ÕÉÉ•¹Ñ]É…ÁÁ•È ¤ì($%QÉ…­%µÁ½ÉĞ ‰ÉŒˆ¤($%QÉ…­%µÁ½ÉĞ ‰5ÕÑ•àˆ¤($%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I•™±•ÑMÑÉÕÑQ…œì(€€€É…ÜèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°)ô()¥µÁ°½I•™±•ÑMÑÉÕÑQ…œì(€€€™¸•Ğ ™Í•±˜°­•äèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€±•ĞÉ…Ü€ô€ ©Í•±˜¹É…Ü¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•Ğ­•ä€ô€ ©­•ä¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡½}É•™±•Ñ}Ñ…}•Ğ ™É…Ü°€™­•ä¤¤¤¤(€€€ô)ô((m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I•™±•Ñ¥•±ì(€€€¹…µ”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€Ñ…œèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•ÑMÑÉÕÑQ…œøøø°)ô((m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I•™±•ÑQåÁ”ì(€€€¹…µ”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€­¥¹èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÉ•™±•Ñ}-¥¹øøø°(€€€•±•´èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ	½àñ½I•™±•ÑQåÁ”øøøø°(€€€™¥•±‘ÌèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•Œñ½I•™±•Ñ¥•±øøøø°)ô()¥µÁ°ÍÑèé™µĞèé¥ÍÁ±…ä™½È½I•™±•ÑQåÁ”ì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰íôˆ°Í•±˜¹¹…µ”¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤(€€€ô)ô()¥µÁ°A…ÉÑ¥…±Ä™½È½I•™±•ÑQåÁ”ì(€€€™¸•Ä ™Í•±˜°½Ñ¡•Èè€™M•±˜¤€´ø‰½½°ì(€€€€€€€€©Í•±˜¹¹…µ”¹±½¬ ¤¹Õ¹İÉ…À ¤€ôô€©½Ñ¡•È¹¹…µ”¹±½¬ ¤¹Õ¹İÉ…À ¤€˜˜(€€€€€€€€€€€€©Í•±˜¹­¥¹¹±½¬ ¤¹Õ¹İÉ…À ¤€ôô€©½Ñ¡•È¹­¥¹¹±½¬ ¤¹Õ¹İÉ…À ¤(€€€ô)ô()¥µÁ°Ä™½È½I•™±•ÑQåÁ”íô()¥µÁ°½I•™±•ÑQåÁ”ì(€€€™¸ÍÑÉ¥¹œ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”  ©Í•±˜¹¹…µ”¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤¤¤¤(€€€ô((€€€™¸­¥¹ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÉ•™±•Ñ}-¥¹øøøì(€€€€€€€Í•±˜¹­¥¹¹±½¹” ¤(€€€ô((€€€™¸•±•´ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•ÑQåÁ”øøøì(€€€€€€€±•Ğ•±•µ}Õ…É€ôÍ•±˜¹•±•´¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€±•Ğ•±•´€ô•±•µ}Õ…É¹…Í}É•˜ ¤¹•áÁ•Ğ ‰É•™±•Ğ¹QåÁ”¹±•´É•ÅÕ¥É•Ì…¸•±•µ•¹ĞÑåÁ”ˆ¤¹…Í}É•˜ ¤¹±½¹” ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡•±•´¤¤¤(€€€ô((€€€™¸¹Õµ}™¥•± ™Í•±˜¤€´ø¤ØĞì(€€€€€€€Í•±˜¹™¥•±‘Ì¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¹±•¸ ¤…Ì¤ØĞ(€€€ô((€€€™¸™¥•± ™Í•±˜°¥¹‘•àèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ¤ØĞøøø¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•Ñ¥•±øøøì(€€€€€€€±•Ğ¥¹‘•à€ô€©¥¹‘•à¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤…ÌÕÍ¥é”ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Í•±˜¹™¥•±‘Ì¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¥m¥¹‘•át¹±½¹” ¤¤¤¤(€€€ô)ô()ÑåÁ”½I•™±•Ñ	½½±•ÑÑ•È€ô	½àñ‘å¸¸ ¤€´ø‰½½°€¬M•¹€¬Må¹Œøì)ÑåÁ”½I•™±•Ñ	½½±M•ÑÑ•È€ô	½àñ‘å¸¹5ÕĞ¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ‰½½°øøø¤€´ø€ ¤€¬M•¹€¬Må¹Œøì((m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½I•™±•ÑY…±Õ”ì(€€€ÑåÀèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•ÑQåÁ”øøø°(€€€™¥•±‘ÌèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñY•Œñ½I•™±•ÑY…±Õ”øøøø°(€€€‰½½±}•ÑÑ•ÈèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•Ñ	½½±•ÑÑ•Èøøø°(€€€‰½½±}Í•ÑÑ•ÈèÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•Ñ	½½±M•ÑÑ•Èøøø°(€€€Õ¹ÍÕÁÁ½ÉÑ•è=ÁÑ¥½¸ğ˜ÍÑ…Ñ¥ŒÍÑÈø°)ô()¥µÁ°½I•™±•ÑY…±Õ”ì(€€€™¸Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ™Í•±˜°½Àè€™ÍÑÈ¤ì(€€€€€€€¥˜±•ĞM½µ”¡µ•ÍÍ…”¤€ôÍ•±˜¹Õ¹ÍÕÁÁ½ÉÑ•ì(€€€€€€€€€€€Á…¹¥Œ„ ‰íôèíôˆ°½À°µ•ÍÍ…”¤ì(€€€€€€€ô(€€€ô((€€€™¸•±•´ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•ÑY…±Õ”øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹±•´ˆ¤ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Í•±˜¹±½¹” ¤¤¤¤(€€€ô((€€€™¸ÈÑåÁ” ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•ÑQåÁ”øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹QåÁ”ˆ¤ì(€€€€€€€Í•±˜¹ÑåÀ¹±½¹” ¤(€€€ô((€€€™¸­¥¹ ™Í•±˜¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÉ•™±•Ñ}-¥¹øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹-¥¹ˆ¤ì(€€€€€€€Í•±˜¹ÑåÀ¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¹­¥¹ ¤(€€€ô((€€€™¸™¥•± ™Í•±˜°¥¹‘•àè¤ØĞ¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ½I•™±•ÑY…±Õ”øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹¥•±ˆ¤ì(€€€€€€€±•Ğ¥¹‘•à€ô¥¹‘•à…ÌÕÍ¥é”ì(€€€€€€€ÉŒèé¹•Ü¡5ÕÑ•àèé¹•Ü¡M½µ”¡Í•±˜¹™¥•±‘Ì¹±½¬ ¤¹Õ¹İÉ…À ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¥m¥¹‘•át¹±½¹” ¤¤¤¤(€€€ô((€€€™¸Í•ĞñPø ™Í•±˜°}Ù…±Õ”èP¤ì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹M•Ğˆ¤ì(€€€€€€€Á…¹¥Œ„ ‰É•™±•Ğ¹Y…±Õ”¹M•ĞÉ•ÅÕ¥É•ÌÑåÁ•±½İ•É¥¹œˆ¤(€€€ô((€€€™¸Í•Ñ}‰½½° ™µÕĞÍ•±˜°Ù…±Õ”èÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ‰½½°øøø¤ì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹M•Ñ	½½°ˆ¤ì(€€€€€€€±•ĞµÕĞÍ•ÑÑ•É}Õ…É€ôÍ•±˜¹‰½½±}Í•ÑÑ•È¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€±•ĞÍ•ÑÑ•È€ôÍ•ÑÑ•É}Õ…É¹…Í}µÕĞ ¤¹•áÁ•Ğ ‰É•™±•Ğ¹Y…±Õ”¹M•Ñ	½½°É•ÅÕ¥É•Ì„Í•ÑÑ…‰±”‰½½°™¥•±ˆ¤ì(€€€€€€€Í•ÑÑ•È¡Ù…±Õ”¤ì(€€€ô((€€€™¸‰½½° ™Í•±˜¤€´ø‰½½°ì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹	½½°ˆ¤ì(€€€€€€€±•Ğ•ÑÑ•É}Õ…É€ôÍ•±˜¹‰½½±}•ÑÑ•È¹±½¬ ¤¹Õ¹İÉ…À ¤ì(€€€€€€€±•Ğ•ÑÑ•È€ô•ÑÑ•É}Õ…É¹…Í}É•˜ ¤¹•áÁ•Ğ ‰É•™±•Ğ¹Y…±Õ”¹	½½°É•ÅÕ¥É•Ì„‰½½°™¥•±ˆ¤ì(€€€€€€€•ÑÑ•È ¤(€€€ô)ô()™¸½}É•™±•Ñ}Ñ…}•Ğ¡É…Üè€™ÍÑÈ°­•äè€™ÍÑÈ¤€´øMÑÉ¥¹œì(€€€±•ĞÁÉ•™¥à€ô™½Éµ…Ğ„ ‰íôépˆˆ°­•ä¤ì(€€€±•ĞM½µ”¡ÍÑ…ÉĞ¤€ôÉ…Ü¹™¥¹ ™ÁÉ•™¥à¤•±Í”ì(€€€€€€€É•ÑÕÉ¸MÑÉ¥¹œèé¹•Ü ¤ì(€€€ôì(€€€±•ĞÉ•ÍĞ€ô€™É…İmÍÑ…ÉĞ€¬ÁÉ•™¥à¹±•¸ ¤¸¹tì(€€€±•ĞµÕĞÙ…±Õ”€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€±•ĞµÕĞ•Í…Á•€ô™…±Í”ì(€€€™½È ¥¸É•ÍĞ¹¡…ÉÌ ¤ì(€€€€€€€¥˜•Í…Á•ì(€€€€€€€€€€€Ù…±Õ”¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€•Í…Á•€ô™…±Í”ì(€€€€€€€ô•±Í”¥˜ €ôô€qpœì(€€€€€€€€€€€•Í…Á•€ôÑÉÕ”ì(€€€€€€€ô•±Í”¥˜ €ôô€œˆœì(€€€€€€€€€€€‰É•…¬ì(€€€€€€€ô•±Í”ì(€€€€€€€€€€€Ù…±Õ”¹ÁÕÍ ¡ ¤ì(€€€€€€€ô(€€€ô(€€€Ù…±Õ”)ô)€¤($%É•ÑÕÉ¸(%ô((%QÉ…­%µÁ½ÉĞ ‰IŒˆ¤(%QÉ…­%µÁ½ÉĞ ‰I•™•±°ˆ¤(%½ÕĞ¹]É¥Ñ•MÑÉ¥¹œ¡€(m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I•™±•ÑMÑÉÕÑQ…œì(€€€É…ÜèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°)ô()¥µÁ°½I•™±•ÑMÑÉÕÑQ…œì(€€€™¸•Ğ ™Í•±˜°­•äèIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€±•ĞÉ…Ü€ô€ ©Í•±˜¹É…Ü¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€±•Ğ­•ä€ô€ ©­•ä¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡½}É•™±•Ñ}Ñ…}•Ğ ™É…Ü°€™­•ä¤¤¤¤(€€€ô)ô((m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I•™±•Ñ¥•±ì(€€€¹…µ”èIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€Ñ…œèIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•ÑMÑÉÕÑQ…œøøø°)ô((m‘•É¥Ù”¡•‰Õœ°±½¹”°•™…Õ±Ğ¥t)ÍÑÉÕĞ½I•™±•ÑQåÁ”ì(€€€¹…µ”èIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø°(€€€­¥¹èIŒñI•™•±°ñ=ÁÑ¥½¸ñÉ•™±•Ñ}-¥¹øøø°(€€€•±•´èIŒñI•™•±°ñ=ÁÑ¥½¸ñ	½àñ½I•™±•ÑQåÁ”øøøø°(€€€™¥•±‘ÌèIŒñI•™•±°ñ=ÁÑ¥½¸ñY•Œñ½I•™±•Ñ¥•±øøøø°)ô()¥µÁ°ÍÑèé™µĞèé¥ÍÁ±…ä™½È½I•™±•ÑQåÁ”ì(€€€™¸™µĞ ™Í•±˜°˜è€™µÕĞÍÑèé™µĞèé½Éµ…ÑÑ•Èğ|ø¤€´øÍÑèé™µĞèéI•ÍÕ±Ğì(€€€€€€€İÉ¥Ñ”„¡˜°€‰íôˆ°Í•±˜¹¹…µ”¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤(€€€ô)ô()¥µÁ°A…ÉÑ¥…±Ä™½È½I•™±•ÑQåÁ”ì(€€€™¸•Ä ™Í•±˜°½Ñ¡•Èè€™M•±˜¤€´ø‰½½°ì(€€€€€€€€©Í•±˜¹¹…µ”¹‰½ÉÉ½Ü ¤€ôô€©½Ñ¡•È¹¹…µ”¹‰½ÉÉ½Ü ¤€˜˜(€€€€€€€€€€€€©Í•±˜¹­¥¹¹‰½ÉÉ½Ü ¤€ôô€©½Ñ¡•È¹­¥¹¹‰½ÉÉ½Ü ¤(€€€ô)ô()¥µÁ°Ä™½È½I•™±•ÑQåÁ”íô()¥µÁ°½I•™±•ÑQåÁ”ì(€€€™¸ÍÑÉ¥¹œ ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”  ©Í•±˜¹¹…µ”¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¤¹±½¹” ¤¤¤¤(€€€ô((€€€™¸­¥¹ ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñÉ•™±•Ñ}-¥¹øøøì(€€€€€€€Í•±˜¹­¥¹¹±½¹” ¤(€€€ô((€€€™¸•±•´ ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•ÑQåÁ”øøøì(€€€€€€€±•Ğ•±•µ}Õ…É€ôÍ•±˜¹•±•´¹‰½ÉÉ½Ü ¤ì(€€€€€€€±•Ğ•±•´€ô•±•µ}Õ…É¹…Í}É•˜ ¤¹•áÁ•Ğ ‰É•™±•Ğ¹QåÁ”¹±•´É•ÅÕ¥É•Ì…¸•±•µ•¹ĞÑåÁ”ˆ¤¹…Í}É•˜ ¤¹±½¹” ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡•±•´¤¤¤(€€€ô((€€€™¸¹Õµ}™¥•± ™Í•±˜¤€´ø¤ØĞì(€€€€€€€Í•±˜¹™¥•±‘Ì¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¹±•¸ ¤…Ì¤ØĞ(€€€ô((€€€™¸™¥•± ™Í•±˜°¥¹‘•àèIŒñI•™•±°ñ=ÁÑ¥½¸ñ¤ØĞøøø¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•Ñ¥•±øøøì(€€€€€€€±•Ğ¥¹‘•à€ô€©¥¹‘•à¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤…ÌÕÍ¥é”ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Í•±˜¹™¥•±‘Ì¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¥m¥¹‘•át¹±½¹” ¤¤¤¤(€€€ô)ô()ÑåÁ”½I•™±•Ñ	½½±•ÑÑ•È€ô	½àñ‘å¸¸ ¤€´ø‰½½°øì)ÑåÁ”½I•™±•Ñ	½½±M•ÑÑ•È€ô	½àñ‘å¸¹5ÕĞ¡IŒñI•™•±°ñ=ÁÑ¥½¸ñ‰½½°øøø¤€´ø€ ¤øì((m‘•É¥Ù”¡±½¹”¥t)ÍÑÉÕĞ½I•™±•ÑY…±Õ”ì(€€€ÑåÀèIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•ÑQåÁ”øøø°(€€€™¥•±‘ÌèIŒñI•™•±°ñ=ÁÑ¥½¸ñY•Œñ½I•™±•ÑY…±Õ”øøøø°(€€€‰½½±}•ÑÑ•ÈèIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•Ñ	½½±•ÑÑ•Èøøø°(€€€‰½½±}Í•ÑÑ•ÈèIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•Ñ	½½±M•ÑÑ•Èøøø°(€€€Õ¹ÍÕÁÁ½ÉÑ•è=ÁÑ¥½¸ğ˜ÍÑ…Ñ¥ŒÍÑÈø°)ô()¥µÁ°½I•™±•ÑY…±Õ”ì(€€€™¸Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ™Í•±˜°½Àè€™ÍÑÈ¤ì(€€€€€€€¥˜±•ĞM½µ”¡µ•ÍÍ…”¤€ôÍ•±˜¹Õ¹ÍÕÁÁ½ÉÑ•ì(€€€€€€€€€€€Á…¹¥Œ„ ‰íôèíôˆ°½À°µ•ÍÍ…”¤ì(€€€€€€€ô(€€€ô((€€€™¸•±•´ ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•ÑY…±Õ”øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹±•´ˆ¤ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Í•±˜¹±½¹” ¤¤¤¤(€€€ô((€€€™¸ÈÑåÁ” ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•ÑQåÁ”øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹QåÁ”ˆ¤ì(€€€€€€€Í•±˜¹ÑåÀ¹±½¹” ¤(€€€ô((€€€™¸­¥¹ ™Í•±˜¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñÉ•™±•Ñ}-¥¹øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹-¥¹ˆ¤ì(€€€€€€€Í•±˜¹ÑåÀ¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¤¹­¥¹ ¤(€€€ô((€€€™¸™¥•± ™Í•±˜°¥¹‘•àè¤ØĞ¤€´øIŒñI•™•±°ñ=ÁÑ¥½¸ñ½I•™±•ÑY…±Õ”øøøì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹¥•±ˆ¤ì(€€€€€€€±•Ğ¥¹‘•à€ô¥¹‘•à…ÌÕÍ¥é”ì(€€€€€€€IŒèé¹•Ü¡I•™•±°èé¹•Ü¡M½µ”¡Í•±˜¹™¥•±‘Ì¹‰½ÉÉ½Ü ¤¹…Í}É•˜ ¤¹Õ¹İÉ…À ¥m¥¹‘•át¹±½¹” ¤¤¤¤(€€€ô((€€€™¸Í•ĞñPø ™Í•±˜°}Ù…±Õ”èP¤ì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹M•Ğˆ¤ì(€€€€€€€Á…¹¥Œ„ ‰É•™±•Ğ¹Y…±Õ”¹M•ĞÉ•ÅÕ¥É•ÌÑåÁ•±½İ•É¥¹œˆ¤(€€€ô((€€€™¸Í•Ñ}‰½½° ™µÕĞÍ•±˜°Ù…±Õ”èIŒñI•™•±°ñ=ÁÑ¥½¸ñ‰½½°øøø¤ì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹M•Ñ	½½°ˆ¤ì(€€€€€€€±•ĞµÕĞÍ•ÑÑ•É}Õ…É€ôÍ•±˜¹‰½½±}Í•ÑÑ•È¹‰½ÉÉ½İ}µÕĞ ¤ì(€€€€€€€±•ĞÍ•ÑÑ•È€ôÍ•ÑÑ•É}Õ…É¹…Í}µÕĞ ¤¹•áÁ•Ğ ‰É•™±•Ğ¹Y…±Õ”¹M•Ñ	½½°É•ÅÕ¥É•Ì„Í•ÑÑ…‰±”‰½½°™¥•±ˆ¤ì(€€€€€€€Í•ÑÑ•È¡Ù…±Õ”¤ì(€€€ô((€€€™¸‰½½° ™Í•±˜¤€´ø‰½½°ì(€€€€€€€Í•±˜¹Á…¹¥}¥™}Õ¹ÍÕÁÁ½ÉÑ• ‰É•™±•Ğ¹Y…±Õ”¹	½½°ˆ¤ì(€€€€€€€±•Ğ•ÑÑ•É}Õ…É€ôÍ•±˜¹‰½½±}•ÑÑ•È¹‰½ÉÉ½Ü ¤ì(€€€€€€€±•Ğ•ÑÑ•È€ô•ÑÑ•É}Õ…É¹…Í}É•˜ ¤¹•áÁ•Ğ ‰É•™±•Ğ¹Y…±Õ”¹	½½°É•ÅÕ¥É•Ì„‰½½°™¥•±ˆ¤ì(€€€€€€€•ÑÑ•È ¤(€€€ô)ô()™¸½}É•™±•Ñ}Ñ…}•Ğ¡É…Üè€™ÍÑÈ°­•äè€™ÍÑÈ¤€´øMÑÉ¥¹œì(€€€±•ĞÁÉ•™¥à€ô™½Éµ…Ğ„ ‰íôépˆˆ°­•ä¤ì(€€€±•ĞM½µ”¡ÍÑ…ÉĞ¤€ôÉ…Ü¹™¥¹ ™ÁÉ•™¥à¤•±Í”ì(€€€€€€€É•ÑÕÉ¸MÑÉ¥¹œèé¹•Ü ¤ì(€€€ôì(€€€±•ĞÉ•ÍĞ€ô€™É…İmÍÑ…ÉĞ€¬ÁÉ•™¥à¹±•¸ ¤¸¹tì(€€€±•ĞµÕĞÙ…±Õ”€ôMÑÉ¥¹œèé¹•Ü ¤ì(€€€±•ĞµÕĞ•Í…Á•€ô™…±Í”ì(€€€™½È ¥¸É•ÍĞ¹¡…ÉÌ ¤ì(€€€€€€€¥˜•Í…Á•ì(€€€€€€€€€€€Ù…±Õ”¹ÁÕÍ ¡ ¤ì(€€€€€€€€€€€•Í…Á•€ô™…±Í”ì(€€€€€€€ô•±Í”¥˜ €ôô€qpœì(€€€€€€€€€€€•Í…Á•€ôÑÉÕ”ì(€€€€€€€ô•±Í”¥˜ €ôô€œˆœì(€€€€€€€€€€€‰É•…¬ì(€€€€€€€ô•±Í”ì(€€€€€€€€€€€Ù…±Õ”¹ÁÕÍ ¡ ¤ì(€€€€€€€ô(€€€ô(€€€Ù…±Õ”)ô)€¤)ô
